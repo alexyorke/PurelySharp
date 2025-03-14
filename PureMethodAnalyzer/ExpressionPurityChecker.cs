@@ -222,6 +222,21 @@ namespace PureMethodAnalyzer
                         return IsExpressionPure(decl, semanticModel, currentMethod) &&
                                IsExpressionPure(assignment.Right, semanticModel, currentMethod);
                     }
+                    // Handle property assignment
+                    if (assignment.Left is MemberAccessExpressionSyntax propertyAccess)
+                    {
+                        var propertySymbol = semanticModel.GetSymbolInfo(propertyAccess).Symbol;
+                        if (propertySymbol is IPropertySymbol recordProperty)
+                        {
+                            // Check if it's a record property
+                            var containingType = recordProperty.ContainingType;
+                            if (containingType != null && SymbolPurityChecker.IsPureSymbol(recordProperty))
+                            {
+                                return IsExpressionPure(propertyAccess.Expression, semanticModel, currentMethod) &&
+                                       IsExpressionPure(assignment.Right, semanticModel, currentMethod);
+                            }
+                        }
+                    }
                     return false;
 
                 case StackAllocArrayCreationExpressionSyntax stackAlloc:
