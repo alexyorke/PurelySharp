@@ -6,6 +6,7 @@
     <TargetFramework>net472</TargetFramework>
     <RootNamespace>PureMethodAnalyzer.Vsix</RootNamespace>
     <AssemblyName>PureMethodAnalyzer.Vsix</AssemblyName>
+    <EnableVsixPackaging Condition="'$(BuildingInsideVisualStudio)' != 'true'">false</EnableVsixPackaging>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -30,7 +31,8 @@
 
   <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.targets" />
 
-  <Import Project="$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets" Condition="Exists('$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets')" />
+  <Import Project="$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets" 
+          Condition="'$(BuildingInsideVisualStudio)' == 'true' AND Exists('$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets')" />
 
   <ItemGroup>
     <ProjectReference Include="..\PureMethodAnalyzer.CodeFixes\PureMethodAnalyzer.CodeFixes.csproj" />

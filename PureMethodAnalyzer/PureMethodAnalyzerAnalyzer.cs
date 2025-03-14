@@ -77,6 +77,14 @@ namespace PureMethodAnalyzer
             // For regular method bodies
             if (methodDeclaration.Body != null)
             {
+                // Check if the method returns a tuple type
+                var returnType = methodSymbol.ReturnType;
+                if (returnType.IsTupleType)
+                {
+                    // Tuple operations are pure
+                    return true;
+                }
+
                 return AreStatementsPure(methodDeclaration.Body.Statements, semanticModel, methodSymbol);
             }
 
@@ -95,6 +103,11 @@ namespace PureMethodAnalyzer
 
                 case IdentifierNameSyntax identifier:
                     var symbol = semanticModel.GetSymbolInfo(identifier).Symbol;
+                    if (symbol != null && symbol.Kind == SymbolKind.Parameter)
+                    {
+                        // Parameter access is pure
+                        return true;
+                    }
                     return symbol != null && IsPureSymbol(symbol);
 
                 case InvocationExpressionSyntax invocation:
@@ -183,13 +196,47 @@ namespace PureMethodAnalyzer
                         return AreStatementsPure(block.Statements, semanticModel, currentMethod);
                     return false;
 
+                case ElementAccessExpressionSyntax elementAccessExpr:
+                    return IsExpressionPure(elementAccessExpr.Expression, semanticModel, currentMethod) &&
+                           elementAccessExpr.ArgumentList.Arguments.All(arg => IsExpressionPure(arg.Expression, semanticModel, currentMethod));
+
+                case AssignmentExpressionSyntax assignment:
+                    // Handle tuple deconstruction
+                    if (assignment.Left is TupleExpressionSyntax tupleLeft)
+                    {
+                        return tupleLeft.Arguments.All(arg => IsExpressionPure(arg.Expression, semanticModel, currentMethod)) &&
+                               IsExpressionPure(assignment.Right, semanticModel, currentMethod);
+                    }
+                    // Handle array/span element assignment
+                    if (assignment.Left is ElementAccessExpressionSyntax elementAccess)
+                    {
+                        return IsExpressionPure(elementAccess.Expression, semanticModel, currentMethod) &&
+                               elementAccess.ArgumentList.Arguments.All(arg => IsExpressionPure(arg.Expression, semanticModel, currentMethod)) &&
+                               IsExpressionPure(assignment.Right, semanticModel, currentMethod);
+                    }
+                    return false;
+
+                case StackAllocArrayCreationExpressionSyntax stackAlloc:
+                    return stackAlloc.Initializer == null ||
+                           stackAlloc.Initializer.Expressions.All(expr => IsExpressionPure(expr, semanticModel, currentMethod));
+
+                case TupleExpressionSyntax tuple:
+                    return tuple.Arguments.All(arg => IsExpressionPure(arg.Expression, semanticModel, currentMethod));
+
+                case DeclarationExpressionSyntax declaration:
+                    // Tuple deconstruction is pure
+                    return true;
+
                 default:
                     return false;
             }
         }
 
-        private bool AreStatementsPure(SyntaxList<StatementSyntax> statements, SemanticModel semanticModel, IMethodSymbol currentMethod)
+        private bool AreStatementsPure(SyntaxList<StatementSyntax> statements, SemanticModel semanticModel, IMethodSymbol? currentMethod)
         {
+            if (currentMethod == null)
+                return false;
+
             foreach (var statement in statements)
             {
                 switch (statement)
@@ -202,8 +249,24 @@ namespace PureMethodAnalyzer
                     case LocalDeclarationStatementSyntax localDecl:
                         foreach (var variable in localDecl.Declaration.Variables)
                         {
-                            if (!IsExpressionPure(variable.Initializer?.Value, semanticModel, currentMethod))
+                            if (variable.Initializer == null)
+                                continue;
+
+                            // Handle tuple deconstruction pattern
+                            if (localDecl.Declaration.Type is IdentifierNameSyntax { Identifier: { ValueText: "var" } } &&
+                                variable.Initializer.Value is IdentifierNameSyntax)
+                            {
+                                var symbol = semanticModel.GetSymbolInfo(variable.Initializer.Value).Symbol;
+                                if (symbol != null && symbol.Kind == SymbolKind.Parameter)
+                                {
+                                    // Parameter access is pure
+                                    continue;
+                                }
+                            }
+                            else if (!IsExpressionPure(variable.Initializer.Value, semanticModel, currentMethod))
+                            {
                                 return false;
+                            }
                         }
                         break;
 
@@ -238,6 +301,43 @@ namespace PureMethodAnalyzer
                                     return false;
                             }
                         }
+                        break;
+
+                    case YieldStatementSyntax yieldStmt:
+                        if (yieldStmt.Expression != null && !IsExpressionPure(yieldStmt.Expression, semanticModel, currentMethod))
+                            return false;
+                        break;
+
+                    case ForStatementSyntax forStmt:
+                        if (forStmt.Declaration != null)
+                        {
+                            foreach (var variable in forStmt.Declaration.Variables)
+                            {
+                                if (!IsExpressionPure(variable.Initializer?.Value, semanticModel, currentMethod))
+                                    return false;
+                            }
+                        }
+                        if (forStmt.Condition != null && !IsExpressionPure(forStmt.Condition, semanticModel, currentMethod))
+                            return false;
+                        if (forStmt.Incrementors.Any(inc => !IsExpressionPure(inc, semanticModel, currentMethod)))
+                            return false;
+                        if (forStmt.Statement is BlockSyntax forBlock)
+                        {
+                            if (!AreStatementsPure(forBlock.Statements, semanticModel, currentMethod))
+                                return false;
+                        }
+                        else
+                        {
+                            if (!AreStatementsPure(SyntaxFactory.SingletonList(forStmt.Statement), semanticModel, currentMethod))
+                                return false;
+                        }
+                        break;
+
+                    case LocalFunctionStatementSyntax localFunc:
+                        if (localFunc.Body != null && !AreStatementsPure(localFunc.Body.Statements, semanticModel, currentMethod))
+                            return false;
+                        if (localFunc.ExpressionBody != null && !IsExpressionPure(localFunc.ExpressionBody.Expression, semanticModel, currentMethod))
+                            return false;
                         break;
 
                     // Any other statement type is considered impure

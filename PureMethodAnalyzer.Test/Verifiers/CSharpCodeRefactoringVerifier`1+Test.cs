@@ -13,12 +13,16 @@ namespace PureMethodAnalyzer.Test
             {
                 SolutionTransforms.Add((solution, projectId) =>
                 {
-                    var compilationOptions = solution.GetProject(projectId).CompilationOptions;
+                    var project = solution.GetProject(projectId);
+                    if (project == null) return solution;
+
+                    var compilationOptions = project.CompilationOptions;
+                    if (compilationOptions == null) return solution;
+
                     compilationOptions = compilationOptions.WithSpecificDiagnosticOptions(
                         compilationOptions.SpecificDiagnosticOptions.SetItems(CSharpVerifierHelper.NullableWarnings));
-                    solution = solution.WithProjectCompilationOptions(projectId, compilationOptions);
 
-                    return solution;
+                    return solution.WithProjectCompilationOptions(projectId, compilationOptions);
                 });
             }
         }

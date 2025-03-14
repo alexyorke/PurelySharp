@@ -28,14 +28,18 @@ namespace PureMethodAnalyzer
         public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
+            if (root == null) return;
 
             // Find the diagnostic to fix.
             var diagnostic = context.Diagnostics.First();
             var diagnosticSpan = diagnostic.Location.SourceSpan;
 
             // Find the method declaration identified by the diagnostic.
-            var methodDeclaration = root.FindToken(diagnosticSpan.Start).Parent.AncestorsAndSelf()
-                .OfType<MethodDeclarationSyntax>().First();
+            var token = root.FindToken(diagnosticSpan.Start);
+            var methodDeclaration = token.Parent?.AncestorsAndSelf()
+                .OfType<MethodDeclarationSyntax>().FirstOrDefault();
+
+            if (methodDeclaration == null) return;
 
             // Register a code action that will invoke the fix.
             context.RegisterCodeFix(
@@ -71,7 +75,10 @@ namespace PureMethodAnalyzer
 
             // Replace the old method with the new method in the syntax tree.
             var root = await document.GetSyntaxRootAsync(cancellationToken);
+            if (root == null) return document;
+
             var newRoot = root.ReplaceNode(methodDecl, newMethodDecl);
+            if (newRoot == null) return document;
 
             // Return the updated document.
             return document.WithSyntaxRoot(newRoot);

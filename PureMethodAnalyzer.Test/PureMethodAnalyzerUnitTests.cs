@@ -455,5 +455,384 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
+
+        [TestMethod]
+        public async Task MethodWithMutableParameter_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public void TestMethod(List<int> list)
+    {
+        list.Add(42); // Modifying input parameter is impure
+    }
+}";
+
+            var expected = VerifyCS.Diagnostic("PMA0001")
+                .WithLocation(11, 17)
+                .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [TestMethod]
+        public async Task MethodWithMutableStructParameter_Diagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public struct MutableStruct
+{
+    public int Value;
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public void TestMethod(MutableStruct str)
+    {
+        str.Value = 42; // Modifying struct field is impure
+    }
+}";
+
+            var expected = VerifyCS.Diagnostic("PMA0001")
+                .WithLocation(15, 17)
+                .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [TestMethod]
+        public async Task MethodWithAsyncOperation_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Threading.Tasks;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public async Task<int> TestMethod()
+    {
+        await Task.Delay(100); // Async operation is impure
+        return 42;
+    }
+}";
+
+            var expected = VerifyCS.Diagnostic("PMA0001")
+                .WithLocation(11, 28)
+                .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [TestMethod]
+        public async Task MethodWithLazyEvaluation_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using System.Linq;
+using System.Collections.Generic;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public IEnumerable<int> TestMethod(IEnumerable<int> numbers)
+    {
+        return numbers.Where(x => x > 0)
+                     .Select(x => x * x)
+                     .OrderBy(x => x);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [TestMethod]
+        public async Task MethodWithClosureCapture_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Linq;
+using System.Collections.Generic;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    private int _field;
+
+    [EnforcePure]
+    public IEnumerable<int> TestMethod(IEnumerable<int> numbers)
+    {
+        return numbers.Select(x => x + _field); // Capturing mutable field
+    }
+}";
+
+            var expected = VerifyCS.Diagnostic("PMA0001")
+                .WithLocation(14, 29)
+                .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [TestMethod]
+        public async Task MethodWithRecursiveImpureCall_Diagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public int TestMethod(int n)
+    {
+        if (n <= 0) return 0;
+        Console.WriteLine(n); // Impure operation
+        return TestMethod(n - 1);
+    }
+}";
+
+            var expected = VerifyCS.Diagnostic("PMA0001")
+                .WithLocation(10, 16)
+                .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [TestMethod]
+        public async Task MethodWithDelegateInvocation_Diagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    private Action _action = () => Console.WriteLine(""Hello"");
+
+    [EnforcePure]
+    public void TestMethod()
+    {
+        _action(); // Invoking delegate that could be impure
+    }
+}";
+
+            var expected = VerifyCS.Diagnostic("PMA0001")
+                .WithLocation(12, 17)
+                .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [TestMethod]
+        public async Task MethodWithEventSubscription_Diagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    public event EventHandler MyEvent;
+
+    [EnforcePure]
+    public void TestMethod(EventHandler handler)
+    {
+        MyEvent += handler; // Event subscription is impure
+    }
+}";
+
+            var expected = VerifyCS.Diagnostic("PMA0001")
+                .WithLocation(12, 17)
+                .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [TestMethod]
+        public async Task MethodWithLockStatement_Diagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    private readonly object _lock = new object();
+
+    [EnforcePure]
+    public int TestMethod(int x)
+    {
+        lock (_lock) // Lock statement is impure
+        {
+            return x * 2;
+        }
+    }
+}";
+
+            var expected = VerifyCS.Diagnostic("PMA0001")
+                .WithLocation(12, 16)
+                .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [TestMethod]
+        public async Task MethodWithUnsafeCode_Diagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public unsafe void TestMethod(int* ptr)
+    {
+        *ptr = 42; // Modifying memory through pointer is impure
+    }
+}";
+
+            var expected = VerifyCS.Diagnostic("PMA0001")
+                .WithLocation(10, 24)
+                .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [TestMethod]
+        public async Task MethodWithStackallocAndSpan_NoDiagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public int TestMethod()
+    {
+        Span<int> span = stackalloc int[10];
+        for (int i = 0; i < 10; i++)
+        {
+            span[i] = i * i;
+        }
+        return span[5];
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [TestMethod]
+        public async Task MethodWithYieldReturn_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public IEnumerable<int> TestMethod(int n)
+    {
+        for (int i = 0; i < n; i++)
+        {
+            yield return i * i;
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [TestMethod]
+        public async Task MethodWithLocalFunction_Diagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    private int _field;
+
+    [EnforcePure]
+    public int TestMethod(int x)
+    {
+        int LocalFunction()
+        {
+            _field++; // Impure operation in local function
+            return x * 2;
+        }
+
+        return LocalFunction();
+    }
+}";
+
+            var expected = VerifyCS.Diagnostic("PMA0001")
+                .WithLocation(12, 16)
+                .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [TestMethod]
+        public async Task MethodWithTupleDeconstruction_NoDiagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public (int, int) TestMethod((int x, int y) input)
+    {
+        var (a, b) = input;
+        return (a * 2, b * 3);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
