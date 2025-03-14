@@ -834,5 +834,129 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [TestMethod]
+        public async Task MethodWithPatternMatching_NoDiagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public string TestMethod(object obj)
+    {
+        return obj switch
+        {
+            int i => $""Integer: {i}"",
+            string s => $""String: {s}"",
+            _ => ""Unknown type""
+        };
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [TestMethod]
+        public async Task MethodWithNullCoalescing_NoDiagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public string TestMethod(string input)
+    {
+        return input?.ToUpper() ?? ""EMPTY"";
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [TestMethod]
+        public async Task MethodWithStaticFieldAccess_Diagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    private static int _counter;
+
+    [EnforcePure]
+    public void TestMethod()
+    {
+        _counter++;
+    }
+}";
+
+            var expected = VerifyCS.Diagnostic("PMA0001")
+                .WithLocation(12, 17)
+                .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [TestMethod]
+        public async Task MethodWithConstantFolding_NoDiagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    private const double PI = 3.14159;
+    private const int FACTOR = 2;
+
+    [EnforcePure]
+    public double TestMethod(double radius)
+    {
+        const double area = PI * FACTOR;
+        return radius * area;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [TestMethod]
+        public async Task MethodWithRefParameter_Diagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public void TestMethod(ref int value)
+    {
+        value = 42;
+    }
+}";
+
+            var expected = VerifyCS.Diagnostic("PMA0001")
+                .WithLocation(10, 17)
+                .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
     }
 }

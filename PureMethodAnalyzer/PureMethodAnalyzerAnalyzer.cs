@@ -103,10 +103,22 @@ namespace PureMethodAnalyzer
 
                 case IdentifierNameSyntax identifier:
                     var symbol = semanticModel.GetSymbolInfo(identifier).Symbol;
-                    if (symbol != null && symbol.Kind == SymbolKind.Parameter)
+                    if (symbol != null)
                     {
-                        // Parameter access is pure
-                        return true;
+                        if (symbol.Kind == SymbolKind.Parameter)
+                        {
+                            var parameter = symbol as IParameterSymbol;
+                            // Check if parameter is ref/out
+                            if (parameter?.RefKind != RefKind.None)
+                                return false;
+                            return true;
+                        }
+                        if (symbol is IFieldSymbol fieldSymbol)
+                        {
+                            // Static fields that are not const are impure
+                            if (fieldSymbol.IsStatic && !fieldSymbol.IsConst)
+                                return false;
+                        }
                     }
                     return symbol != null && IsPureSymbol(symbol);
 
@@ -169,6 +181,11 @@ namespace PureMethodAnalyzer
                         IsExpressionPure(arg.Expression, semanticModel, currentMethod)) ?? true;
 
                 case BinaryExpressionSyntax binary:
+                    if (binary.IsKind(SyntaxKind.CoalesceExpression))
+                    {
+                        return IsExpressionPure(binary.Left, semanticModel, currentMethod) &&
+                               IsExpressionPure(binary.Right, semanticModel, currentMethod);
+                    }
                     return IsExpressionPure(binary.Left, semanticModel, currentMethod) &&
                            IsExpressionPure(binary.Right, semanticModel, currentMethod);
 
@@ -226,6 +243,30 @@ namespace PureMethodAnalyzer
                 case DeclarationExpressionSyntax declaration:
                     // Tuple deconstruction is pure
                     return true;
+
+                case SwitchExpressionSyntax switchExpr:
+                    // Pattern matching and switch expressions are pure operations
+                    // We only need to check the governing expression and the expressions in the arms
+                    if (!IsExpressionPure(switchExpr.GoverningExpression, semanticModel, currentMethod))
+                        return false;
+
+                    foreach (var arm in switchExpr.Arms)
+                    {
+                        // Pattern matching itself is pure, no need to check patterns
+                        if (!IsExpressionPure(arm.Expression, semanticModel, currentMethod))
+                            return false;
+                        if (arm.WhenClause != null && !IsExpressionPure(arm.WhenClause.Condition, semanticModel, currentMethod))
+                            return false;
+                    }
+                    return true;
+
+                case InterpolatedStringExpressionSyntax interpolatedString:
+                    return interpolatedString.Contents.OfType<InterpolationSyntax>()
+                        .All(interp => IsExpressionPure(interp.Expression, semanticModel, currentMethod));
+
+                case ConditionalAccessExpressionSyntax conditionalAccess:
+                    return IsExpressionPure(conditionalAccess.Expression, semanticModel, currentMethod) &&
+                           IsExpressionPure(conditionalAccess.WhenNotNull, semanticModel, currentMethod);
 
                 default:
                     return false;
@@ -407,8 +448,9 @@ namespace PureMethodAnalyzer
                            (property.GetMethod != null && !property.SetMethod?.IsInitOnly != true);
 
                 case IFieldSymbol field:
-                    // Allow readonly fields and static constants
-                    return field.IsReadOnly || (field.IsStatic && field.IsConst);
+                    // Allow only readonly fields and static constants
+                    // Static fields that are not const are considered impure
+                    return (field.IsReadOnly && !field.IsStatic) || (field.IsStatic && field.IsConst);
 
                 case IMethodSymbol method:
                     // Allow pure methods
