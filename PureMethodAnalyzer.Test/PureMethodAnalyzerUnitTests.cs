@@ -1,161 +1,459 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Testing;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Threading.Tasks;
-using VerifyCS = Microsoft.CodeAnalysis.CSharp.Testing.MSTest.CodeFixVerifier<
-    PureMethodAnalyzer.PureMethodAnalyzer,
-    PureMethodAnalyzer.EnforcePureMethodAnalyzerCodeFixProvider>;
+using VerifyCS = PureMethodAnalyzer.Test.CSharpAnalyzerVerifier<
+    PureMethodAnalyzer.PureMethodAnalyzer>;
 
 namespace PureMethodAnalyzer.Test
 {
     [TestClass]
-    public class PureMethodAnalyzerUnitTest
+    public class PureMethodAnalyzerUnitTests
     {
-        // Test that a method marked with [EnforcePure] and having a non-empty body produces a diagnostic.
         [TestMethod]
-        public async Task MethodWithNonEmptyBody_ShouldReportDiagnostic()
+        public async Task EmptyMethod_NoDiagnostic()
         {
-            var testCode = @"
+            var test = @"
 using System;
-using MyPurityEnforcement;
 
-namespace TestNamespace
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
 {
-    public class TestClass
+    [EnforcePure]
+    public void TestMethod()
     {
-        [EnforcePure]
-        public void {|#0:TestMethod|}()
-        {
-            Console.WriteLine(""Impure"");
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
-    }
-}
 
-namespace MyPurityEnforcement
+        [TestMethod]
+        public async Task PureMethodWithReturn_NoDiagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
 {
-    [System.AttributeUsage(System.AttributeTargets.Method, Inherited = false)]
-    public sealed class EnforcePureAttribute : System.Attribute
+    [EnforcePure]
+    public int TestMethod(int x, int y)
     {
+        return x + y;
     }
-}
-";
+}";
 
-            var expectedDiagnostic = VerifyCS.Diagnostic("PMA0001")
-                .WithLocation(0)
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [TestMethod]
+        public async Task PureMethodWithLocalVar_NoDiagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public int TestMethod(int x, int y)
+    {
+        var result = x * y;
+        return result;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [TestMethod]
+        public async Task ImpureMethodWithFieldAssignment_Diagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    private int _field;
+
+    [EnforcePure]
+    public void TestMethod()
+    {
+        _field = 42;
+    }
+}";
+
+            var expected = VerifyCS.Diagnostic("PMA0001")
+                .WithLocation(12, 17)
                 .WithArguments("TestMethod");
 
-            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedDiagnostic);
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
-        // Test that a method marked with [EnforcePure] and having an empty body does not produce a diagnostic.
         [TestMethod]
-        public async Task MethodWithEmptyBody_ShouldNotReportDiagnostic()
+        public async Task ImpureMethodWithConsoleWrite_Diagnostic()
         {
-            var testCode = @"
-using System;
-using MyPurityEnforcement;
-
-namespace TestNamespace
-{
-    public class TestClass
-    {
-        [EnforcePure]
-        public void TestMethod()
-        {
-        }
-    }
-}
-
-namespace MyPurityEnforcement
-{
-    [System.AttributeUsage(System.AttributeTargets.Method, Inherited = false)]
-    public sealed class EnforcePureAttribute : System.Attribute
-    {
-    }
-}
-";
-
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        // Test that a method not marked with [EnforcePure] does not produce a diagnostic even if it has a non-empty body.
-        [TestMethod]
-        public async Task MethodWithoutEnforcePure_ShouldNotReportDiagnostic()
-        {
-            var testCode = @"
+            var test = @"
 using System;
 
-namespace TestNamespace
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
 {
-    public class TestClass
+    [EnforcePure]
+    public void TestMethod()
     {
-        public void TestMethod()
-        {
-            Console.WriteLine(""Impure"");
-        }
+        Console.WriteLine(""Hello"");
     }
-}
-";
+}";
 
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        // Test that the code fix makes the method body empty for methods marked with [EnforcePure].
-        [TestMethod]
-        public async Task CodeFix_ShouldMakeMethodBodyEmpty()
-        {
-            var testCode = @"
-using System;
-using MyPurityEnforcement;
-
-namespace TestNamespace
-{
-    public class TestClass
-    {
-        [EnforcePure]
-        public void {|#0:TestMethod|}()
-        {
-            Console.WriteLine(""Impure"");
-        }
-    }
-}
-
-namespace MyPurityEnforcement
-{
-    [System.AttributeUsage(System.AttributeTargets.Method, Inherited = false)]
-    public sealed class EnforcePureAttribute : System.Attribute
-    {
-    }
-}
-";
-
-            var fixedCode = @"
-using System;
-using MyPurityEnforcement;
-
-namespace TestNamespace
-{
-    public class TestClass
-    {
-        [EnforcePure]
-        public void TestMethod()
-        {
-        }
-    }
-}
-
-namespace MyPurityEnforcement
-{
-    [System.AttributeUsage(System.AttributeTargets.Method, Inherited = false)]
-    public sealed class EnforcePureAttribute : System.Attribute
-    {
-    }
-}
-";
-
-            var expectedDiagnostic = VerifyCS.Diagnostic("PMA0001")
-                .WithLocation(0)
+            var expected = VerifyCS.Diagnostic("PMA0001")
+                .WithLocation(10, 17)
                 .WithArguments("TestMethod");
 
-            await VerifyCS.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode);
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [TestMethod]
+        public async Task PureMethodCallingPureMethod_NoDiagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Add(int x, int y)
+    {
+        return x + y;
+    }
+
+    [EnforcePure]
+    public int AddAndMultiply(int x, int y, int z)
+    {
+        return Add(x, y) * z;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [TestMethod]
+        public async Task PureMethodCallingImpureMethod_Diagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    public void ImpureMethod()
+    {
+        Console.WriteLine(""Hello"");
+    }
+
+    [EnforcePure]
+    public void TestMethod()
+    {
+        ImpureMethod();
+    }
+}";
+
+            var expected = VerifyCS.Diagnostic("PMA0001")
+                .WithLocation(15, 17)
+                .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [TestMethod]
+        public async Task ComplexPureLinqOperations_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using System.Linq;
+using System.Collections.Generic;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public int TestMethod(IEnumerable<int> numbers)
+    {
+        return numbers
+            .Where(x => x > 0)
+            .Select(x => x * x)
+            .OrderBy(x => x)
+            .Take(5)
+            .Sum();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [TestMethod]
+        public async Task ComplexNestedExpressions_NoDiagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public double TestMethod(double x, double y, double z)
+    {
+        var a = Math.Sin(x) * Math.Cos(y);
+        var b = Math.Pow(Math.E, z) / Math.PI;
+        var c = Math.Sqrt(Math.Abs(a * b));
+        return Math.Max(a, Math.Min(b, c));
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [TestMethod]
+        public async Task PurePropertyAccess_NoDiagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class Point
+{
+    public int X { get; }
+    public int Y { get; }
+    public double Length => Math.Sqrt(X * X + Y * Y);
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public double TestMethod(Point p1, Point p2)
+    {
+        var dx = p2.X - p1.X;
+        var dy = p2.Y - p1.Y;
+        return Math.Sqrt(dx * dx + dy * dy) / (p1.Length + p2.Length);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [TestMethod]
+        public async Task SimpleMathMethod_NoDiagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public double TestMethod(double x)
+    {
+        return Math.Sin(x);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [TestMethod]
+        public async Task MathConstant_NoDiagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public double TestMethod()
+    {
+        return Math.PI;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [TestMethod]
+        public async Task MathMethodChain_NoDiagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public double TestMethod(double x)
+    {
+        return Math.Sin(Math.Cos(x));
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [TestMethod]
+        public async Task ComplexLinqWithMath_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using System.Linq;
+using System.Collections.Generic;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public double TestMethod(IEnumerable<double> numbers)
+    {
+        return numbers
+            .Where(x => x > Math.PI)
+            .Select(x => Math.Pow(Math.Sin(x), 2) + Math.Pow(Math.Cos(x), 2))
+            .OrderBy(x => Math.Abs(x - 1))
+            .Take(5)
+            .Average();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [TestMethod]
+        public async Task RecursivePureMethod_NoDiagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Fibonacci(int n)
+    {
+        if (n <= 1) return n;
+        return Fibonacci(n - 1) + Fibonacci(n - 2);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [TestMethod]
+        public async Task ComplexStringOperations_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using System.Linq;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public string TestMethod(string input)
+    {
+        var words = input.Split(' ')
+            .Where(w => !string.IsNullOrEmpty(w))
+            .Select(w => w.Trim().ToLower())
+            .OrderBy(w => w.Length)
+            .ThenBy(w => w);
+
+        return string.Join("" "", words);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [TestMethod]
+        public async Task ImpureMethodWithFileOperation_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.IO;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public void TestMethod(string path)
+    {
+        File.WriteAllText(path, ""test"");
+    }
+}";
+
+            var expected = VerifyCS.Diagnostic("PMA0001")
+                .WithLocation(11, 17)
+                .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [TestMethod]
+        public async Task ImpureMethodWithRandomOperation_Diagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public int TestMethod()
+    {
+        return new Random().Next();
+    }
+}";
+
+            var expected = VerifyCS.Diagnostic("PMA0001")
+                .WithLocation(10, 16)
+                .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }
