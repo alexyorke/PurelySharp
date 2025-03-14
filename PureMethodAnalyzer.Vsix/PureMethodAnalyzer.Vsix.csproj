@@ -6,7 +6,8 @@
     <TargetFramework>net472</TargetFramework>
     <RootNamespace>PureMethodAnalyzer.Vsix</RootNamespace>
     <AssemblyName>PureMethodAnalyzer.Vsix</AssemblyName>
-    <EnableVsixPackaging Condition="'$(BuildingInsideVisualStudio)' != 'true'">false</EnableVsixPackaging>
+    <!-- EnableVsixPackaging is controlled by Directory.Build.props -->
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <PropertyGroup>

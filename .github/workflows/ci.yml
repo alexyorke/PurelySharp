@@ -27,24 +27,28 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
-      - name: Build
-        run: dotnet build --configuration Release --no-restore
+      - name: Build analyzer projects
+        run: |
+          dotnet build PureMethodAnalyzer/PureMethodAnalyzer.csproj --configuration Release --no-restore
+          dotnet build PureMethodAnalyzer.CodeFixes/PureMethodAnalyzer.CodeFixes.csproj --configuration Release --no-restore
+          dotnet build PureMethodAnalyzer.Package/PureMethodAnalyzer.Package.csproj --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test --configuration Release --no-build --verbosity normal
+        run: dotnet test PureMethodAnalyzer.Test/PureMethodAnalyzer.Test.csproj --configuration Release --verbosity normal
 
-      - name: Package VSIX
+      - name: Build VSIX project
         run: |
-          dotnet build PureMethodAnalyzer.Vsix/PureMethodAnalyzer.Vsix.csproj --configuration Release
+          dotnet build PureMethodAnalyzer.Vsix/PureMethodAnalyzer.Vsix.csproj --configuration Release /p:EnableVsixPackaging=true
 
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@v4
         with:
           name: vsix-package
           path: PureMethodAnalyzer.Vsix/bin/Release/*.vsix
+          if-no-files-found: warn
 
       - name: Package NuGet
-        run: dotnet pack --configuration Release --no-build --output nupkgs
+        run: dotnet pack PureMethodAnalyzer.Package/PureMethodAnalyzer.Package.csproj --configuration Release --output nupkgs
 
       - name: Upload NuGet artifact
         uses: actions/upload-artifact@v4

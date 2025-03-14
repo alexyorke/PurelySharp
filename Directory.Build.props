@@ -1,0 +1,17 @@
+<Project>
+  <PropertyGroup>
+    <!-- Control VSIX packaging -->
+    <EnableVsixPackaging Condition="'$(EnableVsixPackaging)' == 'true'">true</EnableVsixPackaging>
+    <EnableVsixPackaging Condition="'$(EnableVsixPackaging)' != 'true' AND '$(BuildingInsideVisualStudio)' == 'true'">true</EnableVsixPackaging>
+    <EnableVsixPackaging Condition="'$(EnableVsixPackaging)' != 'true' AND '$(BuildingInsideVisualStudio)' != 'true'">false</EnableVsixPackaging>
+    
+    <!-- Skip VSIX project during NuGet packaging -->
+    <IsPackable Condition="'$(MSBuildProjectName)' == 'PureMethodAnalyzer.Vsix'">false</IsPackable>
+    
+    <!-- Suppress NU5026 warning for VSIX projects -->
+    <NoWarn Condition="'$(MSBuildProjectName)' == 'PureMethodAnalyzer.Vsix'">$(NoWarn);NU5026</NoWarn>
+    
+    <!-- Exclude VSIX project from solution-wide pack -->
+    <DefaultItemExcludes Condition="'$(MSBuildProjectExtension)' == '.sln'">$(DefaultItemExcludes);PureMethodAnalyzer.Vsix\**</DefaultItemExcludes>
+  </PropertyGroup>
+</Project> 
