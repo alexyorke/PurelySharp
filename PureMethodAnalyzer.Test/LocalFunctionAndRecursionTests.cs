@@ -1,17 +1,17 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 using System.Threading.Tasks;
 using VerifyCS = PureMethodAnalyzer.Test.CSharpAnalyzerVerifier<
     PureMethodAnalyzer.PureMethodAnalyzer>;
 
 namespace PureMethodAnalyzer.Test
 {
-    [TestClass]
+    [TestFixture]
     public class LocalFunctionAndRecursionTests
     {
-        [TestMethod]
-        public async Task MethodWithLocalFunction_Diagnostic()
+        [Test]
+        public async Task PureLocalFunction_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -43,7 +43,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
-        [TestMethod]
+        [Test]
         public async Task MethodWithRecursiveImpureCall_Diagnostic()
         {
             var test = @"
@@ -70,7 +70,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
-        [TestMethod]
+        [Test]
         public async Task PureMethodCallingImpureMethod_Diagnostic()
         {
             var test = @"

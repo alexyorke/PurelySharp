@@ -1,16 +1,16 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 using System.Threading.Tasks;
 using VerifyCS = PureMethodAnalyzer.Test.CSharpAnalyzerVerifier<
     PureMethodAnalyzer.PureMethodAnalyzer>;
 
 namespace PureMethodAnalyzer.Test
 {
-    [TestClass]
+    [TestFixture]
     public class ImpureOperationsTests
     {
-        [TestMethod]
+        [Test]
         public async Task ImpureMethodWithFieldAssignment_Diagnostic()
         {
             var test = @"
@@ -37,7 +37,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
-        [TestMethod]
+        [Test]
         public async Task ImpureMethodWithConsoleWrite_Diagnostic()
         {
             var test = @"
@@ -62,7 +62,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
-        [TestMethod]
+        [Test]
         public async Task ImpureMethodWithFileOperation_Diagnostic()
         {
             var test = @"
@@ -88,7 +88,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
-        [TestMethod]
+        [Test]
         public async Task ImpureMethodWithRandomOperation_Diagnostic()
         {
             var test = @"
@@ -113,7 +113,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
-        [TestMethod]
+        [Test]
         public async Task MethodWithMutableParameter_Diagnostic()
         {
             var test = @"
@@ -139,7 +139,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
-        [TestMethod]
+        [Test]
         public async Task MethodWithMutableStructParameter_Diagnostic()
         {
             var test = @"
@@ -169,7 +169,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
-        [TestMethod]
+        [Test]
         public async Task MethodWithStaticFieldAccess_Diagnostic()
         {
             var test = @"
@@ -196,7 +196,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
-        [TestMethod]
+        [Test]
         public async Task MethodWithRefParameter_Diagnostic()
         {
             var test = @"

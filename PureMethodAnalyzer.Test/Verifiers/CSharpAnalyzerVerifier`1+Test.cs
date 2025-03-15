@@ -7,7 +7,7 @@ namespace PureMethodAnalyzer.Test
     public static partial class CSharpAnalyzerVerifier<TAnalyzer>
         where TAnalyzer : DiagnosticAnalyzer, new()
     {
-        public class Test : CSharpAnalyzerTest<TAnalyzer, MSTestVerifier>
+        public class Test : CSharpAnalyzerTest<TAnalyzer, NUnitVerifier>
         {
             public Test()
             {

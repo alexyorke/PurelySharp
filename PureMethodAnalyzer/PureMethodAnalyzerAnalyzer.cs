@@ -19,13 +19,15 @@ namespace PureMethodAnalyzer
         private const string Category = "Purity";
 
         private static readonly DiagnosticDescriptor Rule = new DiagnosticDescriptor(
-            DiagnosticId,
-            Title,
-            MessageFormat,
-            Category,
-            DiagnosticSeverity.Error,
+            id: DiagnosticId,
+            title: Title,
+            messageFormat: MessageFormat,
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true,
-            description: Description);
+            description: Description,
+            helpLinkUri: "https://github.com/yourusername/PureMethodAnalyzer/blob/main/docs/PMA0001.md",
+            customTags: WellKnownDiagnosticTags.Telemetry);
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
             ImmutableArray.Create(Rule);
