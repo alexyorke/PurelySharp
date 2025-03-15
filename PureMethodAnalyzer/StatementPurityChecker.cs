@@ -28,10 +28,30 @@ namespace PureMethodAnalyzer
                         break;
 
                     case LocalDeclarationStatementSyntax localDeclaration:
-                        foreach (var variable in localDeclaration.Declaration.Variables)
+                        // Check if this is a using declaration
+                        if (localDeclaration.UsingKeyword.Kind() == SyntaxKind.UsingKeyword)
                         {
-                            if (variable.Initializer != null && !ExpressionPurityChecker.IsExpressionPure(variable.Initializer.Value, semanticModel, currentMethod))
-                                return false;
+                            // Check if the type being disposed is pure
+                            foreach (var variable in localDeclaration.Declaration.Variables)
+                            {
+                                if (variable.Initializer != null)
+                                {
+                                    var type = semanticModel.GetTypeInfo(variable.Initializer.Value).Type;
+                                    if (type == null || !IsPureDisposable(type))
+                                        return false;
+
+                                    if (!ExpressionPurityChecker.IsExpressionPure(variable.Initializer.Value, semanticModel, currentMethod))
+                                        return false;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            foreach (var variable in localDeclaration.Declaration.Variables)
+                            {
+                                if (variable.Initializer != null && !ExpressionPurityChecker.IsExpressionPure(variable.Initializer.Value, semanticModel, currentMethod))
+                                    return false;
+                            }
                         }
                         break;
 
@@ -194,6 +214,31 @@ namespace PureMethodAnalyzer
                 }
             }
             return true;
+        }
+
+        private static bool IsPureDisposable(ITypeSymbol type)
+        {
+            // Check if the type implements IDisposable
+            var disposableInterface = type.AllInterfaces.FirstOrDefault(i => i.Name == "IDisposable");
+            if (disposableInterface == null)
+                return false;
+
+            // Get the Dispose method
+            var disposeMethod = type.GetMembers("Dispose").OfType<IMethodSymbol>().FirstOrDefault();
+            if (disposeMethod == null)
+                return false;
+
+            // Check if the Dispose method is empty (pure)
+            var syntaxRef = disposeMethod.DeclaringSyntaxReferences.FirstOrDefault();
+            if (syntaxRef == null)
+                return false;
+
+            var methodSyntax = syntaxRef.GetSyntax() as MethodDeclarationSyntax;
+            if (methodSyntax?.Body == null)
+                return false;
+
+            // An empty Dispose method is considered pure
+            return !methodSyntax.Body.Statements.Any();
         }
     }
 }

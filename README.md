@@ -32,8 +32,8 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] Throw statements
 - [x] Try-catch-finally blocks (if all blocks are pure)
 - [x] Local functions (if body is pure)
-- [ ] Using statements
-- [ ] Using declarations (C# 8.0+)
+- [x] Using statements
+- [x] Using declarations (C# 8.0+)
 - [ ] Lock statements
 - [ ] Yield statements (iterator methods)
 - [ ] Fixed statements
