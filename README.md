@@ -141,7 +141,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 ### C# 11 Specific Features
 
 - [x] List patterns (matching against arrays and collections)
-- [ ] Raw string literals ("""...""")
+- [x] Raw string literals ("""...""")
 - [ ] UTF-8 string literals (u8 suffix)
 - [x] Newlines in string interpolation expressions
 - [ ] Required members

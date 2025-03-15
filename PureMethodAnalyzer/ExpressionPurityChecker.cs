@@ -13,7 +13,8 @@ namespace PureMethodAnalyzer
 
             switch (expression)
             {
-                case LiteralExpressionSyntax:
+                case LiteralExpressionSyntax literal:
+                    // All literals including raw string literals are pure
                     return true;
 
                 case IdentifierNameSyntax identifier:
