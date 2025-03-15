@@ -1,16 +1,16 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 using System.Threading.Tasks;
 using VerifyCS = PureMethodAnalyzer.Test.CSharpAnalyzerVerifier<
     PureMethodAnalyzer.PureMethodAnalyzer>;
 
 namespace PureMethodAnalyzer.Test
 {
-    [TestClass]
+    [TestFixture]
     public class ModernLanguageFeatureTests
     {
-        [TestMethod]
+        [Test]
         public async Task MethodWithPatternMatching_NoDiagnostic()
         {
             var test = @"
@@ -36,7 +36,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        [TestMethod]
+        [Test]
         public async Task MethodWithNullCoalescing_NoDiagnostic()
         {
             var test = @"
@@ -57,7 +57,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        [TestMethod]
+        [Test]
         public async Task MethodWithConstantFolding_NoDiagnostic()
         {
             var test = @"
@@ -82,7 +82,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        [TestMethod]
+        [Test]
         public async Task MethodWithTupleDeconstruction_NoDiagnostic()
         {
             var test = @"
@@ -104,7 +104,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        [TestMethod]
+        [Test]
         public async Task MethodWithStackallocAndSpan_NoDiagnostic()
         {
             var test = @"
@@ -130,7 +130,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        [TestMethod]
+        [Test]
         public async Task MethodWithYieldReturn_NoDiagnostic()
         {
             var test = @"

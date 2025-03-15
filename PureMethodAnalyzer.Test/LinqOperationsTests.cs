@@ -1,17 +1,17 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 using System.Threading.Tasks;
 using VerifyCS = PureMethodAnalyzer.Test.CSharpAnalyzerVerifier<
     PureMethodAnalyzer.PureMethodAnalyzer>;
 
 namespace PureMethodAnalyzer.Test
 {
-    [TestClass]
+    [TestFixture]
     public class LinqOperationsTests
     {
-        [TestMethod]
-        public async Task ComplexPureLinqOperations_NoDiagnostic()
+        [Test]
+        public async Task SimpleLinqQuery_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -38,7 +38,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        [TestMethod]
+        [Test]
         public async Task ComplexLinqWithMath_NoDiagnostic()
         {
             var test = @"
@@ -66,7 +66,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        [TestMethod]
+        [Test]
         public async Task MethodWithLazyEvaluation_NoDiagnostic()
         {
             var test = @"

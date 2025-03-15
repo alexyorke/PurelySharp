@@ -1,16 +1,16 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 using System.Threading.Tasks;
 using VerifyCS = PureMethodAnalyzer.Test.CSharpAnalyzerVerifier<
     PureMethodAnalyzer.PureMethodAnalyzer>;
 
 namespace PureMethodAnalyzer.Test
 {
-    [TestClass]
+    [TestFixture]
     public class StringOperationsTests
     {
-        [TestMethod]
+        [Test]
         public async Task ComplexStringOperations_NoDiagnostic()
         {
             var test = @"
@@ -38,7 +38,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        [TestMethod]
+        [Test]
         public async Task StringInterpolation_NoDiagnostic()
         {
             var test = @"
@@ -59,7 +59,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        [TestMethod]
+        [Test]
         public async Task StringBuilderOperations_Diagnostic()
         {
             var test = @"
@@ -90,7 +90,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
-        [TestMethod]
+        [Test]
         public async Task StringFormatting_NoDiagnostic()
         {
             var test = @"

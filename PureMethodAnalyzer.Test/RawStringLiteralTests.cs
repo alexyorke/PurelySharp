@@ -1,16 +1,16 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 using System.Threading.Tasks;
 using VerifyCS = PureMethodAnalyzer.Test.CSharpAnalyzerVerifier<
     PureMethodAnalyzer.PureMethodAnalyzer>;
 
 namespace PureMethodAnalyzer.Test
 {
-    [TestClass]
+    [TestFixture]
     public class RawStringLiteralTests
     {
-        [TestMethod]
+        [Test]
         public async Task RawStringLiteral_SingleLine_IsPure()
         {
             var test = @"
@@ -31,7 +31,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        [TestMethod]
+        [Test]
         public async Task RawStringLiteral_MultiLine_IsPure()
         {
             var test = @"
@@ -55,7 +55,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        [TestMethod]
+        [Test]
         public async Task RawStringLiteral_WithQuotes_IsPure()
         {
             var test = @"
@@ -78,7 +78,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        [TestMethod]
+        [Test]
         public async Task RawStringLiteral_WithoutInterpolation_IsPure()
         {
             var test = @"
@@ -102,7 +102,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        [TestMethod]
+        [Test]
         public async Task RawStringLiteral_WithPureInterpolation_IsPure()
         {
             var test = @"
@@ -124,7 +124,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        [TestMethod]
+        [Test]
         public async Task RawStringLiteral_WithImpureInterpolation_IsNotPure()
         {
             var test = @"

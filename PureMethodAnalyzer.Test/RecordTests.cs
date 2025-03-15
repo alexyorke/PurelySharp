@@ -1,6 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 using System.Threading.Tasks;
 using VerifyCS = PureMethodAnalyzer.Test.CSharpAnalyzerVerifier<
     PureMethodAnalyzer.PureMethodAnalyzer>;
@@ -12,10 +12,10 @@ namespace System.Runtime.CompilerServices
 
 namespace PureMethodAnalyzer.Test
 {
-    [TestClass]
+    [TestFixture]
     public class RecordTests
     {
-        [TestMethod]
+        [Test]
         public async Task ImmutableRecord_NoDiagnostic()
         {
             var test = @"
@@ -45,7 +45,7 @@ public class TestClass
                     .WithArguments("System.Runtime.CompilerServices.IsExternalInit"));
         }
 
-        [TestMethod]
+        [Test]
         public async Task RecordWithPureMethod_NoDiagnostic()
         {
             var test = @"
@@ -73,7 +73,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        [TestMethod]
+        [Test]
         public async Task MutableRecord_ShouldProduceDiagnostic()
         {
             var test = @"
@@ -104,7 +104,7 @@ public class TestClass
                     .WithArguments("UpdatePerson"));
         }
 
-        [TestMethod]
+        [Test]
         public async Task RecordWithMixedProperties_ShouldProduceDiagnostic()
         {
             var test = @"

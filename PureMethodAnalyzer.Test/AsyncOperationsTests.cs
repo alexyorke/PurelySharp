@@ -1,16 +1,16 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 using System.Threading.Tasks;
 using VerifyCS = PureMethodAnalyzer.Test.CSharpAnalyzerVerifier<
     PureMethodAnalyzer.PureMethodAnalyzer>;
 
 namespace PureMethodAnalyzer.Test
 {
-    [TestClass]
+    [TestFixture]
     public class AsyncOperationsTests
     {
-        [TestMethod]
+        [Test]
         public async Task MethodWithAsyncOperation_Diagnostic()
         {
             var test = @"
@@ -35,6 +35,12 @@ public class TestClass
                 .WithArguments("TestMethod");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [Test]
+        public async Task AsyncMethodWithAwait_NoDiagnostic()
+        {
+            // ... existing code ...
         }
     }
 }

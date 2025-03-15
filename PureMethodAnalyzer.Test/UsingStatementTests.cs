@@ -1,17 +1,16 @@
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Testing;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 using System.Threading.Tasks;
 using VerifyCS = PureMethodAnalyzer.Test.CSharpAnalyzerVerifier<
     PureMethodAnalyzer.PureMethodAnalyzer>;
 
 namespace PureMethodAnalyzer.Test
 {
-    [TestClass]
+    [TestFixture]
     public class UsingStatementTests
     {
-        [TestMethod]
-        public async Task UsingStatement_Diagnostic()
+        [Test]
+        public async Task UsingStatement_WithoutDisposable_IsPure()
         {
             var test = @"
 using System;
@@ -39,7 +38,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
-        [TestMethod]
+        [Test]
         public async Task UsingDeclaration_Diagnostic()
         {
             var test = @"
@@ -66,7 +65,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
-        [TestMethod]
+        [Test]
         public async Task UsingDeclarationWithPureDisposable_NoDiagnostic()
         {
             var test = @"
