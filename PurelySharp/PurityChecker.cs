@@ -8,8 +8,7 @@ namespace PurelySharp
     {
         public static bool IsMethodPure(MethodDeclarationSyntax methodDeclaration, SemanticModel semanticModel)
         {
-            var methodSymbol = semanticModel.GetDeclaredSymbol(methodDeclaration) as IMethodSymbol;
-            if (methodSymbol == null)
+            if (semanticModel.GetDeclaredSymbol(methodDeclaration) is not IMethodSymbol methodSymbol)
                 return false;
 
             // Check if method is async - async methods are impure

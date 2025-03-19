@@ -21,11 +21,10 @@ namespace PurelySharp
                     var symbol = semanticModel.GetSymbolInfo(identifier).Symbol;
                     if (symbol != null)
                     {
-                        if (symbol.Kind == SymbolKind.Parameter)
+                        if (symbol is IParameterSymbol parameter)
                         {
-                            var parameter = symbol as IParameterSymbol;
                             // Check if parameter is ref/out
-                            if (parameter?.RefKind != RefKind.None)
+                            if (parameter.RefKind != RefKind.None)
                                 return false;
                             return true;
                         }
@@ -39,8 +38,7 @@ namespace PurelySharp
                     return symbol != null && SymbolPurityChecker.IsPureSymbol(symbol);
 
                 case InvocationExpressionSyntax invocation:
-                    var methodSymbol = semanticModel.GetSymbolInfo(invocation).Symbol as IMethodSymbol;
-                    if (methodSymbol == null)
+                    if (semanticModel.GetSymbolInfo(invocation).Symbol is not IMethodSymbol methodSymbol)
                         return false;
 
                     // Handle recursive calls
@@ -129,8 +127,7 @@ namespace PurelySharp
                     return true;
 
                 case ObjectCreationExpressionSyntax objectCreation:
-                    var typeSymbol = semanticModel.GetSymbolInfo(objectCreation.Type).Symbol as ITypeSymbol;
-                    if (typeSymbol == null)
+                    if (semanticModel.GetSymbolInfo(objectCreation.Type).Symbol is not ITypeSymbol typeSymbol)
                         return false;
 
                     // Check if it's a known impure type
@@ -187,17 +184,19 @@ namespace PurelySharp
                     var lambdaDataFlow = semanticModel.AnalyzeDataFlow(lambda.Body);
                     if (!lambdaDataFlow.Succeeded || DataFlowChecker.HasImpureCaptures(lambdaDataFlow))
                         return false;
-                    return IsExpressionPure(lambda.Body as ExpressionSyntax, semanticModel, currentMethod);
+                    return lambda.Body is ExpressionSyntax lambdaExpr ? IsExpressionPure(lambdaExpr, semanticModel, currentMethod) : false;
 
                 case ParenthesizedLambdaExpressionSyntax lambda:
                     var lambdaBlockDataFlow = semanticModel.AnalyzeDataFlow(lambda.Body);
                     if (!lambdaBlockDataFlow.Succeeded || DataFlowChecker.HasImpureCaptures(lambdaBlockDataFlow))
                         return false;
-                    if (lambda.Body is ExpressionSyntax expr)
-                        return IsExpressionPure(expr, semanticModel, currentMethod);
-                    if (lambda.Body is BlockSyntax block)
-                        return StatementPurityChecker.AreStatementsPure(block.Statements, semanticModel, currentMethod);
-                    return false;
+
+                    return lambda.Body switch
+                    {
+                        ExpressionSyntax exprBody => IsExpressionPure(exprBody, semanticModel, currentMethod),
+                        BlockSyntax block => StatementPurityChecker.AreStatementsPure(block.Statements, semanticModel, currentMethod),
+                        _ => false
+                    };
 
                 case ElementAccessExpressionSyntax elementAccessExpr:
                     return IsExpressionPure(elementAccessExpr.Expression, semanticModel, currentMethod) &&

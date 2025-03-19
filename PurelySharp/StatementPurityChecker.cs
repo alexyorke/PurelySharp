@@ -29,7 +29,7 @@ namespace PurelySharp
 
                     case LocalDeclarationStatementSyntax localDeclaration:
                         // Check if this is a using declaration
-                        if (localDeclaration.UsingKeyword.Kind() == SyntaxKind.UsingKeyword)
+                        if (localDeclaration.UsingKeyword.IsKind(SyntaxKind.UsingKeyword))
                         {
                             // Check if the type being disposed is pure
                             foreach (var variable in localDeclaration.Declaration.Variables)
@@ -233,8 +233,7 @@ namespace PurelySharp
             if (syntaxRef == null)
                 return false;
 
-            var methodSyntax = syntaxRef.GetSyntax() as MethodDeclarationSyntax;
-            if (methodSyntax?.Body == null)
+            if (syntaxRef.GetSyntax() is not MethodDeclarationSyntax methodSyntax || methodSyntax.Body == null)
                 return false;
 
             // An empty Dispose method is considered pure
