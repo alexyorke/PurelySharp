@@ -29,26 +29,26 @@ jobs:
 
       - name: Build analyzer projects
         run: |
-          dotnet build PureMethodAnalyzer/PureMethodAnalyzer.csproj --configuration Release --no-restore
-          dotnet build PureMethodAnalyzer.CodeFixes/PureMethodAnalyzer.CodeFixes.csproj --configuration Release --no-restore
-          dotnet build PureMethodAnalyzer.Package/PureMethodAnalyzer.Package.csproj --configuration Release --no-restore
+          dotnet build PurelySharp/PurelySharp.csproj --configuration Release --no-restore
+          dotnet build PurelySharp.CodeFixes/PurelySharp.CodeFixes.csproj --configuration Release --no-restore
+          dotnet build PurelySharp.Package/PurelySharp.Package.csproj --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test PureMethodAnalyzer.Test/PureMethodAnalyzer.Test.csproj --configuration Release --verbosity normal
+        run: dotnet test PurelySharp.Test/PurelySharp.Test.csproj --configuration Release --verbosity normal
 
       - name: Build VSIX project
         run: |
-          dotnet build PureMethodAnalyzer.Vsix/PureMethodAnalyzer.Vsix.csproj --configuration Release /p:EnableVsixPackaging=true
+          dotnet build PurelySharp.Vsix/PurelySharp.Vsix.csproj --configuration Release /p:EnableVsixPackaging=true
 
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@v4
         with:
           name: vsix-package
-          path: PureMethodAnalyzer.Vsix/bin/Release/*.vsix
+          path: PurelySharp.Vsix/bin/Release/*.vsix
           if-no-files-found: warn
 
       - name: Package NuGet
-        run: dotnet pack PureMethodAnalyzer.Package/PureMethodAnalyzer.Package.csproj --configuration Release --output nupkgs
+        run: dotnet pack PurelySharp.Package/PurelySharp.Package.csproj --configuration Release --output nupkgs
 
       - name: Upload NuGet artifact
         uses: actions/upload-artifact@v4

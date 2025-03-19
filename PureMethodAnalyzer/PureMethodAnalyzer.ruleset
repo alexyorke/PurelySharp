@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<RuleSet Name="PureMethodAnalyzer Rules" Description="Rules for the PureMethodAnalyzer" ToolsVersion="15.0">
-  <Rules AnalyzerId="Microsoft.CodeAnalysis.Analyzers" RuleNamespace="Microsoft.CodeAnalysis.Analyzers">
-    <Rule Id="RS2008" Action="None" />
-  </Rules>
-</RuleSet> 
