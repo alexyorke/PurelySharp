@@ -48,7 +48,8 @@ namespace PurelySharp
                 return;
 
             bool hasEnforcePureAttribute = methodSymbol.GetAttributes().Any(attr =>
-                attr.AttributeClass?.Name == "EnforcePureAttribute");
+                attr.AttributeClass?.Name == "EnforcePureAttribute" ||
+                attr.AttributeClass?.Name == "EnforcePure");
 
             if (!hasEnforcePureAttribute)
                 return;

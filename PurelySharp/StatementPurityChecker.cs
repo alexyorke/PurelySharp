@@ -195,8 +195,31 @@ namespace PurelySharp
                         return false;
 
                     case LockStatementSyntax lockStatement:
-                        // Lock statements are impure by nature
-                        return false;
+                        // Check if method has AllowSynchronization attribute
+                        if (currentMethod != null && HasAllowSynchronizationAttribute(currentMethod))
+                        {
+                            // Check if the lock expression is pure (readonly field, etc)
+                            if (!ExpressionPurityChecker.IsExpressionPure(lockStatement.Expression, semanticModel, currentMethod))
+                                return false;
+
+                            // Now check if the statements inside the lock are pure
+                            if (lockStatement.Statement is BlockSyntax lockBlock)
+                            {
+                                if (!AreStatementsPure(lockBlock.Statements, semanticModel, currentMethod))
+                                    return false;
+                            }
+                            else
+                            {
+                                if (!AreStatementsPure(SyntaxFactory.SingletonList(lockStatement.Statement), semanticModel, currentMethod))
+                                    return false;
+                            }
+                        }
+                        else
+                        {
+                            // Lock statements are impure by default
+                            return false;
+                        }
+                        break;
 
                     case YieldStatementSyntax yieldStatement:
                         if (yieldStatement.Expression != null && !ExpressionPurityChecker.IsExpressionPure(yieldStatement.Expression, semanticModel, currentMethod))
@@ -238,6 +261,13 @@ namespace PurelySharp
 
             // An empty Dispose method is considered pure
             return !methodSyntax.Body.Statements.Any();
+        }
+
+        private static bool HasAllowSynchronizationAttribute(IMethodSymbol methodSymbol)
+        {
+            return methodSymbol.GetAttributes().Any(attr =>
+                attr.AttributeClass?.Name == "AllowSynchronizationAttribute" ||
+                attr.AttributeClass?.Name == "AllowSynchronization");
         }
     }
 }

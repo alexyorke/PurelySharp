@@ -34,7 +34,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] Local functions (if body is pure)
 - [x] Using statements
 - [x] Using declarations (C# 8.0+)
-- [ ] Lock statements
+- [x] Lock statements (when used with `[AllowSynchronization]` attribute and read-only lock objects)
 - [ ] Yield statements (iterator methods)
 - [ ] Fixed statements
 
@@ -200,6 +200,11 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [ ] Reflection
 - [ ] Dynamic typing
 - [ ] Unsafe code
+
+## Attributes
+
+- [x] `[EnforcePure]` - Marks a method that should be analyzed for purity
+- [x] `[AllowSynchronization]` - Allows lock statements in pure methods when synchronizing on readonly objects
 
 ## Impure Namespaces (Always Considered Impure)
 
