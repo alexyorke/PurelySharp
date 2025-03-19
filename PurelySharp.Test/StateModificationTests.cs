@@ -119,5 +119,30 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
+
+        [Test]
+        public async Task MethodWithRefParameter_Diagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public void TestMethod(ref int value)
+    {
+        value = 42;
+    }
+}";
+
+            var expected = VerifyCS.Diagnostic("PMA0001")
+                .WithLocation(10, 17)
+                .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
     }
 }
