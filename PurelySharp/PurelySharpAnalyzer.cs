@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -48,8 +49,13 @@ namespace PurelySharp
                 return;
 
             bool hasEnforcePureAttribute = methodSymbol.GetAttributes().Any(attr =>
-                attr.AttributeClass?.Name == "EnforcePureAttribute" ||
-                attr.AttributeClass?.Name == "EnforcePure");
+                attr.AttributeClass?.Name.Equals("EnforcePureAttribute", StringComparison.OrdinalIgnoreCase) == true ||
+                attr.AttributeClass?.Name.Equals("EnforcePure", StringComparison.OrdinalIgnoreCase) == true ||
+                (attr.AttributeClass != null && (
+                    attr.AttributeClass.ToDisplayString().Equals("EnforcePureAttribute", StringComparison.OrdinalIgnoreCase) ||
+                    attr.AttributeClass.ToDisplayString().EndsWith(".EnforcePureAttribute", StringComparison.OrdinalIgnoreCase) ||
+                    attr.AttributeClass.ToDisplayString().EndsWith(".EnforcePure", StringComparison.OrdinalIgnoreCase)
+                )));
 
             if (!hasEnforcePureAttribute)
                 return;

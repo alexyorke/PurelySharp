@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 using System.Linq;
 
 namespace PurelySharp
@@ -265,9 +266,25 @@ namespace PurelySharp
 
         private static bool HasAllowSynchronizationAttribute(IMethodSymbol methodSymbol)
         {
+            // Debug output - uncomment for debugging
+            // foreach (var attr in methodSymbol.GetAttributes())
+            // {
+            //     if (attr.AttributeClass != null)
+            //     {
+            //         System.Diagnostics.Debug.WriteLine($"Attribute: {attr.AttributeClass.Name}, Full: {attr.AttributeClass.ToDisplayString()}");
+            //     }
+            // }
+
             return methodSymbol.GetAttributes().Any(attr =>
-                attr.AttributeClass?.Name == "AllowSynchronizationAttribute" ||
-                attr.AttributeClass?.Name == "AllowSynchronization");
+                // Direct name match (case insensitive)
+                attr.AttributeClass?.Name.Equals("AllowSynchronizationAttribute", StringComparison.OrdinalIgnoreCase) == true ||
+                attr.AttributeClass?.Name.Equals("AllowSynchronization", StringComparison.OrdinalIgnoreCase) == true ||
+                // Full name ending match (case insensitive)
+                (attr.AttributeClass != null && (
+                    attr.AttributeClass.ToDisplayString().Equals("AllowSynchronizationAttribute", StringComparison.OrdinalIgnoreCase) ||
+                    attr.AttributeClass.ToDisplayString().EndsWith(".AllowSynchronizationAttribute", StringComparison.OrdinalIgnoreCase) ||
+                    attr.AttributeClass.ToDisplayString().EndsWith(".AllowSynchronization", StringComparison.OrdinalIgnoreCase)
+                )));
         }
     }
 }
