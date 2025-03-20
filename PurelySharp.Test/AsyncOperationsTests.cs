@@ -40,7 +40,24 @@ public class TestClass
         [Test]
         public async Task AsyncMethodWithAwait_NoDiagnostic()
         {
-            // ... existing code ...
+            var test = @"
+using System;
+using System.Threading.Tasks;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public async Task<int> TestMethod()
+    {
+        var result = await Task.FromResult(42); // Pure async operation
+        return result;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }
 }

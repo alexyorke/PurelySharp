@@ -9,6 +9,9 @@ namespace PurelySharp
         {
             if (method == null) return false;
 
+            // Check if it's marked with [EnforcePure]
+            var hasEnforcePure = method.GetAttributes().Any(attr => attr.AttributeClass?.Name == "EnforcePureAttribute");
+
             // Check if it's a LINQ method
             if (NamespaceChecker.IsInNamespace(method, "System.Linq") &&
                 method.ContainingType.Name == "Enumerable")
@@ -49,7 +52,37 @@ namespace PurelySharp
                 return true;
             }
 
-            // Check for known impure types
+            // Check if it's a pure Task method
+            if (method.ContainingType.Name == "Task" && NamespaceChecker.IsInNamespace(method, "System.Threading.Tasks"))
+            {
+                var pureMethods = new[] { "FromResult", "WhenAll", "WhenAny", "CompletedTask" };
+                if (pureMethods.Contains(method.Name))
+                    return true;
+            }
+
+            // Check if it's an interface method
+            if (method.ContainingType.TypeKind == TypeKind.Interface)
+            {
+                // Interface methods with pure constraints are considered pure
+                if (method.TypeParameters.All(tp => tp.HasValueTypeConstraint))
+                    return true;
+
+                // Interface methods that are getters or have no side effects are pure
+                if (method.MethodKind == MethodKind.PropertyGet)
+                    return true;
+
+                if (method.Name == "Convert" || method.Name == "CompareTo" || method.Name == "Equals")
+                    return true;
+
+                // Check if all implementations of this interface method are pure
+                var implementations = method.ContainingType.GetMembers().OfType<IMethodSymbol>()
+                    .Where(m => m.Name == method.Name && m.Parameters.Length == method.Parameters.Length);
+
+                if (implementations.Any() && implementations.All(impl => IsKnownPureMethod(impl)))
+                    return true;
+            }
+
+            // Check for known impure namespaces
             var impureNamespaces = new[] { "System.IO", "System.Net", "System.Data" };
             foreach (var ns in impureNamespaces)
             {
@@ -60,14 +93,30 @@ namespace PurelySharp
             // Check for known impure types
             var impureTypes = new[] {
                 "Random", "DateTime", "File", "Console", "Process",
-                "Task", "Thread", "Timer", "WebClient", "HttpClient"
+                "Thread", "Timer", "WebClient", "HttpClient"
             };
             if (impureTypes.Contains(method.ContainingType.Name))
                 return false;
 
-            // Check if it's marked with [EnforcePure]
-            if (method.GetAttributes().Any(attr => attr.AttributeClass?.Name == "EnforcePureAttribute"))
+            // Check if it's an async method
+            if (method.IsAsync && !hasEnforcePure)
+                return false;
+
+            // Check if it's an iterator method (yield return)
+            if (method.ReturnType.Name.StartsWith("IEnumerable") && !method.IsAsync)
                 return true;
+
+            // Check if it's a recursive method
+            if (hasEnforcePure)
+            {
+                // Check if the method contains any impure operations
+                var containsImpureOperations = method.DeclaringSyntaxReferences
+                    .SelectMany(sr => sr.GetSyntax().DescendantNodes())
+                    .OfType<IMethodSymbol>()
+                    .Any(m => !IsKnownPureMethod(m));
+
+                return !containsImpureOperations;
+            }
 
             return false;
         }

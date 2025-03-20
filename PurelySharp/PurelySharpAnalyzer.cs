@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Linq;
-using System.Collections.Generic;
+using PurelySharp.Core;
 
 namespace PurelySharp
 {
@@ -32,6 +32,15 @@ namespace PurelySharp
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
             ImmutableArray.Create(Rule);
+
+        private readonly IPurityAnalyzer _analyzer;
+        private readonly PurityAnalyzerConfiguration _configuration;
+
+        public PurelySharp()
+        {
+            _configuration = new PurityAnalyzerConfiguration();
+            _analyzer = new DefaultPurityAnalyzer();
+        }
 
         public override void Initialize(AnalysisContext context)
         {
@@ -60,8 +69,12 @@ namespace PurelySharp
             if (!hasEnforcePureAttribute)
                 return;
 
-            if (!PurityChecker.IsMethodPure(methodDeclaration, context.SemanticModel))
+            var purityContext = new PurityContext(PurityLevel.Strict, configuration: _configuration);
+            var result = _analyzer.Analyze(methodDeclaration, context.SemanticModel, purityContext);
+
+            if (!result.IsPure)
             {
+                // Report only one diagnostic per method, at the method identifier location
                 var diagnostic = Diagnostic.Create(
                     Rule,
                     methodDeclaration.Identifier.GetLocation(),

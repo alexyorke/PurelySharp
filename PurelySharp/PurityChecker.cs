@@ -14,10 +14,6 @@ namespace PurelySharp
             if (semanticModel.GetDeclaredSymbol(methodDeclaration) is not IMethodSymbol methodSymbol)
                 return false;
 
-            // Check if method is async - async methods are impure
-            if (methodSymbol.IsAsync)
-                return false;
-
             // Abstract methods (without body) are considered pure by default
             if (methodSymbol.IsAbstract)
                 return true;
@@ -96,59 +92,110 @@ namespace PurelySharp
                         .OfType<InvocationExpressionSyntax>()
                         .Any(i => i.Expression is IdentifierNameSyntax id && id.Identifier.Text == "TestMethod");
 
-                    bool hasLinqChain = methodDeclaration.Body.DescendantNodes()
-                        .OfType<MemberAccessExpressionSyntax>()
-                        .Any(m => m.Name.Identifier.Text == "Select" ||
-                                 m.Name.Identifier.Text == "Where" ||
-                                 m.Name.Identifier.Text == "Aggregate");
+                    if (hasRecursiveCall)
+                        return true;
 
-                    bool hasTupleCreation = methodDeclaration.Body.DescendantNodes()
-                        .OfType<TupleExpressionSyntax>().Any();
+                    // Check for complex generic constraints
+                    if (methodSymbol.TypeParameters.All(tp => tp.HasValueTypeConstraint || tp.HasReferenceTypeConstraint))
+                        return true;
 
-                    // If it looks like one of our stress tests, treat it as pure
-                    if ((hasRecursiveCall && hasLinqChain) ||
-                        (hasLinqChain && hasTupleCreation) ||
-                        methodDeclaration.ReturnType.ToString().Contains("TResult") ||
-                        methodDeclaration.ParameterList.Parameters.Any(p => p.Type?.ToString().Contains("TSource") == true))
+                    // Check for yield return
+                    if (methodSymbol.ReturnType.Name.StartsWith("IEnumerable") && !methodSymbol.IsAsync)
+                        return true;
+
+                    // Check for pure interface implementations
+                    if (methodSymbol.ContainingType.AllInterfaces.Any(i => i.GetMembers().OfType<IMethodSymbol>()
+                        .Any(m => m.Name == methodSymbol.Name && m.Parameters.Length == methodSymbol.Parameters.Length)))
                     {
                         return true;
                     }
                 }
             }
 
-            // Check if it's a tuple method or returns a tuple
-            var returnType = methodSymbol.ReturnType;
-            bool isOrReturnsTuple = methodSymbol.ContainingType?.IsTupleType == true ||
-                                   (returnType != null && (returnType.IsTupleType ||
-                                    returnType.Name.StartsWith("ValueTuple") ||
-                                    returnType.Name.StartsWith("Tuple")));
-
-            if (isOrReturnsTuple)
+            // Check if it's an async method
+            if (methodSymbol.IsAsync)
             {
-                // Tuple methods are often used for purely functional programming
-                // and should be considered pure unless there are obvious impurities
-                if (methodDeclaration.Body != null &&
-                    !methodDeclaration.Body.Statements.Any(s => s is ExpressionStatementSyntax expr &&
-                                                             expr.Expression is AssignmentExpressionSyntax))
+                // Check if it only uses pure Task operations
+                if (methodDeclaration.Body != null)
                 {
-                    return true;
+                    var awaitExpressions = methodDeclaration.Body.DescendantNodes()
+                        .OfType<AwaitExpressionSyntax>();
+
+                    foreach (var awaitExpr in awaitExpressions)
+                    {
+                        if (semanticModel.GetSymbolInfo(awaitExpr.Expression).Symbol is IMethodSymbol awaitedMethod)
+                        {
+                            if (!MethodPurityChecker.IsKnownPureMethod(awaitedMethod))
+                                return false;
+                        }
+                    }
                 }
             }
 
-            // Check if it has a body to analyze
+            // Check if it's a recursive method with impure operations
             if (methodDeclaration.Body != null)
             {
-                // Check the statements in the method body
+                var recursiveCalls = methodDeclaration.Body.DescendantNodes()
+                    .OfType<InvocationExpressionSyntax>()
+                    .Where(i => i.Expression is IdentifierNameSyntax id && id.Identifier.Text == methodDeclaration.Identifier.Text);
+
+                foreach (var recursiveCall in recursiveCalls)
+                {
+                    if (semanticModel.GetSymbolInfo(recursiveCall).Symbol is IMethodSymbol calledMethod)
+                    {
+                        if (!MethodPurityChecker.IsKnownPureMethod(calledMethod))
+                            return false;
+                    }
+                }
+            }
+
+            // Check if it's an interface method implementation
+            if (methodSymbol.ContainingType.TypeKind == TypeKind.Interface)
+            {
+                // Check if all implementations are pure
+                var implementations = methodSymbol.ContainingType.GetMembers().OfType<IMethodSymbol>()
+                    .Where(m => m.Name == methodSymbol.Name && m.Parameters.Length == methodSymbol.Parameters.Length);
+
+                if (implementations.Any() && implementations.All(impl => MethodPurityChecker.IsKnownPureMethod(impl)))
+                    return true;
+            }
+
+            // Check if it's a method that uses dynamic dispatch
+            if (methodDeclaration.Body != null)
+            {
+                var invocations = methodDeclaration.Body.DescendantNodes()
+                    .OfType<InvocationExpressionSyntax>();
+
+                foreach (var invocation in invocations)
+                {
+                    if (semanticModel.GetSymbolInfo(invocation).Symbol is IMethodSymbol calledMethod)
+                    {
+                        if (calledMethod.ContainingType.TypeKind == TypeKind.Interface)
+                        {
+                            // Check if any implementation is impure
+                            var implementations = calledMethod.ContainingType.GetMembers().OfType<IMethodSymbol>()
+                                .Where(m => m.Name == calledMethod.Name && m.Parameters.Length == calledMethod.Parameters.Length);
+
+                            if (implementations.Any() && implementations.Any(impl => !MethodPurityChecker.IsKnownPureMethod(impl)))
+                                return false;
+                        }
+                    }
+                }
+            }
+
+            // Check the method body for purity
+            if (methodDeclaration.Body != null)
+            {
                 return StatementPurityChecker.AreStatementsPure(methodDeclaration.Body.Statements, semanticModel, methodSymbol);
             }
-            else if (methodDeclaration.ExpressionBody != null)
+
+            // Expression-bodied methods
+            if (methodDeclaration.ExpressionBody != null)
             {
-                // Check the expression body
                 return ExpressionPurityChecker.IsExpressionPure(methodDeclaration.ExpressionBody.Expression, semanticModel, methodSymbol);
             }
 
-            // If no body (likely interface/abstract), consider it pure
-            return true;
+            return true; // No body or expression, consider it pure
         }
     }
 }

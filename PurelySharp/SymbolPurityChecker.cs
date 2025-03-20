@@ -25,13 +25,41 @@ namespace PurelySharp
             return false;
         }
 
+        private static bool IsValueType(ITypeSymbol? type)
+        {
+            return type?.IsValueType == true;
+        }
+
+        private static bool HasPureConstraints(ITypeSymbol? type)
+        {
+            if (type is not ITypeParameterSymbol typeParam)
+                return false;
+
+            // Value type constraints are considered pure
+            if (typeParam.HasValueTypeConstraint)
+                return true;
+
+            // Check if all constraint types are pure
+            foreach (var constraint in typeParam.ConstraintTypes)
+            {
+                if (!IsPureSymbol(constraint))
+                    return false;
+            }
+
+            return true;
+        }
+
         public static bool IsPureSymbol(ISymbol symbol)
         {
             switch (symbol)
             {
                 case IParameterSymbol parameter:
                     // Ref/out parameters are impure
-                    return parameter.RefKind == RefKind.None;
+                    if (parameter.RefKind != RefKind.None)
+                        return false;
+
+                    // Check if the parameter type is pure
+                    return IsValueType(parameter.Type) || HasPureConstraints(parameter.Type);
 
                 case ILocalSymbol local:
                     return true;
@@ -40,6 +68,12 @@ namespace PurelySharp
                     // Only allow get-only properties or auto-implemented properties
                     // For records, allow init-only properties
                     var isRecord = IsRecordType(property.ContainingType);
+                    var isInterfaceProperty = property.ContainingType.TypeKind == TypeKind.Interface;
+
+                    // Interface properties with only getters are pure
+                    if (isInterfaceProperty && property.GetMethod != null && property.SetMethod == null)
+                        return true;
+
                     return property.IsReadOnly ||
                            (property.GetMethod != null && (property.SetMethod == null || property.SetMethod.IsInitOnly)) ||
                            (isRecord && property.GetMethod != null && property.SetMethod?.IsInitOnly == true);
@@ -55,12 +89,43 @@ namespace PurelySharp
                            (isRecordField && isBackingField);
 
                 case IMethodSymbol method:
+                    // Interface methods with pure constraints are considered pure
+                    if (method.ContainingType.TypeKind == TypeKind.Interface)
+                    {
+                        // Check if all type parameters have pure constraints
+                        if (method.TypeParameters.All(tp => HasPureConstraints(tp)))
+                            return true;
+
+                        // Check if it's a known pure interface method
+                        if (method.Name == "Convert" || method.Name == "CompareTo" || method.Name == "Equals")
+                            return true;
+
+                        // Check if it's a getter
+                        if (method.MethodKind == MethodKind.PropertyGet)
+                            return true;
+                    }
+
                     // Allow pure methods
                     return MethodPurityChecker.IsKnownPureMethod(method);
 
                 case ITypeSymbol type:
+                    // Value types are considered pure
+                    if (IsValueType(type))
+                        return true;
+
                     // Records are considered pure by default
-                    return IsRecordType(type);
+                    if (IsRecordType(type))
+                        return true;
+
+                    // Interfaces with pure constraints are considered pure
+                    if (type.TypeKind == TypeKind.Interface)
+                        return HasPureConstraints(type);
+
+                    // Generic type parameters with pure constraints are considered pure
+                    if (type is ITypeParameterSymbol)
+                        return HasPureConstraints(type);
+
+                    return false;
 
                 default:
                     return false;

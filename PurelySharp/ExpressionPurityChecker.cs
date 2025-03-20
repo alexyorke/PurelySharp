@@ -66,6 +66,22 @@ namespace PurelySharp
                             return true;
                     }
 
+                    // Check if it's a Task method
+                    if (methodSymbol.ContainingType.Name == "Task" && methodSymbol.ContainingType.ContainingNamespace?.Name == "Tasks")
+                    {
+                        var pureMethods = new[] { "FromResult", "WhenAll", "WhenAny", "CompletedTask" };
+                        if (pureMethods.Contains(methodSymbol.Name))
+                            return invocation.ArgumentList.Arguments.All(arg => IsExpressionPure(arg.Expression, semanticModel, currentMethod));
+                    }
+
+                    // Check if it's an async method
+                    if (methodSymbol.IsAsync)
+                    {
+                        // Async methods are pure if they only use pure operations
+                        return isCalledMethodPure &&
+                               invocation.ArgumentList.Arguments.All(arg => IsExpressionPure(arg.Expression, semanticModel, currentMethod));
+                    }
+
                     return isCalledMethodPure &&
                            invocation.ArgumentList.Arguments.All(arg => IsExpressionPure(arg.Expression, semanticModel, currentMethod));
 
@@ -104,6 +120,16 @@ namespace PurelySharp
                         return true; // Interface read-only properties are pure
                     }
 
+                    // Handle Task properties and methods
+                    if (memberSymbol is IPropertySymbol taskProperty &&
+                        taskProperty.ContainingType.Name == "Task" &&
+                        taskProperty.ContainingType.ContainingNamespace?.Name == "Tasks")
+                    {
+                        var pureProperties = new[] { "Result", "IsCompleted", "IsCanceled", "IsFaulted" };
+                        if (pureProperties.Contains(taskProperty.Name))
+                            return true;
+                    }
+
                     // Handle other member access
                     return SymbolPurityChecker.IsPureSymbol(memberSymbol) &&
                            (memberAccess.Expression == null || IsExpressionPure(memberAccess.Expression, semanticModel, currentMethod));
@@ -133,7 +159,7 @@ namespace PurelySharp
                     // Check if it's a known impure type
                     var impureTypes = new[] {
                         "Random", "FileStream", "StreamWriter", "StreamReader",
-                        "StringBuilder", "Task", "Thread", "Timer",
+                        "StringBuilder", "Thread", "Timer",
                         "WebClient", "HttpClient", "Socket", "NetworkStream"
                     };
                     if (impureTypes.Contains(typeSymbol.Name) || NamespaceChecker.IsInImpureNamespace(typeSymbol))
@@ -173,6 +199,10 @@ namespace PurelySharp
                     return IsExpressionPure(conditional.Condition, semanticModel, currentMethod) &&
                            IsExpressionPure(conditional.WhenTrue, semanticModel, currentMethod) &&
                            IsExpressionPure(conditional.WhenFalse, semanticModel, currentMethod);
+
+                case AwaitExpressionSyntax awaitExpr:
+                    // Await expressions are pure if the awaited expression is pure
+                    return IsExpressionPure(awaitExpr.Expression, semanticModel, currentMethod);
 
                 case PrefixUnaryExpressionSyntax prefix:
                     return IsExpressionPure(prefix.Operand, semanticModel, currentMethod);

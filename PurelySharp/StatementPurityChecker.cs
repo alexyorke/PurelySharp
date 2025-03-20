@@ -28,37 +28,17 @@ namespace PurelySharp
                         }
                         break;
 
-                    case LocalDeclarationStatementSyntax localDeclaration:
-                        // Check if this is a using declaration
-                        if (localDeclaration.UsingKeyword.IsKind(SyntaxKind.UsingKeyword))
-                        {
-                            // Check if the type being disposed is pure
-                            foreach (var variable in localDeclaration.Declaration.Variables)
-                            {
-                                if (variable.Initializer != null)
-                                {
-                                    var type = semanticModel.GetTypeInfo(variable.Initializer.Value).Type;
-                                    if (type == null || !IsPureDisposable(type))
-                                        return false;
-
-                                    if (!ExpressionPurityChecker.IsExpressionPure(variable.Initializer.Value, semanticModel, currentMethod))
-                                        return false;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            foreach (var variable in localDeclaration.Declaration.Variables)
-                            {
-                                if (variable.Initializer != null && !ExpressionPurityChecker.IsExpressionPure(variable.Initializer.Value, semanticModel, currentMethod))
-                                    return false;
-                            }
-                        }
-                        break;
-
                     case ExpressionStatementSyntax expressionStatement:
-                        if (!ExpressionPurityChecker.IsExpressionPure(expressionStatement.Expression, semanticModel, currentMethod))
+                        // Special handling for await expressions
+                        if (expressionStatement.Expression is AwaitExpressionSyntax awaitExpr)
+                        {
+                            if (!ExpressionPurityChecker.IsExpressionPure(awaitExpr.Expression, semanticModel, currentMethod))
+                                return false;
+                        }
+                        else if (!ExpressionPurityChecker.IsExpressionPure(expressionStatement.Expression, semanticModel, currentMethod))
+                        {
                             return false;
+                        }
                         break;
 
                     case ReturnStatementSyntax returnStatement:
@@ -164,6 +144,39 @@ namespace PurelySharp
                         }
                         break;
 
+                    case LocalDeclarationStatementSyntax localDeclaration:
+                        // Check if this is a using declaration
+                        if (localDeclaration.UsingKeyword.IsKind(SyntaxKind.UsingKeyword))
+                        {
+                            // Check if the type being disposed is pure
+                            foreach (var variable in localDeclaration.Declaration.Variables)
+                            {
+                                if (variable.Initializer != null)
+                                {
+                                    var type = semanticModel.GetTypeInfo(variable.Initializer.Value).Type;
+                                    if (type == null || !IsPureDisposable(type))
+                                        return false;
+
+                                    if (!ExpressionPurityChecker.IsExpressionPure(variable.Initializer.Value, semanticModel, currentMethod))
+                                        return false;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            foreach (var variable in localDeclaration.Declaration.Variables)
+                            {
+                                if (variable.Initializer != null && !ExpressionPurityChecker.IsExpressionPure(variable.Initializer.Value, semanticModel, currentMethod))
+                                    return false;
+                            }
+                        }
+                        break;
+
+                    case ThrowStatementSyntax throwStatement:
+                        if (throwStatement.Expression != null && !ExpressionPurityChecker.IsExpressionPure(throwStatement.Expression, semanticModel, currentMethod))
+                            return false;
+                        break;
+
                     case SwitchStatementSyntax switchStatement:
                         if (!ExpressionPurityChecker.IsExpressionPure(switchStatement.Expression, semanticModel, currentMethod))
                             return false;
@@ -172,11 +185,6 @@ namespace PurelySharp
                             if (!AreStatementsPure(section.Statements, semanticModel, currentMethod))
                                 return false;
                         }
-                        break;
-
-                    case ThrowStatementSyntax throwStatement:
-                        if (throwStatement.Expression != null && !ExpressionPurityChecker.IsExpressionPure(throwStatement.Expression, semanticModel, currentMethod))
-                            return false;
                         break;
 
                     case TryStatementSyntax tryStatement:
@@ -192,39 +200,26 @@ namespace PurelySharp
                         break;
 
                     case UsingStatementSyntax usingStatement:
-                        // Using statements are impure by nature
-                        return false;
-
-                    case LockStatementSyntax lockStatement:
-                        // Check if method has AllowSynchronization attribute
-                        if (currentMethod != null && HasAllowSynchronizationAttribute(currentMethod))
+                        if (usingStatement.Declaration != null)
                         {
-                            // Check if the lock expression is pure (readonly field, etc)
-                            if (!ExpressionPurityChecker.IsExpressionPure(lockStatement.Expression, semanticModel, currentMethod))
+                            foreach (var variable in usingStatement.Declaration.Variables)
+                            {
+                                if (variable.Initializer != null && !ExpressionPurityChecker.IsExpressionPure(variable.Initializer.Value, semanticModel, currentMethod))
+                                    return false;
+                            }
+                        }
+                        if (usingStatement.Expression != null && !ExpressionPurityChecker.IsExpressionPure(usingStatement.Expression, semanticModel, currentMethod))
+                            return false;
+                        if (usingStatement.Statement is BlockSyntax usingBlock)
+                        {
+                            if (!AreStatementsPure(usingBlock.Statements, semanticModel, currentMethod))
                                 return false;
-
-                            // Now check if the statements inside the lock are pure
-                            if (lockStatement.Statement is BlockSyntax lockBlock)
-                            {
-                                if (!AreStatementsPure(lockBlock.Statements, semanticModel, currentMethod))
-                                    return false;
-                            }
-                            else
-                            {
-                                if (!AreStatementsPure(SyntaxFactory.SingletonList(lockStatement.Statement), semanticModel, currentMethod))
-                                    return false;
-                            }
                         }
                         else
                         {
-                            // Lock statements are impure by default
-                            return false;
+                            if (!AreStatementsPure(SyntaxFactory.SingletonList(usingStatement.Statement), semanticModel, currentMethod))
+                                return false;
                         }
-                        break;
-
-                    case YieldStatementSyntax yieldStatement:
-                        if (yieldStatement.Expression != null && !ExpressionPurityChecker.IsExpressionPure(yieldStatement.Expression, semanticModel, currentMethod))
-                            return false;
                         break;
 
                     case BreakStatementSyntax:
