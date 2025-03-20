@@ -14,9 +14,8 @@ namespace PurelySharp
             if (semanticModel.GetDeclaredSymbol(methodDeclaration) is not IMethodSymbol methodSymbol)
                 return false;
 
-            // Check if method is async - async methods are impure
-            if (methodSymbol.IsAsync)
-                return false;
+            // Check if method is async - we used to consider all async methods impure, 
+            // but now we'll check the actual method body for impure operations
 
             // Abstract methods (without body) are considered pure by default
             if (methodSymbol.IsAbstract)

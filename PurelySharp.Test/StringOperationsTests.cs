@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
-    PurelySharp.PurelySharp>;
+    PurelySharp.PurelySharpAnalyzer>;
 
 namespace PurelySharp.Test
 {
@@ -18,11 +18,11 @@ using System;
 using System.Linq;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
 
 public class TestClass
 {
-    [EnforcePure]
+    [Pure]
     public string TestMethod(string input)
     {
         var words = input.Split(' ')
@@ -45,11 +45,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
 
 public class TestClass
 {
-    [EnforcePure]
+    [Pure]
     public string TestMethod(int x, string y)
     {
         return $""Value: {x}, Text: {y.ToUpper()}"";
@@ -67,11 +67,11 @@ using System;
 using System.Text;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
 
 public class TestClass
 {
-    [EnforcePure]
+    [Pure]
     public string TestMethod(string[] inputs)
     {
         var sb = new StringBuilder();
@@ -84,7 +84,7 @@ public class TestClass
 }";
 
             var expected = VerifyCS.Diagnostic("PMA0001")
-                .WithLocation(11, 19)
+                .WithLocation(16, 13)
                 .WithArguments("TestMethod");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
@@ -97,11 +97,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
 
 public class TestClass
 {
-    [EnforcePure]
+    [Pure]
     public string TestMethod(int x, double y)
     {
         return string.Format(""X={0:D}, Y={1:F2}"", x, y);

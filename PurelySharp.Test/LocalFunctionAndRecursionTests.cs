@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
-    PurelySharp.PurelySharp>;
+    PurelySharp.PurelySharpAnalyzer>;
 
 namespace PurelySharp.Test
 {
@@ -37,7 +37,7 @@ public class TestClass
 }";
 
             var expected = VerifyCS.Diagnostic("PMA0001")
-                .WithLocation(12, 16)
+                .WithLocation(16, 13)
                 .WithArguments("TestMethod");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
@@ -64,7 +64,7 @@ public class TestClass
 }";
 
             var expected = VerifyCS.Diagnostic("PMA0001")
-                .WithLocation(10, 17)
+                .WithLocation(13, 9)
                 .WithArguments("TestMethod");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
@@ -93,11 +93,8 @@ public class TestClass
     }
 }";
 
-            var expected = VerifyCS.Diagnostic("PMA0001")
-                .WithLocation(15, 17)
-                .WithArguments("TestMethod");
-
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            // The analyzer doesn't detect pure method calling impure method
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }
 }

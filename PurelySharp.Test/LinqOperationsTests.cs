@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
-    PurelySharp.PurelySharp>;
+    PurelySharp.PurelySharpAnalyzer>;
 
 namespace PurelySharp.Test
 {
@@ -19,11 +19,11 @@ using System.Linq;
 using System.Collections.Generic;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
 
 public class TestClass
 {
-    [EnforcePure]
+    [Pure]
     public int TestMethod(IEnumerable<int> numbers)
     {
         return numbers
@@ -47,11 +47,11 @@ using System.Linq;
 using System.Collections.Generic;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
 
 public class TestClass
 {
-    [EnforcePure]
+    [Pure]
     public double TestMethod(IEnumerable<double> numbers)
     {
         return numbers
@@ -75,11 +75,11 @@ using System.Linq;
 using System.Collections.Generic;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
 
 public class TestClass
 {
-    [EnforcePure]
+    [Pure]
     public IEnumerable<int> TestMethod(IEnumerable<int> numbers)
     {
         return numbers.Where(x => x > 0)

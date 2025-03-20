@@ -200,8 +200,20 @@ namespace PurelySharp
                         if (currentMethod != null && HasAllowSynchronizationAttribute(currentMethod))
                         {
                             // Check if the lock expression is pure (readonly field, etc)
-                            if (!ExpressionPurityChecker.IsExpressionPure(lockStatement.Expression, semanticModel, currentMethod))
+                            var lockExpressionSymbol = semanticModel.GetSymbolInfo(lockStatement.Expression).Symbol;
+                            bool isReadonlyLock = false;
+
+                            // Check if it's a field and if it's readonly
+                            if (lockExpressionSymbol is IFieldSymbol fieldSymbol)
+                            {
+                                isReadonlyLock = fieldSymbol.IsReadOnly || fieldSymbol.IsConst;
+                            }
+
+                            // If it's not a readonly field, it's impure
+                            if (!isReadonlyLock)
+                            {
                                 return false;
+                            }
 
                             // Now check if the statements inside the lock are pure
                             if (lockStatement.Statement is BlockSyntax lockBlock)
@@ -223,8 +235,38 @@ namespace PurelySharp
                         break;
 
                     case YieldStatementSyntax yieldStatement:
-                        if (yieldStatement.Expression != null && !ExpressionPurityChecker.IsExpressionPure(yieldStatement.Expression, semanticModel, currentMethod))
-                            return false;
+                        // Yield statements themselves are pure, but the expression might not be
+                        if (yieldStatement.Expression != null)
+                        {
+                            // If the expression is an assignment or has side effects, it's impure
+                            if (!ExpressionPurityChecker.IsExpressionPure(yieldStatement.Expression, semanticModel, currentMethod))
+                                return false;
+
+                            // Special case for method invocations in yield statements
+                            if (yieldStatement.Expression is InvocationExpressionSyntax invocation)
+                            {
+                                var methodSymbol = semanticModel.GetSymbolInfo(invocation).Symbol as IMethodSymbol;
+                                if (methodSymbol != null)
+                                {
+                                    // Check if the method being called is known to be impure
+                                    if (methodSymbol.ContainingType?.Name == "Console" &&
+                                        methodSymbol.ContainingType.ContainingNamespace?.Name == "System")
+                                    {
+                                        return false;
+                                    }
+
+                                    // Check for other known impure namespaces
+                                    var containingNamespace = methodSymbol.ContainingNamespace?.ToString() ?? string.Empty;
+                                    if (containingNamespace.StartsWith("System.IO") ||
+                                        containingNamespace.StartsWith("System.Net") ||
+                                        containingNamespace.StartsWith("System.Web") ||
+                                        containingNamespace.StartsWith("System.Threading"))
+                                    {
+                                        return false;
+                                    }
+                                }
+                            }
+                        }
                         break;
 
                     case BreakStatementSyntax:
@@ -267,13 +309,13 @@ namespace PurelySharp
         private static bool HasAllowSynchronizationAttribute(IMethodSymbol methodSymbol)
         {
             // Debug output - uncomment for debugging
-            // foreach (var attr in methodSymbol.GetAttributes())
-            // {
-            //     if (attr.AttributeClass != null)
-            //     {
-            //         System.Diagnostics.Debug.WriteLine($"Attribute: {attr.AttributeClass.Name}, Full: {attr.AttributeClass.ToDisplayString()}");
-            //     }
-            // }
+            foreach (var attr in methodSymbol.GetAttributes())
+            {
+                if (attr.AttributeClass != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Attribute: {attr.AttributeClass.Name}, Full: {attr.AttributeClass.ToDisplayString()}");
+                }
+            }
 
             return methodSymbol.GetAttributes().Any(attr =>
                 // Direct name match (case insensitive)

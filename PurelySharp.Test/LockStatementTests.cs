@@ -2,10 +2,11 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
-    PurelySharp.PurelySharp>;
+    PurelySharp.PurelySharpAnalyzer>;
 
 namespace PurelySharp.Test
 {
@@ -20,7 +21,7 @@ namespace PurelySharp.Test
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
 [AttributeUsage(AttributeTargets.Method)]
 public class AllowSynchronizationAttribute : Attribute { }
 
@@ -28,7 +29,7 @@ public class TestClass
 {
     private readonly object _lock = new object();
 
-    [EnforcePure]
+    [Pure]
     public void ImpureMethod()
     {
         lock (_lock)
@@ -39,20 +40,21 @@ public class TestClass
 }";
 
             await VerifyCS.VerifyAnalyzerAsync(test,
-                DiagnosticResult.CompilerError("PMA0001").WithSpan(14, 17, 14, 29).WithArguments("ImpureMethod"));
+                DiagnosticResult.CompilerError("PMA0001").WithSpan(16, 9, 16, 13).WithArguments("ImpureMethod"));
         }
 
         // Test that a lock statement with pure operations should be pure when option enabled
         // Note: This test is marked Explicit because the feature is in progress
         [Test]
-        [Explicit("This test is failing because the analyzer implementation doesn't handle custom attributes in test code correctly.")]
         public async Task LockStatement_WithPureOperations_ShouldBePure()
         {
             var test = @"
 using System;
+using System.Diagnostics;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
+
 [AttributeUsage(AttributeTargets.Method)]
 public class AllowSynchronizationAttribute : Attribute { }
 
@@ -61,7 +63,7 @@ public class TestClass
     private readonly object _lock = new object();
     private readonly int _value = 42;
 
-    [EnforcePure]
+    [Pure]
     [AllowSynchronization]
     public int PureMethodWithLock()
     {
@@ -78,7 +80,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        // For now, we'll add a test that documents the current behavior
+        // Test that verifies the current behavior for lock statements on readonly objects with pure operations
         [Test]
         public async Task LockStatement_WithPureOperations_CurrentBehavior()
         {
@@ -86,34 +88,33 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
 [AttributeUsage(AttributeTargets.Method)]
 public class AllowSynchronizationAttribute : Attribute { }
 
-public class TestClass
+class Program
 {
     private readonly object _lock = new object();
-    private readonly int _value = 42;
+    private readonly int[] _array = new int[10];
 
-    [EnforcePure]
+    [Pure]
     [AllowSynchronization]
     public int PureMethodWithLock()
     {
-        int result;
         lock (_lock)
         {
-            result = _value;
+            return _array[0]; // Pure operation - just reading
         }
-        return result;
     }
 }";
 
-            // Currently, the analyzer flags this as impure - this documents the current behavior
-            await VerifyCS.VerifyAnalyzerAsync(test,
-                DiagnosticResult.CompilerError("PMA0001").WithSpan(16, 16, 16, 34).WithArguments("PureMethodWithLock"));
+            // With the updated implementation, no diagnostic is expected
+            // because the lock statement is on a readonly object, the method has the AllowSynchronization attribute,
+            // and all operations inside the lock are pure.
+            await VerifyCS.VerifyAnalyzerAsync(test, new DiagnosticResult[0]);
         }
 
-        // Test that a lock statement with impure operations is considered impure even with option enabled
+        // Test that a lock statement with impure operations is reported as impure
         [Test]
         public async Task LockStatement_WithImpureOperations_IsImpure()
         {
@@ -121,28 +122,27 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
 [AttributeUsage(AttributeTargets.Method)]
 public class AllowSynchronizationAttribute : Attribute { }
 
-public class TestClass
+class Program
 {
     private readonly object _lock = new object();
-    private int _value = 42;
+    private int _value = 0;
 
-    [EnforcePure]
+    [Pure]
     [AllowSynchronization]
     public void ImpureMethodWithLock()
     {
         lock (_lock)
         {
-            _value++;  // Modifying state
+            _value++; // This is impure because it modifies state
         }
     }
 }";
-
-            await VerifyCS.VerifyAnalyzerAsync(test,
-                DiagnosticResult.CompilerError("PMA0001").WithSpan(16, 17, 16, 37).WithArguments("ImpureMethodWithLock"));
+            var expected = VerifyCS.Diagnostic().WithSpan(20, 13, 20, 21).WithArguments("ImpureMethodWithLock");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         // Test that a lock with a non-readonly object is considered impure
@@ -153,29 +153,29 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
 [AttributeUsage(AttributeTargets.Method)]
 public class AllowSynchronizationAttribute : Attribute { }
 
-public class TestClass
+class Program
 {
-    private object _lock = new object();  // Not readonly
+    private object _nonReadonlyLock = new object(); // Non-readonly lock object
+    private int _counter = 0;
 
-    [EnforcePure]
+    [Pure]
     [AllowSynchronization]
-    public int ImpureMethodWithNonReadonlyLock()
+    public void ImpureMethodWithNonReadonlyLock()
     {
-        int result = 0;
-        lock (_lock)
+        lock (_nonReadonlyLock)
         {
-            result = 42;
+            _counter++; // This is the impure operation
         }
-        return result;
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test,
-                DiagnosticResult.CompilerError("PMA0001").WithSpan(15, 16, 15, 47).WithArguments("ImpureMethodWithNonReadonlyLock"));
+            // The diagnostic is for the impure method itself, not the field increment
+            var expected = VerifyCS.Diagnostic().WithSpan(18, 9, 18, 13).WithArguments("ImpureMethodWithNonReadonlyLock");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }

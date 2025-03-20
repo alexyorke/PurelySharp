@@ -8,10 +8,10 @@ using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
 namespace PurelySharp.Test
 {
     [TestFixture]
-    public class MathOperationsTests
+    public class NullReferenceTests
     {
         [Test]
-        public async Task ComplexNestedExpressions_NoDiagnostic()
+        public async Task NullReferenceCheck_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -19,23 +19,22 @@ using System;
 [AttributeUsage(AttributeTargets.Method)]
 public class PureAttribute : Attribute { }
 
+#nullable enable
 public class TestClass
 {
     [Pure]
-    public double TestMethod(double x, double y, double z)
+    public bool IsNull(object? obj)
     {
-        var a = Math.Sin(x) * Math.Cos(y);
-        var b = Math.Pow(Math.E, z) / Math.PI;
-        var c = Math.Sqrt(Math.Abs(a * b));
-        return Math.Max(a, Math.Min(b, c));
+        return obj == null;
     }
-}";
+}
+#nullable disable";
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
-        public async Task SimpleMathMethod_NoDiagnostic()
+        public async Task NullReferenceAssignment_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -43,20 +42,23 @@ using System;
 [AttributeUsage(AttributeTargets.Method)]
 public class PureAttribute : Attribute { }
 
+#nullable enable
 public class TestClass
 {
     [Pure]
-    public double TestMethod(double x)
+    public object? GetNull()
     {
-        return Math.Sin(x);
+        object? temp = null;
+        return temp;
     }
-}";
+}
+#nullable disable";
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
-        public async Task MathConstant_NoDiagnostic()
+        public async Task NullReferenceWithThrow_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -64,35 +66,17 @@ using System;
 [AttributeUsage(AttributeTargets.Method)]
 public class PureAttribute : Attribute { }
 
+#nullable enable
 public class TestClass
 {
     [Pure]
-    public double TestMethod()
+    public void ValidateNotNull(object? obj)
     {
-        return Math.PI;
+        if (obj == null)
+            throw new ArgumentNullException(nameof(obj));
     }
-}";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
-        }
-
-        [Test]
-        public async Task MathMethodChain_NoDiagnostic()
-        {
-            var test = @"
-using System;
-
-[AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
-
-public class TestClass
-{
-    [Pure]
-    public double TestMethod(double x)
-    {
-        return Math.Sin(Math.Cos(x));
-    }
-}";
+}
+#nullable disable";
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
