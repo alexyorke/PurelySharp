@@ -219,7 +219,7 @@ Supported means there is _some_ level of test coverage. It does not mean it is 1
 - [ ] Generic type parameters with constraints
 - [ ] Covariance and contravariance
 - [x] Reflection
-- [ ] Dynamic typing
+- [x] Dynamic typing
 - [x] Unsafe code
 
 ## Attributes

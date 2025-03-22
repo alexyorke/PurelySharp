@@ -109,6 +109,16 @@ namespace PurelySharp
             if (!HasEnforcePureAttribute(methodSymbol))
                 return;
 
+            // Check for dynamic operations
+            var hasDynamicOperations = CheckForDynamicOperations(methodDeclaration, context.SemanticModel);
+            if (hasDynamicOperations.Item1)
+            {
+                var location = hasDynamicOperations.Item2 ?? methodDeclaration.Identifier.GetLocation();
+                var diagnostic = Diagnostic.Create(Rule, location, methodSymbol.Name);
+                context.ReportDiagnostic(diagnostic);
+                return;
+            }
+
             // Special case for local function invocation
             var localFunctionAwaitExpressions = methodDeclaration
                 .DescendantNodes()
@@ -1520,6 +1530,120 @@ namespace PurelySharp
 
             // If we can't determine impurity statically, be conservative
             return false;
+        }
+
+        private (bool, Location?) CheckForDynamicOperations(MethodDeclarationSyntax methodDeclaration, SemanticModel semanticModel)
+        {
+            // Check for dynamic variable declarations
+            foreach (var variable in methodDeclaration.DescendantNodes().OfType<VariableDeclarationSyntax>())
+            {
+                if (variable.Type.IsKind(SyntaxKind.IdentifierName) &&
+                    variable.Type.ToString() == "dynamic" &&
+                    variable.Variables.Any(v => v.Initializer != null &&
+                                             (v.Initializer.Value is ObjectCreationExpressionSyntax ||
+                                              IsPotentiallyImpureExpression(v.Initializer.Value, semanticModel))))
+                {
+                    return (true, variable.GetLocation());
+                }
+            }
+
+            // Check for dynamic method invocations
+            foreach (var invocation in methodDeclaration.DescendantNodes().OfType<InvocationExpressionSyntax>())
+            {
+                if (invocation.Expression is MemberAccessExpressionSyntax memberAccess)
+                {
+                    var expressionType = semanticModel.GetTypeInfo(memberAccess.Expression).Type;
+                    if (expressionType != null &&
+                        (expressionType.TypeKind == TypeKind.Dynamic || IsDynamicType(expressionType, memberAccess.Expression, semanticModel)))
+                    {
+                        return (true, invocation.GetLocation());
+                    }
+                }
+            }
+
+            // Check for dynamic property assignments
+            foreach (var assignment in methodDeclaration.DescendantNodes().OfType<AssignmentExpressionSyntax>())
+            {
+                if (assignment.Left is MemberAccessExpressionSyntax memberAccess)
+                {
+                    var expressionType = semanticModel.GetTypeInfo(memberAccess.Expression).Type;
+                    if (expressionType != null &&
+                        (expressionType.TypeKind == TypeKind.Dynamic || IsDynamicType(expressionType, memberAccess.Expression, semanticModel)))
+                    {
+                        // Don't report static readonly dynamic fields used in expressions
+                        if (memberAccess.Expression is IdentifierNameSyntax identifier)
+                        {
+                            var symbol = semanticModel.GetSymbolInfo(identifier).Symbol;
+                            if (symbol is IFieldSymbol field && field.IsStatic && field.IsReadOnly)
+                            {
+                                continue;
+                            }
+                        }
+                        return (true, assignment.GetLocation());
+                    }
+                }
+            }
+
+            // Check for dynamic object creation
+            foreach (var objectCreation in methodDeclaration.DescendantNodes().OfType<ObjectCreationExpressionSyntax>())
+            {
+                var typeSymbol = semanticModel.GetSymbolInfo(objectCreation.Type).Symbol as ITypeSymbol;
+                if (typeSymbol != null &&
+                    (typeSymbol.Name == "ExpandoObject" || typeSymbol.Name == "DynamicObject" ||
+                     (typeSymbol.ContainingNamespace?.ToString() == "System.Dynamic")))
+                {
+                    return (true, objectCreation.GetLocation());
+                }
+            }
+
+            // Check for binary expressions using dynamic
+            foreach (var binaryExpr in methodDeclaration.DescendantNodes().OfType<BinaryExpressionSyntax>())
+            {
+                var leftType = semanticModel.GetTypeInfo(binaryExpr.Left).Type;
+                var rightType = semanticModel.GetTypeInfo(binaryExpr.Right).Type;
+
+                // Skip operations if they involve static readonly dynamic fields which are safe to use
+                if (leftType?.TypeKind == TypeKind.Dynamic && binaryExpr.Left is IdentifierNameSyntax leftId)
+                {
+                    var leftSymbol = semanticModel.GetSymbolInfo(leftId).Symbol;
+                    if (leftSymbol is IFieldSymbol leftField && leftField.IsStatic && leftField.IsReadOnly)
+                    {
+                        // Static readonly dynamic fields are safe to use in expressions
+                        continue;
+                    }
+                    return (true, binaryExpr.GetLocation());
+                }
+
+                if (rightType?.TypeKind == TypeKind.Dynamic && binaryExpr.Right is IdentifierNameSyntax rightId)
+                {
+                    var rightSymbol = semanticModel.GetSymbolInfo(rightId).Symbol;
+                    if (rightSymbol is IFieldSymbol rightField && rightField.IsStatic && rightField.IsReadOnly)
+                    {
+                        // Static readonly dynamic fields are safe to use in expressions
+                        continue;
+                    }
+                    return (true, binaryExpr.GetLocation());
+                }
+            }
+
+            return (false, null);
+        }
+
+        private bool IsDynamicType(ITypeSymbol type, ExpressionSyntax expression, SemanticModel semanticModel)
+        {
+            if (type.TypeKind == TypeKind.Dynamic)
+                return true;
+
+            return ExpressionPurityChecker.IsDynamicExpression(expression, semanticModel);
+        }
+
+        private bool IsPotentiallyImpureExpression(ExpressionSyntax expression, SemanticModel semanticModel)
+        {
+            // Consider method invocations, member access with assignment, and object creations as potentially impure
+            return expression is InvocationExpressionSyntax ||
+                   expression is ObjectCreationExpressionSyntax ||
+                   expression is MemberAccessExpressionSyntax ||
+                   !ExpressionPurityChecker.IsExpressionPure(expression, semanticModel, null);
         }
     }
 }

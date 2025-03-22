@@ -46,6 +46,20 @@ namespace PurelySharp
                     return symbol != null && SymbolPurityChecker.IsPureSymbol(symbol);
 
                 case InvocationExpressionSyntax invocation:
+                    // Check for dynamic invocation - method calls on dynamic objects are impure
+                    if (invocation.Expression is MemberAccessExpressionSyntax dynamicMemberAccess)
+                    {
+                        var dynamicTypeInfo = semanticModel.GetTypeInfo(dynamicMemberAccess.Expression);
+                        if (dynamicTypeInfo.Type != null &&
+                            (dynamicTypeInfo.Type.TypeKind == TypeKind.Dynamic ||
+                             dynamicTypeInfo.Type.Name == "Object" &&
+                             IsDynamicExpression(dynamicMemberAccess.Expression, semanticModel)))
+                        {
+                            // Invoking methods on dynamic objects is impure because we can't analyze them statically
+                            return false;
+                        }
+                    }
+
                     // Check the method being called
                     var methodSymbol = semanticModel.GetSymbolInfo(invocation).Symbol as IMethodSymbol;
                     if (methodSymbol == null)
@@ -98,6 +112,10 @@ namespace PurelySharp
                         IsExpressionPure(arg.Expression, semanticModel, currentMethod)) ?? true;
 
                 case MemberAccessExpressionSyntax memberAccess:
+                    // For member access without assignment, reading dynamic properties is considered pure
+                    // Only parent nodes that are invocations or assignments make dynamic operations impure
+                    // This allows reading properties of dynamic objects
+
                     // Check if this is a member of an impure type like Console
                     if (memberAccess.Expression is IdentifierNameSyntax identifierName)
                     {
@@ -212,6 +230,22 @@ namespace PurelySharp
                 case ObjectCreationExpressionSyntax objectCreation:
                     if (semanticModel.GetSymbolInfo(objectCreation.Type).Symbol is not ITypeSymbol typeSymbol)
                         return false;
+
+                    // Check if it's a dynamic object creation (ExpandoObject, DynamicObject, etc.)
+                    if (typeSymbol.Name is "ExpandoObject" or "DynamicObject" ||
+                        (typeSymbol.ContainingNamespace?.ToString() == "System.Dynamic"))
+                    {
+                        // Creating dynamic objects is impure
+                        return false;
+                    }
+
+                    // Check if the type is dynamic
+                    var creationTypeInfo = semanticModel.GetTypeInfo(objectCreation);
+                    if (creationTypeInfo.Type != null && creationTypeInfo.Type.TypeKind == TypeKind.Dynamic)
+                    {
+                        // Creating dynamic objects is impure
+                        return false;
+                    }
 
                     // Check if it's a known impure type
                     var impureTypes = new[] {
@@ -399,6 +433,20 @@ namespace PurelySharp
                            elementAccessExpr.ArgumentList.Arguments.All(arg => IsExpressionPure(arg.Expression, semanticModel, currentMethod));
 
                 case AssignmentExpressionSyntax assignment:
+                    // Check for dynamic property assignment - modifying dynamic properties is impure
+                    if (assignment.Left is MemberAccessExpressionSyntax assignmentDynamicAccess)
+                    {
+                        var assignmentTypeInfo = semanticModel.GetTypeInfo(assignmentDynamicAccess.Expression);
+                        if (assignmentTypeInfo.Type != null &&
+                            (assignmentTypeInfo.Type.TypeKind == TypeKind.Dynamic ||
+                             assignmentTypeInfo.Type.Name == "Object" &&
+                             IsDynamicExpression(assignmentDynamicAccess.Expression, semanticModel)))
+                        {
+                            // Assigning to dynamic property is impure
+                            return false;
+                        }
+                    }
+
                     // Handle tuple deconstruction
                     if (assignment.Left is TupleExpressionSyntax tupleLeft)
                     {
@@ -564,6 +612,33 @@ namespace PurelySharp
                 default:
                     return false;
             }
+        }
+
+        public static bool IsDynamicExpression(ExpressionSyntax expression, SemanticModel semanticModel)
+        {
+            if (expression is IdentifierNameSyntax identifier)
+            {
+                var symbolInfo = semanticModel.GetSymbolInfo(identifier);
+                if (symbolInfo.Symbol is IParameterSymbol parameter)
+                {
+                    // Check if the parameter is declared as dynamic
+                    return parameter.Type.TypeKind == TypeKind.Dynamic ||
+                           parameter.Type.Name == "Object" && parameter.DeclaringSyntaxReferences
+                               .Select(r => r.GetSyntax())
+                               .OfType<ParameterSyntax>()
+                               .Any(p => p.Type?.ToString() == "dynamic");
+                }
+                else if (symbolInfo.Symbol is ILocalSymbol local)
+                {
+                    // Check if the local variable is declared as dynamic
+                    return local.Type.TypeKind == TypeKind.Dynamic ||
+                           local.Type.Name == "Object" && local.DeclaringSyntaxReferences
+                               .Select(r => r.GetSyntax())
+                               .OfType<VariableDeclaratorSyntax>()
+                               .Any(v => v.Parent is VariableDeclarationSyntax vd && vd.Type.ToString() == "dynamic");
+                }
+            }
+            return false;
         }
 
         // Helper methods for checking purity
