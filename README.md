@@ -142,7 +142,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 
 - [x] List patterns (C# 11)
 - [x] Raw string literals ("""...""")
-- [ ] UTF-8 string literals (u8 suffix)
+- [x] UTF-8 string literals (u8 suffix)
 - [x] Newlines in string interpolation expressions
 - [x] Required members (C# 11)
 - [x] File-local types (file access modifier)
