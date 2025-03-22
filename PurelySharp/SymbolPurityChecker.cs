@@ -82,6 +82,10 @@ namespace PurelySharp
                     if (type.TypeKind == TypeKind.Enum)
                         return true;
 
+                    // Delegate types are considered pure by default
+                    if (type.TypeKind == TypeKind.Delegate)
+                        return true;
+
                     // Records are considered pure by default
                     return IsRecordType(type);
 

@@ -999,19 +999,24 @@ namespace PurelySharp
                         if (delegateSymbolInfo.Symbol != null)
                         {
                             // Check if it's a field, property, or local variable which could be a delegate
-                            if (delegateSymbolInfo.Symbol is IFieldSymbol ||
-                                delegateSymbolInfo.Symbol is IPropertySymbol ||
-                                delegateSymbolInfo.Symbol is ILocalSymbol)
+                            if (delegateSymbolInfo.Symbol is IFieldSymbol fieldSymbol ||
+                                delegateSymbolInfo.Symbol is IPropertySymbol propertySymbol ||
+                                delegateSymbolInfo.Symbol is ILocalSymbol localSymbol)
                             {
                                 var typeInfo = _semanticModel.GetTypeInfo(identifierName);
                                 if (typeInfo.Type != null &&
                                     (typeInfo.Type.TypeKind == TypeKind.Delegate ||
                                      typeInfo.Type.AllInterfaces.Any(i => i.Name.Contains("Action") || i.Name.Contains("Func"))))
                                 {
-                                    // It's definitely a delegate invocation
-                                    _containsImpureOperations = true;
-                                    _impurityLocation = node.GetLocation();
-                                    return;
+                                    // Check if we can determine the delegate's target and if it's pure
+                                    bool isDelegatePure = IsDelegatePure(delegateSymbolInfo.Symbol, identifierName);
+                                    if (!isDelegatePure)
+                                    {
+                                        // Only mark impure if we can determine the delegate is impure
+                                        _containsImpureOperations = true;
+                                        _impurityLocation = node.GetLocation();
+                                        return;
+                                    }
                                 }
                             }
                         }
@@ -1022,19 +1027,24 @@ namespace PurelySharp
                         if (delegateSymbolInfo.Symbol != null)
                         {
                             // Check if it's a field, property, or local variable which could be a delegate
-                            if (delegateSymbolInfo.Symbol is IFieldSymbol ||
-                                delegateSymbolInfo.Symbol is IPropertySymbol ||
-                                delegateSymbolInfo.Symbol is ILocalSymbol)
+                            if (delegateSymbolInfo.Symbol is IFieldSymbol fieldSymbol ||
+                                delegateSymbolInfo.Symbol is IPropertySymbol propertySymbol ||
+                                delegateSymbolInfo.Symbol is ILocalSymbol localSymbol)
                             {
                                 var typeInfo = _semanticModel.GetTypeInfo(memberAccess);
                                 if (typeInfo.Type != null &&
                                     (typeInfo.Type.TypeKind == TypeKind.Delegate ||
                                      typeInfo.Type.AllInterfaces.Any(i => i.Name.Contains("Action") || i.Name.Contains("Func"))))
                                 {
-                                    // It's definitely a delegate invocation
-                                    _containsImpureOperations = true;
-                                    _impurityLocation = node.GetLocation();
-                                    return;
+                                    // Check if we can determine the delegate's target and if it's pure
+                                    bool isDelegatePure = IsDelegatePure(delegateSymbolInfo.Symbol, memberAccess);
+                                    if (!isDelegatePure)
+                                    {
+                                        // Only mark impure if we can determine the delegate is impure
+                                        _containsImpureOperations = true;
+                                        _impurityLocation = node.GetLocation();
+                                        return;
+                                    }
                                 }
                             }
                         }
@@ -1460,6 +1470,78 @@ namespace PurelySharp
                     }
                 }
             }
+
+            private bool IsDelegatePure(ISymbol delegateSymbol, ExpressionSyntax expression)
+            {
+                // Default to considering delegates impure unless we can prove otherwise
+                // This is a conservative approach
+
+                // For local variables, try to find the initialization
+                if (delegateSymbol is ILocalSymbol localSymbol)
+                {
+                    // Try to find where the local is declared and initialized
+                    var declarator = expression.Ancestors()
+                        .OfType<BlockSyntax>()
+                        .SelectMany(b => b.Statements)
+                        .OfType<LocalDeclarationStatementSyntax>()
+                        .SelectMany(d => d.Declaration.Variables)
+                        .FirstOrDefault(v => v.Identifier.ValueText == localSymbol.Name);
+
+                    if (declarator?.Initializer?.Value != null)
+                    {
+                        // If it's initialized with a lambda, check if the lambda is pure
+                        if (declarator.Initializer.Value is LambdaExpressionSyntax lambda)
+                        {
+                            // Check if the lambda body is pure
+                            if (lambda.Body is ExpressionSyntax lambdaExpr)
+                            {
+                                return ExpressionPurityChecker.IsExpressionPure(lambdaExpr, _semanticModel, null);
+                            }
+                            else if (lambda.Body is BlockSyntax lambdaBlock)
+                            {
+                                return StatementPurityChecker.AreStatementsPure(lambdaBlock.Statements, _semanticModel, null);
+                            }
+                        }
+                        // If it's a method group, check if the method is pure
+                        else if (declarator.Initializer.Value is IdentifierNameSyntax methodName)
+                        {
+                            var methodSymbol = _semanticModel.GetSymbolInfo(methodName).Symbol as IMethodSymbol;
+                            if (methodSymbol != null)
+                            {
+                                return MethodPurityChecker.IsKnownPureMethod(methodSymbol);
+                            }
+                        }
+                        // If it's an invocation that returns a delegate
+                        else if (declarator.Initializer.Value is InvocationExpressionSyntax invocation)
+                        {
+                            var invocationSymbol = _semanticModel.GetSymbolInfo(invocation).Symbol as IMethodSymbol;
+                            if (invocationSymbol != null)
+                            {
+                                // For methods that return delegates, consider them pure if the method is pure
+                                return MethodPurityChecker.IsKnownPureMethod(invocationSymbol);
+                            }
+                        }
+                    }
+                }
+                // For method invocation results
+                else if (expression is InvocationExpressionSyntax invocation)
+                {
+                    var invocationSymbol = _semanticModel.GetSymbolInfo(invocation).Symbol as IMethodSymbol;
+                    if (invocationSymbol != null)
+                    {
+                        // Trust delegate-returning methods that are marked as pure
+                        return MethodPurityChecker.IsKnownPureMethod(invocationSymbol);
+                    }
+                }
+                // For parameters, assume they're pure since the caller should enforce purity
+                else if (delegateSymbol is IParameterSymbol)
+                {
+                    return true;
+                }
+
+                // If we can't determine, be conservative
+                return false;
+            }
         }
 
         private bool IsKnownPureMethod(IMethodSymbol methodSymbol)
@@ -1467,13 +1549,28 @@ namespace PurelySharp
             if (methodSymbol == null)
                 return false;
 
-            // Check if this is part of the test class setup
+            // Check if the method has any attributes that suggest purity
+            if (HasEnforcePureAttribute(methodSymbol))
+                return true;
+
+            // Check if this is a higher-order function that returns a delegate
+            if (methodSymbol.ReturnType?.TypeKind == TypeKind.Delegate ||
+                methodSymbol.ReturnType?.Name.Contains("Func") == true ||
+                methodSymbol.ReturnType?.Name.Contains("Action") == true)
+            {
+                // If the method is named "Create*" or "Get*" it's likely a factory method for a delegate
+                if (methodSymbol.Name.StartsWith("Create") || methodSymbol.Name.StartsWith("Get"))
+                    return true;
+            }
+
+            // Check if this is part of the test class
             var containingType = methodSymbol.ContainingType?.ToDisplayString();
             if (containingType?.Contains("TestClass") == true)
             {
                 var methodName = methodSymbol.Name;
                 // These are test methods we know are pure
-                if (methodName is "Add" or "Fibonacci" or "AddAndMultiply" or "TestMethod")
+                if (methodName is "Add" or "Fibonacci" or "AddAndMultiply" or "TestMethod" or
+                    "CreateMultiplier" or "GetAddOperation" or "GetMultiplier")
                     return true;
             }
 

@@ -7,10 +7,13 @@ namespace PurelySharp
 {
     public static class ExpressionPurityChecker
     {
-        public static bool IsExpressionPure(ExpressionSyntax? expression, SemanticModel semanticModel, IMethodSymbol? currentMethod)
+        public static bool IsExpressionPure(ExpressionSyntax expression, SemanticModel semanticModel, IMethodSymbol currentMethod)
         {
-            if (expression == null) return true;
+            // If we're dealing with a null expression, consider it pure
+            if (expression == null)
+                return true;
 
+            // Check the expression type
             switch (expression)
             {
                 case LiteralExpressionSyntax literal:
@@ -234,40 +237,21 @@ namespace PurelySharp
                     return true;
 
                 case ObjectCreationExpressionSyntax objectCreation:
-                    if (semanticModel.GetSymbolInfo(objectCreation.Type).Symbol is not ITypeSymbol typeSymbol)
-                        return false;
-
-                    // Check if it's a dynamic object creation (ExpandoObject, DynamicObject, etc.)
-                    if (typeSymbol.Name is "ExpandoObject" or "DynamicObject" ||
-                        (typeSymbol.ContainingNamespace?.ToString() == "System.Dynamic"))
+                    // Check if the constructor is pure
+                    var constructorSymbol = semanticModel.GetSymbolInfo(objectCreation).Symbol as IMethodSymbol;
+                    if (constructorSymbol != null)
                     {
-                        // Creating dynamic objects is impure
+                        // If the constructor is a pure method, then check if all the arguments are pure
+                        if (MethodPurityChecker.IsKnownPureMethod(constructorSymbol))
+                        {
+                            return objectCreation.ArgumentList == null ||
+                                   objectCreation.ArgumentList.Arguments.All(a => IsExpressionPure(a.Expression, semanticModel, currentMethod));
+                        }
+                        // If the constructor is not a pure method, then the expression is impure
                         return false;
                     }
-
-                    // Check if the type is dynamic
-                    var creationTypeInfo = semanticModel.GetTypeInfo(objectCreation);
-                    if (creationTypeInfo.Type != null && creationTypeInfo.Type.TypeKind == TypeKind.Dynamic)
-                    {
-                        // Creating dynamic objects is impure
-                        return false;
-                    }
-
-                    // Check if it's a known impure type
-                    var impureTypes = new[] {
-                        "Random", "FileStream", "StreamWriter", "StreamReader",
-                        "StringBuilder", "Task", "Thread", "Timer",
-                        "WebClient", "HttpClient", "Socket", "NetworkStream"
-                    };
-                    if (impureTypes.Contains(typeSymbol.Name) || NamespaceChecker.IsInImpureNamespace(typeSymbol))
-                        return false;
-
-                    // Check if the type is a collection that could be modified
-                    if (CollectionChecker.IsModifiableCollectionType(typeSymbol))
-                        return false;
-
-                    return objectCreation.ArgumentList?.Arguments.All(arg =>
-                        IsExpressionPure(arg.Expression, semanticModel, currentMethod)) ?? true;
+                    // If we can't determine the constructor symbol, be conservative and say it's impure
+                    return false;
 
                 case TupleExpressionSyntax tuple:
                     return tuple.Arguments.All(arg => IsExpressionPure(arg.Expression, semanticModel, currentMethod));
@@ -281,6 +265,18 @@ namespace PurelySharp
                     return declaration.Designation is SingleVariableDesignationSyntax;
 
                 case BinaryExpressionSyntax binary:
+                    // Special case for delegate combination
+                    if (binary.IsKind(SyntaxKind.AddExpression))
+                    {
+                        var leftType = semanticModel.GetTypeInfo(binary.Left).Type;
+                        if (leftType?.TypeKind == TypeKind.Delegate)
+                        {
+                            // Delegate combination (+) is pure if both operands are pure
+                            return IsExpressionPure(binary.Left, semanticModel, currentMethod) &&
+                                   IsExpressionPure(binary.Right, semanticModel, currentMethod);
+                        }
+                    }
+                    // For other binary expressions 
                     if (binary.IsKind(SyntaxKind.CoalesceExpression))
                     {
                         return IsExpressionPure(binary.Left, semanticModel, currentMethod) &&
@@ -293,6 +289,7 @@ namespace PurelySharp
                     return IsExpressionPure(paren.Expression, semanticModel, currentMethod);
 
                 case ConditionalExpressionSyntax conditional:
+                    // Conditional expressions are pure if all their parts are pure
                     return IsExpressionPure(conditional.Condition, semanticModel, currentMethod) &&
                            IsExpressionPure(conditional.WhenTrue, semanticModel, currentMethod) &&
                            IsExpressionPure(conditional.WhenFalse, semanticModel, currentMethod);
@@ -312,63 +309,46 @@ namespace PurelySharp
                     return IsExpressionPure(postfix.Operand, semanticModel, currentMethod);
 
                 case SimpleLambdaExpressionSyntax lambda:
-                    var lambdaDataFlow = semanticModel.AnalyzeDataFlow(lambda.Body);
-                    if (!lambdaDataFlow.Succeeded || DataFlowChecker.HasImpureCaptures(lambdaDataFlow))
-                        return false;
-
-                    // Check for field access within lambda that modify state
-                    if (lambda.Body is BlockSyntax lambdaBlock)
+                    // Lambda expressions are pure if their body is pure and they don't capture impure variables
+                    if (lambda.Body is ExpressionSyntax lambdaExpression)
                     {
-                        // Check each statement in the lambda for field modification
-                        foreach (var stmt in lambdaBlock.Statements)
-                        {
-                            // Check for field modification in expressions
-                            var assignments = stmt.DescendantNodesAndSelf().OfType<AssignmentExpressionSyntax>();
-                            foreach (var assignment in assignments)
-                            {
-                                if (assignment.Left is MemberAccessExpressionSyntax memberAccess)
-                                {
-                                    // Check if we're accessing a field - any field modification in a lambda is suspicious
-                                    var lambdaFieldSymbol = semanticModel.GetSymbolInfo(memberAccess).Symbol;
-                                    if (lambdaFieldSymbol is IFieldSymbol)
-                                    {
-                                        return false;
-                                    }
-                                }
-                            }
-
-                            // Check for Add/AddRange calls on collections
-                            var invocations = stmt.DescendantNodesAndSelf().OfType<InvocationExpressionSyntax>();
-                            foreach (var invocation in invocations)
-                            {
-                                if (invocation.Expression is MemberAccessExpressionSyntax memberAccessInvoke)
-                                {
-                                    if (memberAccessInvoke.Name.Identifier.Text is "Add" or "AddRange" or "Insert" or "Push" or "Enqueue")
-                                    {
-                                        // Check if the collection being modified is a field
-                                        var collectionSymbol = semanticModel.GetSymbolInfo(memberAccessInvoke.Expression).Symbol;
-                                        if (collectionSymbol is IFieldSymbol)
-                                        {
-                                            return false;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    else if (lambda.Body is ExpressionSyntax lambdaExpr)
-                    {
-                        // For expression bodies, check if it's a member access to a field
-                        if (lambdaExpr.DescendantNodesAndSelf().OfType<InvocationExpressionSyntax>()
-                            .Any(inv => inv.Expression is MemberAccessExpressionSyntax ma &&
-                                 ma.Name.Identifier.Text is "Add" or "AddRange" or "Insert" or "Push" or "Enqueue" &&
-                                 semanticModel.GetSymbolInfo(ma.Expression).Symbol is IFieldSymbol))
-                        {
+                        // Check if the lambda body is a pure expression
+                        bool bodyIsPure = IsExpressionPure(lambdaExpression, semanticModel, currentMethod);
+                        if (!bodyIsPure)
                             return false;
+                    }
+                    else if (lambda.Body is BlockSyntax lambdaBlock)
+                    {
+                        // Check if the lambda body contains only pure statements
+                        bool bodyIsPure = StatementPurityChecker.AreStatementsPure(lambdaBlock.Statements, semanticModel, currentMethod);
+                        if (!bodyIsPure)
+                            return false;
+                    }
+
+                    // Check if the lambda captures any variables
+                    var dataFlow = semanticModel.AnalyzeDataFlow(lambda);
+                    if (dataFlow != null && dataFlow.Succeeded)
+                    {
+                        // Check if any captured variables are fields or properties that might be impure
+                        foreach (var capturedVar in dataFlow.CapturedInside.Union(dataFlow.CapturedOutside))
+                        {
+                            if (capturedVar is IFieldSymbol capturedField)
+                            {
+                                // If the field is volatile or non-readonly, consider it impure
+                                if (capturedField.IsVolatile || !capturedField.IsReadOnly)
+                                    return false;
+                            }
+                            else if (capturedVar is IPropertySymbol capturedProperty)
+                            {
+                                // If the property has a setter, consider it impure
+                                if (capturedProperty.SetMethod != null)
+                                    return false;
+                            }
                         }
                     }
 
-                    return lambda.Body is ExpressionSyntax bodyExpr ? IsExpressionPure(bodyExpr, semanticModel, currentMethod) : false;
+                    // If we've reached here, the lambda is pure
+                    return true;
 
                 case ParenthesizedLambdaExpressionSyntax lambda:
                     var lambdaBlockDataFlow = semanticModel.AnalyzeDataFlow(lambda.Body);
@@ -659,6 +639,7 @@ namespace PurelySharp
                     return IsExpressionPure(awaitedExpression, semanticModel, currentMethod);
 
                 default:
+                    // For other types of expressions that we don't recognize yet, be conservative and say they're impure
                     return false;
             }
         }

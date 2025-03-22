@@ -224,21 +224,18 @@ Supported means there is _some_ level of test coverage. It does not mean it is 1
 
 ## Enum Operations
 
-PurelySharp treats enums as pure data types. All standard operations with enums are considered pure, including:
+PurelySharp treats enums as pure data types. The following operations with enums are considered pure:
 
 - Accessing enum values
-- Converting enums to their underlying numeric type and vice versa
+- Converting enums to their underlying numeric type
 - Comparing enum values
-- Using the `Enum` class methods like `ToString()`, `Parse()`, and `TryParse()`
+- Using methods from the `Enum` class
 
-Special handling is provided for `Enum.TryParse<T>()`, which is considered pure despite using an `out` parameter.
+Note that the analyzer includes special handling for `Enum.TryParse<T>()` to treat it as a pure method despite using an `out` parameter.
 
 ### Examples
 
 ```csharp
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
-
 public enum Status
 {
     Pending,
@@ -252,34 +249,111 @@ public class EnumOperations
     [EnforcePure]
     public bool IsActiveOrPending(Status status)
     {
-        // Comparing enum values is pure
         return status == Status.Active || status == Status.Pending;
     }
 
     [EnforcePure]
     public int GetStatusCode(Status status)
     {
-        // Converting to the underlying numeric type is pure
         return (int)status;
     }
 
     [EnforcePure]
-    public Status ParseStatus(string statusName)
+    public bool ParseStatus(string value, out Status status)
     {
-        // Using Enum.TryParse is pure despite the out parameter
-        if (Enum.TryParse<Status>(statusName, true, out var status))
-            return status;
-        return Status.Pending; // Default
+        return Enum.TryParse(value, out status);
     }
 
     [EnforcePure]
     public Status GetStatusFromValue(int value)
     {
-        // Casting from numeric to enum is pure
         return (Status)value;
     }
 }
 ```
+
+## Delegate Operations
+
+PurelySharp supports delegate types and operations. The purity analysis for delegates focuses on both the creation of delegates and their invocation:
+
+### Delegate Purity Rules
+
+- **Delegate Type Definitions**: Defining delegate types is always pure.
+- **Delegate Creation**:
+  - Creating a delegate from a pure method is pure.
+  - Creating a lambda expression is pure if the lambda body is pure and it doesn't capture impure state.
+  - Creating an anonymous method is pure if its body is pure and it doesn't capture impure state.
+- **Delegate Invocation**:
+  - Invoking a delegate is pure if the delegate target is pure and all arguments are pure.
+  - If the analyzer can't determine the purity of the delegate target, it conservatively marks the invocation as impure.
+- **Delegate Combination**:
+  - Combining delegates (`+=`, `+`) is pure if both delegate operands are pure.
+  - Removing delegates (`-=`, `-`) is pure if both delegate operands are pure.
+
+### Examples
+
+```csharp
+// Define delegate types (always pure)
+public delegate int Calculator(int x, int y);
+public delegate void Logger(string message);
+
+public class DelegateOperations
+{
+    // Pure delegate field
+    private readonly Func<int, int, int> _adder = (x, y) => x + y;
+
+    [EnforcePure]
+    public int Add(int x, int y)
+    {
+        // Creating and invoking a pure lambda delegate
+        Calculator calc = (a, b) => a + b;
+        return calc(x, y);
+    }
+
+    [EnforcePure]
+    public IEnumerable<int> ProcessNumbers(IEnumerable<int> numbers)
+    {
+        // Using delegates with LINQ (pure)
+        return numbers.Where(n => n > 0)
+                     .Select(n => n * 2);
+    }
+
+    [EnforcePure]
+    public Func<int, int> GetMultiplier(int factor)
+    {
+        // Higher-order function returning a pure delegate
+        return x => x * factor;
+    }
+
+    [EnforcePure]
+    public int CombineDelegates(int x, int y)
+    {
+        // Combining pure delegates
+        Func<int, int> doubler = n => n * 2;
+        Func<int, int> incrementer = n => n + 1;
+
+        // Combined delegate is pure if components are pure
+        Func<int, int> combined = n => incrementer(doubler(n));
+
+        return combined(x) + combined(y);
+    }
+
+    // This would generate a diagnostic
+    [EnforcePure]
+    public void ImpureDelegateExample()
+    {
+        int counter = 0;
+
+        // Impure delegate - captures and modifies a local variable
+        Action incrementCounter = () => { counter++; };
+
+        // Invoking impure delegate
+        incrementCounter(); // Analyzer will flag this
+    }
+}
+```
+
+Note that delegate invocations are analyzed conservatively. If the analyzer cannot determine the purity of a delegate, it will mark the invocation as impure.
 
 ## Attributes
 
@@ -765,305 +839,6 @@ The following examples demonstrate cases where the analyzer may fail to correctl
 
 #### Indirect Method Impurity
 
-```csharp
-using System;
-
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
-
-public class TestClass
-{
-    [EnforcePure]
-    public void TestMethod()
-    {
-        // PureWrapper hides the impure operation
-        PureWrapper();
-    }
-
-    // This method doesn't have [EnforcePure] but is called from a pure method
-    private void PureWrapper()
-    {
-        // This calls an impure method, but the analyzer may not detect it
-        IndirectImpure();
-    }
-
-    private void IndirectImpure()
-    {
-        Console.WriteLine("Hello"); // Impure operation
-    }
-}
-
-// No analyzer error is reported, even though TestMethod is impure
-// because it indirectly calls Console.WriteLine
 ```
 
-#### External Library Method Calls
-
-```csharp
-using System;
-using ExternalLibrary; // Hypothetical external library
-
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
-
-public class TestClass
-{
-    [EnforcePure]
-    public void TestMethod()
-    {
-        // The analyzer doesn't know if ExternalHelper is pure
-        ExternalHelper.DoSomething();
-    }
-}
-
-// No analyzer error is reported, even though ExternalHelper.DoSomething
-// might be impure, because the analyzer can't analyze its implementation
-```
-
-#### Reflection-Based Modification
-
-```csharp
-using System;
-using System.Reflection;
-
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
-
-public class TargetClass
-{
-    public int Value { get; private set; }
-}
-
-public class TestClass
-{
-    [EnforcePure]
-    public void TestMethod(TargetClass target)
-    {
-        // Using reflection to bypass access restrictions and modify state
-        typeof(TargetClass)
-            .GetProperty("Value")
-            .SetValue(target, 42); // Impure operation via reflection
-    }
-}
-
-// No analyzer error is reported, even though TestMethod is modifying state
-// through reflection, which is impure
-```
-
-### String Manipulation Examples
-
-String operations are generally considered pure, but care must be taken with culture-dependent operations:
-
-#### Pure String Operations
-
-```csharp
-using System;
-
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
-
-public class TestClass
-{
-    [EnforcePure]
-    public string ProcessText(string input)
-    {
-        // Basic string operations are pure
-        string trimmed = input.Trim();
-        string upperCase = input.ToUpper();
-        string replaced = input.Replace("old", "new");
-        string substring = input.Substring(0, Math.Min(10, input.Length));
-
-        // String concatenation is pure
-        string combined = $"{trimmed} - {upperCase}";
-
-        return combined;
-    }
-}
-
-// No analyzer errors - method is pure
-```
-
-#### Culture-Dependent String Operations (Potentially Impure)
-
-```csharp
-using System;
-using System.Globalization;
-
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
-
-public class TestClass
-{
-    [EnforcePure]
-    public string CultureDependentMethod(string input)
-    {
-        // Without specifying culture, this depends on the current thread's culture
-        // which is not deterministic and therefore impure
-        string upperCase = input.ToUpper(); // Potentially impure!
-
-        return upperCase;
-    }
-
-    [EnforcePure]
-    public string CultureInvariantMethod(string input)
-    {
-        // Specifying culture makes the operation pure and deterministic
-        string upperCase = input.ToUpper(CultureInfo.InvariantCulture);
-        string lowerCase = input.ToLower(CultureInfo.InvariantCulture);
-
-        return $"{upperCase} - {lowerCase}";
-    }
-}
-
-// Current analyzer may not detect the impurity in CultureDependentMethod
-```
-
-#### String.Format with Culture (Pure)
-
-```csharp
-using System;
-using System.Globalization;
-
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
-
-public class TestClass
-{
-    [EnforcePure]
-    public string FormatNumber(double value)
-    {
-        // Specifying culture ensures deterministic output regardless of system settings
-        return string.Format(CultureInfo.InvariantCulture, "Value: {0:F2}", value);
-    }
-
-    [EnforcePure]
-    public string FormatDateTime(DateTime date)
-    {
-        // Culture-specific formatting should always specify culture for purity
-        return date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-    }
-}
-
-// No analyzer errors - methods are pure
-```
-
-#### String Parsing Examples
-
-```csharp
-using System;
-using System.Globalization;
-
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
-
-public class TestClass
-{
-    [EnforcePure]
-    public int ParseNumber(string input)
-    {
-        // TryParse with invariant culture is pure
-        if (int.TryParse(input, NumberStyles.Integer, CultureInfo.InvariantCulture, out int result))
-            return result;
-
-        // Input validation through exceptions is pure
-        throw new ArgumentException("Invalid number format");
-    }
-
-    [EnforcePure]
-    public DateTime ParseDate(string input)
-    {
-        // DateTime.Parse without culture specification is potentially impure
-        // as it depends on the current thread's culture
-        var date = DateTime.Parse(input); // Potentially impure!
-
-        return date;
-    }
-
-    [EnforcePure]
-    public DateTime ParseDatePure(string input)
-    {
-        // Specifying culture makes it pure
-        return DateTime.Parse(input, CultureInfo.InvariantCulture);
-    }
-}
-
-// Current analyzer may not detect the impurity in ParseDate
-```
-
-### Async Methods and Tasks
-
-The analyzer supports async methods and Task/ValueTask operations with the following considerations:
-
-- Methods marked with `async` and returning `Task` or `ValueTask` can be marked as `[EnforcePure]`
-- Pure async methods should only await other pure operations or methods
-- The following Task operations are considered pure:
-  - `Task.FromResult()`
-  - `Task.CompletedTask`
-  - `ValueTask.FromResult()`
-  - `ValueTask<T>` constructors
-  - Awaiting parameters of Task types
-  - Awaiting other pure methods
-- The following Task operations are considered impure:
-  - `Task.Delay()`
-  - `Task.Run()`
-  - `Task.Factory.StartNew()`
-  - `Task.WhenAll()/WhenAny()`
-  - `Task.Yield()`
-
-#### Pure Async Method Example
-
-```csharp
-using System;
-using System.Threading.Tasks;
-
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
-
-public class TestClass
-{
-    [EnforcePure]
-    public async Task<int> PureAsyncMethod(int value)
-    {
-        // Task.FromResult is pure
-        int result = await Task.FromResult(value * 2);
-
-        // Calling another pure method is also pure
-        return await PureHelperAsync(result);
-    }
-
-    [EnforcePure]
-    private async Task<int> PureHelperAsync(int value)
-    {
-        // Task.CompletedTask is pure
-        await Task.CompletedTask;
-        return value + 1;
-    }
-}
-
-// No analyzer errors - methods are pure
-```
-
-#### Impure Async Method Example
-
-```csharp
-using System;
-using System.Threading.Tasks;
-
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
-
-public class TestClass
-{
-    [EnforcePure]
-    public async Task ImpureAsyncMethod()
-    {
-        // Task.Delay is impure as it has side effects (waits)
-        await Task.Delay(1000);
-
-        // Task.Run is impure as it launches work on another thread
-        await Task.Run(() => Console.WriteLine("Hello"));
-    }
-}
-
-// Analyzer Error: PMA0001 - Method 'ImpureAsyncMethod' is marked as pure but contains impure operations
 ```

@@ -94,49 +94,63 @@ namespace PurelySharp
             "System.Collections.Immutable"
         };
 
-        public static bool IsKnownPureMethod(IMethodSymbol methodSymbol)
+        public static bool IsKnownPureMethod(IMethodSymbol method)
         {
-            if (methodSymbol == null)
+            // Check if the method has a pure attribute
+            if (HasEnforcePureAttribute(method) ||
+                method.GetAttributes().Any(a => a.AttributeClass?.Name == "PureAttribute" || a.AttributeClass?.Name == "Pure"))
+                return true;
+
+            // Check if it's a delegate's Invoke method
+            if (method.MethodKind == MethodKind.DelegateInvoke)
+            {
+                // For delegate's Invoke method, we need to check the specific delegate instance
+                // This requires runtime information, so we can't fully analyze here.
+                // We'll consider it potentially pure and check the instance separately
+                return true;
+            }
+
+            if (method == null)
                 return false;
 
             // Check if it's a compiler-generated method (e.g., property getter/setter)
-            if (methodSymbol.IsImplicitlyDeclared)
+            if (method.IsImplicitlyDeclared)
             {
                 // Property getters are generally pure
-                if (methodSymbol.MethodKind == MethodKind.PropertyGet)
+                if (method.MethodKind == MethodKind.PropertyGet)
                     return true;
 
                 // Init-only setters are generally pure (C# 9.0+)
-                if (methodSymbol.MethodKind == MethodKind.PropertySet &&
-                    methodSymbol.ContainingSymbol is IPropertySymbol property &&
+                if (method.MethodKind == MethodKind.PropertySet &&
+                    method.ContainingSymbol is IPropertySymbol property &&
                     property.SetMethod?.IsInitOnly == true)
                     return true;
             }
 
             // Check if it's a known pure method
-            var fullName = methodSymbol.ContainingType?.ToString() + "." + methodSymbol.Name;
+            var fullName = method.ContainingType?.ToString() + "." + method.Name;
             if (KnownPureMethods.Contains(fullName))
                 return true;
 
             // Check if it's from a pure namespace like System.Linq
-            var namespaceName = methodSymbol.ContainingNamespace?.ToString() ?? string.Empty;
+            var namespaceName = method.ContainingNamespace?.ToString() ?? string.Empty;
             if (PureNamespaces.Any(ns => namespaceName.StartsWith(ns)))
                 return true;
 
             // Check for static virtual/abstract interface members
-            if (methodSymbol.IsStatic &&
-                methodSymbol.ContainingType?.TypeKind == TypeKind.Interface &&
-                (methodSymbol.IsVirtual || methodSymbol.IsAbstract))
+            if (method.IsStatic &&
+                method.ContainingType?.TypeKind == TypeKind.Interface &&
+                (method.IsVirtual || method.IsAbstract))
             {
                 // Static interface members are considered pure by default in interfaces
                 return true;
             }
 
             // Check for implementations of static virtual/abstract interface members
-            if (methodSymbol.IsStatic && methodSymbol.IsOverride)
+            if (method.IsStatic && method.IsOverride)
             {
                 // Get the method being overridden
-                var overriddenMethod = methodSymbol.OverriddenMethod;
+                var overriddenMethod = method.OverriddenMethod;
                 if (overriddenMethod != null &&
                     overriddenMethod.ContainingType?.TypeKind == TypeKind.Interface)
                 {
@@ -146,19 +160,15 @@ namespace PurelySharp
             }
 
             // LINQ extension methods are pure
-            if (methodSymbol.IsExtensionMethod && namespaceName.StartsWith("System.Linq"))
+            if (method.IsExtensionMethod && namespaceName.StartsWith("System.Linq"))
                 return true;
 
             // Basic operators (+, -, *, /, etc.) are generally pure
-            if (methodSymbol.MethodKind == MethodKind.BuiltinOperator)
+            if (method.MethodKind == MethodKind.BuiltinOperator)
                 return true;
 
             // Check if it's a conversion method (MethodKind.Conversion), which are generally pure
-            if (methodSymbol.MethodKind == MethodKind.Conversion)
-                return true;
-
-            // Check if the method has the [EnforcePure] attribute
-            if (HasEnforcePureAttribute(methodSymbol))
+            if (method.MethodKind == MethodKind.Conversion)
                 return true;
 
             return false;
