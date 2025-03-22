@@ -108,5 +108,108 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test,
                 VerifyCS.Diagnostic().WithSpan(14, 16, 14, 38).WithArguments("ReadStaticVolatileField"));
         }
+
+        [Test]
+        public async Task InterlockedWithVolatileField_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Threading;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    private volatile int _counter;
+
+    [EnforcePure]
+    public int IncrementAndGet()
+    {
+        // Using Interlocked with volatile field should be impure
+        return Interlocked.Increment(ref _counter);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test,
+                VerifyCS.Diagnostic().WithSpan(16, 42, 16, 50).WithArguments("IncrementAndGet"));
+        }
+
+        [Test]
+        public async Task DoubleCheckedLockingPattern_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Threading;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+[AttributeUsage(AttributeTargets.Method)]
+public class AllowSynchronizationAttribute : Attribute { }
+
+public class TestClass
+{
+    private volatile object _instance;
+    private readonly object _lock = new object();
+
+    [EnforcePure]
+    [AllowSynchronization] // Even with AllowSynchronization, volatile read is impure
+    public object GetSingletonInstance()
+    {
+        if (_instance == null) // First volatile read outside lock
+        {
+            lock (_lock)
+            {
+                if (_instance == null) // Second volatile read inside lock
+                {
+                    _instance = new object(); // Volatile write is impure
+                }
+            }
+        }
+        return _instance; // Final volatile read
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test,
+                VerifyCS.Diagnostic().WithSpan(19, 13, 19, 22).WithArguments("GetSingletonInstance"));
+        }
+
+        [Test]
+        public async Task MultipleVolatileFields_Diagnostic()
+        {
+            var test = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    private volatile bool _isInitialized;
+    private volatile int _value;
+
+    [EnforcePure]
+    public void Initialize(int value)
+    {
+        _value = value; // First volatile field write
+        _isInitialized = true; // Second volatile field write
+    }
+
+    [EnforcePure]
+    public int GetValueIfInitialized()
+    {
+        if (_isInitialized) // Volatile read is impure
+        {
+            return _value; // Another volatile read is impure
+        }
+        return -1;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test,
+                // Two diagnostics: one for Initialize method and one for GetValueIfInitialized
+                VerifyCS.Diagnostic().WithSpan(15, 9, 15, 15).WithArguments("Initialize"),
+                VerifyCS.Diagnostic().WithSpan(22, 13, 22, 27).WithArguments("GetValueIfInitialized"));
+        }
     }
 }

@@ -211,7 +211,7 @@ Supported means there is _some_ level of test coverage. It does not mean it is 1
 - [x] Properties with setters
 - [x] Static mutable fields
 - [x] Event fields
-- [x] Volatile fields
+- [x] Volatile fields (both reads and writes are considered impure due to their special memory ordering semantics and thread safety implications)
 
 ### Generic and Advanced Constructs
 
@@ -257,6 +257,8 @@ Supported means there is _some_ level of test coverage. It does not mean it is 1
 ## Common Impure Operations
 
 - Modifying fields or properties
+- Reading or writing volatile fields
+- Using Interlocked operations
 - Calling methods with side effects
 - I/O operations (file, console, network)
 - Async operations
@@ -389,6 +391,109 @@ public class TestClass
 }
 
 // Analyzer Error: PMA0001 - Method 'TestMethod' is marked as pure but contains impure operations
+```
+
+#### Volatile Field Access
+
+```csharp
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    private volatile int _counter;
+
+    [EnforcePure]
+    public int GetCounter()
+    {
+        // Both reading and writing to volatile fields is considered impure
+        // due to their special memory ordering semantics
+        return _counter;
+    }
+
+    [EnforcePure]
+    public void UpdateCounter(int value)
+    {
+        _counter = value; // Writing to volatile field is impure
+    }
+}
+
+// Analyzer Error: PMA0001 - Method 'GetCounter' is marked as pure but contains impure operations
+// Analyzer Error: PMA0001 - Method 'UpdateCounter' is marked as pure but contains impure operations
+```
+
+#### Thread Synchronization with Volatile Fields
+
+```csharp
+using System;
+using System.Threading;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+[AttributeUsage(AttributeTargets.Method)]
+public class AllowSynchronizationAttribute : Attribute { }
+
+public class TestClass
+{
+    private volatile bool _initialized;
+    private readonly object _lock = new object();
+
+    [EnforcePure]
+    [AllowSynchronization] // Even with AllowSynchronization, volatile read is impure
+    public void EnsureInitialized()
+    {
+        if (!_initialized) // Reading volatile field is impure
+        {
+            lock (_lock)
+            {
+                if (!_initialized) // Reading volatile field again is impure
+                {
+                    Initialize();
+                    _initialized = true; // Writing to volatile field is impure
+                }
+            }
+        }
+    }
+
+    private void Initialize() { /* ... */ }
+}
+
+// Analyzer Error: PMA0001 - Method 'EnsureInitialized' is marked as pure but contains impure operations
+```
+
+#### Atomic Operations with Interlocked
+
+```csharp
+using System;
+using System.Threading;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    private volatile int _counter;
+
+    [EnforcePure]
+    public int IncrementAndGet()
+    {
+        // Using Interlocked with volatile fields is impure
+        // since it modifies shared state in a thread-safe manner
+        return Interlocked.Increment(ref _counter);
+    }
+
+    [EnforcePure]
+    public int CompareExchange(int newValue, int comparand)
+    {
+        // All Interlocked operations are impure
+        return Interlocked.CompareExchange(ref _counter, newValue, comparand);
+    }
+}
+
+// Analyzer Error: PMA0001 - Method 'IncrementAndGet' is marked as pure but contains impure operations
+// Analyzer Error: PMA0001 - Method 'CompareExchange' is marked as pure but contains impure operations
 ```
 
 ### More Complex Examples
