@@ -874,6 +874,10 @@ namespace PurelySharp
             {
                 base.VisitAssignmentExpression(node);
 
+                // If we already found impure operations, no need to check further
+                if (_containsImpureOperations)
+                    return;
+
                 // Check for event subscriptions (+=, -=)
                 if (node.Kind() == SyntaxKind.AddAssignmentExpression ||
                     node.Kind() == SyntaxKind.SubtractAssignmentExpression)
@@ -930,6 +934,22 @@ namespace PurelySharp
                     {
                         // If it's a ref or out parameter and we're assigning to it, that's impure
                         if (parameterSymbol.RefKind == RefKind.Out || parameterSymbol.RefKind == RefKind.Ref)
+                        {
+                            _containsImpureOperations = true;
+                            _impurityLocation = node.OperatorToken.GetLocation();
+                        }
+                    }
+                }
+                else if (node.Left is ElementAccessExpressionSyntax elementAccess)
+                {
+                    // Check if we're modifying an array element accessed through a parameter
+                    var arrayExpression = elementAccess.Expression;
+                    var arraySymbol = _semanticModel.GetSymbolInfo(arrayExpression).Symbol;
+
+                    if (arraySymbol is IParameterSymbol paramSymbol)
+                    {
+                        // Check if this is a params array parameter
+                        if (paramSymbol.IsParams)
                         {
                             _containsImpureOperations = true;
                             _impurityLocation = node.OperatorToken.GetLocation();

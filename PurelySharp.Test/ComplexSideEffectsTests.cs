@@ -86,7 +86,7 @@ public class TestClass
     }
 }";
 
-            var expected = VerifyCS.Diagnostic().WithSpan(25, 19, 25, 21).WithArguments("TestMethod");
+            var expected = VerifyCS.Diagnostic().WithSpan(18, 13, 18, 20).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 

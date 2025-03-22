@@ -52,7 +52,7 @@ public class TestClass
 }";
 
             await VerifyCS.VerifyAnalyzerAsync(test,
-                DiagnosticResult.CompilerError("PMA0001").WithSpan(13, 11, 13, 12).WithArguments("TestMethod"));
+                DiagnosticResult.CompilerError("PMA0001").WithSpan(12, 11, 12, 12).WithArguments("TestMethod"));
         }
 
         [Test]
@@ -79,7 +79,7 @@ public class TestClass
 }";
 
             await VerifyCS.VerifyAnalyzerAsync(test,
-                DiagnosticResult.CompilerError("PMA0001").WithSpan(16, 16, 16, 17).WithArguments("TryParse"));
+                DiagnosticResult.CompilerError("PMA0001").WithSpan(12, 13, 12, 44).WithArguments("TryParse"));
         }
 
         [Test]

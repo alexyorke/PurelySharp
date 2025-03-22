@@ -362,6 +362,19 @@ namespace PurelySharp
                     // Handle array/span element assignment
                     if (assignment.Left is ElementAccessExpressionSyntax elementAccess)
                     {
+                        // Check if we're assigning to an array parameter - specifically handle params arrays
+                        var arrayExpression = elementAccess.Expression;
+                        var arraySymbol = semanticModel.GetSymbolInfo(arrayExpression).Symbol;
+
+                        if (arraySymbol is IParameterSymbol paramSymbol)
+                        {
+                            // Check if we're modifying a params array parameter
+                            if (paramSymbol.IsParams)
+                            {
+                                return false; // Modifying a params array parameter is impure
+                            }
+                        }
+
                         return IsExpressionPure(elementAccess.Expression, semanticModel, currentMethod) &&
                                elementAccess.ArgumentList.Arguments.All(arg => IsExpressionPure(arg.Expression, semanticModel, currentMethod)) &&
                                IsExpressionPure(assignment.Right, semanticModel, currentMethod);
