@@ -250,3 +250,328 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 
 - [x] C# 8.0+ language features
 - [ ] Different target frameworks (.NET Framework, .NET Core, .NET 5+)
+
+## Examples
+
+### Pure Method Example
+
+The analyzer ensures that methods marked with `[EnforcePure]` don't contain impure operations:
+
+```csharp
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public int PureHelperMethod(int x)
+    {
+        return x * 2; // Pure operation
+    }
+
+    [EnforcePure]
+    public int TestMethod(int x)
+    {
+        // Call to pure method is also pure
+        return PureHelperMethod(x) + 5;
+    }
+}
+```
+
+### Impure Method Examples
+
+The analyzer detects impure operations and reports diagnostics:
+
+#### Modifying State
+
+```csharp
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    private int _state;
+
+    [EnforcePure]
+    public int TestMethod(int value)
+    {
+        _state++; // Impure operation: modifies class state
+        return _state;
+    }
+}
+
+// Analyzer Error: PMA0001 - Method 'TestMethod' is marked as pure but contains impure operations
+```
+
+#### I/O Operations
+
+```csharp
+using System;
+using System.IO;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public void TestMethod(string path)
+    {
+        File.WriteAllText(path, "test"); // Impure operation: performs I/O
+    }
+}
+
+// Analyzer Error: PMA0001 - Method 'TestMethod' is marked as pure but contains impure operations
+```
+
+#### Console Output
+
+```csharp
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public int TestMethod()
+    {
+        Console.WriteLine("Hello World"); // Impure operation: console output
+        return 42;
+    }
+}
+
+// Analyzer Error: PMA0001 - Method 'TestMethod' is marked as pure but contains impure operations
+```
+
+#### Static Field Access
+
+```csharp
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    private static string sharedState = "";
+
+    [EnforcePure]
+    public string TestMethod()
+    {
+        // Reading from static field is considered impure
+        return sharedState;
+    }
+}
+
+// Analyzer Error: PMA0001 - Method 'TestMethod' is marked as pure but contains impure operations
+```
+
+### More Complex Examples
+
+#### LINQ Operations (Pure)
+
+LINQ operations are generally considered pure as they work on immutable views of data:
+
+```csharp
+using System;
+using System.Linq;
+using System.Collections.Generic;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public IEnumerable<int> FilterAndTransform(IEnumerable<int> numbers)
+    {
+        // LINQ operations are pure
+        return numbers
+            .Where(n => n > 10)
+            .Select(n => n * 2)
+            .OrderBy(n => n);
+    }
+}
+
+// No analyzer errors - method is pure
+```
+
+#### Iterator Methods (Pure)
+
+Iterator methods using `yield return` can be pure:
+
+```csharp
+using System;
+using System.Collections.Generic;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public IEnumerable<int> GenerateFibonacciSequence(int count)
+    {
+        int a = 0, b = 1;
+
+        for (int i = 0; i < count; i++)
+        {
+            yield return a;
+            (a, b) = (b, a + b); // Tuple deconstruction for swapping
+        }
+    }
+}
+
+// No analyzer errors - method is pure
+```
+
+#### Lock Statements with AllowSynchronization
+
+Lock statements are allowed in pure methods when using the `[AllowSynchronization]` attribute:
+
+```csharp
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+[AttributeUsage(AttributeTargets.Method)]
+public class AllowSynchronizationAttribute : Attribute { }
+
+public class TestClass
+{
+    private readonly object _lockObj = new object();
+    private readonly Dictionary<string, int> _cache = new Dictionary<string, int>();
+
+    [EnforcePure]
+    [AllowSynchronization]
+    public int GetOrComputeValue(string key, Func<string, int> computeFunc)
+    {
+        lock (_lockObj) // Normally impure, but allowed with [AllowSynchronization]
+        {
+            if (_cache.TryGetValue(key, out int value))
+                return value;
+
+            // Compute is allowed if the function is pure
+            int newValue = computeFunc(key);
+            _cache[key] = newValue; // This would be impure without [AllowSynchronization]
+            return newValue;
+        }
+    }
+}
+
+// No analyzer errors with [AllowSynchronization]
+```
+
+#### Switch Expressions and Pattern Matching
+
+Modern C# pattern matching and switch expressions are supported:
+
+```csharp
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class Shape { }
+public class Circle : Shape { public double Radius { get; } }
+public class Rectangle : Shape { public double Width { get; } public double Height { get; } }
+
+public class TestClass
+{
+    [EnforcePure]
+    public double CalculateArea(Shape shape)
+    {
+        // Switch expression with pattern matching
+        return shape switch
+        {
+            Circle c => Math.PI * c.Radius * c.Radius,
+            Rectangle r => r.Width * r.Height,
+            _ => throw new ArgumentException("Unknown shape type")
+        };
+    }
+}
+
+// No analyzer errors - method is pure
+```
+
+#### Working with Immutable Collections
+
+Methods that use immutable collections remain pure:
+
+```csharp
+using System;
+using System.Collections.Immutable;
+using System.Linq;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public ImmutableDictionary<string, int> AddToCounters(
+        ImmutableDictionary<string, int> counters,
+        string key)
+    {
+        // Working with immutable collections preserves purity
+        if (counters.TryGetValue(key, out int currentCount))
+            return counters.SetItem(key, currentCount + 1);
+        else
+            return counters.Add(key, 1);
+
+        // Note: The original collection is not modified
+    }
+}
+
+// No analyzer errors - method is pure
+```
+
+#### Complex Method with Multiple Pure Operations
+
+Complex methods combining multiple pure operations:
+
+```csharp
+using System;
+using System.Linq;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public (double Average, int Min, int Max, ImmutableList<int> Filtered) AnalyzeData(
+        IEnumerable<int> data, int threshold)
+    {
+        // Local function (must also be pure)
+        bool IsOutlier(int value) => value < 0 || value > 1000;
+
+        // Use LINQ to process the data
+        var filteredData = data
+            .Where(x => !IsOutlier(x) && x >= threshold)
+            .ToImmutableList();
+
+        if (!filteredData.Any())
+            throw new ArgumentException("No valid data points after filtering");
+
+        // Multiple computations on the filtered data
+        var average = filteredData.Average();
+        var min = filteredData.Min();
+        var max = filteredData.Max();
+
+        // Return a tuple with the results
+        return (Average: average, Min: min, Max: max, Filtered: filteredData);
+    }
+}
+
+// No analyzer errors - method is pure
+```
