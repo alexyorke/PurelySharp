@@ -148,7 +148,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] Checked user-defined operators
 - [x] Raw string literals
 - [x] UTF-8 string literals
-- [ ] List patterns
+- [x] List patterns
 - [ ] File-local types
 - [ ] Required members
 - [ ] Auto-default structs

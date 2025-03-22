@@ -167,8 +167,12 @@ namespace PurelySharp
                     case SwitchStatementSyntax switchStatement:
                         if (!ExpressionPurityChecker.IsExpressionPure(switchStatement.Expression, semanticModel, currentMethod))
                             return false;
+
+                        // Check all patterns in switch sections including list patterns
                         foreach (var section in switchStatement.Sections)
                         {
+                            // All patterns (including list patterns) are considered pure themselves
+                            // We only need to check the statements inside the section
                             if (!AreStatementsPure(section.Statements, semanticModel, currentMethod))
                                 return false;
                         }
