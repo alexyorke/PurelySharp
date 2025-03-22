@@ -23,6 +23,8 @@ For best results, ensure that all called methods in the dependency chain are als
 
 ## Supported Language Features
 
+Supported means there is _some_ level of test coverage. It does not mean it is 100% supported.
+
 ### Expressions
 
 - [x] Literal expressions (numbers, strings, etc.)
