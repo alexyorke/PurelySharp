@@ -35,7 +35,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] Using statements
 - [x] Using declarations (C# 8.0+)
 - [x] Lock statements (when used with `[AllowSynchronization]` attribute and read-only lock objects)
-- [ ] Yield statements (iterator methods)
+- [x] Yield statements (iterator methods)
 - [ ] Fixed statements
 
 ### Collections and Data Structures
@@ -60,7 +60,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] Virtual/override methods (if pure)
 - [x] Generic methods
 - [ ] Async methods
-- [ ] Iterator methods (yield return)
+- [x] Iterator methods (yield return)
 - [ ] Unsafe methods
 - [ ] Operator overloads
 - [ ] User-defined conversions
