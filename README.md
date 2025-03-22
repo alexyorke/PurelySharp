@@ -72,7 +72,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] Interfaces (methods are considered pure by default)
 - [~] Structs (when methods are pure) - _Partial support: only for immutable structs_
 - [x] Records (C# 9)
-- [ ] Record structs (C# 10)
+- [x] Record structs (C# 10)
 - [ ] Enums
 - [ ] Delegates
 - [ ] File-local types (C# 11)

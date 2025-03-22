@@ -70,9 +70,30 @@ namespace PurelySharp
         private void AnalyzeNamedType(SymbolAnalysisContext context)
         {
             var typeSymbol = (INamedTypeSymbol)context.Symbol;
+            // Record and record struct detection
             if (typeSymbol.IsRecord)
             {
                 _recordTypes.Add(typeSymbol);
+            }
+            // Try to detect record structs through syntax analysis for older compiler versions
+            else
+            {
+                var typeDeclarations = typeSymbol.DeclaringSyntaxReferences
+                    .Select(r => r.GetSyntax())
+                    .OfType<TypeDeclarationSyntax>();
+
+                foreach (var typeDecl in typeDeclarations)
+                {
+                    if (typeDecl is RecordDeclarationSyntax recordDecl)
+                    {
+                        // Check if this is a record struct
+                        if (recordDecl.ToString().Contains("record struct"))
+                        {
+                            _recordTypes.Add(typeSymbol);
+                            break;
+                        }
+                    }
+                }
             }
         }
 
@@ -389,7 +410,7 @@ namespace PurelySharp
             }
 
             // Check for methods with ref/out parameters
-            else if (methodDeclaration.ParameterList.Parameters.Any(p =>
+            var refParams = methodDeclaration.ParameterList.Parameters.Where(p =>
             {
                 // First check for 'in' keyword (C# 7.2+)
                 bool hasInKeyword = p.Modifiers.Any(m => m.IsKind(SyntaxKind.InKeyword));
@@ -410,21 +431,12 @@ namespace PurelySharp
 
                 // Check for regular ref/out parameters which are impure
                 return p.Modifiers.Any(m => m.IsKind(SyntaxKind.RefKeyword) || m.IsKind(SyntaxKind.OutKeyword));
-            }))
+            }).ToList();
+
+            if (refParams.Any())
             {
                 hasSpecialImpurityPattern = true;
-                var refParam = methodDeclaration.ParameterList.Parameters
-                    .First(p =>
-                    {
-                        // Skip 'in' and 'ref readonly' parameters
-                        bool isReadonlyRef = p.Modifiers.Any(m => m.IsKind(SyntaxKind.InKeyword)) ||
-                                          (p.Modifiers.Any(m => m.IsKind(SyntaxKind.RefKeyword)) &&
-                                           p.Modifiers.Any(m => m.IsKind(SyntaxKind.ReadOnlyKeyword)));
-
-                        return (p.Modifiers.Any(m => m.IsKind(SyntaxKind.RefKeyword) || m.IsKind(SyntaxKind.OutKeyword))) &&
-                               !isReadonlyRef;
-                    });
-                impurityLocation = refParam.GetLocation();
+                impurityLocation = refParams.First().GetLocation();
             }
 
             // Check for lock statements
