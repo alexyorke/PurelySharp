@@ -30,11 +30,8 @@ public class TestClass
     }
 }";
 
-            var expected = VerifyCS.Diagnostic()
-                .WithSpan(11, 12, 11, 17)
-                .WithArguments("TestMethod");
-
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            // No diagnostic should be reported as Task.FromResult is pure
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]

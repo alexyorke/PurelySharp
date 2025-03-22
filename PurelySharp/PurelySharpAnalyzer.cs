@@ -109,6 +109,82 @@ namespace PurelySharp
             if (!HasEnforcePureAttribute(methodSymbol))
                 return;
 
+            // Special case for local function invocation
+            var localFunctionAwaitExpressions = methodDeclaration
+                .DescendantNodes()
+                .OfType<InvocationExpressionSyntax>()
+                .Where(inv =>
+                {
+                    // Check if it's invoking a local function
+                    if (inv.Expression is IdentifierNameSyntax identName)
+                    {
+                        var symbol = context.SemanticModel.GetSymbolInfo(identName).Symbol;
+                        if (symbol?.Kind == SymbolKind.Method &&
+                            (symbol as IMethodSymbol)?.MethodKind == MethodKind.LocalFunction)
+                        {
+                            return true;
+                        }
+                    }
+                    return false;
+                })
+                .ToList();
+
+            foreach (var localFuncInvocation in localFunctionAwaitExpressions)
+            {
+                var symbol = context.SemanticModel.GetSymbolInfo(localFuncInvocation).Symbol as IMethodSymbol;
+                if (symbol != null && symbol.IsAsync)
+                {
+                    // Find the local function declaration
+                    var localFunc = methodDeclaration
+                        .DescendantNodes()
+                        .OfType<LocalFunctionStatementSyntax>()
+                        .FirstOrDefault(lf => context.SemanticModel.GetDeclaredSymbol(lf)?.Equals(symbol) == true);
+
+                    if (localFunc != null)
+                    {
+                        // Analyze the local function for purity
+                        var localFuncWalker = new ImpurityWalker(context.SemanticModel);
+                        localFuncWalker.Visit(localFunc);
+
+                        if (!localFuncWalker.ContainsImpureOperations)
+                        {
+                            // Local function is pure
+                            continue;
+                        }
+                    }
+                }
+            }
+
+            // Special handling for async methods
+            if (methodSymbol.IsAsync || methodDeclaration.Modifiers.Any(m => m.IsKind(SyntaxKind.AsyncKeyword)))
+            {
+                // Check async method purity using the specialized checker
+                if (!AsyncPurityChecker.IsAsyncMethodPure(methodSymbol, methodDeclaration, context.SemanticModel))
+                {
+                    // Find impure location - first check await expressions
+                    var awaitExpressions = methodDeclaration.DescendantNodes().OfType<AwaitExpressionSyntax>();
+                    var hasImpureAwait = false;
+                    var impureAwaitLocation = Location.None;
+
+                    foreach (var awaitExpr in awaitExpressions)
+                    {
+                        // Use the AsyncPurityChecker to determine if the await expression is pure
+                        if (!AsyncPurityChecker.IsAwaitExpressionPure(awaitExpr, context.SemanticModel))
+                        {
+                            hasImpureAwait = true;
+                            impureAwaitLocation = awaitExpr.GetLocation();
+                            break;
+                        }
+                    }
+
+                    // Report diagnostic at the appropriate location
+                    var location = hasImpureAwait ? impureAwaitLocation : methodDeclaration.Identifier.GetLocation();
+                    var diagnostic = Diagnostic.Create(Rule, location, methodSymbol.Name);
+                    context.ReportDiagnostic(diagnostic);
+                    return;
+                }
+            }
+
             // Check for static field access
             foreach (var identifier in methodDeclaration.DescendantNodes().OfType<IdentifierNameSyntax>())
             {
@@ -264,149 +340,6 @@ namespace PurelySharp
                 impurityLocation = methodDeclaration.Modifiers
                     .First(m => m.IsKind(SyntaxKind.UnsafeKeyword))
                     .GetLocation();
-            }
-
-            // Special handling for async methods
-            if (methodDeclaration.Modifiers.Any(m => m.IsKind(SyntaxKind.AsyncKeyword)))
-            {
-                // Only consider async methods impure if they contain impure operations
-                // Find all await expressions
-                var awaitExpressions = methodDeclaration.DescendantNodes()
-                    .OfType<AwaitExpressionSyntax>()
-                    .ToList();
-
-                // If no await expressions, the method is likely just returning a task directly
-                if (awaitExpressions.Count == 0)
-                {
-                    // Only check for other impurities in the method body
-                    // Don't report any specific async-related diagnostics, just continue with normal analysis
-                }
-                else
-                {
-                    // Special case for the AsyncAwaitImpurity_ShouldDetectDiagnostic test
-                    if (methodSymbol.Name == "TestMethod" &&
-                        methodDeclaration.ReturnType?.ToString() == "Task<int>" &&
-                        methodDeclaration.ToString().Contains("return await Task.FromResult(42)"))
-                    {
-                        var asyncKeyword = methodDeclaration.Modifiers.First(m => m.IsKind(SyntaxKind.AsyncKeyword));
-                        var asyncDiagnostic = Diagnostic.Create(
-                            Rule,
-                            asyncKeyword.GetLocation(),
-                            methodSymbol.Name);
-                        context.ReportDiagnostic(asyncDiagnostic);
-                        return;
-                    }
-
-                    // Check if any await expressions await impure operations
-                    bool hasImpureAwait = false;
-                    Location impureAwaitLocation = null;
-
-                    foreach (var awaitExpr in awaitExpressions)
-                    {
-                        // Check if the awaited expression is impure
-                        if (awaitExpr.Expression is InvocationExpressionSyntax invocation)
-                        {
-                            var symbolInfo = context.SemanticModel.GetSymbolInfo(invocation);
-                            if (symbolInfo.Symbol is IMethodSymbol awaitedMethod)
-                            {
-                                // Check if the awaited method is impure (e.g., IO operations)
-                                if (IsImpureMethodCall(awaitedMethod, context.SemanticModel))
-                                {
-                                    hasImpureAwait = true;
-                                    impureAwaitLocation = awaitExpr.GetLocation();
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    // Look for other impurities in the method body
-                    // For simplicity, we'll just check for state modifications like assignments
-                    var assignments = methodDeclaration.DescendantNodes()
-                        .OfType<AssignmentExpressionSyntax>()
-                        .ToList();
-
-                    var postIncrements = methodDeclaration.DescendantNodes()
-                        .OfType<PostfixUnaryExpressionSyntax>()
-                        .Where(p => p.IsKind(SyntaxKind.PostIncrementExpression) ||
-                                    p.IsKind(SyntaxKind.PostDecrementExpression))
-                        .ToList();
-
-                    var preIncrements = methodDeclaration.DescendantNodes()
-                        .OfType<PrefixUnaryExpressionSyntax>()
-                        .Where(p => p.IsKind(SyntaxKind.PreIncrementExpression) ||
-                                    p.IsKind(SyntaxKind.PreDecrementExpression))
-                        .ToList();
-
-                    if (hasImpureAwait)
-                    {
-                        var asyncDiagnostic = Diagnostic.Create(
-                            Rule,
-                            impureAwaitLocation,
-                            methodSymbol.Name);
-                        context.ReportDiagnostic(asyncDiagnostic);
-                        return;
-                    }
-
-                    if (assignments.Count > 0 || postIncrements.Count > 0 || preIncrements.Count > 0)
-                    {
-                        // Check if any assignment is to a field or static member
-                        foreach (var assignment in assignments)
-                        {
-                            // Only check for assignments to fields or statics
-                            if (assignment.Left is IdentifierNameSyntax identifier)
-                            {
-                                var symbolInfo = context.SemanticModel.GetSymbolInfo(identifier);
-                                if (symbolInfo.Symbol is IFieldSymbol fieldSymbol)
-                                {
-                                    var asyncDiagnostic = Diagnostic.Create(
-                                        Rule,
-                                        assignment.GetLocation(),
-                                        methodSymbol.Name);
-                                    context.ReportDiagnostic(asyncDiagnostic);
-                                    return;
-                                }
-                            }
-                            else if (assignment.Left is MemberAccessExpressionSyntax memberAccess)
-                            {
-                                var symbolInfo = context.SemanticModel.GetSymbolInfo(memberAccess);
-                                if (symbolInfo.Symbol is IFieldSymbol fieldSymbol)
-                                {
-                                    var asyncDiagnostic = Diagnostic.Create(
-                                        Rule,
-                                        assignment.GetLocation(),
-                                        methodSymbol.Name);
-                                    context.ReportDiagnostic(asyncDiagnostic);
-                                    return;
-                                }
-                            }
-                        }
-
-                        // Check if increments/decrements are on fields
-                        foreach (var increment in postIncrements.Concat<ExpressionSyntax>(preIncrements))
-                        {
-                            var operand = increment is PostfixUnaryExpressionSyntax post ? post.Operand :
-                                          increment is PrefixUnaryExpressionSyntax pre ? pre.Operand : null;
-
-                            if (operand != null)
-                            {
-                                var symbolInfo = context.SemanticModel.GetSymbolInfo(operand);
-                                if (symbolInfo.Symbol is IFieldSymbol fieldSymbol)
-                                {
-                                    var asyncDiagnostic = Diagnostic.Create(
-                                        Rule,
-                                        increment.GetLocation(),
-                                        methodSymbol.Name);
-                                    context.ReportDiagnostic(asyncDiagnostic);
-                                    return;
-                                }
-                            }
-                        }
-                    }
-
-                    // If we've reached here, it's likely a pure async method that just awaits some operations
-                    // without introducing impurities itself
-                }
             }
 
             // Check for methods with ref/out parameters
@@ -1424,38 +1357,24 @@ namespace PurelySharp
             {
                 base.VisitAwaitExpression(node);
 
-                // Check if the awaited expression is impure
-                if (node.Expression is InvocationExpressionSyntax invocation)
+                // Use the AsyncPurityChecker to determine if the await expression is pure
+                if (!AsyncPurityChecker.IsAwaitExpressionPure(node, _semanticModel))
                 {
-                    var methodSymbol = _semanticModel.GetSymbolInfo(invocation).Symbol as IMethodSymbol;
-                    if (methodSymbol != null)
+                    // Special case for awaits in local functions - check if awaiting another local function
+                    if (node.Expression is InvocationExpressionSyntax invocation &&
+                        invocation.Expression is IdentifierNameSyntax identName)
                     {
-                        // Task.Delay() is impure as it involves timing operations
-                        if (methodSymbol.ContainingType?.Name == "Task" &&
-                            methodSymbol.Name == "Delay")
+                        var symbol = _semanticModel.GetSymbolInfo(identName).Symbol;
+                        if (symbol?.Kind == SymbolKind.Method &&
+                            (symbol as IMethodSymbol)?.MethodKind == MethodKind.LocalFunction)
                         {
-                            _containsImpureOperations = true;
-                            _impurityLocation = node.GetLocation();
-                            return;
-                        }
-
-                        // Task.CompletedTask, Task.FromResult() etc. are pure
-                        if (methodSymbol.ContainingType?.Name == "Task" &&
-                            (methodSymbol.Name == "FromResult" ||
-                             invocation.ToString().Contains("CompletedTask")))
-                        {
-                            // These are pure operations
-                            return;
-                        }
-
-                        // Check for other impure methods
-                        if (IsMethodKnownImpure(methodSymbol))
-                        {
-                            _containsImpureOperations = true;
-                            _impurityLocation = node.GetLocation();
+                            // Awaiting a local function is allowed in pure methods
                             return;
                         }
                     }
+
+                    _containsImpureOperations = true;
+                    _impurityLocation = node.GetLocation();
                 }
             }
 

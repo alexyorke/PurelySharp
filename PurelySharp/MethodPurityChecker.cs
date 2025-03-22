@@ -184,9 +184,16 @@ namespace PurelySharp
                 !(methodSymbol.ContainingSymbol is IPropertySymbol property && property.SetMethod?.IsInitOnly == true))
                 return true;
 
-            // Check for async methods (might have side effects)
+            // For async methods, we now use the specialized checker instead of treating all async as impure
             if (methodSymbol.IsAsync)
+            {
+                // Method has the EnforcePure attribute, it will be checked elsewhere
+                if (HasEnforcePureAttribute(methodSymbol))
+                    return false;
+
+                // Otherwise default to treating as impure for backward compatibility
                 return true;
+            }
 
             // Methods with ref or out parameters modify state
             if (methodSymbol.Parameters.Any(p => p.RefKind == RefKind.Ref || p.RefKind == RefKind.Out))

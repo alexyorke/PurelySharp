@@ -57,7 +57,7 @@ class Program
     }
 }";
 
-            var expected = VerifyCS.Diagnostic().WithSpan(17, 9, 17, 19).WithArguments("ImpureAsyncMethod");
+            var expected = VerifyCS.Diagnostic().WithSpan(16, 9, 16, 28).WithArguments("ImpureAsyncMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }

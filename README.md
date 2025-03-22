@@ -12,7 +12,6 @@ Known limitations:
 - **Static Fields**: Access to static fields from other types/assemblies may not always be correctly identified as impure.
 - **External Dependencies**: Methods from third-party libraries without proper annotations might be incorrectly assumed to be pure.
 - **Reflection**: Code using reflection to modify state may evade detection.
-- **Async Methods**: Support for async methods is limited; await expressions may not be properly analyzed.
 - **Constructors**: Analysis of constructors is limited and may miss impurities.
 - **Thread-Static Fields**: Thread-static field access isn't always properly detected as impure.
 - **Volatile Fields**: Reading volatile fields might not be detected as impure.
@@ -40,7 +39,7 @@ Supported means there is _some_ level of test coverage. It does not mean it is 1
 - [x] Stack allocations and Span operations (when used in a read-only manner)
 - [x] Indices and ranges (C# 8.0+)
 - [x] Bit shift operations including unsigned right shift (`>>>`)
-- [ ] Async/await expressions
+- [x] Async/await expressions
 - [x] Unsafe code blocks
 - [x] Pointer operations
 
@@ -81,7 +80,7 @@ Supported means there is _some_ level of test coverage. It does not mean it is 1
 - [x] Recursive methods (if pure)
 - [x] Virtual/override methods (if pure)
 - [x] Generic methods
-- [ ] Async methods
+- [x] Async methods
 - [x] Iterator methods (yield return)
 - [x] Unsafe methods
 - [x] Operator overloads (including checked operators)
@@ -826,4 +825,82 @@ public class TestClass
 }
 
 // Current analyzer may not detect the impurity in ParseDate
+```
+
+### Async Methods and Tasks
+
+The analyzer supports async methods and Task/ValueTask operations with the following considerations:
+
+- Methods marked with `async` and returning `Task` or `ValueTask` can be marked as `[EnforcePure]`
+- Pure async methods should only await other pure operations or methods
+- The following Task operations are considered pure:
+  - `Task.FromResult()`
+  - `Task.CompletedTask`
+  - `ValueTask.FromResult()`
+  - `ValueTask<T>` constructors
+  - Awaiting parameters of Task types
+  - Awaiting other pure methods
+- The following Task operations are considered impure:
+  - `Task.Delay()`
+  - `Task.Run()`
+  - `Task.Factory.StartNew()`
+  - `Task.WhenAll()/WhenAny()`
+  - `Task.Yield()`
+
+#### Pure Async Method Example
+
+```csharp
+using System;
+using System.Threading.Tasks;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public async Task<int> PureAsyncMethod(int value)
+    {
+        // Task.FromResult is pure
+        int result = await Task.FromResult(value * 2);
+
+        // Calling another pure method is also pure
+        return await PureHelperAsync(result);
+    }
+
+    [EnforcePure]
+    private async Task<int> PureHelperAsync(int value)
+    {
+        // Task.CompletedTask is pure
+        await Task.CompletedTask;
+        return value + 1;
+    }
+}
+
+// No analyzer errors - methods are pure
+```
+
+#### Impure Async Method Example
+
+```csharp
+using System;
+using System.Threading.Tasks;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public async Task ImpureAsyncMethod()
+    {
+        // Task.Delay is impure as it has side effects (waits)
+        await Task.Delay(1000);
+
+        // Task.Run is impure as it launches work on another thread
+        await Task.Run(() => Console.WriteLine("Hello"));
+    }
+}
+
+// Analyzer Error: PMA0001 - Method 'ImpureAsyncMethod' is marked as pure but contains impure operations
 ```
