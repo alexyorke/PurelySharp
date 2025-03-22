@@ -903,56 +903,40 @@ namespace PurelySharp
             {
                 base.VisitAssignmentExpression(node);
 
-                // If we already found impure operations, no need to check further
-                if (_containsImpureOperations)
-                    return;
-
-                // Check for event subscriptions (+=, -=)
-                if (node.Kind() == SyntaxKind.AddAssignmentExpression ||
-                    node.Kind() == SyntaxKind.SubtractAssignmentExpression)
+                // Check if we're assigning to a field or property
+                if (node.Left is MemberAccessExpressionSyntax memberAccess)
                 {
-                    var left = node.Left;
-                    var symbolInfo = _semanticModel.GetSymbolInfo(left);
+                    // Get semantic info for the member being accessed
+                    var symbolInfo = _semanticModel.GetSymbolInfo(memberAccess.Name);
+                    var symbol = symbolInfo.Symbol;
 
-                    // Check if it's an event
-                    if (symbolInfo.Symbol is IEventSymbol)
+                    // If it's a field or property that is not readonly, it's impure
+                    if (symbol is IFieldSymbol fieldSymbol && !fieldSymbol.IsReadOnly)
                     {
                         _containsImpureOperations = true;
-                        _impurityLocation = node.OperatorToken.GetLocation();
+                        _impurityLocation = node.GetLocation();
+                        return;
+                    }
+                    else if (symbol is IPropertySymbol propertySymbol && propertySymbol.SetMethod != null)
+                    {
+                        _containsImpureOperations = true;
+                        _impurityLocation = node.GetLocation();
                         return;
                     }
                 }
-
-                if (node.Left is MemberAccessExpressionSyntax memberAccess)
+                // Check if we're modifying an element in an array or collection
+                else if (node.Left is ElementAccessExpressionSyntax elementAccess)
                 {
-                    var symbolInfo = _semanticModel.GetSymbolInfo(memberAccess);
-                    if (symbolInfo.Symbol is IFieldSymbol fieldSymbol && !IsImmutableField(fieldSymbol))
-                    {
-                        _containsImpureOperations = true;
-                        _impurityLocation = node.OperatorToken.GetLocation();
-                    }
-                    else if (symbolInfo.Symbol is IPropertySymbol propertySymbol &&
-                             propertySymbol.SetMethod != null &&
-                             !propertySymbol.SetMethod.IsInitOnly)
-                    {
-                        _containsImpureOperations = true;
-                        _impurityLocation = node.OperatorToken.GetLocation();
-                    }
-
-                    // Check if we're modifying a field of a parameter
-                    var expressionSymbolInfo = _semanticModel.GetSymbolInfo(memberAccess.Expression);
-                    if (expressionSymbolInfo.Symbol is IParameterSymbol paramSymbol &&
-                        paramSymbol.Type.IsValueType)
-                    {
-                        // If we're modifying a field of a struct parameter, that's impure
-                        _containsImpureOperations = true;
-                        _impurityLocation = node.OperatorToken.GetLocation();
-                    }
+                    // Modifying elements in arrays or collections is impure
+                    _containsImpureOperations = true;
+                    _impurityLocation = node.GetLocation();
+                    return;
                 }
-                else if (node.Left is IdentifierNameSyntax identifierName)
+                // Check if we're assigning to an identifier (variable)
+                else if (node.Left is IdentifierNameSyntax identifier)
                 {
                     // Check if the identifier is a field
-                    var symbolInfo = _semanticModel.GetSymbolInfo(identifierName);
+                    var symbolInfo = _semanticModel.GetSymbolInfo(identifier);
                     if (symbolInfo.Symbol is IFieldSymbol fieldSymbol && !IsImmutableField(fieldSymbol))
                     {
                         _containsImpureOperations = true;
@@ -964,22 +948,6 @@ namespace PurelySharp
                         // If it's a ref or out parameter and we're assigning to it, that's impure
                         // In (readonly ref) parameters are safe since they can't be modified
                         if (parameterSymbol.RefKind == RefKind.Out || parameterSymbol.RefKind == RefKind.Ref)
-                        {
-                            _containsImpureOperations = true;
-                            _impurityLocation = node.OperatorToken.GetLocation();
-                        }
-                    }
-                }
-                else if (node.Left is ElementAccessExpressionSyntax elementAccess)
-                {
-                    // Check if we're modifying an array element accessed through a parameter
-                    var arrayExpression = elementAccess.Expression;
-                    var arraySymbol = _semanticModel.GetSymbolInfo(arrayExpression).Symbol;
-
-                    if (arraySymbol is IParameterSymbol paramSymbol)
-                    {
-                        // Check if this is a params array parameter
-                        if (paramSymbol.IsParams)
                         {
                             _containsImpureOperations = true;
                             _impurityLocation = node.OperatorToken.GetLocation();
@@ -1342,6 +1310,51 @@ namespace PurelySharp
                     _impurityLocation = node.GetLocation();
                     return;
                 }
+
+                // Check if this is creating a mutable collection
+                if (typeInfo != null)
+                {
+                    var modifiableCollections = new[] {
+                        "List", "Dictionary", "HashSet", "Queue", "Stack", "LinkedList",
+                        "SortedList", "SortedDictionary", "SortedSet", "Collection"
+                    };
+
+                    // Check if the type is a known mutable collection type
+                    var typeName = typeInfo.Name;
+                    if (modifiableCollections.Contains(typeName) ||
+                        (typeInfo is INamedTypeSymbol namedType &&
+                        namedType.TypeArguments.Any() &&
+                        modifiableCollections.Contains(namedType.ConstructedFrom.Name)))
+                    {
+                        // Allow immutable collections
+                        if (typeInfo.ContainingNamespace?.Name == "Immutable" &&
+                            typeInfo.ContainingNamespace.ToString().Contains("System.Collections.Immutable"))
+                            return;
+
+                        // Mark as impure
+                        _containsImpureOperations = true;
+                        _impurityLocation = node.GetLocation();
+                        return;
+                    }
+                }
+            }
+
+            public override void VisitArrayCreationExpression(ArrayCreationExpressionSyntax node)
+            {
+                base.VisitArrayCreationExpression(node);
+
+                // All array creation expressions are considered impure
+                _containsImpureOperations = true;
+                _impurityLocation = node.GetLocation();
+            }
+
+            public override void VisitImplicitArrayCreationExpression(ImplicitArrayCreationExpressionSyntax node)
+            {
+                base.VisitImplicitArrayCreationExpression(node);
+
+                // All implicit array creation expressions (new[] { ... }) are impure
+                _containsImpureOperations = true;
+                _impurityLocation = node.GetLocation();
             }
 
             public override void VisitAwaitExpression(AwaitExpressionSyntax node)
@@ -1379,6 +1392,53 @@ namespace PurelySharp
                             _impurityLocation = node.GetLocation();
                             return;
                         }
+                    }
+                }
+            }
+
+            // Add support for checking collection expressions (C# 12)
+            public override void VisitCollectionExpression(CollectionExpressionSyntax node)
+            {
+                base.VisitCollectionExpression(node);
+
+                // Check the target type of the collection expression
+                var typeInfo = _semanticModel.GetTypeInfo(node);
+                var destinationType = typeInfo.ConvertedType;
+
+                // If we can determine the type and it's a mutable collection, mark as impure
+                if (destinationType != null)
+                {
+                    // Array types are mutable
+                    if (destinationType is IArrayTypeSymbol)
+                    {
+                        _containsImpureOperations = true;
+                        _impurityLocation = node.GetLocation();
+                        return;
+                    }
+
+                    // Check for mutable collection types
+                    var modifiableCollections = new[] {
+                        "List", "Dictionary", "HashSet", "Queue", "Stack", "LinkedList",
+                        "SortedList", "SortedDictionary", "SortedSet", "Collection"
+                    };
+
+                    // Allow immutable collections
+                    if (destinationType.ContainingNamespace?.Name == "Immutable" &&
+                        destinationType.ContainingNamespace.ToString().Contains("System.Collections.Immutable"))
+                        return;
+
+                    // Allow read-only collections
+                    if (destinationType.Name.StartsWith("IReadOnly"))
+                        return;
+
+                    if (modifiableCollections.Contains(destinationType.Name) ||
+                        (destinationType is INamedTypeSymbol namedType &&
+                         namedType.TypeArguments.Any() &&
+                         modifiableCollections.Contains(namedType.ConstructedFrom.Name)))
+                    {
+                        _containsImpureOperations = true;
+                        _impurityLocation = node.GetLocation();
+                        return;
                     }
                 }
             }

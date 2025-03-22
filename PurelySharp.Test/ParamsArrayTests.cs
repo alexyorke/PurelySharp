@@ -98,7 +98,12 @@ public class TestClass
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // The analyzer now detects creating arrays as impure
+            var expected = VerifyCS.Diagnostic("PMA0001")
+                .WithSpan(23, 25, 23, 52)
+                .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -207,7 +212,7 @@ public class TestClass
     [Pure]
     public int[] ProcessArray(params int[] numbers)
     {
-        // Creating a new array with modified values - this is pure because we don't modify the original
+        // Creating a new array with modified values - now detected as impure
         int[] result = new int[numbers.Length];
         for (int i = 0; i < numbers.Length; i++)
         {
@@ -217,7 +222,12 @@ public class TestClass
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // The analyzer now detects creating arrays as impure
+            var expected = VerifyCS.Diagnostic("PMA0001")
+                .WithSpan(16, 13, 16, 39)
+                .WithArguments("ProcessArray");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -244,7 +254,7 @@ public class TestClass
 }";
 
             await VerifyCS.VerifyAnalyzerAsync(test,
-                DiagnosticResult.CompilerError("PMA0001").WithSpan(15, 24, 15, 25).WithArguments("ProcessArray"));
+                DiagnosticResult.CompilerError("PMA0001").WithSpan(15, 13, 15, 40).WithArguments("ProcessArray"));
         }
     }
 }

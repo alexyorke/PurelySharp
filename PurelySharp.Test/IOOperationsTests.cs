@@ -395,8 +395,7 @@ public class TestClass
     [EnforcePure]
     public List<int> TestMethod()
     {
-        // Creating a new list is actually a side effect but often overlooked
-        var result = new List<int>();
+        var result = new List<int>(); // Creates a mutable collection
         for (int i = 0; i < 100; i++)
         {
             result.Add(i); // Modifies heap memory
@@ -405,8 +404,12 @@ public class TestClass
     }
 }";
 
-            // The analyzer doesn't detect memory allocation/List creation as impure
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // The analyzer now detects memory allocation/List creation as impure
+            var expected = VerifyCS.Diagnostic("PMA0001")
+                .WithSpan(13, 22, 13, 37)
+                .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -430,8 +433,12 @@ public class TestClass
     }
 }";
 
-            // The analyzer doesn't detect reflection-based impurity
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // The analyzer now detects reflection-based impurity
+            var expected = VerifyCS.Diagnostic("PMA0001")
+                .WithSpan(14, 60, 14, 77)
+                .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]

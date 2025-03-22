@@ -145,6 +145,37 @@ namespace PurelySharp
 
                     return true;
 
+                // Add support for collection expressions (C# 12)
+                case CollectionExpressionSyntax collectionExpr:
+                    // Check the target type of the collection expression
+                    var typeInfo = semanticModel.GetTypeInfo(collectionExpr);
+                    var destinationType = typeInfo.ConvertedType;
+
+                    // If we can't determine the type, be conservative and mark it as impure
+                    if (destinationType == null)
+                        return false;
+
+                    // Check if the target type is a mutable collection
+                    if (CollectionChecker.IsModifiableCollectionType(destinationType))
+                        return false;
+
+                    // Check all elements in the collection expression
+                    foreach (var element in collectionExpr.Elements)
+                    {
+                        if (element is ExpressionElementSyntax exprElement)
+                        {
+                            if (!IsExpressionPure(exprElement.Expression, semanticModel, currentMethod))
+                                return false;
+                        }
+                        else if (element is SpreadElementSyntax spreadElement)
+                        {
+                            if (!IsExpressionPure(spreadElement.Expression, semanticModel, currentMethod))
+                                return false;
+                        }
+                    }
+
+                    return true;
+
                 // Add support for switch expressions (C# 8.0+)
                 case SwitchExpressionSyntax switchExpr:
                     // Check the governing expression

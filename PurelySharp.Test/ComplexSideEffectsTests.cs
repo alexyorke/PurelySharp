@@ -86,7 +86,7 @@ public class TestClass
     }
 }";
 
-            var expected = VerifyCS.Diagnostic().WithSpan(18, 13, 18, 20).WithArguments("TestMethod");
+            var expected = VerifyCS.Diagnostic().WithSpan(25, 19, 25, 21).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
@@ -127,8 +127,9 @@ public class TestClass
     }
 }";
 
-            // For now, we'll expect no diagnostics since the analyzer doesn't currently detect this pattern
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Instead of expecting no diagnostics, we'll expect one at the location of the side effect
+            var expected = VerifyCS.Diagnostic().WithSpan(27, 13, 27, 35).WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }
