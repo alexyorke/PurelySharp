@@ -63,7 +63,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [ ] Async methods
 - [x] Iterator methods (yield return)
 - [x] Unsafe methods
-- [x] Operator overloads
+- [x] Operator overloads (including checked operators)
 - [x] User-defined conversions
 - [x] Static abstract/virtual interface members (C# 11)
 
@@ -141,21 +141,21 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 
 ### C# 11 Specific Features
 
-- [x] List patterns (C# 11)
-- [x] Raw string literals ("""...""")
-- [x] UTF-8 string literals (u8 suffix)
-- [x] Newlines in string interpolation expressions
-- [x] Required members (C# 11)
-- [x] File-local types (file access modifier)
-- [x] Auto-default structs
-- [x] Pattern match Span<char> on constant string
 - [x] Extended nameof scope
 - [x] Numeric IntPtr (nint/nuint)
-- [x] ref fields and scoped ref
 - [x] Generic attributes
-- [x] Generic math support (static virtual/abstract interface members)
 - [x] Unsigned right-shift operator (>>>)
-- [ ] Checked user-defined operators
+- [x] Checked user-defined operators
+- [ ] Raw string literals
+- [ ] UTF-8 string literals
+- [ ] List patterns
+- [ ] File-local types
+- [ ] Required members
+- [ ] Auto-default structs
+- [x] Pattern match Span<char> on constant string
+- [x] Newlines in string interpolation expressions
+- [x] ref fields and scoped ref
+- [x] Generic math support (static virtual/abstract interface members)
 
 ### C# 12 Specific Features
 
