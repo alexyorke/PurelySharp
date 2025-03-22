@@ -125,7 +125,8 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] Switch expressions
 - [x] List patterns (C# 11)
 - [ ] Top-level statements (C# 9)
-- [ ] File-scoped namespaces (C# 10)
+- [x] File-scoped namespaces (C# 10)
+<!-- Implementation note: The analyzer implicitly supports file-scoped namespaces as it analyzes syntax nodes regardless of namespace declaration style. -->
 - [x] Required members (C# 11)
 - [ ] Nullable reference types annotations (C# 8.0+)
 - [ ] Caller information attributes

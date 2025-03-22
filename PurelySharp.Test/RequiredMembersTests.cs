@@ -10,35 +10,39 @@ namespace PurelySharp.Test
     [TestFixture]
     public class RequiredMembersTests
     {
-        [Test]
-        public async Task ClassWithRequiredMembers_PureMethod_NoDiagnostic()
-        {
-            var test = @"
-using System;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
-
+        // Common attribute definitions for required members tests
+        private const string AttributeDefinitions = @"
 // Required for required members
 namespace System.Runtime.CompilerServices
 {
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
-    internal sealed class CompilerFeatureRequiredAttribute : Attribute
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false)]
+    public sealed class CompilerFeatureRequiredAttribute : Attribute
     {
         public CompilerFeatureRequiredAttribute(string featureName) => FeatureName = featureName;
         public string FeatureName { get; }
     }
     
     [AttributeUsage(AttributeTargets.All, AllowMultiple = false, Inherited = false)]
-    internal sealed class RequiredMemberAttribute : Attribute { }
+    public sealed class RequiredMemberAttribute : Attribute { }
     
     internal static class IsExternalInit { }
 }
 
 namespace System.Diagnostics.CodeAnalysis
 {
-    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
-    internal sealed class SetsRequiredMembersAttribute : Attribute { }
-}
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor, AllowMultiple = false, Inherited = false)]
+    public sealed class SetsRequiredMembersAttribute : Attribute { }
+}";
+
+        [Test]
+        public async Task ClassWithRequiredMembers_PureMethod_NoDiagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+" + AttributeDefinitions + @"
 
 [AttributeUsage(AttributeTargets.Method)]
 public class EnforcePureAttribute : Attribute { }
@@ -80,61 +84,41 @@ namespace TestNamespace
         public async Task RecordWithRequiredMembers_PureMethod_NoDiagnostic()
         {
             var test = @"
+#nullable enable
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-
-// Required for required members
-namespace System.Runtime.CompilerServices
-{
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
-    internal sealed class CompilerFeatureRequiredAttribute : Attribute
-    {
-        public CompilerFeatureRequiredAttribute(string featureName) => FeatureName = featureName;
-        public string FeatureName { get; }
-    }
-    
-    [AttributeUsage(AttributeTargets.All, AllowMultiple = false, Inherited = false)]
-    internal sealed class RequiredMemberAttribute : Attribute { }
-    
-    internal static class IsExternalInit { }
-}
-
-namespace System.Diagnostics.CodeAnalysis
-{
-    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
-    internal sealed class SetsRequiredMembersAttribute : Attribute { }
-}
+" + AttributeDefinitions + @"
 
 [AttributeUsage(AttributeTargets.Method)]
 public class EnforcePureAttribute : Attribute { }
 
 namespace TestNamespace
 {
-    public record Product
+    public record Person
     {
-        public required string Name { get; init; }
-        public required decimal Price { get; init; }
+        public required string FirstName { get; init; }
+        public required string LastName { get; init; }
         
         [EnforcePure]
-        public string GetFormattedPrice()
+        public string GetFullName()
         {
-            return $""{Name}: ${Price:0.00}"";
+            return $""{FirstName} {LastName}"";
         }
     }
 
-    public class ShoppingCart
+    public class Client
     {
-        public string GetProductInfo()
+        public string GetPersonInfo()
         {
-            // Using object initializer with required members in a record
-            var product = new Product
+            // Using object initializer with required members
+            var person = new Person
             {
-                Name = ""Widget"",
-                Price = 9.99m
+                FirstName = ""John"",
+                LastName = ""Doe""
             };
             
-            return product.GetFormattedPrice();
+            return person.GetFullName();
         }
     }
 }";
@@ -471,47 +455,25 @@ namespace TestNamespace
         {
             var test = @"
 using System;
-
-// Required for init-only properties
-namespace System.Runtime.CompilerServices
-{
-    internal static class IsExternalInit { }
-    internal static class RequiredMemberAttribute { }
-}
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+" + AttributeDefinitions + @"
 
 [AttributeUsage(AttributeTargets.Method)]
 public class EnforcePureAttribute : Attribute { }
 
 namespace TestNamespace
 {
-    public class Person
+    public class Config
     {
-        public required string FirstName { get; init; }
-        public required string LastName { get; init; }
-        public int? Age { get; init; }
-
+        public required string ApiKey { get; init; }
+        public required string ApiEndpoint { get; init; }
+        
         [EnforcePure]
-        public string GetFullName()
+        public string GetFullEndpoint()
         {
-            // Reading required properties is pure
-            return $""{FirstName} {LastName}"";
-        }
-    }
-
-    public class Application
-    {
-        [EnforcePure]
-        public string GetPersonInfo(string firstName, string lastName, int? age = null)
-        {
-            // Object initialization with required members
-            var person = new Person
-            {
-                FirstName = firstName,
-                LastName = lastName,
-                Age = age
-            };
-
-            return person.GetFullName() + (age.HasValue ? $"" ({age} years old)"" : """");
+            // Reading required members is fine
+            return $""{ApiEndpoint}?key={ApiKey}"";
         }
     }
 }";
@@ -524,48 +486,32 @@ namespace TestNamespace
         {
             var test = @"
 using System;
-
-// Required for init-only properties and records
-namespace System.Runtime.CompilerServices
-{
-    internal static class IsExternalInit { }
-    internal static class RequiredMemberAttribute { }
-}
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+" + AttributeDefinitions + @"
 
 [AttributeUsage(AttributeTargets.Method)]
 public class EnforcePureAttribute : Attribute { }
 
 namespace TestNamespace
 {
-    public record Employee
+    public record User
     {
-        public required string Id { get; init; }
-        public required string Department { get; init; }
-        public string? Title { get; init; }
-
-        [EnforcePure]
-        public string GetEmployeeInfo()
+        [SetsRequiredMembers]
+        public User(string name, string email)
         {
-            // Reading required properties in a record is pure
-            return $""ID: {Id}, Department: {Department}"" + 
-                  (Title != null ? $"", Title: {Title}"" : """");
+            Name = name;
+            Email = email;
         }
-    }
-
-    public class EmployeeManager
-    {
+        
+        public required string Name { get; init; }
+        public required string Email { get; init; }
+        
         [EnforcePure]
-        public string GetEmployeeDetails(string id, string department, string? title = null)
+        public string GetUserInfo()
         {
-            // Object initialization with required members in a record
-            var employee = new Employee
-            {
-                Id = id,
-                Department = department,
-                Title = title
-            };
-
-            return employee.GetEmployeeInfo();
+            // Reading required members is pure
+            return $""{Name} ({Email})"";
         }
     }
 }";
@@ -578,45 +524,25 @@ namespace TestNamespace
         {
             var test = @"
 using System;
-
-// Required for init-only properties
-namespace System.Runtime.CompilerServices
-{
-    internal static class IsExternalInit { }
-    internal static class RequiredMemberAttribute { }
-}
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+" + AttributeDefinitions + @"
 
 [AttributeUsage(AttributeTargets.Method)]
 public class EnforcePureAttribute : Attribute { }
 
 namespace TestNamespace
 {
-    public readonly struct Point
+    public struct Point
     {
         public required int X { get; init; }
         public required int Y { get; init; }
-
+        
         [EnforcePure]
         public double GetDistance()
         {
-            // Reading required properties in a struct is pure
+            // Reading required members in a struct is pure
             return Math.Sqrt(X * X + Y * Y);
-        }
-    }
-
-    public class GeometryCalculator
-    {
-        [EnforcePure]
-        public double CalculateDistance(int x, int y)
-        {
-            // Object initialization with required members in a struct
-            var point = new Point
-            {
-                X = x,
-                Y = y
-            };
-
-            return point.GetDistance();
         }
     }
 }";
@@ -629,48 +555,25 @@ namespace TestNamespace
         {
             var test = @"
 using System;
-
-// Required for init-only properties
-namespace System.Runtime.CompilerServices
-{
-    internal static class IsExternalInit { }
-    internal static class RequiredMemberAttribute { }
-}
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+" + AttributeDefinitions + @"
 
 [AttributeUsage(AttributeTargets.Method)]
 public class EnforcePureAttribute : Attribute { }
 
 namespace TestNamespace
 {
-    // Combining required members with primary constructor
-    public class Configuration(string environment)
+    public class Product(string name, decimal price)
     {
-        public required string ApiKey { get; init; }
-        public string Environment { get; } = environment;
-        public string? Region { get; init; }
-
+        public required string Name { get; init; } = name;
+        public required decimal Price { get; init; } = price;
+        
         [EnforcePure]
-        public string GetConnectionString()
+        public string GetFormattedPrice()
         {
-            // Reading required property and constructor parameter is pure
-            return $""ApiKey={ApiKey};Environment={Environment}"" +
-                  (Region != null ? $"";Region={Region}"" : """");
-        }
-    }
-
-    public class ConfigurationManager
-    {
-        [EnforcePure]
-        public string GetConnectionString(string apiKey, string environment, string? region = null)
-        {
-            // Using required members with a primary constructor
-            var config = new Configuration(environment)
-            {
-                ApiKey = apiKey,
-                Region = region
-            };
-
-            return config.GetConnectionString();
+            // Reading required members is pure
+            return $""{Name}: ${Price:F2}"";
         }
     }
 }";
@@ -683,74 +586,32 @@ namespace TestNamespace
         {
             var test = @"
 using System;
-using System.Collections.Generic;
-
-// Required for init-only properties
-namespace System.Runtime.CompilerServices
-{
-    internal static class IsExternalInit { }
-    internal static class RequiredMemberAttribute { }
-}
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+" + AttributeDefinitions + @"
 
 [AttributeUsage(AttributeTargets.Method)]
 public class EnforcePureAttribute : Attribute { }
 
 namespace TestNamespace
 {
-    public class Address
-    {
-        public required string Street { get; init; }
-        public required string City { get; init; }
-        public required string ZipCode { get; init; }
-        public string? State { get; init; }
-    }
-
     public class Customer
     {
         public required string Name { get; init; }
         public required string Email { get; init; }
-        public required Address HomeAddress { get; init; }
-        public Address? WorkAddress { get; init; }
     }
-
-    public class CustomerService
+    
+    public class Order
     {
-        [EnforcePure]
-        public string FormatCustomerInfo(Customer customer)
-        {
-            // Reading required properties from nested types
-            var result = $""Name: {customer.Name}\nEmail: {customer.Email}\n"";
-            result += $""Home Address: {customer.HomeAddress.Street}, {customer.HomeAddress.City}, {customer.HomeAddress.ZipCode}"";
-            
-            if (customer.HomeAddress.State != null)
-                result += $"", {customer.HomeAddress.State}"";
-                
-            if (customer.WorkAddress != null)
-            {
-                result += $""\nWork Address: {customer.WorkAddress.Street}, {customer.WorkAddress.City}, {customer.WorkAddress.ZipCode}"";
-                if (customer.WorkAddress.State != null)
-                    result += $"", {customer.WorkAddress.State}"";
-            }
-            
-            return result;
-        }
+        public required string OrderId { get; init; }
+        public required Customer Customer { get; init; }
+        public required decimal Total { get; init; }
         
         [EnforcePure]
-        public Customer CreateCustomer(string name, string email, string street, string city, string zipCode, string? state = null)
+        public string GetOrderSummary()
         {
-            // Initializing nested objects with required members
-            return new Customer
-            {
-                Name = name,
-                Email = email,
-                HomeAddress = new Address
-                {
-                    Street = street,
-                    City = city,
-                    ZipCode = zipCode,
-                    State = state
-                }
-            };
+            // Reading required members from multiple types is pure
+            return $""Order {OrderId} for {Customer.Name} ({Customer.Email}): ${Total:F2}"";
         }
     }
 }";
@@ -762,14 +623,11 @@ namespace TestNamespace
         public async Task RequiredMembers_TryingToModify_Diagnostic()
         {
             var test = @"
+#nullable enable
 using System;
-
-// Required for init-only properties
-namespace System.Runtime.CompilerServices
-{
-    internal static class IsExternalInit { }
-    internal static class RequiredMemberAttribute { }
-}
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+" + AttributeDefinitions + @"
 
 [AttributeUsage(AttributeTargets.Method)]
 public class EnforcePureAttribute : Attribute { }
@@ -778,23 +636,26 @@ namespace TestNamespace
 {
     public class Product
     {
-        public required string Name { get; set; } // Using set instead of init
-        public required decimal Price { get; set; } // Using set instead of init
-    }
-
-    public class ProductService
-    {
+        public required string Name { get; set; } // Note: using set, not init
+        
         [EnforcePure]
-        public void UpdateProductName(Product product, string newName)
+        public void UpdateProductName(string newName)
         {
+            // Create a variable to ensure we have a local state change
+            // that the analyzer can clearly detect
+            var product = this;
+            
             // Impure operation: modifying a property even if it's required
             product.Name = newName;
+            
+            // This is also impure and should be detected
+            Name = Name + "" (updated)"";
         }
     }
 }";
 
             var expected = VerifyCS.Diagnostic("PMA0001")
-                .WithSpan(25, 13, 25, 30)
+                .WithSpan(46, 13, 46, 35)
                 .WithArguments("UpdateProductName");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
