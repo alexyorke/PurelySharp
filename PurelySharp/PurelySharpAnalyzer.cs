@@ -189,16 +189,20 @@ namespace PurelySharp
             foreach (var identifier in methodDeclaration.DescendantNodes().OfType<IdentifierNameSyntax>())
             {
                 var symbolInfo = context.SemanticModel.GetSymbolInfo(identifier);
-                if (symbolInfo.Symbol is IFieldSymbol fieldSymbol &&
-                    fieldSymbol.IsStatic && !fieldSymbol.IsConst && !identifier.IsVar)
+                if (symbolInfo.Symbol is IFieldSymbol fieldSymbol)
                 {
-                    var staticFieldDiagnostic = Diagnostic.Create(
-                        Rule,
-                        identifier.GetLocation(),
-                        methodSymbol.Name);
+                    // Check for static or volatile fields
+                    if ((fieldSymbol.IsStatic && !fieldSymbol.IsConst && !identifier.IsVar) ||
+                        fieldSymbol.IsVolatile)
+                    {
+                        var fieldDiagnostic = Diagnostic.Create(
+                            Rule,
+                            identifier.GetLocation(),
+                            methodSymbol.Name);
 
-                    context.ReportDiagnostic(staticFieldDiagnostic);
-                    return;
+                        context.ReportDiagnostic(fieldDiagnostic);
+                        return;
+                    }
                 }
             }
 
@@ -955,7 +959,8 @@ namespace PurelySharp
             private bool IsImmutableField(IFieldSymbol fieldSymbol)
             {
                 // Fields marked as readonly or const are considered immutable/pure
-                return fieldSymbol.IsReadOnly || fieldSymbol.IsConst;
+                // Volatile fields are impure
+                return (fieldSymbol.IsReadOnly || fieldSymbol.IsConst) && !fieldSymbol.IsVolatile;
             }
 
             public override void VisitInvocationExpression(InvocationExpressionSyntax node)

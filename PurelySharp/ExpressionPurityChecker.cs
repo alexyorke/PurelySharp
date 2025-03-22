@@ -34,6 +34,13 @@ namespace PurelySharp
                             // Static fields that are not const are impure
                             if (fieldSymbolIdentifier.IsStatic && !fieldSymbolIdentifier.IsConst)
                                 return false;
+
+                            // Volatile fields are impure (both reading and writing)
+                            if (fieldSymbolIdentifier.IsVolatile)
+                            {
+                                // Add specific handling for volatile field access
+                                return false;
+                            }
                         }
                     }
                     return symbol != null && SymbolPurityChecker.IsPureSymbol(symbol);
@@ -105,9 +112,16 @@ namespace PurelySharp
                     var memberSymbol = semanticModel.GetSymbolInfo(memberAccess).Symbol;
                     if (memberSymbol is IFieldSymbol fieldSymbol)
                     {
-                        // Static fields that are not constants are impure
+                        // Static fields that are not const are impure
                         if (fieldSymbol.IsStatic && !fieldSymbol.IsConst)
                             return false;
+
+                        // Volatile fields are impure (both reading and writing)
+                        if (fieldSymbol.IsVolatile)
+                        {
+                            // This is impure regardless of whether it's read or written
+                            return false;
+                        }
 
                         // Mutable instance fields should be checked for immutability
                         if (!fieldSymbol.IsReadOnly && !fieldSymbol.IsConst)

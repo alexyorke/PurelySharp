@@ -8,7 +8,8 @@ namespace PurelySharp
         {
             foreach (var captured in dataFlowAnalysis.CapturedInside)
             {
-                if (captured is IFieldSymbol field && !field.IsReadOnly && !field.IsConst)
+                if (captured is IFieldSymbol field &&
+                    (!field.IsReadOnly && !field.IsConst || field.IsVolatile))
                     return true;
                 if (captured is IPropertySymbol prop && prop.SetMethod != null && !prop.SetMethod.IsInitOnly)
                     return true;

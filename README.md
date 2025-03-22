@@ -14,7 +14,6 @@ Known limitations:
 - **Reflection**: Code using reflection to modify state may evade detection.
 - **Constructors**: Analysis of constructors is limited and may miss impurities.
 - **Thread-Static Fields**: Thread-static field access isn't always properly detected as impure.
-- **Volatile Fields**: Reading volatile fields might not be detected as impure.
 - **Collection Modifications**: The analyzer may not detect all collection modifications, especially through indirect method calls.
 - **Delegate Invocations**: Delegate invocations to impure methods might not be detected.
 
@@ -212,7 +211,7 @@ Supported means there is _some_ level of test coverage. It does not mean it is 1
 - [x] Properties with setters
 - [x] Static mutable fields
 - [x] Event fields
-- [ ] Volatile fields
+- [x] Volatile fields
 
 ### Generic and Advanced Constructs
 
