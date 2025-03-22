@@ -63,7 +63,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] Iterator methods (yield return)
 - [x] Unsafe methods
 - [x] Operator overloads
-- [ ] User-defined conversions
+- [x] User-defined conversions
 - [ ] Static abstract/virtual interface members (C# 11)
 
 ### Type Declarations

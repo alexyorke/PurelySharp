@@ -58,6 +58,9 @@ namespace PurelySharp
                 compilationContext.RegisterSyntaxNodeAction(
                     c => AnalyzeOperatorDeclaration(c),
                     SyntaxKind.OperatorDeclaration);
+                compilationContext.RegisterSyntaxNodeAction(
+                    c => AnalyzeConversionOperatorDeclaration(c),
+                    SyntaxKind.ConversionOperatorDeclaration);
                 compilationContext.RegisterSymbolAction(
                     c => AnalyzeNamedType(c),
                     SymbolKind.NamedType);
@@ -614,6 +617,33 @@ namespace PurelySharp
             // Use the same analysis as for methods
             var impurityWalker = new ImpurityWalker(context.SemanticModel);
             impurityWalker.Visit(operatorDeclaration);
+
+            if (impurityWalker.ContainsImpureOperations)
+            {
+                var diagnostic = Diagnostic.Create(
+                    Rule,
+                    impurityWalker.ImpurityLocation,
+                    methodSymbol.Name);
+
+                context.ReportDiagnostic(diagnostic);
+            }
+        }
+
+        private void AnalyzeConversionOperatorDeclaration(SyntaxNodeAnalysisContext context)
+        {
+            var conversionDeclaration = (ConversionOperatorDeclarationSyntax)context.Node;
+            var methodSymbol = context.SemanticModel.GetDeclaredSymbol(conversionDeclaration);
+
+            if (methodSymbol == null)
+                return;
+
+            // Skip conversions that are not marked as pure
+            if (!HasPureAttribute(methodSymbol))
+                return;
+
+            // Use the same analysis as for methods
+            var impurityWalker = new ImpurityWalker(context.SemanticModel);
+            impurityWalker.Visit(conversionDeclaration);
 
             if (impurityWalker.ContainsImpureOperations)
             {
