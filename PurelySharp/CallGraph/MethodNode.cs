@@ -27,18 +27,18 @@ namespace PurelySharp.CallGraph
             method.CalledBy.Add(this);
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is MethodNode other)
             {
-                return Method.Equals(other.Method);
+                return SymbolEqualityComparer.Default.Equals(Method, other.Method);
             }
             return false;
         }
 
         public override int GetHashCode()
         {
-            return Method.GetHashCode();
+            return SymbolEqualityComparer.Default.GetHashCode(Method);
         }
     }
 }

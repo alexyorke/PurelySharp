@@ -71,7 +71,7 @@ namespace PurelySharp
             else
             {
                 // Otherwise, just remove the specific attribute
-                newMethodDecl = methodDecl.ReplaceNode(attributeToRemove, (SyntaxNode?)null)!;
+                newMethodDecl = methodDecl.ReplaceNode(attributeToRemove, default(SyntaxNode))!;
             }
 
             var newRoot = root.ReplaceNode(methodDecl, newMethodDecl);

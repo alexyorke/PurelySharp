@@ -79,7 +79,8 @@ namespace PurelySharp
                         return true;
 
                     // Interface method that are property getters or have no side effects
-                    if (methodSymbol.ContainingType.TypeKind == TypeKind.Interface &&
+                    if (methodSymbol.ContainingType != null &&
+                        methodSymbol.ContainingType.TypeKind == TypeKind.Interface &&
                         (methodSymbol.MethodKind == MethodKind.PropertyGet || !HasSideEffects(methodSymbol)))
                     {
                         return true;

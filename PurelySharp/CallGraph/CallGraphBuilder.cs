@@ -43,7 +43,7 @@ namespace PurelySharp.CallGraph
             }
         }
 
-        private MethodNode GetOrCreateMethodNode(IMethodSymbol method, MethodDeclarationSyntax syntax = null)
+        private MethodNode GetOrCreateMethodNode(IMethodSymbol method, MethodDeclarationSyntax? syntax = null)
         {
             if (!_methodNodes.TryGetValue(method, out var node))
             {

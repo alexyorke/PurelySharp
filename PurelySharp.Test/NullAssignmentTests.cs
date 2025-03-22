@@ -14,18 +14,23 @@ namespace PurelySharp.Test
         public async Task PureMethodWithNullAssignment_NoDiagnostic()
         {
             // Implementation of the test
+            await Task.CompletedTask;
         }
 
         [Test]
         public async Task ImpureMethodWithNullAssignment_Diagnostic()
         {
             // Implementation of the test
+            await Task.CompletedTask;
         }
 
         [Test]
         public async Task PureMethodWithNullAssignmentAndImpureOperation_Diagnostic()
         {
             // Implementation of the test
+            await Task.CompletedTask;
         }
     }
 }
+
+

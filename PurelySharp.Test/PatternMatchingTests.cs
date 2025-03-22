@@ -7,24 +7,26 @@ namespace PurelySharp.Test
     public class PatternMatchingTests
     {
         [Test]
-        
         public async Task PureMethodWithPatternMatching_NoDiagnostic()
         {
             // Implementation of the test
+            await Task.CompletedTask;
         }
 
         [Test]
-        
         public async Task ImpureMethodWithPatternMatching_Diagnostic()
         {
             // Implementation of the test
+            await Task.CompletedTask;
         }
 
         [Test]
-        
         public async Task PureMethodWithPatternMatchingAndImpureOperation_Diagnostic()
         {
             // Implementation of the test
+            await Task.CompletedTask;
         }
     }
 }
+
+

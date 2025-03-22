@@ -73,7 +73,7 @@ namespace PurelySharp
             // Record and record struct detection
             if (typeSymbol.IsRecord)
             {
-                _recordTypes.Add(typeSymbol);
+                _recordTypes?.Add(typeSymbol);
             }
             // Try to detect record structs through syntax analysis for older compiler versions
             else
@@ -89,7 +89,7 @@ namespace PurelySharp
                         // Check if this is a record struct
                         if (recordDecl.ToString().Contains("record struct"))
                         {
-                            _recordTypes.Add(typeSymbol);
+                            _recordTypes?.Add(typeSymbol);
                             break;
                         }
                     }
@@ -178,7 +178,7 @@ namespace PurelySharp
                 }
             }
 
-            if (hasFieldAssignments && methodDeclaration.Modifiers.Any(m => m.Kind() == SyntaxKind.AsyncKeyword))
+            if (hasFieldAssignments && methodDeclaration.Modifiers.Any(m => m.IsKind(SyntaxKind.AsyncKeyword)))
             {
                 var asyncDiagnostic = Diagnostic.Create(
                     Rule,
@@ -258,16 +258,16 @@ namespace PurelySharp
             Location impurityLocation = methodDeclaration.Identifier.GetLocation();
 
             // Check for unsafe methods
-            if (methodDeclaration.Modifiers.Any(m => m.Kind() == SyntaxKind.UnsafeKeyword))
+            if (methodDeclaration.Modifiers.Any(m => m.IsKind(SyntaxKind.UnsafeKeyword)))
             {
                 hasSpecialImpurityPattern = true;
                 impurityLocation = methodDeclaration.Modifiers
-                    .First(m => m.Kind() == SyntaxKind.UnsafeKeyword)
+                    .First(m => m.IsKind(SyntaxKind.UnsafeKeyword))
                     .GetLocation();
             }
 
             // Special handling for async methods
-            if (methodDeclaration.Modifiers.Any(m => m.Kind() == SyntaxKind.AsyncKeyword))
+            if (methodDeclaration.Modifiers.Any(m => m.IsKind(SyntaxKind.AsyncKeyword)))
             {
                 // Only consider async methods impure if they contain impure operations
                 // Find all await expressions
@@ -288,7 +288,7 @@ namespace PurelySharp
                         methodDeclaration.ReturnType?.ToString() == "Task<int>" &&
                         methodDeclaration.ToString().Contains("return await Task.FromResult(42)"))
                     {
-                        var asyncKeyword = methodDeclaration.Modifiers.First(m => m.Kind() == SyntaxKind.AsyncKeyword);
+                        var asyncKeyword = methodDeclaration.Modifiers.First(m => m.IsKind(SyntaxKind.AsyncKeyword));
                         var asyncDiagnostic = Diagnostic.Create(
                             Rule,
                             asyncKeyword.GetLocation(),
@@ -328,14 +328,14 @@ namespace PurelySharp
 
                     var postIncrements = methodDeclaration.DescendantNodes()
                         .OfType<PostfixUnaryExpressionSyntax>()
-                        .Where(p => p.Kind() == SyntaxKind.PostIncrementExpression ||
-                                    p.Kind() == SyntaxKind.PostDecrementExpression)
+                        .Where(p => p.IsKind(SyntaxKind.PostIncrementExpression) ||
+                                    p.IsKind(SyntaxKind.PostDecrementExpression))
                         .ToList();
 
                     var preIncrements = methodDeclaration.DescendantNodes()
                         .OfType<PrefixUnaryExpressionSyntax>()
-                        .Where(p => p.Kind() == SyntaxKind.PreIncrementExpression ||
-                                    p.Kind() == SyntaxKind.PreDecrementExpression)
+                        .Where(p => p.IsKind(SyntaxKind.PreIncrementExpression) ||
+                                    p.IsKind(SyntaxKind.PreDecrementExpression))
                         .ToList();
 
                     if (hasImpureAwait)
@@ -513,13 +513,13 @@ namespace PurelySharp
                     return;
                 }
             }
-            else if (methodSymbol.Name == "PureMethodWithLock" && methodDeclaration.Modifiers.Any(m => m.Kind() == SyntaxKind.PublicKeyword))
+            else if (methodSymbol.Name == "PureMethodWithLock" && methodDeclaration.Modifiers.Any(m => m.IsKind(SyntaxKind.PublicKeyword)))
             {
                 // This is a special case for the LockStatement_WithPureOperations_CurrentBehavior test
                 // We don't report any diagnostic since it has the AllowSynchronization attribute
                 return;
             }
-            else if (methodSymbol.Name == "ImpureAsyncMethod" && methodDeclaration.Modifiers.Any(m => m.Kind() == SyntaxKind.AsyncKeyword))
+            else if (methodSymbol.Name == "ImpureAsyncMethod" && methodDeclaration.Modifiers.Any(m => m.IsKind(SyntaxKind.AsyncKeyword)))
             {
                 var incrementExpr = methodDeclaration.DescendantNodes()
                    .OfType<PostfixUnaryExpressionSyntax>()
@@ -926,11 +926,11 @@ namespace PurelySharp
         {
             private readonly SemanticModel _semanticModel;
             private bool _containsImpureOperations = false;
-            private Location _impurityLocation = null;
+            private Location? _impurityLocation = null;
             private readonly HashSet<IMethodSymbol> _visitedMethods = new(SymbolEqualityComparer.Default);
 
             public bool ContainsImpureOperations => _containsImpureOperations;
-            public Location ImpurityLocation => _impurityLocation;
+            public Location? ImpurityLocation => _impurityLocation;
 
             public ImpurityWalker(SemanticModel semanticModel)
             {
