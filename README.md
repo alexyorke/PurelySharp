@@ -685,3 +685,143 @@ public class TestClass
 // No analyzer error is reported, even though TestMethod is modifying state
 // through reflection, which is impure
 ```
+
+### String Manipulation Examples
+
+String operations are generally considered pure, but care must be taken with culture-dependent operations:
+
+#### Pure String Operations
+
+```csharp
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public string ProcessText(string input)
+    {
+        // Basic string operations are pure
+        string trimmed = input.Trim();
+        string upperCase = input.ToUpper();
+        string replaced = input.Replace("old", "new");
+        string substring = input.Substring(0, Math.Min(10, input.Length));
+
+        // String concatenation is pure
+        string combined = $"{trimmed} - {upperCase}";
+
+        return combined;
+    }
+}
+
+// No analyzer errors - method is pure
+```
+
+#### Culture-Dependent String Operations (Potentially Impure)
+
+```csharp
+using System;
+using System.Globalization;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public string CultureDependentMethod(string input)
+    {
+        // Without specifying culture, this depends on the current thread's culture
+        // which is not deterministic and therefore impure
+        string upperCase = input.ToUpper(); // Potentially impure!
+
+        return upperCase;
+    }
+
+    [EnforcePure]
+    public string CultureInvariantMethod(string input)
+    {
+        // Specifying culture makes the operation pure and deterministic
+        string upperCase = input.ToUpper(CultureInfo.InvariantCulture);
+        string lowerCase = input.ToLower(CultureInfo.InvariantCulture);
+
+        return $"{upperCase} - {lowerCase}";
+    }
+}
+
+// Current analyzer may not detect the impurity in CultureDependentMethod
+```
+
+#### String.Format with Culture (Pure)
+
+```csharp
+using System;
+using System.Globalization;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public string FormatNumber(double value)
+    {
+        // Specifying culture ensures deterministic output regardless of system settings
+        return string.Format(CultureInfo.InvariantCulture, "Value: {0:F2}", value);
+    }
+
+    [EnforcePure]
+    public string FormatDateTime(DateTime date)
+    {
+        // Culture-specific formatting should always specify culture for purity
+        return date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+    }
+}
+
+// No analyzer errors - methods are pure
+```
+
+#### String Parsing Examples
+
+```csharp
+using System;
+using System.Globalization;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public int ParseNumber(string input)
+    {
+        // TryParse with invariant culture is pure
+        if (int.TryParse(input, NumberStyles.Integer, CultureInfo.InvariantCulture, out int result))
+            return result;
+
+        // Input validation through exceptions is pure
+        throw new ArgumentException("Invalid number format");
+    }
+
+    [EnforcePure]
+    public DateTime ParseDate(string input)
+    {
+        // DateTime.Parse without culture specification is potentially impure
+        // as it depends on the current thread's culture
+        var date = DateTime.Parse(input); // Potentially impure!
+
+        return date;
+    }
+
+    [EnforcePure]
+    public DateTime ParseDatePure(string input)
+    {
+        // Specifying culture makes it pure
+        return DateTime.Parse(input, CultureInfo.InvariantCulture);
+    }
+}
+
+// Current analyzer may not detect the impurity in ParseDate
+```
