@@ -102,7 +102,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [ ] Params collections (C# 13)
 - [x] Optional parameters
 - [ ] Optional parameters in lambda expressions (C# 12)
-- [ ] Ref readonly parameters (C# 12)
+- [x] Ref readonly parameters (C# 12)
 
 ### Special Features
 
@@ -162,7 +162,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [ ] Primary constructors
 - [ ] Inline arrays
 - [ ] Optional parameters in lambda expressions
-- [ ] ref readonly parameters
+- [x] ref readonly parameters
 - [ ] Type alias for any type
 - [ ] Experimental attribute
 - [ ] Interceptors (preview)

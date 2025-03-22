@@ -30,8 +30,9 @@ namespace PurelySharp
             switch (symbol)
             {
                 case IParameterSymbol parameter:
-                    // Ref/out parameters are impure
-                    return parameter.RefKind == RefKind.None;
+                    // Ref/out parameters are impure, but 'in' (readonly ref) parameters are pure
+                    return parameter.RefKind == RefKind.None ||
+                           parameter.RefKind == RefKind.In;
 
                 case ILocalSymbol local:
                     return true;

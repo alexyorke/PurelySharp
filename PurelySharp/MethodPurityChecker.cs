@@ -12,8 +12,12 @@ namespace PurelySharp
             // Check if method has ref or out parameters
             foreach (var parameter in method.Parameters)
             {
+                // Methods with ref or out parameters are not pure, 
+                // but 'in' (readonly ref) parameters are acceptable
                 if (parameter.RefKind == RefKind.Ref || parameter.RefKind == RefKind.Out)
-                    return false; // Methods with ref or out parameters are not pure
+                {
+                    return false;
+                }
             }
 
             // Check if it's a LINQ method

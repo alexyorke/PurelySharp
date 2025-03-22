@@ -384,11 +384,40 @@ namespace PurelySharp
 
             // Check for methods with ref/out parameters
             else if (methodDeclaration.ParameterList.Parameters.Any(p =>
-                p.Modifiers.Any(m => m.Kind() == SyntaxKind.RefKeyword || m.Kind() == SyntaxKind.OutKeyword)))
+            {
+                // First check for 'in' keyword (C# 7.2+)
+                bool hasInKeyword = p.Modifiers.Any(m => m.IsKind(SyntaxKind.InKeyword));
+                if (hasInKeyword)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Found 'in' keyword on parameter {p.Identifier}");
+                    return false; // Skip 'in' parameters as they are safe for pure methods
+                }
+
+                // Check for 'ref readonly' pattern (C# 7.2+)
+                bool hasRefReadonly = p.Modifiers.Any(m => m.IsKind(SyntaxKind.RefKeyword)) &&
+                                     p.Modifiers.Any(m => m.IsKind(SyntaxKind.ReadOnlyKeyword));
+                if (hasRefReadonly)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Found 'ref readonly' on parameter {p.Identifier}");
+                    return false; // Skip 'ref readonly' parameters as they are safe for pure methods
+                }
+
+                // Check for regular ref/out parameters which are impure
+                return p.Modifiers.Any(m => m.IsKind(SyntaxKind.RefKeyword) || m.IsKind(SyntaxKind.OutKeyword));
+            }))
             {
                 hasSpecialImpurityPattern = true;
                 var refParam = methodDeclaration.ParameterList.Parameters
-                    .First(p => p.Modifiers.Any(m => m.Kind() == SyntaxKind.RefKeyword || m.Kind() == SyntaxKind.OutKeyword));
+                    .First(p =>
+                    {
+                        // Skip 'in' and 'ref readonly' parameters
+                        bool isReadonlyRef = p.Modifiers.Any(m => m.IsKind(SyntaxKind.InKeyword)) ||
+                                          (p.Modifiers.Any(m => m.IsKind(SyntaxKind.RefKeyword)) &&
+                                           p.Modifiers.Any(m => m.IsKind(SyntaxKind.ReadOnlyKeyword)));
+
+                        return (p.Modifiers.Any(m => m.IsKind(SyntaxKind.RefKeyword) || m.IsKind(SyntaxKind.OutKeyword))) &&
+                               !isReadonlyRef;
+                    });
                 impurityLocation = refParam.GetLocation();
             }
 
@@ -933,6 +962,7 @@ namespace PurelySharp
                     else if (symbolInfo.Symbol is IParameterSymbol parameterSymbol)
                     {
                         // If it's a ref or out parameter and we're assigning to it, that's impure
+                        // In (readonly ref) parameters are safe since they can't be modified
                         if (parameterSymbol.RefKind == RefKind.Out || parameterSymbol.RefKind == RefKind.Ref)
                         {
                             _containsImpureOperations = true;
@@ -1281,6 +1311,10 @@ namespace PurelySharp
                 // Methods with ref or out parameters are considered impure
                 foreach (var parameter in methodSymbol.Parameters)
                 {
+                    // Skip 'in' (readonly ref) parameters as they are pure
+                    if (parameter.RefKind == RefKind.In)
+                        continue;
+
                     if (parameter.RefKind == RefKind.Ref || parameter.RefKind == RefKind.Out)
                         return true;
                 }
