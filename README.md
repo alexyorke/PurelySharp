@@ -131,7 +131,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [ ] Source generators
 - [ ] Partial classes/methods
 - [ ] Global using directives (C# 10)
-- [ ] Generic attributes (C# 11)
+- [x] Generic attributes (C# 11)
 - [ ] Type alias for any type (C# 12)
 - [ ] Experimental attribute (C# 12)
 - [ ] Interceptors (C# 12 preview)
@@ -151,7 +151,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] Extended nameof scope
 - [x] Numeric IntPtr (nint/nuint)
 - [x] ref fields and scoped ref
-- [ ] Generic attributes
+- [x] Generic attributes
 - [x] Generic math support (static virtual/abstract interface members)
 - [ ] Unsigned right-shift operator (>>>)
 - [ ] Checked user-defined operators
