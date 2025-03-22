@@ -146,7 +146,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] Newlines in string interpolation expressions
 - [x] Required members (C# 11)
 - [x] File-local types (file access modifier)
-- [ ] Auto-default structs
+- [x] Auto-default structs
 - [ ] Pattern match Span<char> on constant string
 - [ ] Extended nameof scope
 - [ ] Numeric IntPtr (nint/nuint)
