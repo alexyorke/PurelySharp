@@ -61,6 +61,9 @@ namespace PurelySharp
                 compilationContext.RegisterSyntaxNodeAction(
                     c => AnalyzeConversionOperatorDeclaration(c),
                     SyntaxKind.ConversionOperatorDeclaration);
+                compilationContext.RegisterSyntaxNodeAction(
+                    c => AnalyzeConstructorDeclaration(c),
+                    SyntaxKind.ConstructorDeclaration);
                 compilationContext.RegisterSymbolAction(
                     c => AnalyzeNamedType(c),
                     SymbolKind.NamedType);
@@ -674,6 +677,9 @@ namespace PurelySharp
         {
             if (methodSymbol == null) return false;
 
+            // Check if this is a constructor or method
+            string attributeTarget = methodSymbol.MethodKind == MethodKind.Constructor ? "Constructor" : "Method";
+
             // Look for any attribute with a name containing "Pure" or "EnforcePure"
             return methodSymbol.GetAttributes().Any(attr =>
                 attr.AttributeClass?.Name is "PureAttribute" or "Pure" or "EnforcePureAttribute" or "EnforcePure" ||
@@ -871,9 +877,9 @@ namespace PurelySharp
 
         private class ImpurityWalker : CSharpSyntaxWalker
         {
-            private readonly SemanticModel _semanticModel;
-            private bool _containsImpureOperations = false;
-            private Location? _impurityLocation = null;
+            protected readonly SemanticModel _semanticModel;
+            protected bool _containsImpureOperations = false;
+            protected Location? _impurityLocation = null;
             private readonly HashSet<IMethodSymbol> _visitedMethods = new(SymbolEqualityComparer.Default);
 
             public bool ContainsImpureOperations => _containsImpureOperations;
@@ -1650,10 +1656,10 @@ namespace PurelySharp
             return false;
         }
 
-        private (bool, Location?) CheckForDynamicOperations(MethodDeclarationSyntax methodDeclaration, SemanticModel semanticModel)
+        private (bool, Location?) CheckForDynamicOperations(CSharpSyntaxNode node, SemanticModel semanticModel)
         {
             // Check for dynamic variable declarations
-            foreach (var variable in methodDeclaration.DescendantNodes().OfType<VariableDeclarationSyntax>())
+            foreach (var variable in node.DescendantNodes().OfType<VariableDeclarationSyntax>())
             {
                 if (variable.Type.IsKind(SyntaxKind.IdentifierName) &&
                     variable.Type.ToString() == "dynamic" &&
@@ -1666,7 +1672,7 @@ namespace PurelySharp
             }
 
             // Check for dynamic method invocations
-            foreach (var invocation in methodDeclaration.DescendantNodes().OfType<InvocationExpressionSyntax>())
+            foreach (var invocation in node.DescendantNodes().OfType<InvocationExpressionSyntax>())
             {
                 if (invocation.Expression is MemberAccessExpressionSyntax memberAccess)
                 {
@@ -1680,7 +1686,7 @@ namespace PurelySharp
             }
 
             // Check for dynamic property assignments
-            foreach (var assignment in methodDeclaration.DescendantNodes().OfType<AssignmentExpressionSyntax>())
+            foreach (var assignment in node.DescendantNodes().OfType<AssignmentExpressionSyntax>())
             {
                 if (assignment.Left is MemberAccessExpressionSyntax memberAccess)
                 {
@@ -1703,7 +1709,7 @@ namespace PurelySharp
             }
 
             // Check for dynamic object creation
-            foreach (var objectCreation in methodDeclaration.DescendantNodes().OfType<ObjectCreationExpressionSyntax>())
+            foreach (var objectCreation in node.DescendantNodes().OfType<ObjectCreationExpressionSyntax>())
             {
                 var typeSymbol = semanticModel.GetSymbolInfo(objectCreation.Type).Symbol as ITypeSymbol;
                 if (typeSymbol != null &&
@@ -1715,7 +1721,7 @@ namespace PurelySharp
             }
 
             // Check for binary expressions using dynamic
-            foreach (var binaryExpr in methodDeclaration.DescendantNodes().OfType<BinaryExpressionSyntax>())
+            foreach (var binaryExpr in node.DescendantNodes().OfType<BinaryExpressionSyntax>())
             {
                 var leftType = semanticModel.GetTypeInfo(binaryExpr.Left).Type;
                 var rightType = semanticModel.GetTypeInfo(binaryExpr.Right).Type;
@@ -1762,6 +1768,529 @@ namespace PurelySharp
                    expression is ObjectCreationExpressionSyntax ||
                    expression is MemberAccessExpressionSyntax ||
                    !ExpressionPurityChecker.IsExpressionPure(expression, semanticModel, null);
+        }
+
+        // New method to analyze constructor declarations
+        private void AnalyzeConstructorDeclaration(SyntaxNodeAnalysisContext context)
+        {
+            var constructorDeclaration = (ConstructorDeclarationSyntax)context.Node;
+            var constructorSymbol = context.SemanticModel.GetDeclaredSymbol(constructorDeclaration);
+
+            if (constructorSymbol == null)
+                return;
+
+            // Skip constructors that are not marked as pure
+            if (!HasEnforcePureAttribute(constructorSymbol))
+                return;
+
+            // Check for dynamic operations
+            var hasDynamicOperations = CheckForDynamicOperations(constructorDeclaration, context.SemanticModel);
+            if (hasDynamicOperations.Item1)
+            {
+                var location = hasDynamicOperations.Item2 ?? constructorDeclaration.Identifier.GetLocation();
+                var diagnostic = Diagnostic.Create(Rule, location, constructorSymbol.Name);
+                context.ReportDiagnostic(diagnostic);
+                return;
+            }
+
+            // Special rule for constructors: Allow instance field assignments
+            // We'll use the impurity walker but with special handling for field assignments
+            var walker = new ConstructorImpurityWalker(context.SemanticModel, constructorSymbol);
+            walker.Visit(constructorDeclaration);
+
+            if (walker.ContainsImpureOperations)
+            {
+                // Report diagnostic for impure constructors
+                var impurityLocation = walker.ImpurityLocation ?? constructorDeclaration.Identifier.GetLocation();
+                var diagnostic = Diagnostic.Create(
+                    Rule,
+                    impurityLocation,
+                    constructorSymbol.Name);
+
+                context.ReportDiagnostic(diagnostic);
+            }
+
+            // Check for base constructor calls
+            if (constructorDeclaration.Initializer != null &&
+                constructorDeclaration.Initializer.Kind() == SyntaxKind.BaseConstructorInitializer)
+            {
+                var baseConstructorInitializer = constructorDeclaration.Initializer;
+                var baseConstructorSymbol = context.SemanticModel.GetSymbolInfo(baseConstructorInitializer).Symbol as IMethodSymbol;
+
+                // If we can determine the base constructor and it's not marked as pure
+                if (baseConstructorSymbol != null && !HasEnforcePureAttribute(baseConstructorSymbol))
+                {
+                    // Check if the base constructor is known to be impure
+                    bool isBaseImpure = IsMethodKnownImpure(baseConstructorSymbol, context.SemanticModel);
+
+                    if (isBaseImpure)
+                    {
+                        var diagnostic = Diagnostic.Create(
+                            Rule,
+                            baseConstructorInitializer.GetLocation(),
+                            constructorSymbol.Name);
+
+                        context.ReportDiagnostic(diagnostic);
+                    }
+                }
+            }
+        }
+
+        private class ConstructorImpurityWalker : ImpurityWalker
+        {
+            private readonly IMethodSymbol _constructorSymbol;
+            private readonly INamedTypeSymbol? _containingType;
+
+            public ConstructorImpurityWalker(SemanticModel semanticModel, IMethodSymbol constructorSymbol)
+                : base(semanticModel)
+            {
+                _constructorSymbol = constructorSymbol;
+                _containingType = constructorSymbol?.ContainingType;
+            }
+
+            public override void VisitAssignmentExpression(AssignmentExpressionSyntax node)
+            {
+                // First check if we're already detected impure operations
+                if (ContainsImpureOperations)
+                {
+                    return;
+                }
+
+                // Visit the right-hand side of the assignment first
+                Visit(node.Right);
+                if (ContainsImpureOperations)
+                {
+                    return;
+                }
+
+                // Check if we're assigning to a field
+                if (node.Left is MemberAccessExpressionSyntax memberAccess)
+                {
+                    // Get semantic info for the member being accessed
+                    var symbolInfo = _semanticModel.GetSymbolInfo(memberAccess.Name);
+                    var symbol = symbolInfo.Symbol;
+
+                    // If it's a field, we need to check if it belongs to this class
+                    if (symbol is IFieldSymbol fieldSymbol)
+                    {
+                        // If it's a static field, mark as impure (even in constructors)
+                        if (fieldSymbol.IsStatic)
+                        {
+                            base.VisitAssignmentExpression(node);
+                            return;
+                        }
+
+                        // If it's an instance field of the current type, allow the assignment
+                        if (!fieldSymbol.IsStatic &&
+                            fieldSymbol.ContainingType != null &&
+                            fieldSymbol.ContainingType.Equals(_containingType, SymbolEqualityComparer.Default))
+                        {
+                            // Allow assignment to instance fields in constructors
+                            return;
+                        }
+                    }
+                    else if (symbol is IPropertySymbol propertySymbol)
+                    {
+                        // If it's an instance property of the current type, allow the assignment
+                        if (!propertySymbol.IsStatic &&
+                            propertySymbol.ContainingType != null &&
+                            propertySymbol.ContainingType.Equals(_containingType, SymbolEqualityComparer.Default))
+                        {
+                            // Allow assignment to instance properties in constructors
+                            return;
+                        }
+                    }
+
+                    // For any other member access, use the base implementation
+                    base.VisitAssignmentExpression(node);
+                }
+                // Check if we're assigning to an identifier (could be a field)
+                else if (node.Left is IdentifierNameSyntax identifier)
+                {
+                    // Check if the identifier is a field of this class
+                    var symbolInfo = _semanticModel.GetSymbolInfo(identifier);
+                    if (symbolInfo.Symbol is IFieldSymbol fieldSymbol)
+                    {
+                        // If it's a static field, mark as impure (even in constructors)
+                        if (fieldSymbol.IsStatic)
+                        {
+                            base.VisitAssignmentExpression(node);
+                            return;
+                        }
+
+                        // If it's an instance field of the current type, allow the assignment
+                        if (!fieldSymbol.IsStatic &&
+                            fieldSymbol.ContainingType != null &&
+                            fieldSymbol.ContainingType.Equals(_containingType, SymbolEqualityComparer.Default))
+                        {
+                            // Allow assignment to instance fields in constructors
+                            return;
+                        }
+                    }
+
+                    // For any other identifier, use the base implementation
+                    base.VisitAssignmentExpression(node);
+                }
+                else
+                {
+                    // For any other left-hand side, use the base implementation
+                    base.VisitAssignmentExpression(node);
+                }
+            }
+
+            public override void VisitObjectCreationExpression(ObjectCreationExpressionSyntax node)
+            {
+                // In constructors, allow creation of mutable collections that are assigned to fields
+                var parent = node.Parent;
+                if (parent is AssignmentExpressionSyntax assignment)
+                {
+                    if (assignment.Left is MemberAccessExpressionSyntax memberAccess ||
+                        assignment.Left is IdentifierNameSyntax identifier)
+                    {
+                        var typeInfo = _semanticModel.GetTypeInfo(node);
+                        if (typeInfo.Type != null)
+                        {
+                            // Allow creating any collection that is assigned to an instance field
+                            if (IsCollectionType(typeInfo.Type) && IsAssigningToInstanceField(assignment.Left))
+                            {
+                                // Check that the arguments to the collection initializer are pure
+                                if (node.ArgumentList != null)
+                                {
+                                    foreach (var argument in node.ArgumentList.Arguments)
+                                    {
+                                        Visit(argument.Expression);
+                                        if (ContainsImpureOperations)
+                                            return;
+                                    }
+                                }
+
+                                // Check that the collection initializer expressions are pure
+                                if (node.Initializer != null)
+                                {
+                                    foreach (var expression in node.Initializer.Expressions)
+                                    {
+                                        Visit(expression);
+                                        if (ContainsImpureOperations)
+                                            return;
+                                    }
+                                }
+
+                                // Allow the collection creation in a constructor
+                                return;
+                            }
+                        }
+                    }
+                }
+
+                // For any other object creation, use the base implementation
+                base.VisitObjectCreationExpression(node);
+            }
+
+            public override void VisitArrayCreationExpression(ArrayCreationExpressionSyntax node)
+            {
+                // In constructors, allow creation of arrays that are assigned to fields
+                var parent = node.Parent;
+                if (parent is AssignmentExpressionSyntax assignment)
+                {
+                    if (IsAssigningToInstanceField(assignment.Left))
+                    {
+                        // Check that the array size expressions are pure
+                        foreach (var rankSpecifier in node.Type.RankSpecifiers)
+                        {
+                            foreach (var size in rankSpecifier.Sizes)
+                            {
+                                Visit(size);
+                                if (ContainsImpureOperations)
+                                    return;
+                            }
+                        }
+
+                        // Check that the initializer expressions are pure
+                        if (node.Initializer != null)
+                        {
+                            foreach (var expression in node.Initializer.Expressions)
+                            {
+                                Visit(expression);
+                                if (ContainsImpureOperations)
+                                    return;
+                            }
+                        }
+
+                        // Allow the array creation in a constructor
+                        return;
+                    }
+                }
+
+                // For any other array creation, use the base implementation
+                base.VisitArrayCreationExpression(node);
+            }
+
+            public override void VisitImplicitArrayCreationExpression(ImplicitArrayCreationExpressionSyntax node)
+            {
+                // In constructors, allow creation of arrays that are assigned to fields
+                var parent = node.Parent;
+                if (parent is AssignmentExpressionSyntax assignment)
+                {
+                    if (IsAssigningToInstanceField(assignment.Left))
+                    {
+                        // Check that the initializer expressions are pure
+                        foreach (var expression in node.Initializer.Expressions)
+                        {
+                            Visit(expression);
+                            if (ContainsImpureOperations)
+                                return;
+                        }
+
+                        // Allow the array creation in a constructor
+                        return;
+                    }
+                }
+
+                // For any other implicit array creation, use the base implementation
+                base.VisitImplicitArrayCreationExpression(node);
+            }
+
+            public override void VisitInvocationExpression(InvocationExpressionSyntax node)
+            {
+                // First check the arguments for purity
+                if (node.ArgumentList != null)
+                {
+                    foreach (var argument in node.ArgumentList.Arguments)
+                    {
+                        Visit(argument.Expression);
+                        if (_containsImpureOperations)
+                            return;
+                    }
+                }
+
+                // Check if the method being called is impure
+                var methodSymbol = _semanticModel.GetSymbolInfo(node).Symbol as IMethodSymbol;
+                if (methodSymbol != null)
+                {
+                    // Check if method is known to be impure (IO, etc)
+                    if (IsImpureMethodCall(methodSymbol))
+                    {
+                        _containsImpureOperations = true;
+                        _impurityLocation = node.GetLocation();
+                        return;
+                    }
+
+                    // If method is from another assembly and not explicitly marked as pure
+                    if (methodSymbol.ContainingAssembly != _constructorSymbol.ContainingAssembly &&
+                        !HasEnforcePureAttribute(methodSymbol))
+                    {
+                        _containsImpureOperations = true;
+                        _impurityLocation = node.GetLocation();
+                        return;
+                    }
+
+                    // For methods in the same assembly, check if they're impure
+                    if (methodSymbol.ContainingAssembly == _constructorSymbol.ContainingAssembly)
+                    {
+                        // Check method declarations for impurity
+                        if (methodSymbol.DeclaringSyntaxReferences.Length > 0)
+                        {
+                            var methodDeclaration = methodSymbol.DeclaringSyntaxReferences[0].GetSyntax() as MethodDeclarationSyntax;
+                            if (methodDeclaration != null)
+                            {
+                                // Check for Console.WriteLine calls or other IO operations
+                                var hasConsoleWriteCall = methodDeclaration.DescendantNodes()
+                                    .OfType<InvocationExpressionSyntax>()
+                                    .Any(i =>
+                                    {
+                                        if (i.Expression is MemberAccessExpressionSyntax mae)
+                                        {
+                                            if (mae.Expression is IdentifierNameSyntax ins &&
+                                                ins.Identifier.Text == "Console" &&
+                                                (mae.Name.Identifier.Text == "WriteLine" || mae.Name.Identifier.Text == "Write"))
+                                            {
+                                                return true;
+                                            }
+                                        }
+                                        return false;
+                                    });
+
+                                if (hasConsoleWriteCall)
+                                {
+                                    _containsImpureOperations = true;
+                                    _impurityLocation = node.GetLocation();
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Use the base implementation
+                base.VisitInvocationExpression(node);
+            }
+
+            private bool IsImpureMethodCall(IMethodSymbol methodSymbol)
+            {
+                // Check common impure methods
+                var containingType = methodSymbol.ContainingType?.ToString() ?? string.Empty;
+                var methodName = methodSymbol.Name;
+
+                // Console operations are impure
+                if (containingType == "System.Console" &&
+                    (methodName == "Write" || methodName == "WriteLine" ||
+                     methodName == "ReadLine" || methodName == "ReadKey"))
+                {
+                    return true;
+                }
+
+                // IO operations are impure
+                if (containingType.Contains("System.IO.") ||
+                    containingType.Contains("System.Net.") ||
+                    containingType.Contains("System.Data."))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            private bool HasEnforcePureAttribute(IMethodSymbol methodSymbol)
+            {
+                if (methodSymbol == null) return false;
+
+                // Look for any attribute with a name containing "Pure" or "EnforcePure"
+                return methodSymbol.GetAttributes().Any(attr =>
+                    attr.AttributeClass?.Name is "PureAttribute" or "Pure" or "EnforcePureAttribute" or "EnforcePure" ||
+                    attr.AttributeClass?.ToDisplayString().Contains("PureAttribute") == true ||
+                    attr.AttributeClass?.ToDisplayString().Contains("EnforcePure") == true);
+            }
+
+            private bool IsCollectionType(ITypeSymbol type)
+            {
+                if (type is IArrayTypeSymbol)
+                    return true;
+
+                if (type is INamedTypeSymbol namedType)
+                {
+                    // Check if it's a known collection type
+                    var typeName = namedType.Name;
+                    var modifiableCollections = new[] {
+                        "List", "Dictionary", "HashSet", "Queue", "Stack", "LinkedList",
+                        "SortedList", "SortedDictionary", "SortedSet", "Collection"
+                    };
+
+                    return modifiableCollections.Contains(typeName) ||
+                           (namedType.TypeArguments.Any() &&
+                            modifiableCollections.Contains(namedType.ConstructedFrom.Name));
+                }
+
+                return false;
+            }
+
+            private bool IsAssigningToInstanceField(ExpressionSyntax leftSide)
+            {
+                if (leftSide is MemberAccessExpressionSyntax memberAccess)
+                {
+                    var symbolInfo = _semanticModel.GetSymbolInfo(memberAccess.Name);
+                    if (symbolInfo.Symbol is IFieldSymbol fieldSymbol)
+                    {
+                        return !fieldSymbol.IsStatic &&
+                               fieldSymbol.ContainingType != null &&
+                               fieldSymbol.ContainingType.Equals(_containingType, SymbolEqualityComparer.Default);
+                    }
+                }
+                else if (leftSide is IdentifierNameSyntax identifier)
+                {
+                    var symbolInfo = _semanticModel.GetSymbolInfo(identifier);
+                    if (symbolInfo.Symbol is IFieldSymbol fieldSymbol)
+                    {
+                        return !fieldSymbol.IsStatic &&
+                               fieldSymbol.ContainingType != null &&
+                               fieldSymbol.ContainingType.Equals(_containingType, SymbolEqualityComparer.Default);
+                    }
+                }
+
+                return false;
+            }
+        }
+
+        private bool IsMethodKnownImpure(IMethodSymbol methodSymbol, SemanticModel semanticModel)
+        {
+            // First check if we've already analyzed this method
+            if (_knownImpureMethods.Contains(methodSymbol))
+                return true;
+
+            if (_knownPureMethods.Contains(methodSymbol))
+                return false;
+
+            // Check if it's a special method like a constructor with IO operations
+            if (methodSymbol.MethodKind == MethodKind.Constructor)
+            {
+                // Check if the constructor has any Console.WriteLine calls or other IO operations
+                if (methodSymbol.DeclaringSyntaxReferences.Length > 0)
+                {
+                    var constructorSyntax = methodSymbol.DeclaringSyntaxReferences[0].GetSyntax() as ConstructorDeclarationSyntax;
+                    if (constructorSyntax != null)
+                    {
+                        var invocations = constructorSyntax.DescendantNodes().OfType<InvocationExpressionSyntax>();
+                        foreach (var invocation in invocations)
+                        {
+                            if (invocation.Expression is MemberAccessExpressionSyntax memberAccess)
+                            {
+                                // Check for Console method calls
+                                if (memberAccess.Expression is IdentifierNameSyntax identifier &&
+                                    identifier.Identifier.Text == "Console")
+                                {
+                                    _knownImpureMethods.Add(methodSymbol);
+                                    return true;
+                                }
+
+                                // Check for other known impure methods
+                                var invokedMethod = semanticModel.GetSymbolInfo(invocation).Symbol as IMethodSymbol;
+                                if (invokedMethod != null && IsImpureMethodCall(invokedMethod, semanticModel))
+                                {
+                                    _knownImpureMethods.Add(methodSymbol);
+                                    return true;
+                                }
+                            }
+                        }
+
+                        // Check for static field modifications
+                        var assignments = constructorSyntax.DescendantNodes().OfType<AssignmentExpressionSyntax>();
+                        foreach (var assignment in assignments)
+                        {
+                            if (assignment.Left is IdentifierNameSyntax identName)
+                            {
+                                var symbol = semanticModel.GetSymbolInfo(identName).Symbol;
+                                if (symbol is IFieldSymbol fieldSymbol && fieldSymbol.IsStatic)
+                                {
+                                    _knownImpureMethods.Add(methodSymbol);
+                                    return true;
+                                }
+                            }
+                            else if (assignment.Left is MemberAccessExpressionSyntax memberAccessExpr)
+                            {
+                                var symbol = semanticModel.GetSymbolInfo(memberAccessExpr).Symbol;
+                                if (symbol is IFieldSymbol fieldSymbol && fieldSymbol.IsStatic)
+                                {
+                                    _knownImpureMethods.Add(methodSymbol);
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // For other methods, check common impure patterns
+            if (methodSymbol.ContainingNamespace?.ToString().Contains("System.IO") == true ||
+                methodSymbol.ContainingNamespace?.ToString().Contains("System.Net") == true ||
+                methodSymbol.ContainingNamespace?.ToString().Contains("System.Data.SqlClient") == true ||
+                methodSymbol.ContainingNamespace?.ToString().Contains("System.Console") == true)
+            {
+                _knownImpureMethods.Add(methodSymbol);
+                return true;
+            }
+
+            // Method doesn't have obvious signs of impurity
+            _knownPureMethods.Add(methodSymbol);
+            return false;
         }
     }
 }

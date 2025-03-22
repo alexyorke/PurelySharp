@@ -12,7 +12,6 @@ Known limitations:
 - **Static Fields**: Access to static fields from other types/assemblies may not always be correctly identified as impure.
 - **External Dependencies**: Methods from third-party libraries without proper annotations might be incorrectly assumed to be pure.
 - **Reflection**: Code using reflection to modify state may evade detection.
-- **Constructors**: Analysis of constructors is limited and may miss impurities.
 - **Thread-Static Fields**: Thread-static field access isn't always properly detected as impure.
 - **Collection Modifications**: The analyzer may not detect all collection modifications, especially through indirect method calls.
 - **Delegate Invocations**: Delegate invocations to impure methods might not be detected.
@@ -102,7 +101,7 @@ Supported means there is _some_ level of test coverage. It does not mean it is 1
 
 - [x] Instance methods
 - [x] Static methods
-- [ ] Constructors
+- [x] Constructors
 - [x] Properties (get-only)
 - [x] Auto-properties (get-only or init-only)
 - [x] Fields (readonly)
@@ -842,3 +841,80 @@ The following examples demonstrate cases where the analyzer may fail to correctl
 ```
 
 ```
+
+## Constructor Analysis
+
+When applying `[EnforcePure]` to constructors, the analyzer applies special rules to account for the unique purpose of constructors. A constructor marked as pure must follow these rules:
+
+1. **Instance field/property assignment is permitted**: Unlike regular methods, constructors can assign values to instance fields and properties of the containing type.
+
+2. **Static field modification is not permitted**: Modifying static fields is still considered impure, as this affects state beyond the instance being constructed.
+
+3. **Impure method calls are not permitted**: Calling impure methods (like I/O operations) from a pure constructor is not allowed.
+
+4. **Collection initialization is permitted**: Creating and initializing collections (e.g., `new List<int> { 1, 2, 3 }`) is allowed if the collection is assigned to an instance field.
+
+5. **Base constructor calls**: If a constructor calls a base constructor, the base constructor must also be pure.
+
+### Examples
+
+#### Pure Constructor
+
+```csharp
+[AttributeUsage(AttributeTargets.Constructor)]
+public class EnforcePureAttribute : Attribute { }
+
+public class Person
+{
+    private readonly string _name;
+    private readonly int _age;
+    private readonly List<string> _skills;
+
+    [EnforcePure]
+    public Person(string name, int age)
+    {
+        _name = name;
+        _age = age;
+        _skills = new List<string>(); // Allowed: initializing a collection field
+    }
+}
+```
+
+#### Impure Constructor (Static Field Modification)
+
+```csharp
+public class Counter
+{
+    private static int _instanceCount = 0;
+    private readonly int _id;
+
+    [EnforcePure]
+    public Counter() // Error: Modifies static state
+    {
+        _id = ++_instanceCount; // Impure: modifies static field
+    }
+}
+```
+
+#### Impure Constructor (Calling Impure Methods)
+
+```csharp
+public class Logger
+{
+    private readonly string _name;
+
+    [EnforcePure]
+    public Logger(string name) // Error: Calls an impure method
+    {
+        _name = name;
+        InitializeLog(); // Calls impure method
+    }
+
+    private void InitializeLog()
+    {
+        Console.WriteLine($"Logger {_name} initialized"); // Impure operation
+    }
+}
+```
+
+## Cross-Framework and Language Version Support
