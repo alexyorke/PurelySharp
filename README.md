@@ -148,7 +148,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] File-local types (file access modifier)
 - [x] Auto-default structs
 - [x] Pattern match Span<char> on constant string
-- [ ] Extended nameof scope
+- [x] Extended nameof scope
 - [ ] Numeric IntPtr (nint/nuint)
 - [ ] ref fields and scoped ref
 - [ ] Generic attributes
