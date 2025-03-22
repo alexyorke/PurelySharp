@@ -465,5 +465,339 @@ namespace TestNamespace
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task RequiredMembers_ReadingInPureMethod_NoDiagnostic()
+        {
+            var test = @"
+using System;
+
+// Required for init-only properties
+namespace System.Runtime.CompilerServices
+{
+    internal static class IsExternalInit { }
+    internal static class RequiredMemberAttribute { }
+}
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+namespace TestNamespace
+{
+    public class Person
+    {
+        public required string FirstName { get; init; }
+        public required string LastName { get; init; }
+        public int? Age { get; init; }
+
+        [EnforcePure]
+        public string GetFullName()
+        {
+            // Reading required properties is pure
+            return $""{FirstName} {LastName}"";
+        }
+    }
+
+    public class Application
+    {
+        [EnforcePure]
+        public string GetPersonInfo(string firstName, string lastName, int? age = null)
+        {
+            // Object initialization with required members
+            var person = new Person
+            {
+                FirstName = firstName,
+                LastName = lastName,
+                Age = age
+            };
+
+            return person.GetFullName() + (age.HasValue ? $"" ({age} years old)"" : """");
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task RequiredMembers_InRecord_PureMethod_NoDiagnostic()
+        {
+            var test = @"
+using System;
+
+// Required for init-only properties and records
+namespace System.Runtime.CompilerServices
+{
+    internal static class IsExternalInit { }
+    internal static class RequiredMemberAttribute { }
+}
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+namespace TestNamespace
+{
+    public record Employee
+    {
+        public required string Id { get; init; }
+        public required string Department { get; init; }
+        public string? Title { get; init; }
+
+        [EnforcePure]
+        public string GetEmployeeInfo()
+        {
+            // Reading required properties in a record is pure
+            return $""ID: {Id}, Department: {Department}"" + 
+                  (Title != null ? $"", Title: {Title}"" : """");
+        }
+    }
+
+    public class EmployeeManager
+    {
+        [EnforcePure]
+        public string GetEmployeeDetails(string id, string department, string? title = null)
+        {
+            // Object initialization with required members in a record
+            var employee = new Employee
+            {
+                Id = id,
+                Department = department,
+                Title = title
+            };
+
+            return employee.GetEmployeeInfo();
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task RequiredMembers_WithStructs_PureMethod_NoDiagnostic()
+        {
+            var test = @"
+using System;
+
+// Required for init-only properties
+namespace System.Runtime.CompilerServices
+{
+    internal static class IsExternalInit { }
+    internal static class RequiredMemberAttribute { }
+}
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+namespace TestNamespace
+{
+    public readonly struct Point
+    {
+        public required int X { get; init; }
+        public required int Y { get; init; }
+
+        [EnforcePure]
+        public double GetDistance()
+        {
+            // Reading required properties in a struct is pure
+            return Math.Sqrt(X * X + Y * Y);
+        }
+    }
+
+    public class GeometryCalculator
+    {
+        [EnforcePure]
+        public double CalculateDistance(int x, int y)
+        {
+            // Object initialization with required members in a struct
+            var point = new Point
+            {
+                X = x,
+                Y = y
+            };
+
+            return point.GetDistance();
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task RequiredMembers_WithPrimaryConstructor_PureMethod_NoDiagnostic()
+        {
+            var test = @"
+using System;
+
+// Required for init-only properties
+namespace System.Runtime.CompilerServices
+{
+    internal static class IsExternalInit { }
+    internal static class RequiredMemberAttribute { }
+}
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+namespace TestNamespace
+{
+    // Combining required members with primary constructor
+    public class Configuration(string environment)
+    {
+        public required string ApiKey { get; init; }
+        public string Environment { get; } = environment;
+        public string? Region { get; init; }
+
+        [EnforcePure]
+        public string GetConnectionString()
+        {
+            // Reading required property and constructor parameter is pure
+            return $""ApiKey={ApiKey};Environment={Environment}"" +
+                  (Region != null ? $"";Region={Region}"" : """");
+        }
+    }
+
+    public class ConfigurationManager
+    {
+        [EnforcePure]
+        public string GetConnectionString(string apiKey, string environment, string? region = null)
+        {
+            // Using required members with a primary constructor
+            var config = new Configuration(environment)
+            {
+                ApiKey = apiKey,
+                Region = region
+            };
+
+            return config.GetConnectionString();
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task RequiredMembers_MultipleTypes_PureMethod_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+
+// Required for init-only properties
+namespace System.Runtime.CompilerServices
+{
+    internal static class IsExternalInit { }
+    internal static class RequiredMemberAttribute { }
+}
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+namespace TestNamespace
+{
+    public class Address
+    {
+        public required string Street { get; init; }
+        public required string City { get; init; }
+        public required string ZipCode { get; init; }
+        public string? State { get; init; }
+    }
+
+    public class Customer
+    {
+        public required string Name { get; init; }
+        public required string Email { get; init; }
+        public required Address HomeAddress { get; init; }
+        public Address? WorkAddress { get; init; }
+    }
+
+    public class CustomerService
+    {
+        [EnforcePure]
+        public string FormatCustomerInfo(Customer customer)
+        {
+            // Reading required properties from nested types
+            var result = $""Name: {customer.Name}\nEmail: {customer.Email}\n"";
+            result += $""Home Address: {customer.HomeAddress.Street}, {customer.HomeAddress.City}, {customer.HomeAddress.ZipCode}"";
+            
+            if (customer.HomeAddress.State != null)
+                result += $"", {customer.HomeAddress.State}"";
+                
+            if (customer.WorkAddress != null)
+            {
+                result += $""\nWork Address: {customer.WorkAddress.Street}, {customer.WorkAddress.City}, {customer.WorkAddress.ZipCode}"";
+                if (customer.WorkAddress.State != null)
+                    result += $"", {customer.WorkAddress.State}"";
+            }
+            
+            return result;
+        }
+        
+        [EnforcePure]
+        public Customer CreateCustomer(string name, string email, string street, string city, string zipCode, string? state = null)
+        {
+            // Initializing nested objects with required members
+            return new Customer
+            {
+                Name = name,
+                Email = email,
+                HomeAddress = new Address
+                {
+                    Street = street,
+                    City = city,
+                    ZipCode = zipCode,
+                    State = state
+                }
+            };
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task RequiredMembers_TryingToModify_Diagnostic()
+        {
+            var test = @"
+using System;
+
+// Required for init-only properties
+namespace System.Runtime.CompilerServices
+{
+    internal static class IsExternalInit { }
+    internal static class RequiredMemberAttribute { }
+}
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+namespace TestNamespace
+{
+    public class Product
+    {
+        public required string Name { get; set; } // Using set instead of init
+        public required decimal Price { get; set; } // Using set instead of init
+    }
+
+    public class ProductService
+    {
+        [EnforcePure]
+        public void UpdateProductName(Product product, string newName)
+        {
+            // Impure operation: modifying a property even if it's required
+            product.Name = newName;
+        }
+    }
+}";
+
+            var expected = VerifyCS.Diagnostic("PMA0001")
+                .WithSpan(25, 13, 25, 30)
+                .WithArguments("UpdateProductName");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
     }
 }

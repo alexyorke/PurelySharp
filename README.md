@@ -150,8 +150,8 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] UTF-8 string literals
 - [x] List patterns
 - [x] File-local types
-- [ ] Required members
-- [ ] Auto-default structs
+- [x] Required members
+- [x] Auto-default structs
 - [x] Pattern match Span<char> on constant string
 - [x] Newlines in string interpolation expressions
 - [x] ref fields and scoped ref
