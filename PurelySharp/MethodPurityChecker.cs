@@ -52,8 +52,9 @@ namespace PurelySharp
                 return true; // All tuple methods are pure
             }
 
-            // Check if it's a conversion method
+            // Check if it's a conversion or operator method
             if (method.MethodKind == MethodKind.Conversion ||
+                method.Name.StartsWith("op_") || // Check for operator methods by name (they start with "op_")
                 method.Name == "Parse" || method.Name == "TryParse" ||
                 method.Name == "Convert" || method.Name == "CompareTo" || method.Name == "Equals")
             {

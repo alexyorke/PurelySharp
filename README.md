@@ -62,7 +62,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [ ] Async methods
 - [x] Iterator methods (yield return)
 - [x] Unsafe methods
-- [ ] Operator overloads
+- [x] Operator overloads
 - [ ] User-defined conversions
 - [ ] Static abstract/virtual interface members (C# 11)
 

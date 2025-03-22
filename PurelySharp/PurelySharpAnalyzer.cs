@@ -55,6 +55,9 @@ namespace PurelySharp
                 compilationContext.RegisterSyntaxNodeAction(
                     c => AnalyzeMethodDeclaration(c),
                     SyntaxKind.MethodDeclaration);
+                compilationContext.RegisterSyntaxNodeAction(
+                    c => AnalyzeOperatorDeclaration(c),
+                    SyntaxKind.OperatorDeclaration);
                 compilationContext.RegisterSymbolAction(
                     c => AnalyzeNamedType(c),
                     SymbolKind.NamedType);
@@ -594,6 +597,33 @@ namespace PurelySharp
                 methodSymbol.Name);
 
             context.ReportDiagnostic(impurityDiagnostic);
+        }
+
+        private void AnalyzeOperatorDeclaration(SyntaxNodeAnalysisContext context)
+        {
+            var operatorDeclaration = (OperatorDeclarationSyntax)context.Node;
+            var methodSymbol = context.SemanticModel.GetDeclaredSymbol(operatorDeclaration);
+
+            if (methodSymbol == null)
+                return;
+
+            // Skip operators that are not marked as pure
+            if (!HasPureAttribute(methodSymbol))
+                return;
+
+            // Use the same analysis as for methods
+            var impurityWalker = new ImpurityWalker(context.SemanticModel);
+            impurityWalker.Visit(operatorDeclaration);
+
+            if (impurityWalker.ContainsImpureOperations)
+            {
+                var diagnostic = Diagnostic.Create(
+                    Rule,
+                    impurityWalker.ImpurityLocation,
+                    methodSymbol.Name);
+
+                context.ReportDiagnostic(diagnostic);
+            }
         }
 
         private LockStatementSyntax? FindLockStatement(MethodDeclarationSyntax methodDeclaration)
