@@ -76,7 +76,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [ ] Enums
 - [ ] Delegates
 - [ ] File-local types (C# 11)
-- [ ] Primary constructors (C# 12)
+- [x] Primary constructors (C# 12)
 
 ### Member Declarations
 
@@ -159,7 +159,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 ### C# 12 Specific Features
 
 - [~] Collection expressions - _Partial support: only when creating immutable collections_
-- [ ] Primary constructors
+- [x] Primary constructors
 - [ ] Inline arrays
 - [ ] Optional parameters in lambda expressions
 - [x] ref readonly parameters
