@@ -428,9 +428,31 @@ namespace PurelySharp
                         _ => false
                     };
 
-                case ElementAccessExpressionSyntax elementAccessExpr:
-                    return IsExpressionPure(elementAccessExpr.Expression, semanticModel, currentMethod) &&
-                           elementAccessExpr.ArgumentList.Arguments.All(arg => IsExpressionPure(arg.Expression, semanticModel, currentMethod));
+                case ElementAccessExpressionSyntax arrayElementAccess:
+                    // Get the type of the expression being accessed
+                    var elementAccessedType = semanticModel.GetTypeInfo(arrayElementAccess.Expression).Type;
+
+                    // First, check if this is an array or collection access
+                    bool isElementAssignment = arrayElementAccess.Parent is AssignmentExpressionSyntax assignmentExpr && assignmentExpr.Left == arrayElementAccess;
+
+                    // If we're writing to the element (assignment), it's impure
+                    if (isElementAssignment)
+                        return false;
+
+                    // Check if this is an inline array
+                    if (elementAccessedType != null && IsInlineArrayType(elementAccessedType))
+                    {
+                        // Reading from an inline array is pure, writing is impure
+                        // We already checked if it's an assignment above
+                        return IsExpressionPure(arrayElementAccess.Expression, semanticModel, currentMethod) &&
+                               arrayElementAccess.ArgumentList.Arguments.All(arg =>
+                                   IsExpressionPure(arg.Expression, semanticModel, currentMethod));
+                    }
+
+                    // Regular array/collection access - check expression and arguments
+                    return IsExpressionPure(arrayElementAccess.Expression, semanticModel, currentMethod) &&
+                           arrayElementAccess.ArgumentList.Arguments.All(arg =>
+                               IsExpressionPure(arg.Expression, semanticModel, currentMethod));
 
                 case AssignmentExpressionSyntax assignment:
                     // Check for dynamic property assignment - modifying dynamic properties is impure
@@ -683,6 +705,18 @@ namespace PurelySharp
                 return false;
 
             return true; // Assume methods have side effects by default
+        }
+
+        // Helper method to check if a type is an inline array
+        private static bool IsInlineArrayType(ITypeSymbol typeSymbol)
+        {
+            if (typeSymbol == null)
+                return false;
+
+            // Check if the type has the [InlineArray] attribute
+            return typeSymbol.GetAttributes().Any(attr =>
+                attr.AttributeClass?.Name == "InlineArrayAttribute" ||
+                attr.AttributeClass?.ToDisplayString().Contains("InlineArray") == true);
         }
     }
 }

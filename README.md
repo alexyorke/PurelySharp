@@ -67,7 +67,7 @@ Supported means there is _some_ level of test coverage. It does not mean it is 1
 - [~] Collection expressions (C# 12) - _Partial support: only when creating immutable collections_
 - [x] Mutable collections (List, Dictionary, etc.)
 - [x] Modifying collection elements
-- [ ] Inline arrays (C# 12)
+- [x] Inline arrays (C# 12)
 
 ### Method Types
 
@@ -181,7 +181,7 @@ Supported means there is _some_ level of test coverage. It does not mean it is 1
 
 - [~] Collection expressions - _Partial support: only when creating immutable collections_
 - [x] Primary constructors
-- [ ] Inline arrays
+- [x] Inline arrays
 - [ ] Optional parameters in lambda expressions
 - [x] ref readonly parameters
 - [ ] Type alias for any type
