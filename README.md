@@ -75,7 +75,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] Record structs (C# 10)
 - [ ] Enums
 - [ ] Delegates
-- [ ] File-local types (C# 11)
+- [x] File-local types (C# 11)
 - [x] Primary constructors (C# 12)
 
 ### Member Declarations
