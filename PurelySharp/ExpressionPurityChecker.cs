@@ -435,6 +435,21 @@ namespace PurelySharp
                     // First, check if this is an array or collection access
                     bool isElementAssignment = arrayElementAccess.Parent is AssignmentExpressionSyntax assignmentExpr && assignmentExpr.Left == arrayElementAccess;
 
+                    // Check if this is accessing an indexer property
+                    var elementAccessSymbol = semanticModel.GetSymbolInfo(arrayElementAccess).Symbol;
+                    if (elementAccessSymbol is IPropertySymbol indexerSymbol && indexerSymbol.IsIndexer)
+                    {
+                        // Writing to an indexer is always impure
+                        if (isElementAssignment)
+                            return false;
+
+                        // Reading from an indexer is pure (regardless of whether it has a setter)
+                        // Just check that the expression and arguments are pure
+                        return IsExpressionPure(arrayElementAccess.Expression, semanticModel, currentMethod) &&
+                               arrayElementAccess.ArgumentList.Arguments.All(arg =>
+                                   IsExpressionPure(arg.Expression, semanticModel, currentMethod));
+                    }
+
                     // If we're writing to the element (assignment), it's impure
                     if (isElementAssignment)
                         return false;
@@ -482,6 +497,14 @@ namespace PurelySharp
                         var arrayExpression = elementAccess.Expression;
                         var arraySymbol = semanticModel.GetSymbolInfo(arrayExpression).Symbol;
 
+                        // Check if this is an indexer property assignment
+                        var elementAssignSymbol = semanticModel.GetSymbolInfo(elementAccess).Symbol;
+                        if (elementAssignSymbol is IPropertySymbol indexerPropSymbol && indexerPropSymbol.IsIndexer)
+                        {
+                            // Writing to an indexer property is impure
+                            return false;
+                        }
+
                         if (arraySymbol is IParameterSymbol paramSymbol)
                         {
                             // Check if we're modifying a params array parameter
@@ -516,15 +539,13 @@ namespace PurelySharp
                     // Handle property assignment
                     if (assignment.Left is MemberAccessExpressionSyntax propertyAccess)
                     {
-                        var accessedSymbol = semanticModel.GetSymbolInfo(propertyAccess).Symbol;
+                        var propertyAccessSymbol = semanticModel.GetSymbolInfo(propertyAccess).Symbol;
 
                         // If it's a field, assignments are always impure
-                        if (accessedSymbol is IFieldSymbol)
-                        {
+                        if (propertyAccessSymbol is IFieldSymbol)
                             return false;
-                        }
 
-                        if (accessedSymbol is IPropertySymbol recordPropertySymbol)
+                        if (propertyAccessSymbol is IPropertySymbol recordPropertySymbol)
                         {
                             // Check if it's a record property
                             var containingType = recordPropertySymbol.ContainingType;

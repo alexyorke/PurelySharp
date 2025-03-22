@@ -107,7 +107,7 @@ Supported means there is _some_ level of test coverage. It does not mean it is 1
 - [x] Auto-properties (get-only or init-only)
 - [x] Fields (readonly)
 - [x] Events
-- [ ] Indexers
+- [x] Indexers
 - [x] Required members (C# 11)
 - [ ] Partial properties (C# 13)
 

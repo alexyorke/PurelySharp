@@ -46,8 +46,21 @@ namespace PurelySharp
                     // Only allow get-only properties or auto-implemented properties
                     // For records, allow init-only properties
                     var isRecord = IsRecordType(property.ContainingType);
+
+                    // Handle both regular properties and indexers
+                    var isIndexer = property.IsIndexer;
+
+                    if (isIndexer)
+                    {
+                        // For indexers - they're considered pure for the purpose of symbol access
+                        // (actual purity of operations is handled in ExpressionPurityChecker)
+                        return true;
+                    }
+
                     return property.IsReadOnly ||
+                           // For regular properties
                            (property.GetMethod != null && (property.SetMethod == null || property.SetMethod.IsInitOnly)) ||
+                           // For record properties
                            (isRecord && property.GetMethod != null && property.SetMethod?.IsInitOnly == true);
 
                 case IFieldSymbol field:

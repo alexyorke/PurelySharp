@@ -1284,6 +1284,7 @@ namespace PurelySharp
                 if (methodName.Contains("Wait") ||
                     methodName.Contains("Lock") ||
                     methodName.Contains("Dispose") ||
+                    methodName.Contains("Update") ||
                     methodName.Contains("GetEnumerator"))
                     return true;
 
