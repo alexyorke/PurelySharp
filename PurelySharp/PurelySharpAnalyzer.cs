@@ -925,6 +925,16 @@ namespace PurelySharp
                         _containsImpureOperations = true;
                         _impurityLocation = node.OperatorToken.GetLocation();
                     }
+                    // Check if we're assigning to a ref or out parameter
+                    else if (symbolInfo.Symbol is IParameterSymbol parameterSymbol)
+                    {
+                        // If it's a ref or out parameter and we're assigning to it, that's impure
+                        if (parameterSymbol.RefKind == RefKind.Out || parameterSymbol.RefKind == RefKind.Ref)
+                        {
+                            _containsImpureOperations = true;
+                            _impurityLocation = node.OperatorToken.GetLocation();
+                        }
+                    }
                 }
             }
 
@@ -1247,6 +1257,13 @@ namespace PurelySharp
                     methodName.Contains("Dispose") ||
                     methodName.Contains("GetEnumerator"))
                     return true;
+
+                // Methods with ref or out parameters are considered impure
+                foreach (var parameter in methodSymbol.Parameters)
+                {
+                    if (parameter.RefKind == RefKind.Ref || parameter.RefKind == RefKind.Out)
+                        return true;
+                }
 
                 // Collection modifications are impure
                 if (containingType.Contains("System.Collections.Generic.List`1") &&

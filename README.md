@@ -95,7 +95,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 
 - [x] Value types
 - [x] Reference types (when used in a read-only manner)
-- [ ] Ref parameters
+- [x] Ref parameters
 - [ ] Out parameters
 - [ ] In parameters
 - [ ] Params arrays

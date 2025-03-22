@@ -23,8 +23,9 @@ namespace PurelySharp
                     {
                         if (symbol is IParameterSymbol parameter)
                         {
-                            // Check if parameter is ref/out
-                            if (parameter.RefKind != RefKind.None)
+                            // Only consider Out and Ref parameters as impure
+                            // In (readonly ref) parameters are considered pure
+                            if (parameter.RefKind == RefKind.Out || parameter.RefKind == RefKind.Ref)
                                 return false;
                             return true;
                         }

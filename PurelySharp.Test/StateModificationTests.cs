@@ -139,7 +139,7 @@ public class TestClass
 }";
 
             var expected = VerifyCS.Diagnostic("PMA0001")
-                .WithLocation(10, 17)
+                .WithSpan(12, 15, 12, 16)
                 .WithArguments("TestMethod");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);

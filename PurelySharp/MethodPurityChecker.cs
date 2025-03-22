@@ -9,6 +9,13 @@ namespace PurelySharp
         {
             if (method == null) return false;
 
+            // Check if method has ref or out parameters
+            foreach (var parameter in method.Parameters)
+            {
+                if (parameter.RefKind == RefKind.Ref || parameter.RefKind == RefKind.Out)
+                    return false; // Methods with ref or out parameters are not pure
+            }
+
             // Check if it's a LINQ method
             if (NamespaceChecker.IsInNamespace(method, "System.Linq") &&
                 method.ContainingType.Name == "Enumerable")
