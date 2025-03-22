@@ -88,7 +88,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] Fields (readonly)
 - [x] Events
 - [ ] Indexers
-- [ ] Required members (C# 11)
+- [x] Required members (C# 11)
 - [ ] Partial properties (C# 13)
 
 ### Parameter Types
@@ -125,7 +125,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] List patterns (C# 11)
 - [ ] Top-level statements (C# 9)
 - [ ] File-scoped namespaces (C# 10)
-- [ ] Required members (C# 11)
+- [x] Required members (C# 11)
 - [ ] Nullable reference types annotations (C# 8.0+)
 - [ ] Caller information attributes
 - [ ] Source generators
@@ -140,12 +140,12 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 
 ### C# 11 Specific Features
 
-- [x] List patterns (matching against arrays and collections)
+- [x] List patterns (C# 11)
 - [x] Raw string literals ("""...""")
 - [ ] UTF-8 string literals (u8 suffix)
 - [x] Newlines in string interpolation expressions
-- [ ] Required members
-- [ ] File-local types (file access modifier)
+- [x] Required members (C# 11)
+- [x] File-local types (file access modifier)
 - [ ] Auto-default structs
 - [ ] Pattern match Span<char> on constant string
 - [ ] Extended nameof scope
