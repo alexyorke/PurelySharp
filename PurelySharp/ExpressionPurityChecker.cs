@@ -46,57 +46,45 @@ namespace PurelySharp
                     return symbol != null && SymbolPurityChecker.IsPureSymbol(symbol);
 
                 case InvocationExpressionSyntax invocation:
-                    // Check for dynamic invocation - method calls on dynamic objects are impure
-                    if (invocation.Expression is MemberAccessExpressionSyntax dynamicMemberAccess)
+                    var methodSymbol = semanticModel.GetSymbolInfo(invocation.Expression).Symbol as IMethodSymbol;
+                    if (methodSymbol == null)
                     {
-                        var dynamicTypeInfo = semanticModel.GetTypeInfo(dynamicMemberAccess.Expression);
-                        if (dynamicTypeInfo.Type != null &&
-                            (dynamicTypeInfo.Type.TypeKind == TypeKind.Dynamic ||
-                             dynamicTypeInfo.Type.Name == "Object" &&
-                             IsDynamicExpression(dynamicMemberAccess.Expression, semanticModel)))
+                        // If we can't determine the method symbol, we need to check if it's a dynamic invocation
+                        if (invocation.Expression is MemberAccessExpressionSyntax memberAccess)
                         {
-                            // Invoking methods on dynamic objects is impure because we can't analyze them statically
-                            return false;
+                            var expressionType = semanticModel.GetTypeInfo(memberAccess.Expression).Type;
+                            if (expressionType != null && expressionType.TypeKind == TypeKind.Dynamic)
+                            {
+                                // Dynamic invocations are impure
+                                return false;
+                            }
                         }
+
+                        // If we still can't determine the method, assume it's impure
+                        return false;
                     }
 
-                    // Check the method being called
-                    var methodSymbol = semanticModel.GetSymbolInfo(invocation).Symbol as IMethodSymbol;
-                    if (methodSymbol == null)
-                        return false;
-
-                    // Check for Console methods which are impure
-                    if (methodSymbol.ContainingType?.Name == "Console" &&
+                    // Special case for System.Enum.TryParse methods - consider them pure despite having out parameters
+                    if (methodSymbol.Name == "TryParse" &&
+                        methodSymbol.ContainingType?.Name == "Enum" &&
                         methodSymbol.ContainingType.ContainingNamespace?.Name == "System")
                     {
-                        if (methodSymbol.Name is "WriteLine" or "Write" or "ReadLine" or "Read" or "ReadKey")
-                            return false;
+                        // Consider Enum.TryParse as pure even though it has out parameters
+                        return invocation.ArgumentList?.Arguments.All(arg =>
+                            arg.RefKindKeyword.IsKind(SyntaxKind.OutKeyword) ||
+                            IsExpressionPure(arg.Expression, semanticModel, currentMethod)) ?? true;
                     }
 
-                    // Check for other known impure namespaces
-                    var containingNamespace = methodSymbol.ContainingNamespace?.ToString() ?? string.Empty;
-                    if (containingNamespace.StartsWith("System.IO") ||
-                        containingNamespace.StartsWith("System.Net") ||
-                        containingNamespace.StartsWith("System.Web") ||
-                        containingNamespace.StartsWith("System.Threading"))
-                    {
+                    // Check if the method is known to be impure
+                    if (MethodPurityChecker.IsKnownImpureMethod(methodSymbol))
                         return false;
-                    }
 
-                    // Check if this is a recursive call to the current method
-                    if (currentMethod != null && methodSymbol.Equals(currentMethod, SymbolEqualityComparer.Default))
-                    {
-                        // Recursive calls are pure if the current method is pure
-                        // The analyzer will handle this case
-                        return true;
-                    }
+                    // Check if method is in an impure namespace
+                    if (methodSymbol.ContainingType != null && NamespaceChecker.IsInImpureNamespace(methodSymbol.ContainingType))
+                        return false;
 
-                    // Known pure methods (LINQ, Math, etc.)
-                    if (IsKnownPureMethod(methodSymbol))
-                        return true;
-
-                    // Check if method has EnforcePure attribute
-                    if (HasEnforcePureAttribute(methodSymbol))
+                    // Check if the method is known to be pure
+                    if (MethodPurityChecker.IsKnownPureMethod(methodSymbol))
                         return true;
 
                     // Interface method that are property getters or have no side effects
@@ -112,6 +100,16 @@ namespace PurelySharp
                         IsExpressionPure(arg.Expression, semanticModel, currentMethod)) ?? true;
 
                 case MemberAccessExpressionSyntax memberAccess:
+                    // Check if it's an enum member access (which is pure)
+                    var memberSymbol = semanticModel.GetSymbolInfo(memberAccess).Symbol;
+                    if (memberSymbol != null &&
+                        memberSymbol.Kind == SymbolKind.Field &&
+                        memberSymbol.ContainingType?.TypeKind == TypeKind.Enum)
+                    {
+                        // Enum member access is always pure
+                        return true;
+                    }
+
                     // For member access without assignment, reading dynamic properties is considered pure
                     // Only parent nodes that are invocations or assignments make dynamic operations impure
                     // This allows reading properties of dynamic objects
@@ -125,9 +123,16 @@ namespace PurelySharp
                             if (memberAccess.Name.Identifier.ValueText is "WriteLine" or "Write" or "ReadLine" or "Read")
                                 return false;
                         }
+
+                        // Check access to Enum static methods (these are pure)
+                        var type = semanticModel.GetSymbolInfo(identifierName).Symbol as ITypeSymbol;
+                        if (type?.Name == "Enum" && type.ContainingNamespace?.Name == "System")
+                        {
+                            // Enum methods like Parse, TryParse, etc. are pure
+                            return true;
+                        }
                     }
 
-                    var memberSymbol = semanticModel.GetSymbolInfo(memberAccess).Symbol;
                     if (memberSymbol is IFieldSymbol fieldSymbol)
                     {
                         // Static fields that are not const are impure
@@ -176,7 +181,8 @@ namespace PurelySharp
                         }
                     }
 
-                    return true;
+                    // If we can't determine the symbol, be conservative and consider it impure
+                    return false;
 
                 // Add support for collection expressions (C# 12)
                 case CollectionExpressionSyntax collectionExpr:

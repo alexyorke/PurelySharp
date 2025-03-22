@@ -78,6 +78,10 @@ namespace PurelySharp
                     return MethodPurityChecker.IsKnownPureMethod(method);
 
                 case ITypeSymbol type:
+                    // Enums are considered pure by default
+                    if (type.TypeKind == TypeKind.Enum)
+                        return true;
+
                     // Records are considered pure by default
                     return IsRecordType(type);
 

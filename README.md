@@ -93,7 +93,7 @@ Supported means there is _some_ level of test coverage. It does not mean it is 1
 - [~] Structs (when methods are pure) - _Partial support: only for immutable structs_
 - [x] Records (C# 9)
 - [x] Record structs (C# 10)
-- [ ] Enums
+- [x] Enums
 - [ ] Delegates
 - [x] File-local types (C# 11)
 - [x] Primary constructors (C# 12)
@@ -221,6 +221,65 @@ Supported means there is _some_ level of test coverage. It does not mean it is 1
 - [x] Reflection
 - [x] Dynamic typing
 - [x] Unsafe code
+
+## Enum Operations
+
+PurelySharp treats enums as pure data types. All standard operations with enums are considered pure, including:
+
+- Accessing enum values
+- Converting enums to their underlying numeric type and vice versa
+- Comparing enum values
+- Using the `Enum` class methods like `ToString()`, `Parse()`, and `TryParse()`
+
+Special handling is provided for `Enum.TryParse<T>()`, which is considered pure despite using an `out` parameter.
+
+### Examples
+
+```csharp
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public enum Status
+{
+    Pending,
+    Active,
+    Completed,
+    Failed
+}
+
+public class EnumOperations
+{
+    [EnforcePure]
+    public bool IsActiveOrPending(Status status)
+    {
+        // Comparing enum values is pure
+        return status == Status.Active || status == Status.Pending;
+    }
+
+    [EnforcePure]
+    public int GetStatusCode(Status status)
+    {
+        // Converting to the underlying numeric type is pure
+        return (int)status;
+    }
+
+    [EnforcePure]
+    public Status ParseStatus(string statusName)
+    {
+        // Using Enum.TryParse is pure despite the out parameter
+        if (Enum.TryParse<Status>(statusName, true, out var status))
+            return status;
+        return Status.Pending; // Default
+    }
+
+    [EnforcePure]
+    public Status GetStatusFromValue(int value)
+    {
+        // Casting from numeric to enum is pure
+        return (Status)value;
+    }
+}
+```
 
 ## Attributes
 

@@ -195,6 +195,14 @@ namespace PurelySharp
                 return true;
             }
 
+            // Special case for System.Enum.TryParse methods - consider them pure despite having out parameters
+            if (methodSymbol.Name == "TryParse" &&
+                methodSymbol.ContainingType?.Name == "Enum" &&
+                methodSymbol.ContainingType.ContainingNamespace?.Name == "System")
+            {
+                return false; // Not impure
+            }
+
             // Methods with ref or out parameters modify state
             if (methodSymbol.Parameters.Any(p => p.RefKind == RefKind.Ref || p.RefKind == RefKind.Out))
                 return true;

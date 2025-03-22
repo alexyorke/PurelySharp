@@ -955,6 +955,16 @@ namespace PurelySharp
                     // Check if we're assigning to a ref or out parameter
                     else if (symbolInfo.Symbol is IParameterSymbol parameterSymbol)
                     {
+                        // Special case for Enum.TryParse - we allow assignments to out parameters in this method
+                        if (parameterSymbol.ContainingSymbol is IMethodSymbol methodSymbol &&
+                            methodSymbol.Name == "TryParse" &&
+                            methodSymbol.ContainingType?.Name == "Enum" &&
+                            methodSymbol.ContainingType.ContainingNamespace?.Name == "System")
+                        {
+                            // Allow assignments to out parameters in Enum.TryParse
+                            return;
+                        }
+
                         // If it's a ref or out parameter and we're assigning to it, that's impure
                         // In (readonly ref) parameters are safe since they can't be modified
                         if (parameterSymbol.RefKind == RefKind.Out || parameterSymbol.RefKind == RefKind.Ref)
@@ -1288,15 +1298,25 @@ namespace PurelySharp
                     methodName.Contains("GetEnumerator"))
                     return true;
 
-                // Methods with ref or out parameters are considered impure
+                // Check for methods with out or ref parameters
                 foreach (var parameter in methodSymbol.Parameters)
                 {
-                    // Skip 'in' (readonly ref) parameters as they are pure
+                    // 'in' parameters are readonly and safe to use in pure methods
                     if (parameter.RefKind == RefKind.In)
                         continue;
 
+                    // Special case for Enum.TryParse methods
+                    if (methodName == "TryParse" &&
+                        methodSymbol.ContainingType?.Name == "Enum" &&
+                        methodSymbol.ContainingType.ContainingNamespace?.Name == "System")
+                    {
+                        continue; // Skip the check for Enum.TryParse
+                    }
+
                     if (parameter.RefKind == RefKind.Ref || parameter.RefKind == RefKind.Out)
+                    {
                         return true;
+                    }
                 }
 
                 // Collection modifications are impure
