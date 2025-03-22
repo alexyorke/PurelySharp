@@ -17,7 +17,7 @@ namespace PurelySharp
         private const string Category = "Purity";
         private static readonly LocalizableString Title = "Method marked as pure contains impure operations";
         private static readonly LocalizableString MessageFormat = "Method '{0}' is marked as pure but contains impure operations";
-        private static readonly LocalizableString Description = "Methods marked with [Pure] should not have side effects.";
+        private static readonly LocalizableString Description = "Methods marked with [EnforcePure] should not have side effects.";
 
         private static readonly DiagnosticDescriptor Rule = new DiagnosticDescriptor(
             "PMA0001",
@@ -106,7 +106,7 @@ namespace PurelySharp
                 return;
 
             // Skip methods that are not marked as pure
-            if (!HasPureAttribute(methodSymbol))
+            if (!HasEnforcePureAttribute(methodSymbol))
                 return;
 
             // Check for static field access
@@ -623,7 +623,7 @@ namespace PurelySharp
                 return;
 
             // Skip operators that are not marked as pure
-            if (!HasPureAttribute(methodSymbol))
+            if (!HasEnforcePureAttribute(methodSymbol))
                 return;
 
             // Use the same analysis as for methods
@@ -650,7 +650,7 @@ namespace PurelySharp
                 return;
 
             // Skip conversions that are not marked as pure
-            if (!HasPureAttribute(methodSymbol))
+            if (!HasEnforcePureAttribute(methodSymbol))
                 return;
 
             // Use the same analysis as for methods
@@ -723,7 +723,7 @@ namespace PurelySharp
             return true;
         }
 
-        private bool HasPureAttribute(IMethodSymbol methodSymbol)
+        private bool HasEnforcePureAttribute(IMethodSymbol methodSymbol)
         {
             if (methodSymbol == null) return false;
 
@@ -732,15 +732,6 @@ namespace PurelySharp
                 attr.AttributeClass?.Name is "PureAttribute" or "Pure" or "EnforcePureAttribute" or "EnforcePure" ||
                 attr.AttributeClass?.ToDisplayString().Contains("PureAttribute") == true ||
                 attr.AttributeClass?.ToDisplayString().Contains("EnforcePure") == true);
-        }
-
-        private bool HasEnforcePureAttribute(IMethodSymbol methodSymbol)
-        {
-            if (methodSymbol == null) return false;
-
-            // Look for any attribute with a name containing "EnforcePure"
-            return methodSymbol.GetAttributes().Any(attr =>
-                attr.AttributeClass?.Name is "EnforcePureAttribute" or "EnforcePure");
         }
 
         private bool IsTriviallyPure(MethodDeclarationSyntax methodDeclaration)
@@ -947,7 +938,7 @@ namespace PurelySharp
             }
 
             // Helper methods for purity checking
-            private bool HasPureAttribute(IMethodSymbol methodSymbol)
+            private bool HasEnforcePureAttribute(IMethodSymbol methodSymbol)
             {
                 if (methodSymbol == null) return false;
 

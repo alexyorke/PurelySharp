@@ -18,11 +18,11 @@ using System;
 using System.Collections.Immutable;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class CollectionExpressionExample
 {
-    [Pure]
+    [EnforcePure]
     public ImmutableArray<int> GetNumbers()
     {
         // Using Create method for immutable array
@@ -41,11 +41,11 @@ using System;
 using System.Collections.Immutable;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class CollectionExpressionExample
 {
-    [Pure]
+    [EnforcePure]
     public ImmutableList<string> GetNames()
     {
         // Using Create method for immutable list
@@ -63,11 +63,11 @@ public class CollectionExpressionExample
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class CollectionExpressionExample
 {
-    [Pure]
+    [EnforcePure]
     public int[] GetNumbers()
     {
         // Using new[] array creation expression
@@ -87,11 +87,11 @@ using System;
 using System.Collections.Generic;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class CollectionExpressionExample
 {
-    [Pure]
+    [EnforcePure]
     public List<string> GetNames()
     {
         // Using collection initializer
@@ -110,11 +110,11 @@ public class CollectionExpressionExample
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class CollectionExpressionExample
 {
-    [Pure]
+    [EnforcePure]
     public int[] GetArray()
     {
         return [1, 2, 3, 4, 5];
@@ -133,11 +133,11 @@ using System;
 using System.Collections.Generic;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class CollectionExpressionExample
 {
-    [Pure]
+    [EnforcePure]
     public List<int> GetList()
     {
         // Using collection expression with List
@@ -156,11 +156,11 @@ public class CollectionExpressionExample
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class CollectionExpressionExample
 {
-    [Pure]
+    [EnforcePure]
     public int[] GetModifiedArray()
     {
         int[] array = new int[5];
@@ -183,11 +183,11 @@ public class CollectionExpressionExample
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class CollectionExpressionExample
 {
-    [Pure]
+    [EnforcePure]
     public int[] GetArray()
     {
         return [1, 2, 3, 4, 5];

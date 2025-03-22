@@ -18,7 +18,7 @@ namespace PurelySharp.Test
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class Person
 {
@@ -28,7 +28,7 @@ public class Person
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public string TestMethod(Person person)
     {
         // Null propagation is considered pure
@@ -46,7 +46,7 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class Person
 {
@@ -61,7 +61,7 @@ public class Person
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public void TestMethod(Person person)
     {
         // Null propagation with console write is impure
@@ -80,7 +80,7 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class Person
 {
@@ -92,7 +92,7 @@ public class TestClass
 {
     private int _counter;
 
-    [Pure]
+    [EnforcePure]
     public string TestMethod(Person person)
     {
         // Null propagation is pure, but incrementing field is impure

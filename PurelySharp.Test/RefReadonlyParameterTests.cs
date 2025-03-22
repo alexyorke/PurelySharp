@@ -17,11 +17,11 @@ namespace PurelySharp.Test
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int Sum(ref readonly int x, ref readonly int y)
     {
         // Only reading values, no modifications - this is pure
@@ -39,7 +39,7 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public struct Point
 {
@@ -49,7 +49,7 @@ public struct Point
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int CalculateDistance(ref readonly Point p1, ref readonly Point p2)
     {
         // Accessing struct fields through ref readonly parameter - this is pure
@@ -69,7 +69,7 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public struct LargeStruct
 {
@@ -80,7 +80,7 @@ public struct LargeStruct
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int GetMax(ref readonly LargeStruct data)
     {
         // Creating local variable from ref readonly - this is pure
@@ -107,11 +107,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public void Increment(ref readonly int x)
     {
         x++; // This won't compile - cannot modify a readonly reference
@@ -130,18 +130,18 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int Process(ref readonly int value)
     {
         // Passing the ref readonly parameter to another pure method
         return Double(ref value);
     }
     
-    [Pure]
+    [EnforcePure]
     private int Double(ref readonly int val)
     {
         return val * 2;
@@ -160,7 +160,7 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public readonly struct ReadOnlyValue
 {
@@ -178,7 +178,7 @@ public readonly struct ReadOnlyValue
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int Process(ref readonly ReadOnlyValue value)
     {
         // Calling methods on the readonly struct - pure if the methods are pure
@@ -199,11 +199,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int Process(ref readonly int value)
     {
         // Passing to impure method

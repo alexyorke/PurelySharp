@@ -23,13 +23,13 @@ using System;
 using System.Runtime.CompilerServices;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public record Person(string Name, int Age);
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public string GetPersonInfo(Person person)
     {
         return $""{person.Name} is {person.Age} years old"";
@@ -50,17 +50,17 @@ using System;
 using System.Runtime.CompilerServices;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public record Calculator
 {
-    [Pure]
+    [EnforcePure]
     public int Add(int x, int y) => x + y;
 }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int UseCalculator(Calculator calc, int a, int b)
     {
         return calc.Add(a, b);
@@ -79,7 +79,7 @@ using System;
 using System.Runtime.CompilerServices;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public record MutablePerson
 {
@@ -89,7 +89,7 @@ public record MutablePerson
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public void UpdatePerson(MutablePerson person)
     {
         person.Name = ""John""; // Should trigger diagnostic
@@ -108,7 +108,7 @@ using System;
 using System.Runtime.CompilerServices;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public record Person
 {
@@ -123,7 +123,7 @@ public record Person
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public void UpdateAge(Person person)
     {
         person.Age = 30; // Should trigger diagnostic

@@ -18,11 +18,11 @@ using System;
 using System.Linq;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int[] TestMethod(int[] numbers)
     {
         // Lambda that performs a pure operation
@@ -41,11 +41,11 @@ using System;
 using System.Linq;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public void TestMethod(int[] numbers)
     {
         // Lambda that performs an impure operation (Console.WriteLine)
@@ -65,13 +65,13 @@ using System;
 using System.Linq;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
     private int _sum;
 
-    [Pure]
+    [EnforcePure]
     public int[] TestMethod(int[] numbers)
     {
         // Lambda that captures and modifies a field (impure)

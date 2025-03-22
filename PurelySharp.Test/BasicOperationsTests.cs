@@ -17,11 +17,11 @@ namespace PurelySharp.Test
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public void TestMethod()
     {
     }
@@ -37,11 +37,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int TestMethod(int x, int y)
     {
         return x + y;
@@ -58,11 +58,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int TestMethod(int x, int y)
     {
         var result = x * y;
@@ -80,17 +80,17 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int Add(int x, int y)
     {
         return x + y;
     }
 
-    [Pure]
+    [EnforcePure]
     public int AddAndMultiply(int x, int y, int z)
     {
         return Add(x, y) * z;
@@ -107,11 +107,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int Fibonacci(int n)
     {
         if (n <= 1) return n;

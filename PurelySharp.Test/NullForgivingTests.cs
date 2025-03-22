@@ -18,11 +18,11 @@ namespace PurelySharp.Test
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int TestMethod(string input)
     {
         // Null forgiving operator is considered pure
@@ -40,11 +40,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public void TestMethod(string input)
     {
         // Null forgiving with console write is impure
@@ -64,13 +64,13 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
     private int _field;
 
-    [Pure]
+    [EnforcePure]
     public int TestMethod(string input)
     {
         // Null forgiving is pure, but field increment is impure

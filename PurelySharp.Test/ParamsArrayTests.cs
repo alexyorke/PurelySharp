@@ -17,11 +17,11 @@ namespace PurelySharp.Test
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int Sum(params int[] numbers)
     {
         int total = 0;
@@ -43,11 +43,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int Sum(params int[] numbers)
     {
         int total = 0;
@@ -58,7 +58,7 @@ public class TestClass
         return total;
     }
 
-    [Pure]
+    [EnforcePure]
     public int TestMethod()
     {
         return Sum(1, 2, 3, 4, 5); // Calling with multiple arguments
@@ -75,11 +75,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int Sum(params int[] numbers)
     {
         int total = 0;
@@ -90,7 +90,7 @@ public class TestClass
         return total;
     }
 
-    [Pure]
+    [EnforcePure]
     public int TestMethod()
     {
         int[] myArray = new int[] { 1, 2, 3, 4, 5 };
@@ -113,11 +113,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int Sum(params int[] numbers)
     {
         int total = 0;
@@ -128,7 +128,7 @@ public class TestClass
         return total;
     }
 
-    [Pure]
+    [EnforcePure]
     public int TestMethod()
     {
         return Sum(); // Calling with no arguments
@@ -146,17 +146,17 @@ using System;
 using System.Linq;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public string Concatenate(params string[] strings)
     {
         return string.Join("", "", strings);
     }
 
-    [Pure]
+    [EnforcePure]
     public string TestMethod()
     {
         return Concatenate(""Hello"", ""World"", ""!""); // Params of reference type
@@ -173,11 +173,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public string FormatMessage(string prefix, params object[] args)
     {
         string result = prefix;
@@ -188,7 +188,7 @@ public class TestClass
         return result;
     }
 
-    [Pure]
+    [EnforcePure]
     public string TestMethod()
     {
         return FormatMessage(""Info:"", 1, ""text"", true); // Mixed regular and params parameters
@@ -205,11 +205,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int[] ProcessArray(params int[] numbers)
     {
         // Creating a new array with modified values - now detected as impure
@@ -237,11 +237,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int[] ProcessArray(params int[] numbers)
     {
         // This is impure because we're modifying the array that was passed in

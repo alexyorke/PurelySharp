@@ -18,11 +18,11 @@ using System;
 using System.Linq;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public string TestMethod(string input)
     {
         var words = input.Split(' ')
@@ -45,11 +45,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public string TestMethod(int x, string y)
     {
         return $""Value: {x}, Text: {y.ToUpper()}"";
@@ -67,11 +67,11 @@ using System;
 using System.Text;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public string TestMethod(string[] inputs)
     {
         var sb = new StringBuilder();
@@ -97,11 +97,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public string TestMethod(int x, double y)
     {
         return string.Format(""X={0:D}, Y={1:F2}"", x, y);

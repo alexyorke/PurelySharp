@@ -47,13 +47,13 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
     public event EventHandler MyEvent;
 
-    [Pure]
+    [EnforcePure]
     public void TestMethod()
     {
         MyEvent += (s, e) => { }; // Event subscription is impure, but analyzer doesn't detect it

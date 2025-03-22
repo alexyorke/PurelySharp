@@ -157,8 +157,8 @@ namespace PurelySharp
             if (methodSymbol.MethodKind == MethodKind.Conversion)
                 return true;
 
-            // Check if the method has the [Pure] attribute
-            if (HasPureAttribute(methodSymbol))
+            // Check if the method has the [EnforcePure] attribute
+            if (HasEnforcePureAttribute(methodSymbol))
                 return true;
 
             return false;
@@ -195,14 +195,14 @@ namespace PurelySharp
             return false;
         }
 
-        private static bool HasPureAttribute(IMethodSymbol methodSymbol)
+        private static bool HasEnforcePureAttribute(IMethodSymbol methodSymbol)
         {
             if (methodSymbol == null)
                 return false;
 
-            // Check for Pure or EnforcePure attribute
+            // Check for EnforcePure attribute
             return methodSymbol.GetAttributes().Any(attr =>
-                attr.AttributeClass?.Name is "PureAttribute" or "Pure" or "EnforcePureAttribute" or "EnforcePure");
+                attr.AttributeClass?.Name is "EnforcePureAttribute" or "EnforcePure");
         }
     }
 }

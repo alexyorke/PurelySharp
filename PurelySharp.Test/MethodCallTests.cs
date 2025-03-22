@@ -17,17 +17,17 @@ namespace PurelySharp.Test
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int PureHelperMethod(int x)
     {
         return x * 2;
     }
 
-    [Pure]
+    [EnforcePure]
     public int TestMethod(int x)
     {
         // Call to pure method should be considered pure
@@ -45,7 +45,7 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
@@ -54,7 +54,7 @@ public class TestClass
         Console.WriteLine(""This is impure"");
     }
 
-    [Pure]
+    [EnforcePure]
     public void TestMethod()
     {
         // Call to impure method should trigger diagnostic, but analyzer doesn't detect it
@@ -73,17 +73,17 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int PureHelperMethod(int x)
     {
         return x * 2;
     }
 
-    [Pure]
+    [EnforcePure]
     public void TestMethod()
     {
         // Pure method call is fine, but console write makes method impure

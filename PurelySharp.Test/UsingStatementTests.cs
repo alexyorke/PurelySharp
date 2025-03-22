@@ -17,11 +17,11 @@ using System;
 using System.IO;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public void TestMethod()
     {
         using (var file = File.OpenRead(""test.txt"")) // Using statement is impure
@@ -46,11 +46,11 @@ using System;
 using System.IO;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public void TestMethod()
     {
         using var file = File.OpenRead(""test.txt""); // Using declaration is impure
@@ -72,7 +72,7 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class PureDisposable : IDisposable
 {
@@ -81,7 +81,7 @@ public class PureDisposable : IDisposable
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public void TestMethod()
     {
         using var disposable = new PureDisposable(); // Pure disposable is ok

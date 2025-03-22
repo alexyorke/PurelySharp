@@ -17,11 +17,11 @@ namespace PurelySharp.Test
 using System;
 
 [System.AttributeUsage(System.AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public string TestMethod()
     {
         return """"""This is a raw string literal"""""";
@@ -38,11 +38,11 @@ public class TestClass
 using System;
 
 [System.AttributeUsage(System.AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public string TestMethod()
     {
         return """"""
@@ -62,11 +62,11 @@ public class TestClass
 using System;
 
 [System.AttributeUsage(System.AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public string TestMethod()
     {
         return """"""""
@@ -84,12 +84,12 @@ public class TestClass
             var test = @"
 using System;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+[System.AttributeUsage(System.AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public string TestMethod()
     {
         return """"""
@@ -108,12 +108,12 @@ public class TestClass
             var test = @"
 using System;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+[System.AttributeUsage(System.AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public string TestMethod()
     {
         const int x = 42;
@@ -130,14 +130,14 @@ public class TestClass
             var test = @"
 using System;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+[System.AttributeUsage(System.AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
     private int _field;
 
-    [Pure]
+    [EnforcePure]
     public string TestMethod()
     {
         _field++;

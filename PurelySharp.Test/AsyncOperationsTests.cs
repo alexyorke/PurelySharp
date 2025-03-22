@@ -22,11 +22,11 @@ using System;
 using System.Threading.Tasks;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 class Program
 {
-    [Pure]
+    [EnforcePure]
     public async Task<int> TestMethod()
     {
         return 1 + 2;
@@ -45,11 +45,11 @@ using System;
 using System.Threading.Tasks;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public async Task<int> TestMethod()
     {
         // Pure operations in an async method

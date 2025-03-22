@@ -18,11 +18,11 @@ using System;
 using System.Threading.Tasks;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public async Task<int> TestMethod()
     {
         // Just awaiting Task.FromResult should be pure, but the method is async
@@ -46,13 +46,13 @@ using System.Linq;
 using System.Collections.Generic;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
     private List<string> _log = new List<string>();
 
-    [Pure]
+    [EnforcePure]
     public IEnumerable<int> TestMethod(int[] numbers)
     {
         // The closure captures _log field and modifies it
@@ -196,7 +196,7 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public interface ILogger
 {
@@ -214,7 +214,7 @@ public class ConsoleLogger : ILogger
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public void TestMethod(ILogger logger)
     {
         // Dynamic dispatch to an impure method
@@ -279,7 +279,7 @@ namespace ConsoleApplication1
 {
     class TestClass
     {
-        [Pure]
+        [EnforcePure]
         void TestMethod()
         {
             Console.WriteLine(""Hello, World!"");
@@ -287,7 +287,7 @@ namespace ConsoleApplication1
     }
 
     [System.AttributeUsage(System.AttributeTargets.Method)]
-    public class PureAttribute : Attribute { }
+    public class EnforcePureAttribute : Attribute { }
 }
 ";
 
@@ -303,11 +303,11 @@ using System;
 using System.IO;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public void TestMethod(string path)
     {
         File.WriteAllText(path, ""test"");
@@ -858,11 +858,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public void TestMethod(string message)
     {
         // Direct Console.WriteLine call should be detected as impure

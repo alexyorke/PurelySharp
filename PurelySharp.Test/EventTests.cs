@@ -16,14 +16,14 @@ namespace PurelySharp.Test
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
     // Declaring an event is pure
     public event EventHandler TestEvent;
 
-    [Pure]
+    [EnforcePure]
     public void TestMethod()
     {
         // Just referencing an event without subscribing is pure
@@ -43,13 +43,13 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
     public event EventHandler TestEvent;
 
-    [Pure]
+    [EnforcePure]
     public void TestMethod()
     {
         // Invoking an event is impure
@@ -71,13 +71,13 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
     public event EventHandler TestEvent;
     
-    [Pure]
+    [EnforcePure]
     public void TestMethod()
     {
         // Subscribing to an event is impure (state modification), but analyzer doesn't detect it

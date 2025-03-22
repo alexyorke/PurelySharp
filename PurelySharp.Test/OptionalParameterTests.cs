@@ -17,11 +17,11 @@ namespace PurelySharp.Test
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int TestMethod(int x = 10)
     {
         return x + 5; // Using optional parameter with default value
@@ -38,11 +38,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public string TestMethod(int x = 10, string y = ""default"")
     {
         return y + x.ToString(); // Multiple optional parameters
@@ -59,17 +59,17 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int TestMethod(int x = 10)
     {
         return x + 5;
     }
 
-    [Pure]
+    [EnforcePure]
     public int CallerMethod()
     {
         return TestMethod(20); // Explicit argument for optional parameter
@@ -86,17 +86,17 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int TestMethod(int x = 10)
     {
         return x + 5;
     }
 
-    [Pure]
+    [EnforcePure]
     public int CallerMethod()
     {
         return TestMethod(); // Using default value for optional parameter
@@ -113,17 +113,17 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int TestMethod(int x = 10, int y = 20)
     {
         return x + y;
     }
 
-    [Pure]
+    [EnforcePure]
     public int CallerMethod()
     {
         return TestMethod(y: 30); // Named argument with default for other parameter
@@ -140,13 +140,13 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
     private const int DefaultValue = 10;
     
-    [Pure]
+    [EnforcePure]
     public int TestMethod(int x = DefaultValue * 2)
     {
         return x + 5; // Using constant expression as default value
@@ -163,11 +163,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public string TestMethod(string s = null)
     {
         return s ?? ""default""; // Using null as default value
@@ -185,7 +185,7 @@ using System;
 using System.Collections.Generic;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public static class Constants
 {
@@ -194,13 +194,13 @@ public static class Constants
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public string GetGreeting(string name = Constants.DefaultName, string greeting = ""Hello"")
     {
         return $""{greeting}, {name}!"";
     }
 
-    [Pure]
+    [EnforcePure]
     public string CallerMethod(List<string> names = null)
     {
         // Using default value with complex calling scenario

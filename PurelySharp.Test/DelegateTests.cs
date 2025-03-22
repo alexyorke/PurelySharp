@@ -16,11 +16,11 @@ namespace PurelySharp.Test
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public void TestMethod()
     {
         // Creating a delegate but not invoking it
@@ -47,11 +47,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public void TestMethod()
     {
         // Creating a delegate directly in an impure method
@@ -76,7 +76,7 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
@@ -87,7 +87,7 @@ public class TestClass
         _action = () => Console.WriteLine(""Hello from field delegate"");
     }
 
-    [Pure]
+    [EnforcePure]
     public void TestMethod()
     {
         // Invoking a delegate stored in a field

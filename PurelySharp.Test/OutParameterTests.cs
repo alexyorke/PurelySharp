@@ -17,11 +17,11 @@ namespace PurelySharp.Test
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public void TestMethod(out int x)
     {
         x = 10; // Impure operation - writing to an out parameter
@@ -39,11 +39,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public void TestMethod(out int x, out string y)
     {
         x = 10;
@@ -62,11 +62,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public bool TryParse(string input, out int result)
     {
         if (int.TryParse(input, out result))
@@ -89,7 +89,7 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
@@ -98,7 +98,7 @@ public class TestClass
         x = 42;
     }
 
-    [Pure]
+    [EnforcePure]
     public int TestMethod()
     {
         int result;
@@ -118,7 +118,7 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
@@ -127,7 +127,7 @@ public class TestClass
         x = 42;
     }
 
-    [Pure]
+    [EnforcePure]
     public int TestMethod()
     {
         HelperMethod(out var result); // Using out var declaration
@@ -146,7 +146,7 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
@@ -156,7 +156,7 @@ public class TestClass
         y = 100;
     }
 
-    [Pure]
+    [EnforcePure]
     public int TestMethod()
     {
         int result;

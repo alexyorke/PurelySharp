@@ -18,11 +18,11 @@ namespace PurelySharp.Test
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public string TestMethod(TestClass obj)
     {
         // Null conditional operator is considered pure
@@ -40,11 +40,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public void TestMethod(TestClass obj)
     {
         // Null conditional with console write is impure
@@ -68,13 +68,13 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
     private int _field;
 
-    [Pure]
+    [EnforcePure]
     public string TestMethod(TestClass obj)
     {
         // Null conditional is pure, but field increment is impure

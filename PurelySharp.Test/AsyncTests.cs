@@ -19,11 +19,11 @@ using System;
 using System.Threading.Tasks;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 class Program
 {
-    [Pure]
+    [EnforcePure]
     public async Task<int> PureAsyncMethod()
     {
         return await Task.FromResult(42);
@@ -41,13 +41,13 @@ using System;
 using System.Threading.Tasks;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 class Program
 {
     private int _counter = 0;
 
-    [Pure]
+    [EnforcePure]
     public async Task<int> ImpureAsyncMethod()
     {
         _counter++;
@@ -67,11 +67,11 @@ using System;
 using System.Threading.Tasks;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 class Program
 {
-    [Pure]
+    [EnforcePure]
     public async Task<int> ImpureAsyncMethod()
     {
         // Task.Delay is impure as it involves timing operations

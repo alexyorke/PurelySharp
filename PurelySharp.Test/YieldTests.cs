@@ -20,11 +20,11 @@ using System;
 using System.Collections.Generic;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public IEnumerable<int> GetNumbers()
     {
         yield return 1;
@@ -44,13 +44,13 @@ using System;
 using System.Collections.Generic;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
     private int _state;
 
-    [Pure]
+    [EnforcePure]
     public IEnumerable<int> GetNumbers()
     {
         _state++; // Impure operation
@@ -70,11 +70,11 @@ using System;
 using System.Collections.Generic;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public IEnumerable<int> GetNumbers()
     {
         Console.WriteLine(""Generating numbers""); // Impure operation

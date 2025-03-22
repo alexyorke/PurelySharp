@@ -19,11 +19,11 @@ using System.Linq;
 using System.Collections.Generic;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int TestMethod(IEnumerable<int> numbers)
     {
         return numbers
@@ -47,11 +47,11 @@ using System.Linq;
 using System.Collections.Generic;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public double TestMethod(IEnumerable<double> numbers)
     {
         return numbers
@@ -75,11 +75,11 @@ using System.Linq;
 using System.Collections.Generic;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public IEnumerable<int> TestMethod(IEnumerable<int> numbers)
     {
         return numbers.Where(x => x > 0)

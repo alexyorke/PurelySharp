@@ -18,7 +18,7 @@ namespace PurelySharp.Test
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class PureDisposable : IDisposable
 {
@@ -27,7 +27,7 @@ public class PureDisposable : IDisposable
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public void TestMethod()
     {
         using (var disposable = new PureDisposable()) // Pure using statement
@@ -48,11 +48,11 @@ using System;
 using System.IO;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public void TestMethod()
     {
         using (var file = File.OpenRead(""test.txt"")) // Using with impure operation
@@ -74,7 +74,7 @@ using System;
 using System.IO;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class PureDisposable : IDisposable
 {
@@ -83,7 +83,7 @@ public class PureDisposable : IDisposable
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public void TestMethod()
     {
         using (var disposable = new PureDisposable())

@@ -18,11 +18,11 @@ using System;
 using System.Threading.Tasks;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 class Program
 {
-    [Pure]
+    [EnforcePure]
     public async Task<int> PureAsyncMethod()
     {
         // Simple async method with no side effects
@@ -41,13 +41,13 @@ using System;
 using System.Threading.Tasks;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 class Program
 {
     private int _counter = 0;
 
-    [Pure]
+    [EnforcePure]
     public async Task<int> ImpureAsyncMethod()
     {
         // Has side effects - modifies field

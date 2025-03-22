@@ -17,7 +17,7 @@ namespace PurelySharp.Test
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 [AttributeUsage(AttributeTargets.Method)]
 public class AllowSynchronizationAttribute : Attribute { }
@@ -27,7 +27,7 @@ class Program
     private readonly object _lock = new object();
     private readonly int[] _array = new int[10];
 
-    [Pure]
+    [EnforcePure]
     [AllowSynchronization]
     public int PureMethodWithLock()
     {
@@ -48,7 +48,7 @@ class Program
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 [AttributeUsage(AttributeTargets.Method)]
 public class AllowSynchronizationAttribute : Attribute { }
@@ -58,7 +58,7 @@ class Program
     private readonly object _lock = new object();
     private int _counter = 0;
 
-    [Pure]
+    [EnforcePure]
     [AllowSynchronization]
     public void ImpureMethodWithLock()
     {

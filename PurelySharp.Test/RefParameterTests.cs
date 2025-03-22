@@ -17,11 +17,11 @@ namespace PurelySharp.Test
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int TestMethod(in int x)
     {
         return x + 10;
@@ -38,11 +38,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public void TestMethod(ref int x)
     {
         x += 10; // Impure operation - modifying a ref parameter
@@ -60,11 +60,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public void TestMethod(out int x)
     {
         x = 10; // Impure operation - writing to an out parameter
@@ -82,7 +82,7 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public struct Point
 {
@@ -98,7 +98,7 @@ public struct Point
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int TestMethod(in Point p)
     {
         return p.X + p.Y; // This should be pure - only reading from 'in' parameter

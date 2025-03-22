@@ -21,7 +21,7 @@ namespace PurelySharp.Test
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 [AttributeUsage(AttributeTargets.Method)]
 public class AllowSynchronizationAttribute : Attribute { }
 
@@ -29,7 +29,7 @@ public class TestClass
 {
     private readonly object _lock = new object();
 
-    [Pure]
+    [EnforcePure]
     public void ImpureMethod()
     {
         lock (_lock)
@@ -53,7 +53,7 @@ using System;
 using System.Diagnostics;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 [AttributeUsage(AttributeTargets.Method)]
 public class AllowSynchronizationAttribute : Attribute { }
@@ -63,7 +63,7 @@ public class TestClass
     private readonly object _lock = new object();
     private readonly int _value = 42;
 
-    [Pure]
+    [EnforcePure]
     [AllowSynchronization]
     public int PureMethodWithLock()
     {
@@ -88,7 +88,7 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 [AttributeUsage(AttributeTargets.Method)]
 public class AllowSynchronizationAttribute : Attribute { }
 
@@ -97,7 +97,7 @@ class Program
     private readonly object _lock = new object();
     private readonly int[] _array = new int[10];
 
-    [Pure]
+    [EnforcePure]
     [AllowSynchronization]
     public int PureMethodWithLock()
     {
@@ -122,7 +122,7 @@ class Program
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 [AttributeUsage(AttributeTargets.Method)]
 public class AllowSynchronizationAttribute : Attribute { }
 
@@ -131,7 +131,7 @@ class Program
     private readonly object _lock = new object();
     private int _value = 0;
 
-    [Pure]
+    [EnforcePure]
     [AllowSynchronization]
     public void ImpureMethodWithLock()
     {
@@ -153,7 +153,7 @@ class Program
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 [AttributeUsage(AttributeTargets.Method)]
 public class AllowSynchronizationAttribute : Attribute { }
 
@@ -162,7 +162,7 @@ class Program
     private object _nonReadonlyLock = new object(); // Non-readonly lock object
     private int _counter = 0;
 
-    [Pure]
+    [EnforcePure]
     [AllowSynchronization]
     public void ImpureMethodWithNonReadonlyLock()
     {

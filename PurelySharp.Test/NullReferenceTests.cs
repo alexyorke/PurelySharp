@@ -17,12 +17,12 @@ namespace PurelySharp.Test
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 #nullable enable
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public bool IsNull(object? obj)
     {
         return obj == null;
@@ -40,12 +40,12 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 #nullable enable
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public object? GetNull()
     {
         object? temp = null;
@@ -64,12 +64,12 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 #nullable enable
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public void ValidateNotNull(object? obj)
     {
         if (obj == null)

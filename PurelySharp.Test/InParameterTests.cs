@@ -17,11 +17,11 @@ namespace PurelySharp.Test
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int TestMethod(in int x)
     {
         return x + 10; // Reading from 'in' parameter is pure
@@ -38,11 +38,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public string TestMethod(in int x, in string y)
     {
         return y + x.ToString(); // Reading from multiple 'in' parameters is pure
@@ -59,7 +59,7 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public struct Point
 {
@@ -75,7 +75,7 @@ public struct Point
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int TestMethod(in Point p)
     {
         return p.X + p.Y; // Reading from struct fields via 'in' parameter is pure
@@ -92,7 +92,7 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class Helper
 {
@@ -104,7 +104,7 @@ public class Helper
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int TestMethod(in int x, in int y)
     {
         return Helper.Add(in x, in y); // Passing 'in' parameters to another method is pure
@@ -121,11 +121,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int TestMethod(in int x, out int y)
     {
         y = x + 10; // Setting 'out' parameter is impure even with 'in' parameter
@@ -144,11 +144,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
-    [Pure]
+    [EnforcePure]
     public int TestMethod(in int x)
     {
         x = 20; // This will cause a compiler error (CS8331)

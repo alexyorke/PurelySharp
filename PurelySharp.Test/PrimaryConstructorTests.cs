@@ -17,14 +17,14 @@ namespace PurelySharp.Test
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 // Class with primary constructor that initializes readonly fields
 public class Calculator(int initialValue)
 {
     private readonly int _initialValue = initialValue;
 
-    [Pure]
+    [EnforcePure]
     public int Add(int x)
     {
         // Pure method that uses field initialized via primary constructor
@@ -42,14 +42,14 @@ public class Calculator(int initialValue)
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 // Class with primary constructor that initializes a non-readonly field
 public class Calculator(int initialValue)
 {
     private int _value = initialValue;
 
-    [Pure]
+    [EnforcePure]
     public int AddAndStore(int x)
     {
         // Impure method that modifies a field
@@ -69,12 +69,12 @@ public class Calculator(int initialValue)
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 // Record with primary constructor (which is implicit in records)
 public record Person(string Name, int Age)
 {
-    [Pure]
+    [EnforcePure]
     public string GetGreeting()
     {
         // Pure method that uses properties created by the primary constructor
@@ -95,7 +95,7 @@ public record Person(string Name, int Age)
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 // Struct with primary constructor and readonly fields
 public struct Vector(double x, double y)
@@ -103,7 +103,7 @@ public struct Vector(double x, double y)
     private readonly double _x = x;
     private readonly double _y = y;
 
-    [Pure]
+    [EnforcePure]
     public double Length()
     {
         // Pure method that uses readonly fields initialized via primary constructor
@@ -121,7 +121,7 @@ public struct Vector(double x, double y)
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 // Class with primary constructor and initialization
 public class Rectangle(double width, double height)
@@ -130,7 +130,7 @@ public class Rectangle(double width, double height)
     private readonly double _height = height;
     private readonly double _area = width * height;
 
-    [Pure]
+    [EnforcePure]
     public double GetArea()
     {
         // Pure method that uses readonly field initialized in constructor
@@ -148,7 +148,7 @@ public class Rectangle(double width, double height)
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class PureAttribute : Attribute { }
+public class EnforcePureAttribute : Attribute { }
 
 // Class with primary constructor
 public class SafeCalculator(int initialValue)
@@ -156,7 +156,7 @@ public class SafeCalculator(int initialValue)
     private readonly int _initialValue = initialValue;
     
     // Impure method with Console.WriteLine
-    [Pure]
+    [EnforcePure]
     public int Add(int x)
     {
         Console.WriteLine($""Adding {x} to {_initialValue}"");
