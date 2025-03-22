@@ -1,106 +1,208 @@
 using Microsoft.CodeAnalysis;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace PurelySharp
 {
     public static class MethodPurityChecker
     {
-        public static bool IsKnownPureMethod(IMethodSymbol method)
+        // Methods that are known to be pure
+        private static readonly HashSet<string> KnownPureMethods = new HashSet<string>
         {
-            if (method == null) return false;
+            "System.String.Concat",
+            "System.String.Format",
+            "System.String.Join",
+            "System.String.Substring",
+            "System.String.Replace",
+            "System.String.Trim",
+            "System.String.TrimStart",
+            "System.String.TrimEnd",
+            "System.String.ToLower",
+            "System.String.ToUpper",
+            "System.String.ToLowerInvariant",
+            "System.String.ToUpperInvariant",
+            "System.String.Split",
+            "System.String.Contains",
+            "System.String.StartsWith",
+            "System.String.EndsWith",
+            "System.String.IndexOf",
+            "System.String.LastIndexOf",
+            "System.String.CompareTo",
+            "System.String.Compare",
+            "System.Math.Abs",
+            "System.Math.Max",
+            "System.Math.Min",
+            "System.Math.Pow",
+            "System.Math.Sqrt",
+            "System.Math.Sin",
+            "System.Math.Cos",
+            "System.Math.Tan"
+        };
 
-            // Check if method has ref or out parameters
-            foreach (var parameter in method.Parameters)
+        // Methods that are impure due to side effects (IO, state changes, etc.)
+        private static readonly HashSet<string> KnownImpureMethods = new HashSet<string>
+        {
+            "System.Console.WriteLine",
+            "System.Console.Write",
+            "System.Console.ReadLine",
+            "System.Console.ReadKey",
+            "System.IO.File.ReadAllText",
+            "System.IO.File.WriteAllText",
+            "System.IO.File.Exists",
+            "System.IO.File.Delete",
+            "System.IO.File.Copy",
+            "System.IO.File.Move",
+            "System.IO.Directory.CreateDirectory",
+            "System.IO.Directory.Delete",
+            "System.IO.Directory.GetFiles",
+            "System.Random.Next",
+            "System.Random.NextBytes",
+            "System.Random.NextDouble",
+            "System.Threading.Thread.Sleep",
+            "System.Threading.Tasks.Task.Delay"
+        };
+
+        // Types with methods that are always considered impure
+        private static readonly HashSet<string> ImpureTypes = new HashSet<string>
+        {
+            "System.IO.File",
+            "System.IO.Directory",
+            "System.IO.FileStream",
+            "System.IO.StreamWriter",
+            "System.IO.StreamReader",
+            "System.Console",
+            "System.Random",
+            "System.Net.WebClient",
+            "System.Net.Http.HttpClient",
+            "System.Data.SqlClient.SqlConnection",
+            "System.Data.SqlClient.SqlCommand",
+            "System.Data.SqlClient.SqlDataReader"
+        };
+
+        // Methods that modify state but are sometimes needed in pure methods
+        private static readonly HashSet<string> ConditionallyPureMethods = new HashSet<string>
+        {
+            "System.Collections.Generic.List`1.Add",
+            "System.Collections.Generic.Dictionary`2.Add",
+            "System.Collections.Generic.HashSet`1.Add"
+        };
+
+        // LINQ methods are considered pure
+        private static readonly HashSet<string> PureNamespaces = new HashSet<string>
+        {
+            "System.Linq",
+            "System.Collections.Immutable"
+        };
+
+        public static bool IsKnownPureMethod(IMethodSymbol methodSymbol)
+        {
+            if (methodSymbol == null)
+                return false;
+
+            // Check if it's a compiler-generated method (e.g., property getter/setter)
+            if (methodSymbol.IsImplicitlyDeclared)
             {
-                // Methods with ref or out parameters are not pure, 
-                // but 'in' (readonly ref) parameters are acceptable
-                if (parameter.RefKind == RefKind.Ref || parameter.RefKind == RefKind.Out)
+                // Property getters are generally pure
+                if (methodSymbol.MethodKind == MethodKind.PropertyGet)
+                    return true;
+
+                // Init-only setters are generally pure (C# 9.0+)
+                if (methodSymbol.MethodKind == MethodKind.PropertySet &&
+                    methodSymbol.ContainingSymbol is IPropertySymbol property &&
+                    property.SetMethod?.IsInitOnly == true)
+                    return true;
+            }
+
+            // Check if it's a known pure method
+            var fullName = methodSymbol.ContainingType?.ToString() + "." + methodSymbol.Name;
+            if (KnownPureMethods.Contains(fullName))
+                return true;
+
+            // Check if it's from a pure namespace like System.Linq
+            var namespaceName = methodSymbol.ContainingNamespace?.ToString() ?? string.Empty;
+            if (PureNamespaces.Any(ns => namespaceName.StartsWith(ns)))
+                return true;
+
+            // Check for static virtual/abstract interface members
+            if (methodSymbol.IsStatic &&
+                methodSymbol.ContainingType?.TypeKind == TypeKind.Interface &&
+                (methodSymbol.IsVirtual || methodSymbol.IsAbstract))
+            {
+                // Static interface members are considered pure by default in interfaces
+                return true;
+            }
+
+            // Check for implementations of static virtual/abstract interface members
+            if (methodSymbol.IsStatic && methodSymbol.IsOverride)
+            {
+                // Get the method being overridden
+                var overriddenMethod = methodSymbol.OverriddenMethod;
+                if (overriddenMethod != null &&
+                    overriddenMethod.ContainingType?.TypeKind == TypeKind.Interface)
                 {
-                    return false;
+                    // The method overrides a static interface member, but we need to check purity separately
+                    return false; // Will be checked through attributes
                 }
             }
 
-            // Check if it's a LINQ method
-            if (NamespaceChecker.IsInNamespace(method, "System.Linq") &&
-                method.ContainingType.Name == "Enumerable")
-            {
+            // LINQ extension methods are pure
+            if (methodSymbol.IsExtensionMethod && namespaceName.StartsWith("System.Linq"))
                 return true;
-            }
 
-            // Check if it's a Math method
-            if (NamespaceChecker.IsInNamespace(method, "System") &&
-                method.ContainingType.Name == "Math")
-            {
+            // Basic operators (+, -, *, /, etc.) are generally pure
+            if (methodSymbol.MethodKind == MethodKind.BuiltinOperator)
                 return true;
-            }
 
-            // Check if it's a string method
-            if (method.ContainingType.SpecialType == SpecialType.System_String)
-            {
-                return true; // All string methods are pure
-            }
-
-            // Check if it's a pure collection method
-            if (IsPureCollectionMethod(method))
-            {
+            // Check if it's a conversion method (MethodKind.Conversion), which are generally pure
+            if (methodSymbol.MethodKind == MethodKind.Conversion)
                 return true;
-            }
 
-            // Check if it's a tuple method
-            if (method.ContainingType.IsTupleType)
-            {
-                return true; // All tuple methods are pure
-            }
-
-            // Check if it's a conversion or operator method
-            if (method.MethodKind == MethodKind.Conversion ||
-                method.Name.StartsWith("op_") || // Check for operator methods by name (they start with "op_")
-                method.Name == "Parse" || method.Name == "TryParse" ||
-                method.Name == "Convert" || method.Name == "CompareTo" || method.Name == "Equals")
-            {
-                return true;
-            }
-
-            // Check for known impure types
-            var impureNamespaces = new[] { "System.IO", "System.Net", "System.Data" };
-            foreach (var ns in impureNamespaces)
-            {
-                if (NamespaceChecker.IsInNamespace(method, ns))
-                    return false;
-            }
-
-            // Check for known impure types
-            var impureTypes = new[] {
-                "Random", "DateTime", "File", "Console", "Process",
-                "Task", "Thread", "Timer", "WebClient", "HttpClient"
-            };
-            if (impureTypes.Contains(method.ContainingType.Name))
-                return false;
-
-            // Check if it's marked with [EnforcePure]
-            if (method.GetAttributes().Any(attr => attr.AttributeClass?.Name == "EnforcePureAttribute"))
+            // Check if the method has the [Pure] attribute
+            if (HasPureAttribute(methodSymbol))
                 return true;
 
             return false;
         }
 
-        public static bool IsPureCollectionMethod(IMethodSymbol method)
+        public static bool IsKnownImpureMethod(IMethodSymbol methodSymbol)
         {
-            // Pure collection methods that don't modify state
-            var pureCollectionMethods = new[] {
-                "Count", "Contains", "ElementAt", "First", "FirstOrDefault",
-                "Last", "LastOrDefault", "Single", "SingleOrDefault",
-                "Any", "All", "ToArray", "ToList", "ToDictionary",
-                "AsEnumerable", "AsQueryable", "GetEnumerator", "GetHashCode",
-                "Equals", "ToString", "CompareTo", "Clone", "GetType",
-                "Select", "Where", "OrderBy", "OrderByDescending",
-                "ThenBy", "ThenByDescending", "GroupBy", "Join",
-                "Skip", "Take", "Reverse", "Concat", "Union",
-                "Intersect", "Except", "Distinct", "Count", "Sum",
-                "Average", "Min", "Max", "Aggregate"
-            };
+            if (methodSymbol == null)
+                return false;
 
-            return pureCollectionMethods.Contains(method.Name);
+            // Check if it's a known impure method
+            var fullName = methodSymbol.ContainingType?.ToString() + "." + methodSymbol.Name;
+            if (KnownImpureMethods.Contains(fullName))
+                return true;
+
+            // Check if it's in an impure type
+            if (methodSymbol.ContainingType != null &&
+                ImpureTypes.Contains(methodSymbol.ContainingType.ToString()))
+                return true;
+
+            // Property setters are generally impure (except init-only ones checked above)
+            if (methodSymbol.MethodKind == MethodKind.PropertySet &&
+                !(methodSymbol.ContainingSymbol is IPropertySymbol property && property.SetMethod?.IsInitOnly == true))
+                return true;
+
+            // Check for async methods (might have side effects)
+            if (methodSymbol.IsAsync)
+                return true;
+
+            // Methods with ref or out parameters modify state
+            if (methodSymbol.Parameters.Any(p => p.RefKind == RefKind.Ref || p.RefKind == RefKind.Out))
+                return true;
+
+            return false;
+        }
+
+        private static bool HasPureAttribute(IMethodSymbol methodSymbol)
+        {
+            if (methodSymbol == null)
+                return false;
+
+            // Check for Pure or EnforcePure attribute
+            return methodSymbol.GetAttributes().Any(attr =>
+                attr.AttributeClass?.Name is "PureAttribute" or "Pure" or "EnforcePureAttribute" or "EnforcePure");
         }
     }
 }

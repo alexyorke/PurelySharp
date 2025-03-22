@@ -64,7 +64,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] Unsafe methods
 - [x] Operator overloads
 - [x] User-defined conversions
-- [ ] Static abstract/virtual interface members (C# 11)
+- [x] Static abstract/virtual interface members (C# 11)
 
 ### Type Declarations
 
@@ -152,7 +152,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [ ] Numeric IntPtr (nint/nuint)
 - [ ] ref fields and scoped ref
 - [ ] Generic attributes
-- [ ] Generic math support (static virtual/abstract interface members)
+- [x] Generic math support (static virtual/abstract interface members)
 - [ ] Unsigned right-shift operator (>>>)
 - [ ] Checked user-defined operators
 
