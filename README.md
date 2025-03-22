@@ -2,6 +2,25 @@
 
 A C# analyzer that enforces method purity through the `[EnforcePure]` attribute. Methods marked with this attribute must be pure (no side effects, only pure operations).
 
+## Beta Warning ⚠️
+
+**This analyzer is currently in beta. Some cases may not be properly detected or may produce false positives.**
+
+Known limitations:
+
+- **Indirect Impurities**: The analyzer may not detect impure operations across multiple method calls, especially if those methods are in different assemblies.
+- **Static Fields**: Access to static fields from other types/assemblies may not always be correctly identified as impure.
+- **External Dependencies**: Methods from third-party libraries without proper annotations might be incorrectly assumed to be pure.
+- **Reflection**: Code using reflection to modify state may evade detection.
+- **Async Methods**: Support for async methods is limited; await expressions may not be properly analyzed.
+- **Constructors**: Analysis of constructors is limited and may miss impurities.
+- **Thread-Static Fields**: Thread-static field access isn't always properly detected as impure.
+- **Volatile Fields**: Reading volatile fields might not be detected as impure.
+- **Collection Modifications**: The analyzer may not detect all collection modifications, especially through indirect method calls.
+- **Delegate Invocations**: Delegate invocations to impure methods might not be detected.
+
+For best results, ensure that all called methods in the dependency chain are also marked with `[EnforcePure]` when appropriate.
+
 ## Supported Language Features
 
 ### Expressions
@@ -574,4 +593,95 @@ public class TestClass
 }
 
 // No analyzer errors - method is pure
+```
+
+### Limitations and Edge Cases
+
+The following examples demonstrate cases where the analyzer may fail to correctly identify impure operations:
+
+#### Indirect Method Impurity
+
+```csharp
+using System;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public void TestMethod()
+    {
+        // PureWrapper hides the impure operation
+        PureWrapper();
+    }
+
+    // This method doesn't have [EnforcePure] but is called from a pure method
+    private void PureWrapper()
+    {
+        // This calls an impure method, but the analyzer may not detect it
+        IndirectImpure();
+    }
+
+    private void IndirectImpure()
+    {
+        Console.WriteLine("Hello"); // Impure operation
+    }
+}
+
+// No analyzer error is reported, even though TestMethod is impure
+// because it indirectly calls Console.WriteLine
+```
+
+#### External Library Method Calls
+
+```csharp
+using System;
+using ExternalLibrary; // Hypothetical external library
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public void TestMethod()
+    {
+        // The analyzer doesn't know if ExternalHelper is pure
+        ExternalHelper.DoSomething();
+    }
+}
+
+// No analyzer error is reported, even though ExternalHelper.DoSomething
+// might be impure, because the analyzer can't analyze its implementation
+```
+
+#### Reflection-Based Modification
+
+```csharp
+using System;
+using System.Reflection;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TargetClass
+{
+    public int Value { get; private set; }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public void TestMethod(TargetClass target)
+    {
+        // Using reflection to bypass access restrictions and modify state
+        typeof(TargetClass)
+            .GetProperty("Value")
+            .SetValue(target, 42); // Impure operation via reflection
+    }
+}
+
+// No analyzer error is reported, even though TestMethod is modifying state
+// through reflection, which is impure
 ```
