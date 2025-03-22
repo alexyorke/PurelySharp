@@ -18,6 +18,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] Interpolated strings
 - [x] Stack allocations and Span operations (when used in a read-only manner)
 - [x] Indices and ranges (C# 8.0+)
+- [x] Bit shift operations including unsigned right shift (`>>>`)
 - [ ] Async/await expressions
 - [x] Unsafe code blocks
 - [x] Pointer operations
@@ -153,7 +154,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] ref fields and scoped ref
 - [x] Generic attributes
 - [x] Generic math support (static virtual/abstract interface members)
-- [ ] Unsigned right-shift operator (>>>)
+- [x] Unsigned right-shift operator (>>>)
 - [ ] Checked user-defined operators
 
 ### C# 12 Specific Features
