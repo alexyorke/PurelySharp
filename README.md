@@ -149,7 +149,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] Auto-default structs
 - [x] Pattern match Span<char> on constant string
 - [x] Extended nameof scope
-- [ ] Numeric IntPtr (nint/nuint)
+- [x] Numeric IntPtr (nint/nuint)
 - [ ] ref fields and scoped ref
 - [ ] Generic attributes
 - [x] Generic math support (static virtual/abstract interface members)
