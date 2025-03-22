@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 using System.Linq;
 
 namespace PurelySharp
@@ -29,7 +30,7 @@ namespace PurelySharp
 
                     case LocalDeclarationStatementSyntax localDeclaration:
                         // Check if this is a using declaration
-                        if (localDeclaration.UsingKeyword.Kind() == SyntaxKind.UsingKeyword)
+                        if (localDeclaration.UsingKeyword.IsKind(SyntaxKind.UsingKeyword))
                         {
                             // Check if the type being disposed is pure
                             foreach (var variable in localDeclaration.Declaration.Variables)
@@ -166,8 +167,12 @@ namespace PurelySharp
                     case SwitchStatementSyntax switchStatement:
                         if (!ExpressionPurityChecker.IsExpressionPure(switchStatement.Expression, semanticModel, currentMethod))
                             return false;
+
+                        // Check all patterns in switch sections including list patterns
                         foreach (var section in switchStatement.Sections)
                         {
+                            // All patterns (including list patterns) are considered pure themselves
+                            // We only need to check the statements inside the section
                             if (!AreStatementsPure(section.Statements, semanticModel, currentMethod))
                                 return false;
                         }
@@ -195,12 +200,77 @@ namespace PurelySharp
                         return false;
 
                     case LockStatementSyntax lockStatement:
-                        // Lock statements are impure by nature
-                        return false;
+                        // Check if method has AllowSynchronization attribute
+                        if (currentMethod != null && HasAllowSynchronizationAttribute(currentMethod))
+                        {
+                            // Check if the lock expression is pure (readonly field, etc)
+                            var lockExpressionSymbol = semanticModel.GetSymbolInfo(lockStatement.Expression).Symbol;
+                            bool isReadonlyLock = false;
+
+                            // Check if it's a field and if it's readonly
+                            if (lockExpressionSymbol is IFieldSymbol fieldSymbol)
+                            {
+                                isReadonlyLock = fieldSymbol.IsReadOnly || fieldSymbol.IsConst;
+                            }
+
+                            // If it's not a readonly field, it's impure
+                            if (!isReadonlyLock)
+                            {
+                                return false;
+                            }
+
+                            // Now check if the statements inside the lock are pure
+                            if (lockStatement.Statement is BlockSyntax lockBlock)
+                            {
+                                if (!AreStatementsPure(lockBlock.Statements, semanticModel, currentMethod))
+                                    return false;
+                            }
+                            else
+                            {
+                                if (!AreStatementsPure(SyntaxFactory.SingletonList(lockStatement.Statement), semanticModel, currentMethod))
+                                    return false;
+                            }
+                        }
+                        else
+                        {
+                            // Lock statements are impure by default
+                            return false;
+                        }
+                        break;
 
                     case YieldStatementSyntax yieldStatement:
-                        if (yieldStatement.Expression != null && !ExpressionPurityChecker.IsExpressionPure(yieldStatement.Expression, semanticModel, currentMethod))
-                            return false;
+                        // Yield statements themselves are pure, but the expression might not be
+                        if (yieldStatement.Expression != null)
+                        {
+                            // If the expression is an assignment or has side effects, it's impure
+                            if (!ExpressionPurityChecker.IsExpressionPure(yieldStatement.Expression, semanticModel, currentMethod))
+                                return false;
+
+                            // Special case for method invocations in yield statements
+                            if (yieldStatement.Expression is InvocationExpressionSyntax invocation)
+                            {
+                                var methodSymbol = semanticModel.GetSymbolInfo(invocation).Symbol as IMethodSymbol;
+                                if (methodSymbol != null)
+                                {
+                                    // Check if the method being called is known to be impure
+                                    if (methodSymbol.ContainingType?.Name == "Console" &&
+                                        methodSymbol.ContainingType.ContainingNamespace?.Name == "System")
+                                    {
+                                        return false;
+                                    }
+
+                                    // Check for other known impure namespaces
+                                    var containingNamespace = methodSymbol.ContainingNamespace?.ToString() ?? string.Empty;
+                                    if (containingNamespace.StartsWith("System.IO") ||
+                                        containingNamespace.StartsWith("System.Net") ||
+                                        containingNamespace.StartsWith("System.Web") ||
+                                        containingNamespace.StartsWith("System.Threading"))
+                                    {
+                                        return false;
+                                    }
+                                }
+                            }
+                        }
                         break;
 
                     case BreakStatementSyntax:
@@ -233,12 +303,34 @@ namespace PurelySharp
             if (syntaxRef == null)
                 return false;
 
-            var methodSyntax = syntaxRef.GetSyntax() as MethodDeclarationSyntax;
-            if (methodSyntax?.Body == null)
+            if (syntaxRef.GetSyntax() is not MethodDeclarationSyntax methodSyntax || methodSyntax.Body == null)
                 return false;
 
             // An empty Dispose method is considered pure
             return !methodSyntax.Body.Statements.Any();
+        }
+
+        private static bool HasAllowSynchronizationAttribute(IMethodSymbol methodSymbol)
+        {
+            // Debug output - uncomment for debugging
+            foreach (var attr in methodSymbol.GetAttributes())
+            {
+                if (attr.AttributeClass != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Attribute: {attr.AttributeClass.Name}, Full: {attr.AttributeClass.ToDisplayString()}");
+                }
+            }
+
+            return methodSymbol.GetAttributes().Any(attr =>
+                // Direct name match (case insensitive)
+                attr.AttributeClass?.Name.Equals("AllowSynchronizationAttribute", StringComparison.OrdinalIgnoreCase) == true ||
+                attr.AttributeClass?.Name.Equals("AllowSynchronization", StringComparison.OrdinalIgnoreCase) == true ||
+                // Full name ending match (case insensitive)
+                (attr.AttributeClass != null && (
+                    attr.AttributeClass.ToDisplayString().Equals("AllowSynchronizationAttribute", StringComparison.OrdinalIgnoreCase) ||
+                    attr.AttributeClass.ToDisplayString().EndsWith(".AllowSynchronizationAttribute", StringComparison.OrdinalIgnoreCase) ||
+                    attr.AttributeClass.ToDisplayString().EndsWith(".AllowSynchronization", StringComparison.OrdinalIgnoreCase)
+                )));
         }
     }
 }

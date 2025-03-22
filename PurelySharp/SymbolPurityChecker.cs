@@ -13,13 +13,18 @@ namespace PurelySharp
             // Check if it's a named type
             if (type is INamedTypeSymbol namedType)
             {
-                // Get the syntax reference
+                // C# 9 and later has built-in record detection
+                if (namedType.IsRecord)
+                    return true;
+
+                // Fallback for older Roslyn versions
                 var syntaxRef = namedType.DeclaringSyntaxReferences.FirstOrDefault();
                 if (syntaxRef != null)
                 {
                     var syntax = syntaxRef.GetSyntax();
-                    // Check if it's declared as a record
-                    return syntax is RecordDeclarationSyntax;
+                    // Check if it's declared as a record (including record struct)
+                    return syntax is RecordDeclarationSyntax ||
+                           syntax.ToString().Contains("record struct");
                 }
             }
             return false;
@@ -30,8 +35,9 @@ namespace PurelySharp
             switch (symbol)
             {
                 case IParameterSymbol parameter:
-                    // Ref/out parameters are impure
-                    return parameter.RefKind == RefKind.None;
+                    // Ref/out parameters are impure, but 'in' (readonly ref) parameters are pure
+                    return parameter.RefKind == RefKind.None ||
+                           parameter.RefKind == RefKind.In;
 
                 case ILocalSymbol local:
                     return true;

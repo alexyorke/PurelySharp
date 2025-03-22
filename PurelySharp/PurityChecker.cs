@@ -1,6 +1,9 @@
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 using System.Linq;
+using System.Text;
 
 namespace PurelySharp
 {
@@ -8,17 +11,74 @@ namespace PurelySharp
     {
         public static bool IsMethodPure(MethodDeclarationSyntax methodDeclaration, SemanticModel semanticModel)
         {
-            var methodSymbol = semanticModel.GetDeclaredSymbol(methodDeclaration) as IMethodSymbol;
-            if (methodSymbol == null)
+            if (semanticModel.GetDeclaredSymbol(methodDeclaration) is not IMethodSymbol methodSymbol)
                 return false;
 
-            // Check if method is async - async methods are impure
-            if (methodSymbol.IsAsync)
-                return false;
+            // Check if method is async - we used to consider all async methods impure, 
+            // but now we'll check the actual method body for impure operations
 
             // Abstract methods (without body) are considered pure by default
             if (methodSymbol.IsAbstract)
                 return true;
+
+            // Check if the method has the AllowSynchronization attribute - special attribute to allow lock statements
+            bool hasAllowSynchronizationAttribute = methodSymbol.GetAttributes().Any(attr =>
+                // Direct name match (case insensitive)
+                attr.AttributeClass?.Name.Equals("AllowSynchronizationAttribute", StringComparison.OrdinalIgnoreCase) == true ||
+                attr.AttributeClass?.Name.Equals("AllowSynchronization", StringComparison.OrdinalIgnoreCase) == true ||
+                // Full name ending match (case insensitive)
+                (attr.AttributeClass != null && (
+                    attr.AttributeClass.ToDisplayString().Equals("AllowSynchronizationAttribute", StringComparison.OrdinalIgnoreCase) ||
+                    attr.AttributeClass.ToDisplayString().EndsWith(".AllowSynchronizationAttribute", StringComparison.OrdinalIgnoreCase) ||
+                    attr.AttributeClass.ToDisplayString().EndsWith(".AllowSynchronization", StringComparison.OrdinalIgnoreCase)
+                )));
+
+            // Check if the method has lock statements
+            bool hasLockStatements = false;
+            if (methodDeclaration.Body != null)
+            {
+                hasLockStatements = methodDeclaration.Body.DescendantNodes().OfType<LockStatementSyntax>().Any();
+            }
+
+            // If it has the AllowSynchronization attribute and lock statements,
+            // we need special handling to allow lock statements on readonly objects
+            if (hasAllowSynchronizationAttribute && hasLockStatements && methodDeclaration.Body != null)
+            {
+                // Check if all lock statements are on readonly objects and contain only pure operations
+                foreach (var lockStatement in methodDeclaration.Body.DescendantNodes().OfType<LockStatementSyntax>())
+                {
+                    // Check if the lock object is a readonly field or property
+                    if (!ExpressionPurityChecker.IsExpressionPure(lockStatement.Expression, semanticModel, methodSymbol))
+                        return false;
+
+                    // Check if the statements inside the lock are pure
+                    if (lockStatement.Statement is BlockSyntax lockBlock)
+                    {
+                        if (!StatementPurityChecker.AreStatementsPure(lockBlock.Statements, semanticModel, methodSymbol))
+                            return false;
+                    }
+                    else
+                    {
+                        if (!StatementPurityChecker.AreStatementsPure(
+                            SyntaxFactory.SingletonList(lockStatement.Statement), semanticModel, methodSymbol))
+                            return false;
+                    }
+                }
+
+                // All lock statements are on readonly objects and contain only pure operations,
+                // so we can check the rest of the method for purity
+                var statementsWithoutLocks = methodDeclaration.Body.Statements
+                    .Where(s => !(s is LockStatementSyntax))
+                    .ToList();
+
+                if (statementsWithoutLocks.Count > 0)
+                {
+                    return StatementPurityChecker.AreStatementsPure(
+                        new SyntaxList<StatementSyntax>(statementsWithoutLocks), semanticModel, methodSymbol);
+                }
+
+                return true; // Only lock statements, and they're all pure
+            }
 
             // Check if the method is a special complex stress test that should be considered pure
             // This is a workaround for certain complex test scenarios that should be treated as pure

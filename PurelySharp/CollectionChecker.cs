@@ -7,6 +7,10 @@ namespace PurelySharp
     {
         public static bool IsModifiableCollectionType(ITypeSymbol type)
         {
+            // Array types are modifiable
+            if (type is IArrayTypeSymbol)
+                return true;
+
             var modifiableCollections = new[] {
                 "List", "Dictionary", "HashSet", "Queue", "Stack", "LinkedList",
                 "SortedList", "SortedDictionary", "SortedSet", "Collection"

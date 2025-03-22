@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
-    PurelySharp.PurelySharp>;
+    PurelySharp.PurelySharpAnalyzer>;
 
 namespace PurelySharp.Test
 {
@@ -17,11 +17,11 @@ namespace PurelySharp.Test
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
 
 public class TestClass
 {
-    [EnforcePure]
+    [Pure]
     public double TestMethod(double x, double y, double z)
     {
         var a = Math.Sin(x) * Math.Cos(y);
@@ -41,11 +41,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
 
 public class TestClass
 {
-    [EnforcePure]
+    [Pure]
     public double TestMethod(double x)
     {
         return Math.Sin(x);
@@ -62,11 +62,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
 
 public class TestClass
 {
-    [EnforcePure]
+    [Pure]
     public double TestMethod()
     {
         return Math.PI;
@@ -83,11 +83,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
 
 public class TestClass
 {
-    [EnforcePure]
+    [Pure]
     public double TestMethod(double x)
     {
         return Math.Sin(Math.Cos(x));

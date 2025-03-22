@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
-    PurelySharp.PurelySharp>;
+    PurelySharp.PurelySharpAnalyzer>;
 
 namespace PurelySharp.Test
 {
@@ -17,11 +17,11 @@ namespace PurelySharp.Test
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
 
 public class TestClass
 {
-    [EnforcePure]
+    [Pure]
     public void TestMethod()
     {
     }
@@ -37,11 +37,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
 
 public class TestClass
 {
-    [EnforcePure]
+    [Pure]
     public int TestMethod(int x, int y)
     {
         return x + y;
@@ -58,11 +58,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
 
 public class TestClass
 {
-    [EnforcePure]
+    [Pure]
     public int TestMethod(int x, int y)
     {
         var result = x * y;
@@ -80,17 +80,17 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
 
 public class TestClass
 {
-    [EnforcePure]
+    [Pure]
     public int Add(int x, int y)
     {
         return x + y;
     }
 
-    [EnforcePure]
+    [Pure]
     public int AddAndMultiply(int x, int y, int z)
     {
         return Add(x, y) * z;
@@ -107,11 +107,11 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
 
 public class TestClass
 {
-    [EnforcePure]
+    [Pure]
     public int Fibonacci(int n)
     {
         if (n <= 1) return n;

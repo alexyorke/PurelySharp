@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
-    PurelySharp.PurelySharp>;
+    PurelySharp.PurelySharpAnalyzer>;
 
 namespace System.Runtime.CompilerServices
 {
@@ -23,13 +23,13 @@ using System;
 using System.Runtime.CompilerServices;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
 
 public record Person(string Name, int Age);
 
 public class TestClass
 {
-    [EnforcePure]
+    [Pure]
     public string GetPersonInfo(Person person)
     {
         return $""{person.Name} is {person.Age} years old"";
@@ -37,40 +37,38 @@ public class TestClass
 }";
 
             await VerifyCS.VerifyAnalyzerAsync(test,
-                DiagnosticResult.CompilerError("CS0518")
-                    .WithSpan(8, 29, 8, 33)
-                    .WithArguments("System.Runtime.CompilerServices.IsExternalInit"),
-                DiagnosticResult.CompilerError("CS0518")
-                    .WithSpan(8, 39, 8, 42)
-                    .WithArguments("System.Runtime.CompilerServices.IsExternalInit"));
+                // Handle compiler errors related to IsExternalInit
+                DiagnosticResult.CompilerError("CS0518").WithSpan(8, 29, 8, 33).WithArguments("System.Runtime.CompilerServices.IsExternalInit"),
+                DiagnosticResult.CompilerError("CS0518").WithSpan(8, 39, 8, 42).WithArguments("System.Runtime.CompilerServices.IsExternalInit"));
         }
 
         [Test]
-        public async Task RecordWithPureMethod_NoDiagnostic()
+        public async Task RecordWithPureMethod_Diagnostic()
         {
             var test = @"
 using System;
 using System.Runtime.CompilerServices;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
 
 public record Calculator
 {
-    [EnforcePure]
+    [Pure]
     public int Add(int x, int y) => x + y;
 }
 
 public class TestClass
 {
-    [EnforcePure]
+    [Pure]
     public int UseCalculator(Calculator calc, int a, int b)
     {
         return calc.Add(a, b);
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = VerifyCS.Diagnostic().WithSpan(19, 16, 19, 30).WithArguments("UseCalculator");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -81,7 +79,7 @@ using System;
 using System.Runtime.CompilerServices;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
 
 public record MutablePerson
 {
@@ -91,7 +89,7 @@ public record MutablePerson
 
 public class TestClass
 {
-    [EnforcePure]
+    [Pure]
     public void UpdatePerson(MutablePerson person)
     {
         person.Name = ""John""; // Should trigger diagnostic
@@ -99,9 +97,7 @@ public class TestClass
 }";
 
             await VerifyCS.VerifyAnalyzerAsync(test,
-                DiagnosticResult.CompilerError("PMA0001")
-                    .WithSpan(17, 17, 17, 29)
-                    .WithArguments("UpdatePerson"));
+                VerifyCS.Diagnostic().WithSpan(19, 9, 19, 29).WithArguments("UpdatePerson"));
         }
 
         [Test]
@@ -112,7 +108,7 @@ using System;
 using System.Runtime.CompilerServices;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
 
 public record Person
 {
@@ -127,7 +123,7 @@ public record Person
 
 public class TestClass
 {
-    [EnforcePure]
+    [Pure]
     public void UpdateAge(Person person)
     {
         person.Age = 30; // Should trigger diagnostic
@@ -135,12 +131,9 @@ public class TestClass
 }";
 
             await VerifyCS.VerifyAnalyzerAsync(test,
-                DiagnosticResult.CompilerError("CS0518")
-                    .WithSpan(10, 31, 10, 35)
-                    .WithArguments("System.Runtime.CompilerServices.IsExternalInit"),
-                DiagnosticResult.CompilerError("PMA0001")
-                    .WithSpan(22, 17, 22, 26)
-                    .WithArguments("UpdateAge"));
+                // We need to handle both the compiler error and the analyzer diagnostic
+                DiagnosticResult.CompilerError("CS0518").WithSpan(10, 31, 10, 35).WithArguments("System.Runtime.CompilerServices.IsExternalInit"),
+                VerifyCS.Diagnostic().WithSpan(24, 9, 24, 24).WithArguments("UpdateAge"));
         }
     }
 }

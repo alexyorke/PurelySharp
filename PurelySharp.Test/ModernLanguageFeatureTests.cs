@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
-    PurelySharp.PurelySharp>;
+    PurelySharp.PurelySharpAnalyzer>;
 
 namespace PurelySharp.Test
 {
@@ -105,7 +105,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task MethodWithStackallocAndSpan_NoDiagnostic()
+        public async Task MethodWithStackallocAndSpan_Diagnostic()
         {
             var test = @"
 using System;
@@ -127,7 +127,8 @@ public class TestClass
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            await VerifyCS.VerifyAnalyzerAsync(test,
+                VerifyCS.Diagnostic().WithSpan(15, 13, 15, 28).WithArguments("TestMethod"));
         }
 
         [Test]

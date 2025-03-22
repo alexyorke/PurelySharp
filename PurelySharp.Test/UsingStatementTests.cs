@@ -2,7 +2,7 @@ using Microsoft.CodeAnalysis;
 using NUnit.Framework;
 using System.Threading.Tasks;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
-    PurelySharp.PurelySharp>;
+    PurelySharp.PurelySharpAnalyzer>;
 
 namespace PurelySharp.Test
 {
@@ -17,11 +17,11 @@ using System;
 using System.IO;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
 
 public class TestClass
 {
-    [EnforcePure]
+    [Pure]
     public void TestMethod()
     {
         using (var file = File.OpenRead(""test.txt"")) // Using statement is impure
@@ -32,7 +32,7 @@ public class TestClass
 }";
 
             var expected = VerifyCS.Diagnostic("PMA0001")
-                .WithLocation(11, 17)
+                .WithLocation(13, 27)
                 .WithArguments("TestMethod");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
@@ -46,11 +46,11 @@ using System;
 using System.IO;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
 
 public class TestClass
 {
-    [EnforcePure]
+    [Pure]
     public void TestMethod()
     {
         using var file = File.OpenRead(""test.txt""); // Using declaration is impure
@@ -59,7 +59,7 @@ public class TestClass
 }";
 
             var expected = VerifyCS.Diagnostic("PMA0001")
-                .WithLocation(11, 17)
+                .WithLocation(13, 26)
                 .WithArguments("TestMethod");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
@@ -72,7 +72,7 @@ public class TestClass
 using System;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+public class PureAttribute : Attribute { }
 
 public class PureDisposable : IDisposable
 {
@@ -81,7 +81,7 @@ public class PureDisposable : IDisposable
 
 public class TestClass
 {
-    [EnforcePure]
+    [Pure]
     public void TestMethod()
     {
         using var disposable = new PureDisposable(); // Pure disposable is ok

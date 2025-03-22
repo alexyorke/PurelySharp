@@ -1,86 +1,80 @@
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeActions;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 using System.Collections.Immutable;
 using System.Composition;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CodeFixes;
+using Microsoft.CodeAnalysis.CodeActions;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Rename;
 
 namespace PurelySharp
 {
-    [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(EnforcePurelySharpCodeFixProvider)), Shared]
-    public class EnforcePurelySharpCodeFixProvider : CodeFixProvider
+    [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(PurelySharpCodeFixProvider)), Shared]
+    public class PurelySharpCodeFixProvider : CodeFixProvider
     {
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
-        {
-            get { return ImmutableArray.Create(PurelySharp.DiagnosticId); }
-        }
+        private const string DiagnosticId = "PMA0001";
 
-        public sealed override FixAllProvider GetFixAllProvider()
-        {
-            // Enables the code fix to be applied to all occurrences in the solution.
-            return WellKnownFixAllProviders.BatchFixer;
-        }
+        public sealed override ImmutableArray<string> FixableDiagnosticIds =>
+            ImmutableArray.Create(DiagnosticId);
+
+        public sealed override FixAllProvider GetFixAllProvider() =>
+            WellKnownFixAllProviders.BatchFixer;
 
         public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
+            var diagnostic = context.Diagnostics[0];
+            var diagnosticSpan = diagnostic.Location.SourceSpan;
+
             var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
             if (root == null) return;
 
-            // Find the diagnostic to fix.
-            var diagnostic = context.Diagnostics.First();
-            var diagnosticSpan = diagnostic.Location.SourceSpan;
+            var methodDecl = root.FindToken(diagnosticSpan.Start)
+                .Parent?
+                .AncestorsAndSelf()
+                .OfType<MethodDeclarationSyntax>()
+                .FirstOrDefault();
 
-            // Find the method declaration identified by the diagnostic.
-            var token = root.FindToken(diagnosticSpan.Start);
-            var methodDeclaration = token.Parent?.AncestorsAndSelf()
-                .OfType<MethodDeclarationSyntax>().FirstOrDefault();
+            if (methodDecl == null) return;
 
-            if (methodDeclaration == null) return;
-
-            // Register a code action that will invoke the fix.
             context.RegisterCodeFix(
                 CodeAction.Create(
-                    title: "Make method body empty",
-                    createChangedDocument: c => MakeMethodBodyEmptyAsync(context.Document, methodDeclaration, c),
-                    equivalenceKey: "MakeMethodBodyEmpty"),
+                    title: "Remove [EnforcePure] attribute",
+                    createChangedDocument: c => RemoveEnforcePureAttributeAsync(context.Document, methodDecl, c),
+                    equivalenceKey: nameof(CodeFixResources.CodeFixTitle)),
                 diagnostic);
         }
 
-        private async Task<Document> MakeMethodBodyEmptyAsync(Document document, MethodDeclarationSyntax methodDecl, CancellationToken cancellationToken)
+        private async Task<Document> RemoveEnforcePureAttributeAsync(Document document, MethodDeclarationSyntax methodDecl, CancellationToken cancellationToken)
         {
-            // Remove all statements from the method body.
-            MethodDeclarationSyntax newMethodDecl;
+            var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+            if (root == null) return document;
 
-            if (methodDecl.Body != null)
+            var attributeToRemove = methodDecl.AttributeLists
+                .SelectMany(al => al.Attributes)
+                .FirstOrDefault(attr => attr.Name.ToString() == "EnforcePure");
+
+            if (attributeToRemove == null)
+                return document;
+
+            var attributeList = (AttributeListSyntax)attributeToRemove.Parent!;
+
+            var newMethodDecl = methodDecl;
+            if (attributeList.Attributes.Count == 1)
             {
-                // Replace the method body with an empty block.
-                var emptyBody = SyntaxFactory.Block();
-                newMethodDecl = methodDecl.WithBody(emptyBody).WithExpressionBody(null).WithSemicolonToken(default);
-            }
-            else if (methodDecl.ExpressionBody != null)
-            {
-                // Remove the expression body and replace with an empty block.
-                var emptyBody = SyntaxFactory.Block();
-                newMethodDecl = methodDecl.WithBody(emptyBody).WithExpressionBody(null).WithSemicolonToken(default);
+                // If this is the only attribute in the list, remove the entire list
+                newMethodDecl = methodDecl.RemoveNode(attributeList, SyntaxRemoveOptions.KeepNoTrivia)!;
             }
             else
             {
-                // The method has no body (e.g., it's abstract), so no changes are needed.
-                return document;
+                // Otherwise, just remove the specific attribute
+                newMethodDecl = methodDecl.ReplaceNode(attributeToRemove, (SyntaxNode?)null)!;
             }
 
-            // Replace the old method with the new method in the syntax tree.
-            var root = await document.GetSyntaxRootAsync(cancellationToken);
-            if (root == null) return document;
-
             var newRoot = root.ReplaceNode(methodDecl, newMethodDecl);
-            if (newRoot == null) return document;
-
-            // Return the updated document.
             return document.WithSyntaxRoot(newRoot);
         }
     }

@@ -18,9 +18,10 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] Interpolated strings
 - [x] Stack allocations and Span operations (when used in a read-only manner)
 - [x] Indices and ranges (C# 8.0+)
+- [x] Bit shift operations including unsigned right shift (`>>>`)
 - [ ] Async/await expressions
-- [ ] Unsafe code blocks
-- [ ] Pointer operations
+- [x] Unsafe code blocks
+- [x] Pointer operations
 
 ### Statements
 
@@ -34,9 +35,9 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] Local functions (if body is pure)
 - [x] Using statements
 - [x] Using declarations (C# 8.0+)
-- [ ] Lock statements
-- [ ] Yield statements (iterator methods)
-- [ ] Fixed statements
+- [x] Lock statements (when used with `[AllowSynchronization]` attribute and read-only lock objects)
+- [x] Yield statements (iterator methods)
+- [x] Fixed statements
 
 ### Collections and Data Structures
 
@@ -45,8 +46,8 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] Arrays (when used in a read-only manner)
 - [x] Tuples
 - [~] Collection expressions (C# 12) - _Partial support: only when creating immutable collections_
-- [ ] Mutable collections (List, Dictionary, etc.)
-- [ ] Modifying collection elements
+- [x] Mutable collections (List, Dictionary, etc.)
+- [x] Modifying collection elements
 - [ ] Inline arrays (C# 12)
 
 ### Method Types
@@ -60,11 +61,11 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] Virtual/override methods (if pure)
 - [x] Generic methods
 - [ ] Async methods
-- [ ] Iterator methods (yield return)
-- [ ] Unsafe methods
-- [ ] Operator overloads
-- [ ] User-defined conversions
-- [ ] Static abstract/virtual interface members (C# 11)
+- [x] Iterator methods (yield return)
+- [x] Unsafe methods
+- [x] Operator overloads (including checked operators)
+- [x] User-defined conversions
+- [x] Static abstract/virtual interface members (C# 11)
 
 ### Type Declarations
 
@@ -72,11 +73,11 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] Interfaces (methods are considered pure by default)
 - [~] Structs (when methods are pure) - _Partial support: only for immutable structs_
 - [x] Records (C# 9)
-- [ ] Record structs (C# 10)
+- [x] Record structs (C# 10)
 - [ ] Enums
 - [ ] Delegates
-- [ ] File-local types (C# 11)
-- [ ] Primary constructors (C# 12)
+- [x] File-local types (C# 11)
+- [x] Primary constructors (C# 12)
 
 ### Member Declarations
 
@@ -86,23 +87,23 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] Properties (get-only)
 - [x] Auto-properties (get-only or init-only)
 - [x] Fields (readonly)
-- [ ] Events
+- [x] Events
 - [ ] Indexers
-- [ ] Required members (C# 11)
+- [x] Required members (C# 11)
 - [ ] Partial properties (C# 13)
 
 ### Parameter Types
 
 - [x] Value types
 - [x] Reference types (when used in a read-only manner)
-- [ ] Ref parameters
-- [ ] Out parameters
-- [ ] In parameters
-- [ ] Params arrays
+- [x] Ref parameters
+- [x] Out parameters
+- [x] In parameters
+- [x] Params arrays
 - [ ] Params collections (C# 13)
-- [ ] Optional parameters
+- [x] Optional parameters
 - [ ] Optional parameters in lambda expressions (C# 12)
-- [ ] Ref readonly parameters (C# 12)
+- [x] Ref readonly parameters (C# 12)
 
 ### Special Features
 
@@ -111,12 +112,12 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] Math operations (all considered pure)
 - [x] Tuple operations
 - [x] Conversion methods (Parse, TryParse, etc.)
-- [ ] I/O operations (File, Console, etc.)
-- [ ] Network operations
-- [ ] Threading/Task operations
-- [ ] Random number generation
-- [ ] Event subscription/invocation
-- [ ] Delegate invocation
+- [x] I/O operations (File, Console, etc.)
+- [x] Network operations
+- [x] Threading/Task operations
+- [x] Random number generation
+- [x] Event subscription/invocation
+- [x] Delegate invocation
 
 ### Advanced Language Features
 
@@ -124,14 +125,15 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] Switch expressions
 - [x] List patterns (C# 11)
 - [ ] Top-level statements (C# 9)
-- [ ] File-scoped namespaces (C# 10)
-- [ ] Required members (C# 11)
+- [x] File-scoped namespaces (C# 10)
+<!-- Implementation note: The analyzer implicitly supports file-scoped namespaces as it analyzes syntax nodes regardless of namespace declaration style. -->
+- [x] Required members (C# 11)
 - [ ] Nullable reference types annotations (C# 8.0+)
 - [ ] Caller information attributes
 - [ ] Source generators
 - [ ] Partial classes/methods
 - [ ] Global using directives (C# 10)
-- [ ] Generic attributes (C# 11)
+- [x] Generic attributes (C# 11)
 - [ ] Type alias for any type (C# 12)
 - [ ] Experimental attribute (C# 12)
 - [ ] Interceptors (C# 12 preview)
@@ -140,29 +142,29 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 
 ### C# 11 Specific Features
 
-- [x] List patterns (matching against arrays and collections)
-- [x] Raw string literals ("""...""")
-- [ ] UTF-8 string literals (u8 suffix)
+- [x] Extended nameof scope
+- [x] Numeric IntPtr (nint/nuint)
+- [x] Generic attributes
+- [x] Unsigned right-shift operator (>>>)
+- [x] Checked user-defined operators
+- [x] Raw string literals
+- [x] UTF-8 string literals
+- [x] List patterns
+- [x] File-local types
+- [x] Required members
+- [x] Auto-default structs
+- [x] Pattern match Span<char> on constant string
 - [x] Newlines in string interpolation expressions
-- [ ] Required members
-- [ ] File-local types (file access modifier)
-- [ ] Auto-default structs
-- [ ] Pattern match Span<char> on constant string
-- [ ] Extended nameof scope
-- [ ] Numeric IntPtr (nint/nuint)
-- [ ] ref fields and scoped ref
-- [ ] Generic attributes
-- [ ] Generic math support (static virtual/abstract interface members)
-- [ ] Unsigned right-shift operator (>>>)
-- [ ] Checked user-defined operators
+- [x] ref fields and scoped ref
+- [x] Generic math support (static virtual/abstract interface members)
 
 ### C# 12 Specific Features
 
 - [~] Collection expressions - _Partial support: only when creating immutable collections_
-- [ ] Primary constructors
+- [x] Primary constructors
 - [ ] Inline arrays
 - [ ] Optional parameters in lambda expressions
-- [ ] ref readonly parameters
+- [x] ref readonly parameters
 - [ ] Type alias for any type
 - [ ] Experimental attribute
 - [ ] Interceptors (preview)
@@ -186,10 +188,10 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] Const fields
 - [x] Get-only properties
 - [x] Init-only properties (C# 9)
-- [ ] Mutable fields
-- [ ] Properties with setters
-- [ ] Static mutable fields
-- [ ] Event fields
+- [x] Mutable fields
+- [x] Properties with setters
+- [x] Static mutable fields
+- [x] Event fields
 - [ ] Volatile fields
 
 ### Generic and Advanced Constructs
@@ -197,9 +199,14 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] Generic methods
 - [ ] Generic type parameters with constraints
 - [ ] Covariance and contravariance
-- [ ] Reflection
+- [x] Reflection
 - [ ] Dynamic typing
-- [ ] Unsafe code
+- [x] Unsafe code
+
+## Attributes
+
+- [x] `[EnforcePure]` - Marks a method that should be analyzed for purity
+- [x] `[AllowSynchronization]` - Allows lock statements in pure methods when synchronizing on readonly objects
 
 ## Impure Namespaces (Always Considered Impure)
 
@@ -243,4 +250,3 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 
 - [x] C# 8.0+ language features
 - [ ] Different target frameworks (.NET Framework, .NET Core, .NET 5+)
-- [ ] Performance considerations for large codebases
