@@ -179,5 +179,90 @@ namespace TestNamespace
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task UTF8StringLiteral_WithRawStringLiteral_PureMethod_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using System.Text;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+namespace TestNamespace
+{
+    public class Utf8WithRawString
+    {
+        [EnforcePure]
+        public static ReadOnlySpan<byte> GetUtf8WithRawString()
+        {
+            // Combining raw string literals with UTF-8 encoding
+            return """"""
+                This is a raw string literal
+                with UTF-8 encoding
+                """"""u8;
+        }
+        
+        [EnforcePure]
+        public static int GetUtf8RawLength()
+        {
+            // Raw string with JSON content as UTF-8
+            var jsonBytes = """"""
+                {
+                    ""name"": ""John"",
+                    ""age"": 30,
+                    ""city"": ""New York""
+                }
+                """"""u8;
+                
+            return jsonBytes.Length;
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task UTF8StringLiteral_WithVerbatimStrings_PureMethod_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using System.Text;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+namespace TestNamespace
+{
+    public class Utf8WithVerbatimString
+    {
+        [EnforcePure]
+        public static ReadOnlySpan<byte> GetUtf8FromVerbatimString()
+        {
+            // Verbatim string with UTF-8 encoding
+            return @""C:\Path\With\Backslashes
+                     And multiple
+                     lines""u8;
+        }
+        
+        [EnforcePure]
+        public static ReadOnlySpan<byte> CompareEncodings()
+        {
+            // Regular UTF-8 string
+            var regularUtf8 = ""Hello""u8;
+            
+            // Verbatim UTF-8 string with special characters
+            var verbatimUtf8 = @""Hello with """"quotes"""" and \backslashes\""u8;
+            
+            // Just return one of them for simplicity
+            return verbatimUtf8;
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
