@@ -146,7 +146,7 @@ A C# analyzer that enforces method purity through the `[EnforcePure]` attribute.
 - [x] Generic attributes
 - [x] Unsigned right-shift operator (>>>)
 - [x] Checked user-defined operators
-- [ ] Raw string literals
+- [x] Raw string literals
 - [ ] UTF-8 string literals
 - [ ] List patterns
 - [ ] File-local types
