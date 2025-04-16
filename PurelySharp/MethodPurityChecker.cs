@@ -9,6 +9,7 @@ namespace PurelySharp
         // Instantiate the strategies
         private static readonly IPurityCheckStrategy attributePurityStrategy = new AttributePurityStrategy();
         private static readonly IPurityCheckStrategy delegateInvokePurityStrategy = new DelegateInvokePurityStrategy();
+        private static readonly IPurityCheckStrategy builtinOperatorOrConversionPurityStrategy = new BuiltinOperatorOrConversionPurityStrategy();
 
         // Methods that are known to be pure
         private static readonly HashSet<string> KnownPureMethods = new HashSet<string>
@@ -105,12 +106,12 @@ namespace PurelySharp
 
             // Use the strategies
             return attributePurityStrategy.IsPure(method) ||
-                   delegateInvokePurityStrategy.IsPure(method) || // Use new strategy
+                   delegateInvokePurityStrategy.IsPure(method) ||
                    IsImplicitGetterOrInitSetter(method) ||
                    IsInKnownPureList(method) ||
                    IsInPureNamespaceOrLinqExtension(method) ||
-                   IsStaticInterfaceMemberImplementationOrOverride(method) || // Renamed for clarity
-                   IsBuiltinOperatorOrConversion(method);
+                   IsStaticInterfaceMemberImplementationOrOverride(method) ||
+                   builtinOperatorOrConversionPurityStrategy.IsPure(method);
         }
 
         private static bool IsImplicitGetterOrInitSetter(IMethodSymbol method)
@@ -179,16 +180,6 @@ namespace PurelySharp
 
             // If none of the above conditions related to static interface members apply, this rule doesn't make it pure.
             return false;
-        }
-
-        private static bool IsBuiltinOperatorOrConversion(IMethodSymbol method)
-        {
-            // Basic operators (+, -, *, /, etc.) are generally pure
-            if (method.MethodKind == MethodKind.BuiltinOperator)
-                return true;
-
-            // Check if it's a conversion method (MethodKind.Conversion), which are generally pure
-            return method.MethodKind == MethodKind.Conversion;
         }
 
         public static bool IsKnownImpureMethod(IMethodSymbol methodSymbol)
