@@ -1,0 +1,40 @@
+using System.Linq;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Diagnostics;
+
+namespace PurelySharp.AnalyzerStrategies
+{
+    /// <summary>
+    /// Strategy to check for access to static (non-const) or volatile fields within a syntax node.
+    /// </summary>
+    public class StaticFieldAccessCheckStrategy : IPurityAnalyzerCheck
+    {
+        public CheckPurityResult Check(CSharpSyntaxNode node, SyntaxNodeAnalysisContext context)
+        {
+            var methodSymbol = context.SemanticModel.GetDeclaredSymbol(node);
+            if (methodSymbol == null) return CheckPurityResult.Pass; // Should not happen if called correctly
+
+            foreach (var identifier in node.DescendantNodes().OfType<IdentifierNameSyntax>())
+            {
+                var symbolInfo = context.SemanticModel.GetSymbolInfo(identifier);
+                if (symbolInfo.Symbol is IFieldSymbol fieldSymbol)
+                {
+                    // Check for static non-const fields (excluding 'var' which isn't a field access)
+                    bool isStaticNonConst = fieldSymbol.IsStatic && !fieldSymbol.IsConst && !identifier.IsVar;
+                    // Check for volatile fields
+                    bool isVolatile = fieldSymbol.IsVolatile;
+
+                    if (isStaticNonConst || isVolatile)
+                    {
+                        string reason = isVolatile ? "Access to volatile field" : "Access to static non-const field";
+                        return CheckPurityResult.Fail(identifier.GetLocation(), reason);
+                    }
+                }
+            }
+
+            return CheckPurityResult.Pass;
+        }
+    }
+} 

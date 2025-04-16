@@ -40,6 +40,7 @@ namespace PurelySharp
 
         // Analyzer Strategies (add more here later)
         private static readonly IPurityAnalyzerCheck dynamicOperationCheckStrategy = new DynamicOperationCheckStrategy();
+        private static readonly IPurityAnalyzerCheck staticFieldAccessCheckStrategy = new StaticFieldAccessCheckStrategy(); // Add new strategy
 
         public override void Initialize(AnalysisContext context)
         {
@@ -113,11 +114,19 @@ namespace PurelySharp
                 return;
 
             // Apply initial checks using strategies
-            // Pass the methodDeclaration itself as the node to check
             var dynamicCheckResult = dynamicOperationCheckStrategy.Check(methodDeclaration, context);
             if (!dynamicCheckResult.Passed)
             {
                 var diagnostic = Diagnostic.Create(Rule, dynamicCheckResult.ImpurityLocation ?? methodDeclaration.Identifier.GetLocation(), methodSymbol.Name);
+                context.ReportDiagnostic(diagnostic);
+                return; // Found impurity, stop analysis
+            }
+
+            // Apply static field access check strategy
+            var staticFieldCheckResult = staticFieldAccessCheckStrategy.Check(methodDeclaration, context);
+            if (!staticFieldCheckResult.Passed)
+            {
+                var diagnostic = Diagnostic.Create(Rule, staticFieldCheckResult.ImpurityLocation ?? methodDeclaration.Identifier.GetLocation(), methodSymbol.Name);
                 context.ReportDiagnostic(diagnostic);
                 return; // Found impurity, stop analysis
             }
