@@ -11,6 +11,7 @@ namespace PurelySharp
         private static readonly IPurityCheckStrategy delegateInvokePurityStrategy = new DelegateInvokePurityStrategy();
         private static readonly IPurityCheckStrategy builtinOperatorOrConversionPurityStrategy = new BuiltinOperatorOrConversionPurityStrategy();
         private static readonly IPurityCheckStrategy implicitGetterOrInitSetterPurityStrategy = new ImplicitGetterOrInitSetterPurityStrategy();
+        private static readonly IPurityCheckStrategy knownPureListStrategy;
 
         // Methods that are known to be pure
         private static readonly HashSet<string> KnownPureMethods = new HashSet<string>
@@ -100,6 +101,13 @@ namespace PurelySharp
             "System.Collections.Immutable"
         };
 
+        // Static constructor to initialize strategies that need static data
+        static MethodPurityChecker()
+        {
+            knownPureListStrategy = new KnownPureListStrategy(KnownPureMethods);
+            // Initialize other strategies needing static data here in the future
+        }
+
         public static bool IsKnownPureMethod(IMethodSymbol method)
         {
             if (method == null)
@@ -109,7 +117,7 @@ namespace PurelySharp
             return attributePurityStrategy.IsPure(method) ||
                    delegateInvokePurityStrategy.IsPure(method) ||
                    implicitGetterOrInitSetterPurityStrategy.IsPure(method) ||
-                   IsInKnownPureList(method) ||
+                   knownPureListStrategy.IsPure(method) ||
                    IsInPureNamespaceOrLinqExtension(method) ||
                    IsStaticInterfaceMemberImplementationOrOverride(method) ||
                    builtinOperatorOrConversionPurityStrategy.IsPure(method);
