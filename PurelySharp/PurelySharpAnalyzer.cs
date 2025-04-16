@@ -8,6 +8,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using PurelySharp.AnalyzerStrategies; // Add this
 
 namespace PurelySharp
 {
@@ -36,6 +37,9 @@ namespace PurelySharp
         private HashSet<IMethodSymbol>? _analyzedMethods;
         private HashSet<IMethodSymbol>? _knownPureMethods;
         private HashSet<IMethodSymbol>? _knownImpureMethods;
+
+        // Analyzer Strategies (add more here later)
+        private static readonly IPurityAnalyzerCheck dynamicOperationCheckStrategy = new DynamicOperationCheckStrategy();
 
         public override void Initialize(AnalysisContext context)
         {
@@ -105,21 +109,17 @@ namespace PurelySharp
             var methodDeclaration = (MethodDeclarationSyntax)context.Node;
             var methodSymbol = context.SemanticModel.GetDeclaredSymbol(methodDeclaration);
 
-            if (methodSymbol == null)
+            if (methodSymbol == null || !HasEnforcePureAttribute(methodSymbol))
                 return;
 
-            // Skip methods that are not marked as pure
-            if (!HasEnforcePureAttribute(methodSymbol))
-                return;
-
-            // Check for dynamic operations
-            var hasDynamicOperations = CheckForDynamicOperations(methodDeclaration, context.SemanticModel);
-            if (hasDynamicOperations.Item1)
+            // Apply initial checks using strategies
+            // Pass the methodDeclaration itself as the node to check
+            var dynamicCheckResult = dynamicOperationCheckStrategy.Check(methodDeclaration, context);
+            if (!dynamicCheckResult.Passed)
             {
-                var location = hasDynamicOperations.Item2 ?? methodDeclaration.Identifier.GetLocation();
-                var diagnostic = Diagnostic.Create(Rule, location, methodSymbol.Name);
+                var diagnostic = Diagnostic.Create(Rule, dynamicCheckResult.ImpurityLocation ?? methodDeclaration.Identifier.GetLocation(), methodSymbol.Name);
                 context.ReportDiagnostic(diagnostic);
-                return;
+                return; // Found impurity, stop analysis
             }
 
             // Special case for local function invocation
@@ -1656,111 +1656,6 @@ namespace PurelySharp
             return false;
         }
 
-        private (bool, Location?) CheckForDynamicOperations(CSharpSyntaxNode node, SemanticModel semanticModel)
-        {
-            // Check for dynamic variable declarations
-            foreach (var variable in node.DescendantNodes().OfType<VariableDeclarationSyntax>())
-            {
-                if (variable.Type.IsKind(SyntaxKind.IdentifierName) &&
-                    variable.Type.ToString() == "dynamic" &&
-                    variable.Variables.Any(v => v.Initializer != null &&
-                                             (v.Initializer.Value is ObjectCreationExpressionSyntax ||
-                                              IsPotentiallyImpureExpression(v.Initializer.Value, semanticModel))))
-                {
-                    return (true, variable.GetLocation());
-                }
-            }
-
-            // Check for dynamic method invocations
-            foreach (var invocation in node.DescendantNodes().OfType<InvocationExpressionSyntax>())
-            {
-                if (invocation.Expression is MemberAccessExpressionSyntax memberAccess)
-                {
-                    var expressionType = semanticModel.GetTypeInfo(memberAccess.Expression).Type;
-                    if (expressionType != null &&
-                        (expressionType.TypeKind == TypeKind.Dynamic || IsDynamicType(expressionType, memberAccess.Expression, semanticModel)))
-                    {
-                        return (true, invocation.GetLocation());
-                    }
-                }
-            }
-
-            // Check for dynamic property assignments
-            foreach (var assignment in node.DescendantNodes().OfType<AssignmentExpressionSyntax>())
-            {
-                if (assignment.Left is MemberAccessExpressionSyntax memberAccess)
-                {
-                    var expressionType = semanticModel.GetTypeInfo(memberAccess.Expression).Type;
-                    if (expressionType != null &&
-                        (expressionType.TypeKind == TypeKind.Dynamic || IsDynamicType(expressionType, memberAccess.Expression, semanticModel)))
-                    {
-                        // Don't report static readonly dynamic fields used in expressions
-                        if (memberAccess.Expression is IdentifierNameSyntax identifier)
-                        {
-                            var symbol = semanticModel.GetSymbolInfo(identifier).Symbol;
-                            if (symbol is IFieldSymbol field && field.IsStatic && field.IsReadOnly)
-                            {
-                                continue;
-                            }
-                        }
-                        return (true, assignment.GetLocation());
-                    }
-                }
-            }
-
-            // Check for dynamic object creation
-            foreach (var objectCreation in node.DescendantNodes().OfType<ObjectCreationExpressionSyntax>())
-            {
-                var typeSymbol = semanticModel.GetSymbolInfo(objectCreation.Type).Symbol as ITypeSymbol;
-                if (typeSymbol != null &&
-                    (typeSymbol.Name == "ExpandoObject" || typeSymbol.Name == "DynamicObject" ||
-                     (typeSymbol.ContainingNamespace?.ToString() == "System.Dynamic")))
-                {
-                    return (true, objectCreation.GetLocation());
-                }
-            }
-
-            // Check for binary expressions using dynamic
-            foreach (var binaryExpr in node.DescendantNodes().OfType<BinaryExpressionSyntax>())
-            {
-                var leftType = semanticModel.GetTypeInfo(binaryExpr.Left).Type;
-                var rightType = semanticModel.GetTypeInfo(binaryExpr.Right).Type;
-
-                // Skip operations if they involve static readonly dynamic fields which are safe to use
-                if (leftType?.TypeKind == TypeKind.Dynamic && binaryExpr.Left is IdentifierNameSyntax leftId)
-                {
-                    var leftSymbol = semanticModel.GetSymbolInfo(leftId).Symbol;
-                    if (leftSymbol is IFieldSymbol leftField && leftField.IsStatic && leftField.IsReadOnly)
-                    {
-                        // Static readonly dynamic fields are safe to use in expressions
-                        continue;
-                    }
-                    return (true, binaryExpr.GetLocation());
-                }
-
-                if (rightType?.TypeKind == TypeKind.Dynamic && binaryExpr.Right is IdentifierNameSyntax rightId)
-                {
-                    var rightSymbol = semanticModel.GetSymbolInfo(rightId).Symbol;
-                    if (rightSymbol is IFieldSymbol rightField && rightField.IsStatic && rightField.IsReadOnly)
-                    {
-                        // Static readonly dynamic fields are safe to use in expressions
-                        continue;
-                    }
-                    return (true, binaryExpr.GetLocation());
-                }
-            }
-
-            return (false, null);
-        }
-
-        private bool IsDynamicType(ITypeSymbol type, ExpressionSyntax expression, SemanticModel semanticModel)
-        {
-            if (type.TypeKind == TypeKind.Dynamic)
-                return true;
-
-            return ExpressionPurityChecker.IsDynamicExpression(expression, semanticModel);
-        }
-
         private bool IsPotentiallyImpureExpression(ExpressionSyntax expression, SemanticModel semanticModel)
         {
             // Consider method invocations, member access with assignment, and object creations as potentially impure
@@ -1776,21 +1671,18 @@ namespace PurelySharp
             var constructorDeclaration = (ConstructorDeclarationSyntax)context.Node;
             var constructorSymbol = context.SemanticModel.GetDeclaredSymbol(constructorDeclaration);
 
-            if (constructorSymbol == null)
+            if (constructorSymbol == null || !HasEnforcePureAttribute(constructorSymbol))
                 return;
 
-            // Skip constructors that are not marked as pure
-            if (!HasEnforcePureAttribute(constructorSymbol))
-                return;
-
-            // Check for dynamic operations
-            var hasDynamicOperations = CheckForDynamicOperations(constructorDeclaration, context.SemanticModel);
-            if (hasDynamicOperations.Item1)
+            // Check for dynamic operations using the strategy
+            // Pass the constructorDeclaration itself as the node to check
+            var dynamicCheckResult = dynamicOperationCheckStrategy.Check(constructorDeclaration, context);
+            if (!dynamicCheckResult.Passed)
             {
-                var location = hasDynamicOperations.Item2 ?? constructorDeclaration.Identifier.GetLocation();
+                var location = dynamicCheckResult.ImpurityLocation ?? constructorDeclaration.Identifier.GetLocation();
                 var diagnostic = Diagnostic.Create(Rule, location, constructorSymbol.Name);
                 context.ReportDiagnostic(diagnostic);
-                return;
+                return; // Found impurity, stop analysis
             }
 
             // Special rule for constructors: Allow instance field assignments
