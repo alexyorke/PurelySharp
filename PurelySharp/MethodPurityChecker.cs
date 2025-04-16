@@ -15,6 +15,14 @@ namespace PurelySharp
         private static readonly IPurityCheckStrategy knownPureListStrategy;
         private static readonly IPurityCheckStrategy pureNamespaceOrLinqExtensionStrategy;
 
+        // Impurity Strategies
+        private static readonly IImpurityCheckStrategy knownImpureListImpurityStrategy;
+        private static readonly IImpurityCheckStrategy impureTypeImpurityStrategy;
+        private static readonly IImpurityCheckStrategy propertySetterImpurityStrategy = new PropertySetterImpurityStrategy();
+        private static readonly IImpurityCheckStrategy asyncImpurityStrategy = new AsyncImpurityStrategy();
+        private static readonly IImpurityCheckStrategy enumTryParsePurityOverrideStrategy = new EnumTryParsePurityOverrideStrategy();
+        private static readonly IImpurityCheckStrategy refOutParameterImpurityStrategy = new RefOutParameterImpurityStrategy();
+
         // Methods that are known to be pure
         private static readonly HashSet<string> KnownPureMethods = new HashSet<string>
         {
@@ -108,6 +116,8 @@ namespace PurelySharp
         {
             knownPureListStrategy = new KnownPureListStrategy(KnownPureMethods);
             pureNamespaceOrLinqExtensionStrategy = new PureNamespaceOrLinqExtensionStrategy(PureNamespaces);
+            knownImpureListImpurityStrategy = new KnownImpureListImpurityStrategy(KnownImpureMethods);
+            impureTypeImpurityStrategy = new ImpureTypeImpurityStrategy(ImpureTypes);
         }
 
         public static bool IsKnownPureMethod(IMethodSymbol method)
@@ -137,44 +147,23 @@ namespace PurelySharp
             if (methodSymbol == null)
                 return false;
 
-            // Check if it's a known impure method
-            var fullName = methodSymbol.ContainingType?.ToString() + "." + methodSymbol.Name;
-            if (KnownImpureMethods.Contains(fullName))
-                return true;
-
-            // Check if it's in an impure type
-            if (methodSymbol.ContainingType != null &&
-                ImpureTypes.Contains(methodSymbol.ContainingType.ToString()))
-                return true;
-
-            // Property setters are generally impure (except init-only ones checked above)
-            if (methodSymbol.MethodKind == MethodKind.PropertySet &&
-                !(methodSymbol.ContainingSymbol is IPropertySymbol property && property.SetMethod?.IsInitOnly == true))
-                return true;
-
-            // For async methods, we now use the specialized checker instead of treating all async as impure
-            if (methodSymbol.IsAsync)
+            // Check for the Enum.TryParse override *first*
+            if (enumTryParsePurityOverrideStrategy.IsImpure(methodSymbol))
             {
-                // Method has the EnforcePure attribute, it will be checked elsewhere
-                if (HasEnforcePureAttribute(methodSymbol))
-                    return false;
+                return false; // Special case: Enum.TryParse is NOT considered impure by these rules.
+            }
 
-                // Otherwise default to treating as impure for backward compatibility
+            // Check standard impurity conditions
+            if (knownImpureListImpurityStrategy.IsImpure(methodSymbol) ||
+                impureTypeImpurityStrategy.IsImpure(methodSymbol) ||
+                propertySetterImpurityStrategy.IsImpure(methodSymbol) ||
+                asyncImpurityStrategy.IsImpure(methodSymbol) ||
+                refOutParameterImpurityStrategy.IsImpure(methodSymbol))
+            {
                 return true;
             }
 
-            // Special case for System.Enum.TryParse methods - consider them pure despite having out parameters
-            if (methodSymbol.Name == "TryParse" &&
-                methodSymbol.ContainingType?.Name == "Enum" &&
-                methodSymbol.ContainingType.ContainingNamespace?.Name == "System")
-            {
-                return false; // Not impure
-            }
-
-            // Methods with ref or out parameters modify state
-            if (methodSymbol.Parameters.Any(p => p.RefKind == RefKind.Ref || p.RefKind == RefKind.Out))
-                return true;
-
+            // No impurity conditions met
             return false;
         }
 
@@ -183,11 +172,6 @@ namespace PurelySharp
             if (methodSymbol == null)
                 return false;
 
-            // Check for EnforcePure attribute - This specific check might still be needed elsewhere
-            // or refactored further later. For now, keep it if IsKnownImpureMethod or others use it.
-            // It was used by the old HasPurityAttribute, which is removed.
-            // IsKnownImpureMethod uses it directly.
-            // So, keep HasEnforcePureAttribute for now.
             return methodSymbol.GetAttributes().Any(attr =>
                 attr.AttributeClass?.Name is "EnforcePureAttribute" or "EnforcePure");
         }
