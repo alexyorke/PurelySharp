@@ -10,6 +10,7 @@ namespace PurelySharp
         private static readonly IPurityCheckStrategy attributePurityStrategy = new AttributePurityStrategy();
         private static readonly IPurityCheckStrategy delegateInvokePurityStrategy = new DelegateInvokePurityStrategy();
         private static readonly IPurityCheckStrategy builtinOperatorOrConversionPurityStrategy = new BuiltinOperatorOrConversionPurityStrategy();
+        private static readonly IPurityCheckStrategy implicitGetterOrInitSetterPurityStrategy = new ImplicitGetterOrInitSetterPurityStrategy();
 
         // Methods that are known to be pure
         private static readonly HashSet<string> KnownPureMethods = new HashSet<string>
@@ -107,29 +108,11 @@ namespace PurelySharp
             // Use the strategies
             return attributePurityStrategy.IsPure(method) ||
                    delegateInvokePurityStrategy.IsPure(method) ||
-                   IsImplicitGetterOrInitSetter(method) ||
+                   implicitGetterOrInitSetterPurityStrategy.IsPure(method) ||
                    IsInKnownPureList(method) ||
                    IsInPureNamespaceOrLinqExtension(method) ||
                    IsStaticInterfaceMemberImplementationOrOverride(method) ||
                    builtinOperatorOrConversionPurityStrategy.IsPure(method);
-        }
-
-        private static bool IsImplicitGetterOrInitSetter(IMethodSymbol method)
-        {
-            // Check if it's a compiler-generated method (e.g., property getter/setter)
-            if (method.IsImplicitlyDeclared)
-            {
-                // Property getters are generally pure
-                if (method.MethodKind == MethodKind.PropertyGet)
-                    return true;
-
-                // Init-only setters are generally pure (C# 9.0+)
-                if (method.MethodKind == MethodKind.PropertySet &&
-                    method.ContainingSymbol is IPropertySymbol property &&
-                    property.SetMethod?.IsInitOnly == true)
-                    return true;
-            }
-            return false;
         }
 
         private static bool IsInKnownPureList(IMethodSymbol method)
