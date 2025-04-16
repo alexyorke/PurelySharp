@@ -6,8 +6,9 @@ namespace PurelySharp
 {
     public static class MethodPurityChecker
     {
-        // Instantiate the strategy
+        // Instantiate the strategies
         private static readonly IPurityCheckStrategy attributePurityStrategy = new AttributePurityStrategy();
+        private static readonly IPurityCheckStrategy delegateInvokePurityStrategy = new DelegateInvokePurityStrategy();
 
         // Methods that are known to be pure
         private static readonly HashSet<string> KnownPureMethods = new HashSet<string>
@@ -102,21 +103,14 @@ namespace PurelySharp
             if (method == null)
                 return false;
 
-            // Use the strategy for attribute check
+            // Use the strategies
             return attributePurityStrategy.IsPure(method) ||
-                   IsDelegateInvoke(method) || // Considered potentially pure, needs instance check
+                   delegateInvokePurityStrategy.IsPure(method) || // Use new strategy
                    IsImplicitGetterOrInitSetter(method) ||
                    IsInKnownPureList(method) ||
                    IsInPureNamespaceOrLinqExtension(method) ||
                    IsStaticInterfaceMemberImplementationOrOverride(method) || // Renamed for clarity
                    IsBuiltinOperatorOrConversion(method);
-        }
-
-        private static bool IsDelegateInvoke(IMethodSymbol method)
-        {
-            // Check if it's a delegate's Invoke method
-            // Considered potentially pure syntactically, runtime check needed for instance
-            return method.MethodKind == MethodKind.DelegateInvoke;
         }
 
         private static bool IsImplicitGetterOrInitSetter(IMethodSymbol method)
