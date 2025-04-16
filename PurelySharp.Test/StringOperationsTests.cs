@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
+using System.Text;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
     PurelySharp.PurelySharpAnalyzer>;
 
@@ -108,6 +109,99 @@ public class TestClass
     }
 }";
 
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task MethodWithStringBuilderAppend_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Text;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public void TestMethod(StringBuilder sb)
+    {
+        sb.Append(""hello""); // Modifying StringBuilder parameter is impure
+    }
+}";
+            var expected = VerifyCS.Diagnostic("PMA0001")
+                .WithSpan(13, 9, 13, 27)
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [Test]
+        public async Task MethodWithStringBuilderAppend_OnLocal_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Text;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public string TestMethod()
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.Append(""hello""); // Modifying local StringBuilder is impure
+        return sb.ToString();
+    }
+}";
+            var expected = VerifyCS.Diagnostic("PMA0001")
+                .WithSpan(14, 9, 14, 27)
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [Test]
+        public async Task PureMethodWithStringBuilderToString_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using System.Text;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public string TestMethod(StringBuilder sb)
+    {
+        return sb.ToString(); // ToString() is pure
+    }
+}";
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task PureMethodWithLocalStringBuilderToString_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using System.Text;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public string TestMethod()
+    {
+        StringBuilder sb = new StringBuilder(""initial"");
+        return sb.ToString(); // ToString() is pure
+    }
+}";
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }
