@@ -12,6 +12,7 @@ namespace PurelySharp
         private static readonly IPurityCheckStrategy builtinOperatorOrConversionPurityStrategy = new BuiltinOperatorOrConversionPurityStrategy();
         private static readonly IPurityCheckStrategy implicitGetterOrInitSetterPurityStrategy = new ImplicitGetterOrInitSetterPurityStrategy();
         private static readonly IPurityCheckStrategy knownPureListStrategy;
+        private static readonly IPurityCheckStrategy pureNamespaceOrLinqExtensionStrategy;
 
         // Methods that are known to be pure
         private static readonly HashSet<string> KnownPureMethods = new HashSet<string>
@@ -105,7 +106,7 @@ namespace PurelySharp
         static MethodPurityChecker()
         {
             knownPureListStrategy = new KnownPureListStrategy(KnownPureMethods);
-            // Initialize other strategies needing static data here in the future
+            pureNamespaceOrLinqExtensionStrategy = new PureNamespaceOrLinqExtensionStrategy(PureNamespaces);
         }
 
         public static bool IsKnownPureMethod(IMethodSymbol method)
@@ -118,7 +119,7 @@ namespace PurelySharp
                    delegateInvokePurityStrategy.IsPure(method) ||
                    implicitGetterOrInitSetterPurityStrategy.IsPure(method) ||
                    knownPureListStrategy.IsPure(method) ||
-                   IsInPureNamespaceOrLinqExtension(method) ||
+                   pureNamespaceOrLinqExtensionStrategy.IsPure(method) ||
                    IsStaticInterfaceMemberImplementationOrOverride(method) ||
                    builtinOperatorOrConversionPurityStrategy.IsPure(method);
         }
@@ -128,17 +129,6 @@ namespace PurelySharp
             // Check if it's a known pure method
             var fullName = method.ContainingType?.ToString() + "." + method.Name;
             return KnownPureMethods.Contains(fullName);
-        }
-
-        private static bool IsInPureNamespaceOrLinqExtension(IMethodSymbol method)
-        {
-            // Check if it's from a pure namespace like System.Linq or System.Collections.Immutable
-            var namespaceName = method.ContainingNamespace?.ToString() ?? string.Empty;
-            if (PureNamespaces.Any(ns => namespaceName.StartsWith(ns)))
-                return true;
-
-            // LINQ extension methods are pure
-            return method.IsExtensionMethod && namespaceName.StartsWith("System.Linq");
         }
 
         private static bool IsStaticInterfaceMemberImplementationOrOverride(IMethodSymbol method) // Renamed helper
