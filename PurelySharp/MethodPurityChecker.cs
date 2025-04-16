@@ -11,6 +11,7 @@ namespace PurelySharp
         private static readonly IPurityCheckStrategy delegateInvokePurityStrategy = new DelegateInvokePurityStrategy();
         private static readonly IPurityCheckStrategy builtinOperatorOrConversionPurityStrategy = new BuiltinOperatorOrConversionPurityStrategy();
         private static readonly IPurityCheckStrategy implicitGetterOrInitSetterPurityStrategy = new ImplicitGetterOrInitSetterPurityStrategy();
+        private static readonly IPurityCheckStrategy staticInterfaceMemberPurityStrategy = new StaticInterfaceMemberPurityStrategy();
         private static readonly IPurityCheckStrategy knownPureListStrategy;
         private static readonly IPurityCheckStrategy pureNamespaceOrLinqExtensionStrategy;
 
@@ -120,7 +121,7 @@ namespace PurelySharp
                    implicitGetterOrInitSetterPurityStrategy.IsPure(method) ||
                    knownPureListStrategy.IsPure(method) ||
                    pureNamespaceOrLinqExtensionStrategy.IsPure(method) ||
-                   IsStaticInterfaceMemberImplementationOrOverride(method) ||
+                   staticInterfaceMemberPurityStrategy.IsPure(method) ||
                    builtinOperatorOrConversionPurityStrategy.IsPure(method);
         }
 
@@ -129,38 +130,6 @@ namespace PurelySharp
             // Check if it's a known pure method
             var fullName = method.ContainingType?.ToString() + "." + method.Name;
             return KnownPureMethods.Contains(fullName);
-        }
-
-        private static bool IsStaticInterfaceMemberImplementationOrOverride(IMethodSymbol method) // Renamed helper
-        {
-            // Check for static virtual/abstract interface members (definition)
-            if (method.IsStatic &&
-                method.ContainingType?.TypeKind == TypeKind.Interface &&
-                (method.IsVirtual || method.IsAbstract))
-            {
-                // Static interface member definitions are considered pure *within the interface* context
-                return true;
-            }
-
-            // Check for implementations/overrides of static virtual/abstract interface members
-            // We consider the *implementation* potentially impure unless marked pure.
-            // The original logic returned false here, meaning it didn't classify it as known pure.
-            // Keeping original logic: if it's an override of static interface member, it's NOT known pure by default.
-            if (method.IsStatic && method.IsOverride)
-            {
-                var overriddenMethod = method.OverriddenMethod;
-                if (overriddenMethod != null &&
-                    overriddenMethod.ContainingType?.TypeKind == TypeKind.Interface &&
-                    (overriddenMethod.IsVirtual || overriddenMethod.IsAbstract)) // Check if overridden is static virt/abs
-                {
-                    // This method implements/overrides a static interface member.
-                    // We don't automatically consider it pure; requires attribute or further analysis.
-                    return false; // Explicitly not known pure based on this rule alone.
-                }
-            }
-
-            // If none of the above conditions related to static interface members apply, this rule doesn't make it pure.
-            return false;
         }
 
         public static bool IsKnownImpureMethod(IMethodSymbol methodSymbol)
