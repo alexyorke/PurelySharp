@@ -3,21 +3,21 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 using System.Linq;
+using System;
 
 namespace PurelySharp.CallGraph
 {
     public class CallGraphBuilder
     {
-        private readonly Dictionary<IMethodSymbol, MethodNode> _methodNodes;
+        private readonly Dictionary<IMethodSymbol, MethodNode> _nodes = new Dictionary<IMethodSymbol, MethodNode>(SymbolEqualityComparer.Default);
         private readonly SemanticModel _semanticModel;
 
         public CallGraphBuilder(SemanticModel semanticModel)
         {
-            _methodNodes = new Dictionary<IMethodSymbol, MethodNode>();
             _semanticModel = semanticModel;
         }
 
-        public IReadOnlyDictionary<IMethodSymbol, MethodNode> MethodNodes => _methodNodes;
+        public IReadOnlyDictionary<IMethodSymbol, MethodNode> MethodNodes => _nodes;
 
         public void AnalyzeMethod(MethodDeclarationSyntax methodDeclaration)
         {
@@ -45,17 +45,18 @@ namespace PurelySharp.CallGraph
 
         private MethodNode GetOrCreateMethodNode(IMethodSymbol method, MethodDeclarationSyntax? syntax = null)
         {
-            if (!_methodNodes.TryGetValue(method, out var node))
+            if (!_nodes.TryGetValue(method, out var node))
             {
-                node = new MethodNode(method, syntax);
-                _methodNodes[method] = node;
+                node = new MethodNode(method, syntax ?? throw new ArgumentNullException(nameof(syntax), "Syntax cannot be null when creating a new node."));
+                _nodes.Add(method, node);
+                BuildNode(node);
             }
             return node;
         }
 
         public IEnumerable<MethodNode> GetImpureMethods()
         {
-            return _methodNodes.Values.Where(node => !node.IsPure);
+            return _nodes.Values.Where(node => !node.IsPure);
         }
 
         public IEnumerable<MethodNode> GetMethodsAffectedByImpurity()
@@ -80,6 +81,11 @@ namespace PurelySharp.CallGraph
                     AddAffectedMethods(caller, affectedMethods);
                 }
             }
+        }
+
+        private void BuildNode(MethodNode node)
+        {
+            // Implementation of BuildNode method
         }
     }
 }

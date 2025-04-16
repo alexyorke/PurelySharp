@@ -33,11 +33,6 @@ namespace PurelySharp
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
-        private HashSet<INamedTypeSymbol>? _recordTypes;
-        private HashSet<IMethodSymbol>? _analyzedMethods;
-        private HashSet<IMethodSymbol>? _knownPureMethods;
-        private HashSet<IMethodSymbol>? _knownImpureMethods;
-
         // Analyzer Strategies (add more here later)
         private static readonly IPurityAnalyzerCheck dynamicOperationCheckStrategy = new DynamicOperationCheckStrategy();
         private static readonly IPurityAnalyzerCheck staticFieldAccessCheckStrategy = new StaticFieldAccessCheckStrategy(); // Add new strategy
@@ -52,36 +47,37 @@ namespace PurelySharp
             // Register the compilation start action
             context.RegisterCompilationStartAction(compilationContext =>
             {
-                _recordTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
-                _analyzedMethods = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
-                _knownPureMethods = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
-                _knownImpureMethods = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+                // Declare state within the compilation start action
+                var recordTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+                var analyzedMethods = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+                var knownPureMethods = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+                var knownImpureMethods = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
 
                 compilationContext.RegisterSyntaxNodeAction(
-                    c => AnalyzeMethodDeclaration(c),
+                    c => AnalyzeMethodDeclaration(c, recordTypes, analyzedMethods, knownPureMethods, knownImpureMethods), // Pass state
                     SyntaxKind.MethodDeclaration);
                 compilationContext.RegisterSyntaxNodeAction(
-                    c => AnalyzeOperatorDeclaration(c),
+                    c => AnalyzeOperatorDeclaration(c, recordTypes, analyzedMethods, knownPureMethods, knownImpureMethods), // Pass state
                     SyntaxKind.OperatorDeclaration);
                 compilationContext.RegisterSyntaxNodeAction(
-                    c => AnalyzeConversionOperatorDeclaration(c),
+                    c => AnalyzeConversionOperatorDeclaration(c, recordTypes, analyzedMethods, knownPureMethods, knownImpureMethods), // Pass state
                     SyntaxKind.ConversionOperatorDeclaration);
                 compilationContext.RegisterSyntaxNodeAction(
-                    c => AnalyzeConstructorDeclaration(c),
+                    c => AnalyzeConstructorDeclaration(c, recordTypes, analyzedMethods, knownPureMethods, knownImpureMethods), // Pass state
                     SyntaxKind.ConstructorDeclaration);
                 compilationContext.RegisterSymbolAction(
-                    c => AnalyzeNamedType(c),
+                    c => AnalyzeNamedType(c, recordTypes), // Pass state
                     SymbolKind.NamedType);
             });
         }
 
-        private void AnalyzeNamedType(SymbolAnalysisContext context)
+        private void AnalyzeNamedType(SymbolAnalysisContext context, HashSet<INamedTypeSymbol> recordTypes)
         {
             var typeSymbol = (INamedTypeSymbol)context.Symbol;
             // Record and record struct detection
             if (typeSymbol.IsRecord)
             {
-                _recordTypes?.Add(typeSymbol);
+                recordTypes?.Add(typeSymbol);
             }
             // Try to detect record structs through syntax analysis for older compiler versions
             else
@@ -97,7 +93,7 @@ namespace PurelySharp
                         // Check if this is a record struct
                         if (recordDecl.ToString().Contains("record struct"))
                         {
-                            _recordTypes?.Add(typeSymbol);
+                            recordTypes?.Add(typeSymbol);
                             break;
                         }
                     }
@@ -105,7 +101,7 @@ namespace PurelySharp
             }
         }
 
-        private void AnalyzeMethodDeclaration(SyntaxNodeAnalysisContext context)
+        private void AnalyzeMethodDeclaration(SyntaxNodeAnalysisContext context, HashSet<INamedTypeSymbol> recordTypes, HashSet<IMethodSymbol> analyzedMethods, HashSet<IMethodSymbol> knownPureMethods, HashSet<IMethodSymbol> knownImpureMethods)
         {
             var methodDeclaration = (MethodDeclarationSyntax)context.Node;
             var methodSymbol = context.SemanticModel.GetDeclaredSymbol(methodDeclaration);
@@ -160,7 +156,7 @@ namespace PurelySharp
                     var localFunc = methodDeclaration
                         .DescendantNodes()
                         .OfType<LocalFunctionStatementSyntax>()
-                        .FirstOrDefault(lf => context.SemanticModel.GetDeclaredSymbol(lf)?.Equals(symbol) == true);
+                        .FirstOrDefault(lf => SymbolEqualityComparer.Default.Equals(context.SemanticModel.GetDeclaredSymbol(lf), symbol)); // Use SymbolEqualityComparer
 
                     if (localFunc != null)
                     {
@@ -568,12 +564,12 @@ namespace PurelySharp
             var impurityDiagnostic = Diagnostic.Create(
                 Rule,
                 impurityLocation,
-                methodSymbol.Name);
+                methodSymbol?.Name ?? methodDeclaration.Identifier.ValueText); // Handle potentially null methodSymbol
 
             context.ReportDiagnostic(impurityDiagnostic);
         }
 
-        private void AnalyzeOperatorDeclaration(SyntaxNodeAnalysisContext context)
+        private void AnalyzeOperatorDeclaration(SyntaxNodeAnalysisContext context, HashSet<INamedTypeSymbol> recordTypes, HashSet<IMethodSymbol> analyzedMethods, HashSet<IMethodSymbol> knownPureMethods, HashSet<IMethodSymbol> knownImpureMethods)
         {
             var operatorDeclaration = (OperatorDeclarationSyntax)context.Node;
             var methodSymbol = context.SemanticModel.GetDeclaredSymbol(operatorDeclaration);
@@ -593,14 +589,14 @@ namespace PurelySharp
             {
                 var diagnostic = Diagnostic.Create(
                     Rule,
-                    impurityWalker.ImpurityLocation,
+                    impurityWalker.ImpurityLocation ?? operatorDeclaration.OperatorToken.GetLocation(), // Provide a fallback location
                     methodSymbol.Name);
 
                 context.ReportDiagnostic(diagnostic);
             }
         }
 
-        private void AnalyzeConversionOperatorDeclaration(SyntaxNodeAnalysisContext context)
+        private void AnalyzeConversionOperatorDeclaration(SyntaxNodeAnalysisContext context, HashSet<INamedTypeSymbol> recordTypes, HashSet<IMethodSymbol> analyzedMethods, HashSet<IMethodSymbol> knownPureMethods, HashSet<IMethodSymbol> knownImpureMethods)
         {
             var conversionDeclaration = (ConversionOperatorDeclarationSyntax)context.Node;
             var methodSymbol = context.SemanticModel.GetDeclaredSymbol(conversionDeclaration);
@@ -620,7 +616,7 @@ namespace PurelySharp
             {
                 var diagnostic = Diagnostic.Create(
                     Rule,
-                    impurityWalker.ImpurityLocation,
+                    impurityWalker.ImpurityLocation ?? conversionDeclaration.ImplicitOrExplicitKeyword.GetLocation(), // Use ImplicitOrExplicitKeyword
                     methodSymbol.Name);
 
                 context.ReportDiagnostic(diagnostic);
@@ -692,8 +688,8 @@ namespace PurelySharp
             // Look for any attribute with a name containing "Pure" or "EnforcePure"
             return methodSymbol.GetAttributes().Any(attr =>
                 attr.AttributeClass?.Name is "PureAttribute" or "Pure" or "EnforcePureAttribute" or "EnforcePure" ||
-                attr.AttributeClass?.ToDisplayString().Contains("PureAttribute") == true ||
-                attr.AttributeClass?.ToDisplayString().Contains("EnforcePure") == true);
+                (attr.AttributeClass != null && attr.AttributeClass.ToDisplayString().Contains("PureAttribute")) || // Null check added
+                (attr.AttributeClass != null && attr.AttributeClass.ToDisplayString().Contains("EnforcePure"))); // Null check added
         }
 
         private bool IsTriviallyPure(MethodDeclarationSyntax methodDeclaration)
@@ -799,43 +795,6 @@ namespace PurelySharp
             return false;
         }
 
-        private bool IsMutableType(ITypeSymbol type)
-        {
-            if (type is IArrayTypeSymbol)
-                return true;
-
-            if (type is INamedTypeSymbol namedType)
-            {
-                // Check if it's a known mutable collection type
-                var typeName = namedType.Name;
-                if (typeName is "List" or "Dictionary" or "HashSet" or "Queue" or "Stack" or "LinkedList" or "SortedList" or "SortedDictionary" or "SortedSet" or "ObservableCollection")
-                    return true;
-
-                // Check if it's a StringBuilder
-                if (typeName == "StringBuilder")
-                    return true;
-
-                // Check if it's a record type (records are immutable by default)
-                if (_recordTypes.Contains(namedType))
-                    return false;
-
-                // Check if it's a value type that's not readonly
-                if (type.IsValueType && !((INamedTypeSymbol)type).IsReadOnly)
-                    return true;
-
-                // Check if it has any mutable fields or properties
-                foreach (var member in namedType.GetMembers())
-                {
-                    if (member is IFieldSymbol field && !field.IsReadOnly && !field.IsConst)
-                        return true;
-                    if (member is IPropertySymbol property && property.SetMethod != null && !property.SetMethod.IsInitOnly)
-                        return true;
-                }
-            }
-
-            return false;
-        }
-
         private bool IsPureUsingStatement(UsingStatementSyntax usingStatement, SemanticModel semanticModel)
         {
             // Check if this is a simple using statement with a known pure disposable type
@@ -907,8 +866,8 @@ namespace PurelySharp
                 // Look for any attribute with a name containing "Pure" or "EnforcePure"
                 return methodSymbol.GetAttributes().Any(attr =>
                     attr.AttributeClass?.Name is "PureAttribute" or "Pure" or "EnforcePureAttribute" or "EnforcePure" ||
-                    attr.AttributeClass?.ToDisplayString().Contains("PureAttribute") == true ||
-                    attr.AttributeClass?.ToDisplayString().Contains("EnforcePure") == true);
+                    (attr.AttributeClass != null && attr.AttributeClass.ToDisplayString().Contains("PureAttribute")) || // Null check added
+                    (attr.AttributeClass != null && attr.AttributeClass.ToDisplayString().Contains("EnforcePure"))); // Null check added
             }
 
             public override void VisitIdentifierName(IdentifierNameSyntax node)
@@ -1267,7 +1226,7 @@ namespace PurelySharp
                                     var fieldAssignments = methodDecl.DescendantNodes()
                                         .OfType<AssignmentExpressionSyntax>()
                                         .Where(a => a.Left is IdentifierNameSyntax id &&
-                                               _semanticModel.GetSymbolInfo(id).Symbol?.Equals(fieldSymbol) == true);
+                                               SymbolEqualityComparer.Default.Equals(_semanticModel.GetSymbolInfo(id).Symbol, fieldSymbol)); // Use SymbolEqualityComparer
 
                                     if (fieldAssignments.Any())
                                     {
@@ -1671,11 +1630,11 @@ namespace PurelySharp
             return expression is InvocationExpressionSyntax ||
                    expression is ObjectCreationExpressionSyntax ||
                    expression is MemberAccessExpressionSyntax ||
-                   !ExpressionPurityChecker.IsExpressionPure(expression, semanticModel, null);
+                   !ExpressionPurityChecker.IsExpressionPure(expression, semanticModel, null); // Revert to passing null
         }
 
         // New method to analyze constructor declarations
-        private void AnalyzeConstructorDeclaration(SyntaxNodeAnalysisContext context)
+        private void AnalyzeConstructorDeclaration(SyntaxNodeAnalysisContext context, HashSet<INamedTypeSymbol> recordTypes, HashSet<IMethodSymbol> analyzedMethods, HashSet<IMethodSymbol> knownPureMethods, HashSet<IMethodSymbol> knownImpureMethods)
         {
             var constructorDeclaration = (ConstructorDeclarationSyntax)context.Node;
             var constructorSymbol = context.SemanticModel.GetDeclaredSymbol(constructorDeclaration);
@@ -1722,7 +1681,7 @@ namespace PurelySharp
                 if (baseConstructorSymbol != null && !HasEnforcePureAttribute(baseConstructorSymbol))
                 {
                     // Check if the base constructor is known to be impure
-                    bool isBaseImpure = IsMethodKnownImpure(baseConstructorSymbol, context.SemanticModel);
+                    bool isBaseImpure = IsMethodKnownImpure(baseConstructorSymbol, context.SemanticModel, knownPureMethods, knownImpureMethods); // Pass state
 
                     if (isBaseImpure)
                     {
@@ -1977,7 +1936,8 @@ namespace PurelySharp
                     }
 
                     // If method is from another assembly and not explicitly marked as pure
-                    if (methodSymbol.ContainingAssembly != _constructorSymbol.ContainingAssembly &&
+                    if (methodSymbol.ContainingAssembly != null && _constructorSymbol.ContainingAssembly != null &&
+                        !SymbolEqualityComparer.Default.Equals(methodSymbol.ContainingAssembly, _constructorSymbol.ContainingAssembly) && // Use comparer
                         !HasEnforcePureAttribute(methodSymbol))
                     {
                         _containsImpureOperations = true;
@@ -1986,7 +1946,8 @@ namespace PurelySharp
                     }
 
                     // For methods in the same assembly, check if they're impure
-                    if (methodSymbol.ContainingAssembly == _constructorSymbol.ContainingAssembly)
+                    if (methodSymbol.ContainingAssembly != null && _constructorSymbol.ContainingAssembly != null &&
+                        SymbolEqualityComparer.Default.Equals(methodSymbol.ContainingAssembly, _constructorSymbol.ContainingAssembly)) // Use comparer
                     {
                         // Check method declarations for impurity
                         if (methodSymbol.DeclaringSyntaxReferences.Length > 0)
@@ -2058,8 +2019,8 @@ namespace PurelySharp
                 // Look for any attribute with a name containing "Pure" or "EnforcePure"
                 return methodSymbol.GetAttributes().Any(attr =>
                     attr.AttributeClass?.Name is "PureAttribute" or "Pure" or "EnforcePureAttribute" or "EnforcePure" ||
-                    attr.AttributeClass?.ToDisplayString().Contains("PureAttribute") == true ||
-                    attr.AttributeClass?.ToDisplayString().Contains("EnforcePure") == true);
+                    (attr.AttributeClass != null && attr.AttributeClass.ToDisplayString().Contains("PureAttribute")) || // Null check added
+                    (attr.AttributeClass != null && attr.AttributeClass.ToDisplayString().Contains("EnforcePure"))); // Null check added
             }
 
             private bool IsCollectionType(ITypeSymbol type)
@@ -2111,13 +2072,13 @@ namespace PurelySharp
             }
         }
 
-        private bool IsMethodKnownImpure(IMethodSymbol methodSymbol, SemanticModel semanticModel)
+        private bool IsMethodKnownImpure(IMethodSymbol methodSymbol, SemanticModel semanticModel, HashSet<IMethodSymbol> knownPureMethods, HashSet<IMethodSymbol> knownImpureMethods)
         {
             // First check if we've already analyzed this method
-            if (_knownImpureMethods.Contains(methodSymbol))
+            if (knownImpureMethods.Contains(methodSymbol))
                 return true;
 
-            if (_knownPureMethods.Contains(methodSymbol))
+            if (knownPureMethods.Contains(methodSymbol))
                 return false;
 
             // Check if it's a special method like a constructor with IO operations
@@ -2138,7 +2099,7 @@ namespace PurelySharp
                                 if (memberAccess.Expression is IdentifierNameSyntax identifier &&
                                     identifier.Identifier.Text == "Console")
                                 {
-                                    _knownImpureMethods.Add(methodSymbol);
+                                    knownImpureMethods.Add(methodSymbol);
                                     return true;
                                 }
 
@@ -2146,7 +2107,7 @@ namespace PurelySharp
                                 var invokedMethod = semanticModel.GetSymbolInfo(invocation).Symbol as IMethodSymbol;
                                 if (invokedMethod != null && IsImpureMethodCall(invokedMethod, semanticModel))
                                 {
-                                    _knownImpureMethods.Add(methodSymbol);
+                                    knownImpureMethods.Add(methodSymbol);
                                     return true;
                                 }
                             }
@@ -2161,7 +2122,7 @@ namespace PurelySharp
                                 var symbol = semanticModel.GetSymbolInfo(identName).Symbol;
                                 if (symbol is IFieldSymbol fieldSymbol && fieldSymbol.IsStatic)
                                 {
-                                    _knownImpureMethods.Add(methodSymbol);
+                                    knownImpureMethods.Add(methodSymbol);
                                     return true;
                                 }
                             }
@@ -2170,7 +2131,7 @@ namespace PurelySharp
                                 var symbol = semanticModel.GetSymbolInfo(memberAccessExpr).Symbol;
                                 if (symbol is IFieldSymbol fieldSymbol && fieldSymbol.IsStatic)
                                 {
-                                    _knownImpureMethods.Add(methodSymbol);
+                                    knownImpureMethods.Add(methodSymbol);
                                     return true;
                                 }
                             }
@@ -2185,12 +2146,12 @@ namespace PurelySharp
                 methodSymbol.ContainingNamespace?.ToString().Contains("System.Data.SqlClient") == true ||
                 methodSymbol.ContainingNamespace?.ToString().Contains("System.Console") == true)
             {
-                _knownImpureMethods.Add(methodSymbol);
+                knownImpureMethods.Add(methodSymbol);
                 return true;
             }
 
             // Method doesn't have obvious signs of impurity
-            _knownPureMethods.Add(methodSymbol);
+            knownPureMethods.Add(methodSymbol);
             return false;
         }
     }

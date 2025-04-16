@@ -13,9 +13,11 @@ namespace PurelySharp.AnalyzerStrategies
     {
         public CheckPurityResult Check(CSharpSyntaxNode node, SyntaxNodeAnalysisContext context)
         {
-            var methodSymbol = context.SemanticModel.GetDeclaredSymbol(node);
-            if (methodSymbol == null) return CheckPurityResult.Pass; // Should not happen if called correctly
+            Location? impurityLocation = null;
+            string reason = string.Empty;
+            bool isImpure = false;
 
+            // Find all identifier names within the node
             foreach (var identifier in node.DescendantNodes().OfType<IdentifierNameSyntax>())
             {
                 var symbolInfo = context.SemanticModel.GetSymbolInfo(identifier);
@@ -28,13 +30,22 @@ namespace PurelySharp.AnalyzerStrategies
 
                     if (isStaticNonConst || isVolatile)
                     {
-                        string reason = isVolatile ? "Access to volatile field" : "Access to static non-const field";
-                        return CheckPurityResult.Fail(identifier.GetLocation(), reason);
+                        isImpure = true;
+                        impurityLocation = identifier.GetLocation();
+                        reason = isVolatile ? "Access to volatile field" : "Access to static non-const field";
+                        break; // Found impurity, no need to check further
                     }
                 }
             }
 
-            return CheckPurityResult.Pass;
+            if (isImpure)
+            {
+                return CheckPurityResult.Fail(impurityLocation ?? node.GetLocation(), reason);
+            }
+            else
+            {
+                return CheckPurityResult.Pass;
+            }
         }
     }
 } 

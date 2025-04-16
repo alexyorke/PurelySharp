@@ -2,12 +2,13 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace PurelySharp
 {
     public static class ExpressionPurityChecker
     {
-        public static bool IsExpressionPure(ExpressionSyntax expression, SemanticModel semanticModel, IMethodSymbol currentMethod)
+        public static bool IsExpressionPure(ExpressionSyntax expression, SemanticModel semanticModel, IMethodSymbol? currentMethod)
         {
             // If we're dealing with a null expression, consider it pure
             if (expression == null)
@@ -153,7 +154,7 @@ namespace PurelySharp
                         if (!fieldSymbol.IsReadOnly && !fieldSymbol.IsConst)
                         {
                             // If we're in a parent method, we need to check if the field is accessed in a mutable way
-                            if (currentMethod != null && fieldSymbol.ContainingType.Equals(currentMethod.ContainingType, SymbolEqualityComparer.Default))
+                            if (currentMethod != null && SymbolEqualityComparer.Default.Equals(fieldSymbol.ContainingType, currentMethod.ContainingType))
                             {
                                 // If we're just reading the field (the member access is not on the left side of an assignment),
                                 // then this is a pure operation
@@ -725,6 +726,41 @@ namespace PurelySharp
             return typeSymbol.GetAttributes().Any(attr =>
                 attr.AttributeClass?.Name == "InlineArrayAttribute" ||
                 attr.AttributeClass?.ToDisplayString().Contains("InlineArray") == true);
+        }
+
+        // Helper to check delegate purity based on the symbol holding the delegate
+        private static bool IsDelegateSymbolPure(ISymbol delegateHolderSymbol, ExpressionSyntax expressionSyntax, SemanticModel semanticModel, HashSet<IMethodSymbol> visitedMethods)
+        {
+            // Check if the holder itself is immutable (e.g., readonly field)
+            if (delegateHolderSymbol is IFieldSymbol fieldSymbol && !fieldSymbol.IsReadOnly && !fieldSymbol.IsConst)
+            {
+                // If a mutable field holds the delegate, assume impure
+                return false;
+            }
+            if (delegateHolderSymbol is IPropertySymbol propertySymbol && propertySymbol.SetMethod != null)
+            {
+                // If a property with a setter holds the delegate, assume impure
+                return false;
+            }
+
+            // Try to determine the target of the delegate if possible
+            // This is complex; for now, let's assume purity if the holder is immutable
+            // A more sophisticated analysis would trace the delegate's assignment
+
+            // Example: If the delegate is assigned a lambda or method group, check its purity
+            var dataFlow = semanticModel.AnalyzeDataFlow(expressionSyntax);
+            if (dataFlow != null && dataFlow.Succeeded && dataFlow.DataFlowsIn.Length > 0)
+            {
+                // Simplified: If we can track a single flow-in, analyze it
+                // This part needs significant expansion for real-world scenarios
+            }
+
+            // Conservative default: If holder is immutable, assume delegate invocation might be pure
+            // We rely on the analysis of the invoked method symbol (if available)
+            // Or, if the holder is a parameter, assume purity (caller's responsibility)
+            return delegateHolderSymbol is IParameterSymbol || 
+                   (delegateHolderSymbol is IFieldSymbol fs && (fs.IsReadOnly || fs.IsConst)) ||
+                   (delegateHolderSymbol is IPropertySymbol ps && ps.SetMethod == null);
         }
     }
 }
