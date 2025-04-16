@@ -4,6 +4,10 @@ using NUnit.Framework;
 using System.Threading.Tasks;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
     PurelySharp.PurelySharpAnalyzer>;
+using System.IO.Compression;
+using System.Linq;
+using System.Text;
+using System.Xml.Linq;
 
 namespace PurelySharp.Test
 {
@@ -873,6 +877,144 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
+
+        // --- System.IO.Compression Tests ---
+        // TODO: Enable tests once analyzer correctly identifies stream I/O as impure
+
+        /*
+        [Test]
+        public async Task GZipStream_Write_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using System.IO;
+using System.IO.Compression;
+using System.Text;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public void TestMethod(Stream outputStream, string data)
+    {
+        using (var gzipStream = new GZipStream(outputStream, CompressionMode.Compress)) // Impure: Stream interaction
+        {
+            byte[] bytes = Encoding.UTF8.GetBytes(data);
+            gzipStream.Write(bytes, 0, bytes.Length); // Impure: Writes to stream
+        }
+    }
+}";
+            // Expect diagnostic on GZipStream constructor or Write
+            var expected = VerifyCS.Diagnostic("PMA0001").WithSpan(15, 34, 15, 86).WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [Test]
+        public async Task ZipArchive_CreateEntry_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using System.IO;
+using System.IO.Compression;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public void TestMethod(Stream outputStream)
+    {
+        using (var archive = new ZipArchive(outputStream, ZipArchiveMode.Create)) // Impure: Stream interaction
+        {
+            archive.CreateEntry(""entry.txt""); // Impure: Modifies archive (stream)
+        }
+    }
+}";
+            // Expect diagnostic on ZipArchive constructor or CreateEntry
+            var expected = VerifyCS.Diagnostic("PMA0001").WithSpan(14, 28, 14, 80).WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+        */
+
+        // --- XDocument Load/Save Tests ---
+        // TODO: Enable tests once analyzer correctly identifies file/stream I/O as impure
+
+        /*
+        [Test]
+        public async Task XDocument_Load_File_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using System.Xml.Linq;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public XDocument TestMethod(string filePath)
+    {
+        return XDocument.Load(filePath); // Impure: File I/O
+    }
+}";
+            var expected = VerifyCS.Diagnostic("PMA0001").WithSpan(13, 16, 13, 39).WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [Test]
+        public async Task XDocument_Save_File_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using System.Xml.Linq;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public void TestMethod(XDocument doc, string filePath)
+    {
+        doc.Save(filePath); // Impure: File I/O
+    }
+}";
+            var expected = VerifyCS.Diagnostic("PMA0001").WithSpan(13, 9, 13, 26).WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [Test]
+        public async Task XDocument_Load_Stream_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using System.IO;
+using System.Xml.Linq;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public XDocument TestMethod(Stream stream)
+    {
+        return XDocument.Load(stream); // Impure: Stream I/O
+    }
+}";
+            var expected = VerifyCS.Diagnostic("PMA0001").WithSpan(14, 16, 14, 37).WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+        */
     }
 }
 
