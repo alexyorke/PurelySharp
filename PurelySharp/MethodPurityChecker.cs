@@ -6,7 +6,7 @@ namespace PurelySharp
 {
     public static class MethodPurityChecker
     {
-        // Instantiate the strategies
+        // Purity Strategies Instances
         private static readonly IPurityCheckStrategy attributePurityStrategy = new AttributePurityStrategy();
         private static readonly IPurityCheckStrategy delegateInvokePurityStrategy = new DelegateInvokePurityStrategy();
         private static readonly IPurityCheckStrategy builtinOperatorOrConversionPurityStrategy = new BuiltinOperatorOrConversionPurityStrategy();
@@ -15,13 +15,17 @@ namespace PurelySharp
         private static readonly IPurityCheckStrategy knownPureListStrategy;
         private static readonly IPurityCheckStrategy pureNamespaceOrLinqExtensionStrategy;
 
-        // Impurity Strategies
+        // Impurity Strategies Instances
         private static readonly IImpurityCheckStrategy knownImpureListImpurityStrategy;
         private static readonly IImpurityCheckStrategy impureTypeImpurityStrategy;
         private static readonly IImpurityCheckStrategy propertySetterImpurityStrategy = new PropertySetterImpurityStrategy();
         private static readonly IImpurityCheckStrategy asyncImpurityStrategy = new AsyncImpurityStrategy();
         private static readonly IImpurityCheckStrategy enumTryParsePurityOverrideStrategy = new EnumTryParsePurityOverrideStrategy();
         private static readonly IImpurityCheckStrategy refOutParameterImpurityStrategy = new RefOutParameterImpurityStrategy();
+
+        // Strategy Lists
+        private static readonly List<IPurityCheckStrategy> _purityStrategies;
+        private static readonly List<IImpurityCheckStrategy> _standardImpurityStrategies; // Excludes EnumTryParse override
 
         // Methods that are known to be pure
         private static readonly HashSet<string> KnownPureMethods = new HashSet<string>
@@ -111,13 +115,36 @@ namespace PurelySharp
             "System.Collections.Immutable"
         };
 
-        // Static constructor to initialize strategies that need static data
+        // Static constructor to initialize strategies and lists
         static MethodPurityChecker()
         {
+            // Initialize strategies requiring static data
             knownPureListStrategy = new KnownPureListStrategy(KnownPureMethods);
             pureNamespaceOrLinqExtensionStrategy = new PureNamespaceOrLinqExtensionStrategy(PureNamespaces);
             knownImpureListImpurityStrategy = new KnownImpureListImpurityStrategy(KnownImpureMethods);
             impureTypeImpurityStrategy = new ImpureTypeImpurityStrategy(ImpureTypes);
+
+            // Populate Purity Strategy List
+            _purityStrategies = new List<IPurityCheckStrategy>
+            {
+                attributePurityStrategy,
+                delegateInvokePurityStrategy,
+                implicitGetterOrInitSetterPurityStrategy,
+                knownPureListStrategy,
+                pureNamespaceOrLinqExtensionStrategy,
+                staticInterfaceMemberPurityStrategy,
+                builtinOperatorOrConversionPurityStrategy
+            };
+
+            // Populate Standard Impurity Strategy List
+            _standardImpurityStrategies = new List<IImpurityCheckStrategy>
+            {
+                knownImpureListImpurityStrategy,
+                impureTypeImpurityStrategy,
+                propertySetterImpurityStrategy,
+                asyncImpurityStrategy,
+                refOutParameterImpurityStrategy
+            };
         }
 
         public static bool IsKnownPureMethod(IMethodSymbol method)
@@ -125,14 +152,8 @@ namespace PurelySharp
             if (method == null)
                 return false;
 
-            // Use the strategies
-            return attributePurityStrategy.IsPure(method) ||
-                   delegateInvokePurityStrategy.IsPure(method) ||
-                   implicitGetterOrInitSetterPurityStrategy.IsPure(method) ||
-                   knownPureListStrategy.IsPure(method) ||
-                   pureNamespaceOrLinqExtensionStrategy.IsPure(method) ||
-                   staticInterfaceMemberPurityStrategy.IsPure(method) ||
-                   builtinOperatorOrConversionPurityStrategy.IsPure(method);
+            // Check if any purity strategy identifies the method as pure
+            return _purityStrategies.Any(strategy => strategy.IsPure(method));
         }
 
         private static bool IsInKnownPureList(IMethodSymbol method)
@@ -153,18 +174,8 @@ namespace PurelySharp
                 return false; // Special case: Enum.TryParse is NOT considered impure by these rules.
             }
 
-            // Check standard impurity conditions
-            if (knownImpureListImpurityStrategy.IsImpure(methodSymbol) ||
-                impureTypeImpurityStrategy.IsImpure(methodSymbol) ||
-                propertySetterImpurityStrategy.IsImpure(methodSymbol) ||
-                asyncImpurityStrategy.IsImpure(methodSymbol) ||
-                refOutParameterImpurityStrategy.IsImpure(methodSymbol))
-            {
-                return true;
-            }
-
-            // No impurity conditions met
-            return false;
+            // Check if any standard impurity strategy identifies the method as impure
+            return _standardImpurityStrategies.Any(strategy => strategy.IsImpure(methodSymbol));
         }
 
         private static bool HasEnforcePureAttribute(IMethodSymbol methodSymbol)
