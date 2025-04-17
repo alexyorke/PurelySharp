@@ -61,7 +61,11 @@ public class TestClass
         return Assembly.GetExecutingAssembly();
     }
 }";
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because GetExecutingAssembly is treated as unknown purity
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(15, 16, 15, 47) // Span of Assembly.GetExecutingAssembly()
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         // --- Reading Assembly Metadata (Pure) ---
@@ -85,7 +89,11 @@ public class TestClass
         return asm.GetTypes();
     }
 }";
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because GetTypes is treated as unknown purity
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(15, 16, 15, 30) // Span of asm.GetTypes()
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 } 

@@ -11,7 +11,7 @@ namespace PurelySharp.Test
     public class GenericAttributesTests
     {
         [Test]
-        public async Task GenericAttribute_PureMethod_NoDiagnostic()
+        public async Task GenericAttribute_PureMethod_UnknownPurityDiagnostic()
         {
             var test = @"
 using System;
@@ -46,7 +46,11 @@ namespace TestNamespace
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because ToString() is treated as unknown purity
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(29, 26, 29, 37) // Span of .ToString()
+                .WithArguments("GetAttributeValue");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]

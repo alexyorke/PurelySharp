@@ -79,7 +79,7 @@ public class TestClass
 
         // --- Configuration Tests ---
         [Test]
-        public async Task PureMethod_ReadConfiguration_NoDiagnostic()
+        public async Task PureMethod_ReadConfiguration_UnknownPurityDiagnostic()
         {
             var test = @"
 #nullable enable
@@ -116,7 +116,11 @@ public class TestClass
         return config.GetSection(""MyKey"").Value; // Pure read
     }
 }";
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because IConfiguration.GetSection is treated as unknown purity
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(33, 16, 33, 42) // Span of config.GetSection("MyKey")
+                .WithArguments("ReadConfigGetSection");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         // --- ASP.NET Core Minimal APIs / Middleware (Commented Out) ---

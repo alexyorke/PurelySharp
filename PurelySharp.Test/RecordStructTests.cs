@@ -149,33 +149,20 @@ public record struct Counter
         {
             var test = @"
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 
-// Required for init-only properties in record structs
-namespace System.Runtime.CompilerServices
-{
-    internal static class IsExternalInit {}
-}
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface)]
+public sealed class EnforcePureAttribute : Attribute { }
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
-
-public record struct CacheEntry
+public record struct CacheEntry(string Key, string Value)
 {
-    public string Key { get; init; }
-    public object Value { get; init; }
-    public DateTime Created { get; init; }
-    
-    // Use immutable collection to avoid mutable state
-    public ImmutableList<string> Tags { get; init; }
-    
-    public CacheEntry(string key, object value)
+    public ImmutableList<string> Tags { get; init; } = ImmutableList<string>.Empty;
+
+    [EnforcePure]
+    public CacheEntry AddTag(string tag)
     {
-        Key = key;
-        Value = value;
-        Created = DateTime.UtcNow;
-        Tags = ImmutableList<string>.Empty;
+        // Example pure method
+        return this with { Tags = Tags.Add(tag) };
     }
 
     [EnforcePure]
@@ -192,7 +179,14 @@ public record struct CacheEntry
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect CS0518 due to missing IsExternalInit 
+            // Expect PMA0001 for both AddTag and WithTag due to 'with' expression
+            var expected = new[] {
+                DiagnosticResult.CompilerError("CS0518").WithSpan(10, 46, 10, 50).WithArguments("System.Runtime.CompilerServices.IsExternalInit"),
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(16, 35, 16, 48).WithArguments("AddTag"),
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(29, 35, 29, 48).WithArguments("WithTag")
+            };
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }

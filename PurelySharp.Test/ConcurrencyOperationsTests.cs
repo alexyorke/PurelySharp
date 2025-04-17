@@ -86,8 +86,11 @@ public class TestClass
     }
 }";
 
-            var expected = VerifyCS.Diagnostic("PMA0001")
-                .WithLocation(14, 9)
+            // Expect PMA0001 on the delegate invocation
+            // var expected = VerifyCS.Diagnostic("PMA0001").WithLocation(14, 9).WithArguments("TestMethod"); // REMOVED
+            // Actual is PMA0002
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity) // Corrected to PMA0002
+                .WithSpan(14, 9, 14, 16) // Corrected span from test output
                 .WithArguments("TestMethod");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);

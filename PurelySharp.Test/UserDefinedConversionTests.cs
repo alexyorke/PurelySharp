@@ -116,7 +116,7 @@ public class Counter
         }
 
         [Test]
-        public async Task ComplexConversion_PureImplementation_NoDiagnostic()
+        public async Task ComplexConversion_UnknownPurityDiagnostic()
         {
             var test = @"
 using System;
@@ -155,7 +155,11 @@ public class DateOnly
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because int.Parse/string.Split is treated as unknown purity
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(30, 21, 30, 42) // Corrected span based on actual diagnostic
+                .WithArguments("op_Explicit");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }

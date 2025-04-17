@@ -182,8 +182,11 @@ public class FileManager
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test,
-                VerifyCS.Diagnostic().WithSpan(17, 9, 17, 47).WithArguments("WriteToFile"));
+            var expected = new[] {
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(17, 9, 17, 47).WithArguments("WriteToFile"),
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity).WithSpan(24, 16, 24, 39).WithArguments("ReadCurrentTime")
+            };
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }

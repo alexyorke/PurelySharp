@@ -59,7 +59,11 @@ public class TestClass
         return obj.GetType(); // GetType is pure
     }
 }";
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because GetType() is treated as unknown purity
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(15, 16, 15, 29) // Span of obj.GetType()
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]

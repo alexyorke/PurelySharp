@@ -50,8 +50,11 @@ class Program
         return await Task.FromResult(42);
     }
 }";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because Task.FromResult is treated as unknown purity
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(13, 22, 13, 41) // Span from test error output
+                .WithArguments("PureMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -95,7 +98,7 @@ class Program
     }
 }";
 
-            var expected = VerifyCS.Diagnostic().WithLocation(13, 9).WithArguments("ImpureMethod");
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithLocation(13, 9).WithArguments("ImpureMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
@@ -119,8 +122,11 @@ class Program
         return await Task.FromResult(42);
     }
 }";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because Task.FromResult is treated as unknown purity
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(15, 22, 15, 41) // Span from test error output
+                .WithArguments("PureMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]

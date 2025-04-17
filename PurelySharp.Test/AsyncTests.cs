@@ -12,7 +12,7 @@ namespace PurelySharp.Test
     public class AsyncTests
     {
         [Test]
-        public async Task PureAsyncMethod_NoDiagnostic()
+        public async Task PureAsyncMethod_UnknownPurityDiagnostic()
         {
             var test = @"
 using System;
@@ -30,7 +30,10 @@ class Program
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(13, 22, 13, 41)
+                .WithArguments("PureAsyncMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -55,7 +58,7 @@ class Program
     }
 }";
 
-            var expected = VerifyCS.Diagnostic().WithSpan(15, 9, 15, 19).WithArguments("ImpureAsyncMethod");
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(15, 9, 15, 19).WithArguments("ImpureAsyncMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
@@ -80,7 +83,7 @@ class Program
     }
 }";
 
-            var expected = VerifyCS.Diagnostic().WithSpan(14, 9, 14, 30).WithArguments("ImpureAsyncMethod");
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(14, 9, 14, 30).WithArguments("ImpureAsyncMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }

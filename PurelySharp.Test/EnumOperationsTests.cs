@@ -11,7 +11,7 @@ namespace PurelySharp.Test
     public class EnumOperationsTests
     {
         [Test]
-        public async Task EnumValueAccess_NoDiagnostic()
+        public async Task EnumValueAccess_UnknownPurityDiagnostic()
         {
             var test = @"
 using System;
@@ -35,7 +35,10 @@ public class TestClass
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(19, 16, 19, 32)
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -96,7 +99,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task EnumParsing_NoDiagnostic()
+        public async Task EnumParsing_UnknownPurityDiagnostic()
         {
             var test = @"
 using System;
@@ -124,11 +127,14 @@ public class TestClass
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(21, 13, 21, 68)
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
-        public async Task EnumFlagOperations_NoDiagnostic()
+        public async Task EnumFlagOperations_UnknownPurityDiagnostic()
         {
             var test = @"
 using System;
@@ -155,11 +161,14 @@ public class TestClass
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(22, 16, 22, 60)
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
-        public async Task EnumWithAttributes_NoDiagnostic()
+        public async Task EnumWithAttributes_UnknownPurityDiagnostic()
         {
             var test = @"
 using System;
@@ -193,7 +202,10 @@ public class TestClass
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(25, 48, 25, 63)
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }

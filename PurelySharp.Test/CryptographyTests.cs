@@ -15,7 +15,7 @@ namespace PurelySharp.Test
         // --- Hashing (Pure) ---
 
         [Test]
-        public async Task HashAlgorithm_ComputeHash_NoDiagnostic()
+        public async Task HashAlgorithm_ComputeHash_UnknownPurityDiagnostic()
         {
             // Hashing is generally pure (deterministic output for given input)
             var test = @"
@@ -39,7 +39,10 @@ public class TestClass
         }
     }
 }";
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(15, 29, 15, 44)
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         // --- Random Number Generation (Impure) ---
@@ -75,7 +78,7 @@ public class TestClass
         // Create methods themselves are pure, but using them often involves state/keys
 
         [Test]
-        public async Task Aes_Create_NoDiagnostic()
+        public async Task Aes_Create_UnknownPurityDiagnostic()
         {
             var test = @"
 #nullable enable
@@ -93,11 +96,14 @@ public class TestClass
         return Aes.Create(); // Pure: Factory method
     }
 }";
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(14, 16, 14, 28)
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
-        public async Task RSA_Create_NoDiagnostic()
+        public async Task RSA_Create_UnknownPurityDiagnostic()
         {
             var test = @"
 #nullable enable
@@ -115,7 +121,10 @@ public class TestClass
         return RSA.Create(); // Pure: Factory method
     }
 }";
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(14, 16, 14, 28)
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         // TODO: Add tests for Encrypt/Decrypt methods once state/IO handling is refined

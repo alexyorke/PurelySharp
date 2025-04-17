@@ -141,7 +141,7 @@ class Program
         }
     }
 }";
-            var expected = VerifyCS.Diagnostic().WithSpan(20, 13, 20, 21).WithArguments("ImpureMethodWithLock");
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(20, 13, 20, 21).WithArguments("ImpureMethodWithLock");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
@@ -173,8 +173,8 @@ class Program
     }
 }";
 
-            // The diagnostic is for the impure method itself, not the field increment
-            var expected = VerifyCS.Diagnostic().WithSpan(18, 9, 18, 13).WithArguments("ImpureMethodWithNonReadonlyLock");
+            // Locking on a non-readonly field
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(18, 9, 18, 13).WithArguments("ImpureMethodWithNonReadonlyLock"); // Adjusted span based on test output
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }

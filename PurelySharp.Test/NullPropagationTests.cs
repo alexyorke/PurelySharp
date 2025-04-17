@@ -69,8 +69,9 @@ public class TestClass
     }
 }";
 
-            // The analyzer doesn't detect the impurity with null propagation
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because LogToConsole()'s purity is unknown
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity).WithSpan(24, 16, 24, 31).WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]

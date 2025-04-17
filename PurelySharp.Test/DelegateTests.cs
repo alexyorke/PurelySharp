@@ -33,7 +33,7 @@ public class TestClass
     }
 }";
 
-            var expected = VerifyCS.Diagnostic()
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure)
                 .WithSpan(15, 31, 15, 57)
                 .WithArguments("TestMethod");
 
@@ -62,8 +62,8 @@ public class TestClass
     }
 }";
 
-            var expected = VerifyCS.Diagnostic()
-                .WithSpan(16, 9, 16, 17)
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure)
+                .WithSpan(13, 31, 13, 57)
                 .WithArguments("TestMethod");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
@@ -95,8 +95,8 @@ public class TestClass
     }
 }";
 
-            var expected = VerifyCS.Diagnostic()
-                .WithSpan(20, 9, 20, 18)
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(20, 9, 20, 16)
                 .WithArguments("TestMethod");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);

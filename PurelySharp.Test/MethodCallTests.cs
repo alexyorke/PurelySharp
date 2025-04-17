@@ -62,8 +62,11 @@ public class TestClass
     }
 }";
 
-            // Currently the analyzer doesn't detect calls to impure methods
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because ImpureHelperMethod lacks [EnforcePure]
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(18, 9, 18, 29) // Span of ImpureHelperMethod()
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -92,8 +95,9 @@ public class TestClass
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test,
-                VerifyCS.Diagnostic().WithSpan(20, 9, 20, 34).WithArguments("TestMethod"));
+            // The analyzer detects the Console.WriteLine in the impure method
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(20, 9, 20, 34).WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }

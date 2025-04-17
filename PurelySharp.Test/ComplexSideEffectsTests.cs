@@ -49,7 +49,7 @@ public class TestClass
     }
 }";
 
-            var expected = VerifyCS.Diagnostic().WithSpan(25, 17, 25, 24).WithArguments("TestMethod");
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(25, 17, 25, 24).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
@@ -86,7 +86,7 @@ public class TestClass
     }
 }";
 
-            var expected = VerifyCS.Diagnostic().WithSpan(25, 19, 25, 21).WithArguments("TestMethod");
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(25, 19, 25, 21).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
@@ -128,7 +128,7 @@ public class TestClass
 }";
 
             // Instead of expecting no diagnostics, we'll expect one at the location of the side effect
-            var expected = VerifyCS.Diagnostic().WithSpan(27, 13, 27, 35).WithArguments("TestMethod");
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(27, 13, 27, 35).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }

@@ -28,7 +28,7 @@ public class TestClass
     }
 }";
 
-            var expected = VerifyCS.Diagnostic().WithSpan(12, 16, 12, 35).WithArguments("TestMethod");
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(12, 16, 12, 35).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }

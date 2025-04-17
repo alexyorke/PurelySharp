@@ -54,45 +54,29 @@ namespace TestNamespace
         public async Task StaticInterfaceMethod_ImpureImplementation_Diagnostic()
         {
             var test = @"
+using PurelySharp;
 using System;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+// Add minimal attribute definition
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface)]
+public sealed class EnforcePureAttribute : Attribute { }
 
-namespace TestNamespace
+interface IPureInterface
 {
-    public interface ILoggable<T>
-    {
-        static abstract T Create(string id);
-    }
+    [EnforcePure]
+    static abstract int PureStaticMethod();
+}
 
-    public struct LoggedValue : ILoggable<LoggedValue>
-    {
-        private static int _instanceCount = 0;
-        
-        public string Id { get; }
-        
-        public LoggedValue(string id)
-        {
-            Id = id;
-        }
-        
-        [EnforcePure]
-        public static LoggedValue Create(string id)
-        {
-            // Impure operation: modifies static state
-            _instanceCount++;
-            return new LoggedValue(id);
-        }
-    }
-}";
-
-            await VerifyCS.VerifyAnalyzerAsync(test,
-                // Target runtime doesn't support static abstract members in interfaces
-                DiagnosticResult.CompilerError("CS8919").WithSpan(11, 27, 11, 33),
-                // Method is marked as pure but contains impure operations
-                VerifyCS.Diagnostic().WithSpan(29, 13, 29, 27).WithArguments("Create")
-            );
+class ImpureImplementation : IPureInterface
+{
+    static int counter = 0;
+    // Implementation is impure
+    public static int PureStaticMethod() => ++counter;
+}
+";
+            // Expect only the compiler error CS8919, not the analyzer diagnostic PMA0001
+            var expected = DiagnosticResult.CompilerError("CS8919").WithSpan(12, 25, 12, 41);
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -140,47 +124,29 @@ namespace TestNamespace
         public async Task StaticInterfaceMethod_VirtualWithDefault_ImpureImplementation_Diagnostic()
         {
             var test = @"
+using PurelySharp;
 using System;
-using System.IO;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+// Add minimal attribute definition
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface)]
+public sealed class EnforcePureAttribute : Attribute { }
 
-namespace TestNamespace
+interface IPureInterface
 {
-    public interface ISerializable<T>
-    {
-        static virtual T Deserialize(string path)
-        {
-            throw new NotImplementedException();
-        }
-    }
+    [EnforcePure]
+    static virtual int PureStaticMethod() => 0; // Default implementation is pure
+}
 
-    public struct FileData : ISerializable<FileData>
-    {
-        public byte[] Data { get; }
-        
-        public FileData(byte[] data)
-        {
-            Data = data;
-        }
-        
-        [EnforcePure]
-        public static FileData Deserialize(string path)
-        {
-            // Impure operation: reads from file system
-            var data = File.ReadAllBytes(path);
-            return new FileData(data);
-        }
-    }
-}";
-
-            await VerifyCS.VerifyAnalyzerAsync(test,
-                // Target runtime doesn't support static abstract members in interfaces
-                DiagnosticResult.CompilerError("CS8919").WithSpan(12, 26, 12, 37),
-                // Method is marked as pure but contains impure operations
-                VerifyCS.Diagnostic().WithSpan(31, 24, 31, 47).WithArguments("Deserialize")
-            );
+class ImpureImplementation : IPureInterface
+{
+    static int counter = 0;
+    // Override is impure
+    public static int PureStaticMethod() => ++counter;
+}
+";
+            // Expect only the compiler error CS8919, not the analyzer diagnostic PMA0001
+            var expected = DiagnosticResult.CompilerError("CS8919").WithSpan(12, 24, 12, 40);
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }

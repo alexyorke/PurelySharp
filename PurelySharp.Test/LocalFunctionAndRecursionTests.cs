@@ -11,7 +11,7 @@ namespace PurelySharp.Test
     public class LocalFunctionAndRecursionTests
     {
         [Test]
-        public async Task PureLocalFunction_NoDiagnostic()
+        public async Task ImpureLocalFunction_FieldModification_Diagnostic()
         {
             var test = @"
 using System;
@@ -37,7 +37,7 @@ public class TestClass
 }";
 
             var expected = VerifyCS.Diagnostic("PMA0001")
-                .WithLocation(16, 13)
+                .WithSpan(16, 13, 16, 21)
                 .WithArguments("TestMethod");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
@@ -93,8 +93,11 @@ public class TestClass
     }
 }";
 
-            // The analyzer doesn't detect pure method calling impure method
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because ImpureMethod lacks [EnforcePure]
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(17, 9, 17, 23) // Span of ImpureMethod()
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }

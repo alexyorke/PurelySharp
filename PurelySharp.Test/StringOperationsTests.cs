@@ -36,7 +36,11 @@ public class TestClass
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because string.Split is treated as unknown purity
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(19, 16, 19, 39) // Span of input.Split(' ')
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -92,7 +96,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task StringFormatting_NoDiagnostic()
+        public async Task StringFormatting_UnknownPurityDiagnostic()
         {
             var test = @"
 using System;
@@ -109,7 +113,11 @@ public class TestClass
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because string.Format is treated as unknown purity
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(12, 16, 12, 56) // Span of string.Format(...)
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]

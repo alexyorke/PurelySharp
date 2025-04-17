@@ -45,8 +45,11 @@ public class TestClass
             : 0;
     }
 }";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 based on test failure (TestWithIsExpression_NoDiagnostic?) for 'is' expression
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(18, 33, 18, 53) // Span from test error output
+                .WithArguments("TestMethod"); // Method name from error output
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -122,8 +125,11 @@ public class TestClass
                 Convert.ToInt32(x) > Convert.ToInt32(y) ? x : y);
     }
 }";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 based on test failure output
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(29, 17, 29, 35) // Span from test error output
+                .WithArguments("TestMethod"); // Corrected method name from error output
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }

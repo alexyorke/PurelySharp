@@ -37,7 +37,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task MethodWithNullCoalescing_NoDiagnostic()
+        public async Task MethodWithNullCoalescing_Diagnostic()
         {
             var test = @"
 using System;
@@ -54,7 +54,11 @@ public class TestClass
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because ToUpper() might depend on culture.
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(12, 22, 12, 32) // Span of .ToUpper()
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -116,19 +120,21 @@ public class EnforcePureAttribute : Attribute { }
 public class TestClass
 {
     [EnforcePure]
-    public int TestMethod()
+    public unsafe int ProcessData()
     {
-        Span<int> span = stackalloc int[10];
-        for (int i = 0; i < 10; i++)
+        int sum = 0;
+        Span<byte> buffer = stackalloc byte[10];
+        for (int i = 0; i < buffer.Length; i++)
         {
-            span[i] = i * i;
+            buffer[i] = (byte)i;
+            sum += buffer[i];
         }
-        return span[5];
+        return sum;
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test,
-                VerifyCS.Diagnostic().WithSpan(15, 13, 15, 28).WithArguments("TestMethod"));
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(16, 13, 16, 32).WithArguments("ProcessData");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]

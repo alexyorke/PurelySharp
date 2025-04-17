@@ -137,7 +137,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task DoubleParse_InvariantCulture_NoDiagnostic()
+        public async Task DoubleParse_InvariantCulture_UnknownPurityDiagnostic()
         {
             var test = @"
 #nullable enable
@@ -156,7 +156,11 @@ public class TestClass
         return double.Parse(numStr, CultureInfo.InvariantCulture);
     }
 }";
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because double.Parse is treated as unknown purity
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(15, 16, 15, 66) // Span of double.Parse(...)
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 } 

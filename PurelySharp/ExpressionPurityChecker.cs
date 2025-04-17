@@ -1,8 +1,11 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Operations;
 using System.Linq;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace PurelySharp
 {
@@ -345,6 +348,19 @@ namespace PurelySharp
                                 if (capturedProperty.SetMethod != null)
                                     return false;
                             }
+                            // Use SymbolEqualityComparer for comparison (Fix for RS1024)
+                            // Check if the captured variable is 'this' (the containing symbol of the current method)
+                            // Only proceed with further checks if it's NOT 'this'
+                            if (currentMethod != null && !SymbolEqualityComparer.Default.Equals(capturedVar, currentMethod.ContainingSymbol))
+                            {
+                                // If it's not 'this', check if it's a local or parameter (implicitly pure if passed checks above)
+                                if (!(capturedVar is ILocalSymbol) && !(capturedVar is IParameterSymbol))
+                                {
+                                    // Potentially a captured variable from an outer scope that needs deeper analysis later
+                                    // For now, conservatively assume impure if not local/parameter/this.
+                                    // return false; // Consider uncommenting for stricter initial check
+                                }
+                            }
                         }
                     }
 
@@ -639,6 +655,54 @@ namespace PurelySharp
                     // For other awaits, check if the expression is pure
                     return IsExpressionPure(awaitedExpression, semanticModel, currentMethod);
 
+                case WithExpressionSyntax withExpr:
+                    var operation = semanticModel.GetOperation(withExpr);
+                    // Ensure operation is not null and handle potential null currentMethod
+                    if (operation is IWithOperation withOperation && currentMethod != null) 
+                    {
+                        // Check the purity of the operand (the object being copied)
+                        bool operandIsPure = IsIOperationPure(withOperation.Operand, semanticModel, currentMethod);
+                        if (!operandIsPure) return false;
+
+                        // Check the purity of the initializer expressions (the values being assigned)
+                        // Initializer is IObjectOrCollectionInitializerOperation which contains Initializers
+                        bool initializersArePure = true;
+                        if (withOperation.Initializer != null)
+                        {
+                            foreach (var initOperation in withOperation.Initializer.Initializers)
+                            {
+                                // Assuming initializers are ISimpleAssignmentOperation or similar with a Value property
+                                if (initOperation is ISimpleAssignmentOperation assignmentOp) {
+                                    if (!IsIOperationPure(assignmentOp.Value, semanticModel, currentMethod))
+                                    {
+                                        initializersArePure = false;
+                                        break;
+                                    }
+                                }
+                                else if (initOperation is IMemberInitializerOperation memberInitOp) { // Handle member initializers
+                                     if (!IsIOperationPure(memberInitOp.Initializer, semanticModel, currentMethod)) {
+                                        initializersArePure = false;
+                                        break;
+                                     }
+                                }
+                                else {
+                                    // Unknown initializer type, assume impure
+                                    initializersArePure = false; 
+                                    break;
+                                }
+                            }
+                        }
+                        if (!initializersArePure) return false;
+                        
+                        // Additionally, check the compiler-generated method if available (e.g., Clone or constructor)
+                        // Placeholder: Assume pure for now if operand and initializers are pure.
+
+                        // If operand and initializers are pure
+                        return true; 
+                    }
+                    // Fallback if GetOperation fails, is wrong type, or currentMethod is null
+                    return false; 
+
                 default:
                     // For other types of expressions that we don't recognize yet, be conservative and say they're impure
                     return false;
@@ -673,29 +737,6 @@ namespace PurelySharp
         }
 
         // Helper methods for checking purity
-        private static bool IsKnownPureMethod(IMethodSymbol methodSymbol)
-        {
-            if (methodSymbol == null)
-                return false;
-
-            // Check if the method is from known pure namespaces
-            var containingNamespace = methodSymbol.ContainingNamespace?.ToString() ?? string.Empty;
-
-            if (containingNamespace.StartsWith("System.Linq") ||
-                containingNamespace.StartsWith("System.Collections.Immutable"))
-                return true;
-
-            // Check for specific pure types
-            var containingType = methodSymbol.ContainingType?.ToString() ?? string.Empty;
-            if (containingType == "System.Math" ||
-                containingType == "System.String" ||
-                containingType == "System.Int32" ||
-                containingType == "System.Double")
-                return true;
-
-            return false;
-        }
-
         private static bool HasEnforcePureAttribute(IMethodSymbol methodSymbol)
         {
             if (methodSymbol == null)
@@ -723,13 +764,11 @@ namespace PurelySharp
                 return false;
 
             // Check if the type has the [InlineArray] attribute
-            return typeSymbol.GetAttributes().Any(attr =>
-                attr.AttributeClass?.Name == "InlineArrayAttribute" ||
-                attr.AttributeClass?.ToDisplayString().Contains("InlineArray") == true);
+            return typeSymbol.GetAttributes().Any(attr => attr.AttributeClass?.Name == "InlineArrayAttribute" && attr.AttributeClass.ContainingNamespace.ToDisplayString() == "System.Runtime.CompilerServices");
         }
 
         // Helper to check delegate purity based on the symbol holding the delegate
-        private static bool IsDelegateSymbolPure(ISymbol delegateHolderSymbol, ExpressionSyntax expressionSyntax, SemanticModel semanticModel, HashSet<IMethodSymbol> visitedMethods)
+        public static bool IsDelegateSymbolPure(ISymbol delegateHolderSymbol, ExpressionSyntax expressionSyntax, SemanticModel semanticModel, HashSet<IMethodSymbol> visitedMethods)
         {
             // Check if the holder itself is immutable (e.g., readonly field)
             if (delegateHolderSymbol is IFieldSymbol fieldSymbol && !fieldSymbol.IsReadOnly && !fieldSymbol.IsConst)
@@ -761,6 +800,28 @@ namespace PurelySharp
             return delegateHolderSymbol is IParameterSymbol || 
                    (delegateHolderSymbol is IFieldSymbol fs && (fs.IsReadOnly || fs.IsConst)) ||
                    (delegateHolderSymbol is IPropertySymbol ps && ps.SetMethod == null);
+        }
+
+        // Placeholder for a potential new helper method
+        private static bool IsIOperationPure(IOperation? operation, SemanticModel semanticModel, IMethodSymbol? currentMethod)
+        {
+            // Handle null operation and null currentMethod
+            if (operation == null) return true; // Null operation can be considered pure
+            if (currentMethod == null) return false; // Cannot determine purity without method context
+
+            // Example: Check based on operation Kind or recursively call IsExpressionPure on Syntax
+            if (operation.Syntax is ExpressionSyntax exprSyntax) {
+                return IsExpressionPure(exprSyntax, semanticModel, currentMethod);
+            }
+            
+            // Add more checks based on different IOperation types as needed
+            // (e.g., IInvocationOperation, IMemberReferenceOperation, ISimpleAssignmentOperation etc.)
+            if (operation is ISimpleAssignmentOperation assignmentOp) {
+                 // Check the right side (Value) for purity
+                 return IsIOperationPure(assignmentOp.Value, semanticModel, currentMethod);
+            }
+
+            return false; // Default to impure if not explicitly handled
         }
     }
 }

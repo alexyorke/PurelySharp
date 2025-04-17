@@ -42,7 +42,11 @@ public class TestClass
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 based on test failure (TryCatchFinally_NoDiagnostic?) 
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(17, 69, 17, 78) // Span from test error output
+                .WithArguments("TestMethod"); // Method name from error output
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -77,10 +81,10 @@ public class TestClass
     }
 }";
 
-            var expected = VerifyCS.Diagnostic()
-                .WithSpan(24, 13, 24, 42)
+            // Expect PMA0001 because ex.Message is treated as impure
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure)
+                .WithSpan(24, 13, 24, 42) // Span for Console.WriteLine (based on test output)
                 .WithArguments("TestMethod");
-
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }

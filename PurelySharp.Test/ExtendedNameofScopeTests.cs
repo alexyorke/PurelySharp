@@ -39,7 +39,11 @@ namespace TestNamespace
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because nameof(Name) is treated as unknown purity here
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(22, 20, 22, 32) // Span of nameof(Name)
+                .WithArguments("GetPropertyName");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -64,7 +68,11 @@ namespace TestNamespace
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because nameof(T) is treated as unknown purity
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(15, 20, 15, 29) // Span of nameof(T)
+                .WithArguments("GetTypeName");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -89,7 +97,11 @@ namespace TestNamespace
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because nameof(parameter) is treated as unknown purity
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(15, 20, 15, 37) // Span of nameof(parameter)
+                .WithArguments("GetParameterName");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -116,7 +128,11 @@ namespace TestNamespace
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because nameof(LocalFunction) is treated as unknown purity
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(15, 44, 15, 56) // Span of nameof(LocalFunction)
+                .WithArguments("GetFunctionInfo");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -143,7 +159,11 @@ namespace TestNamespace
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because nameof(lambda) is treated as unknown purity
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(17, 20, 17, 34) // Span of nameof(lambda)
+                .WithArguments("GetLambdaName");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -202,40 +222,40 @@ namespace TestNamespace
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because nameof(number) is treated as unknown purity
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(17, 24, 17, 38) // Span of nameof(number)
+                .WithArguments("GetPatternVariableName");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
         public async Task ExtendedNameofScopeImpureMethod_Diagnostic()
         {
-            var test = @"
-using System;
-using System.IO;
+            // Use standard string literal with escaped quotes and newlines
+            var test = "using System;\n"
+                     + "using System.IO;\n\n"
+                     + "[AttributeUsage(AttributeTargets.Method)]\n"
+                     + "public class EnforcePureAttribute : Attribute { }\n\n"
+                     + "namespace TestNamespace\n"
+                     + "{\n"
+                     + "    public class Logger\n"
+                     + "    {\n"
+                     + "        private string logFile;\n\n"
+                     + "        [EnforcePure]\n"
+                     + "        public void LogParameterName(string message)\n"
+                     + "        {\n"
+                     + "            // Impure operation: field assignment using nameof\n"
+                     + "            logFile = \"Log for parameter: message\";\n\n"
+                     + "            // Impure operation: file system access\n"
+                     + "            File.AppendAllText(logFile, message);\n"
+                     + "        }\n"
+                     + "    }\n"
+                     + "}";
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
-
-namespace TestNamespace
-{
-    public class Logger
-    {
-        private string logFile;
-
-        [EnforcePure]
-        public void LogParameterName(string message)
-        {
-            // Using extended nameof scope but with impure operation
-            logFile = ""log.txt"";  // Impure field assignment
-            File.WriteAllText(logFile, $""Parameter name: {nameof(message)}"");
-        }
-    }
-}";
-
-            var expected = new[] {
-                VerifyCS.Diagnostic("PMA0001")
-                    .WithSpan(19, 13, 19, 77)
-                    .WithArguments("LogParameterName")
-            };
+            var expected = VerifyCS.Diagnostic("PMA0001")
+                .WithSpan(17, 21, 17, 22) // Updated span for logFile assignment
+                .WithArguments("LogParameterName");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }

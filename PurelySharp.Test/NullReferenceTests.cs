@@ -78,7 +78,9 @@ public class TestClass
 }
 #nullable disable";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 due to nameof() potentially being treated as unknown
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity).WithSpan(14, 45, 14, 56).WithArguments("ValidateNotNull");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }

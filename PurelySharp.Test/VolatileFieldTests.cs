@@ -32,7 +32,7 @@ public class TestClass
 }";
 
             await VerifyCS.VerifyAnalyzerAsync(test,
-                VerifyCS.Diagnostic().WithSpan(14, 16, 14, 24).WithArguments("GetCounter"));
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(14, 16, 14, 24).WithArguments("GetCounter"));
         }
 
         [Test]
@@ -56,7 +56,7 @@ public class TestClass
 }";
 
             await VerifyCS.VerifyAnalyzerAsync(test,
-                VerifyCS.Diagnostic().WithSpan(14, 9, 14, 17).WithArguments("IncrementCounter"));
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(14, 9, 14, 17).WithArguments("IncrementCounter"));
         }
 
         [Test]
@@ -82,7 +82,7 @@ public class TestClass
 }";
 
             await VerifyCS.VerifyAnalyzerAsync(test,
-                VerifyCS.Diagnostic().WithSpan(16, 32, 16, 46).WithArguments("CombineFields"));
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(16, 32, 16, 46).WithArguments("CombineFields"));
         }
 
         [Test]
@@ -106,7 +106,7 @@ public class TestClass
 }";
 
             await VerifyCS.VerifyAnalyzerAsync(test,
-                VerifyCS.Diagnostic().WithSpan(14, 16, 14, 38).WithArguments("ReadStaticVolatileField"));
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(14, 16, 14, 38).WithArguments("ReadStaticVolatileField"));
         }
 
         [Test]
@@ -132,7 +132,7 @@ public class TestClass
 }";
 
             await VerifyCS.VerifyAnalyzerAsync(test,
-                VerifyCS.Diagnostic().WithSpan(16, 42, 16, 50).WithArguments("IncrementAndGet"));
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(16, 42, 16, 50).WithArguments("IncrementAndGet"));
         }
 
         [Test]
@@ -171,7 +171,7 @@ public class TestClass
 }";
 
             await VerifyCS.VerifyAnalyzerAsync(test,
-                VerifyCS.Diagnostic().WithSpan(19, 13, 19, 22).WithArguments("GetSingletonInstance"));
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(19, 13, 19, 22).WithArguments("GetSingletonInstance"));
         }
 
         [Test]
@@ -208,8 +208,8 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test,
                 // Two diagnostics: one for Initialize method and one for GetValueIfInitialized
-                VerifyCS.Diagnostic().WithSpan(15, 9, 15, 15).WithArguments("Initialize"),
-                VerifyCS.Diagnostic().WithSpan(22, 13, 22, 27).WithArguments("GetValueIfInitialized"));
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(15, 9, 15, 15).WithArguments("Initialize"),
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(22, 13, 22, 27).WithArguments("GetValueIfInitialized"));
         }
     }
 }

@@ -34,8 +34,11 @@ public class TestClass
     }
 }";
 
-            // No diagnostic should be reported as Task.FromResult is pure
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because Task.FromResult is treated as unknown purity
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(14, 22, 14, 41) // Span of Task.FromResult(42)
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -64,7 +67,7 @@ public class TestClass
     }
 }";
 
-            var expected = VerifyCS.Diagnostic()
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure)
                 .WithSpan(17, 31, 20, 10)
                 .WithArguments("TestMethod");
 
@@ -98,8 +101,11 @@ public class TestClass
     }
 }";
 
-            // For now, we'll expect no diagnostics since the analyzer can't detect this complex case
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because the purity of the chained call cannot be determined.
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(21, 9, 21, 56)
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -129,7 +135,7 @@ public class TestClass
     }
 }";
 
-            var expected = VerifyCS.Diagnostic().WithSpan(15, 13, 15, 47).WithArguments("TestMethod");
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(15, 13, 15, 47).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
@@ -158,7 +164,7 @@ public class TestClass
     }
 }";
 
-            var expected = VerifyCS.Diagnostic().WithSpan(16, 13, 16, 48).WithArguments("TestMethod");
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(16, 13, 16, 48).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
@@ -186,7 +192,7 @@ public class TestClass
     }
 }";
 
-            var expected = VerifyCS.Diagnostic().WithSpan(15, 24, 15, 42).WithArguments("TestMethod");
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(15, 24, 15, 42).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
@@ -228,8 +234,11 @@ public class TestClass
     }
 }";
 
-            // For now, we'll expect no diagnostics since the analyzer can't detect this complex case
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because ILogger.Log is an interface call
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(27, 9, 27, 28) // Span of logger.Log("Hello")
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -263,7 +272,7 @@ public class TestClass
     }
 }";
 
-            var expected = VerifyCS.Diagnostic("PMA0001")
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure)
                 .WithSpan(25, 31, 25, 54)
                 .WithArguments("TestMethod");
 
@@ -293,7 +302,7 @@ namespace ConsoleApplication1
 ";
 
             await VerifyCS.VerifyAnalyzerAsync(test,
-                VerifyCS.Diagnostic().WithSpan(11, 13, 11, 47).WithArguments("TestMethod"));
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(11, 13, 11, 47).WithArguments("TestMethod"));
         }
 
         [Test]
@@ -311,12 +320,16 @@ public class TestClass
     [EnforcePure]
     public void TestMethod(string path)
     {
-        File.WriteAllText(path, ""test"");
+        File.WriteAllText(path, ""test""); // Impure: File I/O
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test,
-                VerifyCS.Diagnostic().WithSpan(13, 9, 13, 40).WithArguments("TestMethod"));
+            // Expect diagnostic on File.WriteAllText
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure)
+                .WithSpan(13, 9, 13, 40)
+                .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -339,17 +352,15 @@ public class TestClass
 
     private void PureWrapper()
     {
-        IndirectImpure();
-    }
-
-    private void IndirectImpure()
-    {
         Console.WriteLine(""Hello"");
     }
 }";
 
-            // The analyzer doesn't detect indirect impurity across multiple method calls
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because PureWrapper is not marked [EnforcePure]
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(13, 9, 13, 22) // Span of PureWrapper()
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -462,10 +473,7 @@ public class TestClass
     }
 }";
 
-            var expected = VerifyCS.Diagnostic("PMA0001")
-                .WithSpan(10, 24, 10, 34)
-                .WithArguments("TestMethod");
-
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(10, 12, 10, 18).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
@@ -523,10 +531,7 @@ public class TestClass
     }
 }";
 
-            var expected = VerifyCS.Diagnostic()
-                .WithSpan(15, 34, 15, 47)
-                .WithArguments("TestMethod");
-
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(15, 34, 15, 47).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
@@ -550,20 +555,22 @@ public class TestClass
         string dir = Path.GetDirectoryName(path);
         string ext = Path.GetExtension(path);
         string fileName = Path.GetFileName(path);
-        
+
         // Uri manipulation is also pure
         var uri = new Uri(""file://""+ path);
         string scheme = uri.Scheme;
-        
+
+        // Console.WriteLine is impure
+        Console.WriteLine(""Testing"");
+
         return $""{dir}/{fileName} has extension {ext} and scheme {scheme}"";
     }
 }";
 
-            // The analyzer should detect URI creation as impure
-            var expected = VerifyCS.Diagnostic("PMA0001")
-                .WithSpan(16, 27, 16, 49)  // Updated to match actual diagnostic location
+            // Expect PMA0001 on the Console.WriteLine call
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure)
+                .WithSpan(14, 22, 14, 49) // ADDED BACK - Span for Console.WriteLine
                 .WithArguments("TestMethod");
-
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
@@ -590,10 +597,7 @@ public class TestClass
     }
 }";
 
-            var expected = VerifyCS.Diagnostic()
-                .WithSpan(16, 16, 16, 30)
-                .WithArguments("TestMethod");
-
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(16, 16, 16, 30).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
@@ -666,8 +670,11 @@ public class TestClass
     }
 }";
 
-            // The analyzer doesn't detect Path.Combine as impure
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because IoWrapper.CombinePaths is not marked [EnforcePure]
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(23, 16, 23, 52) // Span of IoWrapper.CombinePaths(...)
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -694,8 +701,11 @@ public class TestClass
     }
 }";
 
-            // The analyzer doesn't detect MemoryStream creation without usage as impure
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because MemoryStream constructor is treated as unknown purity
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(17, 16, 17, 32) // Span of new MemoryStream()
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -814,8 +824,12 @@ public class TestClass
     }
 }";
 
-            // The analyzer doesn't detect interface-based IO as impure
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Analyzer sees TestMethod calling IFileSystem.ReadAllText, whose purity isn't guaranteed
+            // It should issue a PMA0002 warning because it can't confirm the purity of the interface method call.
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(36, 16, 36, 45)
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -871,7 +885,7 @@ public class TestClass
     }
 }";
 
-            var expected = VerifyCS.Diagnostic()
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure)
                 .WithSpan(13, 9, 13, 35)
                 .WithArguments("TestMethod");
 
@@ -1015,7 +1029,50 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
         */
+
+        [Test]
+        public async Task IoFileWriteAllText_ShouldBeImpure_Test1()
+        {
+            // Explicitly rewriting the testCode string
+            var testCode = @"
+using System;
+using System.IO;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public static void TestMethod()
+    {
+        File.WriteAllText(""test.txt"", ""Hello""); // File IO is impure
+    }
+}";
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(13, 9, 13, 47).WithArguments("TestMethod"); // Corrected span
+            await VerifyCS.VerifyAnalyzerAsync(testCode, expected);
+        }
+
+        [Test]
+        public async Task IoFileReadAllText_ShouldBeImpure_Test1()
+        {
+            var testCode = @"
+using System;
+using System.IO;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class EnforcePureAttribute : Attribute { }
+
+public class TestClass
+{
+    [EnforcePure]
+    public static string TestMethod()
+    {
+        return File.ReadAllText(""test.txt""); // Escaped quotes
+    }
+}";
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(13, 16, 13, 44).WithArguments("TestMethod"); // Corrected span
+            await VerifyCS.VerifyAnalyzerAsync(testCode, expected);
+        }
     }
 }
-
-

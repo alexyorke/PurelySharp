@@ -30,6 +30,9 @@ namespace PurelySharp.Test
                 TestCode = source,
             };
 
+            // Add reference to the main analyzer project assembly
+            test.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(PurelySharpAnalyzer).Assembly.Location));
+
             test.ExpectedDiagnostics.AddRange(expected);
             return test.RunAsync(CancellationToken.None);
         }

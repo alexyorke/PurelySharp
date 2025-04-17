@@ -195,7 +195,9 @@ public class TestClass
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because arg.ToString() within FormatMessage has unknown purity
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity).WithSpan(15, 29, 15, 43).WithArguments("FormatMessage");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]

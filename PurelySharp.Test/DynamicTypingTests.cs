@@ -34,7 +34,7 @@ public class TestClass
             // the member access 'value.Count' on a dynamic type.
             // Actual location from test run: (10, 31) -> the 'value' in 'value.Count'
             await VerifyCS.VerifyAnalyzerAsync(test,
-                 VerifyCS.Diagnostic().WithSpan(10, 31, 10, 38).WithArguments("ProcessDynamic")
+                 VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(10, 31, 10, 38).WithArguments("ProcessDynamic")
             );
         }
 
@@ -58,7 +58,7 @@ public class TestClass
 }";
             // Actual location from test run: (10, 31) -> the 'value' in 'value.Count'
             await VerifyCS.VerifyAnalyzerAsync(test,
-                VerifyCS.Diagnostic().WithSpan(10, 31, 10, 38).WithArguments("ModifyDynamic") // Updated span
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(10, 31, 10, 38).WithArguments("ModifyDynamic")
             );
         }
 
@@ -82,7 +82,7 @@ public class TestClass
 }";
             // Actual location from test run: (10, 35) -> the 'value' in 'value.Save()'
             await VerifyCS.VerifyAnalyzerAsync(test,
-                VerifyCS.Diagnostic().WithSpan(10, 35, 10, 42).WithArguments("CallDynamicMethod") // Updated span
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(10, 35, 10, 42).WithArguments("CallDynamicMethod")
             );
         }
 
@@ -108,7 +108,7 @@ public class TestClass
 }";
             // Actual location from test run: (10, 12) -> the 'dynamic' keyword
             await VerifyCS.VerifyAnalyzerAsync(test,
-                VerifyCS.Diagnostic().WithSpan(10, 12, 10, 19).WithArguments("CreateDynamic") // Updated span
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(10, 12, 10, 19).WithArguments("CreateDynamic")
             );
         }
 
@@ -135,7 +135,7 @@ public class TestClass
 }";
             // Actual location from test run: (15, 9) -> the 'var' keyword 
             await VerifyCS.VerifyAnalyzerAsync(test,
-                VerifyCS.Diagnostic().WithSpan(15, 9, 15, 12).WithArguments("UseDynamicLocally") // Corrected line number to 15
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(15, 9, 15, 12).WithArguments("UseDynamicLocally")
             );
         }
     }

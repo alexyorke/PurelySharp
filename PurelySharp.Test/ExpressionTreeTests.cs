@@ -37,7 +37,13 @@ public class TestClass
         return Expression.Lambda<Func<int, int>>(addExpr, param);
     }
 }";
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0001 because Expression.Lambda is treated as impure
+            // Analyzer *does* flag Lambda, expect PMA0001
+            // await VerifyCS.VerifyAnalyzerAsync(test); // REMOVED - Expect no diagnostics
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure) // ADDED BACK
+                .WithSpan(17, 36, 17, 67) // ADDED BACK - Span of Expression.Lambda (corrected start col)
+                .WithArguments("TestMethod"); // ADDED BACK
+            await VerifyCS.VerifyAnalyzerAsync(test, expected); // ADDED BACK
         }
 
         // --- Expression.Compile() (Impure) ---

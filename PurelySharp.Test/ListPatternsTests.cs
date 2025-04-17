@@ -163,10 +163,7 @@ namespace TestNamespace
     }
 }";
 
-            var expected = VerifyCS.Diagnostic("PMA0001")
-                .WithSpan(26, 21, 26, 57)
-                .WithArguments("ProcessLogMessages");
-
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(19, 21, 19, 64).WithArguments("ProcessLogMessages");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 

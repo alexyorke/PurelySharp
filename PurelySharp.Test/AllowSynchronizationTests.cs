@@ -69,7 +69,7 @@ class Program
     }
 }";
 
-            var expected = VerifyCS.Diagnostic().WithSpan(21, 13, 21, 23).WithArguments("ImpureMethodWithLock");
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(21, 13, 21, 23).WithArguments("ImpureMethodWithLock");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }

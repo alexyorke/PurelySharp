@@ -171,7 +171,7 @@ namespace TestNamespace
         }
 
         [Test]
-        public async Task FileLocalType_PureMethod_NoDiagnostic()
+        public async Task FileLocalType_PureMethod_UnknownPurityDiagnostic()
         {
             var test = @"
 using System;
@@ -211,11 +211,15 @@ namespace TestNamespace
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because FileLocalCounter.GetCount() is not marked pure
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(34, 20, 34, 38) // Span of counter.GetCount()
+                .WithArguments("GetInitialCountFromFileLocalType");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
-        public async Task FileLocalType_WithImpureOperation_NoDiagnostic()
+        public async Task FileLocalType_WithImpureOperation_UnknownPurityDiagnostic()
         {
             var test = @"
 using System;
@@ -231,7 +235,7 @@ namespace TestNamespace
         
         public int Increment()
         {
-            return ++_count;  // Modifying a static field is impure, but currently not detected in file-local types
+            return ++_count;  // Modifying a static field is impure; PMA0002 expected because Increment lacks [EnforcePure]
         }
     }
 
@@ -241,13 +245,16 @@ namespace TestNamespace
         public static int CountUp()
         {
             var counter = new Counter();
-            return counter.Increment();  // Calls potentially impure method, but not flagged as impure
+            return counter.Increment();  // Calls method lacking [EnforcePure], PMA0002 expected
         }
     }
 }";
 
-            // Currently, operations within file-local types don't trigger impurity diagnostics
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because Counter.Increment() is not marked pure
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(25, 20, 25, 39) // Span of counter.Increment()
+                .WithArguments("CountUp");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -302,7 +309,7 @@ namespace TestNamespace
         }
 
         [Test]
-        public async Task FileLocalType_NestedFileLocalTypes_PureMethod_NoDiagnostic()
+        public async Task FileLocalType_NestedFileLocalTypes_UnknownPurityDiagnostic()
         {
             var test = @"
 using System;
@@ -340,7 +347,11 @@ namespace TestNamespace
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because helper.ProcessContainer is not marked pure
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(32, 20, 32, 54) // Span of helper.ProcessContainer(container)
+                .WithArguments("ProcessValue");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]

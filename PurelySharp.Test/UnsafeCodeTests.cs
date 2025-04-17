@@ -4,6 +4,7 @@ using NUnit.Framework;
 using System.Threading.Tasks;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
     PurelySharp.PurelySharpAnalyzer>;
+using PurelySharp;
 
 namespace PurelySharp.Test
 {
@@ -24,16 +25,13 @@ public class TestClass
     [EnforcePure]
     public unsafe void TestMethod()
     {
-        int x = 42;
-        int* ptr = &x;
-        *ptr = 100; // Unsafe pointer operation is impure
+        int x = 5;
+        int* p = &x;
+        *p = 10; // Unsafe code is impure
     }
 }";
 
-            var expected = VerifyCS.Diagnostic("PMA0001")
-                .WithLocation(10, 24)
-                .WithArguments("TestMethod");
-
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithLocation(10, 12).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 

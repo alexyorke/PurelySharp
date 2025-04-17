@@ -149,5 +149,66 @@ namespace PurelySharp
             // If no body (likely interface/abstract), consider it pure
             return true;
         }
+
+        public static bool IsConstructorPure(ConstructorDeclarationSyntax constructorDeclaration, SemanticModel semanticModel)
+        {
+            if (semanticModel.GetDeclaredSymbol(constructorDeclaration) is not IMethodSymbol constructorSymbol)
+                return false;
+
+            // Check if constructor has AllowSynchronization attribute (if needed for constructors)
+            bool hasAllowSynchronizationAttribute = StatementPurityChecker.HasAllowSynchronizationAttribute(constructorSymbol);
+
+            // Check if the constructor has lock statements
+            bool hasLockStatements = false;
+            if (constructorDeclaration.Body != null)
+            {
+                hasLockStatements = constructorDeclaration.Body.DescendantNodes().OfType<LockStatementSyntax>().Any();
+            }
+
+            // Handle locks if allowed
+            if (hasAllowSynchronizationAttribute && hasLockStatements && constructorDeclaration.Body != null)
+            {
+                // Check locks similar to IsMethodPure
+                foreach (var lockStatement in constructorDeclaration.Body.DescendantNodes().OfType<LockStatementSyntax>())
+                {
+                    if (!ExpressionPurityChecker.IsExpressionPure(lockStatement.Expression, semanticModel, constructorSymbol))
+                        return false;
+                    if (lockStatement.Statement is BlockSyntax lockBlock)
+                    {
+                        if (!StatementPurityChecker.AreStatementsPure(lockBlock.Statements, semanticModel, constructorSymbol))
+                            return false;
+                    }
+                    else
+                    {
+                         if (!StatementPurityChecker.AreStatementsPure(
+                            SyntaxFactory.SingletonList(lockStatement.Statement), semanticModel, constructorSymbol))
+                            return false;
+                    }
+                }
+                 // Check remaining statements
+                var statementsWithoutLocks = constructorDeclaration.Body.Statements
+                    .Where(s => !(s is LockStatementSyntax))
+                    .ToList();
+                if (statementsWithoutLocks.Count > 0)
+                {
+                    return StatementPurityChecker.AreStatementsPure(
+                        new SyntaxList<StatementSyntax>(statementsWithoutLocks), semanticModel, constructorSymbol);
+                }
+                return true; // Only pure locks found
+            }
+
+            // Check constructor body
+            if (constructorDeclaration.Body != null)
+            {
+                return StatementPurityChecker.AreStatementsPure(constructorDeclaration.Body.Statements, semanticModel, constructorSymbol);
+            }
+            else if (constructorDeclaration.ExpressionBody != null)
+            {
+                return ExpressionPurityChecker.IsExpressionPure(constructorDeclaration.ExpressionBody.Expression, semanticModel, constructorSymbol);
+            }
+
+            // Constructor without body is pure
+            return true;
+        }
     }
 }

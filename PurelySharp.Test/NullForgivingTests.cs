@@ -53,7 +53,7 @@ public class TestClass
 }";
 
             // The analyzer should detect the Console.WriteLine as impure
-            var expected = VerifyCS.Diagnostic().WithSpan(13, 9, 13, 34).WithArguments("TestMethod");
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(13, 9, 13, 34).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
@@ -81,7 +81,7 @@ public class TestClass
 }";
 
             // The analyzer should detect the field modification as impure
-            var expected = VerifyCS.Diagnostic().WithSpan(16, 9, 16, 17).WithArguments("TestMethod");
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(16, 9, 16, 17).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }

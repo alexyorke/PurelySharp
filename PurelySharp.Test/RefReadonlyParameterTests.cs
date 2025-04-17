@@ -124,7 +124,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task PureMethodWithRefReadonlyPassedToAnotherPureMethod_NoDiagnostic()
+        public async Task PureMethodWithRefReadonlyParameter_PassingToAnotherPureMethod_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -219,9 +219,12 @@ public class TestClass
     }
 }";
 
-            // Only expect the compiler error, not the analyzer diagnostic
+            var expectedCompilerError = DiagnosticResult.CompilerError("CS8329").WithSpan(13, 38, 13, 43).WithArguments("variable", "value");
+            var expectedAnalyzerWarning = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity).WithSpan(13, 16, 13, 44).WithArguments("Process"); // Expect PMA0002 for calling unknown method
+            
             await VerifyCS.VerifyAnalyzerAsync(test,
-                DiagnosticResult.CompilerError("CS8329").WithSpan(13, 38, 13, 43).WithArguments("variable", "value"));
+                expectedCompilerError,
+                expectedAnalyzerWarning);
         }
     }
 }

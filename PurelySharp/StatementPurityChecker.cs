@@ -150,7 +150,7 @@ namespace PurelySharp
             return !methodSyntax.Body.Statements.Any();
         }
 
-        private static bool HasAllowSynchronizationAttribute(IMethodSymbol methodSymbol)
+        public static bool HasAllowSynchronizationAttribute(IMethodSymbol methodSymbol)
         {
             // Debug output - uncomment for debugging
             foreach (var attr in methodSymbol.GetAttributes())

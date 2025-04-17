@@ -44,7 +44,7 @@ namespace TestNamespace
         }
 
         [Test]
-        public async Task UTF8StringLiteral_WithConstantStrings_PureMethod_NoDiagnostic()
+        public async Task UTF8StringLiteral_WithConstantStrings_UnknownPurityDiagnostic()
         {
             var test = @"
 using System;
@@ -69,7 +69,11 @@ namespace TestNamespace
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because Encoding.UTF8.GetBytes is treated as unknown purity
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(19, 20, 19, 52) // Span of Encoding.UTF8.GetBytes(greeting)
+                .WithArguments("GetUtf8ConstantGreeting");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -133,7 +137,7 @@ namespace TestNamespace
         }
 
         [Test]
-        public async Task UTF8StringLiteral_PureOperations_NoDiagnostic()
+        public async Task UTF8StringLiteral_PureOperations_UnknownPurityDiagnostic()
         {
             var test = @"
 using System;
@@ -177,7 +181,16 @@ namespace TestNamespace
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 for Contains and IndexOf on ReadOnlySpan<byte>
+            var expected = new[] {
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                    .WithSpan(19, 20, 19, 51) // Span for textSpan.Contains("Hello"u8)
+                    .WithArguments("ContainsHello"),
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                    .WithSpan(38, 20, 38, 40) // Span for data.IndexOf(search)
+                    .WithArguments("IndexOf")
+            };
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]

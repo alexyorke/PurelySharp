@@ -200,7 +200,7 @@ namespace TestNamespace
 
             var expected = new[] {
                 VerifyCS.Diagnostic("PMA0001")
-                    .WithSpan(24, 13, 24, 75)
+                    .WithSpan(20, 29, 20, 30)
                     .WithArguments("WriteLog")
             };
 

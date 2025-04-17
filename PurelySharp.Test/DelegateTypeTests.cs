@@ -35,7 +35,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task PureDelegateWithPureOperation_NoDiagnostic()
+        public async Task PureDelegateWithPureOperation_UnknownPurityDiagnostic()
         {
             var test = @"
 using System;
@@ -58,7 +58,10 @@ public class TestClass
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(18, 16, 18, 19)
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -87,7 +90,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task FuncAndActionDelegates_NoDiagnostic()
+        public async Task FuncAndActionDelegates_UnknownPurityDiagnostic()
         {
             var test = @"
 using System;
@@ -119,11 +122,14 @@ public class TestClass
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(24, 23, 24, 30)
+                .WithArguments("UsePureDelegate");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
-        public async Task HigherOrderFunctions_NoDiagnostic()
+        public async Task HigherOrderFunctions_UnknownPurityDiagnostic()
         {
             var test = @"
 using System;
@@ -149,7 +155,10 @@ public class TestClass
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(21, 16, 21, 26)
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]

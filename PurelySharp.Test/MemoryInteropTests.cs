@@ -38,7 +38,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task Span_Slice_NoDiagnostic()
+        public async Task Span_Slice_UnknownPurityDiagnostic()
         {
             var test = @"
 #nullable enable
@@ -56,7 +56,11 @@ public class TestClass
         return initialSpan.Slice(1, 2);
     }
 }";
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because span.Slice is treated as unknown purity
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(14, 16, 14, 39)
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         // --- Span<T> / Memory<T> Modification (Impure) ---

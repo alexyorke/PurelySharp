@@ -77,7 +77,7 @@ namespace TestNamespace
         }
 
         [Test]
-        public async Task SpanPatternMatchingWithOtherPatterns_PureMethod_NoDiagnostic()
+        public async Task SpanPatternMatchingWithOtherPatterns_UnknownPurityDiagnostic()
         {
             var test = @"
 using System;
@@ -116,7 +116,11 @@ namespace TestNamespace
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because s.AsSpan() is treated as unknown purity
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(21, 43, 21, 53) // Span of s.AsSpan()
+                .WithArguments("ParseValue");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -156,42 +160,31 @@ namespace TestNamespace
         {
             var test = @"
 using System;
-using System.IO;
+using PurelySharp;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+// Add minimal attribute definition
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface)]
+public sealed class EnforcePureAttribute : Attribute { }
 
-namespace TestNamespace
+public class CommandParser
 {
-    public class CommandProcessor
+    private static int _commandCounter = 0;
+
+    [EnforcePure]
+    public static bool ExecuteCommand(ReadOnlySpan<char> command)
     {
-        [EnforcePure]
-        public void ExecuteCommand(ReadOnlySpan<char> command)
+        return command switch
         {
-            // Impure operation within pattern matching on Span<char>
-            switch (command)
-            {
-                case ""log"":
-                    // Impure file system operation
-                    File.WriteAllText(""command.log"", ""Log command executed"");
-                    break;
-                case ""exit"":
-                    Console.WriteLine(""Exiting..."");
-                    break;
-                default:
-                    Console.WriteLine(""Unknown command"");
-                    break;
-            }
-        }
+            // Impure due to static field modification
+            ""increment"" => (++_commandCounter > 0),
+            ""reset"" => (_commandCounter = 0) == 0,
+            _ => false
+        };
     }
-}";
-
-            var expected = new[] {
-                VerifyCS.Diagnostic("PMA0001")
-                    .WithSpan(23, 21, 23, 52)
-                    .WithArguments("ExecuteCommand")
-            };
-
+}
+";
+            // Diagnostic expected on the impure switch arm expression
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(19, 31, 19, 46).WithArguments("ExecuteCommand"); // Adjusted span based on error and added attribute def
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }

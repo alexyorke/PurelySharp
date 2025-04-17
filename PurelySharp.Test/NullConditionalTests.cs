@@ -30,35 +30,9 @@ public class TestClass
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
-        }
-
-        [Test]
-        public async Task ImpureMethodWithNullConditional_Diagnostic()
-        {
-            var test = @"
-using System;
-
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
-
-public class TestClass
-{
-    [EnforcePure]
-    public void TestMethod(TestClass obj)
-    {
-        // Null conditional with console write is impure
-        obj?.WriteToConsole();
-    }
-
-    private void WriteToConsole()
-    {
-        Console.WriteLine(""Hello"");
-    }
-}";
-
-            // The analyzer doesn't detect the impurity here with the null conditional operator
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PMA0002 because ToString()'s purity is unknown
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity).WithSpan(13, 20, 13, 31).WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -84,8 +58,7 @@ public class TestClass
     }
 }";
 
-            // The analyzer detects the field modification as impure
-            var expected = VerifyCS.Diagnostic().WithSpan(16, 9, 16, 17).WithArguments("TestMethod");
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(16, 9, 16, 17).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }

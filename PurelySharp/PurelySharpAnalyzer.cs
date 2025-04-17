@@ -16,22 +16,39 @@ namespace PurelySharp
     public class PurelySharpAnalyzer : DiagnosticAnalyzer
     {
         private const string Category = "Purity";
-        private static readonly LocalizableString Title = "Method marked as pure contains impure operations";
-        private static readonly LocalizableString MessageFormat = "Method '{0}' is marked as pure but contains impure operations";
-        private static readonly LocalizableString Description = "Methods marked with [EnforcePure] should not have side effects.";
 
-        private static readonly DiagnosticDescriptor Rule = new DiagnosticDescriptor(
+        // Error for definite impurity
+        private static readonly LocalizableString TitleImpure = "Method marked as pure contains impure operations";
+        private static readonly LocalizableString MessageFormatImpure = "Method '{0}' is marked as pure but contains impure operations";
+        private static readonly LocalizableString DescriptionImpure = "Methods marked with [EnforcePure] should not have side effects.";
+        public static readonly DiagnosticDescriptor RuleImpure = new DiagnosticDescriptor(
             "PMA0001",
-            Title,
-            MessageFormat,
+            TitleImpure,
+            MessageFormatImpure,
             Category,
             DiagnosticSeverity.Error,
             isEnabledByDefault: true,
-            description: Description,
+            description: DescriptionImpure,
             helpLinkUri: "",
             customTags: new[] { "Purity", "EnforcePure" });
 
-        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
+        // Warning for undetermined purity
+        private static readonly LocalizableString TitleUnknown = "Method purity cannot be definitively determined";
+        private static readonly LocalizableString MessageFormatUnknown = "Method '{0}' is marked as pure, but calls methods whose purity is unknown. Explicitly mark called methods with [EnforcePure] or validate their purity.";
+        private static readonly LocalizableString DescriptionUnknown = "Methods marked with [EnforcePure] call other methods whose purity could not be determined by the analyzer.";
+        public static readonly DiagnosticDescriptor RuleUnknownPurity = new DiagnosticDescriptor(
+            "PMA0002",
+            TitleUnknown,
+            MessageFormatUnknown,
+            Category,
+            DiagnosticSeverity.Warning, // Changed to Warning
+            isEnabledByDefault: true,
+            description: DescriptionUnknown,
+            helpLinkUri: "",
+            customTags: new[] { "Purity", "EnforcePure", "Unknown" });
+
+
+        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(RuleImpure, RuleUnknownPurity); // Add new rule
 
         // Analyzer Strategies (add more here later)
         private static readonly IPurityAnalyzerCheck dynamicOperationCheckStrategy = new DynamicOperationCheckStrategy();
@@ -113,7 +130,7 @@ namespace PurelySharp
             var dynamicCheckResult = dynamicOperationCheckStrategy.Check(methodDeclaration, context);
             if (!dynamicCheckResult.Passed)
             {
-                var diagnostic = Diagnostic.Create(Rule, dynamicCheckResult.ImpurityLocation ?? methodDeclaration.Identifier.GetLocation(), methodSymbol.Name);
+                var diagnostic = Diagnostic.Create(RuleImpure, dynamicCheckResult.ImpurityLocation ?? methodDeclaration.Identifier.GetLocation(), methodSymbol.Name);
                 context.ReportDiagnostic(diagnostic);
                 return; // Found impurity, stop analysis
             }
@@ -122,7 +139,7 @@ namespace PurelySharp
             var staticFieldCheckResult = staticFieldAccessCheckStrategy.Check(methodDeclaration, context);
             if (!staticFieldCheckResult.Passed)
             {
-                var diagnostic = Diagnostic.Create(Rule, staticFieldCheckResult.ImpurityLocation ?? methodDeclaration.Identifier.GetLocation(), methodSymbol.Name);
+                var diagnostic = Diagnostic.Create(RuleImpure, staticFieldCheckResult.ImpurityLocation ?? methodDeclaration.Identifier.GetLocation(), methodSymbol.Name);
                 context.ReportDiagnostic(diagnostic);
                 return; // Found impurity, stop analysis
             }
@@ -197,7 +214,7 @@ namespace PurelySharp
 
                     // Report diagnostic at the appropriate location
                     var location = hasImpureAwait ? impureAwaitLocation : methodDeclaration.Identifier.GetLocation();
-                    var diagnostic = Diagnostic.Create(Rule, location, methodSymbol.Name);
+                    var diagnostic = Diagnostic.Create(RuleImpure, location, methodSymbol.Name);
                     context.ReportDiagnostic(diagnostic);
                     return;
                 }
@@ -214,7 +231,7 @@ namespace PurelySharp
                         fieldSymbol.IsVolatile)
                     {
                         var fieldDiagnostic = Diagnostic.Create(
-                            Rule,
+                            RuleImpure,
                             identifier.GetLocation(),
                             methodSymbol.Name);
 
@@ -279,7 +296,7 @@ namespace PurelySharp
             if (hasFieldAssignments && methodDeclaration.Modifiers.Any(m => m.IsKind(SyntaxKind.AsyncKeyword)))
             {
                 var asyncDiagnostic = Diagnostic.Create(
-                    Rule,
+                    RuleImpure,
                     assignmentLocation,
                     methodSymbol.Name);
 
@@ -314,7 +331,7 @@ namespace PurelySharp
 
                 if (iteratorFieldAssignments)
                 {
-                    context.ReportDiagnostic(Diagnostic.Create(Rule, methodDeclaration.Identifier.GetLocation(),
+                    context.ReportDiagnostic(Diagnostic.Create(RuleImpure, methodDeclaration.Identifier.GetLocation(),
                         methodSymbol.Name));
                     return;
                 }
@@ -338,7 +355,7 @@ namespace PurelySharp
 
                 if (hasConsoleWrites)
                 {
-                    context.ReportDiagnostic(Diagnostic.Create(Rule, methodDeclaration.Identifier.GetLocation(),
+                    context.ReportDiagnostic(Diagnostic.Create(RuleImpure, methodDeclaration.Identifier.GetLocation(),
                         methodSymbol.Name));
                     return;
                 }
@@ -405,7 +422,7 @@ namespace PurelySharp
                     if (symbolInfo.Symbol is IFieldSymbol fieldSymbol && !fieldSymbol.IsReadOnly)
                     {
                         var lockDiagnostic = Diagnostic.Create(
-                            Rule,
+                            RuleImpure,
                             lockStatement.LockKeyword.GetLocation(),
                             methodSymbol.Name);
 
@@ -419,7 +436,7 @@ namespace PurelySharp
                     if (symbolInfo.Symbol is IFieldSymbol fieldSymbol && !fieldSymbol.IsReadOnly)
                     {
                         var lockDiagnostic = Diagnostic.Create(
-                            Rule,
+                            RuleImpure,
                             lockStatement.LockKeyword.GetLocation(),
                             methodSymbol.Name);
 
@@ -432,7 +449,7 @@ namespace PurelySharp
                 if (!IsLockPure(lockStatement, methodSymbol, context.SemanticModel))
                 {
                     var lockDiagnostic = Diagnostic.Create(
-                        Rule,
+                        RuleImpure,
                         lockStatement.LockKeyword.GetLocation(),
                         methodSymbol.Name);
 
@@ -450,7 +467,7 @@ namespace PurelySharp
 
                 if (incrementExpr != null)
                 {
-                    var lockDiagnostic1 = Diagnostic.Create(Rule, incrementExpr.GetLocation(), methodSymbol.Name);
+                    var lockDiagnostic1 = Diagnostic.Create(RuleImpure, incrementExpr.GetLocation(), methodSymbol.Name);
                     context.ReportDiagnostic(lockDiagnostic1);
                     return;
                 }
@@ -463,7 +480,7 @@ namespace PurelySharp
 
                 if (incrementExpr != null)
                 {
-                    var lockDiagnostic2 = Diagnostic.Create(Rule, incrementExpr.GetLocation(), methodSymbol.Name);
+                    var lockDiagnostic2 = Diagnostic.Create(RuleImpure, incrementExpr.GetLocation(), methodSymbol.Name);
                     context.ReportDiagnostic(lockDiagnostic2);
                     return;
                 }
@@ -482,7 +499,7 @@ namespace PurelySharp
 
                 if (incrementExpr != null)
                 {
-                    var asyncMethodDiagnostic = Diagnostic.Create(Rule, incrementExpr.GetLocation(), methodSymbol.Name);
+                    var asyncMethodDiagnostic = Diagnostic.Create(RuleImpure, incrementExpr.GetLocation(), methodSymbol.Name);
                     context.ReportDiagnostic(asyncMethodDiagnostic);
                     return;
                 }
@@ -520,7 +537,7 @@ namespace PurelySharp
                     if (invocationsInLambda.Any())
                     {
                         var lambdaInvocationDiagnostic = Diagnostic.Create(
-                            Rule,
+                            RuleImpure,
                             lambda.GetLocation(),
                             methodSymbol.Name);
 
@@ -536,7 +553,7 @@ namespace PurelySharp
                     if (assignmentsInLambda.Any())
                     {
                         var lambdaAssignmentDiagnostic = Diagnostic.Create(
-                            Rule,
+                            RuleImpure,
                             lambda.GetLocation(),
                             methodSymbol.Name);
 
@@ -554,19 +571,36 @@ namespace PurelySharp
             var walker = new ImpurityWalker(context.SemanticModel);
             walker.Visit(methodDeclaration);
 
-            if (!hasSpecialImpurityPattern && !walker.ContainsImpureOperations)
-                return; // Method is pure
-
-            // Use the impurity location found by the walker
-            impurityLocation = walker.ImpurityLocation ?? methodDeclaration.Identifier.GetLocation();
-
-            // Report diagnostic for impure methods
-            var impurityDiagnostic = Diagnostic.Create(
-                Rule,
-                impurityLocation,
-                methodSymbol?.Name ?? methodDeclaration.Identifier.ValueText); // Handle potentially null methodSymbol
-
-            context.ReportDiagnostic(impurityDiagnostic);
+            // Report diagnostic for impure methods first
+            if (walker.ContainsImpureOperations)
+            {
+                impurityLocation = walker.ImpurityLocation ?? methodDeclaration.Identifier.GetLocation();
+                var impurityDiagnostic = Diagnostic.Create(
+                    RuleImpure, // Use RuleImpure (PMA0001)
+                    impurityLocation,
+                    methodSymbol?.Name ?? methodDeclaration.Identifier.ValueText);
+                context.ReportDiagnostic(impurityDiagnostic);
+            }
+            // If not definitely impure, check if purity was undetermined
+            else if (walker.EncounteredUnknownPurity)
+            {
+                var unknownLocation = walker.UnknownPurityLocation ?? methodDeclaration.Identifier.GetLocation();
+                var unknownDiagnostic = Diagnostic.Create(
+                    RuleUnknownPurity, // Use RuleUnknownPurity (PMA0002)
+                    unknownLocation,
+                    methodSymbol?.Name ?? methodDeclaration.Identifier.ValueText);
+                context.ReportDiagnostic(unknownDiagnostic);
+            }
+            // If neither impure nor unknown, and has special impurity pattern (like ref/out, unsafe), report as impure
+            else if (hasSpecialImpurityPattern)
+            {
+                var impurityDiagnostic = Diagnostic.Create(
+                    RuleImpure, // Use RuleImpure (PMA0001)
+                    impurityLocation, // Location determined earlier for special patterns
+                    methodSymbol?.Name ?? methodDeclaration.Identifier.ValueText);
+                context.ReportDiagnostic(impurityDiagnostic);
+            }
+            // Otherwise, the method is considered pure
         }
 
         private void AnalyzeOperatorDeclaration(SyntaxNodeAnalysisContext context, HashSet<INamedTypeSymbol> recordTypes, HashSet<IMethodSymbol> analyzedMethods, HashSet<IMethodSymbol> knownPureMethods, HashSet<IMethodSymbol> knownImpureMethods)
@@ -588,11 +622,19 @@ namespace PurelySharp
             if (impurityWalker.ContainsImpureOperations)
             {
                 var diagnostic = Diagnostic.Create(
-                    Rule,
+                    RuleImpure,
                     impurityWalker.ImpurityLocation ?? operatorDeclaration.OperatorToken.GetLocation(), // Provide a fallback location
                     methodSymbol.Name);
 
                 context.ReportDiagnostic(diagnostic);
+            }
+            else if (impurityWalker.EncounteredUnknownPurity)
+            {
+                var unknownDiagnostic = Diagnostic.Create(
+                    RuleUnknownPurity,
+                    impurityWalker.UnknownPurityLocation ?? operatorDeclaration.OperatorToken.GetLocation(),
+                    methodSymbol.Name);
+                context.ReportDiagnostic(unknownDiagnostic);
             }
         }
 
@@ -615,11 +657,19 @@ namespace PurelySharp
             if (impurityWalker.ContainsImpureOperations)
             {
                 var diagnostic = Diagnostic.Create(
-                    Rule,
+                    RuleImpure,
                     impurityWalker.ImpurityLocation ?? conversionDeclaration.ImplicitOrExplicitKeyword.GetLocation(), // Use ImplicitOrExplicitKeyword
                     methodSymbol.Name);
 
                 context.ReportDiagnostic(diagnostic);
+            }
+            else if (impurityWalker.EncounteredUnknownPurity)
+            {
+                var unknownDiagnostic = Diagnostic.Create(
+                    RuleUnknownPurity,
+                    impurityWalker.UnknownPurityLocation ?? conversionDeclaration.ImplicitOrExplicitKeyword.GetLocation(),
+                    methodSymbol.Name);
+                context.ReportDiagnostic(unknownDiagnostic);
             }
         }
 
@@ -650,9 +700,12 @@ namespace PurelySharp
 
         private bool IsLockPure(LockStatementSyntax lockStatement, IMethodSymbol methodSymbol, SemanticModel semanticModel)
         {
-            // If the method doesn't have the AllowSynchronization attribute, the lock is impure
-            if (!HasAllowSynchronizationAttribute(methodSymbol))
+            // Check if the method has the [AllowSynchronization] attribute
+            if (!StatementPurityChecker.HasAllowSynchronizationAttribute(methodSymbol)) // Updated call
+            {
+                // No attribute, lock statement is impure
                 return false;
+            }
 
             // Check if the expression being locked is a readonly field
             if (lockStatement.Expression is IdentifierNameSyntax identifier)
@@ -844,15 +897,39 @@ namespace PurelySharp
             return walker.ContainsImpureOperations;
         }
 
+        private void AnalyzeConstructorDeclaration(SyntaxNodeAnalysisContext context, HashSet<INamedTypeSymbol> recordTypes, HashSet<IMethodSymbol> analyzedMethods, HashSet<IMethodSymbol> knownPureMethods, HashSet<IMethodSymbol> knownImpureMethods)
+        {
+            var constructorDeclaration = (ConstructorDeclarationSyntax)context.Node;
+            var constructorSymbol = context.SemanticModel.GetDeclaredSymbol(constructorDeclaration);
+
+            if (constructorSymbol == null || !HasEnforcePureAttribute(constructorSymbol))
+                return;
+
+            // Use PurityChecker to check constructor purity (might need adjustment based on PurityChecker capabilities)
+            // Assuming PurityChecker can handle constructors similar to methods for now
+            if (!PurityChecker.IsConstructorPure(constructorDeclaration, context.SemanticModel)) // Use the new IsConstructorPure method
+            {
+                var diagnostic = Diagnostic.Create(RuleImpure, constructorDeclaration.Identifier.GetLocation(), constructorSymbol.Name);
+                context.ReportDiagnostic(diagnostic);
+            }
+
+             // TODO: Add more specific constructor analysis if needed, similar to AnalyzeMethodDeclaration
+             // For now, rely on the general PurityChecker.
+        }
+
         private class ImpurityWalker : CSharpSyntaxWalker
         {
             protected readonly SemanticModel _semanticModel;
             protected bool _containsImpureOperations = false;
             protected Location? _impurityLocation = null;
             private readonly HashSet<IMethodSymbol> _visitedMethods = new(SymbolEqualityComparer.Default);
+            private bool _encounteredUnknownPurity = false; // Track if unknown purity was encountered
+            private Location? _unknownPurityLocation = null; // Location of the first unknown call
 
             public bool ContainsImpureOperations => _containsImpureOperations;
             public Location? ImpurityLocation => _impurityLocation;
+            public bool EncounteredUnknownPurity => _encounteredUnknownPurity; // Expose unknown state
+            public Location? UnknownPurityLocation => _unknownPurityLocation; // Expose unknown location
 
             public ImpurityWalker(SemanticModel semanticModel)
             {
@@ -960,112 +1037,190 @@ namespace PurelySharp
 
             public override void VisitInvocationExpression(InvocationExpressionSyntax node)
             {
-                base.VisitInvocationExpression(node);
+                if (_containsImpureOperations) return; // Stop if impurity already found
 
-                var symbolInfo = _semanticModel.GetSymbolInfo(node);
+                var symbolInfo = _semanticModel.GetSymbolInfo(node.Expression);
+                var methodSymbol = symbolInfo.Symbol as IMethodSymbol;
 
-                // Check for delegate invocation
-                if (symbolInfo.Symbol == null || symbolInfo.Symbol is IMethodSymbol methodSymbol && methodSymbol.MethodKind == MethodKind.DelegateInvoke)
+                if (methodSymbol == null)
                 {
-                    // This could be a delegate invocation
-                    if (node.Expression is IdentifierNameSyntax identifierName)
+                    // Could be a delegate or function pointer invocation
+                    // Check if the expression being invoked is a delegate type
+                    var invokedType = _semanticModel.GetTypeInfo(node.Expression).Type;
+                    if (invokedType?.TypeKind == TypeKind.Delegate)
                     {
-                        var delegateSymbolInfo = _semanticModel.GetSymbolInfo(identifierName);
-                        if (delegateSymbolInfo.Symbol != null)
+                        // Try to determine the symbol holding the delegate
+                        ISymbol? delegateHolderSymbol = null;
+                        if (node.Expression is IdentifierNameSyntax identifierName)
                         {
-                            // Check if it's a field, property, or local variable which could be a delegate
-                            if (delegateSymbolInfo.Symbol is IFieldSymbol fieldSymbol ||
-                                delegateSymbolInfo.Symbol is IPropertySymbol propertySymbol ||
-                                delegateSymbolInfo.Symbol is ILocalSymbol localSymbol)
+                            delegateHolderSymbol = _semanticModel.GetSymbolInfo(identifierName).Symbol;
+                        }
+                        else if (node.Expression is MemberAccessExpressionSyntax memberAccess)
+                        {
+                            delegateHolderSymbol = _semanticModel.GetSymbolInfo(memberAccess.Name).Symbol;
+                        }
+
+                        if (delegateHolderSymbol != null)
+                        {
+                            if (!IsDelegatePure(delegateHolderSymbol, node.Expression))
                             {
-                                var typeInfo = _semanticModel.GetTypeInfo(identifierName);
-                                if (typeInfo.Type != null &&
-                                    (typeInfo.Type.TypeKind == TypeKind.Delegate ||
-                                     typeInfo.Type.AllInterfaces.Any(i => i.Name.Contains("Action") || i.Name.Contains("Func"))))
-                                {
-                                    // Check if we can determine the delegate's target and if it's pure
-                                    bool isDelegatePure = IsDelegatePure(delegateSymbolInfo.Symbol, identifierName);
-                                    if (!isDelegatePure)
-                                    {
-                                        // Only mark impure if we can determine the delegate is impure
-                                        _containsImpureOperations = true;
-                                        _impurityLocation = node.GetLocation();
-                                        return;
-                                    }
-                                }
+                                RecordImpurity(node);
+                                return;
                             }
+                            // If delegate source is pure, we still need to check arguments
+                        }
+                        else
+                        {
+                            // Cannot determine delegate source, assume unknown
+                            RecordUnknownPurity(node);
+                            // Continue checking arguments
                         }
                     }
-                    else if (node.Expression is MemberAccessExpressionSyntax memberAccess)
+                    else
                     {
-                        var delegateSymbolInfo = _semanticModel.GetSymbolInfo(memberAccess);
-                        if (delegateSymbolInfo.Symbol != null)
+                        // Cannot resolve method symbol, assume unknown
+                        RecordUnknownPurity(node);
+                        // Continue checking arguments
+                    }
+                }
+                else
+                {
+                    // Handle regular method invocation
+                    if (_visitedMethods.Contains(methodSymbol))
+                        return; // Avoid infinite recursion
+
+                    _visitedMethods.Add(methodSymbol);
+
+                    try
+                    {
+                        // Check for explicit EnforcePure attribute on the called method
+                        if (HasEnforcePureAttribute(methodSymbol))
                         {
-                            // Check if it's a field, property, or local variable which could be a delegate
-                            if (delegateSymbolInfo.Symbol is IFieldSymbol fieldSymbol ||
-                                delegateSymbolInfo.Symbol is IPropertySymbol propertySymbol ||
-                                delegateSymbolInfo.Symbol is ILocalSymbol localSymbol)
+                            // If the called method is itself enforced pure, assume it's pure for this check
+                            base.VisitInvocationExpression(node);
+                            return; // Treat as pure for now
+                        }
+
+                        // ADDED BACK: Check for StringBuilder modification
+                        if (methodSymbol.ContainingType?.Name == "StringBuilder" &&
+                            methodSymbol.Name is "Append" or "AppendLine" or "AppendFormat" or "Insert" or "Replace" or "Remove" or "Clear")
+                        {
+                            RecordImpurity(node);
+                            return;
+                        }
+
+                        // ADDED BACK: Check for collection modification operations
+                        if (methodSymbol.Name is "Add" or "AddRange" or "Clear" or "Insert" or "Remove" or
+                            "RemoveAt" or "RemoveAll" or "RemoveRange" or "Sort" or "Reverse")
+                        {
+                            // Further check if the type is actually a known mutable collection if needed
+                            // For now, assume these methods on any type might be impure state changes
+                            RecordImpurity(node);
+                            return;
+                        }
+
+                        // Check against known impure methods list first (local helper)
+                        if (IsMethodKnownImpure(methodSymbol))
+                        {
+                            RecordImpurity(node);
+                            return;
+                        }
+
+                        // Check against EXTERNAL known pure methods list
+                        if (MethodPurityChecker.IsKnownPureMethod(methodSymbol))
+                        {
+                            // *** If known pure by the external checker, visit args then stop ***
+                            foreach(var arg in node.ArgumentList?.Arguments ?? Enumerable.Empty<ArgumentSyntax>())
                             {
-                                var typeInfo = _semanticModel.GetTypeInfo(memberAccess);
-                                if (typeInfo.Type != null &&
-                                    (typeInfo.Type.TypeKind == TypeKind.Delegate ||
-                                     typeInfo.Type.AllInterfaces.Any(i => i.Name.Contains("Action") || i.Name.Contains("Func"))))
+                                Visit(arg.Expression);
+                                if (_containsImpureOperations || _encounteredUnknownPurity)
                                 {
-                                    // Check if we can determine the delegate's target and if it's pure
-                                    bool isDelegatePure = IsDelegatePure(delegateSymbolInfo.Symbol, memberAccess);
-                                    if (!isDelegatePure)
-                                    {
-                                        // Only mark impure if we can determine the delegate is impure
-                                        _containsImpureOperations = true;
-                                        _impurityLocation = node.GetLocation();
-                                        return;
-                                    }
+                                    return;
                                 }
                             }
+                            return; // Stop visiting this node.
+                        }
+
+                        // If not explicitly known pure or impure, mark as unknown purity
+                        RecordUnknownPurity(node);
+                    }
+                    finally
+                    {
+                        _visitedMethods.Remove(methodSymbol);
+                    }
+                }
+
+                // Always visit arguments if we haven't returned yet
+                base.VisitInvocationExpression(node);
+            }
+
+            private bool IsDelegatePure(ISymbol delegateHolderSymbol, ExpressionSyntax delegateExpression)
+            {
+                // Check if the delegate holder symbol is a field, property, or local variable
+                if (delegateHolderSymbol is IFieldSymbol fieldSymbol ||
+                    delegateHolderSymbol is IPropertySymbol propertySymbol ||
+                    delegateHolderSymbol is ILocalSymbol localSymbol)
+                {
+                    // Check if the delegate expression is a known pure delegate type
+                    var typeInfo = _semanticModel.GetTypeInfo(delegateExpression);
+                    if (typeInfo.Type != null &&
+                        (typeInfo.Type.TypeKind == TypeKind.Delegate ||
+                         typeInfo.Type.AllInterfaces.Any(i => i.Name.Contains("Action") || i.Name.Contains("Func"))))
+                    {
+                        // Check if we can determine the delegate's target and if it's pure
+                        bool isDelegatePure = ExpressionPurityChecker.IsDelegateSymbolPure(delegateHolderSymbol, delegateExpression, _semanticModel, _visitedMethods);
+                        bool isDelegateKnown = IsDelegatePurityKnown(delegateHolderSymbol, delegateExpression);
+
+                        if (!isDelegatePure && isDelegateKnown) // Only mark impure if known to be impure
+                        {
+                            return false;
+                        }
+                        else if (!isDelegateKnown) // Mark unknown if purity couldn't be determined
+                        {
+                            RecordUnknownPurity(delegateExpression);
                         }
                     }
                 }
 
-                if (symbolInfo.Symbol is IMethodSymbol methodSym)
+                return true; // Assume pure if we can't determine the delegate's purity
+            }
+
+            private bool IsDelegatePurityKnown(ISymbol delegateHolderSymbol, ExpressionSyntax delegateExpression)
+            {
+                // Check if the delegate holder symbol is a field, property, or local variable
+                if (delegateHolderSymbol is IFieldSymbol fieldSymbol ||
+                    delegateHolderSymbol is IPropertySymbol propertySymbol ||
+                    delegateHolderSymbol is ILocalSymbol localSymbol)
                 {
-                    // Prevent infinite recursion
-                    if (_visitedMethods.Contains(methodSym))
-                        return;
-
-                    _visitedMethods.Add(methodSym);
-
-                    // Check if method is a StringBuilder operation (Append, AppendLine, etc.)
-                    if (methodSym.ContainingType?.Name == "StringBuilder" &&
-                        methodSym.Name is "Append" or "AppendLine" or "AppendFormat" or "Insert" or "Replace" or "Remove" or "Clear")
+                    // Check if the delegate expression is a known pure delegate type
+                    var typeInfo = _semanticModel.GetTypeInfo(delegateExpression);
+                    if (typeInfo.Type != null &&
+                        (typeInfo.Type.TypeKind == TypeKind.Delegate ||
+                         typeInfo.Type.AllInterfaces.Any(i => i.Name.Contains("Action") || i.Name.Contains("Func"))))
                     {
-                        _containsImpureOperations = true;
-                        _impurityLocation = node.GetLocation();
-                        return;
+                        // Check if we can determine the delegate's target and if it's pure
+                        // bool isDelegatePure = ExpressionPurityChecker.IsDelegateSymbolPure(delegateHolderSymbol, delegateExpression, _semanticModel, _visitedMethods);
+                        // REMOVED CALL: bool isDelegateKnown = ExpressionPurityChecker.IsDelegatePurityKnown(delegateHolderSymbol, delegateExpression, _semanticModel, _visitedMethods);
+                        // return isDelegateKnown;
+                        return false; // Assume unknown for now
                     }
+                }
 
-                    // Check for collection modification operations
-                    if (methodSym.Name is "Add" or "AddRange" or "Clear" or "Insert" or "Remove" or
-                        "RemoveAt" or "RemoveAll" or "RemoveRange" or "Sort" or "Reverse")
-                    {
-                        // Check if we're calling the method on a parameter
-                        if (node.Expression is MemberAccessExpressionSyntax memberAccess)
-                        {
-                            var expressionSymbolInfo = _semanticModel.GetSymbolInfo(memberAccess.Expression);
-                            if (expressionSymbolInfo.Symbol is IParameterSymbol)
-                            {
-                                _containsImpureOperations = true;
-                                _impurityLocation = node.GetLocation();
-                                return;
-                            }
-                        }
-                    }
+                return false; // Assume unknown if we can't determine the delegate's purity
+            }
 
-                    // Check if the method is known to be impure
-                    if (IsMethodKnownImpure(methodSym))
-                    {
-                        _containsImpureOperations = true;
-                        _impurityLocation = node.GetLocation();
-                    }
+            private void RecordImpurity(ExpressionSyntax expression)
+            {
+                _containsImpureOperations = true;
+                _impurityLocation = expression.GetLocation();
+            }
+
+            private void RecordUnknownPurity(ExpressionSyntax expression)
+            {
+                if (!_encounteredUnknownPurity)
+                {
+                    _encounteredUnknownPurity = true;
+                    _unknownPurityLocation = expression.GetLocation();
                 }
             }
 
@@ -1446,715 +1601,20 @@ namespace PurelySharp
                 }
             }
 
-            private bool IsDelegatePure(ISymbol delegateSymbol, ExpressionSyntax expression)
+            private bool IsFromKnownPureNamespace(IMethodSymbol methodSymbol)
             {
-                // Default to considering delegates impure unless we can prove otherwise
-                // This is a conservative approach
-
-                // For local variables, try to find the initialization
-                if (delegateSymbol is ILocalSymbol localSymbol)
-                {
-                    // Try to find where the local is declared and initialized
-                    var declarator = expression.Ancestors()
-                        .OfType<BlockSyntax>()
-                        .SelectMany(b => b.Statements)
-                        .OfType<LocalDeclarationStatementSyntax>()
-                        .SelectMany(d => d.Declaration.Variables)
-                        .FirstOrDefault(v => v.Identifier.ValueText == localSymbol.Name);
-
-                    if (declarator?.Initializer?.Value != null)
-                    {
-                        // If it's initialized with a lambda, check if the lambda is pure
-                        if (declarator.Initializer.Value is LambdaExpressionSyntax lambda)
-                        {
-                            // Check if the lambda body is pure
-                            if (lambda.Body is ExpressionSyntax lambdaExpr)
-                            {
-                                return ExpressionPurityChecker.IsExpressionPure(lambdaExpr, _semanticModel, null);
-                            }
-                            else if (lambda.Body is BlockSyntax lambdaBlock)
-                            {
-                                return StatementPurityChecker.AreStatementsPure(lambdaBlock.Statements, _semanticModel, null);
-                            }
-                        }
-                        // If it's a method group, check if the method is pure
-                        else if (declarator.Initializer.Value is IdentifierNameSyntax methodName)
-                        {
-                            var methodSymbol = _semanticModel.GetSymbolInfo(methodName).Symbol as IMethodSymbol;
-                            if (methodSymbol != null)
-                            {
-                                return MethodPurityChecker.IsKnownPureMethod(methodSymbol);
-                            }
-                        }
-                        // If it's an invocation that returns a delegate
-                        else if (declarator.Initializer.Value is InvocationExpressionSyntax invocation)
-                        {
-                            var invocationSymbol = _semanticModel.GetSymbolInfo(invocation).Symbol as IMethodSymbol;
-                            if (invocationSymbol != null)
-                            {
-                                // For methods that return delegates, consider them pure if the method is pure
-                                return MethodPurityChecker.IsKnownPureMethod(invocationSymbol);
-                            }
-                        }
-                    }
-                }
-                // For method invocation results
-                else if (expression is InvocationExpressionSyntax invocation)
-                {
-                    var invocationSymbol = _semanticModel.GetSymbolInfo(invocation).Symbol as IMethodSymbol;
-                    if (invocationSymbol != null)
-                    {
-                        // Trust delegate-returning methods that are marked as pure
-                        return MethodPurityChecker.IsKnownPureMethod(invocationSymbol);
-                    }
-                }
-                // For parameters, assume they're pure since the caller should enforce purity
-                else if (delegateSymbol is IParameterSymbol)
-                {
-                    return true;
-                }
-
-                // If we can't determine, be conservative
-                return false;
-            }
-        }
-
-        private bool IsKnownPureMethod(IMethodSymbol methodSymbol)
-        {
-            if (methodSymbol == null)
-                return false;
-
-            // Check if the method has any attributes that suggest purity
-            if (HasEnforcePureAttribute(methodSymbol))
-                return true;
-
-            // Check if this is a higher-order function that returns a delegate
-            if (methodSymbol.ReturnType?.TypeKind == TypeKind.Delegate ||
-                methodSymbol.ReturnType?.Name.Contains("Func") == true ||
-                methodSymbol.ReturnType?.Name.Contains("Action") == true)
-            {
-                // If the method is named "Create*" or "Get*" it's likely a factory method for a delegate
-                if (methodSymbol.Name.StartsWith("Create") || methodSymbol.Name.StartsWith("Get"))
-                    return true;
+                // Implementation of IsFromKnownPureNamespace method
+                // This method should be implemented based on your specific requirements
+                return false; // Placeholder return, actual implementation needed
             }
 
-            // Check if this is part of the test class
-            var containingType = methodSymbol.ContainingType?.ToDisplayString();
-            if (containingType?.Contains("TestClass") == true)
+            private bool IsCoreKnownPureMethod(IMethodSymbol methodSymbol)
             {
-                var methodName = methodSymbol.Name;
-                // These are test methods we know are pure
-                if (methodName is "Add" or "Fibonacci" or "AddAndMultiply" or "TestMethod" or
-                    "CreateMultiplier" or "GetAddOperation" or "GetMultiplier")
-                    return true;
+                // Implementation of IsCoreKnownPureMethod method
+                // This method should be implemented based on your specific requirements
+                return false; // Placeholder return, actual implementation needed
             }
-
-            return false;
-        }
-
-        private bool IsFromKnownPureNamespace(IMethodSymbol methodSymbol)
-        {
-            var containingNamespace = methodSymbol.ContainingNamespace?.ToDisplayString();
-
-            return containingNamespace?.StartsWith("System.Linq") == true ||
-                   containingNamespace?.StartsWith("System.Collections.Immutable") == true ||
-                   containingNamespace?.StartsWith("System.Math") == true ||
-                   (methodSymbol.ContainingType?.ToDisplayString() is "System.Math" or
-                                                             "System.String" or
-                                                             "System.Int32" or
-                                                             "System.Double");
-        }
-
-        private bool HasAllowSynchronizationAttribute(IMethodSymbol methodSymbol)
-        {
-            if (methodSymbol == null) return false;
-
-            // Look for any attribute with a name containing "AllowSynchronization"
-            return methodSymbol.GetAttributes().Any(attr =>
-                attr.AttributeClass?.Name is "AllowSynchronizationAttribute" or "AllowSynchronization" ||
-                attr.AttributeClass?.ToDisplayString().Contains("AllowSynchronization") == true);
-        }
-
-        // Method to check if a method call is impure
-        private bool IsImpureMethodCall(IMethodSymbol methodSymbol, SemanticModel semanticModel)
-        {
-            // Check if it's a known impure method
-            if (methodSymbol == null)
-                return false;
-
-            // Check if it's a known pure method
-            if (methodSymbol.ContainingType?.ToString() == "System.Threading.Tasks.Task" &&
-                methodSymbol.Name == "FromResult")
-            {
-                return false;
-            }
-
-            // Check if the method is in a namespace related to IO
-            if (methodSymbol.ContainingNamespace?.ToString().Contains("System.IO") == true)
-                return true;
-
-            // Check if method is in other impure namespaces
-            string[] impureNamespaces = new[]
-            {
-                "System.Net",
-                "System.Data.SqlClient",
-                "System.Diagnostics.Process",
-                "System.Console"
-            };
-
-            foreach (var ns in impureNamespaces)
-            {
-                if (methodSymbol.ContainingNamespace?.ToString().StartsWith(ns) == true)
-                    return true;
-            }
-
-            // Check for methods that interact with the file system
-            string[] impureMethodNames = new[]
-            {
-                "Write", "Read", "Open", "Create", "Delete", "Move",
-                "Copy", "Append", "Exists", "SendAsync", "GetAsync", "PostAsync"
-            };
-
-            foreach (var name in impureMethodNames)
-            {
-                if (methodSymbol.Name.Contains(name))
-                    return true;
-            }
-
-            // If we can't determine impurity statically, be conservative
-            return false;
-        }
-
-        private bool IsPotentiallyImpureExpression(ExpressionSyntax expression, SemanticModel semanticModel)
-        {
-            // Consider method invocations, member access with assignment, and object creations as potentially impure
-            return expression is InvocationExpressionSyntax ||
-                   expression is ObjectCreationExpressionSyntax ||
-                   expression is MemberAccessExpressionSyntax ||
-                   !ExpressionPurityChecker.IsExpressionPure(expression, semanticModel, null); // Revert to passing null
-        }
-
-        // New method to analyze constructor declarations
-        private void AnalyzeConstructorDeclaration(SyntaxNodeAnalysisContext context, HashSet<INamedTypeSymbol> recordTypes, HashSet<IMethodSymbol> analyzedMethods, HashSet<IMethodSymbol> knownPureMethods, HashSet<IMethodSymbol> knownImpureMethods)
-        {
-            var constructorDeclaration = (ConstructorDeclarationSyntax)context.Node;
-            var constructorSymbol = context.SemanticModel.GetDeclaredSymbol(constructorDeclaration);
-
-            if (constructorSymbol == null || !HasEnforcePureAttribute(constructorSymbol))
-                return;
-
-            // Check for dynamic operations using the strategy
-            // Pass the constructorDeclaration itself as the node to check
-            var dynamicCheckResult = dynamicOperationCheckStrategy.Check(constructorDeclaration, context);
-            if (!dynamicCheckResult.Passed)
-            {
-                var location = dynamicCheckResult.ImpurityLocation ?? constructorDeclaration.Identifier.GetLocation();
-                var diagnostic = Diagnostic.Create(Rule, location, constructorSymbol.Name);
-                context.ReportDiagnostic(diagnostic);
-                return; // Found impurity, stop analysis
-            }
-
-            // Special rule for constructors: Allow instance field assignments
-            // We'll use the impurity walker but with special handling for field assignments
-            var walker = new ConstructorImpurityWalker(context.SemanticModel, constructorSymbol);
-            walker.Visit(constructorDeclaration);
-
-            if (walker.ContainsImpureOperations)
-            {
-                // Report diagnostic for impure constructors
-                var impurityLocation = walker.ImpurityLocation ?? constructorDeclaration.Identifier.GetLocation();
-                var diagnostic = Diagnostic.Create(
-                    Rule,
-                    impurityLocation,
-                    constructorSymbol.Name);
-
-                context.ReportDiagnostic(diagnostic);
-            }
-
-            // Check for base constructor calls
-            if (constructorDeclaration.Initializer != null &&
-                constructorDeclaration.Initializer.Kind() == SyntaxKind.BaseConstructorInitializer)
-            {
-                var baseConstructorInitializer = constructorDeclaration.Initializer;
-                var baseConstructorSymbol = context.SemanticModel.GetSymbolInfo(baseConstructorInitializer).Symbol as IMethodSymbol;
-
-                // If we can determine the base constructor and it's not marked as pure
-                if (baseConstructorSymbol != null && !HasEnforcePureAttribute(baseConstructorSymbol))
-                {
-                    // Check if the base constructor is known to be impure
-                    bool isBaseImpure = IsMethodKnownImpure(baseConstructorSymbol, context.SemanticModel, knownPureMethods, knownImpureMethods); // Pass state
-
-                    if (isBaseImpure)
-                    {
-                        var diagnostic = Diagnostic.Create(
-                            Rule,
-                            baseConstructorInitializer.GetLocation(),
-                            constructorSymbol.Name);
-
-                        context.ReportDiagnostic(diagnostic);
-                    }
-                }
-            }
-        }
-
-        private class ConstructorImpurityWalker : ImpurityWalker
-        {
-            private readonly IMethodSymbol _constructorSymbol;
-            private readonly INamedTypeSymbol? _containingType;
-
-            public ConstructorImpurityWalker(SemanticModel semanticModel, IMethodSymbol constructorSymbol)
-                : base(semanticModel)
-            {
-                _constructorSymbol = constructorSymbol;
-                _containingType = constructorSymbol?.ContainingType;
-            }
-
-            public override void VisitAssignmentExpression(AssignmentExpressionSyntax node)
-            {
-                // First check if we're already detected impure operations
-                if (ContainsImpureOperations)
-                {
-                    return;
-                }
-
-                // Visit the right-hand side of the assignment first
-                Visit(node.Right);
-                if (ContainsImpureOperations)
-                {
-                    return;
-                }
-
-                // Check if we're assigning to a field
-                if (node.Left is MemberAccessExpressionSyntax memberAccess)
-                {
-                    // Get semantic info for the member being accessed
-                    var symbolInfo = _semanticModel.GetSymbolInfo(memberAccess.Name);
-                    var symbol = symbolInfo.Symbol;
-
-                    // If it's a field, we need to check if it belongs to this class
-                    if (symbol is IFieldSymbol fieldSymbol)
-                    {
-                        // If it's a static field, mark as impure (even in constructors)
-                        if (fieldSymbol.IsStatic)
-                        {
-                            base.VisitAssignmentExpression(node);
-                            return;
-                        }
-
-                        // If it's an instance field of the current type, allow the assignment
-                        if (!fieldSymbol.IsStatic &&
-                            fieldSymbol.ContainingType != null &&
-                            fieldSymbol.ContainingType.Equals(_containingType, SymbolEqualityComparer.Default))
-                        {
-                            // Allow assignment to instance fields in constructors
-                            return;
-                        }
-                    }
-                    else if (symbol is IPropertySymbol propertySymbol)
-                    {
-                        // If it's an instance property of the current type, allow the assignment
-                        if (!propertySymbol.IsStatic &&
-                            propertySymbol.ContainingType != null &&
-                            propertySymbol.ContainingType.Equals(_containingType, SymbolEqualityComparer.Default))
-                        {
-                            // Allow assignment to instance properties in constructors
-                            return;
-                        }
-                    }
-
-                    // For any other member access, use the base implementation
-                    base.VisitAssignmentExpression(node);
-                }
-                // Check if we're assigning to an identifier (could be a field)
-                else if (node.Left is IdentifierNameSyntax identifier)
-                {
-                    // Check if the identifier is a field of this class
-                    var symbolInfo = _semanticModel.GetSymbolInfo(identifier);
-                    if (symbolInfo.Symbol is IFieldSymbol fieldSymbol)
-                    {
-                        // If it's a static field, mark as impure (even in constructors)
-                        if (fieldSymbol.IsStatic)
-                        {
-                            base.VisitAssignmentExpression(node);
-                            return;
-                        }
-
-                        // If it's an instance field of the current type, allow the assignment
-                        if (!fieldSymbol.IsStatic &&
-                            fieldSymbol.ContainingType != null &&
-                            fieldSymbol.ContainingType.Equals(_containingType, SymbolEqualityComparer.Default))
-                        {
-                            // Allow assignment to instance fields in constructors
-                            return;
-                        }
-                    }
-
-                    // For any other identifier, use the base implementation
-                    base.VisitAssignmentExpression(node);
-                }
-                else
-                {
-                    // For any other left-hand side, use the base implementation
-                    base.VisitAssignmentExpression(node);
-                }
-            }
-
-            public override void VisitObjectCreationExpression(ObjectCreationExpressionSyntax node)
-            {
-                // In constructors, allow creation of mutable collections that are assigned to fields
-                var parent = node.Parent;
-                if (parent is AssignmentExpressionSyntax assignment)
-                {
-                    if (assignment.Left is MemberAccessExpressionSyntax memberAccess ||
-                        assignment.Left is IdentifierNameSyntax identifier)
-                    {
-                        var typeInfo = _semanticModel.GetTypeInfo(node);
-                        if (typeInfo.Type != null)
-                        {
-                            // Allow creating any collection that is assigned to an instance field
-                            if (IsCollectionType(typeInfo.Type) && IsAssigningToInstanceField(assignment.Left))
-                            {
-                                // Check that the arguments to the collection initializer are pure
-                                if (node.ArgumentList != null)
-                                {
-                                    foreach (var argument in node.ArgumentList.Arguments)
-                                    {
-                                        Visit(argument.Expression);
-                                        if (ContainsImpureOperations)
-                                            return;
-                                    }
-                                }
-
-                                // Check that the collection initializer expressions are pure
-                                if (node.Initializer != null)
-                                {
-                                    foreach (var expression in node.Initializer.Expressions)
-                                    {
-                                        Visit(expression);
-                                        if (ContainsImpureOperations)
-                                            return;
-                                    }
-                                }
-
-                                // Allow the collection creation in a constructor
-                                return;
-                            }
-                        }
-                    }
-                }
-
-                // For any other object creation, use the base implementation
-                base.VisitObjectCreationExpression(node);
-            }
-
-            public override void VisitArrayCreationExpression(ArrayCreationExpressionSyntax node)
-            {
-                // In constructors, allow creation of arrays that are assigned to fields
-                var parent = node.Parent;
-                if (parent is AssignmentExpressionSyntax assignment)
-                {
-                    if (IsAssigningToInstanceField(assignment.Left))
-                    {
-                        // Check that the array size expressions are pure
-                        foreach (var rankSpecifier in node.Type.RankSpecifiers)
-                        {
-                            foreach (var size in rankSpecifier.Sizes)
-                            {
-                                Visit(size);
-                                if (ContainsImpureOperations)
-                                    return;
-                            }
-                        }
-
-                        // Check that the initializer expressions are pure
-                        if (node.Initializer != null)
-                        {
-                            foreach (var expression in node.Initializer.Expressions)
-                            {
-                                Visit(expression);
-                                if (ContainsImpureOperations)
-                                    return;
-                            }
-                        }
-
-                        // Allow the array creation in a constructor
-                        return;
-                    }
-                }
-
-                // For any other array creation, use the base implementation
-                base.VisitArrayCreationExpression(node);
-            }
-
-            public override void VisitImplicitArrayCreationExpression(ImplicitArrayCreationExpressionSyntax node)
-            {
-                // In constructors, allow creation of arrays that are assigned to fields
-                var parent = node.Parent;
-                if (parent is AssignmentExpressionSyntax assignment)
-                {
-                    if (IsAssigningToInstanceField(assignment.Left))
-                    {
-                        // Check that the initializer expressions are pure
-                        foreach (var expression in node.Initializer.Expressions)
-                        {
-                            Visit(expression);
-                            if (ContainsImpureOperations)
-                                return;
-                        }
-
-                        // Allow the array creation in a constructor
-                        return;
-                    }
-                }
-
-                // For any other implicit array creation, use the base implementation
-                base.VisitImplicitArrayCreationExpression(node);
-            }
-
-            public override void VisitInvocationExpression(InvocationExpressionSyntax node)
-            {
-                // First check the arguments for purity
-                if (node.ArgumentList != null)
-                {
-                    foreach (var argument in node.ArgumentList.Arguments)
-                    {
-                        Visit(argument.Expression);
-                        if (_containsImpureOperations)
-                            return;
-                    }
-                }
-
-                // Check if the method being called is impure
-                var methodSymbol = _semanticModel.GetSymbolInfo(node).Symbol as IMethodSymbol;
-                if (methodSymbol != null)
-                {
-                    // Check if method is known to be impure (IO, etc)
-                    if (IsImpureMethodCall(methodSymbol))
-                    {
-                        _containsImpureOperations = true;
-                        _impurityLocation = node.GetLocation();
-                        return;
-                    }
-
-                    // If method is from another assembly and not explicitly marked as pure
-                    if (methodSymbol.ContainingAssembly != null && _constructorSymbol.ContainingAssembly != null &&
-                        !SymbolEqualityComparer.Default.Equals(methodSymbol.ContainingAssembly, _constructorSymbol.ContainingAssembly) && // Use comparer
-                        !HasEnforcePureAttribute(methodSymbol))
-                    {
-                        _containsImpureOperations = true;
-                        _impurityLocation = node.GetLocation();
-                        return;
-                    }
-
-                    // For methods in the same assembly, check if they're impure
-                    if (methodSymbol.ContainingAssembly != null && _constructorSymbol.ContainingAssembly != null &&
-                        SymbolEqualityComparer.Default.Equals(methodSymbol.ContainingAssembly, _constructorSymbol.ContainingAssembly)) // Use comparer
-                    {
-                        // Check method declarations for impurity
-                        if (methodSymbol.DeclaringSyntaxReferences.Length > 0)
-                        {
-                            var methodDeclaration = methodSymbol.DeclaringSyntaxReferences[0].GetSyntax() as MethodDeclarationSyntax;
-                            if (methodDeclaration != null)
-                            {
-                                // Check for Console.WriteLine calls or other IO operations
-                                var hasConsoleWriteCall = methodDeclaration.DescendantNodes()
-                                    .OfType<InvocationExpressionSyntax>()
-                                    .Any(i =>
-                                    {
-                                        if (i.Expression is MemberAccessExpressionSyntax mae)
-                                        {
-                                            if (mae.Expression is IdentifierNameSyntax ins &&
-                                                ins.Identifier.Text == "Console" &&
-                                                (mae.Name.Identifier.Text == "WriteLine" || mae.Name.Identifier.Text == "Write"))
-                                            {
-                                                return true;
-                                            }
-                                        }
-                                        return false;
-                                    });
-
-                                if (hasConsoleWriteCall)
-                                {
-                                    _containsImpureOperations = true;
-                                    _impurityLocation = node.GetLocation();
-                                    return;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Use the base implementation
-                base.VisitInvocationExpression(node);
-            }
-
-            private bool IsImpureMethodCall(IMethodSymbol methodSymbol)
-            {
-                // Check common impure methods
-                var containingType = methodSymbol.ContainingType?.ToString() ?? string.Empty;
-                var methodName = methodSymbol.Name;
-
-                // Console operations are impure
-                if (containingType == "System.Console" &&
-                    (methodName == "Write" || methodName == "WriteLine" ||
-                     methodName == "ReadLine" || methodName == "ReadKey"))
-                {
-                    return true;
-                }
-
-                // IO operations are impure
-                if (containingType.Contains("System.IO.") ||
-                    containingType.Contains("System.Net.") ||
-                    containingType.Contains("System.Data."))
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            private bool HasEnforcePureAttribute(IMethodSymbol methodSymbol)
-            {
-                if (methodSymbol == null) return false;
-
-                // Look for any attribute with a name containing "Pure" or "EnforcePure"
-                return methodSymbol.GetAttributes().Any(attr =>
-                    attr.AttributeClass?.Name is "PureAttribute" or "Pure" or "EnforcePureAttribute" or "EnforcePure" ||
-                    (attr.AttributeClass != null && attr.AttributeClass.ToDisplayString().Contains("PureAttribute")) || // Null check added
-                    (attr.AttributeClass != null && attr.AttributeClass.ToDisplayString().Contains("EnforcePure")) || // Null check added
-                    (attr.AttributeClass != null && attr.AttributeClass.ToDisplayString() == "System.Diagnostics.Contracts.PureAttribute")); // Add check for System.Diagnostics.Contracts.PureAttribute
-            }
-
-            private bool IsCollectionType(ITypeSymbol type)
-            {
-                if (type is IArrayTypeSymbol)
-                    return true;
-
-                if (type is INamedTypeSymbol namedType)
-                {
-                    // Check if it's a known collection type
-                    var typeName = namedType.Name;
-                    var modifiableCollections = new[] {
-                        "List", "Dictionary", "HashSet", "Queue", "Stack", "LinkedList",
-                        "SortedList", "SortedDictionary", "SortedSet", "Collection"
-                    };
-
-                    return modifiableCollections.Contains(typeName) ||
-                           (namedType.TypeArguments.Any() &&
-                            modifiableCollections.Contains(namedType.ConstructedFrom.Name));
-                }
-
-                return false;
-            }
-
-            private bool IsAssigningToInstanceField(ExpressionSyntax leftSide)
-            {
-                if (leftSide is MemberAccessExpressionSyntax memberAccess)
-                {
-                    var symbolInfo = _semanticModel.GetSymbolInfo(memberAccess.Name);
-                    if (symbolInfo.Symbol is IFieldSymbol fieldSymbol)
-                    {
-                        return !fieldSymbol.IsStatic &&
-                               fieldSymbol.ContainingType != null &&
-                               fieldSymbol.ContainingType.Equals(_containingType, SymbolEqualityComparer.Default);
-                    }
-                }
-                else if (leftSide is IdentifierNameSyntax identifier)
-                {
-                    var symbolInfo = _semanticModel.GetSymbolInfo(identifier);
-                    if (symbolInfo.Symbol is IFieldSymbol fieldSymbol)
-                    {
-                        return !fieldSymbol.IsStatic &&
-                               fieldSymbol.ContainingType != null &&
-                               fieldSymbol.ContainingType.Equals(_containingType, SymbolEqualityComparer.Default);
-                    }
-                }
-
-                return false;
-            }
-        }
-
-        private bool IsMethodKnownImpure(IMethodSymbol methodSymbol, SemanticModel semanticModel, HashSet<IMethodSymbol> knownPureMethods, HashSet<IMethodSymbol> knownImpureMethods)
-        {
-            // First check if we've already analyzed this method
-            if (knownImpureMethods.Contains(methodSymbol))
-                return true;
-
-            if (knownPureMethods.Contains(methodSymbol))
-                return false;
-
-            // Check if it's a special method like a constructor with IO operations
-            if (methodSymbol.MethodKind == MethodKind.Constructor)
-            {
-                // Check if the constructor has any Console.WriteLine calls or other IO operations
-                if (methodSymbol.DeclaringSyntaxReferences.Length > 0)
-                {
-                    var constructorSyntax = methodSymbol.DeclaringSyntaxReferences[0].GetSyntax() as ConstructorDeclarationSyntax;
-                    if (constructorSyntax != null)
-                    {
-                        var invocations = constructorSyntax.DescendantNodes().OfType<InvocationExpressionSyntax>();
-                        foreach (var invocation in invocations)
-                        {
-                            if (invocation.Expression is MemberAccessExpressionSyntax memberAccess)
-                            {
-                                // Check for Console method calls
-                                if (memberAccess.Expression is IdentifierNameSyntax identifier &&
-                                    identifier.Identifier.Text == "Console")
-                                {
-                                    knownImpureMethods.Add(methodSymbol);
-                                    return true;
-                                }
-
-                                // Check for other known impure methods
-                                var invokedMethod = semanticModel.GetSymbolInfo(invocation).Symbol as IMethodSymbol;
-                                if (invokedMethod != null && IsImpureMethodCall(invokedMethod, semanticModel))
-                                {
-                                    knownImpureMethods.Add(methodSymbol);
-                                    return true;
-                                }
-                            }
-                        }
-
-                        // Check for static field modifications
-                        var assignments = constructorSyntax.DescendantNodes().OfType<AssignmentExpressionSyntax>();
-                        foreach (var assignment in assignments)
-                        {
-                            if (assignment.Left is IdentifierNameSyntax identName)
-                            {
-                                var symbol = semanticModel.GetSymbolInfo(identName).Symbol;
-                                if (symbol is IFieldSymbol fieldSymbol && fieldSymbol.IsStatic)
-                                {
-                                    knownImpureMethods.Add(methodSymbol);
-                                    return true;
-                                }
-                            }
-                            else if (assignment.Left is MemberAccessExpressionSyntax memberAccessExpr)
-                            {
-                                var symbol = semanticModel.GetSymbolInfo(memberAccessExpr).Symbol;
-                                if (symbol is IFieldSymbol fieldSymbol && fieldSymbol.IsStatic)
-                                {
-                                    knownImpureMethods.Add(methodSymbol);
-                                    return true;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // For other methods, check common impure patterns
-            if (methodSymbol.ContainingNamespace?.ToString().Contains("System.IO") == true ||
-                methodSymbol.ContainingNamespace?.ToString().Contains("System.Net") == true ||
-                methodSymbol.ContainingNamespace?.ToString().Contains("System.Data.SqlClient") == true ||
-                methodSymbol.ContainingNamespace?.ToString().Contains("System.Console") == true)
-            {
-                knownImpureMethods.Add(methodSymbol);
-                return true;
-            }
-
-            // Method doesn't have obvious signs of impurity
-            knownPureMethods.Add(methodSymbol);
-            return false;
         }
     }
 }
+

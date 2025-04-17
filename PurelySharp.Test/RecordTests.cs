@@ -67,8 +67,8 @@ public class TestClass
     }
 }";
 
-            var expected = VerifyCS.Diagnostic().WithSpan(19, 16, 19, 30).WithArguments("UseCalculator");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            // No diagnostic expected since Calculator.Add is pure
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
@@ -97,7 +97,7 @@ public class TestClass
 }";
 
             await VerifyCS.VerifyAnalyzerAsync(test,
-                VerifyCS.Diagnostic().WithSpan(19, 9, 19, 29).WithArguments("UpdatePerson"));
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(19, 9, 19, 29).WithArguments("UpdatePerson"));
         }
 
         [Test]
@@ -133,7 +133,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test,
                 // We need to handle both the compiler error and the analyzer diagnostic
                 DiagnosticResult.CompilerError("CS0518").WithSpan(10, 31, 10, 35).WithArguments("System.Runtime.CompilerServices.IsExternalInit"),
-                VerifyCS.Diagnostic().WithSpan(24, 9, 24, 24).WithArguments("UpdateAge"));
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(24, 9, 24, 24).WithArguments("UpdateAge"));
         }
     }
 }

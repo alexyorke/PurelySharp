@@ -11,7 +11,7 @@ namespace PurelySharp.Test
     public class ComprehensiveAsyncTests
     {
         [Test]
-        public async Task PureAsyncMethod_WithFromResult_NoDiagnostic()
+        public async Task PureAsyncMethod_WithFromResult_UnknownPurityDiagnostic()
         {
             var test = @"
 using System;
@@ -29,7 +29,10 @@ class Program
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(13, 22, 13, 41)
+                .WithArguments("PureAsyncMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -95,7 +98,7 @@ class Program
     }
 }";
 
-            var expected = VerifyCS.Diagnostic().WithSpan(13, 9, 13, 30).WithArguments("ImpureAsyncMethod");
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(13, 9, 13, 30).WithArguments("ImpureAsyncMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
@@ -121,12 +124,12 @@ class Program
     }
 }";
 
-            var expected = VerifyCS.Diagnostic().WithSpan(15, 9, 15, 17).WithArguments("ImpureAsyncMethod");
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(15, 9, 15, 17).WithArguments("ImpureAsyncMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
-        public async Task AsyncMethod_AwaitingPureMethod_NoDiagnostic()
+        public async Task AsyncMethod_AwaitingPureMethod_UnknownPurityDiagnostic()
         {
             var test = @"
 using System;
@@ -150,7 +153,10 @@ class Program
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(13, 22, 13, 41)
+                .WithArguments("Helper");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -178,7 +184,7 @@ class Program
     }
 }";
 
-            var expected = VerifyCS.Diagnostic().WithSpan(19, 16, 19, 36).WithArguments("ImpureAsyncMethod");
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(19, 16, 19, 36).WithArguments("ImpureAsyncMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
@@ -201,12 +207,12 @@ class Program
     }
 }";
 
-            var expected = VerifyCS.Diagnostic().WithSpan(13, 9, 13, 68).WithArguments("ImpureTaskRunMethod");
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(13, 9, 13, 68).WithArguments("ImpureTaskRunMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
-        public async Task AsyncMethod_ReturnWithoutAwait_NoDiagnostic()
+        public async Task AsyncMethod_ReturnWithoutAwait_UnknownPurityDiagnostic()
         {
             var test = @"
 using System;
@@ -228,11 +234,14 @@ class Program
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(17, 26, 17, 45)
+                .WithArguments("PureAsyncMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
-        public async Task AsyncMethod_ConditionalAwait_NoDiagnostic()
+        public async Task AsyncMethod_ConditionalAwait_UnknownPurityDiagnostic()
         {
             var test = @"
 using System;
@@ -253,7 +262,10 @@ class Program
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleUnknownPurity)
+                .WithSpan(14, 26, 14, 45)
+                .WithArguments("PureAsyncMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }
