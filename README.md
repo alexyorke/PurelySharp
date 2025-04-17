@@ -1,6 +1,6 @@
 # PurelySharp
 
-A C# analyzer that enforces method purity through the `[EnforcePure]` attribute. Methods marked with this attribute must be pure (no side effects, only pure operations).
+A C# analyzer that enforces method purity through the `[EnforcePure]` or `[Pure]` attribute. Methods marked with this attribute must be pure (no side effects, only pure operations).
 
 ## Beta Warning ⚠️
 
