@@ -689,7 +689,8 @@ namespace PurelySharp
             return methodSymbol.GetAttributes().Any(attr =>
                 attr.AttributeClass?.Name is "PureAttribute" or "Pure" or "EnforcePureAttribute" or "EnforcePure" ||
                 (attr.AttributeClass != null && attr.AttributeClass.ToDisplayString().Contains("PureAttribute")) || // Null check added
-                (attr.AttributeClass != null && attr.AttributeClass.ToDisplayString().Contains("EnforcePure"))); // Null check added
+                (attr.AttributeClass != null && attr.AttributeClass.ToDisplayString().Contains("EnforcePure")) || // Null check added
+                (attr.AttributeClass != null && attr.AttributeClass.ToDisplayString() == "System.Diagnostics.Contracts.PureAttribute")); // Add check for System.Diagnostics.Contracts.PureAttribute
         }
 
         private bool IsTriviallyPure(MethodDeclarationSyntax methodDeclaration)
@@ -2020,7 +2021,8 @@ namespace PurelySharp
                 return methodSymbol.GetAttributes().Any(attr =>
                     attr.AttributeClass?.Name is "PureAttribute" or "Pure" or "EnforcePureAttribute" or "EnforcePure" ||
                     (attr.AttributeClass != null && attr.AttributeClass.ToDisplayString().Contains("PureAttribute")) || // Null check added
-                    (attr.AttributeClass != null && attr.AttributeClass.ToDisplayString().Contains("EnforcePure"))); // Null check added
+                    (attr.AttributeClass != null && attr.AttributeClass.ToDisplayString().Contains("EnforcePure")) || // Null check added
+                    (attr.AttributeClass != null && attr.AttributeClass.ToDisplayString() == "System.Diagnostics.Contracts.PureAttribute")); // Add check for System.Diagnostics.Contracts.PureAttribute
             }
 
             private bool IsCollectionType(ITypeSymbol type)
