@@ -32,7 +32,7 @@ To use PurelySharp in your project, you need to:
     (Or add the reference manually to your `.csproj` file.)
 
 2.  **Install the VSIX Extension:**
-    For the analyzer to run in Visual Studio and provide real-time feedback and code fixes, install the PurelySharp VSIX extension from the Visual Studio Marketplace.
+    For the analyzer to run in Visual Studio and provide real-time feedback and code fixes, install the PurelySharp VSIX extension from the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=alexyorke.PurelySharp).
 
 ## Supported Language Features
 
