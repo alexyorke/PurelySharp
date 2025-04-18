@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
     PurelySharp.PurelySharpAnalyzer>;
+using PurelySharp.Attributes;
 
 namespace PurelySharp.Test
 {
@@ -16,9 +17,6 @@ namespace PurelySharp.Test
         {
             var test = @"
 using System;
-
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
@@ -38,9 +36,6 @@ public class TestClass
         {
             var test = @"
 using System;
-
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {
@@ -65,9 +60,6 @@ public class TestClass
         {
             var test = @"
 using System;
-
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
 
 public class TestClass
 {

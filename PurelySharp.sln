@@ -1,4 +1,3 @@
-
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.11.35312.102
@@ -12,6 +11,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PurelySharp.Test", "PurelySharp.Test\PurelySharp.Test.csproj", "{03583418-BC24-4287-90FC-9FFBF8782CF8}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PurelySharp.Vsix", "PurelySharp.Vsix\PurelySharp.Vsix.csproj", "{379E7123-80A5-461B-A76F-E36401EAAF5D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PurelySharp.Attributes", "PurelySharp.Attributes\PurelySharp.Attributes.csproj", "{F56D9622-9F43-49FD-94D5-8737ED2D1804}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +40,10 @@ Global
 		{379E7123-80A5-461B-A76F-E36401EAAF5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{379E7123-80A5-461B-A76F-E36401EAAF5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{379E7123-80A5-461B-A76F-E36401EAAF5D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F56D9622-9F43-49FD-94D5-8737ED2D1804}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F56D9622-9F43-49FD-94D5-8737ED2D1804}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F56D9622-9F43-49FD-94D5-8737ED2D1804}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F56D9622-9F43-49FD-94D5-8737ED2D1804}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

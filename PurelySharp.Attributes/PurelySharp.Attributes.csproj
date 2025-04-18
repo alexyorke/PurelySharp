@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <!-- Consider adding package details for NuGet -->
+    <IsPackable>true</IsPackable> 
+    <!-- Example NuGet package properties:
+    <PackageId>PurelySharp.Attributes</PackageId>
+    <Version>0.0.1</Version> 
+    <Authors>alexyorke</Authors>
+    <Description>Contains the EnforcePureAttribute for use with the PurelySharp Roslyn analyzer.</Description>
+    -->
+    
+    <!-- NuGet package properties -->
+    <PackageId>PurelySharp.Attributes</PackageId>
+    <Version>0.0.1</Version> 
+    <Authors>alexyorke</Authors>
+    <Description>Contains the EnforcePureAttribute for use with the PurelySharp Roslyn analyzer.</Description>
+    <PackageTags>PurelySharp;Attributes;Roslyn;Analyzer</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression> <!-- Example: Use your preferred license -->
+    <!-- Add other relevant properties like ProjectUrl, RepositoryUrl etc. -->
+
+  </PropertyGroup>
+
+</Project> 
