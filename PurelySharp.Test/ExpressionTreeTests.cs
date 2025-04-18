@@ -21,9 +21,9 @@ namespace PurelySharp.Test
 #nullable enable
 using System;
 using System.Linq.Expressions;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -57,8 +57,7 @@ public class TestClass
 using System;
 using System.Linq.Expressions;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -85,8 +84,7 @@ public class TestClass
 using System;
 using System.Linq.Expressions;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -115,8 +113,7 @@ public class TestClass
 using System;
 using System.Linq.Expressions;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {

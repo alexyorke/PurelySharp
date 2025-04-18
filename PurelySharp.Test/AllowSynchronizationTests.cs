@@ -15,9 +15,9 @@ namespace PurelySharp.Test
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 [AttributeUsage(AttributeTargets.Method)]
 public class AllowSynchronizationAttribute : Attribute { }
@@ -46,9 +46,9 @@ class Program
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 [AttributeUsage(AttributeTargets.Method)]
 public class AllowSynchronizationAttribute : Attribute { }

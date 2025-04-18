@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Threading.Tasks;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
     PurelySharp.PurelySharpAnalyzer>;
+using PurelySharp.Attributes;
 
 #nullable enable
 
@@ -22,9 +23,9 @@ namespace PurelySharp.Test
 #nullable enable
 using System;
 using System.Globalization;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -47,9 +48,9 @@ public class TestClass
 #nullable enable
 using System;
 using System.Globalization;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -71,9 +72,9 @@ public class TestClass
 #nullable enable
 using System;
 using System.Globalization;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -96,9 +97,9 @@ public class TestClass
 #nullable enable
 using System;
 using System.Globalization;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -120,9 +121,9 @@ public class TestClass
 #nullable enable
 using System;
 using System.Globalization;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -143,9 +144,9 @@ public class TestClass
 #nullable enable
 using System;
 using System.Globalization;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {

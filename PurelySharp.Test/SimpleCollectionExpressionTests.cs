@@ -15,10 +15,10 @@ namespace PurelySharp.Test
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Collections.Immutable;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class CollectionExpressionExample
 {
@@ -38,10 +38,10 @@ public class CollectionExpressionExample
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Collections.Immutable;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class CollectionExpressionExample
 {
@@ -61,9 +61,9 @@ public class CollectionExpressionExample
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class CollectionExpressionExample
 {
@@ -84,10 +84,10 @@ public class CollectionExpressionExample
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Collections.Generic;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class CollectionExpressionExample
 {
@@ -108,9 +108,9 @@ public class CollectionExpressionExample
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class CollectionExpressionExample
 {
@@ -130,10 +130,10 @@ public class CollectionExpressionExample
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Collections.Generic;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class CollectionExpressionExample
 {
@@ -154,9 +154,9 @@ public class CollectionExpressionExample
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class CollectionExpressionExample
 {
@@ -181,9 +181,9 @@ public class CollectionExpressionExample
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class CollectionExpressionExample
 {

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
     PurelySharp.PurelySharpAnalyzer>;
+using PurelySharp.Attributes;
 
 #nullable enable
 
@@ -22,9 +23,9 @@ namespace PurelySharp.Test
 #nullable enable
 using System;
 using System.Xml.Linq;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -48,9 +49,9 @@ public class TestClass
 using System;
 using System.Linq;
 using System.Xml.Linq;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -80,9 +81,9 @@ public class TestClass
 #nullable enable
 using System;
 using System.Xml.Linq;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {

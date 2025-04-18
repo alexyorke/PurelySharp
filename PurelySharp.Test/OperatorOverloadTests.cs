@@ -15,9 +15,9 @@ namespace PurelySharp.Test
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public struct Vector2
 {
@@ -57,9 +57,9 @@ public struct Vector2
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class Counter
 {
@@ -92,9 +92,9 @@ public class Counter
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public struct Temperature
 {
@@ -138,9 +138,9 @@ public struct Temperature
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public struct Meter
 {

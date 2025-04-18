@@ -25,8 +25,7 @@ namespace PurelySharp.Test
 #nullable enable
 using System;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -49,8 +48,7 @@ public class TestClass
 #nullable enable
 using System;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -75,8 +73,7 @@ public class TestClass
 #nullable enable
 using System;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {

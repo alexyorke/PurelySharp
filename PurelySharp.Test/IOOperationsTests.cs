@@ -8,6 +8,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
+using PurelySharp.Attributes;
 
 namespace PurelySharp.Test
 {
@@ -19,10 +20,10 @@ namespace PurelySharp.Test
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Threading.Tasks;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -46,11 +47,11 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Linq;
 using System.Collections.Generic;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -79,10 +80,10 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Collections.Generic;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class Helper
 {
@@ -113,9 +114,9 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -144,10 +145,10 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.IO;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -173,10 +174,10 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.IO;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -201,9 +202,9 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public interface ILogger
 {
@@ -246,10 +247,10 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Collections.Generic;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public static class Extensions
 {
@@ -284,6 +285,7 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
 namespace ConsoleApplication1
 {
@@ -295,14 +297,11 @@ namespace ConsoleApplication1
             Console.WriteLine(""Hello, World!"");
         }
     }
-
-    [System.AttributeUsage(System.AttributeTargets.Method)]
-    public class EnforcePureAttribute : Attribute { }
 }
 ";
 
             await VerifyCS.VerifyAnalyzerAsync(test,
-                VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(11, 13, 11, 47).WithArguments("TestMethod"));
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(12, 13, 12, 47).WithArguments("TestMethod"));
         }
 
         [Test]
@@ -310,10 +309,10 @@ namespace ConsoleApplication1
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.IO;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -337,9 +336,9 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -369,9 +368,9 @@ public class TestClass
             // Static field access can be impure but might be missed
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -397,10 +396,10 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Collections.Generic;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -430,10 +429,10 @@ public class TestClass
             // Reflection-based impurity might be missed
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Reflection;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -459,9 +458,9 @@ public class TestClass
             // Unsafe code operations might not be properly detected
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -482,9 +481,9 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -514,10 +513,10 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Linq;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -541,10 +540,10 @@ public class TestClass
             // IO-related class for pure path manipulation
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.IO;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -580,9 +579,9 @@ public class TestClass
             // Thread static fields might not be properly detected
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -607,9 +606,9 @@ public class TestClass
             // Lazy initialization patterns might not be detected properly
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -646,10 +645,10 @@ public class TestClass
             // IO class with pure method that doesn't actually use IO
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.IO;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class IoWrapper
 {
@@ -683,10 +682,10 @@ public class TestClass
             // Creates streams but never uses them for IO
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.IO;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -714,10 +713,10 @@ public class TestClass
             // Class inherits from IO class but only uses pure methods
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.IO;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class PureStreamInfo : FileSystemInfo
 {
@@ -753,10 +752,10 @@ public class TestClass
             // IO initialization only in constructor, pure method
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.IO;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -787,10 +786,10 @@ public class TestClass
             // Using interface that could represent IO but with pure implementation
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Collections.Generic;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public interface IFileSystem
 {
@@ -838,10 +837,10 @@ public class TestClass
             // Reference to IO class without actually using its impure methods
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.IO;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -871,9 +870,9 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -906,8 +905,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -935,8 +933,7 @@ using System;
 using System.IO;
 using System.IO.Compression;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -967,8 +964,7 @@ public class TestClass
 using System;
 using System.Xml.Linq;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -990,8 +986,7 @@ public class TestClass
 using System;
 using System.Xml.Linq;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -1014,8 +1009,7 @@ using System;
 using System.IO;
 using System.Xml.Linq;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -1033,13 +1027,12 @@ public class TestClass
         [Test]
         public async Task IoFileWriteAllText_ShouldBeImpure_Test1()
         {
-            // Explicitly rewriting the testCode string
-            var testCode = @"
+            var test = @"
 using System;
 using System.IO;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -1050,18 +1043,18 @@ public class TestClass
     }
 }";
             var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(13, 9, 13, 47).WithArguments("TestMethod"); // Corrected span
-            await VerifyCS.VerifyAnalyzerAsync(testCode, expected);
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
         public async Task IoFileReadAllText_ShouldBeImpure_Test1()
         {
-            var testCode = @"
+            var test = @"
 using System;
 using System.IO;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -1072,7 +1065,7 @@ public class TestClass
     }
 }";
             var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(13, 16, 13, 44).WithArguments("TestMethod"); // Corrected span
-            await VerifyCS.VerifyAnalyzerAsync(testCode, expected);
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }

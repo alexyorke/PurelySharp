@@ -18,6 +18,7 @@ namespace PurelySharp.Tests
         {
             var test = @"
     using System;
+    using PurelySharp.Attributes;
     using System.Diagnostics.Contracts;
 
     namespace ConsoleApplication1
@@ -41,6 +42,7 @@ namespace PurelySharp.Tests
         {
             var test = @"
     using System;
+    using PurelySharp.Attributes;
     using System.Diagnostics.Contracts;
 
     namespace ConsoleApplication1

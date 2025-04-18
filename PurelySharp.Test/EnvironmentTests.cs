@@ -17,9 +17,9 @@ namespace PurelySharp.Test
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -39,9 +39,9 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -61,9 +61,9 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -83,9 +83,9 @@ public class TestClass
         {
              var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -107,9 +107,9 @@ public class TestClass
             // Treated as pure as it usually returns a stable value read at startup
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {

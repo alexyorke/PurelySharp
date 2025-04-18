@@ -27,8 +27,7 @@ namespace PurelySharp.Test
 using System;
 using Microsoft.Extensions.Caching.Memory;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -54,8 +53,7 @@ public class TestClass
 using System;
 using Microsoft.Extensions.Caching.Memory;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -81,8 +79,7 @@ public class TestClass
 using System;
 using Microsoft.Extensions.Caching.Memory;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -109,8 +106,7 @@ public class TestClass
 using System;
 using Microsoft.Extensions.Caching.Memory;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {

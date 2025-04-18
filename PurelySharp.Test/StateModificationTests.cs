@@ -7,6 +7,8 @@ using PurelySharp;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
     PurelySharp.PurelySharpAnalyzer>;
 using System;
+using PurelySharp.Attributes;
+// using PurelySharp; // REMOVED
 
 namespace PurelySharp.Test
 {
@@ -18,7 +20,8 @@ namespace PurelySharp.Test
         {
             var test = @"
 using System;
-using PurelySharp; // Add this using directive for the attribute
+// using PurelySharp.Attributes; // REMOVED
+// using PurelySharp; // REMOVED
 
 // Add minimal attribute definition
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface)]
@@ -35,8 +38,8 @@ public class TestClass
     }
 }";
 
-            var expected = VerifyCS.Diagnostic("PMA0001") // Use ID directly for simplicity
-                .WithLocation(16, 16) // Use location from error message
+            var expected = VerifyCS.Diagnostic("PMA0001")
+                .WithSpan(17, 16, 17, 17) // Use span from error message (16->17)
                 .WithArguments("TestMethod");
 
             // Instantiate the verifier test runner
@@ -58,6 +61,7 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using PurelySharp;
 
 // Add minimal attribute definition
@@ -75,7 +79,8 @@ class TestClass
     }
 }";
 
-            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(16, 18, 16, 29).WithArguments("TestMethod"); // Use span from error message
+            // Static field access is impure
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(17, 18, 17, 29).WithArguments("TestMethod"); // Adjusted span from 16 to 17
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
@@ -84,12 +89,12 @@ class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using PurelySharp;
 using System.Collections.Generic;
 
 // Minimal attribute definition for the test context
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -112,11 +117,11 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using PurelySharp;
 
 // Minimal attribute definition for the test context
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public struct MutableStruct
 {
@@ -144,11 +149,11 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using PurelySharp;
 
 // Minimal attribute definition for the test context
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -171,12 +176,12 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using PurelySharp;
 using System.Collections.Generic;
 
 // Minimal attribute definition for the test context
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -199,12 +204,12 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using PurelySharp;
 using System.Collections.Generic;
 
 // Minimal attribute definition for the test context
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -227,12 +232,12 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using PurelySharp;
 using System.Collections.Generic;
 
 // Minimal attribute definition for the test context
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -258,10 +263,10 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Collections.Generic;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -290,10 +295,10 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Collections.Generic;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -322,10 +327,10 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Collections.Generic;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -360,12 +365,12 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using PurelySharp;
 using System.Collections.Generic;
 
 // Minimal attribute definition for the test context
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -386,12 +391,12 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using PurelySharp;
 using System.Collections.Generic;
 
 // Minimal attribute definition for the test context
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -412,12 +417,12 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using PurelySharp;
 using System.Collections.Generic;
 
 // Minimal attribute definition for the test context
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -438,12 +443,12 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using PurelySharp;
 using System.Collections.Generic;
 
 // Minimal attribute definition for the test context
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -466,10 +471,10 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Collections.Generic;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -493,10 +498,10 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Collections.Generic;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {

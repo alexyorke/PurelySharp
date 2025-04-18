@@ -15,10 +15,10 @@ namespace PurelySharp.Test
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Collections.Generic;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class CustomDictionary<TKey, TValue>
 {
@@ -48,10 +48,10 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Collections.Generic;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class CustomDictionary<TKey, TValue>
 {
@@ -86,10 +86,10 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Collections.Generic;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class ReadOnlyCollection<T>
 {
@@ -119,10 +119,10 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Collections.Generic;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class MixedAccessCollection<T>
 {
@@ -170,10 +170,10 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Collections.Generic;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class NestedCollection
 {

@@ -15,9 +15,9 @@ namespace PurelySharp.Test
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 // Generic attribute definition
 [AttributeUsage(AttributeTargets.All)]
@@ -58,9 +58,9 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 // Generic attribute with type constraint
 [AttributeUsage(AttributeTargets.All)]
@@ -97,10 +97,10 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Collections.Generic;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 // Generic attribute with reference type constraint
 [AttributeUsage(AttributeTargets.All)]
@@ -137,9 +137,9 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 // Generic attribute with multiple type parameters
 [AttributeUsage(AttributeTargets.All)]
@@ -178,10 +178,10 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.IO;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 // Generic attribute definition
 [AttributeUsage(AttributeTargets.All)]
@@ -222,10 +222,10 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Collections.Generic;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 // Generic attribute definition
 [AttributeUsage(AttributeTargets.Parameter)]

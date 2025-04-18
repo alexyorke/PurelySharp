@@ -15,14 +15,14 @@ namespace PurelySharp.Test
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
 namespace System.Runtime.CompilerServices
 {
     internal static class IsExternalInit {}
 }
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -51,9 +51,9 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -80,9 +80,9 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -109,9 +109,9 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -140,9 +140,9 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -171,11 +171,11 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Linq;
 using System.Collections.Generic;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -200,9 +200,9 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -234,9 +234,8 @@ namespace TestNamespace
         {
             // Use standard string literal with escaped quotes and newlines
             var test = "using System;\n"
-                     + "using System.IO;\n\n"
-                     + "[AttributeUsage(AttributeTargets.Method)]\n"
-                     + "public class EnforcePureAttribute : Attribute { }\n\n"
+                     + "using System.IO;\n"
+                     + "using PurelySharp.Attributes;\n\n"
                      + "namespace TestNamespace\n"
                      + "{\n"
                      + "    public class Logger\n"
@@ -254,7 +253,7 @@ namespace TestNamespace
                      + "}";
 
             var expected = VerifyCS.Diagnostic("PMA0001")
-                .WithSpan(17, 21, 17, 22) // Updated span for logFile assignment
+                .WithSpan(15, 21, 15, 22) // Updated span for logFile assignment (17 -> 15)
                 .WithArguments("LogParameterName");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);

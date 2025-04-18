@@ -15,9 +15,9 @@ namespace PurelySharp.Test
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -52,9 +52,9 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -97,9 +97,9 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -134,9 +134,9 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -172,10 +172,10 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.IO;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -212,9 +212,9 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {

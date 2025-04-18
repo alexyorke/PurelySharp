@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
     PurelySharp.PurelySharpAnalyzer>;
+using PurelySharp.Attributes;
 
 #nullable enable
 
@@ -21,9 +22,9 @@ namespace PurelySharp.Test
             var test = @"
 #nullable enable
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -43,9 +44,9 @@ public class TestClass
             var test = @"
 #nullable enable
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -73,8 +74,7 @@ public class TestClass
 #nullable enable
 using System;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -99,8 +99,7 @@ public class TestClass
 #nullable enable
 using System;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public unsafe class TestClass // Requires unsafe context
 {
@@ -129,8 +128,7 @@ public unsafe class TestClass // Requires unsafe context
 using System;
 using System.Runtime.InteropServices;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -157,8 +155,7 @@ public class TestClass
 using System;
 using System.Runtime.InteropServices;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 [StructLayout(LayoutKind.Sequential)]
 public struct MyStruct { public int Value; }
@@ -183,8 +180,7 @@ public unsafe class TestClass // Add unsafe here
 using System;
 using System.Runtime.InteropServices;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 [StructLayout(LayoutKind.Sequential)]
 public struct MyStruct { public int Value; }
@@ -212,8 +208,7 @@ public unsafe class TestClass // Add unsafe here
 #nullable enable
 using System;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {

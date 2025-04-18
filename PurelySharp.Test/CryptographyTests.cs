@@ -23,9 +23,9 @@ namespace PurelySharp.Test
 using System;
 using System.Security.Cryptography;
 using System.Text;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -57,8 +57,7 @@ public class TestClass
 using System;
 using System.Security.Cryptography;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -84,9 +83,9 @@ public class TestClass
 #nullable enable
 using System;
 using System.Security.Cryptography;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -109,9 +108,9 @@ public class TestClass
 #nullable enable
 using System;
 using System.Security.Cryptography;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {

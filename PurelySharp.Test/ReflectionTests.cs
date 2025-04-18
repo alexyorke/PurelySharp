@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
     PurelySharp.PurelySharpAnalyzer>;
+using PurelySharp.Attributes;
 
 #nullable enable
 
@@ -21,10 +22,10 @@ namespace PurelySharp.Test
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Reflection;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class MyClass { public void TargetMethod() {} }
 
@@ -44,10 +45,10 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Reflection;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class MyClass { public void TargetMethod() {} }
 
@@ -71,10 +72,10 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Reflection;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class MyClass { public void TargetMethod() {} }
 
@@ -98,10 +99,10 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Reflection;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class MyClass
 {
@@ -146,9 +147,9 @@ public class TestClass
 #nullable enable
 using System;
 using System.Reflection;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class Data { public int Value { get; set; } }
 
@@ -171,9 +172,9 @@ public class TestClass
 #nullable enable
 using System;
 using System.Reflection;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class Data { public Data(int x) { } }
 
@@ -203,8 +204,7 @@ public class TestClass
 using System;
 using System.Reflection;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class Data 
 {
@@ -236,9 +236,9 @@ public class TestClass
 #nullable enable
 using System;
 using System.Reflection;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class Data 
 {
@@ -270,8 +270,7 @@ public class TestClass
 using System;
 using System.Reflection;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class Data { public int Value { get; set; } }
 
@@ -298,8 +297,7 @@ public class TestClass
 #nullable enable
 using System;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class Data { public Data() { Console.WriteLine(""Created""); } } // Impure constructor
 
@@ -322,8 +320,7 @@ public class TestClass
 #nullable enable
 using System;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class Data { public Data(int x) { Console.WriteLine(""Created with "" + x); } } // Impure constructor
 

@@ -15,9 +15,9 @@ namespace PurelySharp.Test
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -46,9 +46,9 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -81,9 +81,9 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -128,9 +128,9 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -160,6 +160,7 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using PurelySharp;
 
 // Add minimal attribute definition
@@ -183,8 +184,10 @@ public class CommandParser
     }
 }
 ";
-            // Diagnostic expected on the impure switch arm expression
-            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(19, 31, 19, 46).WithArguments("ExecuteCommand"); // Adjusted span based on error and added attribute def
+            // Expect PMA0001 because Console.WriteLine is impure
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure)
+                .WithSpan(20, 31, 20, 46) // Adjusted span from 19 to 20
+                .WithArguments("ExecuteCommand");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }

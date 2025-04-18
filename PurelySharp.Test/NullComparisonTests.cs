@@ -17,6 +17,8 @@ namespace PurelySharp.Test
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
+using PurelySharp.Attributes;
 
 public class TestClass
 {
@@ -36,6 +38,8 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
+using PurelySharp.Attributes;
 
 public class TestClass
 {
@@ -51,7 +55,7 @@ public class TestClass
 }";
 
             // The analyzer detects the Console.WriteLine as impure
-            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(15, 13, 15, 48).WithArguments("TestMethod");
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(14, 13, 14, 48).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
@@ -60,6 +64,8 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
+using PurelySharp.Attributes;
 
 public class TestClass
 {
@@ -76,7 +82,7 @@ public class TestClass
 }";
 
             // The analyzer detects the field modification as impure
-            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(16, 9, 16, 17).WithArguments("TestMethod");
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(15, 9, 15, 17).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }

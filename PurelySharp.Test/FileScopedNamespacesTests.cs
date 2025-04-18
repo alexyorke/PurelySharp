@@ -15,12 +15,12 @@ namespace PurelySharp.Test
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
 // Using file-scoped namespace (C# 10 feature)
 namespace TestNamespace;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 // Class in file-scoped namespace
 public class Calculator
@@ -48,13 +48,13 @@ public class Calculator
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Collections.Generic;
 
 // File-scoped namespace with nested types
 namespace TestLibrary;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 // Parent class in file-scoped namespace
 public class Geometry
@@ -106,14 +106,14 @@ public class Geometry
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Linq;
 using System.Collections.Generic;
 
 // File-scoped namespace with multiple classes
 namespace TestUtilities;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 // First class in file-scoped namespace
 public class StringUtils
@@ -157,13 +157,13 @@ public static class Extensions
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.IO;
 
 // File-scoped namespace with impure method
 namespace TestImpure;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class FileManager
 {

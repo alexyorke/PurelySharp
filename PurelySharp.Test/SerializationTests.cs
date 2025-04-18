@@ -4,6 +4,8 @@ using NUnit.Framework;
 using System.Threading.Tasks;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
     PurelySharp.PurelySharpAnalyzer>;
+using System.Text.Json; // Assuming System.Text.Json for tests
+using PurelySharp.Attributes;
 
 namespace PurelySharp.Test
 {
@@ -13,10 +15,8 @@ namespace PurelySharp.Test
         private const string TestSetup = @"
 #nullable enable
 using System;
-using System.Text.Json; // Assuming System.Text.Json for tests
-
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+using System.Text.Json;
+using PurelySharp.Attributes;
 
 public class SimplePoco 
 { 
@@ -29,6 +29,7 @@ public class SimplePoco
         public async Task PureMethodWithJsonSerializePoco_NoDiagnostic()
         {
             var test = TestSetup + @"
+
 public class TestClass
 {
     [EnforcePure]
@@ -47,6 +48,7 @@ public class TestClass
         public async Task PureMethodWithJsonDeserializePoco_NoDiagnostic()
         {
             var test = TestSetup + @"
+
 public class TestClass
 {
     [EnforcePure]

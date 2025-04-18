@@ -28,8 +28,7 @@ namespace PurelySharp.Test
 using System;
 using System.Runtime.InteropServices;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {

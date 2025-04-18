@@ -4,6 +4,7 @@ using NUnit.Framework;
 using System.Threading.Tasks;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
     PurelySharp.PurelySharpAnalyzer>;
+using PurelySharp.Attributes;
 
 namespace PurelySharp.Test
 {
@@ -19,6 +20,7 @@ namespace PurelySharp.Test
 using System;
 using System.Threading.Tasks;
 using MockFramework;
+using PurelySharp.Attributes;
 
 namespace MockFramework
 {
@@ -27,8 +29,7 @@ namespace MockFramework
     public class MessageBox { public static void Show(string text) {} } // Keep
 }
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -53,6 +54,7 @@ public class TestClass
 using System;
 using System.Threading.Tasks;
 using MockFramework;
+using PurelySharp.Attributes;
 
 namespace MockFramework
 {
@@ -61,8 +63,7 @@ namespace MockFramework
     public class MessageBox { public static void Show(string text) {} } // Keep
 }
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -85,6 +86,7 @@ public class TestClass
 #nullable enable
 using System;
 using MockFramework;
+using PurelySharp.Attributes;
 
 namespace MockFramework 
 {
@@ -99,8 +101,7 @@ namespace MockFramework
     } 
 }
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public class TestClass
 {
@@ -133,6 +134,7 @@ public class TestClass
             // This tests if the LAMBDA ITSELF is pure, not the MapGet call
             var test = @"
 using System;
+using PurelySharp.Attributes;
 // Mock types needed for MapGet signature if checking the registration itself
 
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Delegate)]

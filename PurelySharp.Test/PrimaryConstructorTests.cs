@@ -15,9 +15,9 @@ namespace PurelySharp.Test
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 // Class with primary constructor that initializes readonly fields
 public class Calculator(int initialValue)
@@ -40,9 +40,9 @@ public class Calculator(int initialValue)
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 // Class with primary constructor that initializes a non-readonly field
 public class Calculator(int initialValue)
@@ -67,9 +67,9 @@ public class Calculator(int initialValue)
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 // Record with primary constructor (which is implicit in records)
 public record Person(string Name, int Age)
@@ -93,9 +93,9 @@ public record Person(string Name, int Age)
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 // Struct with primary constructor and readonly fields
 public struct Vector(double x, double y)
@@ -119,9 +119,9 @@ public struct Vector(double x, double y)
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 // Class with primary constructor and initialization
 public class Rectangle(double width, double height)
@@ -146,9 +146,9 @@ public class Rectangle(double width, double height)
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 // Class with primary constructor
 public class SafeCalculator(int initialValue)

@@ -73,8 +73,7 @@ namespace PurelySharp.Test
 using System;
 using System.ServiceModel;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 [ServiceContract]
 public interface IMyService { [OperationContract] string GetData(int value); }

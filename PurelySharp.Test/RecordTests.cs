@@ -20,10 +20,10 @@ namespace PurelySharp.Test
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Runtime.CompilerServices;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public record Person(string Name, int Age);
 
@@ -47,10 +47,10 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Runtime.CompilerServices;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public record Calculator
 {
@@ -76,10 +76,10 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Runtime.CompilerServices;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public record MutablePerson
 {
@@ -105,10 +105,10 @@ public class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Runtime.CompilerServices;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public record Person
 {

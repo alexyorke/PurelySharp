@@ -17,6 +17,7 @@ namespace PurelySharp.Test
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
 // Required for init-only properties in record structs
 namespace System.Runtime.CompilerServices
@@ -24,8 +25,7 @@ namespace System.Runtime.CompilerServices
     internal static class IsExternalInit {}
 }
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public record struct Point
 {
@@ -55,6 +55,7 @@ public record struct Point
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
 // Required for init-only properties in record structs
 namespace System.Runtime.CompilerServices
@@ -62,8 +63,7 @@ namespace System.Runtime.CompilerServices
     internal static class IsExternalInit {}
 }
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public record struct Temperature(double Celsius)
 {
@@ -91,6 +91,7 @@ public record struct Temperature(double Celsius)
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 
 // Required for init-only properties in record structs
 namespace System.Runtime.CompilerServices
@@ -98,8 +99,7 @@ namespace System.Runtime.CompilerServices
     internal static class IsExternalInit {}
 }
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 public record struct Counter
 {
@@ -149,10 +149,17 @@ public record struct Counter
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Collections.Immutable;
 
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface)]
 public sealed class EnforcePureAttribute : Attribute { }
+
+// Required for init-only properties in record structs
+namespace System.Runtime.CompilerServices
+{
+    internal static class IsExternalInit {}
+}
 
 public record struct CacheEntry(string Key, string Value)
 {
@@ -182,9 +189,9 @@ public record struct CacheEntry(string Key, string Value)
             // Expect CS0518 due to missing IsExternalInit 
             // Expect PMA0001 for both AddTag and WithTag due to 'with' expression
             var expected = new[] {
-                DiagnosticResult.CompilerError("CS0518").WithSpan(10, 46, 10, 50).WithArguments("System.Runtime.CompilerServices.IsExternalInit"),
-                VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(16, 35, 16, 48).WithArguments("AddTag"),
-                VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(29, 35, 29, 48).WithArguments("WithTag")
+                // DiagnosticResult.CompilerError("CS0518").WithSpan(10, 46, 10, 50).WithArguments("System.Runtime.CompilerServices.IsExternalInit"),
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(23, 35, 23, 48).WithArguments("AddTag"),
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(36, 35, 36, 48).WithArguments("WithTag")
             };
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }

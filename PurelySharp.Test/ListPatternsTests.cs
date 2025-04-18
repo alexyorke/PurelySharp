@@ -15,10 +15,10 @@ namespace PurelySharp.Test
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Collections.Generic;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -51,10 +51,10 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Linq;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -87,10 +87,10 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Collections.Generic;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -133,10 +133,10 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.IO;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -172,11 +172,11 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Collections.Generic;
 using System.Linq;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -219,10 +219,10 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Collections.Generic;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {

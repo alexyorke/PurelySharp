@@ -16,10 +16,10 @@ namespace PurelySharp.Test
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Threading.Tasks;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 class Program
 {
@@ -41,10 +41,10 @@ class Program
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Threading.Tasks;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 class Program
 {
@@ -67,10 +67,10 @@ class Program
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Threading.Tasks;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 class Program
 {

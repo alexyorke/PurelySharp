@@ -16,10 +16,10 @@ namespace PurelySharp.Test
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Threading.Tasks;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 class Program
 {
@@ -41,10 +41,10 @@ class Program
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Threading.Tasks;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 class Program
 {
@@ -69,6 +69,7 @@ class Program
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Threading.Tasks;
 
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface)]
@@ -86,7 +87,7 @@ class TestClass
     }
 }
 ";
-            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(15, 9, 15, 28).WithArguments("TestMethod");
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(16, 9, 16, 28).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
@@ -95,6 +96,7 @@ class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using PurelySharp;
 using System.Threading.Tasks;
 
@@ -114,7 +116,7 @@ class TestClass
     }
 }
 ";
-            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(18, 9, 18, 27).WithArguments("TestMethod");
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(19, 9, 19, 27).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
@@ -123,6 +125,7 @@ class TestClass
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using PurelySharp;
 using System.Threading.Tasks;
 
@@ -147,7 +150,8 @@ class TestClass
     }
 }
 ";
-            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure).WithSpan(22, 13, 22, 20).WithArguments("OuterMethod");
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.RuleImpure)
+                .WithSpan(23, 13, 23, 20).WithArguments("OuterMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }

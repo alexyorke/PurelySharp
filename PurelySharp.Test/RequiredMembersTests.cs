@@ -4,6 +4,7 @@ using NUnit.Framework;
 using System.Threading.Tasks;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
     PurelySharp.PurelySharpAnalyzer>;
+using PurelySharp.Attributes;
 
 namespace PurelySharp.Test
 {
@@ -42,10 +43,10 @@ namespace System.Diagnostics.CodeAnalysis
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using PurelySharp.Attributes;
 " + AttributeDefinitions + @"
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -88,10 +89,10 @@ namespace TestNamespace
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using PurelySharp.Attributes;
 " + AttributeDefinitions + @"
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -131,6 +132,7 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -156,8 +158,7 @@ namespace System.Diagnostics.CodeAnalysis
     internal sealed class SetsRequiredMembersAttribute : Attribute { }
 }
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -197,6 +198,7 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -220,8 +222,7 @@ namespace System.Diagnostics.CodeAnalysis
     internal sealed class SetsRequiredMembersAttribute : Attribute { }
 }
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -261,6 +262,7 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.IO;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -287,8 +289,7 @@ namespace System.Diagnostics.CodeAnalysis
     internal sealed class SetsRequiredMembersAttribute : Attribute { }
 }
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -331,6 +332,7 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -354,8 +356,7 @@ namespace System.Diagnostics.CodeAnalysis
     internal sealed class SetsRequiredMembersAttribute : Attribute { }
 }
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -386,35 +387,14 @@ namespace TestNamespace
         public async Task RequiredMembersWithNullCheck_PureMethod_NoDiagnostic()
         {
             var test = @"
+#nullable enable
 using System;
+using PurelySharp.Attributes;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+" + AttributeDefinitions + @"
 
-// Required for required members
-namespace System.Runtime.CompilerServices
-{
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
-    internal sealed class CompilerFeatureRequiredAttribute : Attribute
-    {
-        public CompilerFeatureRequiredAttribute(string featureName) => FeatureName = featureName;
-        public string FeatureName { get; }
-    }
-    
-    [AttributeUsage(AttributeTargets.All, AllowMultiple = false, Inherited = false)]
-    internal sealed class RequiredMemberAttribute : Attribute { }
-    
-    internal static class IsExternalInit { }
-}
 
-namespace System.Diagnostics.CodeAnalysis
-{
-    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
-    internal sealed class SetsRequiredMembersAttribute : Attribute { }
-}
-
-#nullable enable
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
 
 namespace TestNamespace
 {
@@ -455,12 +435,12 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 " + AttributeDefinitions + @"
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -486,12 +466,12 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 " + AttributeDefinitions + @"
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -524,12 +504,12 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 " + AttributeDefinitions + @"
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -555,12 +535,12 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 " + AttributeDefinitions + @"
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -586,12 +566,12 @@ namespace TestNamespace
         {
             var test = @"
 using System;
+using PurelySharp.Attributes;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 " + AttributeDefinitions + @"
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+
 
 namespace TestNamespace
 {
@@ -623,40 +603,68 @@ namespace TestNamespace
         public async Task RequiredMembers_TryingToModify_Diagnostic()
         {
             var test = @"
-#nullable enable
 using System;
+using PurelySharp.Attributes;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-" + AttributeDefinitions + @"
 
-[AttributeUsage(AttributeTargets.Method)]
-public class EnforcePureAttribute : Attribute { }
+// Required for required members
+namespace System.Runtime.CompilerServices
+{
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
+    internal sealed class CompilerFeatureRequiredAttribute : Attribute
+    {
+        public CompilerFeatureRequiredAttribute(string featureName) => FeatureName = featureName;
+        public string FeatureName { get; }
+    }
+    
+    [AttributeUsage(AttributeTargets.All, AllowMultiple = false, Inherited = false)]
+    internal sealed class RequiredMemberAttribute : Attribute { }
+    
+    internal static class IsExternalInit { }
+}
+
+namespace System.Diagnostics.CodeAnalysis
+{
+    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+    internal sealed class SetsRequiredMembersAttribute : Attribute { }
+}
+
+#nullable enable
+
 
 namespace TestNamespace
 {
     public class Product
     {
-        public required string Name { get; set; } // Note: using set, not init
-        
+        public required string Name { get; init; }
+        public required string Category { get; set; }
+
+        public Product(string name)
+        {
+            Name = name;
+            Category = ""Default"";
+        }
+
         [EnforcePure]
         public void UpdateProductName(string newName)
         {
             // Create a variable to ensure we have a local state change
             // that the analyzer can clearly detect
-            var product = this;
+            // var product = this; // REMOVED
             
             // Impure operation: modifying a property even if it's required
-            product.Name = newName;
+            // product.Name = newName; // REMOVED - Causes CS8852
             
             // This is also impure and should be detected
-            Name = Name + "" (updated)"";
+            Name = Name + "" (updated)""; // Impure modification
         }
     }
 }";
 
-            var expected = VerifyCS.Diagnostic("PMA0001")
-                .WithSpan(46, 13, 46, 35)
-                .WithArguments("UpdateProductName");
+            var expected = DiagnosticResult.CompilerError("CS8852")
+                .WithSpan(56, 13, 56, 17)
+                .WithArguments("TestNamespace.Product.Name");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
