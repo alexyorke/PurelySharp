@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Id="PurelySharp.5f57415b-24e0-451e-ba61-76fed9639cd4" Version="0.0.1" Language="en-US" Publisher="alexyorke"/>
+    <Identity Id="PurelySharp.5f57415b-24e0-451e-ba61-76fed9639cd4" Version="0.0.1" Language="en-US" Publisher="Alex Yorke"/>
     <DisplayName>PurelySharp</DisplayName>
-    <Description xml:space="preserve">This is a sample diagnostic extension for the .NET Compiler Platform ("Roslyn").</Description>
+    <Description xml:space="preserve">Enforces method purity in C# using the [EnforcePure] attribute. Provides real-time Roslyn analysis and code fixes.</Description>
   </Metadata>
   <Installation>
     <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.0,)">
