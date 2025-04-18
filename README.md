@@ -18,6 +18,22 @@ Known limitations:
 
 For best results, ensure that all called methods in the dependency chain are also marked with `[EnforcePure]` when appropriate.
 
+## Installation
+
+To use PurelySharp in your project, you need to:
+
+1.  **Install the Attributes NuGet Package:**
+    The `[EnforcePure]` attribute is defined in a separate package. You need to add this to any project where you intend to use the attribute. Since version `0.0.1` might be unlisted, use the .NET CLI command:
+
+    ```bash
+    dotnet add package PurelySharp.Attributes --version 0.0.1
+    ```
+
+    (Or add the reference manually to your `.csproj` file.)
+
+2.  **Install the VSIX Extension:**
+    For the analyzer to run in Visual Studio and provide real-time feedback and code fixes, install the PurelySharp VSIX extension from the Visual Studio Marketplace.
+
 ## Supported Language Features
 
 Supported means there is _some_ level of test coverage. It does not mean it is 100% supported.
