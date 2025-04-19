@@ -22,8 +22,8 @@ For best results, ensure that all called methods in the dependency chain are als
 
 To use PurelySharp in your project, you need to:
 
-1.  **Install the Attributes NuGet Package:**
-    The `[EnforcePure]` attribute is defined in a separate package. You need to add this to any project where you intend to use the attribute. Since version `0.0.1` might be unlisted, use the .NET CLI command:
+1.  **(Optional) Install the Attributes NuGet Package:**
+    The `[EnforcePure]` attribute is defined in a separate package. You need to add this to any project where you intend to use the attribute. This is not needed if you only want to use the `[Pure]` attribute from `System.Diagnostics.Contracts`. Since version `0.0.1` might be unlisted, use the .NET CLI command:
 
     ```bash
     dotnet add package PurelySharp.Attributes --version 0.0.1
