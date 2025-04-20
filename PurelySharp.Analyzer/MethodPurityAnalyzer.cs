@@ -56,34 +56,44 @@ namespace PurelySharp.Analyzer
 
         private static bool IsConsideredPure(MethodDeclarationSyntax methodDeclaration, IMethodSymbol methodSymbol, SyntaxNodeAnalysisContext context)
         {
-            // Example simple check: returning a constant literal
-            if (IsConstantReturn(methodDeclaration))
+            // Use semantic model to check for constant value, which is more robust than just checking for literals.
+            ExpressionSyntax? returnExpression = GetReturnExpressionSyntax(methodDeclaration);
+
+            if (returnExpression != null)
             {
-                return true;
+                // Ensure we have a semantic model before trying to use it
+                if (context.SemanticModel != null)
+                {
+                    var constantValue = context.SemanticModel.GetConstantValue(returnExpression, context.CancellationToken);
+                    if (constantValue.HasValue)
+                    {
+                        return true; // Compile-time constant value found.
+                    }
+                }
             }
 
-            // Future: Add more checks here (e.g., no static field writes, no I/O calls)
-            // For now, any non-constant return method marked [EnforcePure] is flagged.
+            // Fallback or further checks can go here.
+            // For now, if it's not a recognized constant, it's not considered pure by this simple check.
             return false;
         }
 
-        private static bool IsConstantReturn(MethodDeclarationSyntax methodDeclaration)
+        // Helper to get the expression from either an expression body or a single return statement
+        private static ExpressionSyntax? GetReturnExpressionSyntax(MethodDeclarationSyntax methodDeclaration)
         {
-            // Check for expression body: => constant;
-            if (methodDeclaration.ExpressionBody?.Expression is LiteralExpressionSyntax)
+            // Check for expression body: => expression;
+            if (methodDeclaration.ExpressionBody?.Expression != null)
             {
-                return true;
+                return methodDeclaration.ExpressionBody.Expression;
             }
 
-            // Check for block body: { return constant; }
+            // Check for block body: { return expression; }
             if (methodDeclaration.Body?.Statements.Count == 1 &&
-                methodDeclaration.Body.Statements[0] is ReturnStatementSyntax returnStatement &&
-                returnStatement.Expression is LiteralExpressionSyntax)
+                methodDeclaration.Body.Statements[0] is ReturnStatementSyntax returnStatement)
             {
-                return true;
+                return returnStatement.Expression;
             }
 
-            return false;
+            return null; // Not a simple return case we handle here
         }
 
         private static bool IsPureEnforced(ISymbol symbol, INamedTypeSymbol enforcePureAttributeSymbol)
