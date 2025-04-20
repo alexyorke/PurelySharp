@@ -38,14 +38,14 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int [|GetConstant|]()
+    public int {|PS0002:GetConstant|}() // Explicitly marked for PS0002
     {
         return 5;
     }
 }";
 
-            // The framework will now infer the single expected diagnostic PS0002 
-            // from the [|...|] markup in the test code.
+            // The framework will infer the single expected diagnostic PS0002 
+            // from the {|PS0002:...|} markup in the test code.
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
 
@@ -61,15 +61,15 @@ public class TestClass
     private static int _counter = 0;
 
     [EnforcePure]
-    public int [|ImpureMethod|]()
+    public int {|PS0002:ImpureMethod|}() // Explicitly marked for PS0002
     {
         _counter++; // Modifies static state
         return _counter;
     }
 }";
 
-            // The framework will now infer the single expected diagnostic PS0002 
-            // from the [|...|] markup in the test code.
+            // The framework will infer the single expected diagnostic PS0002 
+            // from the {|PS0002:...|} markup in the test code.
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
     }
