@@ -665,5 +665,83 @@ public class TestClass
             // Expect NO diagnostics related to purity (PS0002 or PS0004)
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
+
+        [Test]
+        public async Task TestPureMethodReturningConstantByte_NoDiagnostics()
+        {
+            var testCode = @"
+using PurelySharp.Attributes;
+public class TestClass
+{
+    [EnforcePure]
+    public byte GetByte() => 128;
+}";
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
+
+        [Test]
+        public async Task TestPureMethodReturningConstantSByte_NoDiagnostics()
+        {
+            var testCode = @"
+using PurelySharp.Attributes;
+public class TestClass
+{
+    [EnforcePure]
+    public sbyte GetSByte() => -10;
+}";
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
+
+        [Test]
+        public async Task TestPureMethodReturningConstantShort_NoDiagnostics()
+        {
+            var testCode = @"
+using PurelySharp.Attributes;
+public class TestClass
+{
+    [EnforcePure]
+    public short GetShort() => 1000;
+}";
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
+
+        [Test]
+        public async Task TestPureMethodReturningConstantUShort_NoDiagnostics()
+        {
+            var testCode = @"
+using PurelySharp.Attributes;
+public class TestClass
+{
+    [EnforcePure]
+    public ushort GetUShort() => 2000;
+}";
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
+
+        [Test]
+        public async Task TestPureMethodReturningConstantUInt_NoDiagnostics()
+        {
+            var testCode = @"
+using PurelySharp.Attributes;
+public class TestClass
+{
+    [EnforcePure]
+    public uint GetUInt() => 3000U;
+}";
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
+
+        [Test]
+        public async Task TestPureMethodReturningConstantULong_NoDiagnostics()
+        {
+            var testCode = @"
+using PurelySharp.Attributes;
+public class TestClass
+{
+    [EnforcePure]
+    public ulong GetULong() => 4000UL;
+}";
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
     }
 }
