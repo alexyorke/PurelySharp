@@ -9,6 +9,7 @@ using System.Diagnostics.Contracts; // Add this for PureAttribute
 using System.Threading.Tasks;
 using VerifyCS = PurelySharp.Tests.Verifiers.CSharpAnalyzerVerifier<
     PurelySharp.Analyzer.PurelySharpAnalyzer>;
+using PurelySharp.Attributes; // Add this for EnforcePure
 
 namespace PurelySharp.Tests
 {
@@ -39,14 +40,14 @@ namespace PurelySharp.Tests
             VerifyCSharpDiagnostic(test);
         }
 
-        // Diagnostics expected to show up
+        // Updated test to use [EnforcePure] and expect PS0002
         [TestMethod]
-        public void TestImpureMethodWithSystemDiagnosticsPureAttribute()
+        public async Task TestImpureMethodWithEnforcePureAttribute_ReportsPurityNotVerified()
         {
             var test = @"
     using System;
-    using PurelySharp.Attributes;
-    using System.Diagnostics.Contracts;
+    using PurelySharp.Attributes; // Using our attribute
+    // using System.Diagnostics.Contracts; // No longer need [Pure]
 
     namespace ConsoleApplication1
     {
@@ -54,26 +55,21 @@ namespace PurelySharp.Tests
         {
             private static int _field = 0;
 
-            [Pure]
+            [EnforcePure] // Use EnforcePure
             public int ImpureMethod(int x)
             {
-                _field = x; // Impure operation: static field assignment
+                _field = x; // Still contains implementation
                 return x * 2;
             }
         }
     }";
-            var expected = new DiagnosticResult
-            {
-                Id = "PMA0001",
-                Message = String.Format("Method '{0}' is marked as pure but contains impure operations", "ImpureMethod"),
-                Severity = DiagnosticSeverity.Error,
-                Locations =
-                    new[] {
-                            new DiagnosticResultLocation("Test0.cs", 14, 17) // Adjust line and column as needed
-                        }
-            };
+            // Expect PS0002 because it has [EnforcePure] and implementation
+            var expected = VerifyCS.Diagnostic(PurelySharp.Analyzer.PurelySharpAnalyzer.PurityNotVerifiedDiagnosticId)
+                .WithLocation(13, 24) // Expect on ImpureMethod identifier (Line 13, Col 24)
+                .WithArguments("ImpureMethod");
 
-            VerifyCSharpDiagnostic(test, expected);
+            // Use VerifyAnalyzerAsync
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [TestMethod]
@@ -155,6 +151,32 @@ namespace TestNamespace
 
             // No diagnostic is expected
             await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [TestMethod]
+        public async Task EnforcePureMethodWithImplementation_ReportsPurityNotVerified()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System;
+
+namespace TestNamespace
+{
+    class TestClass
+    {
+        [EnforcePure] // Mark for enforcement
+        public int MethodWithImplementation(int x)
+        {
+            return x + 1; // Has implementation
+        }
+    }
+}";
+
+            var expected = VerifyCS.Diagnostic(PurelySharp.Analyzer.PurelySharpAnalyzer.PurityNotVerifiedDiagnosticId)
+                .WithLocation(9, 20) // Corresponds to "MethodWithImplementation"
+                .WithArguments("MethodWithImplementation");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         protected override DiagnosticAnalyzer GetCSharpDiagnosticAnalyzer()
