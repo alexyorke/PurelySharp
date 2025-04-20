@@ -6,6 +6,9 @@ using System;
 using TestHelper; // Assuming you have a TestHelper library
 using PurelySharp; // Reference to your analyzer project
 using System.Diagnostics.Contracts; // Add this for PureAttribute
+using System.Threading.Tasks;
+using VerifyCS = PurelySharp.Tests.Verifiers.CSharpAnalyzerVerifier<
+    PurelySharp.Analyzer.PurelySharpAnalyzer>;
 
 namespace PurelySharp.Tests
 {
@@ -137,6 +140,21 @@ namespace PurelySharp.Tests
 
 
             VerifyCSharpDiagnostic(test, expected);
+        }
+
+        [TestMethod]
+        public async Task EmptyClass_NoDiagnostic()
+        {
+            var test = @"
+namespace TestNamespace
+{
+    class TestClass 
+    { 
+    }
+}";
+
+            // No diagnostic is expected
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         protected override DiagnosticAnalyzer GetCSharpDiagnosticAnalyzer()
