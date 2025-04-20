@@ -21,14 +21,15 @@ using PurelySharp.Attributes; // Assuming attributes are in this namespace
 
 public class TestClass
 {
-    [Pure]
-    public int GetConstant()
+    // No [Pure] or [EnforcePure] attribute here, but returns constant -> PS0004 expected
+    // [Pure] // Removing the original [Pure] attribute if it existed
+    public int {|PS0004:GetConstant|}()
     {
         return 42;
     }
 }";
 
-            // Expect no diagnostics
+            // Expect PS0004 diagnostic due to missing [EnforcePure] on a potentially pure method
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
 
@@ -603,5 +604,66 @@ public class TestClass
             // Even if input is constant, Math.Sqrt is a method call, not a constant expression
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
+
+        // --- Tests for PS0004: Missing [EnforcePure] Attribute (Warning) ---
+
+        [Test]
+        public async Task TestPotentiallyPureMethod_WithoutAttribute_ShouldWarnPS0004()
+        {
+            var testCode = @"
+using PurelySharp.Attributes; // Ensure attribute namespace is known, even if not used here
+using System;
+
+public class TestClass
+{
+    // This method looks pure (returns constant) but lacks [EnforcePure]
+    public int {|PS0004:GetConstantWithoutAttribute|}()
+    {
+        return 123;
     }
-} 
+
+    // This method also looks pure (returns const field) but lacks [EnforcePure]
+    private const string Greeting = ""Hello""; // Corrected escaping for quote inside verbatim string
+    public string {|PS0004:GetGreetingWithoutAttribute|}() => Greeting;
+
+    // This method uses a simple constant calculation, looks pure, lacks attribute
+    public int {|PS0004:GetCalcWithoutAttribute|}() => 10 + 20;
+
+    // This method returns nameof, looks pure, lacks attribute
+    public string {|PS0004:GetNameofWithoutAttribute|}() { return nameof(System.Int32); }
+}";
+
+            // Expect PS0004 warnings on the methods lacking the attribute
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
+
+        [Test]
+        public async Task TestImpureMethod_WithoutAttribute_ShouldNotWarn()
+        {
+            var testCode = @"
+using PurelySharp.Attributes;
+using System;
+
+public class TestClass
+{
+    private static int _counter = 0;
+
+    // Impure method, no attribute - should have NO diagnostic from our analyzer
+    public int ImpureMethodWithoutAttribute()
+    {
+        _counter++; 
+        return _counter;
+    }
+
+    // Another impure method (DateTime.Now), no attribute
+    public DateTime GetCurrentTimeWithoutAttribute() => DateTime.Now;
+
+    // Method calling another (potentially impure) method, no attribute
+    public double GetSqrtWithoutAttribute() => Math.Sqrt(9.0);
+}";
+
+            // Expect NO diagnostics related to purity (PS0002 or PS0004)
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
+    }
+}

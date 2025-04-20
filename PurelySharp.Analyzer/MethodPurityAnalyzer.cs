@@ -35,40 +35,54 @@ namespace PurelySharp.Analyzer
                 return; // Attribute not found in compilation
             }
 
-            // Check if the method is marked with [EnforcePure]
-            if (IsPureEnforced(methodSymbol, enforcePureAttributeSymbol))
-            {
-                // Perform initial simple purity checks
-                if (IsConsideredPure(methodDeclaration, methodSymbol, context))
-                {
-                    return; // Passed basic purity checks, no diagnostic needed for now.
-                }
+            // --- Refactored Logic ---
+            bool isPureEnforced = IsPureEnforced(methodSymbol, enforcePureAttributeSymbol);
+            bool isConsideredPure = IsConsideredPure(methodDeclaration, context); // Pass context directly
 
-                // If not considered pure by simple checks, report the 'not verified' diagnostic.
-                var diagnostic = Diagnostic.Create(
-                    PurelySharpDiagnostics.PurityNotVerifiedRule,
-                    methodDeclaration.Identifier.GetLocation(),
-                    methodSymbol.Name // Pass the method name for the message
-                );
-                context.ReportDiagnostic(diagnostic);
+            if (isPureEnforced)
+            {
+                // If attribute is present, method MUST be pure according to our checks.
+                if (!isConsideredPure)
+                {
+                    // Report PS0002: Purity cannot be verified for [EnforcePure] method
+                    var diagnostic = Diagnostic.Create(
+                        PurelySharpDiagnostics.PurityNotVerifiedRule,
+                        methodDeclaration.Identifier.GetLocation(), // Location on method name
+                        methodSymbol.Name
+                    );
+                    context.ReportDiagnostic(diagnostic);
+                }
+                // else: Pure and Enforced - Great! No diagnostic.
+            }
+            else // Attribute is NOT present
+            {
+                // If attribute is missing, but method LOOKS pure, suggest adding it.
+                if (isConsideredPure)
+                {
+                    // Report PS0004: Method appears pure, suggest adding [EnforcePure]
+                    var diagnostic = Diagnostic.Create(
+                        PurelySharpDiagnostics.MissingEnforcePureAttributeRule,
+                        methodDeclaration.Identifier.GetLocation(), // Location on method name
+                        methodSymbol.Name
+                    );
+                    context.ReportDiagnostic(diagnostic);
+                }
+                // else: Not pure and Not Enforced - Fine, no diagnostic.
             }
         }
 
-        private static bool IsConsideredPure(MethodDeclarationSyntax methodDeclaration, IMethodSymbol methodSymbol, SyntaxNodeAnalysisContext context)
+        // Updated signature: Removed unused methodSymbol parameter
+        private static bool IsConsideredPure(MethodDeclarationSyntax methodDeclaration, SyntaxNodeAnalysisContext context)
         {
             // Use semantic model to check for constant value, which is more robust than just checking for literals.
             ExpressionSyntax? returnExpression = GetReturnExpressionSyntax(methodDeclaration);
 
             if (returnExpression != null)
             {
-                // Ensure we have a semantic model before trying to use it
-                if (context.SemanticModel != null)
+                var constantValue = context.SemanticModel.GetConstantValue(returnExpression, context.CancellationToken);
+                if (constantValue.HasValue)
                 {
-                    var constantValue = context.SemanticModel.GetConstantValue(returnExpression, context.CancellationToken);
-                    if (constantValue.HasValue)
-                    {
-                        return true; // Compile-time constant value found.
-                    }
+                    return true; // Compile-time constant value found.
                 }
             }
 
@@ -88,7 +102,8 @@ namespace PurelySharp.Analyzer
 
             // Check for block body: { return expression; }
             if (methodDeclaration.Body?.Statements.Count == 1 &&
-                methodDeclaration.Body.Statements[0] is ReturnStatementSyntax returnStatement)
+                methodDeclaration.Body.Statements[0] is ReturnStatementSyntax returnStatement &&
+                returnStatement.Expression != null) // Ensure the return statement actually has an expression
             {
                 return returnStatement.Expression;
             }
