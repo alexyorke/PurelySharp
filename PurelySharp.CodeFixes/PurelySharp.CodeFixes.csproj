@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\PurelySharp\PurelySharp.csproj" />
+    <!-- <ProjectReference Include="..\PurelySharp\PurelySharp.csproj" /> -->
     <ProjectReference Include="..\PurelySharp.Attributes\PurelySharp.Attributes.csproj" />
   </ItemGroup>
 

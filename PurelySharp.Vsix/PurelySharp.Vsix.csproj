@@ -37,7 +37,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PurelySharp.CodeFixes\PurelySharp.CodeFixes.csproj" />
-    <ProjectReference Include="..\PurelySharp\PurelySharp.csproj" />
   </ItemGroup>
 
   <ItemGroup>
