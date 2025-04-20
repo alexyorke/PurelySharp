@@ -45,7 +45,7 @@ public class TestClass
 }";
 
             // Expect PS0002 now instead of PS0001
-            var expectedDiagnostic = VerifyCS.Diagnostic(PurelySharp.Analyzer.PurelySharpAnalyzer.PurityNotVerifiedDiagnosticId)
+            var expectedDiagnostic = VerifyCS.Diagnostic(PurelySharp.Analyzer.PurelySharpDiagnostics.PurityNotVerifiedDiagnosticId)
                                              .WithLocation(7, 16) // Line 7, Col 16 (GetConstant)
                                              .WithArguments("GetConstant"); // Only method name argument now
 
@@ -72,7 +72,7 @@ public class TestClass
 }";
 
             // Expect PS0002 now instead of PS0001
-            var expectedDiagnostic = VerifyCS.Diagnostic(PurelySharp.Analyzer.PurelySharpAnalyzer.PurityNotVerifiedDiagnosticId)
+            var expectedDiagnostic = VerifyCS.Diagnostic(PurelySharp.Analyzer.PurelySharpDiagnostics.PurityNotVerifiedDiagnosticId)
                                              .WithLocation(10, 16) // Adjusted line number from 9 to 10
                                              .WithArguments("ImpureMethod"); // Only method name argument now
 

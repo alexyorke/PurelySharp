@@ -17,34 +17,7 @@ namespace PurelySharp.Analyzer
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public class PurelySharpAnalyzer : DiagnosticAnalyzer
     {
-        // Placeholder for the first diagnostic rule - Keep PS0001 definition for now if needed elsewhere, but won't be raised by this core logic anymore.
-        public const string ImpurityDiagnosticId = "PS0001"; 
-        private static readonly LocalizableString ImpurityTitle = "Impure Method Assumed"; // TODO: Move to Resources
-        private static readonly LocalizableString ImpurityMessageFormat = "Method '{0}' marked with [EnforcePure] contains implementation and is assumed impure"; // TODO: Move to Resources
-        private static readonly LocalizableString ImpurityDescription = "Methods marked with [EnforcePure] must have their purity explicitly verified or annotated."; // TODO: Move to Resources
-        public static readonly DiagnosticDescriptor ImpurityRule = new DiagnosticDescriptor(
-            ImpurityDiagnosticId, 
-            ImpurityTitle, 
-            ImpurityMessageFormat, 
-            "Purity", // Category 
-            DiagnosticSeverity.Warning, // Default severity 
-            isEnabledByDefault: true, 
-            description: ImpurityDescription);
-        
-        // New diagnostic for unverified purity
-        public const string PurityNotVerifiedDiagnosticId = "PS0002";
-        private static readonly LocalizableString PurityNotVerifiedTitle = "Purity Not Verified"; // TODO: Move to Resources
-        private static readonly LocalizableString PurityNotVerifiedMessageFormat = "Method '{0}' marked with [EnforcePure] has implementation, but its purity has not been verified by existing rules"; // TODO: Move to Resources
-        private static readonly LocalizableString PurityNotVerifiedDescription = "Methods marked with [EnforcePure] require analysis. This diagnostic indicates the analysis rules did not determine the method's purity status."; // TODO: Move to Resources
-        public static readonly DiagnosticDescriptor PurityNotVerifiedRule = new DiagnosticDescriptor(
-            PurityNotVerifiedDiagnosticId,
-            PurityNotVerifiedTitle,
-            PurityNotVerifiedMessageFormat,
-            "Purity", // Category
-            DiagnosticSeverity.Warning, // Default severity (Warning is suitable for "unknown")
-            isEnabledByDefault: true,
-            description: PurityNotVerifiedDescription);
-
+        // Diagnostics moved to PurelySharpDiagnostics.cs
 
         // TODO: Maintain a static, explicit list of all supported IPurityRule types.
         private static readonly ImmutableArray<Type> _ruleTypes = ImmutableArray.Create<Type>(
@@ -52,9 +25,9 @@ namespace PurelySharp.Analyzer
             // Add other rule types here...
         );
 
-        // Update supported diagnostics to include the new rule
+        // Update supported diagnostics to reference the new location
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => 
-            ImmutableArray.Create(PurityNotVerifiedRule); // Only report PS0002 from this core check for now
+            ImmutableArray.Create(PurelySharpDiagnostics.PurityNotVerifiedRule); // Only report PS0002 from this core check for now
             // We might add ImpurityRule (PS0001) back later if specific impurity rules raise it.
             // _rules.IsDefaultOrEmpty
             //     ? ImmutableArray<DiagnosticDescriptor>.Empty
@@ -106,7 +79,7 @@ namespace PurelySharp.Analyzer
                  // they might report PS0001 or a more specific rule. If they prove purity, 
                  // no diagnostic is reported. If no rule can determine the status, PS0002 remains.
                 var diagnostic = Diagnostic.Create(
-                    PurityNotVerifiedRule, // Use the new rule
+                    PurelySharpDiagnostics.PurityNotVerifiedRule, // Use the new rule from the diagnostics class
                     methodDeclaration.Identifier.GetLocation(), 
                     methodSymbol.Name // Argument {0} is the method name
                 );
