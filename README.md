@@ -1,38 +1,92 @@
-# PurelySharp
+# PurelySharp Analyzer
 
-A C# analyzer that enforces method purity through the `[EnforcePure]` or `[Pure]` attribute. Methods marked with this attribute must be pure (no side effects, only pure operations).
+A Roslyn analyzer designed to help enforce method purity in C# projects.
 
-## Beta Warning ⚠️
+**Note:** This project is currently under active development and refactoring. The features described below reflect the _current_ state, which is simpler than previous versions.
 
-**This analyzer is currently in beta. Some cases may not be properly detected or may produce false positives.**
+## Goal
 
-Known limitations:
+The primary goal of PurelySharp is to provide developers with tools to write and maintain functionally pure C# code by identifying methods that might introduce side effects when they are intended to be pure.
 
-- **Indirect Impurities**: The analyzer may not detect impure operations across multiple method calls, especially if those methods are in different assemblies.
-- **Static Fields**: Access to static fields from other types/assemblies may not always be correctly identified as impure.
-- **External Dependencies**: Methods from third-party libraries without proper annotations might be incorrectly assumed to be pure.
-- **Reflection**: Code using reflection to modify state may evade detection.
-- **Thread-Static Fields**: Thread-static field access isn't always properly detected as impure.
-- **Collection Modifications**: The analyzer may not detect all collection modifications, especially through indirect method calls.
-- **Delegate Invocations**: Delegate invocations to impure methods might not be detected.
+## Current Status & Features
 
-For best results, ensure that all called methods in the dependency chain are also marked with `[EnforcePure]` when appropriate.
+As of now, the analyzer focuses on identifying methods marked for purity enforcement that require analysis:
+
+1.  **Attribute Recognition:** The analyzer recognizes methods marked with the `[PurelySharp.Attributes.EnforcePure]` attribute.
+2.  **Implementation Check:** It checks if a method marked with `[EnforcePure]` has an actual implementation (a method body `{...}` or an expression body `=> ...`). Abstract or partial method definitions without implementation are ignored.
+3.  **Diagnostic Reporting:** If a method is marked with `[EnforcePure]` and has an implementation, the analyzer reports diagnostic **PS0002: Purity Not Verified**.
+
+**What PS0002 Means:**
+
+- This diagnostic does **not** mean the method is impure.
+- It signifies that the method is _intended_ to be pure (due to `[EnforcePure]`) and _has code that needs checking_, but the detailed analysis rules to verify its purity (e.g., checking for I/O, state modification, impure calls) **have not been implemented yet**.
+- It serves as a placeholder indicating that purity analysis is required for this method.
+
+**Features NOT Currently Implemented (but planned):**
+
+- Detailed analysis of method bodies to detect specific impurities (I/O, static field mutations, mutable object modifications, calls to impure methods, etc.).
+- Code fixes for reported diagnostics.
+- Analysis based on the standard `[System.Diagnostics.Contracts.Pure]` attribute.
+- Configurability of rules.
 
 ## Installation
 
-To use PurelySharp in your project, you need to:
+_This analyzer is not yet published._ Once released, installation will likely involve:
 
-1.  **(Optional) Install the Attributes NuGet Package:**
-    The `[EnforcePure]` attribute is defined in a separate package. You need to add this to any project where you intend to use the attribute. This is not needed if you only want to use the `[Pure]` attribute from `System.Diagnostics.Contracts`. Since version `0.0.1` might be unlisted, use the .NET CLI command:
-
+1.  **Attributes Package:** Adding a reference to the `PurelySharp.Attributes` NuGet package in projects where you want to use `[EnforcePure]`.
     ```bash
-    dotnet add package PurelySharp.Attributes --version 0.0.1
+    # Example command (package not yet available)
+    dotnet add package PurelySharp.Attributes --version <version>
+    ```
+2.  **Analyzer Package/VSIX:**
+    - Adding the `PurelySharp.Analyzer` NuGet package to your project(s) for build-time analysis.
+    - Installing the `PurelySharp.Vsix` extension in Visual Studio for real-time feedback.
+
+## Usage
+
+1.  Add the `PurelySharp.Attributes` package reference to your project.
+2.  Add the `[EnforcePure]` attribute (from `PurelySharp.Attributes`) to methods you intend to be functionally pure.
+
+    ```csharp
+    using PurelySharp.Attributes;
+
+    public class Calculator
+    {
+        [EnforcePure]
+        public int Add(int a, int b)
+        {
+            // Purity analysis needed here - PS0002 will be reported currently.
+            return a + b;
+        }
+
+        [EnforcePure]
+        public int GetConstant(); // No implementation, PS0002 NOT reported.
+    }
     ```
 
-    (Or add the reference manually to your `.csproj` file.)
+3.  Observe the `PS0002` diagnostic for methods with implementations marked `[EnforcePure]`.
+4.  _(Future)_ As analysis rules are implemented, `PS0002` will be replaced by more specific diagnostics if impurity is found, or suppressed if purity is confirmed.
 
-2.  **Install the VSIX Extension:**
-    For the analyzer to run in Visual Studio and provide real-time feedback and code fixes, install the PurelySharp VSIX extension from the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=alexyorke.PurelySharp).
+## Diagnostics
+
+- **PS0002: Purity Not Verified**
+
+  - **Message:** `Method '{0}' marked with [EnforcePure] has implementation, but its purity has not been verified by existing rules`
+  - **Severity:** Warning
+  - **Meaning:** The method requires purity analysis, but the necessary rules haven't been implemented or run yet.
+
+- **(Defined but Unused) PS0001: Impure Method Assumed**
+  - This diagnostic ID is defined but is not currently reported by the core analyzer. It may be used in the future by specific impurity detection rules.
+
+## Contributing
+
+Contributions are welcome! Please feel free to open issues or submit pull requests.
+
+## License
+
+(Assume MIT License if not specified otherwise - You should confirm/add the actual license)
+
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Supported Language Features
 
