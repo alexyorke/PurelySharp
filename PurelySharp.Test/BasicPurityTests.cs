@@ -26,5 +26,24 @@ public class TestClass
             // Expect no diagnostics
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
+
+        [Test]
+        public async Task TestEnforcePureMethod_NoDiagnostics()
+        {
+            var testCode = @"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure] // Use EnforcePure instead of Pure
+    public int GetConstant()
+    {
+        return 42;
+    }
+}";
+
+            // Expect no diagnostics
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
     }
 } 
