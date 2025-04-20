@@ -30,6 +30,7 @@
     <ProjectReference Include="..\PurelySharp.CodeFixes\PurelySharp.CodeFixes.csproj" />
     <ProjectReference Include="..\PurelySharp\PurelySharp.csproj" />
     <ProjectReference Include="..\PurelySharp.Attributes\PurelySharp.Attributes.csproj" />
+    <ProjectReference Include="..\PurelySharp.Analyzer\PurelySharp.Analyzer.csproj" />
   </ItemGroup>
 
 </Project>

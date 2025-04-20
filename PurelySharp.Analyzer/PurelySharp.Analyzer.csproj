@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <IsRoslynAnalyzer>true</IsRoslynAnalyzer>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion> <!-- Or your desired C# version -->
+    <ImplicitUsings>enable</ImplicitUsings> 
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Analyzer Packages -->
+    <!-- Remove this explicit reference; it's brought in by Microsoft.CodeAnalysis.CSharp -->
+    <!-- 
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.13.0" />
+
+    <!-- Immutable Collections -->
+    <PackageReference Include="System.Collections.Immutable" Version="8.0.0" /> 
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Reference the Attributes project if needed -->
+    <!-- <ProjectReference Include="..\PurelySharp.Attributes\PurelySharp.Attributes.csproj" /> -->
+  </ItemGroup>
+  
+  <ItemGroup>
+    <!-- Include the RESX file for diagnostics -->
+    <EmbeddedResource Update="Resources\DiagnosticMessages.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>DiagnosticMessages.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <Compile Update="Resources\DiagnosticMessages.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>DiagnosticMessages.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+</Project> 

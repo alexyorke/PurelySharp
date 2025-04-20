@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Testing;
 using System.Threading;
 using System.Threading.Tasks;
+using PurelySharp.Analyzer;
 
 namespace PurelySharp.Test
 {
