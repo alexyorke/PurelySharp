@@ -37,7 +37,7 @@ namespace PurelySharp.Analyzer
 
             // --- Refactored Logic ---
             bool isPureEnforced = IsPureEnforced(methodSymbol, enforcePureAttributeSymbol);
-            bool isConsideredPure = IsConsideredPure(methodDeclaration, context); // Pass context directly
+            bool isConsideredPure = IsConsideredPure(methodDeclaration, context, enforcePureAttributeSymbol); // Pass attribute symbol
 
             if (isPureEnforced)
             {
@@ -71,18 +71,33 @@ namespace PurelySharp.Analyzer
             }
         }
 
-        // Updated signature: Removed unused methodSymbol parameter
-        private static bool IsConsideredPure(MethodDeclarationSyntax methodDeclaration, SyntaxNodeAnalysisContext context)
+        // Updated signature: Added enforcePureAttributeSymbol parameter
+        private static bool IsConsideredPure(MethodDeclarationSyntax methodDeclaration, SyntaxNodeAnalysisContext context, INamedTypeSymbol enforcePureAttributeSymbol)
         {
             // Use semantic model to check for constant value, which is more robust than just checking for literals.
             ExpressionSyntax? returnExpression = GetReturnExpressionSyntax(methodDeclaration);
 
             if (returnExpression != null)
             {
+                // 1. Check for constant return
                 var constantValue = context.SemanticModel.GetConstantValue(returnExpression, context.CancellationToken);
                 if (constantValue.HasValue)
                 {
                     return true; // Compile-time constant value found.
+                }
+
+                // 2. Check if returning the result of a call to another [EnforcePure] method
+                if (returnExpression is InvocationExpressionSyntax invocationExpression)
+                {
+                    var symbolInfo = context.SemanticModel.GetSymbolInfo(invocationExpression, context.CancellationToken);
+                    if (symbolInfo.Symbol is IMethodSymbol invokedMethodSymbol)
+                    {
+                        // Reuse the IsPureEnforced helper
+                        if (IsPureEnforced(invokedMethodSymbol, enforcePureAttributeSymbol))
+                        {
+                            return true; // Calling a known pure method.
+                        }
+                    }
                 }
             }
 

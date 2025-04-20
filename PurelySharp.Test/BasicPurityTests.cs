@@ -743,5 +743,24 @@ public class TestClass
 }";
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
+
+        [Test]
+        public async Task TestPotentiallyPureMethodCallingEnforcedPure_ShouldWarnPS0004()
+        {
+            var testCode = @"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    private int HelperPureMethod() => 42;
+
+    // This method looks pure because it calls an [EnforcePure] method,
+    // but lacks the attribute itself.
+    public int {|PS0004:CallingPureHelper|}() => HelperPureMethod(); 
+}";
+            // Expect PS0004 suggesting [EnforcePure] because it calls a known pure method
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
     }
 }
