@@ -38,20 +38,16 @@ namespace PurelySharp.Analyzer
             // Register action for method declarations (for PS0002) FIRST
             context.RegisterSyntaxNodeAction(AnalyzeMethodDeclaration, SyntaxKind.MethodDeclaration);
 
-            // Register actions for other declaration types (for PS0003) SECOND
-            context.RegisterSyntaxNodeAction(AnalyzeNonMethodDeclaration, 
-                SyntaxKind.ClassDeclaration,
-                SyntaxKind.StructDeclaration,
-                SyntaxKind.InterfaceDeclaration,
-                SyntaxKind.EnumDeclaration,
-                SyntaxKind.FieldDeclaration,
-                SyntaxKind.PropertyDeclaration,
-                SyntaxKind.EventFieldDeclaration,
-                SyntaxKind.ConstructorDeclaration, // Also check constructors for now, although maybe allowed later?
-                SyntaxKind.OperatorDeclaration,
-                SyntaxKind.ConversionOperatorDeclaration
-                // Add others like DelegateDeclaration if needed
-                );
+            // Register actions for all other declaration types (for PS0003) SECOND
+            // Programmatically get all SyntaxKind values except MethodDeclaration
+            var allKindsExceptMethod = Enum.GetValues(typeof(SyntaxKind))
+                                           .Cast<SyntaxKind>()
+                                           .Where(k => k != SyntaxKind.MethodDeclaration)
+                                           // Consider adding more filters here if needed (e.g., for performance)
+                                           // .Where(k => IsRelevantKind(k)) // Example filter
+                                           .ToImmutableArray();
+
+            context.RegisterSyntaxNodeAction(AnalyzeNonMethodDeclaration, allKindsExceptMethod);
         }
 
         private void AnalyzeMethodDeclaration(SyntaxNodeAnalysisContext context)
