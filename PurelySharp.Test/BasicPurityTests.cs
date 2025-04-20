@@ -41,15 +41,37 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:GetConstant|}() // Explicitly marked for PS0002
+    public int {|PS0002:GetParameter|}(int x) // Correctly modified method signature and body
     {
-        return 5;
+        return x; // Return parameter
     }
 }";
 
             // The framework will infer the single expected diagnostic PS0002 
             // from the {|PS0002:...|} markup in the test code.
             await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
+
+        [Test]
+        public async Task TestPureMethodReturningConstant_NoDiagnostics()
+        {
+            var testCode = @"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure] // Mark it for analysis, even though it should pass
+    public int GetTheAnswer()
+    {
+        return 42; // Constant return, should be considered pure by future analysis
+    }
+}";
+            // Now expect no diagnostics because the analyzer recognizes constant returns.
+            // var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
+            //                        .WithLocation(7, 16) // Line 7, Column 16 (method name) - CORRECTED LINE NUMBER
+            //                        .WithArguments("GetTheAnswer");
+            // await VerifyCS.VerifyAnalyzerAsync(testCode, expected);
+            await VerifyCS.VerifyAnalyzerAsync(testCode); // Expect no diagnostics
         }
 
         [Test]

@@ -64,6 +64,13 @@ namespace PurelySharp.Analyzer
 
             if (IsPureEnforced(methodSymbol, enforcePureAttributeSymbol))
             {
+                // Check for simple constant return
+                if (IsConstantReturn(methodDeclaration))
+                {
+                    return; // This method is considered pure for now.
+                }
+
+                // If not a simple constant return, report the 'not verified' diagnostic.
                 var diagnostic = Diagnostic.Create(
                     PurelySharpDiagnostics.PurityNotVerifiedRule,
                     methodDeclaration.Identifier.GetLocation(),
@@ -71,6 +78,25 @@ namespace PurelySharp.Analyzer
                 );
                 context.ReportDiagnostic(diagnostic);
             }
+        }
+
+        private static bool IsConstantReturn(MethodDeclarationSyntax methodDeclaration)
+        {
+            // Check for expression body: => constant;
+            if (methodDeclaration.ExpressionBody?.Expression is LiteralExpressionSyntax)
+            {
+                return true;
+            }
+
+            // Check for block body: { return constant; }
+            if (methodDeclaration.Body?.Statements.Count == 1 &&
+                methodDeclaration.Body.Statements[0] is ReturnStatementSyntax returnStatement &&
+                returnStatement.Expression is LiteralExpressionSyntax)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         private void AnalyzeNonMethodDeclaration(SyntaxNodeAnalysisContext context)
