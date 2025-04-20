@@ -40,6 +40,21 @@ namespace PurelySharp.Analyzer
             isEnabledByDefault: true,
             description: PurityNotVerifiedDescription);
 
+        // --- PS0003: Misplaced [EnforcePure] Attribute ---
+        public const string MisplacedAttributeDiagnosticId = "PS0003";
+        private static readonly LocalizableString MisplacedAttributeTitle = "Misplaced [EnforcePure] Attribute"; // TODO: Move to Resources
+        private static readonly LocalizableString MisplacedAttributeMessageFormat = "The [EnforcePure] attribute can only be applied to method declarations"; // TODO: Move to Resources
+        private static readonly LocalizableString MisplacedAttributeDescription = "[EnforcePure] should only be used on methods to indicate they require purity analysis."; // TODO: Move to Resources
+        
+        public static readonly DiagnosticDescriptor MisplacedAttributeRule = new DiagnosticDescriptor(
+            MisplacedAttributeDiagnosticId,
+            MisplacedAttributeTitle,
+            MisplacedAttributeMessageFormat,
+            "Usage", // Category 
+            DiagnosticSeverity.Warning, // Severity
+            isEnabledByDefault: true,
+            description: MisplacedAttributeDescription);
+
         // --- Add future diagnostic rules here ---
     }
 } 

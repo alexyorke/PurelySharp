@@ -25,21 +25,33 @@ namespace PurelySharp.Analyzer
             // Add other rule types here...
         );
 
-        // Update supported diagnostics to reference the new location
+        // Update supported diagnostics to reference the new location and include the new rule
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => 
-            ImmutableArray.Create(PurelySharpDiagnostics.PurityNotVerifiedRule); // Only report PS0002 from this core check for now
-            // We might add ImpurityRule (PS0001) back later if specific impurity rules raise it.
-            // _rules.IsDefaultOrEmpty
-            //     ? ImmutableArray<DiagnosticDescriptor>.Empty
-            //     : _rules.Select(r => r.Descriptor).ToImmutableArray(); // Restore this later
+            ImmutableArray.Create(PurelySharpDiagnostics.PurityNotVerifiedRule, 
+                                  PurelySharpDiagnostics.MisplacedAttributeRule); 
 
         public override void Initialize(AnalysisContext context)
         {
             context.EnableConcurrentExecution();
-            context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None); // Or Analyze/ReportDiagnostics
+            context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None); 
 
-            // Register action for method declarations instead of operations
+            // Register action for method declarations (for PS0002) FIRST
             context.RegisterSyntaxNodeAction(AnalyzeMethodDeclaration, SyntaxKind.MethodDeclaration);
+
+            // Register actions for other declaration types (for PS0003) SECOND
+            context.RegisterSyntaxNodeAction(AnalyzeNonMethodDeclaration, 
+                SyntaxKind.ClassDeclaration,
+                SyntaxKind.StructDeclaration,
+                SyntaxKind.InterfaceDeclaration,
+                SyntaxKind.EnumDeclaration,
+                SyntaxKind.FieldDeclaration,
+                SyntaxKind.PropertyDeclaration,
+                SyntaxKind.EventFieldDeclaration,
+                SyntaxKind.ConstructorDeclaration, // Also check constructors for now, although maybe allowed later?
+                SyntaxKind.OperatorDeclaration,
+                SyntaxKind.ConversionOperatorDeclaration
+                // Add others like DelegateDeclaration if needed
+                );
         }
 
         private void AnalyzeMethodDeclaration(SyntaxNodeAnalysisContext context)
@@ -88,11 +100,80 @@ namespace PurelySharp.Analyzer
             // If not marked with [EnforcePure], we don't report anything based on this check.
         }
 
-        // Helper to check if a method is marked with [EnforcePure]
-        private static bool IsPureEnforced(IMethodSymbol methodSymbol, INamedTypeSymbol enforcePureAttributeSymbol)
+        private void AnalyzeNonMethodDeclaration(SyntaxNodeAnalysisContext context)
         {
-             // This helper might need adjustment if we check base types later
-             return methodSymbol.GetAttributes().Any(attr =>
+            // --- Remove DEBUGGING --- 
+            // if (context.Node is Microsoft.CodeAnalysis.CSharp.Syntax.FieldDeclarationSyntax fieldDecl) 
+            // { ... }
+            // --- END DEBUGGING ---
+
+            // Get the EnforcePure attribute symbol first
+            var enforcePureAttributeSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName(typeof(EnforcePureAttribute).FullName);
+            if (enforcePureAttributeSymbol == null)
+            {
+                return; // Attribute not found in compilation
+            }
+
+            // *** Check attributes directly on the Syntax Node ***
+            Location? attributeLocation = null;
+            bool attributeFoundOnNode = false;
+
+            if (context.Node is MemberDeclarationSyntax memberDecl) // Covers Field, Property, Event, etc.
+            {
+                attributeLocation = FindAttributeLocation(memberDecl.AttributeLists, enforcePureAttributeSymbol, context.SemanticModel);
+                attributeFoundOnNode = attributeLocation != null;
+            }
+            else if (context.Node is TypeDeclarationSyntax typeDecl) // Covers Class, Struct, Interface
+            {
+                 attributeLocation = FindAttributeLocation(typeDecl.AttributeLists, enforcePureAttributeSymbol, context.SemanticModel);
+                 attributeFoundOnNode = attributeLocation != null;
+            }
+            // Add checks for other specific node types with attributes if necessary
+
+            if (attributeFoundOnNode)
+            {
+                 // Report PS0003 directly if attribute found on the node syntax
+                var diagnostic = Diagnostic.Create(
+                    PurelySharpDiagnostics.MisplacedAttributeRule,
+                    attributeLocation! // We know it's not null here
+                    // No arguments needed
+                );
+                context.ReportDiagnostic(diagnostic);
+                // Return because we don't need the fallback check below if we found it here.
+                // If we didn't find it here, the fallback check wouldn't find it on the symbol either
+                // (assuming attributes are correctly propagated from syntax to symbol).
+                return; 
+            }
+
+            // --- Removed Fallback Logic Block --- 
+
+        }
+
+        // Helper to find the specific location of the target attribute
+        private static Location? FindAttributeLocation(SyntaxList<AttributeListSyntax> attributeLists, INamedTypeSymbol targetAttributeSymbol, SemanticModel semanticModel)
+        {
+            foreach (var attributeList in attributeLists)
+            {
+                foreach (var attribute in attributeList.Attributes)
+                {
+                    var symbolInfo = semanticModel.GetSymbolInfo(attribute);
+                    if (symbolInfo.Symbol is IMethodSymbol attributeConstructorSymbol)
+                    {
+                        if (SymbolEqualityComparer.Default.Equals(attributeConstructorSymbol.ContainingType, targetAttributeSymbol))
+                        {
+                            return attribute.GetLocation();
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        // Helper to check if a symbol is marked with [EnforcePure]
+        // Updated to accept any ISymbol
+        private static bool IsPureEnforced(ISymbol symbol, INamedTypeSymbol enforcePureAttributeSymbol)
+        {
+             return symbol.GetAttributes().Any(attr =>
                  SymbolEqualityComparer.Default.Equals(attr.AttributeClass, enforcePureAttributeSymbol));
         }
     }
