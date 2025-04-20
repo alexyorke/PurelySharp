@@ -110,52 +110,136 @@ namespace PurelySharp.Analyzer
                 return false;
             }
 
-            // --- Recursive Analysis ---
-            ExpressionSyntax? returnExpression = GetReturnExpressionSyntax(methodDeclaration); // Use existing helper
-
-            if (returnExpression != null)
+            // --- Analysis --- 
+            bool isPure = false; // Assume impure initially
+            if (methodDeclaration.ExpressionBody != null)
             {
-                // a. Check for constant return
-                var constantValue = context.SemanticModel.GetConstantValue(returnExpression, context.CancellationToken);
-                if (constantValue.HasValue)
-                {
-                    visited.Remove(methodSymbol); // Backtrack
-                    return true; // Compile-time constant value found.
-                }
+                // Case 1: Expression Body ( => ... )
+                isPure = IsExpressionPure(methodDeclaration.ExpressionBody.Expression, context, enforcePureAttributeSymbol, visited, methodSymbol, new Dictionary<ILocalSymbol, bool>(SymbolEqualityComparer.Default));
+            }
+            else if (methodDeclaration.Body != null)
+            {
+                // Case 2: Block Body ( { ... } )
+                var statements = methodDeclaration.Body.Statements;
+                // Track purity of local variables declared in this scope
+                var localPurityStatus = new Dictionary<ILocalSymbol, bool>(SymbolEqualityComparer.Default);
 
-                // b. Check if returning the result of a call to another method
-                if (returnExpression is InvocationExpressionSyntax invocationExpression)
+                if (statements.Count == 0)
                 {
-                    var symbolInfo = context.SemanticModel.GetSymbolInfo(invocationExpression, context.CancellationToken);
-                    if (symbolInfo.Symbol is IMethodSymbol invokedMethodSymbol)
-                    {
-                        // Recursively check the invoked method
-                        bool result = IsConsideredPure(invokedMethodSymbol, context, enforcePureAttributeSymbol, visited);
-                        visited.Remove(methodSymbol); // Backtrack
-                        return result;
-                    }
-                    else
-                    {
-                        // Could not resolve symbol or it's not a method (e.g., delegate invocation?)
-                        // Assume impure for now.
-                        visited.Remove(methodSymbol); // Backtrack
-                        return false;
-                    }
+                    // Empty body might be considered pure depending on return type (void is pure, non-void needs return)
+                    isPure = methodSymbol.ReturnsVoid; // Consider void pure, others impure w/o return
                 }
-                // c. Add other checks for known impure constructs here if needed (e.g., specific method calls like DateTime.Now)
-                //    Or, more generally, handle non-constant, non-invocation returns.
                 else
                 {
-                    // If it's not a constant and not a method invocation we can recurse into,
-                    // consider it impure based on current rules (e.g., field access, parameter return, `new`, etc.)
-                    visited.Remove(methodSymbol); // Backtrack
+                    // Check statements before the last one
+                    bool nonReturnStatementsPure = true;
+                    for (int i = 0; i < statements.Count - 1; i++)
+                    {
+                        var stmt = statements[i];
+                        if (stmt is LocalDeclarationStatementSyntax localDecl)
+                        {
+                            // Allow local declarations only if initializer is pure
+                            foreach (var variable in localDecl.Declaration.Variables)
+                            {
+                                var localSymbol = context.SemanticModel.GetDeclaredSymbol(variable, context.CancellationToken) as ILocalSymbol;
+                                if (localSymbol == null) continue; // Should not happen?
+
+                                bool isInitializerPure = true; // Default to pure if no initializer
+                                if (variable.Initializer != null)
+                                {
+                                    isInitializerPure = IsExpressionPure(variable.Initializer.Value, context, enforcePureAttributeSymbol, visited, methodSymbol, localPurityStatus); // Pass tracker
+                                    if (!isInitializerPure)
+                                    {
+                                        nonReturnStatementsPure = false;
+                                    }
+                                }
+                                localPurityStatus[localSymbol] = isInitializerPure;
+                            }
+                        }
+                        else
+                        {
+                            // Any other statement type (assignment, invocation without assignment, if, loop, etc.) is impure for now.
+                            nonReturnStatementsPure = false;
+                        }
+
+                        if (!nonReturnStatementsPure) break; // Exit loop early if impurity found
+                    }
+
+                    // Check the last statement
+                    if (nonReturnStatementsPure && statements.Last() is ReturnStatementSyntax returnStatement)
+                    {
+                        // If all previous statements were allowed, check the purity of the return expression, considering locals
+                        isPure = IsExpressionPure(returnStatement.Expression, context, enforcePureAttributeSymbol, visited, methodSymbol, localPurityStatus); // Pass tracker
+                    }
+                    // else: Last statement wasn't a return, or previous statements were impure.
+                    // isPure remains false.
+                }
+            }
+            // else: No body (should have been caught earlier)
+
+            // --- Backtrack & Return ---
+            visited.Remove(methodSymbol); // Crucial: Remove *after* all analysis for this method is done.
+            return isPure;
+        }
+
+        /// <summary>
+        /// Checks if a given expression is considered pure based on the current rules.
+        /// </summary>
+        /// <param name="expression">The expression syntax to analyze.</param>
+        /// <param name="context">The analysis context.</param>
+        /// <param name="enforcePureAttributeSymbol">Symbol for the [EnforcePure] attribute.</param>
+        /// <param name="visited">Set of methods currently in the recursion stack (for cycle detection).</param>
+        /// <param name="containingMethodSymbol">The symbol of the method containing this expression (used for backtracking in visited set).</param>
+        /// <param name="localPurityStatus">Tracks the purity of local variables in the current scope.</param>
+        /// <returns>True if the expression is considered pure, false otherwise.</returns>
+        private static bool IsExpressionPure(ExpressionSyntax? expression, SyntaxNodeAnalysisContext context, INamedTypeSymbol enforcePureAttributeSymbol, HashSet<IMethodSymbol> visited, IMethodSymbol containingMethodSymbol, IReadOnlyDictionary<ILocalSymbol, bool> localPurityStatus)
+        {
+            if (expression == null)
+            {
+                 return false; // Cannot analyze null expression
+            }
+
+            // a. Check for constant value
+            var constantValue = context.SemanticModel.GetConstantValue(expression, context.CancellationToken);
+            if (constantValue.HasValue)
+            {
+                return true; // Compile-time constant value found.
+            }
+
+            // b. Check if it's a call to another potentially pure method
+            if (expression is InvocationExpressionSyntax invocationExpression)
+            {
+                var symbolInfo = context.SemanticModel.GetSymbolInfo(invocationExpression, context.CancellationToken);
+                if (symbolInfo.Symbol is IMethodSymbol invokedMethodSymbol)
+                {
+                    // Recursively check the invoked method
+                    // Note: We pass the *same* visited set down for cycle detection.
+                    // We need to remove the *containing* method symbol from visited *after* this recursive call returns,
+                    // which is handled by the caller (IsConsideredPure).
+                    return IsConsideredPure(invokedMethodSymbol, context, enforcePureAttributeSymbol, visited);
+                }
+                else
+                {
+                    // Could not resolve symbol or it's not a method (e.g., delegate invocation?)
                     return false;
                 }
             }
-            // else: Method has a body but doesn't fit the simple return patterns (e.g., multiple statements, assignments)
-            // For now, consider these impure until more sophisticated analysis (like CFG) is added.
+            // c. Check if it's a reference to a known pure local variable
+            else if (expression is IdentifierNameSyntax identifierName)
+            {
+                var symbolInfo = context.SemanticModel.GetSymbolInfo(identifierName, context.CancellationToken);
+                if (symbolInfo.Symbol is ILocalSymbol localSymbol)
+                {
+                    // Check the tracked status of this local variable
+                    return localPurityStatus.TryGetValue(localSymbol, out bool isPure) && isPure;
+                }
+                 // Could be parameter, field, etc. - currently treated as impure
+            }
 
-            visited.Remove(methodSymbol); // Backtrack: If we reach here, the method wasn't proven pure by current checks
+            // d. Add other checks here (e.g., pure binary operations, known pure framework methods)
+            // else...
+            
+            // If it's not a recognized pure construct, assume impure for now.
             return false;
         }
 

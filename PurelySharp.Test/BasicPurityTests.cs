@@ -934,5 +934,135 @@ public class TestClass
             // Expect PS0002 because GetReturnExpressionSyntax returns null for multi-statement bodies.
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
+
+        // --- Tests for Simple Block Bodies ---
+
+        [Test]
+        public async Task TestEnforcePureWithLocalConstReturn_NoDiagnostics()
+        {
+            var testCode = @"
+using PurelySharp.Attributes;
+public class TestClass
+{
+    [EnforcePure]
+    public int GetLocalConst()
+    {
+        const int x = 5;
+        return x; // GetConstantValue works on local const reference
+    }
+}";
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
+        
+        [Test]
+        public async Task TestEnforcePureWithLocalVarFromPureCall_NoDiagnostics()
+        {
+            var testCode = @"
+using PurelySharp.Attributes;
+public class TestClass
+{
+    [EnforcePure] private int PureHelper() => 10;
+
+    [EnforcePure]
+    public int GetValFromPureCall()
+    {
+        var temp = PureHelper();
+        return temp; // Should now be considered pure
+    }
+}";
+            // Now expect no diagnostics because IsExpressionPure checks localPurityStatus.
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
+
+        [Test]
+        public async Task TestEnforcePureWithLocalVarFromImpureCall_ShouldFlagPS0002()
+        {
+            var testCode = @"
+using PurelySharp.Attributes;
+using System;
+public class TestClass
+{
+    private int ImpureHelper() { Console.WriteLine(); return 0; }
+
+    [EnforcePure]
+    public int {|PS0002:GetValFromImpureCall|}()
+    {
+        // Impurity detected in the initializer check
+        var temp = ImpureHelper(); 
+        return temp;
+    }
+}";
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
+
+        [Test]
+        public async Task TestEnforcePureWithAssignment_ShouldFlagPS0002()
+        {
+             var testCode = @"
+using PurelySharp.Attributes;
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:MethodWithAssignment|}()
+    {
+        int x = 5;
+        x = x + 1; // Assignment statement makes it impure
+        return x;
+    }
+}";
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
+
+        [Test]
+        public async Task TestEnforcePureWithMultipleLocalDecls_NoDiagnostics()
+        {
+            var testCode = @"
+using PurelySharp.Attributes;
+public class TestClass
+{
+    [EnforcePure] private int PureHelper1() => 1;
+    [EnforcePure] private int PureHelper2() => 2;
+
+    [EnforcePure]
+    public int GetFromMultipleLocals()
+    {
+        var a = PureHelper1();
+        const int b = 10;
+        var c = PureHelper2();
+        // Currently fails because return temp; requires local analysis
+        // Also fails because return a + b + c; requires operator analysis
+        return b; // Return simple constant
+    }
+}";
+            // Expect no diagnostics as all initializers are pure and return is constant.
+             await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
+
+        [Test]
+        public async Task TestEnforcePureWithIfElseReturn_ShouldFlagPS0002()
+        {
+            // Same test as TestEnforcePureWithMultipleReturns_ShouldFlagPS0002
+            // Confirms the block analysis also rejects this.
+            var testCode = @"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure] // Marked pure, but analyzer can't handle multiple returns / if statement
+    public int {|PS0002:GetValueBasedOnInputViaBlock|}(int x)
+    {
+        if (x > 0) // If statement makes it impure
+        {
+            return 1;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+}";
+            // Expect PS0002 because block analysis doesn't allow 'if'.
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
     }
 }
