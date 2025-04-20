@@ -1,6 +1,3 @@
-// using Microsoft.CodeAnalysis.Diagnostics;
-// using System.Threading;
-
 namespace PurelySharp.Analyzer.Configuration
 {
     /// <summary>
@@ -12,12 +9,5 @@ namespace PurelySharp.Analyzer.Configuration
         // TODO: Define properties for configuration settings (e.g., KnownPureTypes, Severities)
 
         // TODO: Implement static Load method
-        // public static AnalyzerConfiguration Load(AnalyzerOptions options, CancellationToken cancellationToken)
-        // {
-        //    var config = new AnalyzerConfiguration();
-        //    var editorConfig = options.AnalyzerConfigOptionsProvider.GlobalOptions; // Or GetOptions(syntaxTree)
-        //    // Read values using editorConfig.TryGetValue(ConfigKeys.SomeKey, out var value)
-        //    return config;
-        // }
     }
 } 

@@ -18,15 +18,7 @@ namespace PurelySharp.Analyzer.Engine
         public PurityLevel Level { get; }
 
         // TODO: Add locations of impurities if Level is Impure
-        // public ImmutableArray<Location> ImpurityLocations { get; }
-
         // TODO: Add constructor
-        // public PurityResult(PurityLevel level, ImmutableArray<Location> locations = default)
-        // {
-        //    Level = level;
-        //    ImpurityLocations = locations.IsDefault ? ImmutableArray<Location>.Empty : locations;
-        // }
-
         // Consider adding factory methods, e.g., PurityResult.CreatePure(), PurityResult.CreateImpure(...)
     }
 } 

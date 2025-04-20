@@ -1,6 +1,3 @@
-// using Microsoft.CodeAnalysis;
-// using Microsoft.CodeAnalysis.Operations;
-
 namespace PurelySharp.Analyzer.Common
 {
     /// <summary>

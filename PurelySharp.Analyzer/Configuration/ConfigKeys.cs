@@ -5,7 +5,6 @@ namespace PurelySharp.Analyzer.Configuration
     /// </summary>
     internal static class ConfigKeys
     {
-        // Example: public const string KnownPureTypes = "dotnet_diagnostic.PSXXXX.known_pure_types";
         // TODO: Define constants for all configuration keys
     }
 } 
