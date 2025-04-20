@@ -20,10 +20,13 @@
     <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="[4.5,)" />
   </Dependencies>
   <Assets>
-    <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="PurelySharp" Path="|PurelySharp|"/>
-    <Asset Type="Microsoft.VisualStudio.Analyzer" d:Source="Project" d:ProjectName="PurelySharp" Path="|PurelySharp|"/>
+    <!-- <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="PurelySharp" Path="|PurelySharp|"/> -->
+    <!-- <Asset Type="Microsoft.VisualStudio.Analyzer" d:Source="Project" d:ProjectName="PurelySharp" Path="|PurelySharp|"/> -->
+    <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="PurelySharp.Analyzer" Path="|PurelySharp.Analyzer|"/>
+    <Asset Type="Microsoft.VisualStudio.Analyzer" d:Source="Project" d:ProjectName="PurelySharp.Analyzer" Path="|PurelySharp.Analyzer|"/>
     <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="PurelySharp.CodeFixes" Path="|PurelySharp.CodeFixes|"/>
-    <Asset Type="Microsoft.VisualStudio.Analyzer" d:Source="Project" d:ProjectName="PurelySharp.CodeFixes" Path="|PurelySharp.CodeFixes|"/>
+    <!-- The CodeFix project doesn't typically expose analyzers itself, but the VSIX needs it packaged -->
+    <!-- <Asset Type="Microsoft.VisualStudio.Analyzer" d:Source="Project" d:ProjectName="PurelySharp.CodeFixes" Path="|PurelySharp.CodeFixes|"/> -->
   </Assets>
   <Prerequisites>
     <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[15.0,)" DisplayName="Visual Studio core editor" />

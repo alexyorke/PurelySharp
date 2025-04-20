@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<RuleSet Name="PurelySharp Rules" Description="Rules for the PurelySharp" ToolsVersion="15.0">
-  <Rules AnalyzerId="Microsoft.CodeAnalysis.Analyzers" RuleNamespace="Microsoft.CodeAnalysis.Analyzers">
-    <Rule Id="RS2008" Action="None" />
-  </Rules>
-</RuleSet> 
