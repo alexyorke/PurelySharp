@@ -34,8 +34,9 @@ namespace PurelySharp.Test
             // Add reference to the main analyzer project assembly
             test.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(PurelySharpAnalyzer).Assembly.Location));
 
-            // Add reference to the Attributes assembly
+            // Add reference to the Attributes assembly (needed for both EnforcePure and Pure)
             test.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(PurelySharp.Attributes.EnforcePureAttribute).Assembly.Location));
+            test.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(PurelySharp.Attributes.PureAttribute).Assembly.Location)); // Explicitly add for PureAttribute too
 
             test.ExpectedDiagnostics.AddRange(expected);
             return test.RunAsync(CancellationToken.None);
