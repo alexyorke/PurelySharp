@@ -1,5 +1,8 @@
 <Project>
   <PropertyGroup>
+    <!-- Treat Warnings As Errors -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
     <!-- Control VSIX packaging -->
     <EnableVsixPackaging Condition="'$(EnableVsixPackaging)' == 'true'">true</EnableVsixPackaging>
     <EnableVsixPackaging Condition="'$(EnableVsixPackaging)' != 'true' AND '$(BuildingInsideVisualStudio)' == 'true'">true</EnableVsixPackaging>

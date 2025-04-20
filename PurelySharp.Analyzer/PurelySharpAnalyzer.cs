@@ -37,13 +37,14 @@ namespace PurelySharp.Analyzer
         private void CompilationStartAction(CompilationStartAnalysisContext context)
         {
             // TODO: Load AnalyzerConfiguration from .editorconfig
-            AnalyzerConfiguration? analyzerConfiguration = null; // Placeholder
+            // AnalyzerConfiguration? analyzerConfiguration = null; // Placeholder - Commented out until used
 
             // TODO: Instantiate PurityAnalysisEngine
-            PurityAnalysisEngine? purityAnalysisEngine = null;     // Placeholder
+            // PurityAnalysisEngine? purityAnalysisEngine = null;     // Placeholder - Commented out until used
 
             // TODO: Create CompilationState
-            CompilationState? compilationState = null;           // Placeholder
+            // This will eventually use the config and engine above
+            CompilationState? compilationState = null;           // Placeholder - Needs actual instantiation
 
             // Instantiate, initialize, and register actions for rules
             var rulesBuilder = ImmutableArray.CreateBuilder<IPurityRule>();
@@ -53,16 +54,19 @@ namespace PurelySharp.Analyzer
                 {
                     if (Activator.CreateInstance(ruleType) is IPurityRule ruleInstance)
                     {
-                        ruleInstance.InitializeRule(compilationState); // Initialize first
+                        // Initialize rule only if state is available (placeholder logic)
+                        if (compilationState != null) 
+                        {
+                            ruleInstance.InitializeRule(compilationState); 
+                        }
                         rulesBuilder.Add(ruleInstance);
 
-                        // Now, register the actions using the CompilationStartAnalysisContext.
-                        // The rule's implementation will call context.RegisterSyntaxNodeAction etc.
+                        // Register the actions using the CompilationStartAnalysisContext.
                         ruleInstance.RegisterActions(context);
                     }
                     // TODO: Log error if instantiation fails or type is wrong
                 }
-                catch (Exception ex)
+                catch (Exception /* ex */) // Discard unused exception variable
                 {
                     // TODO: Implement proper logging/diagnostics for analyzer errors
                 }
