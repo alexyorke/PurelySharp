@@ -24,6 +24,10 @@ namespace PurelySharp
                     // All literals including raw string literals are pure
                     return true;
 
+                case TypeOfExpressionSyntax typeOfExpr:
+                    // typeof expressions are evaluated at compile time and are pure
+                    return true;
+
                 case IdentifierNameSyntax identifier:
                     var symbol = semanticModel.GetSymbolInfo(identifier).Symbol;
                     if (symbol != null)
@@ -53,6 +57,13 @@ namespace PurelySharp
                     return symbol != null && SymbolPurityChecker.IsPureSymbol(symbol);
 
                 case InvocationExpressionSyntax invocation:
+                    // Check if it's a nameof expression, which is pure
+                    var constantValue = semanticModel.GetConstantValue(invocation);
+                    if (constantValue.HasValue)
+                    {
+                        return true;
+                    }
+
                     var methodSymbol = semanticModel.GetSymbolInfo(invocation.Expression).Symbol as IMethodSymbol;
                     if (methodSymbol == null)
                     {

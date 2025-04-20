@@ -73,6 +73,72 @@ namespace PurelySharp.Tests
             VerifyCSharpDiagnostic(test, expected);
         }
 
+        [TestMethod]
+        public void TestPureMethodWithNameOf()
+        {
+            var test = @"
+    using System;
+    using System.Diagnostics.Contracts;
+
+    namespace ConsoleApplication1
+    {
+        class MyClass
+        {
+            [Pure]
+            public string GetName(int parameter)
+            {
+                string name = nameof(parameter);
+                return name + nameof(MyClass);
+            }
+        }
+    }";
+
+            VerifyCSharpDiagnostic(test); // Expect no diagnostic
+        }
+
+        [TestMethod]
+        public void TestPureMethodWithTypeOf()
+        {
+            var test = @"
+    using System;
+    using System.Diagnostics.Contracts;
+
+    namespace ConsoleApplication1
+    {
+        class MyClass
+        {
+            [Pure]
+            public Type GetTypeOfInt()
+            {
+                return typeof(int);
+            }
+
+            [Pure]
+            public bool CheckType(object obj)
+            {
+                 return obj.GetType() == typeof(string); // GetType() is impure, but typeof is pure
+            }
+        }
+    }";
+
+            // We only expect a diagnostic for the CheckType method due to obj.GetType()
+            var expected = new DiagnosticResult
+            {
+                Id = "PMA0001",
+                Message = String.Format("Method '{0}' is marked as pure but contains impure operations", "CheckType"),
+                Severity = DiagnosticSeverity.Error,
+                Locations =
+                    new[] {
+                            // Location might need adjustment based on analyzer implementation details
+                            // Pointing roughly to the CheckType method declaration for now
+                            new DiagnosticResultLocation("Test0.cs", 16, 25)
+                        }
+            };
+
+
+            VerifyCSharpDiagnostic(test, expected);
+        }
+
         protected override DiagnosticAnalyzer GetCSharpDiagnosticAnalyzer()
         {
             return new PurelySharpAnalyzer();

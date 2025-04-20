@@ -41,6 +41,7 @@ Supported means there is _some_ level of test coverage. It does not mean it is 1
 ### Expressions
 
 - [x] Literal expressions (numbers, strings, etc.)
+- [x] `nameof` and `typeof` expressions (compile-time resolved)
 - [x] Identifiers (variables, parameters)
 - [x] Method invocations (if the method is pure)
 - [x] Member access (properties, fields - if readonly)
