@@ -2,70 +2,81 @@
 
 A Roslyn analyzer designed to help enforce method purity in C# projects.
 
-**Note:** This project is currently under active development and refactoring. The features described below reflect the _current_ state, which is simpler than previous versions.
+**Note:** This project is currently in the **very early stages of development**. The features described below reflect the _current_ implemented state. The primary goal is to eventually provide detailed purity analysis, but that is **not yet implemented**.
 
 ## Goal
 
-The primary goal of PurelySharp is to provide developers with tools to write and maintain functionally pure C# code by identifying methods that might introduce side effects when they are intended to be pure.
+The primary goal of PurelySharp is to provide developers with tools to identify methods intended to be functionally pure and flag potential issues related to that intent.
 
 ## Current Status & Features
 
-As of now, the analyzer focuses on identifying methods marked for purity enforcement that require analysis:
+Currently, the analyzer provides the following basic checks:
 
-1.  **Attribute Recognition:** The analyzer recognizes methods marked with the `[PurelySharp.Attributes.EnforcePure]` attribute.
-2.  **Implementation Check:** It checks if a method marked with `[EnforcePure]` has an actual implementation (a method body `{...}` or an expression body `=> ...`). Abstract or partial method definitions without implementation are ignored.
-3.  **Diagnostic Reporting:** If a method is marked with `[EnforcePure]` and has an implementation, the analyzer reports diagnostic **PS0002: Purity Not Verified**.
-
-**What PS0002 Means:**
-
-- This diagnostic does **not** mean the method is impure.
-- It signifies that the method is _intended_ to be pure (due to `[EnforcePure]`) and _has code that needs checking_, but the detailed analysis rules to verify its purity (e.g., checking for I/O, state modification, impure calls) **have not been implemented yet**.
-- It serves as a placeholder indicating that purity analysis is required for this method.
+1.  **`[EnforcePure]` Attribute:** A custom attribute (`PurelySharp.Attributes.EnforcePureAttribute`) to mark methods that are intended to be pure.
+2.  **PS0002: Purity Not Verified:** If a method is marked with `[EnforcePure]` and has an implementation (a method body `{...}` or an expression body `=> ...`), the analyzer reports diagnostic `PS0002`.
+    - **What PS0002 Means:** This diagnostic signifies that the method is _intended_ to be pure and _has code_, but the detailed analysis rules to actually _verify_ its purity (e.g., checking for I/O, state modification, impure calls) **have not been implemented yet**. It serves as a placeholder indicating that purity analysis is required for this method once the rules are built. Abstract, partial, or extern methods without implementation bodies are ignored.
+3.  **PS0003: Misplaced Attribute:** If the `[EnforcePure]` attribute is applied to any declaration _other than_ a method (e.g., class, struct, field, property, event, parameter), the analyzer reports diagnostic `PS0003`.
 
 **Features NOT Currently Implemented (but planned):**
 
-- Detailed analysis of method bodies to detect specific impurities (I/O, static field mutations, mutable object modifications, calls to impure methods, etc.).
+- **Detailed analysis of method bodies to detect specific impurities.** This is the core planned feature and is not yet started.
 - Code fixes for reported diagnostics.
-- Analysis based on the standard `[System.Diagnostics.Contracts.Pure]` attribute.
-- Configurability of rules.
+- Configuration options.
+- Support for other attributes (like `[AllowSynchronization]`).
+- Analysis of constructors, delegates, etc.
+
+## How It Works
+
+The analyzer (`PurelySharp.Analyzer`) integrates with the C# compilation process:
+
+1.  It identifies method declarations and other symbols.
+2.  It checks for the presence and location of the `[EnforcePure]` attribute.
+3.  If `[EnforcePure]` is on a method with implementation, it reports `PS0002`.
+4.  If `[EnforcePure]` is on any non-method declaration, it reports `PS0003`.
+5.  **It does not currently perform any analysis _inside_ method bodies to determine actual purity.**
 
 ## Installation
 
 _This analyzer is not yet published._ Once released, installation will likely involve:
 
-1.  **Attributes Package:** Adding a reference to the `PurelySharp.Attributes` NuGet package in projects where you want to use `[EnforcePure]`.
-    ```bash
+1.  **Attributes Package:** Add a reference to the `PurelySharp.Attributes` NuGet package.
+    ```powershell
     # Example command (package not yet available)
     dotnet add package PurelySharp.Attributes --version <version>
     ```
 2.  **Analyzer Package/VSIX:**
-    - Adding the `PurelySharp.Analyzer` NuGet package to your project(s) for build-time analysis.
-    - Installing the `PurelySharp.Vsix` extension in Visual Studio for real-time feedback.
+    - Add the `PurelySharp.Analyzer` NuGet package to your project(s) for build-time analysis.
+    - Install the `PurelySharp.Vsix` extension in Visual Studio for real-time feedback.
 
 ## Usage
 
-1.  Add the `PurelySharp.Attributes` package reference to your project.
+1.  Reference the `PurelySharp.Attributes` project (or package, once available).
 2.  Add the `[EnforcePure]` attribute (from `PurelySharp.Attributes`) to methods you intend to be functionally pure.
+3.  Apply it incorrectly to see PS0003.
 
     ```csharp
     using PurelySharp.Attributes;
 
+    [EnforcePure] // PS0003: Misplaced attribute on class
     public class Calculator
     {
         [EnforcePure]
         public int Add(int a, int b)
         {
-            // Purity analysis needed here - PS0002 will be reported currently.
+            // PS0002: Purity Not Verified will be reported currently,
+            // as no actual purity analysis is performed yet.
             return a + b;
         }
 
         [EnforcePure]
         public int GetConstant(); // No implementation, PS0002 NOT reported.
+
+        [EnforcePure] // PS0003: Misplaced attribute on field
+        private int _counter = 0;
     }
     ```
 
-3.  Observe the `PS0002` diagnostic for methods with implementations marked `[EnforcePure]`.
-4.  _(Future)_ As analysis rules are implemented, `PS0002` will be replaced by more specific diagnostics if impurity is found, or suppressed if purity is confirmed.
+4.  Observe the `PS0002` and `PS0003` diagnostics during build or in the IDE (if VSIX is installed).
 
 ## Diagnostics
 
@@ -73,20 +84,32 @@ _This analyzer is not yet published._ Once released, installation will likely in
 
   - **Message:** `Method '{0}' marked with [EnforcePure] has implementation, but its purity has not been verified by existing rules`
   - **Severity:** Warning
-  - **Meaning:** The method requires purity analysis, but the necessary rules haven't been implemented or run yet.
+  - **Meaning:** The method is marked for purity analysis, but the necessary rules haven't been implemented yet. This diagnostic acts as a placeholder.
 
-- **(Defined but Unused) PS0001: Impure Method Assumed**
-  - This diagnostic ID is defined but is not currently reported by the core analyzer. It may be used in the future by specific impurity detection rules.
+- **PS0003: Misplaced Attribute**
+  - **Message:** `The [EnforcePure] attribute can only be applied to method declarations.`
+  - **Severity:** Warning
+  - **Meaning:** The `[EnforcePure]` attribute was found on a declaration type where it is not applicable (e.g., class, struct, field, property, parameter).
+
+## Building and Testing
+
+You can build the solution and run the tests using the .NET CLI:
+
+```powershell
+# Build the solution
+dotnet build PurelySharp.sln
+
+# Run tests (These currently verify PS0002/PS0003 behavior)
+dotnet test PurelySharp.sln
+```
 
 ## Contributing
 
-Contributions are welcome! Please feel free to open issues or submit pull requests.
+Contributions are welcome! Please feel free to open issues or submit pull requests, especially regarding the implementation of specific purity-checking rules which is the main focus for future development.
 
 ## License
 
-(Assume MIT License if not specified otherwise - You should confirm/add the actual license)
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License.
 
 ## Supported Language Features
 
