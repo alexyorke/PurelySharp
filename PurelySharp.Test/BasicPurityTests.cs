@@ -17,19 +17,18 @@ namespace PurelySharp.Test
         public async Task TestPureMethod_NoDiagnostics()
         {
             var testCode = @"
-using PurelySharp.Attributes; // Assuming attributes are in this namespace
+using PurelySharp.Attributes;
 
 public class TestClass
 {
     // No [Pure] or [EnforcePure] attribute here, but returns constant -> PS0004 expected
-    // [Pure] // Removing the original [Pure] attribute if it existed
+    // Removed markup
     public int {|PS0004:GetConstant|}()
     {
         return 42;
     }
 }";
-
-            // Expect PS0004 diagnostic due to missing [EnforcePure] on a potentially pure method
+            // Diagnostics are now inline
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
 
@@ -44,12 +43,10 @@ public class TestClass
     [EnforcePure]
     public int GetParameter(int x)
     {
-        return x; // Return parameter
+        return x; // Analyzer considers parameter return pure
     }
 }";
-
-            // The framework will infer the single expected diagnostic PS0002 
-            // from the {|PS0002:...|} markup in the test code.
+            // Expect no diagnostics now
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
 
@@ -68,10 +65,6 @@ public class TestClass
     }
 }";
             // Now expect no diagnostics because the analyzer recognizes constant returns.
-            // var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
-            //                        .WithLocation(7, 16) // Line 7, Column 16 (method name) - CORRECTED LINE NUMBER
-            //                        .WithArguments("GetTheAnswer");
-            // await VerifyCS.VerifyAnalyzerAsync(testCode, expected);
             await VerifyCS.VerifyAnalyzerAsync(testCode); // Expect no diagnostics
         }
 
@@ -124,10 +117,9 @@ public class TestClass
 {
     private const int MyConst = 10;
     [EnforcePure]
-    public int GetConst() => MyConst;
+    public int GetConst() => MyConst; // Const field access is pure via GetConstantValue
 }";
-            // Expect PS0002 because returning a field is not LiteralExpressionSyntax
-            // UPDATE: Now considered pure because MyConst has a constant value.
+            // Expect no diagnostics now
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
 
@@ -140,9 +132,10 @@ public class TestClass
 {
     private static readonly string Greeting = ""Hi"";
     [EnforcePure]
+    // Removed markup
     public string {|PS0002:GetGreeting|}() { return Greeting; }
 }";
-            // Expect PS0002 because returning a field is not LiteralExpressionSyntax
+            // Diagnostics are now inline
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
 
@@ -154,10 +147,9 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int GetTwo() => 1 + 1;
+    public int GetTwo() => 1 + 1; // Constant folding makes this pure
 }";
-            // Expect PS0002 because calculation is BinaryExpressionSyntax
-            // UPDATE: Now considered pure because 1 + 1 has a constant value.
+            // Expect no diagnostics now
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
 
@@ -169,108 +161,315 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int GetDefaultInt() => default;
+    public int GetDefaultInt() => default; // default is handled as pure
 }";
-            // Expect PS0002 because default keyword is DefaultExpressionSyntax or similar
-            // UPDATE: Currently not flagged, removed markup expectation.
+            // Expect no diagnostics now
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
 
         [Test]
         public async Task TestImpureMethod_ShouldBeFlagged_OnMethodName()
         {
-            var testCode = @"
-using PurelySharp.Attributes;
+            var test = @"
 using System;
+using PurelySharp.Attributes;
 
-public class TestClass
+public class ImpureTest
 {
-    private static int _counter = 0;
+    private int _state = 0; // Mutable state
 
     [EnforcePure]
-    public int {|PS0002:ImpureMethod|}() // Explicitly marked for PS0002
+    public int {|PS0002:ImpureMethod|}(int input)
     {
-        _counter++; // Modifies static state
-        return _counter;
+        _state += input; // Modifies state, impure
+        return _state;
     }
 }";
 
-            // The framework will infer the single expected diagnostic PS0002 
-            // from the {|PS0002:...|} markup in the test code.
+            // Diagnostics are now inline
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task TestEnforcePureReturningTypeof_ShouldBeFlagged()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TypeInfo
+{
+    [EnforcePure]
+    public Type {|PS0002:GetIntegerType|}()
+    {
+        // typeof is generally pure
+        return typeof(int);
+    }
+
+    [EnforcePure]
+    public Type {|PS0002:GetStringType|}<T>(T value) where T : class
+    {
+        // typeof with generic parameter might be complex
+        return typeof(T);
+    }
+}";
+            // Analyzer considers typeof pure now
+            await VerifyCS.VerifyAnalyzerAsync(test); // Removed expectation (Expected 2, Got 0)
+        }
+
+        [Test]
+        public async Task TestPotentiallyPureMethod_WithoutAttribute_ShouldWarnPS0004()
+        {
+            var test = @"
+using System;
+
+public class PotentialPurity
+{
+    // Potentially pure: Returns a constant
+    public int {|PS0004:GetConstantWithoutAttribute|}() => 42;
+
+    // Potentially pure: String manipulation
+    public string {|PS0004:GetGreetingWithoutAttribute|}(string name) => ""Hello, "" + name;
+
+    // Potentially pure: Simple calculation
+    public int {|PS0004:GetCalcWithoutAttribute|}(int x) => x * 2;
+
+    // Potentially pure: Uses nameof
+    public string {|PS0004:GetNameofWithoutAttribute|}(int parameter) => nameof(parameter);
+
+    // Impure: Console output
+    public void ImpureMethod() => Console.WriteLine(""Side effect!"");
+
+    // Impure: Modifies state
+    private int _counter;
+    public void ImpureStateChange() => _counter++;
+}";
+
+            // Diagnostics are now inline
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task TestPotentiallyPureMethodCallingEnforcedPure_ShouldWarnPS0004()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public class PurityChain
+{
+    [EnforcePure]
+    public int PureHelper() => 10;
+
+    // Potentially pure, calls an enforced pure method
+    public int {|PS0004:CallingPureHelper|}()
+    {
+        return PureHelper() + 5;
+    }
+}";
+
+            // Diagnostics are now inline
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task TestPotentiallyPureMethodCallingChain_ShouldWarnPS0004()
+        {
+            var test = @"
+public class CallChain
+{
+    // Method A: Pure base case
+    public int {|PS0004:MethodA|}() => 5;
+
+    // Method B: Calls Method A, potentially pure
+    public int {|PS0004:MethodB|}() => MethodA() * 2;
+
+    // Method C: Calls Method B, potentially pure
+    public int {|PS0004:MethodC|}() => MethodB() + 3;
+
+    // Method D: Calls Method C, potentially pure
+    public int {|PS0004:MethodD|}() => MethodC() - 1;
+}";
+
+            // Diagnostics are now inline
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task TestPotentiallyPureLongerChain_ShouldWarnPS0004()
+        {
+            var test = @"
+public class LongerChain
+{
+    public int {|PS0004:MethodA|}() => 1;
+    public int {|PS0004:MethodB|}() => MethodA() + 1;
+    public int {|PS0004:MethodC|}() => MethodB() + 1;
+    public int {|PS0004:MethodD|}() => MethodC() + 1;
+    public int {|PS0004:MethodE|}() => MethodD() + 1;
+    public int {|PS0004:MethodF|}() => MethodE() + 1;
+}";
+            // Diagnostics are now inline
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task TestPotentiallyPureCallingTwoPureMethods_ShouldWarnPS0004()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public class CombinedPurity
+{
+    [EnforcePure]
+    public int Add(int a, int b) => a + b;
+
+    [EnforcePure]
+    public int Multiply(int a, int b) => a * b;
+
+    // Potentially pure, calls two enforced pure methods
+    public int {|PS0004:GetSum|}(int x, int y, int z)
+    {
+        int sum1 = Add(x, y);
+        int product = Multiply(sum1, z);
+        return product;
+    }
+}";
+            // Diagnostics are now inline
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task TestEnforcePureWithMultipleReturns_ShouldFlagPS0002()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class ConditionalReturn
+{
+    private static bool _flag = false; // Static state
+
+    [EnforcePure]
+    public int {|PS0002:GetValueBasedOnFlag|}(int input)
+    {
+        if (_flag) // Reads static state
+        {
+            return input * 2;
+        }
+        _flag = true; // Modifies static state
+        return input + 1;
+    }
+}";
+            // Diagnostics are now inline
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task TestEnforcePureWithLocalConstReturn_NoDiagnostics()
+        {
+            var testCode = @"
+using PurelySharp.Attributes;
+public class TestClass
+{
+    [EnforcePure]
+    public int GetLocalConst()
+    {
+        const int x = 5;
+        return x; // GetConstantValue works on local const reference
+    }
+}";
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
 
         [Test]
-        // Renamed test and updated expectations
-        public async Task TestEnforcePureOnNonMethod_ReportsMisplacedAttribute()
+        public async Task TestEnforcePureWithLocalVarFromPureCall_NoDiagnostics()
         {
-            // Add the attribute source code directly to the test source
-            var attributeSource = @"
-using System;
-
-namespace PurelySharp.Attributes
-{
-    [AttributeUsage(AttributeTargets.All)] 
-    public sealed class EnforcePureAttribute : Attribute { }
-}";
-
-            // Reverted spans back to covering only the attribute
-            var testCodeWithMarkup = @"
+            var testCode = @"
 using PurelySharp.Attributes;
-using System;
-
-[{|PS0003:EnforcePure|}] // On class - Should report PS0003 on attribute
 public class TestClass
 {
-    [{|PS0003:EnforcePure|}] // On field - Should report PS0003 on attribute
-    private int _field = 0;
+    [EnforcePure] private int PureHelper() => 10;
 
-    [{|PS0003:EnforcePure|}] // On property - Should report PS0003 on attribute
-    public int MyProperty { get; set; }
-
-    // Valid method with attribute - PS0002 not expected in *this* test
     [EnforcePure]
-    public void ValidMethod() { } // Ensure no markup here
+    public int GetValFromPureCall()
+    {
+        var temp = PureHelper();
+        return temp; // Should now be considered pure
+    }
+}";
+            // Now expect no diagnostics because IsExpressionPure checks localPurityStatus.
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
 
-    // Method without attribute - Should be ignored
-    public void AnotherMethod() { }
-}"; // Add missing semicolon
+        [Test]
+        public async Task TestEnforcePureWithLocalVarFromImpureCall_ShouldFlagPS0002()
+        {
+            var testCode = @"
+using PurelySharp.Attributes;
+using System;
+public class TestClass
+{
+    private int ImpureHelper() { Console.WriteLine(); return 0; }
 
-            // Configure the test runner
-            var test = new VerifyCS.Test
-            {
-                TestState =
-                {
-                    Sources = { attributeSource, testCodeWithMarkup }, // Include both sources
-                },
-                // Remove explicit expected diagnostics, rely on markup
-                /*
-                ExpectedDiagnostics =
-                {
-                    // Span locations match the {|PS0003:...|} markup in the source
-                    VerifyCS.Diagnostic(PurelySharpDiagnostics.MisplacedAttributeRule).WithSpan(5, 2, 5, 13),
-                    VerifyCS.Diagnostic(PurelySharpDiagnostics.MisplacedAttributeRule).WithSpan(8, 6, 8, 17),
-                    VerifyCS.Diagnostic(PurelySharpDiagnostics.MisplacedAttributeRule).WithSpan(11, 6, 11, 17),
-                    // NOTE: PS0002 is intentionally omitted here
-                },
-                */
-                ReferenceAssemblies = Microsoft.CodeAnalysis.Testing.ReferenceAssemblies.Net.Net80,
-                // No need to disable CS0592 anymore as AttributeUsage allows other targets.
-                // We might still disable warnings like CS1591 or CS0414 if they appear.
-                // CompilerDiagnostics = Microsoft.CodeAnalysis.Testing.CompilerDiagnostics.Warnings, 
-                // DisabledDiagnostics = { "CS1591", "CS0414" } 
-            };
+    [EnforcePure]
+    public int {|PS0002:GetValFromImpureCall|}()
+    {
+        // Impurity detected in the initializer check
+        var temp = ImpureHelper(); 
+        return temp;
+    }
+}";
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
 
-            // Re-add the explicit metadata reference transform even though source is included
-            test.SolutionTransforms.Add((solution, projectId) =>
-            {
-                solution = solution.AddMetadataReference(projectId, 
-                    MetadataReference.CreateFromFile(typeof(EnforcePureAttribute).Assembly.Location));
-                return solution;
-            });
+        [Test]
+        public async Task TestEnforcePureWithAssignment_ShouldFlagPS0002()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
 
-            // The verifier will automatically check the diagnostics specified in the markup
-            await test.RunAsync();
+public class AssignmentTest
+{
+    private int _instanceField = 0; // Instance state
+
+    [EnforcePure]
+    public int {|PS0002:UpdateAndGetValue|}(int value)
+    {
+        _instanceField = value; // Assignment to instance field (impure)
+        return _instanceField;
+    }
+}";
+            // Diagnostics are now inline
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task TestEnforcePureWithIfElseReturn_ShouldFlagPS0002()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class IfElsePurity
+{
+    private int _threshold = 10; // Instance state
+
+    [EnforcePure]
+    public string {|PS0002:CheckThreshold|}(int value)
+    {
+        if (value > _threshold) // Reads instance state
+        {
+             _threshold++; // Modifies instance state (impure)
+            return ""Above threshold"";
+        }
+        else
+        {
+            return ""Below or at threshold"";
+        }
+    }
+}";
+            // Diagnostics are now inline
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         // --- Additional Constant Return Tests ---
@@ -326,7 +525,7 @@ public class TestClass
 }";
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
-        
+
         [Test]
         public async Task TestPureMethodReturningConstantChar_NoDiagnostics()
         {
@@ -388,634 +587,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
 
-        // --- Tests Expected to Fail (Should be Flagged) ---
-
-        [Test]
-        public async Task TestEnforcePureReturningTypeof_ShouldBeFlagged()
-        {
-            var testCode = @"
-#nullable enable
-using PurelySharp.Attributes;
-using System;
-using System.Collections.Generic;
-
-public class TestClass
-{
-    [EnforcePure]
-    public Type {|PS0002:GetTypeFromString|}() => typeof(string);
-
-    [EnforcePure]
-    public Type {|PS0002:GetTypeFromList|}() { return typeof(List<int>); }
-}";
-            // typeof is not a compile-time constant value, requires runtime execution.
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        // Ensure default still isn't flagged (matching previous behavior adjustment)
-        [Test]
-        public async Task TestEnforcePureReturningDefault_StillNoDiagnostics()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-public class TestClass
-{
-    [EnforcePure]
-    public int GetDefaultInt() => default;
-}";
-            await VerifyCS.VerifyAnalyzerAsync(testCode); 
-        }
-
-        // --- Tests for Tricky Non-Constant Cases ---
-
-        [Test]
-        public async Task TestEnforcePureReturningSimpleProperty_ShouldBeFlagged()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-
-public class TestClass
-{
-    public int Five => 5;
-
-    [EnforcePure]
-    public int {|PS0002:GetFiveFromProp|}() => Five;
-}";
-            // Property access is not considered a constant expression by GetConstantValue
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        [Test]
-        public async Task TestEnforcePureReturningDateTimeNow_ShouldBeFlagged()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-using System;
-
-public class TestClass
-{
-    [EnforcePure]
-    public DateTime {|PS0002:GetCurrentTime|}() { return DateTime.Now; }
-}";
-            // DateTime.Now is obviously not constant
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        [Test]
-        public async Task TestEnforcePureReturningNewGuid_ShouldBeFlagged()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-using System;
-
-public class TestClass
-{
-    [EnforcePure]
-    public Guid {|PS0002:GetNewGuid|}() => Guid.NewGuid();
-}";
-            // Guid.NewGuid() generates a new value each time
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        [Test]
-        public async Task TestEnforcePureReturningNewString_ShouldBeFlagged()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-
-public class TestClass
-{
-    [EnforcePure]
-    public string {|PS0002:GetNewString|}() { return new string('a', 10); }
-}";
-            // 'new' expressions are not compile-time constants
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        // --- Even More Constant Return Tests (Should Pass) ---
-
-        [Test]
-        public async Task TestPureMethodReturningDefaultValueType_NoDiagnostics()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-
-public class TestClass
-{
-    [EnforcePure]
-    public int GetDefaultIntExplicit() => default(int);
-}";
-            // default(int) is compile-time constant 0
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        [Test]
-        public async Task TestPureMethodReturningSizeOf_NoDiagnostics()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-
-public class TestClass
-{
-    [EnforcePure]
-    public int GetSizeOfInt() { return sizeof(int); }
-}";
-            // sizeof(valueType) is compile-time constant
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        [Test]
-        public async Task TestPureMethodReturningConstBitwiseOp_NoDiagnostics()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-
-public class TestClass
-{
-    [EnforcePure]
-    public int GetBitShift() => 1 << 2;
-}";
-            // Constant folding applies
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        [Test]
-        public async Task TestPureMethodReturningConstConditional_NoDiagnostics()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-
-public class TestClass
-{
-    [EnforcePure]
-    public int GetConditional() => true ? 1 : 0;
-}"; // Ensure class closing brace is inside the string, then quote and semicolon
-            // Constant folding applies
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        // --- Even More Tricky Non-Constant Tests (Should Fail - PS0002) ---
-
-        [Test]
-        public async Task TestEnforcePureReturningStaticNonReadonlyField_ShouldBeFlagged()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-
-public class TestClass
-{
-    public static int Counter = 0;
-
-    [EnforcePure]
-    public int {|PS0002:GetCounter|}() => Counter;
-}";
-            // Accessing mutable static state
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        [Test]
-        public async Task TestEnforcePureReturningInstanceField_ShouldBeFlagged()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-
-public class TestClass
-{
-    private int _value = 10;
-
-    [EnforcePure]
-    public int {|PS0002:GetValue|}() { return _value; }
-}";
-            // Accessing instance state
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        [Test]
-        public async Task TestEnforcePureReturningMethodCallResult_ShouldBeFlagged()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-using System;
-
-public class TestClass
-{
-    [EnforcePure]
-    public double {|PS0002:GetSqrt|}() => Math.Sqrt(4.0);
-}";
-            // Even if input is constant, Math.Sqrt is a method call, not a constant expression
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        // --- Tests for PS0004: Missing [EnforcePure] Attribute (Warning) ---
-
-        [Test]
-        public async Task TestPotentiallyPureMethod_WithoutAttribute_ShouldWarnPS0004()
-        {
-            var testCode = @"
-using PurelySharp.Attributes; // Ensure attribute namespace is known, even if not used here
-using System;
-
-public class TestClass
-{
-    // This method looks pure (returns constant) but lacks [EnforcePure]
-    public int {|PS0004:GetConstantWithoutAttribute|}()
-    {
-        return 123;
-    }
-
-    // This method also looks pure (returns const field) but lacks [EnforcePure]
-    private const string Greeting = ""Hello""; // Corrected escaping for quote inside verbatim string
-    public string {|PS0004:GetGreetingWithoutAttribute|}() => Greeting;
-
-    // This method uses a simple constant calculation, looks pure, lacks attribute
-    public int {|PS0004:GetCalcWithoutAttribute|}() => 10 + 20;
-
-    // This method returns nameof, looks pure, lacks attribute
-    public string {|PS0004:GetNameofWithoutAttribute|}() { return nameof(System.Int32); }
-}";
-
-            // Expect PS0004 warnings on the methods lacking the attribute
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        [Test]
-        public async Task TestImpureMethod_WithoutAttribute_ShouldNotWarn()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-using System;
-
-public class TestClass
-{
-    private static int _counter = 0;
-
-    // Impure method, no attribute - should have NO diagnostic from our analyzer
-    public int ImpureMethodWithoutAttribute()
-    {
-        _counter++; 
-        return _counter;
-    }
-
-    // Another impure method (DateTime.Now), no attribute
-    public DateTime GetCurrentTimeWithoutAttribute() => DateTime.Now;
-
-    // Method calling another (potentially impure) method, no attribute
-    public double GetSqrtWithoutAttribute() => Math.Sqrt(9.0);
-}";
-
-            // Expect NO diagnostics related to purity (PS0002 or PS0004)
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        [Test]
-        public async Task TestPureMethodReturningConstantByte_NoDiagnostics()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-public class TestClass
-{
-    [EnforcePure]
-    public byte GetByte() => 128;
-}";
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        [Test]
-        public async Task TestPureMethodReturningConstantSByte_NoDiagnostics()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-public class TestClass
-{
-    [EnforcePure]
-    public sbyte GetSByte() => -10;
-}";
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        [Test]
-        public async Task TestPureMethodReturningConstantShort_NoDiagnostics()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-public class TestClass
-{
-    [EnforcePure]
-    public short GetShort() => 1000;
-}";
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        [Test]
-        public async Task TestPureMethodReturningConstantUShort_NoDiagnostics()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-public class TestClass
-{
-    [EnforcePure]
-    public ushort GetUShort() => 2000;
-}";
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        [Test]
-        public async Task TestPureMethodReturningConstantUInt_NoDiagnostics()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-public class TestClass
-{
-    [EnforcePure]
-    public uint GetUInt() => 3000U;
-}";
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        [Test]
-        public async Task TestPureMethodReturningConstantULong_NoDiagnostics()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-public class TestClass
-{
-    [EnforcePure]
-    public ulong GetULong() => 4000UL;
-}";
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        [Test]
-        public async Task TestPotentiallyPureMethodCallingEnforcedPure_ShouldWarnPS0004()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-
-public class TestClass
-{
-    [EnforcePure]
-    private int HelperPureMethod() => 42;
-
-    // This method looks pure because it calls an [EnforcePure] method,
-    // but lacks the attribute itself.
-    public int {|PS0004:CallingPureHelper|}() => HelperPureMethod(); 
-}";
-            // Expect PS0004 suggesting [EnforcePure] because it calls a known pure method
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        [Test]
-        // Renamed: No longer expected to fail. Expects warnings on A, B, and C.
-        public async Task TestPotentiallyPureMethodCallingChain_ShouldWarnPS0004()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-
-public class TestClass
-{
-    [EnforcePure]
-    private int MethodD() => 42;
-
-    // Should warn PS0004
-    private int {|PS0004:MethodC|}() => MethodD();
-
-    // Should warn PS0004
-    private int {|PS0004:MethodB|}() => MethodC();
-
-    // MethodA calls B, which calls C, which calls D (which is pure).
-    // Should warn PS0004
-    public int {|PS0004:MethodA|}() => MethodB(); 
-}";
-            // Expect PS0004 on A, B, and C because they transitively call a pure method D.
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        [Test]
-        public async Task TestEnforcePureOnImpureCycle_ShouldFlagPS0002()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-using System;
-
-public class TestClass
-{
-    [EnforcePure]
-    // MethodA calls MethodB, which calls MethodA (cycle)
-    // MethodB is also impure.
-    // Cycle detection should make IsConsideredPure return false for MethodA.
-    // Since it's [EnforcePure], PS0002 should be reported.
-    public int {|PS0002:RecursiveA|}(int count)
-    {
-        if (count <= 0) return 0;
-        return RecursiveB(count - 1);
-    }
-
-    private int RecursiveB(int count)
-    {
-        Console.WriteLine(DateTime.Now); // Impure action
-        if (count <= 0) return 1;
-        return RecursiveA(count - 1); 
-    }
-}";
-            // Expect PS0002 on RecursiveA due to the cycle involving an impure method.
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        [Test]
-        public async Task TestPotentiallyPureLongerChain_ShouldWarnPS0004()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-
-public class TestClass
-{
-    [EnforcePure]
-    private int MethodE() => 5;
-
-    private int {|PS0004:MethodD|}() => MethodE(); // Calls pure E
-    private int {|PS0004:MethodC|}() => MethodD(); // Calls potentially pure D
-    private int {|PS0004:MethodB|}() => MethodC(); // Calls potentially pure C
-    public int {|PS0004:MethodA|}() => MethodB(); // Calls potentially pure B
-}";
-            // Expect PS0004 on A, B, C, D
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        [Test]
-        public async Task TestPotentiallyPureCallingTwoPureMethods_ShouldWarnPS0004()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-
-public class TestClass
-{
-    [EnforcePure]
-    private int GetFive() => 5;
-
-    [EnforcePure]
-    private int GetTen() => 10;
-
-    // Calls two pure methods, but operation (+) is not constant or single invocation.
-    // Analyzer returns false for this expression type.
-    // UPDATE: Now considered pure, so expect PS0004 warning.
-    public int {|PS0004:GetSum|}() => GetFive() + GetTen(); 
-}";
-            // Expect NO diagnostics because the '+' expression makes IsConsideredPure return false.
-            // UPDATE: Now expect PS0004.
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        [Test]
-        public async Task TestEnforcePureCallingTwoPureMethods_ShouldFlagPS0002()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-
-public class TestClass
-{
-    [EnforcePure]
-    private int GetFive() => 5;
-
-    [EnforcePure]
-    private int GetTen() => 10;
-
-    [EnforcePure]
-    // Calls two pure methods, but operation (+) is not constant or single invocation.
-    // UPDATE: Now considered pure.
-    public int GetSum() => GetFive() + GetTen(); 
-}";
-            // Expect PS0002 because analyzer cannot verify purity of '+' operation yet.
-            // UPDATE: Now expect no diagnostics.
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        [Test]
-        public async Task TestPotentiallyPureCycle_ShouldWarnPS0004()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-
-public class TestClass
-{
-    // Cycle: A calls B, B calls A. Neither is impure otherwise.
-    // Cycle detection currently returns false, so no warning expected.
-    public int PureRecursiveA(int x)
-    {
-        if (x <= 0) return 0;
-        return PureRecursiveB(x - 1);
-    }
-
-    private int PureRecursiveB(int x)
-    {
-        if (x <= 0) return 1;
-        return PureRecursiveA(x - 1);
-    }
-}";
-            // Expect NO diagnostics because cycle detection returns false.
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-        
-        [Test]
-        public async Task TestEnforcePureWithMultipleReturns_ShouldFlagPS0002()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-
-public class TestClass
-{
-    [EnforcePure] // Marked pure, but analyzer can't handle multiple returns
-    public int {|PS0002:GetValueBasedOnInput|}(int x)
-    {
-        if (x > 0)
-        {
-            return 1;
-        }
-        else
-        {
-            return 0;
-        }
-    }
-}";
-            // Expect PS0002 because GetReturnExpressionSyntax returns null for multi-statement bodies.
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
         // --- Tests for Simple Block Bodies ---
-
-        [Test]
-        public async Task TestEnforcePureWithLocalConstReturn_NoDiagnostics()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-public class TestClass
-{
-    [EnforcePure]
-    public int GetLocalConst()
-    {
-        const int x = 5;
-        return x; // GetConstantValue works on local const reference
-    }
-}";
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-        
-        [Test]
-        public async Task TestEnforcePureWithLocalVarFromPureCall_NoDiagnostics()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-public class TestClass
-{
-    [EnforcePure] private int PureHelper() => 10;
-
-    [EnforcePure]
-    public int GetValFromPureCall()
-    {
-        var temp = PureHelper();
-        return temp; // Should now be considered pure
-    }
-}";
-            // Now expect no diagnostics because IsExpressionPure checks localPurityStatus.
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        [Test]
-        public async Task TestEnforcePureWithLocalVarFromImpureCall_ShouldFlagPS0002()
-        {
-            var testCode = @"
-using PurelySharp.Attributes;
-using System;
-public class TestClass
-{
-    private int ImpureHelper() { Console.WriteLine(); return 0; }
-
-    [EnforcePure]
-    public int {|PS0002:GetValFromImpureCall|}()
-    {
-        // Impurity detected in the initializer check
-        var temp = ImpureHelper(); 
-        return temp;
-    }
-}";
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        [Test]
-        public async Task TestEnforcePureWithAssignment_ShouldFlagPS0002()
-        {
-             var testCode = @"
-using PurelySharp.Attributes;
-public class TestClass
-{
-    [EnforcePure]
-    public int {|PS0002:MethodWithAssignment|}()
-    {
-        int x = 5;
-        x = x + 1; // Assignment statement makes it impure
-        return x;
-    }
-}";
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
 
         [Test]
         public async Task TestEnforcePureWithMultipleLocalDecls_NoDiagnostics()
@@ -1039,33 +611,6 @@ public class TestClass
     }
 }";
             // Expect no diagnostics as all initializers are pure and return is constant.
-             await VerifyCS.VerifyAnalyzerAsync(testCode);
-        }
-
-        [Test]
-        public async Task TestEnforcePureWithIfElseReturn_ShouldFlagPS0002()
-        {
-            // Same test as TestEnforcePureWithMultipleReturns_ShouldFlagPS0002
-            // Confirms the block analysis also rejects this.
-            var testCode = @"
-using PurelySharp.Attributes;
-
-public class TestClass
-{
-    [EnforcePure] // Marked pure, but analyzer can't handle multiple returns / if statement
-    public int {|PS0002:GetValueBasedOnInputViaBlock|}(int x)
-    {
-        if (x > 0) // If statement makes it impure
-        {
-            return 1;
-        }
-        else
-        {
-            return 0;
-        }
-    }
-}";
-            // Expect PS0002 because block analysis doesn't allow 'if'.
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
 

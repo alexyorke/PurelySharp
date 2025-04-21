@@ -1,0 +1,185 @@
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Testing;
+using NUnit.Framework;
+using System.Threading.Tasks;
+using PurelySharp.Analyzer;
+using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
+    PurelySharp.Analyzer.PurelySharpAnalyzer>;
+
+namespace PurelySharp.Test
+{
+    [TestFixture]
+    public class CollectionExpressionTests
+    {
+        [Test]
+        public async Task PureMethod_CreateImmutableArray_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+using System.Collections.Immutable;
+
+
+
+public class CollectionExpressionExample
+{
+    [EnforcePure]
+    public ImmutableArray<int> {|PS0002:GetNumbers|}()
+    {
+        // Using Create method for immutable array
+        return ImmutableArray.Create(1, 2, 3, 4, 5);
+    }
+}";
+
+            // Diagnostics are now inline
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task PureMethod_CreateImmutableList_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+using System.Collections.Immutable;
+
+
+
+public class CollectionExpressionExample
+{
+    [EnforcePure]
+    public ImmutableList<string> {|PS0002:GetNames|}()
+    {
+        // Using Create method for immutable list
+        return ImmutableList.Create(""Alice"", ""Bob"", ""Charlie"");
+    }
+}";
+
+            // Diagnostics are now inline
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task PureMethod_MutableArrayWithArrayCreation_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+
+
+public class CollectionExpressionExample
+{
+    [EnforcePure]
+    public int[] {|PS0002:GetNumbers|}()
+    {
+        // Using new[] array creation expression
+        return new[] { 1, 2, 3, 4, 5 };
+    }
+}";
+
+            // Diagnostics are now inline
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task PureMethod_MutableListWithArrayInitializer_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+using System.Collections.Generic;
+
+
+
+public class CollectionExpressionExample
+{
+    [EnforcePure]
+    public List<string> {|PS0002:GetNames|}()
+    {
+        // Using collection initializer
+        return new List<string> { ""Alice"", ""Bob"", ""Charlie"" };
+    }
+}";
+
+            // Diagnostics are now inline
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task PureMethod_MutableArrayCollectionExpressionSyntax_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+
+
+public class CollectionExpressionExample
+{
+    [EnforcePure]
+    public int[] {|PS0002:GetArray|}()
+    {
+        // Using collection expression syntax with array type
+        return [1, 2, 3, 4, 5];
+    }
+}";
+
+            // Diagnostics are now inline
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task PureMethod_MutableListWithCollectionExpression_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+using System.Collections.Generic;
+
+
+
+public class CollectionExpressionExample
+{
+    [EnforcePure]
+    public List<int> {|PS0002:GetList|}()
+    {
+        // Using collection expression with List
+        return [1, 2, 3, 4, 5];
+    }
+}";
+
+            // Diagnostics are now inline
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task PureMethod_ModifyingExistingArray_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+
+
+public class CollectionExpressionExample
+{
+    [EnforcePure]
+    public int[] {|PS0002:GetModifiedArray|}()
+    {
+        int[] array = new int[5];
+        
+        // Modifying array element
+        array[0] = 10;
+        
+        return array;
+    }
+}";
+
+            // Diagnostics are now inline
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+    }
+}
+
+
