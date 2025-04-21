@@ -42,7 +42,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:GetParameter|}(int x) // Correctly modified method signature and body
+    public int GetParameter(int x)
     {
         return x; // Return parameter
     }

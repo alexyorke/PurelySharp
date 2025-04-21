@@ -37,7 +37,6 @@ namespace PurelySharp.Analyzer.Engine
             {
                 // No implementation found or not a kind we analyze.
                 // We need to remove from visited before returning false here.
-                visited.Remove(methodSymbol); 
                 return false;
             }
 
@@ -49,55 +48,71 @@ namespace PurelySharp.Analyzer.Engine
             }
             else if (methodDeclaration.Body != null)
             {
-                var statements = methodDeclaration.Body.Statements;
-                var localPurityStatus = new Dictionary<ILocalSymbol, bool>(SymbolEqualityComparer.Default);
-
-                if (statements.Count == 0)
-                {
-                    isPure = methodSymbol.ReturnsVoid;
-                }
-                else
-                {
-                    bool nonReturnStatementsPure = true;
-                    for (int i = 0; i < statements.Count - 1; i++)
-                    {
-                        var stmt = statements[i];
-                        if (stmt is LocalDeclarationStatementSyntax localDecl)
-                        {
-                            foreach (var variable in localDecl.Declaration.Variables)
-                            {
-                                var localSymbol = context.SemanticModel.GetDeclaredSymbol(variable, context.CancellationToken) as ILocalSymbol;
-                                if (localSymbol == null) continue;
-
-                                bool isInitializerPure = true;
-                                if (variable.Initializer != null)
-                                {
-                                    isInitializerPure = IsExpressionPure(variable.Initializer.Value, context, enforcePureAttributeSymbol, visited, methodSymbol, localPurityStatus);
-                                    if (!isInitializerPure)
-                                    {
-                                        nonReturnStatementsPure = false;
-                                    }
-                                }
-                                localPurityStatus[localSymbol] = isInitializerPure;
-                            }
-                        }
-                        else
-                        {
-                            nonReturnStatementsPure = false;
-                        }
-                        if (!nonReturnStatementsPure) break;
-                    }
-
-                    if (nonReturnStatementsPure && statements.Last() is ReturnStatementSyntax returnStatement)
-                    {
-                        isPure = IsExpressionPure(returnStatement.Expression, context, enforcePureAttributeSymbol, visited, methodSymbol, localPurityStatus);
-                    }
-                }
+                // Delegate to the new AnalyzeBlockBody method
+                isPure = AnalyzeBlockBody(methodDeclaration.Body, context, enforcePureAttributeSymbol, visited, methodSymbol);
             }
 
             // --- Backtrack & Return ---
             visited.Remove(methodSymbol);
             return isPure;
+        }
+
+        /// <summary>
+        /// Analyzes the purity of a method's block body.
+        /// </summary>
+        private static bool AnalyzeBlockBody(BlockSyntax body, SyntaxNodeAnalysisContext context, INamedTypeSymbol enforcePureAttributeSymbol, HashSet<IMethodSymbol> visited, IMethodSymbol containingMethodSymbol)
+        {
+            var statements = body.Statements;
+            var localPurityStatus = new Dictionary<ILocalSymbol, bool>(SymbolEqualityComparer.Default);
+
+            for (int i = 0; i < statements.Count; i++)
+            {
+                var stmt = statements[i];
+
+                if (stmt is LocalDeclarationStatementSyntax localDecl)
+                {
+                    foreach (var variable in localDecl.Declaration.Variables)
+                    {
+                        var localSymbol = context.SemanticModel.GetDeclaredSymbol(variable, context.CancellationToken) as ILocalSymbol;
+                        if (localSymbol == null) continue;
+
+                        bool isInitializerPure = true; // Assume pure if no initializer
+                        if (variable.Initializer != null)
+                        {
+                            isInitializerPure = IsExpressionPure(variable.Initializer.Value, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+                            if (!isInitializerPure)
+                            {
+                                return false; // Impure initializer makes the whole method impure
+                            }
+                        }
+                        localPurityStatus[localSymbol] = isInitializerPure;
+                    }
+                    // Continue to the next statement
+                }
+                else if (stmt is ReturnStatementSyntax returnStatement)
+                {
+                    // Check if this is the last statement
+                    if (i == statements.Count - 1)
+                    {
+                        // Purity depends on the returned expression
+                        return IsExpressionPure(returnStatement.Expression, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+                    }
+                    else
+                    {
+                        // Return statement before the end is considered impure for now
+                        return false; 
+                    }
+                }
+                else
+                {
+                    // Any other statement type makes the method impure
+                    return false; 
+                }
+            }
+
+            // If the loop completes, it means all statements were pure local declarations.
+            // This is only valid for a void method.
+            return containingMethodSymbol.ReturnsVoid;
         }
 
         /// <summary>
@@ -135,10 +150,18 @@ namespace PurelySharp.Analyzer.Engine
                 var symbolInfo = context.SemanticModel.GetSymbolInfo(identifierName, context.CancellationToken);
                 if (symbolInfo.Symbol is ILocalSymbol localSymbol)
                 {
+                    // Check the known purity status of the local variable
                     return localPurityStatus.TryGetValue(localSymbol, out bool isPure) && isPure;
                 }
+                else if (symbolInfo.Symbol is IParameterSymbol parameterSymbol)
+                {
+                    // Reading a method parameter is considered pure
+                    return true;
+                }
             }
+            // TODO: Handle other expression types like MemberAccessExpressionSyntax, ObjectCreationExpressionSyntax, BinaryExpressionSyntax etc.
             
+            // If the expression type isn't explicitly handled as pure, assume it's impure
             return false;
         }
 
