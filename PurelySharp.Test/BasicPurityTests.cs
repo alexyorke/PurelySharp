@@ -856,9 +856,11 @@ public class TestClass
 
     // Calls two pure methods, but operation (+) is not constant or single invocation.
     // Analyzer returns false for this expression type.
-    public int GetSum() => GetFive() + GetTen(); 
+    // UPDATE: Now considered pure, so expect PS0004 warning.
+    public int {|PS0004:GetSum|}() => GetFive() + GetTen(); 
 }";
             // Expect NO diagnostics because the '+' expression makes IsConsideredPure return false.
+            // UPDATE: Now expect PS0004.
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
 
@@ -878,9 +880,11 @@ public class TestClass
 
     [EnforcePure]
     // Calls two pure methods, but operation (+) is not constant or single invocation.
-    public int {|PS0002:GetSum|}() => GetFive() + GetTen(); 
+    // UPDATE: Now considered pure.
+    public int GetSum() => GetFive() + GetTen(); 
 }";
             // Expect PS0002 because analyzer cannot verify purity of '+' operation yet.
+            // UPDATE: Now expect no diagnostics.
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
 
@@ -1064,5 +1068,151 @@ public class TestClass
             // Expect PS0002 because block analysis doesn't allow 'if'.
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
+
+        // --- Tests for Newly Handled Pure Expressions (Operators, nameof, etc.) ---
+
+        [Test]
+        public async Task TestEnforcePureWithPureBinaryOp_NoDiagnostics()
+        {
+            var testCode = @"
+using PurelySharp.Attributes;
+public class TestClass
+{
+    [EnforcePure] private int PureHelper() => 5;
+    [EnforcePure]
+    public int BinaryOpPure(int x)
+    {
+        const int y = 10;
+        var z = PureHelper();
+        return x + y + z; // Parameter + Const + Pure Local Var
+    }
+}";
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
+
+        [Test]
+        public async Task TestEnforcePureWithImpureBinaryOp_ShouldFlagPS0002()
+        {
+            var testCode = @"
+using PurelySharp.Attributes;
+using System;
+public class TestClass
+{
+    private int ImpureHelper() { Console.WriteLine(); return 0; } 
+    [EnforcePure]
+    public int {|PS0002:BinaryOpImpure|}(int x)
+    {
+        return x + ImpureHelper(); // Parameter + Impure Call
+    }
+}";
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
+
+        [Test]
+        public async Task TestEnforcePureWithPureUnaryOp_NoDiagnostics()
+        {
+            var testCode = @"
+using PurelySharp.Attributes;
+public class TestClass
+{
+    [EnforcePure]
+    public bool UnaryOpPure(bool b)
+    {
+        return !b; // Pure operand
+    }
+
+    [EnforcePure]
+    public int UnaryMinusPure(int x)
+    {
+        return -x; // Pure operand
+    }
+}";
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
+
+        [Test]
+        public async Task TestEnforcePureWithImpureUnaryOp_ShouldFlagPS0002()
+        {
+            var testCode = @"
+using PurelySharp.Attributes;
+using System;
+public class TestClass
+{
+    private bool ImpureBool() { Console.WriteLine(); return false; }
+    [EnforcePure]
+    public bool {|PS0002:UnaryOpImpure|}()
+    {
+        return !ImpureBool(); // Impure operand
+    }
+}";
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
+
+        [Test]
+        public async Task TestEnforcePureWithPureConditionalOp_NoDiagnostics()
+        {
+            var testCode = @"
+using PurelySharp.Attributes;
+public class TestClass
+{
+    [EnforcePure] private int Pure1() => 1;
+    [EnforcePure] private int Pure2() => 2;
+    [EnforcePure]
+    public int ConditionalPure(bool condition)
+    {
+        return condition ? Pure1() : Pure2(); // Pure condition, pure branches
+    }
+}";
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
+
+        [Test]
+        public async Task TestEnforcePureWithImpureConditionalOp_ShouldFlagPS0002()
+        {
+            var testCode = @"
+using PurelySharp.Attributes;
+using System;
+public class TestClass
+{
+    [EnforcePure] private int Pure1() => 1;
+    private int Impure2() { Console.WriteLine(); return 2; }
+    private bool ImpureCond() { Console.WriteLine(); return false; }
+
+    [EnforcePure]
+    public int {|PS0002:ConditionalImpureBranch|}(bool condition)
+    {
+        return condition ? Pure1() : Impure2(); // Impure false branch
+    }
+
+    [EnforcePure]
+    public int {|PS0002:ConditionalImpureCondition|}()
+    {
+        return ImpureCond() ? Pure1() : 0; // Impure condition
+    }
+}";
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
+
+        // /* // Temporarily commented out - Now uncommented
+        [Test]
+        public async Task TestEnforcePureWithMiscPureExpr_NoDiagnostics()
+        {
+            var testCode = @"
+using PurelySharp.Attributes;
+using System;
+public class TestClass
+{
+    [EnforcePure]
+    public string GetName() => nameof(System.Int32);
+    [EnforcePure]
+    public int GetSize() => sizeof(Guid);
+    [EnforcePure]
+    public int GetDefault() => default;
+    [EnforcePure]
+    public string? GetDefaultLiteral() => default;
+}";
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
+        // */
     }
 }

@@ -159,7 +159,40 @@ namespace PurelySharp.Analyzer.Engine
                     return true;
                 }
             }
-            // TODO: Handle other expression types like MemberAccessExpressionSyntax, ObjectCreationExpressionSyntax, BinaryExpressionSyntax etc.
+            else if (expression is BinaryExpressionSyntax binaryExpression)
+            {
+                // Binary operation is pure if both operands are pure
+                return IsExpressionPure(binaryExpression.Left, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus) &&
+                       IsExpressionPure(binaryExpression.Right, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+            }
+            else if (expression is PrefixUnaryExpressionSyntax unaryExpression)
+            {
+                // Unary operation is pure if the operand is pure
+                return IsExpressionPure(unaryExpression.Operand, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+            }
+            else if (expression is SizeOfExpressionSyntax)
+            {
+                // sizeof() is always pure
+                return true;
+            }
+            else if (expression is DefaultExpressionSyntax)
+            {
+                // default is always pure
+                return true;
+            }
+            else if (expression is LiteralExpressionSyntax literal && literal.Kind() == Microsoft.CodeAnalysis.CSharp.SyntaxKind.DefaultLiteralExpression)
+            {
+                // default literal is always pure
+                return true;
+            }
+            else if (expression is ConditionalExpressionSyntax conditionalExpression)
+            {
+                // Conditional ?: is pure if condition and both branches are pure
+                return IsExpressionPure(conditionalExpression.Condition, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus) &&
+                       IsExpressionPure(conditionalExpression.WhenTrue, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus) &&
+                       IsExpressionPure(conditionalExpression.WhenFalse, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+            }
+            // TODO: Handle other expression types like MemberAccessExpressionSyntax, ObjectCreationExpressionSyntax etc.
             
             // If the expression type isn't explicitly handled as pure, assume it's impure
             return false;
