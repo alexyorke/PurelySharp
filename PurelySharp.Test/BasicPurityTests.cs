@@ -1193,26 +1193,30 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
 
-        // /* // Temporarily commented out - Now uncommented
         [Test]
         public async Task TestEnforcePureWithMiscPureExpr_NoDiagnostics()
         {
             var testCode = @"
-using PurelySharp.Attributes;
+#nullable enable // Needed for default(string?)
 using System;
+using PurelySharp.Attributes;
+
 public class TestClass
 {
     [EnforcePure]
-    public string GetName() => nameof(System.Int32);
-    [EnforcePure]
-    public int GetSize() => sizeof(Guid);
-    [EnforcePure]
-    public int GetDefault() => default;
-    [EnforcePure]
-    public string? GetDefaultLiteral() => default;
-}";
+    public int MiscPure(int p, bool c)
+    {
+        const int localConst = 5;
+        int x = sizeof(int); // Changed from Guid to int to avoid unsafe requirement
+        string? s = default(string?); // #nullable enable handles this
+        int y = default; 
+        var z = c ? p : localConst;
+        int u = -p;
+        return z + u; 
+    }
+}
+";
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
-        // */
     }
 }

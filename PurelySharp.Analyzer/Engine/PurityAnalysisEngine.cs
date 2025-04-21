@@ -22,7 +22,7 @@ namespace PurelySharp.Analyzer.Engine
                 return false; // Cycle detected, assume impure
             }
 
-            // --- Find Declaration --- 
+            // --- Find Declaration ---
             MethodDeclarationSyntax? methodDeclaration = null;
             foreach (var syntaxRef in methodSymbol.DeclaringSyntaxReferences)
             {
@@ -40,7 +40,7 @@ namespace PurelySharp.Analyzer.Engine
                 return false;
             }
 
-            // --- Analyze Body --- 
+            // --- Analyze Body ---
             bool isPure = false;
             if (methodDeclaration.ExpressionBody != null)
             {
@@ -87,7 +87,6 @@ namespace PurelySharp.Analyzer.Engine
                         }
                         localPurityStatus[localSymbol] = isInitializerPure;
                     }
-                    // Continue to the next statement
                 }
                 else if (stmt is ReturnStatementSyntax returnStatement)
                 {
@@ -100,13 +99,13 @@ namespace PurelySharp.Analyzer.Engine
                     else
                     {
                         // Return statement before the end is considered impure for now
-                        return false; 
+                        return false;
                     }
                 }
                 else
                 {
                     // Any other statement type makes the method impure
-                    return false; 
+                    return false;
                 }
             }
 
@@ -193,7 +192,7 @@ namespace PurelySharp.Analyzer.Engine
                        IsExpressionPure(conditionalExpression.WhenFalse, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
             }
             // TODO: Handle other expression types like MemberAccessExpressionSyntax, ObjectCreationExpressionSyntax etc.
-            
+
             // If the expression type isn't explicitly handled as pure, assume it's impure
             return false;
         }
@@ -212,4 +211,4 @@ namespace PurelySharp.Analyzer.Engine
                 SymbolEqualityComparer.Default.Equals(attr.AttributeClass, enforcePureAttributeSymbol));
         }
     }
-} 
+}
