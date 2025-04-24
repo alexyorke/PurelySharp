@@ -11,6 +11,14 @@ namespace PurelySharp.Analyzer.Engine
     /// </summary>
     internal static class PurityAnalysisEngine
     {
+        // Add a set of known impure method signatures
+        private static readonly HashSet<string> KnownImpureMethods = new HashSet<string>
+        {
+            "System.IO.File.WriteAllText",
+            "System.DateTime.Now.get", // Property getters are methods like get_Now
+            // Add more known impure methods here
+        };
+
         /// <summary>
         /// Checks if a method symbol is considered pure based on its implementation.
         /// </summary>
@@ -135,6 +143,14 @@ namespace PurelySharp.Analyzer.Engine
                 var symbolInfo = context.SemanticModel.GetSymbolInfo(invocationExpression, context.CancellationToken);
                 if (symbolInfo.Symbol is IMethodSymbol invokedMethodSymbol)
                 {
+                    // --- Check against known impure methods ---
+                    var methodFullName = invokedMethodSymbol.ContainingType.ToDisplayString() + "." + invokedMethodSymbol.Name;
+                    if (KnownImpureMethods.Contains(methodFullName))
+                    {
+                        return false; // Known impure BCL method call
+                    }
+
+                    // --- Recursively check user-defined or other methods ---
                     // Note: Need to pass the *original* visited set for cycle detection.
                     // Backtracking (removing containingMethodSymbol) happens in the caller IsConsideredPure.
                     return IsConsideredPure(invokedMethodSymbol, context, enforcePureAttributeSymbol, visited);
@@ -198,11 +214,30 @@ namespace PurelySharp.Analyzer.Engine
             }
             else if (expression is MemberAccessExpressionSyntax memberAccess)
             {
-                // Check if accessing a static readonly field
+                // Check if accessing a static readonly field or a known pure property
                 var symbolInfo = context.SemanticModel.GetSymbolInfo(memberAccess, context.CancellationToken);
                 if (symbolInfo.Symbol is IFieldSymbol fieldSymbol && fieldSymbol.IsStatic && fieldSymbol.IsReadOnly)
                 {
                     return true; // Static readonly field access is pure
+                }
+                else if (symbolInfo.Symbol is IPropertySymbol propertySymbol)
+                {
+                    // Check if it's a known impure property access (like DateTime.Now)
+                    var propertyGetterName = propertySymbol.ContainingType.ToDisplayString() + "." + propertySymbol.Name + ".get";
+                    if (KnownImpureMethods.Contains(propertyGetterName))
+                    {
+                        return false; // Accessing known impure property
+                    }
+                    // Assume other property accesses might be pure for now (e.g., reading properties)
+                    // A more robust check might be needed later. Consider getter purity?
+                    // For now, let's lean towards assuming pure unless known impure.
+                    // This requires the getter method itself to be analyzed if possible.
+                    if (propertySymbol.GetMethod != null)
+                    {
+                        return IsConsideredPure(propertySymbol.GetMethod, context, enforcePureAttributeSymbol, visited);
+                    }
+
+                    return true; // Fallback if getter isn't available or simple property read
                 }
                 // Other member accesses are not considered pure by this specific check
             }
