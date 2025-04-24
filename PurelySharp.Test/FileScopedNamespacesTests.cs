@@ -45,7 +45,7 @@ public class Calculator
         }
 
         [Test]
-        public async Task FileScopedNamespace_WithNestedTypes_PureMethod_NoDiagnostic()
+        public async Task FileScopedNamespace_WithNestedTypes_PureMethod_ExpectsDiagnostic()
         {
             var test = @"
 using System;
@@ -71,7 +71,7 @@ public class Geometry
         }
         
         [EnforcePure]
-        public double {|PS0002:CalculateArea|}()
+        public double CalculateArea()
         {
             // Pure operation in nested class within file-scoped namespace
             return Math.PI * Radius * Radius;
@@ -91,7 +91,7 @@ public class Geometry
         }
         
         [EnforcePure]
-        public double {|PS0002:DistanceFromOrigin|}()
+        public double DistanceFromOrigin()
         {
             // Pure operation in nested struct within file-scoped namespace
             return Math.Sqrt(X * X + Y * Y);
@@ -99,12 +99,16 @@ public class Geometry
     }
 }";
 
-            // REMOVED explicit diagnostic definition
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0002 because purity is not explicitly verified by current rules
+            var expected = new[] {
+                VerifyCS.Diagnostic("PS0002").WithSpan(25, 23, 25, 36).WithArguments("CalculateArea"),
+                VerifyCS.Diagnostic("PS0002").WithSpan(45, 23, 45, 41).WithArguments("DistanceFromOrigin")
+            };
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
-        public async Task FileScopedNamespace_WithMultipleClasses_PureMethod_NoDiagnostic()
+        public async Task FileScopedNamespace_WithMultipleClasses_PureMethod_ExpectsDiagnostic()
         {
             var test = @"
 using System;
@@ -121,7 +125,7 @@ namespace TestUtilities;
 public class StringUtils
 {
     [EnforcePure]
-    public string {|PS0002:ReverseString|}(string input)
+    public string ReverseString(string input)
     {
         // Pure operation using LINQ
         return new string(input.Reverse().ToArray());
@@ -132,7 +136,7 @@ public class StringUtils
 public class MathUtils
 {
     [EnforcePure]
-    public int {|PS0002:Factorial|}(int n)
+    public int Factorial(int n)
     {
         // Pure recursive operation
         if (n <= 1) return 1;
@@ -151,8 +155,12 @@ public static class Extensions
     }
 }";
 
-            // REMOVED explicit diagnostic definition
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0002 because purity is not explicitly verified by current rules for ReverseString and Factorial
+            var expected = new[] {
+                VerifyCS.Diagnostic("PS0002").WithSpan(16, 19, 16, 32).WithArguments("ReverseString"),
+                VerifyCS.Diagnostic("PS0002").WithSpan(27, 16, 27, 25).WithArguments("Factorial")
+            };
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -171,24 +179,84 @@ namespace TestImpure;
 public class FileManager
 {
     [EnforcePure]
-    public void {|PS0002:WriteToFile|}(string content)
+    public void WriteToFile(string content)
     {
         // Impure operation: file system access
         File.WriteAllText(""test.txt"", content);
     }
 
     [EnforcePure]
-    public string {|PS0002:ReadCurrentTime|}()
+    public string ReadCurrentTime()
     {
         // Impure operation: accessing current time
         return DateTime.Now.ToString();
     }
 }";
 
-            // REMOVED explicit diagnostic definition
+            // Correctly define two separate expected diagnostics
+            var expected = new[] {
+                VerifyCS.Diagnostic("PS0002").WithSpan(14, 17, 14, 28).WithArguments("WriteToFile"),
+                VerifyCS.Diagnostic("PS0002").WithSpan(21, 19, 21, 34).WithArguments("ReadCurrentTime")
+            };
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [Test]
+        public async Task FileScopedNamespace_InterfaceImplementation_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+// File-scoped namespace with interface implementation
+namespace TestInterfaces;
+
+public interface ICalculator
+{
+    int Add(int a, int b);
+}
+
+public class Calculator : ICalculator
+{
+    [EnforcePure]
+    public int Add(int a, int b)
+    {
+        return a + b;
+    }
+}";
+
             await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task FileScopedNamespace_Record_ExpectsDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+// File-scoped namespace with record
+namespace TestRecords;
+
+public record Point(double X, double Y)
+{
+    [EnforcePure]
+    public double DistanceFromOrigin()
+    {
+        return Math.Sqrt(X * X + Y * Y);
+    }
+}";
+
+            // Expect PS0002 because purity is not explicitly verified by current rules
+            // Plus expect compiler errors about IsExternalInit
+            var expected = new[] {
+                // Our analyzer's diagnostic
+                VerifyCS.Diagnostic("PS0002").WithSpan(11, 19, 11, 37).WithArguments("DistanceFromOrigin"),
+                // Compiler errors for the record feature when targeting older frameworks
+                DiagnosticResult.CompilerError("CS0518").WithSpan(8, 28, 8, 29).WithArguments("System.Runtime.CompilerServices.IsExternalInit"),
+                DiagnosticResult.CompilerError("CS0518").WithSpan(8, 38, 8, 39).WithArguments("System.Runtime.CompilerServices.IsExternalInit")
+            };
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }
-
-
