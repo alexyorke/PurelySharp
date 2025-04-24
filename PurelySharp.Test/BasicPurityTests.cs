@@ -124,7 +124,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task TestEnforcePureReturningStaticReadonlyField_ShouldBeFlagged()
+        public async Task TestEnforcePureReturningStaticReadonlyField_NoDiagnostics()
         {
             var testCode = @"
 using PurelySharp.Attributes;
@@ -132,10 +132,9 @@ public class TestClass
 {
     private static readonly string Greeting = ""Hi"";
     [EnforcePure]
-    // Removed markup
-    public string {|PS0002:GetGreeting|}() { return Greeting; }
+    public string GetGreeting() { return Greeting; }
 }";
-            // Diagnostics are now inline
+            // Expect no diagnostics now because static readonly field access is pure
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
 

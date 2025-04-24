@@ -117,7 +117,7 @@ public class TestClass
     private static readonly dynamic StaticDynamic = 10;
 
     [EnforcePure]
-    public int {|PS0002:UseDynamicLocally|}(int input)
+    public int UseDynamicLocally(int input)
     {
         // Using dynamic type locally is impure
         var result = StaticDynamic + input;

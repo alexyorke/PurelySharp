@@ -157,6 +157,11 @@ namespace PurelySharp.Analyzer.Engine
                     // Reading a method parameter is considered pure
                     return true;
                 }
+                else if (symbolInfo.Symbol is IFieldSymbol fieldSymbol && fieldSymbol.IsStatic && fieldSymbol.IsReadOnly)
+                {
+                    // Reading a static readonly field is considered pure
+                    return true;
+                }
             }
             else if (expression is BinaryExpressionSyntax binaryExpression)
             {
@@ -191,7 +196,17 @@ namespace PurelySharp.Analyzer.Engine
                        IsExpressionPure(conditionalExpression.WhenTrue, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus) &&
                        IsExpressionPure(conditionalExpression.WhenFalse, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
             }
-            // TODO: Handle other expression types like MemberAccessExpressionSyntax, ObjectCreationExpressionSyntax etc.
+            else if (expression is MemberAccessExpressionSyntax memberAccess)
+            {
+                // Check if accessing a static readonly field
+                var symbolInfo = context.SemanticModel.GetSymbolInfo(memberAccess, context.CancellationToken);
+                if (symbolInfo.Symbol is IFieldSymbol fieldSymbol && fieldSymbol.IsStatic && fieldSymbol.IsReadOnly)
+                {
+                    return true; // Static readonly field access is pure
+                }
+                // Other member accesses are not considered pure by this specific check
+            }
+            // TODO: Handle other expression types like ObjectCreationExpressionSyntax etc.
 
             // If the expression type isn't explicitly handled as pure, assume it's impure
             return false;
