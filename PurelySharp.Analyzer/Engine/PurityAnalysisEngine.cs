@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 
@@ -45,7 +46,8 @@ namespace PurelySharp.Analyzer.Engine
             {
                 // No implementation found or not a kind we analyze.
                 // We need to remove from visited before returning false here.
-                return false;
+                visited.Remove(methodSymbol);
+                return false; // Reverted: Assume impure/unknown if no body analyzable
             }
 
             // --- Analyze Body ---
@@ -110,6 +112,55 @@ namespace PurelySharp.Analyzer.Engine
                         return false;
                     }
                 }
+                else if (stmt is ExpressionStatementSyntax expressionStatement)
+                {
+                    // Check if it's an assignment expression
+                    if (expressionStatement.Expression is AssignmentExpressionSyntax assignmentExpr)
+                    {
+                        // Check if the left side is a field (instance or static)
+                        var leftSymbolInfo = context.SemanticModel.GetSymbolInfo(assignmentExpr.Left, context.CancellationToken);
+                        if (leftSymbolInfo.Symbol is IFieldSymbol)
+                        {
+                            return false; // Assignment to a field is impure
+                        }
+
+                        // Check if the right side is pure. If not, the method is impure.
+                        if (!IsExpressionPure(assignmentExpr.Right, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus))
+                        {
+                            return false;
+                        }
+                        // Assignment to a local variable might be pure if the right side is pure.
+                        // Need further checks depending on the left side (e.g., is it a local? Is it a property setter call?)
+                        // For now, if it's not a field assignment and the right side is pure, we *could* continue,
+                        // but the safest default is to assume impurity until proven otherwise.
+                        // The current structure falls through to the final 'return false' if not explicitly handled.
+                        // Let's assume assignments to non-fields are impure for now unless proven otherwise
+                        // This path will eventually hit the `return false;` at the end of the loop's else block.
+
+                        // If we reached here, it's an assignment, but not to a field, and the right side is pure.
+                        // What about the left side? If it's a local variable, it's fine.
+                        if (leftSymbolInfo.Symbol is ILocalSymbol)
+                        {
+                            // Assignment to a local variable with a pure expression is pure. Continue.
+                            continue;
+                        }
+                        else
+                        {
+                            // Assignment to something else (e.g., property, indexer) - assume impure for now.
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        // An expression statement that isn't an assignment (e.g., method call like `list.Add(1)`)
+                        // We need to evaluate the purity of the expression itself.
+                        if (!IsExpressionPure(expressionStatement.Expression, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus))
+                        {
+                            return false; // If the expression itself evaluates to impure (e.g., impure method call), the method is impure.
+                        }
+                        // If the expression is pure (e.g., calling a pure method), the statement itself is pure. Continue.
+                    }
+                }
                 else
                 {
                     // Any other statement type makes the method impure
@@ -117,9 +168,10 @@ namespace PurelySharp.Analyzer.Engine
                 }
             }
 
-            // If the loop completes, it means all statements were pure local declarations.
-            // This is only valid for a void method.
-            return containingMethodSymbol.ReturnsVoid;
+            // If the loop completes, it means all statements were pure local declarations or pure expression statements.
+            // This is valid for a void method or a method that returns implicitly (e.g., iterator block, async method - though not handled yet).
+            // For a simple void method, this means purity is maintained.
+            return containingMethodSymbol.ReturnsVoid; // Or potentially true if non-void but ends without return (e.g., throws) - needs more logic.
         }
 
         /// <summary>
@@ -129,13 +181,21 @@ namespace PurelySharp.Analyzer.Engine
         {
             if (expression == null)
             {
+                // Null expression can occur in some syntax errors, treat as impure
                 return false;
+            }
+
+            // Handle `nameof` which is always pure
+            if (expression is InvocationExpressionSyntax nameofInvocation &&
+                nameofInvocation.Expression is IdentifierNameSyntax { Identifier.ValueText: "nameof" })
+            {
+                return true;
             }
 
             var constantValue = context.SemanticModel.GetConstantValue(expression, context.CancellationToken);
             if (constantValue.HasValue)
             {
-                return true;
+                return true; // Constants are pure
             }
 
             if (expression is InvocationExpressionSyntax invocationExpression)
@@ -144,10 +204,17 @@ namespace PurelySharp.Analyzer.Engine
                 if (symbolInfo.Symbol is IMethodSymbol invokedMethodSymbol)
                 {
                     // --- Check against known impure methods ---
-                    var methodFullName = invokedMethodSymbol.ContainingType.ToDisplayString() + "." + invokedMethodSymbol.Name;
-                    if (KnownImpureMethods.Contains(methodFullName))
+                    // Use ToDisplayString for potentially generic methods
+                    var methodDisplayString = invokedMethodSymbol.OriginalDefinition.ToDisplayString();
+                    // Simple check based on common impure patterns
+                    if (KnownImpureMethods.Contains(methodDisplayString) ||
+                        methodDisplayString.StartsWith("System.Console.") || // Console I/O
+                        methodDisplayString.StartsWith("System.IO.") || // File I/O
+                        methodDisplayString.StartsWith("System.Net.") || // Networking
+                        methodDisplayString.StartsWith("System.Threading.") || // Threading primitives
+                        methodDisplayString.Contains("Random")) // Randomness
                     {
-                        return false; // Known impure BCL method call
+                        return false;
                     }
 
                     // --- Recursively check user-defined or other methods ---
@@ -157,6 +224,7 @@ namespace PurelySharp.Analyzer.Engine
                 }
                 else
                 {
+                    // Invocation of something not resolved to a method symbol (e.g., delegate)
                     return false;
                 }
             }
@@ -170,25 +238,111 @@ namespace PurelySharp.Analyzer.Engine
                 }
                 else if (symbolInfo.Symbol is IParameterSymbol parameterSymbol)
                 {
-                    // Reading a method parameter is considered pure
-                    return true;
+                    // Reading a method parameter is considered pure, unless it's 'ref' or 'out'
+                    return parameterSymbol.RefKind == RefKind.None || parameterSymbol.RefKind == RefKind.In || parameterSymbol.RefKind == RefKind.RefReadOnly;
                 }
-                else if (symbolInfo.Symbol is IFieldSymbol fieldSymbol && fieldSymbol.IsStatic && fieldSymbol.IsReadOnly)
+                else if (symbolInfo.Symbol is IFieldSymbol fieldSymbol)
                 {
-                    // Reading a static readonly field is considered pure
+                    // Static readonly fields are pure.
+                    if (fieldSymbol.IsStatic && fieldSymbol.IsReadOnly)
+                    {
+                        return true;
+                    }
+                    /* // Instance readonly fields accessed via 'this' are pure. -- Temporarily commented out due to CS0184
+                    if (!fieldSymbol.IsStatic && fieldSymbol.IsReadOnly && identifierName is ThisExpressionSyntax)
+                    {
+                        return true;
+                    }
+                    */
+                    // Check if accessed via 'in' or 'ref readonly' parameter
+                    var baseExprInfo = context.SemanticModel.GetSymbolInfo(identifierName, context.CancellationToken);
+                    if (baseExprInfo.Symbol is IParameterSymbol paramSymbol &&
+                       (paramSymbol.RefKind == RefKind.In || paramSymbol.RefKind == RefKind.RefReadOnly))
+                    {
+                        // Reading any field via such a parameter should be considered pure
+                        return true;
+                    }
+                    // All other field accesses (instance non-readonly, or instance readonly not via this)
+                    // are considered potentially impure by this specific check.
+                    // Purity might be allowed by the later check for member access on in/ref readonly params.
+                    return false;
+                }
+                else if (symbolInfo.Symbol is IPropertySymbol propertySymbol)
+                {
+                    // Property access requires checking the getter method
+                    if (propertySymbol.GetMethod != null)
+                    {
+                        // Check known impure getters first
+                        var propertyGetterName = propertySymbol.ContainingType.ToDisplayString() + "." + propertySymbol.Name + ".get";
+                        if (KnownImpureMethods.Contains(propertyGetterName))
+                        {
+                            return false; // Known impure property getter
+                        }
+                        return IsConsideredPure(propertySymbol.GetMethod, context, enforcePureAttributeSymbol, visited);
+                    }
+                    // Property without accessible getter is likely an error or complex scenario, assume impure.
+                    return false;
+                }
+                // Accessing other kinds of identifiers (e.g., type names) is generally fine.
+                // Consider if accessing `this` implicitly is okay. It usually is for reading members.
+                else if (symbolInfo.Symbol is ITypeSymbol) // Accessing a type name is pure
+                {
                     return true;
                 }
+                // Any other identifier access not explicitly handled is assumed impure
+                return false;
+            }
+            else if (expression is LiteralExpressionSyntax) // Includes numeric, string, char, null, boolean literals
+            {
+                return true;
             }
             else if (expression is BinaryExpressionSyntax binaryExpression)
             {
-                // Binary operation is pure if both operands are pure
-                return IsExpressionPure(binaryExpression.Left, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus) &&
-                       IsExpressionPure(binaryExpression.Right, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+                // Binary operation is pure if both operands are pure *considering the context*
+                bool leftIsPure = IsExpressionPure(binaryExpression.Left, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+                bool rightIsPure = IsExpressionPure(binaryExpression.Right, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+
+                // Special case: If an operand is member access on in/ref readonly param, it's okay even if IsExpressionPure returned false initially.
+                if (!leftIsPure && binaryExpression.Left is MemberAccessExpressionSyntax leftMember)
+                {
+                    var leftBaseInfo = context.SemanticModel.GetSymbolInfo(leftMember.Expression, context.CancellationToken);
+                    if (leftBaseInfo.Symbol is IParameterSymbol lParam && (lParam.RefKind == RefKind.In || lParam.RefKind == RefKind.RefReadOnly))
+                    {
+                        leftIsPure = true; // Override: Reading member via in/ref readonly is pure here
+                    }
+                }
+                if (!rightIsPure && binaryExpression.Right is MemberAccessExpressionSyntax rightMember)
+                {
+                    var rightBaseInfo = context.SemanticModel.GetSymbolInfo(rightMember.Expression, context.CancellationToken);
+                    if (rightBaseInfo.Symbol is IParameterSymbol rParam && (rParam.RefKind == RefKind.In || rParam.RefKind == RefKind.RefReadOnly))
+                    {
+                        rightIsPure = true; // Override: Reading member via in/ref readonly is pure here
+                    }
+                }
+
+                return leftIsPure && rightIsPure;
             }
             else if (expression is PrefixUnaryExpressionSyntax unaryExpression)
             {
                 // Unary operation is pure if the operand is pure
+                // Exclude ++ and -- which modify state
+                if (unaryExpression.Kind() == SyntaxKind.PreIncrementExpression ||
+                    unaryExpression.Kind() == SyntaxKind.PreDecrementExpression)
+                {
+                    return false;
+                }
                 return IsExpressionPure(unaryExpression.Operand, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+            }
+            else if (expression is PostfixUnaryExpressionSyntax postfixUnary)
+            {
+                // Exclude ++ and -- which modify state
+                if (postfixUnary.Kind() == SyntaxKind.PostIncrementExpression ||
+                    postfixUnary.Kind() == SyntaxKind.PostDecrementExpression)
+                {
+                    return false;
+                }
+                // Other postfix unary ops? If any exist that are pure, handle here.
+                return false; // Assume impure otherwise
             }
             else if (expression is SizeOfExpressionSyntax)
             {
@@ -200,7 +354,7 @@ namespace PurelySharp.Analyzer.Engine
                 // default is always pure
                 return true;
             }
-            else if (expression is LiteralExpressionSyntax literal && literal.Kind() == Microsoft.CodeAnalysis.CSharp.SyntaxKind.DefaultLiteralExpression)
+            else if (expression is LiteralExpressionSyntax literal && literal.Kind() == SyntaxKind.DefaultLiteralExpression)
             {
                 // default literal is always pure
                 return true;
@@ -212,36 +366,136 @@ namespace PurelySharp.Analyzer.Engine
                        IsExpressionPure(conditionalExpression.WhenTrue, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus) &&
                        IsExpressionPure(conditionalExpression.WhenFalse, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
             }
+            else if (expression is ParenthesizedExpressionSyntax parenExpr)
+            {
+                return IsExpressionPure(parenExpr.Expression, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+            }
             else if (expression is MemberAccessExpressionSyntax memberAccess)
             {
-                // Check if accessing a static readonly field or a known pure property
+                // Need to evaluate the symbol being accessed
                 var symbolInfo = context.SemanticModel.GetSymbolInfo(memberAccess, context.CancellationToken);
-                if (symbolInfo.Symbol is IFieldSymbol fieldSymbol && fieldSymbol.IsStatic && fieldSymbol.IsReadOnly)
+                if (symbolInfo.Symbol is IFieldSymbol fieldSymbol)
                 {
-                    return true; // Static readonly field access is pure
+                    // Static readonly fields are pure.
+                    if (fieldSymbol.IsStatic && fieldSymbol.IsReadOnly)
+                    {
+                        return true;
+                    }
+                    /* // Instance readonly fields accessed via 'this' are pure. -- Temporarily commented out due to CS0184
+                    if (!fieldSymbol.IsStatic && fieldSymbol.IsReadOnly && memberAccess.Expression is ThisExpressionSyntax)
+                    {
+                        return true;
+                    }
+                    */
+                    // Check if accessed via 'in' or 'ref readonly' parameter
+                    var baseExprInfo = context.SemanticModel.GetSymbolInfo(memberAccess.Expression, context.CancellationToken);
+                    if (baseExprInfo.Symbol is IParameterSymbol paramSymbol &&
+                       (paramSymbol.RefKind == RefKind.In || paramSymbol.RefKind == RefKind.RefReadOnly))
+                    {
+                        // Reading any field via such a parameter should be considered pure
+                        return true;
+                    }
+                    // All other field accesses (instance non-readonly, or instance readonly not via this)
+                    // are considered potentially impure by this specific check.
+                    // Purity might be allowed by the later check for member access on in/ref readonly params.
+                    return false;
                 }
                 else if (symbolInfo.Symbol is IPropertySymbol propertySymbol)
                 {
-                    // Check if it's a known impure property access (like DateTime.Now)
-                    var propertyGetterName = propertySymbol.ContainingType.ToDisplayString() + "." + propertySymbol.Name + ".get";
-                    if (KnownImpureMethods.Contains(propertyGetterName))
-                    {
-                        return false; // Accessing known impure property
-                    }
-                    // Assume other property accesses might be pure for now (e.g., reading properties)
-                    // A more robust check might be needed later. Consider getter purity?
-                    // For now, let's lean towards assuming pure unless known impure.
-                    // This requires the getter method itself to be analyzed if possible.
+                    // Property access requires checking the getter method
                     if (propertySymbol.GetMethod != null)
                     {
+                        // Check known impure getters first
+                        var propertyGetterName = propertySymbol.ContainingType.ToDisplayString() + "." + propertySymbol.Name + ".get";
+                        if (KnownImpureMethods.Contains(propertyGetterName))
+                        {
+                            return false; // Known impure property getter
+                        }
                         return IsConsideredPure(propertySymbol.GetMethod, context, enforcePureAttributeSymbol, visited);
                     }
-
-                    return true; // Fallback if getter isn't available or simple property read
+                    // Property without accessible getter is likely an error or complex scenario, assume impure.
+                    return false;
                 }
-                // Other member accesses are not considered pure by this specific check
+                else if (symbolInfo.Symbol is IMethodSymbol)
+                {
+                    // Accessing a method group name itself is pure
+                    return true;
+                }
+                // Accessing other members (e.g., events, types nested within expression) - assume impure for now
+                return false;
             }
-            // TODO: Handle other expression types like ObjectCreationExpressionSyntax etc.
+            else if (expression is ObjectCreationExpressionSyntax objectCreation)
+            {
+                // Object creation might be pure if the constructor is pure and all arguments are pure
+                var constructorSymbolInfo = context.SemanticModel.GetSymbolInfo(objectCreation, context.CancellationToken);
+                if (constructorSymbolInfo.Symbol is IMethodSymbol constructorSymbol)
+                {
+                    // Check constructor purity recursively
+                    bool constructorIsPure = IsConsideredPure(constructorSymbol, context, enforcePureAttributeSymbol, visited);
+                    if (!constructorIsPure) return false;
+
+                    // Check argument purity
+                    if (objectCreation.ArgumentList != null)
+                    {
+                        foreach (var arg in objectCreation.ArgumentList.Arguments)
+                        {
+                            if (!IsExpressionPure(arg.Expression, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus))
+                            {
+                                return false; // Impure argument
+                            }
+                        }
+                    }
+                    // Check initializer purity (if any)
+                    if (objectCreation.Initializer != null)
+                    {
+                        foreach (var initExpr in objectCreation.Initializer.Expressions)
+                        {
+                            if (initExpr is AssignmentExpressionSyntax initAssign)
+                            {
+                                // Initializing properties/fields requires checking the assignment target (property setter/field) and value
+                                // For now, assume initializers make it impure until we handle setters properly
+                                return false; // TODO: Refine initializer check
+                            }
+                            else
+                            {
+                                return false; // Non-assignment initializer expression? Assume impure.
+                            }
+                        }
+                    }
+
+                    return true; // Constructor and arguments are pure
+                }
+                return false; // Could not resolve constructor
+            }
+            else if (expression is CastExpressionSyntax castExpr)
+            {
+                // Cast is pure if the inner expression is pure
+                return IsExpressionPure(castExpr.Expression, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+            }
+            else if (expression is TypeOfExpressionSyntax)
+            {
+                // typeof() is pure
+                return true;
+            }
+            else if (expression is ThisExpressionSyntax)
+            {
+                // Accessing 'this' itself is pure (it's what you do with it that might not be)
+                return true;
+            }
+            // ---> REMOVE Check HERE for member access on readable parameters
+            /*
+            if (expression is MemberAccessExpressionSyntax memberAccessOnParamCheck) {
+                var baseExprInfo = context.SemanticModel.GetSymbolInfo(memberAccessOnParamCheck.Expression, context.CancellationToken);
+                if (baseExprInfo.Symbol is IParameterSymbol paramSymbol &&
+                   (paramSymbol.RefKind == RefKind.In || paramSymbol.RefKind == RefKind.RefReadOnly))
+                    {
+                        // Assume accessing members via in/ref readonly params is pure for now.
+                        // TODO: This might be too broad; should ideally check the accessed member's purity.
+                        return true;
+                    }
+            }
+            */
+            // TODO: Handle other expression types like ArrayCreationExpressionSyntax, Collection Expressions (C# 12+), etc.
 
             // If the expression type isn't explicitly handled as pure, assume it's impure
             return false;

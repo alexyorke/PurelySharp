@@ -87,7 +87,7 @@ public enum FileAccess
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:TestMethod|}(FileAccess access)
+    public int TestMethod(FileAccess access)
     {
         return (int)access;
     }

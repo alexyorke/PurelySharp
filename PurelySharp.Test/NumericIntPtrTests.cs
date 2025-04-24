@@ -91,22 +91,26 @@ using PurelySharp.Attributes;
     public class NativeIntConversions
     {
         // Casts were handled, expect no diagnostic for the method itself if pure
-        public int ConvertToInt(nint value)
+        // PS0004 expected because the method is pure but lacks the attribute.
+        public int {|PS0004:ConvertToInt|}(nint value)
         {
              return (int)value;
         }
 
-        public nint ConvertToNInt(int value)
+        // PS0004 expected.
+        public nint {|PS0004:ConvertToNInt|}(int value)
         {
             return (nint)value;
         }
 
-         public uint ConvertToUInt(nuint value)
+         // PS0004 expected.
+         public uint {|PS0004:ConvertToUInt|}(nuint value)
         {
              return (uint)value;
         }
 
-        public nuint ConvertToNUInt(uint value)
+        // PS0004 expected.
+        public nuint {|PS0004:ConvertToNUInt|}(uint value)
         {
             return (nuint)value;
         }

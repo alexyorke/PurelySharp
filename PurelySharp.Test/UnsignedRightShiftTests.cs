@@ -6,6 +6,7 @@ using PurelySharp.Analyzer;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
     PurelySharp.Analyzer.PurelySharpAnalyzer>;
 using PurelySharp.Attributes;
+using System.IO;
 
 namespace PurelySharp.Test
 {
@@ -68,7 +69,7 @@ namespace TestNamespace
     public class UnsignedRightShiftVariablesTest
     {
         [EnforcePure]
-        public int {|PS0002:UnsignedRightShiftWithVariables|}(int value, int shift)
+        public int UnsignedRightShiftWithVariables(int value, int shift)
         {
             int result = value;
             result = result >>> shift;
@@ -76,7 +77,7 @@ namespace TestNamespace
         }
 
         [EnforcePure]
-        public int {|PS0002:ChainedUnsignedRightShift|}(int value, int shift1, int shift2)
+        public int ChainedUnsignedRightShift(int value, int shift1, int shift2)
         {
             // Chained use of >>> operator
             return (value >>> shift1) >>> shift2;
@@ -99,7 +100,7 @@ namespace TestNamespace
     public class UnsignedRightShiftCompoundTest
     {
         [EnforcePure]
-        public int {|PS0002:UnsignedRightShiftCompoundAssignment|}(int value, int shift)
+        public int UnsignedRightShiftCompoundAssignment(int value, int shift)
         {
             int result = value;
             result >>>= shift;
@@ -107,7 +108,7 @@ namespace TestNamespace
         }
 
         [EnforcePure]
-        public (int, int) {|PS0002:MultipleUnsignedRightShiftOperations|}(int value1, int value2, int shift)
+        public (int, int) MultipleUnsignedRightShiftOperations(int value1, int value2, int shift)
         {
             // Multiple operations with >>> operator
             value1 >>>= shift;
@@ -116,8 +117,12 @@ namespace TestNamespace
         }
     }
 }";
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Explicitly define expected diagnostic
+            var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                        .WithLocation(18, 27) // Location of MultipleUnsignedRightShiftOperations
+                                        .WithArguments("MultipleUnsignedRightShiftOperations");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedPS0002);
         }
 
         [Test]
@@ -132,14 +137,14 @@ namespace TestNamespace
     public class UnsignedRightShiftExpressionTest
     {
         [EnforcePure]
-        public int {|PS0002:UnsignedRightShiftInExpression|}(int value, int shift)
+        public int UnsignedRightShiftInExpression(int value, int shift)
         {
             // Using >>> operator in a larger expression
             return (value + 10) >>> shift;
         }
 
         [EnforcePure]
-        public int {|PS0002:ComplexExpressionWithUnsignedRightShift|}(int value, int shift1, int shift2)
+        public int ComplexExpressionWithUnsignedRightShift(int value, int shift1, int shift2)
         {
             // Complex expression with >>> operator
             return (value << 2) >>> shift1 + (value >>> shift2) * 2;
@@ -163,7 +168,7 @@ namespace TestNamespace
     public class UnsignedRightShiftImpureTest
     {
         [EnforcePure]
-        public void {|PS0002:UnsignedRightShiftWithSideEffect|}(int value, int shift)
+        public void UnsignedRightShiftWithSideEffect(int value, int shift)
         {
             // Pure operator used, but impure operation follows
             int result = value >>> shift;
@@ -171,8 +176,12 @@ namespace TestNamespace
         }
     }
 }";
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Explicitly define expected diagnostic
+            var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                        .WithLocation(11, 21) // Location of UnsignedRightShiftWithSideEffect
+                                        .WithArguments("UnsignedRightShiftWithSideEffect");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedPS0002);
         }
 
         [Test]

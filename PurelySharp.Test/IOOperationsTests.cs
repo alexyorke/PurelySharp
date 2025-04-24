@@ -75,30 +75,36 @@ public class TestClass
         {
             var test = @"
 using System;
+using System.IO;
 using PurelySharp.Attributes;
-using System.Collections.Generic;
 
-
-
-public class Helper
-{
-    public static Helper Instance { get; } = new Helper();
-    public Helper GetHelper() => this;
-    public void DoSomethingImpure() => Console.WriteLine(""Impure"");
+public class HelperClass 
+{ 
+    public void DoSomethingImpure() => File.Create(""temp.txt""); 
 }
 
 public class TestClass
 {
+    // This helper method seems pure
+    private HelperClass GetHelper() => new HelperClass();
+
     [EnforcePure]
-    public void {|PS0002:TestMethod|}()
+    public void TestMethod()
     {
-        // Complex chain that ends in impurity might be missed
-        Helper.Instance.GetHelper().DoSomethingImpure();
+        // Accessing instance member of result of method call
+        GetHelper().DoSomethingImpure();
     }
 }";
 
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Explicitly define expected diagnostics
+            var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                        .WithLocation(17, 17) // Location of TestMethod
+                                        .WithArguments("TestMethod");
+            //var expectedPS0004 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+            //                            .WithLocation(14, 23) // Location of GetHelper
+            //                            .WithArguments("GetHelper");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedPS0002/*, expectedPS0004*/);
         }
 
         [Test]

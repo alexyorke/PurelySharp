@@ -199,14 +199,14 @@ using PurelySharp.Attributes;
 public class TypeInfo
 {
     [EnforcePure]
-    public Type {|PS0002:GetIntegerType|}()
+    public Type GetIntegerType()
     {
         // typeof is generally pure
         return typeof(int);
     }
 
     [EnforcePure]
-    public Type {|PS0002:GetStringType|}<T>(T value) where T : class
+    public Type GetStringType<T>(T value) where T : class
     {
         // typeof with generic parameter might be complex
         return typeof(T);

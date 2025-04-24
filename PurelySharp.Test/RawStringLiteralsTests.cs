@@ -183,7 +183,7 @@ namespace TestNamespace
     public class RawStringExample
     {
         [EnforcePure]
-        public ReadOnlySpan<byte> {|PS0002:GetRawStringAsUtf8|}()
+        public ReadOnlySpan<byte> GetRawStringAsUtf8()
         {
             // C# 11 raw string literal with UTF-8 encoding (pure)
             return """"""

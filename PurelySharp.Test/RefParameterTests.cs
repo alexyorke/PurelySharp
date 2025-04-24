@@ -92,7 +92,7 @@ public struct Point
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:TestMethod|}(in Point p)
+    public int TestMethod(in Point p)
     {
         return p.X + p.Y;
     }
