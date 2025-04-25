@@ -10,20 +10,25 @@ The primary goal of PurelySharp is to provide developers with tools to identify 
 
 ## Current Status & Features
 
-Currently, the analyzer provides the following basic checks:
+Currently, the analyzer provides the following checks:
 
 1.  **`[EnforcePure]` Attribute:** A custom attribute (`PurelySharp.Attributes.EnforcePureAttribute`) to mark methods that are intended to be pure.
-2.  **PS0002: Purity Not Verified:** If a method is marked with `[EnforcePure]` and has an implementation (a method body `{...}` or an expression body `=> ...`), the analyzer reports diagnostic `PS0002`.
-    - **What PS0002 Means:** This diagnostic signifies that the method is _intended_ to be pure and _has code_, but the detailed analysis rules to actually _verify_ its purity (e.g., checking for I/O, state modification, impure calls) **have not been implemented yet**. It serves as a placeholder indicating that purity analysis is required for this method once the rules are built. Abstract, partial, or extern methods without implementation bodies are ignored.
+2.  **PS0002: Purity Not Verified:** If a method is marked with `[EnforcePure]` and the internal analysis engine cannot determine it to be pure based on the currently implemented rules (see below), it reports diagnostic `PS0002`.
 3.  **PS0003: Misplaced Attribute:** If the `[EnforcePure]` attribute is applied to any declaration _other than_ a method (e.g., class, struct, field, property, event, parameter), the analyzer reports diagnostic `PS0003`.
+4.  **PS0004: Missing Attribute:** If a method is _not_ marked with `[EnforcePure]` but the analysis engine determines it _is_ likely pure based on the currently implemented rules, it reports diagnostic `PS0004` as a suggestion.
+5.  **Basic Purity Analysis:** A limited analysis engine (`PurityAnalysisEngine`) attempts to verify the purity of methods. It checks for:
+    - Known impure operations (e.g., some I/O, `DateTime.Now`, field assignments).
+    - Purity of invoked methods (recursive check with cycle detection).
+    - Purity of expressions (constants, parameters, `static readonly` fields, basic operators, etc.).
+    - Purity of basic statements (local declarations, return, simple expression statements).
 
-**Features NOT Currently Implemented (but planned):**
+**Features NOT Currently Implemented in Detail (or planned):**
 
-- **Detailed analysis of method bodies to detect specific impurities.** This is the core planned feature and is not yet started.
+- **Comprehensive analysis of method bodies.** While basic analysis exists, many C# features and control flow structures are not yet handled (e.g., `if`, loops, `try`, `using`, `async`/`await`, LINQ, complex assignments, most framework methods).
 - Code fixes for reported diagnostics.
 - Configuration options.
 - Support for other attributes (like `[AllowSynchronization]`).
-- Analysis of constructors, delegates, etc.
+- Detailed analysis of constructors, delegates, properties, indexers, etc.
 
 ## How It Works
 
@@ -31,9 +36,12 @@ The analyzer (`PurelySharp.Analyzer`) integrates with the C# compilation process
 
 1.  It identifies method declarations and other symbols.
 2.  It checks for the presence and location of the `[EnforcePure]` attribute.
-3.  If `[EnforcePure]` is on a method with implementation, it reports `PS0002`.
-4.  If `[EnforcePure]` is on any non-method declaration, it reports `PS0003`.
-5.  **It does not currently perform any analysis _inside_ method bodies to determine actual purity.**
+3.  If `[EnforcePure]` is misplaced (not on a method), it reports `PS0003`.
+4.  If `[EnforcePure]` is on a method with implementation, it invokes the `PurityAnalysisEngine` to check its body.
+    - If the engine determines the method is _not_ pure (based on current rules), it reports `PS0002`.
+5.  If `[EnforcePure]` is _not_ on a method with implementation, it invokes the `PurityAnalysisEngine`.
+    - If the engine determines the method _is_ pure (based on current rules), it reports `PS0004`.
+6.  **The internal analysis (`PurityAnalysisEngine`) is still under development and does not cover all C# features or guarantee correctness.**
 
 ## Installation
 
@@ -113,144 +121,145 @@ This project is licensed under the MIT License.
 
 ## Supported Language Features
 
-Supported means there is _some_ level of test coverage. It does not mean it is 100% supported.
+Supported means there is _some_ level of analysis implemented, but it does not guarantee 100% correctness or completeness.
+`[x]` = Generally supported/handled.
+`[/]` = Partially supported/handled with significant limitations.
+`[ ]` = Not explicitly handled or known to be treated as impure.
 
 ### Expressions
 
 - [x] Literal expressions (numbers, strings, etc.)
 - [x] `nameof` and `typeof` expressions (compile-time resolved)
-- [x] Identifiers (variables, parameters)
-- [x] Method invocations (if the method is pure)
-- [x] Member access (properties, fields - if readonly)
-- [x] Object creation (for immutable types)
-- [x] Tuple expressions and deconstruction
-- [x] Switch expressions (C# 8.0+)
-- [x] Pattern matching
+- [x] Identifiers (local variables, parameters (`in`, `ref readonly`, value), `static readonly` fields)
+- [/] Method invocations (Recursive check, cycle detection, small known impure list. No deep analysis of external libs.)
+- [/] Member access (Static readonly fields ok. Instance fields, non-readonly static fields, property gets treated as impure currently.)
+- [ ] Object creation (for immutable types) - Assumed impure.
+- [x] Tuple expressions
+- [ ] Switch expressions (C# 8.0+)
+- [ ] Pattern matching
 - [x] Null coalescing operators (`??`, `?.`)
-- [x] Interpolated strings
-- [x] Stack allocations and Span operations (when used in a read-only manner)
-- [x] Indices and ranges (C# 8.0+)
-- [x] Bit shift operations including unsigned right shift (`>>>`)
-- [x] Async/await expressions
-- [x] Unsafe code blocks
-- [x] Pointer operations
+- [ ] Interpolated strings (Assumed impure unless constant.)
+- [ ] Stack allocations and Span operations
+- [ ] Indices and ranges (C# 8.0+)
+- [x] Bit shift operations and basic binary/unary operators
+- [ ] Async/await expressions
+- [ ] Unsafe code blocks
+- [ ] Pointer operations
 
 ### Statements
 
-- [x] Local declarations
-- [x] Return statements
-- [x] Expression statements
-- [x] If statements
-- [x] Switch statements
-- [x] Throw statements
-- [x] Try-catch-finally blocks (if all blocks are pure)
-- [x] Local functions (if body is pure)
-- [x] Using statements
-- [x] Using declarations (C# 8.0+)
-- [x] Lock statements (when used with `[AllowSynchronization]` attribute and read-only lock objects)
-- [x] Yield statements (iterator methods)
-- [x] Fixed statements
+- [x] Local declarations (with pure initializers)
+- [x] Return statements (only as the last statement, requires pure expression)
+- [/] Expression statements (Pure method calls, assignments to locals ok. Field/property assignments impure.)
+- [ ] If statements
+- [ ] Switch statements
+- [ ] Throw statements/expressions - Treated as impure.
+- [ ] Try-catch-finally blocks
+- [ ] Local functions (Analyzed via invocation.)
+- [ ] Using statements
+- [ ] Using declarations (C# 8.0+)
+- [ ] Lock statements
+- [ ] Yield statements (iterator methods)
+- [ ] Fixed statements
 
 ### Collections and Data Structures
 
-- [x] Immutable collections (System.Collections.Immutable)
-- [x] Read-only collections (IReadOnly\* interfaces)
-- [x] Arrays (when used in a read-only manner)
-- [x] Tuples
-- [~] Collection expressions (C# 12) - _Partial support: only when creating immutable collections_
-- [x] Mutable collections (List, Dictionary, etc.)
-- [x] Modifying collection elements
-- [x] Inline arrays (C# 12)
+- [ ] Immutable collections (System.Collections.Immutable) - Creation assumed impure.
+- [ ] Read-only collections (IReadOnly\\\* interfaces) - Creation assumed impure.
+- [ ] Arrays (when used in a read-only manner) - Access/creation assumed impure.
+- [x] Tuples (creation)
+- [ ] Collection expressions (C# 12)
+- [ ] Mutable collections (List, Dictionary, etc.) - Creation/modification assumed impure.
+- [ ] Modifying collection elements - Assumed impure.
+- [ ] Inline arrays (C# 12)
 
 ### Method Types
 
 - [x] Regular methods
 - [x] Expression-bodied methods
-- [x] Extension methods (if pure)
-- [x] Local functions (if pure)
-- [x] Abstract methods
-- [x] Recursive methods (if pure)
-- [x] Virtual/override methods (if pure)
-- [x] Generic methods
-- [x] Async methods
-- [x] Iterator methods (yield return)
-- [x] Unsafe methods
-- [x] Operator overloads (including checked operators)
-- [x] User-defined conversions
-- [x] Static abstract/virtual interface members (C# 11)
+- [ ] Extension methods (Analyzed via invocation.)
+- [ ] Local functions (Analyzed via invocation.)
+- [ ] Abstract methods (Ignored)
+- [/] Recursive methods (Cycle detection exists.)
+- [ ] Virtual/override methods (Analyzed like regular methods.)
+- [x] Generic methods (Handled by symbol analysis.)
+- [ ] Async methods
+- [ ] Iterator methods (yield return)
+- [ ] Unsafe methods
+- [ ] Operator overloads (Analyzed via invocation/binary op.)
+- [ ] User-defined conversions (Analyzed via invocation.)
+- [ ] Static abstract/virtual interface members (C# 11)
 
 ### Type Declarations
 
-- [x] Classes (when methods are pure)
-- [x] Interfaces (methods are considered pure by default)
-- [~] Structs (when methods are pure) - _Partial support: only for immutable structs_
-- [x] Records (C# 9)
-- [x] Record structs (C# 10)
-- [x] Enums
-- [ ] Delegates
-- [x] File-local types (C# 11)
-- [x] Primary constructors (C# 12)
+(Analysis focuses on method bodies, not purity of types themselves)
+
+- [ ] Classes
+- [ ] Interfaces
+- [ ] Structs
+- [ ] Records (C# 9)
+- [ ] Record structs (C# 10)
+- [ ] Enums
+- [ ] Delegates - Invocation assumed impure.
+- [ ] File-local types (C# 11)
+- [ ] Primary constructors (C# 12)
 
 ### Member Declarations
 
 - [x] Instance methods
 - [x] Static methods
-- [x] Constructors
-- [x] Properties (get-only)
-- [x] Auto-properties (get-only or init-only)
-- [x] Fields (readonly)
-- [x] Events
-- [x] Indexers
-- [x] Required members (C# 11)
+- [ ] Constructors - Not analyzed yet.
+- [/] Properties (get-only) - Access treated as impure currently.
+- [/] Auto-properties (get-only or init-only) - Access treated as impure currently.
+- [/] Fields (readonly) - Reading `static readonly` is pure. Reading instance or non-readonly static is impure. Assignment is impure.
+- [ ] Events
+- [ ] Indexers - Access/assignment assumed impure.
+- [ ] Required members (C# 11)
 - [ ] Partial properties (C# 13)
 
 ### Parameter Types
 
 - [x] Value types
-- [x] Reference types (when used in a read-only manner)
-- [x] Ref parameters
-- [x] Out parameters
+- [x] Reference types (passed by value)
+- [ ] Ref parameters - Treated as impure.
+- [ ] Out parameters - Treated as impure.
 - [x] In parameters
-- [x] Params arrays
+- [ ] Params arrays
 - [ ] Params collections (C# 13)
 - [x] Optional parameters
 - [ ] Optional parameters in lambda expressions (C# 12)
-- [x] Ref readonly parameters (C# 12)
+- [x] Ref readonly parameters
 
 ### Special Features
 
-- [x] LINQ methods (all considered pure)
-- [x] String operations (all considered pure)
-- [x] Math operations (all considered pure)
-- [x] Tuple operations
-- [x] Conversion methods (Parse, TryParse, etc.)
-- [x] I/O operations (File, Console, etc.)
-- [x] Network operations
-- [x] Threading/Task operations
-- [x] Random number generation
-- [x] Event subscription/invocation
-- [x] Delegate invocation
+- [ ] LINQ methods - Assumed impure unless simple constant expressions.
+- [/] String operations - Constants pure, method calls follow invocation rules.
+- [/] Math operations - Basic operators pure, `System.Math` calls follow invocation rules.
+- [x] Tuple operations (creation)
+- [ ] Conversion methods (Parse, TryParse, etc.) - Assumed impure.
+- [ ] I/O operations (File, Console, etc.) - Explicitly marked impure.
+- [ ] Network operations - Explicitly marked impure.
+- [ ] Threading/Task operations - Explicitly marked impure.
+- [ ] Random number generation - Explicitly marked impure.
+- [ ] Event subscription/invocation - Assumed impure.
+- [ ] Delegate invocation - Assumed impure.
 
 ### Advanced Language Features
 
-- [x] Pattern matching
-- [x] Switch expressions
-- [x] List patterns (C# 11)
-- [ ] Top-level statements (C# 9)
-- [x] File-scoped namespaces (C# 10)
-<!-- Implementation note: The analyzer implicitly supports file-scoped namespaces as it analyzes syntax nodes regardless of namespace declaration style. -->
-- [x] Required members (C# 11)
-- [ ] Nullable reference types annotations (C# 8.0+)
+- [ ] Pattern matching
+- [ ] Switch expressions
+- [ ] List patterns (C# 11)
+- [ ] Top-level statements (C# 9) - N/A
+- [x] File-scoped namespaces (C# 10) - Implicitly supported.
+- [ ] Required members (C# 11)
+- [x] Nullable reference types annotations (C# 8.0+) - Implicitly supported.
 - [ ] Caller information attributes
-- [ ] Source generators
-- [ ] Partial classes/methods
-- [ ] Global using directives (C# 10)
-- [x] Generic attributes (C# 11)
-- [ ] Type alias for any type (C# 12)
+- [ ] Source generators - N/A
+- [x] Partial classes/methods - Implicitly supported.
+- [x] Global using directives (C# 10) - Implicitly supported.
+- [ ] Generic attributes (C# 11)
+- [x] Type alias for any type (C# 12) - Implicitly supported.
 - [ ] Experimental attribute (C# 12)
-- [ ] Interceptors (C# 12 preview)
-- [ ] Lock object (C# 13)
-- [ ] Overload resolution priority (C# 13)
 
 ### C# 11 Specific Features
 
