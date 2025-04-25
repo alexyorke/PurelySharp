@@ -34,12 +34,12 @@ namespace PurelySharp.Analyzer
                 return;
             }
 
-            bool isPureEnforced = PurityAnalysisEngine.IsPureEnforced(methodSymbol, enforcePureAttributeSymbol);
-            bool isConsideredPure = PurityAnalysisEngine.IsConsideredPure(methodSymbol, context, enforcePureAttributeSymbol, new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default));
+            bool directlyEnforced = PurityAnalysisEngine.IsPureEnforced(methodSymbol, enforcePureAttributeSymbol);
+            bool isPure = PurityAnalysisEngine.IsConsideredPure(methodSymbol, context, enforcePureAttributeSymbol);
 
-            if (isPureEnforced)
+            if (isPure)
             {
-                if (!isConsideredPure)
+                if (!directlyEnforced)
                 {
                     var diagnostic = Diagnostic.Create(
                         PurelySharpDiagnostics.PurityNotVerifiedRule,
@@ -51,7 +51,7 @@ namespace PurelySharp.Analyzer
             }
             else
             {
-                if (isConsideredPure)
+                if (directlyEnforced)
                 {
                     var diagnostic = Diagnostic.Create(
                         PurelySharpDiagnostics.MissingEnforcePureAttributeRule,
