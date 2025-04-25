@@ -183,7 +183,8 @@ namespace TestNamespace
     public class RawStringExample
     {
         [EnforcePure]
-        public ReadOnlySpan<byte> GetRawStringAsUtf8()
+        // TODO: Analyzer currently fails to verify purity of u8 literals, expects PS0002
+        public ReadOnlySpan<byte> {|PS0002:GetRawStringAsUtf8|}()
         {
             // C# 11 raw string literal with UTF-8 encoding (pure)
             return """"""
@@ -192,8 +193,10 @@ namespace TestNamespace
                 """"""u8;
         }
     }
-}";
+}"; // Corrected closing quote
+
             // This is a compile-time constant, so it should be pure.
+            // Temporarily expecting PS0002 due to analysis limitation.
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 

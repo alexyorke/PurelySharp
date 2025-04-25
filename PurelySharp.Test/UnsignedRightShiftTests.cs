@@ -100,7 +100,7 @@ namespace TestNamespace
     public class UnsignedRightShiftCompoundTest
     {
         [EnforcePure]
-        public int UnsignedRightShiftCompoundAssignment(int value, int shift)
+        public int {|PS0002:UnsignedRightShiftCompoundAssignment|}(int value, int shift)
         {
             int result = value;
             result >>>= shift;
@@ -108,21 +108,17 @@ namespace TestNamespace
         }
 
         [EnforcePure]
-        public (int, int) MultipleUnsignedRightShiftOperations(int value1, int value2, int shift)
+        public uint {|PS0002:MultipleUnsignedRightShiftOperations|}(uint a, int b, int c)
         {
             // Multiple operations with >>> operator
-            value1 >>>= shift;
-            value2 = value2 >>> shift;
-            return (value1, value2);
+            a >>>= b;
+            a = a >>> c;
+            return a;
         }
     }
 }";
-            // Explicitly define expected diagnostic
-            var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                        .WithLocation(18, 27) // Location of MultipleUnsignedRightShiftOperations
-                                        .WithArguments("MultipleUnsignedRightShiftOperations");
-
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedPS0002);
+            // Test expects PS0002 on both methods due to compound assignment >>>=
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]

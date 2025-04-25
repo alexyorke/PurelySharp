@@ -4,11 +4,12 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Operations;
 
 namespace PurelySharp.Analyzer.Engine
 {
     /// <summary>
-    /// Contains the core logic for determining method purity.
+    /// Contains the core logic for determining method purity using IOperation.
     /// </summary>
     internal static class PurityAnalysisEngine
     {
@@ -21,648 +22,1041 @@ namespace PurelySharp.Analyzer.Engine
         };
 
         /// <summary>
-        /// Checks if a method symbol is considered pure based on its implementation.
+        /// Checks if a method symbol is considered pure based on its implementation using IOperation.
         /// </summary>
         internal static bool IsConsideredPure(IMethodSymbol methodSymbol, SyntaxNodeAnalysisContext context, INamedTypeSymbol enforcePureAttributeSymbol, HashSet<IMethodSymbol> visited)
         {
             // --- Cycle Detection ---
-            if (!visited.Add(methodSymbol))
+            var originalMethodSymbol = methodSymbol.OriginalDefinition;
+            if (!visited.Add(originalMethodSymbol))
             {
                 return false; // Cycle detected, assume impure
             }
 
-            // --- Find Declaration ---
-            MethodDeclarationSyntax? methodDeclaration = null;
-            foreach (var syntaxRef in methodSymbol.DeclaringSyntaxReferences)
-            {
-                if (syntaxRef.GetSyntax(context.CancellationToken) is MethodDeclarationSyntax decl)
-                {
-                    methodDeclaration = decl;
-                    break;
-                }
-            }
-
-            if (methodDeclaration == null || (methodDeclaration.Body == null && methodDeclaration.ExpressionBody == null))
-            {
-                // No implementation found or not a kind we analyze.
-                // We need to remove from visited before returning false here.
-                visited.Remove(methodSymbol);
-                return false; // Reverted: Assume impure/unknown if no body analyzable
-            }
-
-            // --- Analyze Body ---
-            bool isPure = false;
-            if (methodDeclaration.ExpressionBody != null)
-            {
-                isPure = IsExpressionPure(methodDeclaration.ExpressionBody.Expression, context, enforcePureAttributeSymbol, visited, methodSymbol, new Dictionary<ILocalSymbol, bool>(SymbolEqualityComparer.Default));
-            }
-            else if (methodDeclaration.Body != null)
-            {
-                // Delegate to the new AnalyzeBlockBody method
-                isPure = AnalyzeBlockBody(methodDeclaration.Body, context, enforcePureAttributeSymbol, visited, methodSymbol);
-            }
+            bool isPure = DeterminePurity(methodSymbol, context, enforcePureAttributeSymbol, visited);
 
             // --- Backtrack & Return ---
-            visited.Remove(methodSymbol);
+            visited.Remove(originalMethodSymbol);
             return isPure;
         }
 
-        /// <summary>
-        /// Analyzes the purity of a method's block body.
-        /// </summary>
-        private static bool AnalyzeBlockBody(BlockSyntax body, SyntaxNodeAnalysisContext context, INamedTypeSymbol enforcePureAttributeSymbol, HashSet<IMethodSymbol> visited, IMethodSymbol containingMethodSymbol)
+        private static bool DeterminePurity(IMethodSymbol methodSymbol, SyntaxNodeAnalysisContext context, INamedTypeSymbol enforcePureAttributeSymbol, HashSet<IMethodSymbol> visited)
         {
-            var statements = body.Statements;
-            var localPurityStatus = new Dictionary<ILocalSymbol, bool>(SymbolEqualityComparer.Default);
-
-            for (int i = 0; i < statements.Count; i++)
+            // --- Check Attributes First ---
+            // Applying an attribute involves running its constructor. If the constructor is impure,
+            // the method application itself introduces impurity.
+            foreach (var attributeData in methodSymbol.GetAttributes())
             {
-                var stmt = statements[i];
-
-                if (stmt is LocalDeclarationStatementSyntax localDecl)
+                if (attributeData.AttributeConstructor != null)
                 {
-                    foreach (var variable in localDecl.Declaration.Variables)
+                    // Use OriginalDefinition for constructor check
+                    // Need to create a new visited set for this recursive check to avoid incorrect cycle detection
+                    // Cloning the set prevents cycles between method analysis and attribute analysis.
+                    var attributeVisited = new HashSet<IMethodSymbol>(visited, SymbolEqualityComparer.Default);
+                    if (!IsConsideredPure(attributeData.AttributeConstructor.OriginalDefinition, context, enforcePureAttributeSymbol, attributeVisited))
                     {
-                        var localSymbol = context.SemanticModel.GetDeclaredSymbol(variable, context.CancellationToken) as ILocalSymbol;
-                        if (localSymbol == null) continue;
-
-                        bool isInitializerPure = true; // Assume pure if no initializer
-                        if (variable.Initializer != null)
-                        {
-                            isInitializerPure = IsExpressionPure(variable.Initializer.Value, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
-                            if (!isInitializerPure)
-                            {
-                                return false; // Impure initializer makes the whole method impure
-                            }
-                        }
-                        localPurityStatus[localSymbol] = isInitializerPure;
+                        return false; // Attribute constructor is impure
                     }
-                }
-                else if (stmt is ReturnStatementSyntax returnStatement)
-                {
-                    // Check if this is the last statement
-                    if (i == statements.Count - 1)
-                    {
-                        // Purity depends on the returned expression
-                        return IsExpressionPure(returnStatement.Expression, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
-                    }
-                    else
-                    {
-                        // Return statement before the end is considered impure for now
-                        return false;
-                    }
-                }
-                else if (stmt is ExpressionStatementSyntax expressionStatement)
-                {
-                    // Check if it's an assignment expression
-                    if (expressionStatement.Expression is AssignmentExpressionSyntax assignmentExpr)
-                    {
-                        // Check if the left side is a field (instance or static)
-                        var leftSymbolInfo = context.SemanticModel.GetSymbolInfo(assignmentExpr.Left, context.CancellationToken);
-                        if (leftSymbolInfo.Symbol is IFieldSymbol)
-                        {
-                            return false; // Assignment to a field is impure
-                        }
-
-                        // Check if the right side is pure. If not, the method is impure.
-                        if (!IsExpressionPure(assignmentExpr.Right, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus))
-                        {
-                            return false;
-                        }
-                        // Assignment to a local variable might be pure if the right side is pure.
-                        // Need further checks depending on the left side (e.g., is it a local? Is it a property setter call?)
-                        // For now, if it's not a field assignment and the right side is pure, we *could* continue,
-                        // but the safest default is to assume impurity until proven otherwise.
-                        // The current structure falls through to the final 'return false' if not explicitly handled.
-                        // Let's assume assignments to non-fields are impure for now unless proven otherwise
-                        // This path will eventually hit the `return false;` at the end of the loop's else block.
-
-                        // If we reached here, it's an assignment, but not to a field, and the right side is pure.
-                        // What about the left side? If it's a local variable, it's fine.
-                        if (leftSymbolInfo.Symbol is ILocalSymbol)
-                        {
-                            // Assignment to a local variable with a pure expression is pure. Continue.
-                            continue;
-                        }
-                        else
-                        {
-                            // Assignment to something else (e.g., property, indexer) - assume impure for now.
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        // An expression statement that isn't an assignment (e.g., method call like `list.Add(1)`)
-                        // We need to evaluate the purity of the expression itself.
-                        if (!IsExpressionPure(expressionStatement.Expression, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus))
-                        {
-                            return false; // If the expression itself evaluates to impure (e.g., impure method call), the method is impure.
-                        }
-                        // If the expression is pure (e.g., calling a pure method), the statement itself is pure. Continue.
-                    }
-                }
-                else if (stmt is IfStatementSyntax ifStatement)
-                {
-                    // 1. Check the condition's purity
-                    if (!IsExpressionPure(ifStatement.Condition, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus))
-                    {
-                        return false; // Impure condition
-                    }
-
-                    // 2. Check the 'if' block/statement's purity
-                    if (!IsStatementPure(ifStatement.Statement, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, (IReadOnlyDictionary<ILocalSymbol, bool>)localPurityStatus))
-                    {
-                        return false; // Impure 'if' body
-                    }
-
-                    // 3. Check the 'else' block/statement's purity (if it exists)
-                    if (ifStatement.Else != null && !IsStatementPure(ifStatement.Else.Statement, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, (IReadOnlyDictionary<ILocalSymbol, bool>)localPurityStatus))
-                    {
-                        return false; // Impure 'else' body
-                    }
-
-                    // If all checks pass, the 'if' statement is pure in this context. Continue checking next statement.
-                    continue;
-                }
-                else
-                {
-                    // Any other statement type makes the method impure for now
-                    return false;
                 }
             }
+            // Also check attributes on containing type? Potentially complex, skip for now.
 
-            // If the loop completes, it means all statements were pure local declarations or pure expression statements.
-            // This is valid for a void method or a method that returns implicitly (e.g., iterator block, async method - though not handled yet).
-            // For a simple void method, this means purity is maintained.
-            return containingMethodSymbol.ReturnsVoid; // Or potentially true if non-void but ends without return (e.g., throws) - needs more logic.
-        }
+            // --- Find Declaration Syntax (still needed to get the body node) ---
+            SyntaxNode? bodyNode = null;
+            foreach (var syntaxRef in methodSymbol.DeclaringSyntaxReferences)
+            {
+                var syntax = syntaxRef.GetSyntax(context.CancellationToken);
+                if (syntax is MethodDeclarationSyntax methodDecl)
+                {
+                    bodyNode = (SyntaxNode?)methodDecl.Body ?? methodDecl.ExpressionBody?.Expression;
+                    if (bodyNode != null) break;
+                }
+                else if (syntax is AccessorDeclarationSyntax accessorDecl) // Handle properties/indexers
+                {
+                    bodyNode = (SyntaxNode?)accessorDecl.Body ?? accessorDecl.ExpressionBody?.Expression;
+                    if (bodyNode != null) break;
+                }
+                else if (syntax is ConstructorDeclarationSyntax ctorDecl) // Handle constructors
+                {
+                    bodyNode = (SyntaxNode?)ctorDecl.Body ?? ctorDecl.ExpressionBody?.Expression;
+                    if (bodyNode != null) break;
+                }
+                else if (syntax is LocalFunctionStatementSyntax localFunc) // Handle local functions
+                {
+                    bodyNode = (SyntaxNode?)localFunc.Body ?? localFunc.ExpressionBody?.Expression;
+                    if (bodyNode != null) break;
+                }
+                // TODO: Add support for OperatorDeclarationSyntax, ConversionOperatorDeclarationSyntax?
+            }
 
-        /// <summary>
-        /// Checks if a single statement (potentially a block) is pure.
-        /// Helper for handling nested statements like those in 'if'/'else'.
-        /// </summary>
-        private static bool IsStatementPure(StatementSyntax statement, SyntaxNodeAnalysisContext context, INamedTypeSymbol enforcePureAttributeSymbol, HashSet<IMethodSymbol> visited, IMethodSymbol containingMethodSymbol, IReadOnlyDictionary<ILocalSymbol, bool> localPurityStatus)
-        {
-            if (statement is BlockSyntax block)
+            if (bodyNode == null)
             {
-                // Analyze the block. Need to handle locals defined within this block scope.
-                // Create a mutable copy for this scope manually, ensuring the comparer is set.
-                var blockLocalPurityStatus = new Dictionary<ILocalSymbol, bool>(SymbolEqualityComparer.Default);
-                foreach (var kvp in localPurityStatus)
+                // No implementation found (e.g., abstract, partial without definition, interface method?)
+                // Handle implicit default constructors as pure.
+                if (methodSymbol.MethodKind == MethodKind.Constructor) return true;
+
+                // Determine purity based on method kind or attributes
+
+                // Check for interface methods FIRST
+                if (methodSymbol.ContainingType.TypeKind == TypeKind.Interface && !methodSymbol.IsStatic)
                 {
-                    blockLocalPurityStatus.Add(kvp.Key, kvp.Value);
+                    // Interface methods without a direct body: Trust the [Pure] attribute if present, otherwise assume impure.
+                    // Note: enforcePureAttributeSymbol is passed in, representing the [Pure] attribute we're looking for.
+                    return IsPureEnforced(methodSymbol, enforcePureAttributeSymbol);
                 }
-                return AnalyzeBlockBodyInternal(block, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, blockLocalPurityStatus, allowNestedReturn: false);
+
+                // THEN check for abstract methods (which might include interface methods not caught above, though unlikely now)
+                if (methodSymbol.IsAbstract) return true; // Abstract methods (not interfaces handled above) assumed pure contractually
+
+                // Interface methods: Assume impure unless specifically marked pure (future enhancement)
+                // --- This comment block is now redundant due to the explicit check above ---
+                // if (methodSymbol.ContainingType.TypeKind == TypeKind.Interface && !methodSymbol.IsStatic)
+                // {
+                //     ...
+                // }
+
+                if (methodSymbol.IsExtern) return false; // Extern methods assumed impure
+                // Partial methods without implementation body are problematic, assume impure?
+                return false; // Assume impure/unknown if no body analyzable or other cases
             }
-            else if (statement is ExpressionStatementSyntax expressionStatement)
+
+            // --- Analyze Body using IOperation ---
+            IOperation? bodyOperation = context.SemanticModel.GetOperation(bodyNode, context.CancellationToken);
+            if (bodyOperation == null)
             {
-                // Logic largely copied from AnalyzeBlockBody loop
-                if (expressionStatement.Expression is AssignmentExpressionSyntax assignmentExpr)
-                {
-                    var leftSymbolInfo = context.SemanticModel.GetSymbolInfo(assignmentExpr.Left, context.CancellationToken);
-                    if (leftSymbolInfo.Symbol is IFieldSymbol) return false; // Field assignment
-                    if (!IsExpressionPure(assignmentExpr.Right, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)) return false; // Impure RHS
-                    if (leftSymbolInfo.Symbol is ILocalSymbol) return true; // Local assignment (pure RHS)
-                    return false; // Assignment to anything else (property, indexer)
-                }
-                else
-                {
-                    // Other expression statement (e.g., method call)
-                    return IsExpressionPure(expressionStatement.Expression, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
-                }
-            }
-            else if (statement is ReturnStatementSyntax returnStatement)
-            {
-                // A return statement is pure if its expression is pure.
-                // Control flow complexity (like returning early from loops) will be handled by the analysis of loops themselves.
-                // For simple blocks (like in if/else), a return is fine if the expression is pure.
-                return IsExpressionPure(returnStatement.Expression, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
-            }
-            else if (statement is LocalDeclarationStatementSyntax localDecl)
-            {
-                // Analysis for purity requires tracking locals. For a single statement check,
-                // just ensure the initializer (if any) is pure. Tracking the local is handled by AnalyzeBlockBodyInternal if this is in a block.
-                foreach (var variable in localDecl.Declaration.Variables)
-                {
-                    if (variable.Initializer != null)
-                    {
-                        if (!IsExpressionPure(variable.Initializer.Value, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus))
-                        {
-                            return false; // Impure initializer
-                        }
-                    }
-                }
-                return true; // Declaration with pure initializer is fine.
-            }
-            else if (statement is IfStatementSyntax ifStatement) // Handle nested ifs
-            {
-                if (!IsExpressionPure(ifStatement.Condition, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)) return false;
-                if (!IsStatementPure(ifStatement.Statement, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)) return false; // Recurse
-                if (ifStatement.Else != null && !IsStatementPure(ifStatement.Else.Statement, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)) return false; // Recurse
-                return true;
-            }
-            // Add other simple, pure statements here if needed.
-            // E.g., EmptyStatementSyntax is pure.
-            else if (statement is EmptyStatementSyntax)
-            {
-                return true;
-            }
-            // Default: Unhandled statement type is considered impure.
-            else
-            {
+                // Failed to get operation, assume impure for safety
                 return false;
             }
+
+            var initialLocalPurity = new Dictionary<ILocalSymbol, bool>(SymbolEqualityComparer.Default);
+
+            if (bodyOperation is IBlockOperation blockOp)
+            {
+                // Analyze the block operation
+                return AnalyzeBlockOperationTopLevel(blockOp, context, enforcePureAttributeSymbol, visited, methodSymbol, initialLocalPurity);
+            }
+            else
+            {
+                // Treat other body operations (e.g., expression body) as a single expression to check
+                return IsOperationPure(bodyOperation, context, enforcePureAttributeSymbol, visited, methodSymbol, initialLocalPurity);
+            }
         }
 
         /// <summary>
-        /// Internal implementation for analyzing a block body, allowing control over nested returns.
+        /// Analyzes a top-level block operation (method body).
+        /// </summary>
+        private static bool AnalyzeBlockOperationTopLevel(
+            IBlockOperation blockOp,
+            SyntaxNodeAnalysisContext context,
+            INamedTypeSymbol enforcePureAttributeSymbol,
+            HashSet<IMethodSymbol> visited,
+            IMethodSymbol containingMethodSymbol,
+            Dictionary<ILocalSymbol, bool> localPurityStatus) // Top level starts with empty dict
+        {
+            // Use the internal helper, allowing return only if it's the last statement
+            return AnalyzeNestedBlockOperation(blockOp, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus, allowReturnAtEnd: true);
+        }
+
+        /// <summary>
+        /// Internal recursive implementation for analyzing a block operation.
         /// Takes a mutable dictionary for local purity status within the block.
         /// </summary>
-        private static bool AnalyzeBlockBodyInternal(
-            BlockSyntax body,
+        private static bool AnalyzeNestedBlockOperation(
+            IBlockOperation blockOp,
             SyntaxNodeAnalysisContext context,
             INamedTypeSymbol enforcePureAttributeSymbol,
             HashSet<IMethodSymbol> visited,
             IMethodSymbol containingMethodSymbol,
             Dictionary<ILocalSymbol, bool> localPurityStatus, // Mutable dictionary for this scope
-            bool allowNestedReturn) // Can this block end with a return?
+            bool allowReturnAtEnd = false) // Default to false for nested blocks
         {
-            var statements = body.Statements;
-            for (int i = 0; i < statements.Count; i++)
+            var operations = blockOp.Operations;
+            for (int i = 0; i < operations.Length; i++)
             {
-                var stmt = statements[i];
+                var operation = operations[i];
 
-                if (stmt is LocalDeclarationStatementSyntax localDecl)
+                switch (operation)
                 {
-                    foreach (var variable in localDecl.Declaration.Variables)
-                    {
-                        var localSymbol = context.SemanticModel.GetDeclaredSymbol(variable, context.CancellationToken) as ILocalSymbol;
-                        if (localSymbol == null) continue;
-
-                        bool isInitializerPure = true;
-                        if (variable.Initializer != null)
+                    case IVariableDeclarationGroupOperation localDeclGroup:
+                        foreach (var decl in localDeclGroup.Declarations)
                         {
-                            // Analyze initializer using the current scope's purity status
-                            isInitializerPure = IsExpressionPure(variable.Initializer.Value, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
-                            if (!isInitializerPure) return false;
-                        }
-                        // Add/update the local's purity in the *mutable* dictionary for this block
-                        localPurityStatus[localSymbol] = isInitializerPure;
-                    }
-                }
-                else if (stmt is ReturnStatementSyntax returnStatement)
-                {
-                    // Only pure if allowed (e.g., top-level block) AND it's the last statement AND expression is pure
-                    if (allowNestedReturn && i == statements.Count - 1)
-                    {
-                        return IsExpressionPure(returnStatement.Expression, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
-                    }
-                    else
-                    {
-                        return false; // Nested return or return not at end
-                    }
-                }
-                // Delegate other statement types to the single statement checker
-                else if (!IsStatementPure(stmt, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, (IReadOnlyDictionary<ILocalSymbol, bool>)localPurityStatus))
-                {
-                    return false; // Impure statement found
-                }
-                // If IsStatementPure handles 'if', 'expression', 'local decl', etc. and returns true, we continue the loop.
-            }
-
-            // If the loop completes without returning false, the block is pure up to this point.
-            // If it's the top-level block of a void method, purity is maintained.
-            // If it's a nested block, it's considered pure.
-            // The final return value semantics are handled by the top-level caller (IsConsideredPure).
-            return true;
-        }
-
-        /// <summary>
-        /// Checks if a given expression is considered pure based on the current rules.
-        /// </summary>
-        internal static bool IsExpressionPure(ExpressionSyntax? expression, SyntaxNodeAnalysisContext context, INamedTypeSymbol enforcePureAttributeSymbol, HashSet<IMethodSymbol> visited, IMethodSymbol containingMethodSymbol, IReadOnlyDictionary<ILocalSymbol, bool> localPurityStatus)
-        {
-            if (expression == null)
-            {
-                // Null expression can occur in some syntax errors, treat as impure
-                return false;
-            }
-
-            // Handle `nameof` which is always pure
-            if (expression is InvocationExpressionSyntax nameofInvocation &&
-                nameofInvocation.Expression is IdentifierNameSyntax { Identifier.ValueText: "nameof" })
-            {
-                return true;
-            }
-
-            var constantValue = context.SemanticModel.GetConstantValue(expression, context.CancellationToken);
-            if (constantValue.HasValue)
-            {
-                return true; // Constants are pure
-            }
-
-            if (expression is InvocationExpressionSyntax invocationExpression)
-            {
-                var symbolInfo = context.SemanticModel.GetSymbolInfo(invocationExpression, context.CancellationToken);
-                if (symbolInfo.Symbol is IMethodSymbol invokedMethodSymbol)
-                {
-                    // --- Check against known impure methods ---
-                    // Use ToDisplayString for potentially generic methods
-                    var methodDisplayString = invokedMethodSymbol.OriginalDefinition.ToDisplayString();
-                    // Simple check based on common impure patterns
-                    if (KnownImpureMethods.Contains(methodDisplayString) ||
-                        methodDisplayString.StartsWith("System.Console.") || // Console I/O
-                        methodDisplayString.StartsWith("System.IO.") || // File I/O
-                        methodDisplayString.StartsWith("System.Net.") || // Networking
-                        methodDisplayString.StartsWith("System.Threading.") || // Threading primitives
-                        methodDisplayString.Contains("Random")) // Randomness
-                    {
-                        return false;
-                    }
-
-                    // --- Recursively check user-defined or other methods ---
-                    // Note: Need to pass the *original* visited set for cycle detection.
-                    // Backtracking (removing containingMethodSymbol) happens in the caller IsConsideredPure.
-                    return IsConsideredPure(invokedMethodSymbol, context, enforcePureAttributeSymbol, visited);
-                }
-                else
-                {
-                    // Invocation of something not resolved to a method symbol (e.g., delegate)
-                    return false;
-                }
-            }
-            else if (expression is IdentifierNameSyntax identifierName)
-            {
-                var symbolInfo = context.SemanticModel.GetSymbolInfo(identifierName, context.CancellationToken);
-                if (symbolInfo.Symbol is ILocalSymbol localSymbol)
-                {
-                    // Check the known purity status of the local variable
-                    return localPurityStatus.TryGetValue(localSymbol, out bool isPure) && isPure;
-                }
-                else if (symbolInfo.Symbol is IParameterSymbol parameterSymbol)
-                {
-                    // Reading a method parameter is considered pure, unless it's 'ref' or 'out'
-                    return parameterSymbol.RefKind == RefKind.None || parameterSymbol.RefKind == RefKind.In || parameterSymbol.RefKind == RefKind.RefReadOnly;
-                }
-                else if (symbolInfo.Symbol is IFieldSymbol fieldSymbol)
-                {
-                    // Static readonly fields are pure.
-                    if (fieldSymbol.IsStatic && fieldSymbol.IsReadOnly)
-                    {
-                        return true;
-                    }
-                    /* // Instance readonly fields accessed via 'this' are pure. -- Temporarily commented out due to CS0184
-                    if (!fieldSymbol.IsStatic && fieldSymbol.IsReadOnly && identifierName is ThisExpressionSyntax)
-                    {
-                        return true;
-                    }
-                    */
-                    // Check if accessed via 'in' or 'ref readonly' parameter
-                    var baseExprInfo = context.SemanticModel.GetSymbolInfo(identifierName, context.CancellationToken);
-                    if (baseExprInfo.Symbol is IParameterSymbol paramSymbol &&
-                       (paramSymbol.RefKind == RefKind.In || paramSymbol.RefKind == RefKind.RefReadOnly))
-                    {
-                        // Reading any field via such a parameter should be considered pure
-                        return true;
-                    }
-                    // All other field accesses (instance non-readonly, or instance readonly not via this)
-                    // are considered potentially impure by this specific check.
-                    // Purity might be allowed by the later check for member access on in/ref readonly params.
-                    return false;
-                }
-                else if (symbolInfo.Symbol is IPropertySymbol propertySymbol)
-                {
-                    // Property access requires checking the getter method
-                    if (propertySymbol.GetMethod != null)
-                    {
-                        // Check known impure getters first
-                        var propertyGetterName = propertySymbol.ContainingType.ToDisplayString() + "." + propertySymbol.Name + ".get";
-                        if (KnownImpureMethods.Contains(propertyGetterName))
-                        {
-                            return false; // Known impure property getter
-                        }
-                        return IsConsideredPure(propertySymbol.GetMethod, context, enforcePureAttributeSymbol, visited);
-                    }
-                    // Property without accessible getter is likely an error or complex scenario, assume impure.
-                    return false;
-                }
-                // Accessing other kinds of identifiers (e.g., type names) is generally fine.
-                // Consider if accessing `this` implicitly is okay. It usually is for reading members.
-                else if (symbolInfo.Symbol is ITypeSymbol) // Accessing a type name is pure
-                {
-                    return true;
-                }
-                // Any other identifier access not explicitly handled is assumed impure
-                return false;
-            }
-            else if (expression is LiteralExpressionSyntax) // Includes numeric, string, char, null, boolean literals
-            {
-                return true;
-            }
-            else if (expression is BinaryExpressionSyntax binaryExpression)
-            {
-                // Binary operation is pure if both operands are pure *considering the context*
-                bool leftIsPure = IsExpressionPure(binaryExpression.Left, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
-                bool rightIsPure = IsExpressionPure(binaryExpression.Right, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
-
-                // Special case: If an operand is member access on in/ref readonly param, it's okay even if IsExpressionPure returned false initially.
-                if (!leftIsPure && binaryExpression.Left is MemberAccessExpressionSyntax leftMember)
-                {
-                    var leftBaseInfo = context.SemanticModel.GetSymbolInfo(leftMember.Expression, context.CancellationToken);
-                    if (leftBaseInfo.Symbol is IParameterSymbol lParam && (lParam.RefKind == RefKind.In || lParam.RefKind == RefKind.RefReadOnly))
-                    {
-                        leftIsPure = true; // Override: Reading member via in/ref readonly is pure here
-                    }
-                }
-                if (!rightIsPure && binaryExpression.Right is MemberAccessExpressionSyntax rightMember)
-                {
-                    var rightBaseInfo = context.SemanticModel.GetSymbolInfo(rightMember.Expression, context.CancellationToken);
-                    if (rightBaseInfo.Symbol is IParameterSymbol rParam && (rParam.RefKind == RefKind.In || rParam.RefKind == RefKind.RefReadOnly))
-                    {
-                        rightIsPure = true; // Override: Reading member via in/ref readonly is pure here
-                    }
-                }
-
-                return leftIsPure && rightIsPure;
-            }
-            else if (expression is PrefixUnaryExpressionSyntax unaryExpression)
-            {
-                // Unary operation is pure if the operand is pure
-                // Exclude ++ and -- which modify state
-                if (unaryExpression.Kind() == SyntaxKind.PreIncrementExpression ||
-                    unaryExpression.Kind() == SyntaxKind.PreDecrementExpression)
-                {
-                    return false;
-                }
-                return IsExpressionPure(unaryExpression.Operand, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
-            }
-            else if (expression is PostfixUnaryExpressionSyntax postfixUnary)
-            {
-                // Exclude ++ and -- which modify state
-                if (postfixUnary.Kind() == SyntaxKind.PostIncrementExpression ||
-                    postfixUnary.Kind() == SyntaxKind.PostDecrementExpression)
-                {
-                    return false;
-                }
-                // Other postfix unary ops? If any exist that are pure, handle here.
-                return false; // Assume impure otherwise
-            }
-            else if (expression is SizeOfExpressionSyntax)
-            {
-                // sizeof() is always pure
-                return true;
-            }
-            else if (expression is DefaultExpressionSyntax)
-            {
-                // default is always pure
-                return true;
-            }
-            else if (expression is LiteralExpressionSyntax literal && literal.Kind() == SyntaxKind.DefaultLiteralExpression)
-            {
-                // default literal is always pure
-                return true;
-            }
-            else if (expression is ConditionalExpressionSyntax conditionalExpression)
-            {
-                // Conditional ?: is pure if condition and both branches are pure
-                return IsExpressionPure(conditionalExpression.Condition, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus) &&
-                       IsExpressionPure(conditionalExpression.WhenTrue, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus) &&
-                       IsExpressionPure(conditionalExpression.WhenFalse, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
-            }
-            else if (expression is ParenthesizedExpressionSyntax parenExpr)
-            {
-                return IsExpressionPure(parenExpr.Expression, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
-            }
-            else if (expression is MemberAccessExpressionSyntax memberAccess)
-            {
-                // Need to evaluate the symbol being accessed
-                var symbolInfo = context.SemanticModel.GetSymbolInfo(memberAccess, context.CancellationToken);
-                if (symbolInfo.Symbol is IFieldSymbol fieldSymbol)
-                {
-                    // Static readonly fields are pure.
-                    if (fieldSymbol.IsStatic && fieldSymbol.IsReadOnly)
-                    {
-                        return true;
-                    }
-                    /* // Instance readonly fields accessed via 'this' are pure. -- Temporarily commented out due to CS0184
-                    if (!fieldSymbol.IsStatic && fieldSymbol.IsReadOnly && memberAccess.Expression is ThisExpressionSyntax)
-                    {
-                        return true;
-                    }
-                    */
-                    // Check if accessed via 'in' or 'ref readonly' parameter
-                    var baseExprInfo = context.SemanticModel.GetSymbolInfo(memberAccess.Expression, context.CancellationToken);
-                    if (baseExprInfo.Symbol is IParameterSymbol paramSymbol &&
-                       (paramSymbol.RefKind == RefKind.In || paramSymbol.RefKind == RefKind.RefReadOnly))
-                    {
-                        // Reading any field via such a parameter should be considered pure
-                        return true;
-                    }
-                    // All other field accesses (instance non-readonly, or instance readonly not via this)
-                    // are considered potentially impure by this specific check.
-                    // Purity might be allowed by the later check for member access on in/ref readonly params.
-                    return false;
-                }
-                else if (symbolInfo.Symbol is IPropertySymbol propertySymbol)
-                {
-                    // Property access requires checking the getter method
-                    if (propertySymbol.GetMethod != null)
-                    {
-                        // Check known impure getters first
-                        var propertyGetterName = propertySymbol.ContainingType.ToDisplayString() + "." + propertySymbol.Name + ".get";
-                        if (KnownImpureMethods.Contains(propertyGetterName))
-                        {
-                            return false; // Known impure property getter
-                        }
-                        return IsConsideredPure(propertySymbol.GetMethod, context, enforcePureAttributeSymbol, visited);
-                    }
-                    // Property without accessible getter is likely an error or complex scenario, assume impure.
-                    return false;
-                }
-                else if (symbolInfo.Symbol is IMethodSymbol)
-                {
-                    // Accessing a method group name itself is pure
-                    return true;
-                }
-                // Accessing other members (e.g., events, types nested within expression) - assume impure for now
-                return false;
-            }
-            else if (expression is ObjectCreationExpressionSyntax objectCreation)
-            {
-                // Object creation might be pure if the constructor is pure and all arguments are pure
-                var constructorSymbolInfo = context.SemanticModel.GetSymbolInfo(objectCreation, context.CancellationToken);
-                if (constructorSymbolInfo.Symbol is IMethodSymbol constructorSymbol)
-                {
-                    // Check constructor purity recursively
-                    bool constructorIsPure = IsConsideredPure(constructorSymbol, context, enforcePureAttributeSymbol, visited);
-                    if (!constructorIsPure) return false;
-
-                    // Check argument purity
-                    if (objectCreation.ArgumentList != null)
-                    {
-                        foreach (var arg in objectCreation.ArgumentList.Arguments)
-                        {
-                            if (!IsExpressionPure(arg.Expression, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus))
+                            foreach (var declarator in decl.Declarators)
                             {
-                                return false; // Impure argument
+                                var localSymbol = declarator.Symbol;
+                                bool isInitializerPure = true;
+                                if (declarator.Initializer != null)
+                                {
+                                    isInitializerPure = IsOperationPure(declarator.Initializer.Value, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+                                    if (!isInitializerPure) return false;
+                                }
+                                localPurityStatus[localSymbol] = isInitializerPure;
                             }
                         }
-                    }
-                    // Check initializer purity (if any)
-                    if (objectCreation.Initializer != null)
-                    {
-                        foreach (var initExpr in objectCreation.Initializer.Expressions)
+                        break;
+
+                    case IReturnOperation returnOp:
+                        // Allow return only if flag is set AND it's the last operation
+                        if (allowReturnAtEnd && i == operations.Length - 1)
                         {
-                            if (initExpr is AssignmentExpressionSyntax initAssign)
+                            return IsOperationPure(returnOp.ReturnedValue, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+                        }
+                        else
+                        {
+                            return false; // Impure: Nested return or return not at end
+                        }
+
+                    case IExpressionStatementOperation exprStmtOp:
+                        if (!IsOperationPure(exprStmtOp.Operation, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus))
+                        {
+                            return false;
+                        }
+                        break;
+
+                    case IConditionalOperation ifOp:
+                        if (!IsOperationPure(ifOp.Condition, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)) return false;
+                        // Analyze branches recursively using copies of the current local state
+                        // Pass allowReturnAtEnd=false to nested blocks
+                        var trueBranchLocals = new Dictionary<ILocalSymbol, bool>(localPurityStatus, SymbolEqualityComparer.Default);
+                        var falseBranchLocals = new Dictionary<ILocalSymbol, bool>(localPurityStatus, SymbolEqualityComparer.Default);
+                        if (!AnalyzeOperationConditionalBranch(ifOp.WhenTrue, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, trueBranchLocals))
+                            return false;
+                        if (ifOp.WhenFalse != null && !AnalyzeOperationConditionalBranch(ifOp.WhenFalse, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, falseBranchLocals))
+                            return false;
+                        // Merging local state changes from branches is complex, ignore for now.
+                        // Assume purity depends only on the operations executed, not state merging.
+                        break;
+
+                    case IBlockOperation nestedBlockOp: // Handles nested blocks explicitly
+                        var nestedLocalPurityStatus = new Dictionary<ILocalSymbol, bool>(localPurityStatus, SymbolEqualityComparer.Default);
+                        // Pass allowReturnAtEnd=false to nested blocks
+                        if (!AnalyzeNestedBlockOperation(nestedBlockOp, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, nestedLocalPurityStatus, allowReturnAtEnd: false))
+                        {
+                            return false;
+                        }
+                        break;
+
+                    case IEmptyOperation _: break;
+                    case ILabeledOperation labelOp: // Use ILabeledOperation directly for labels
+                        // Analyze the labeled operation itself
+                        if (labelOp.Operation != null)
+                        {
+                            if (labelOp.Operation is IBlockOperation labeledBlock)
                             {
-                                // Initializing properties/fields requires checking the assignment target (property setter/field) and value
-                                // For now, assume initializers make it impure until we handle setters properly
-                                return false; // TODO: Refine initializer check
+                                if (!AnalyzeNestedBlockOperation(labeledBlock, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus, allowReturnAtEnd)) return false;
                             }
                             else
                             {
-                                return false; // Non-assignment initializer expression? Assume impure.
+                                // Crude handling if not a block - analyze as single op if possible
+                                // Need to create a copy as IsOperationPure expects ReadOnly but might call helpers needing mutable
+                                var tempLocals = new Dictionary<ILocalSymbol, bool>(localPurityStatus, SymbolEqualityComparer.Default);
+                                if (!IsOperationPure(labelOp.Operation, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, tempLocals)) return false;
                             }
                         }
-                    }
+                        break;
+                    case IBranchOperation branchOp:
+                        // GoTo handled; Break/Continue are okay within loops/switch
+                        if (branchOp.BranchKind == BranchKind.GoTo) return false;
+                        break;
 
-                    return true; // Constructor and arguments are pure
+                    // --- Loop Handling --- (Basic initial implementation)
+                    case ILoopOperation loopOp: // Base for For, While, Foreach
+                        {
+                            // Basic check: Condition (if any) and Body must be pure.
+                            // This doesn't handle state changes across iterations well.
+                            bool bodyPure = true;
+                            if (loopOp.Body != null) // Analyze body if present
+                            {
+                                var loopLocals = new Dictionary<ILocalSymbol, bool>(localPurityStatus, SymbolEqualityComparer.Default);
+                                bodyPure = AnalyzeOperationConditionalBranch(loopOp.Body, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, loopLocals);
+                            }
+
+                            if (!bodyPure) return false;
+
+                            // Check condition if applicable (While, For)
+                            if (loopOp is IWhileLoopOperation whileLoop)
+                            {
+                                if (whileLoop.Condition != null && !IsOperationPure(whileLoop.Condition, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)) return false;
+                            }
+                            else if (loopOp is IForLoopOperation forLoop)
+                            {
+                                if (forLoop.Condition != null && !IsOperationPure(forLoop.Condition, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)) return false;
+                                // Also check Before/AtLoopBottom operations for purity
+                                foreach (var op in forLoop.Before)
+                                {
+                                    if (!IsOperationPure(op, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)) return false;
+                                }
+                                foreach (var op in forLoop.AtLoopBottom)
+                                {
+                                    if (!IsOperationPure(op, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)) return false;
+                                }
+                            }
+                            // ForEach requires checking the collection expression
+                            else if (loopOp is IForEachLoopOperation forEachLoop)
+                            {
+                                if (!IsOperationPure(forEachLoop.Collection, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)) return false;
+                            }
+
+                            // If condition/body seem pure, we continue. This is a simplification.
+                            break;
+                        }
+
+                    // --- Try/Catch Handling --- (Basic initial implementation)
+                    case ITryOperation tryOp:
+                        {
+                            // Body, Catches, and Finally must all be pure
+                            var tryLocals = new Dictionary<ILocalSymbol, bool>(localPurityStatus, SymbolEqualityComparer.Default);
+                            if (tryOp.Body != null && !AnalyzeOperationConditionalBranch(tryOp.Body, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, tryLocals)) return false;
+
+                            foreach (var catchClause in tryOp.Catches)
+                            {
+                                var catchLocals = new Dictionary<ILocalSymbol, bool>(localPurityStatus, SymbolEqualityComparer.Default);
+                                // Check filter if present
+                                if (catchClause.Filter != null && !IsOperationPure(catchClause.Filter, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, catchLocals)) return false;
+                                // Check handler body
+                                if (!AnalyzeOperationConditionalBranch(catchClause.Handler, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, catchLocals)) return false;
+                            }
+
+                            if (tryOp.Finally != null)
+                            {
+                                var finallyLocals = new Dictionary<ILocalSymbol, bool>(localPurityStatus, SymbolEqualityComparer.Default);
+                                if (!AnalyzeOperationConditionalBranch(tryOp.Finally, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, finallyLocals)) return false;
+                            }
+                            break;
+                        }
+
+                    case ISwitchOperation switchOp:
+                        {
+                            // Check expression being switched on
+                            if (!IsOperationPure(switchOp.Value, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)) return false;
+                            // Check all sections
+                            foreach (var section in switchOp.Cases)
+                            {
+                                var sectionLocals = new Dictionary<ILocalSymbol, bool>(localPurityStatus, SymbolEqualityComparer.Default);
+                                // Check labels (cases)
+                                foreach (var clause in section.Clauses)
+                                { // Use ICaseClauseOperation
+                                  // Case Guard (when clause) analysis might need refinement or be handled by body analysis.
+                                  // Removing direct check on clause:
+                                  // if (clause.Guard != null && !IsOperationPure(clause.Guard, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, sectionLocals)) return false; // Removed !
+                                }
+                                // Check body operations
+                                foreach (var bodyOp in section.Body)
+                                {
+                                    // Analyze body statements using a helper that understands switch context (break is allowed, return is not)
+                                    if (!AnalyzeSwitchSectionOperation(bodyOp, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, sectionLocals)) return false;
+                                }
+                            }
+                            break;
+                        }
+
+                    case IStopOperation _: // End of execution, like end of iterator method - Pure
+                        break;
+
+                    default:
+                        // System.Diagnostics.Debug.WriteLine($"Unhandled Operation in Block: {operation.Kind} -> {operation.Syntax?.Kind()}");
+                        return false;
                 }
-                return false; // Could not resolve constructor
             }
-            else if (expression is CastExpressionSyntax castExpr)
+
+            // If the loop completes, the block is pure unless it's non-void and doesn't end with a return.
+            if (!allowReturnAtEnd || containingMethodSymbol.ReturnsVoid)
             {
-                // Cast is pure if the inner expression is pure
-                return IsExpressionPure(castExpr.Expression, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
-            }
-            else if (expression is TypeOfExpressionSyntax)
-            {
-                // typeof() is pure
                 return true;
             }
-            else if (expression is ThisExpressionSyntax)
+            else
             {
-                // Accessing 'this' itself is pure (it's what you do with it that might not be)
-                return true;
+                // If it's the top-level block of a non-void method, it must end with a return OR throw.
+                // Check if the last operation was effectively a return or throw.
+                if (operations.Length == 0) return containingMethodSymbol.IsAbstract; // Empty block for non-void is ok only if abstract
+
+                IOperation lastOp = operations[operations.Length - 1];
+                // Allow for labeled statements containing the final operation
+                while (lastOp is ILabeledOperation labeledOp)
+                {
+                    // Add null check before assignment
+                    if (labeledOp.Operation == null) return false; // Cannot be valid end if label points to null
+                    lastOp = labeledOp.Operation;
+                }
+                // Check if the last operation is Return or Throw
+                return lastOp is IReturnOperation || lastOp is IThrowOperation;
             }
-            // ---> REMOVE Check HERE for member access on readable parameters
-            /*
-            if (expression is MemberAccessExpressionSyntax memberAccessOnParamCheck) {
-                var baseExprInfo = context.SemanticModel.GetSymbolInfo(memberAccessOnParamCheck.Expression, context.CancellationToken);
-                if (baseExprInfo.Symbol is IParameterSymbol paramSymbol &&
-                   (paramSymbol.RefKind == RefKind.In || paramSymbol.RefKind == RefKind.RefReadOnly))
+        }
+
+        /// <summary>
+        /// Helper to analyze an operation within a switch section body.
+        /// Disallows return, allows break.
+        /// </summary>
+        private static bool AnalyzeSwitchSectionOperation(
+           IOperation operation,
+           SyntaxNodeAnalysisContext context,
+           INamedTypeSymbol enforcePureAttributeSymbol,
+           HashSet<IMethodSymbol> visited,
+           IMethodSymbol containingMethodSymbol,
+           Dictionary<ILocalSymbol, bool> localPurityStatus)
+        {
+            // Very similar to AnalyzeNestedBlockOperation's switch, but with different termination rules
+
+            switch (operation)
+            {
+                case IVariableDeclarationGroupOperation localDeclGroup:
                     {
-                        // Assume accessing members via in/ref readonly params is pure for now.
-                        // TODO: This might be too broad; should ideally check the accessed member's purity.
+                        foreach (var decl in localDeclGroup.Declarations)
+                        {
+                            foreach (var declarator in decl.Declarators)
+                            {
+                                var localSymbol = declarator.Symbol;
+                                bool isInitializerPure = true;
+                                if (declarator.Initializer != null)
+                                {
+                                    isInitializerPure = IsOperationPure(declarator.Initializer.Value, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+                                    if (!isInitializerPure) return false;
+                                }
+                                localPurityStatus[localSymbol] = isInitializerPure;
+                            }
+                        }
                         return true;
                     }
-            }
-            */
-            // TODO: Handle other expression types like ArrayCreationExpressionSyntax, Collection Expressions (C# 12+), etc.
 
-            // If the expression type isn't explicitly handled as pure, assume it's impure
-            return false;
+                case IReturnOperation _: return false; // Return not allowed directly in switch section
+
+                case IExpressionStatementOperation exprStmtOp:
+                    return IsOperationPure(exprStmtOp.Operation, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+
+                case IConditionalOperation ifOp: // Allow simple if/else if pure
+                    {
+                        if (!IsOperationPure(ifOp.Condition, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)) return false;
+                        var trueBranchLocals = new Dictionary<ILocalSymbol, bool>(localPurityStatus, SymbolEqualityComparer.Default);
+                        var falseBranchLocals = new Dictionary<ILocalSymbol, bool>(localPurityStatus, SymbolEqualityComparer.Default);
+                        // Use AnalyzeConditionalBranchInSwitch recursively for branches
+                        if (!AnalyzeConditionalBranchInSwitch(ifOp.WhenTrue, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, trueBranchLocals)) return false;
+                        if (ifOp.WhenFalse != null && !AnalyzeConditionalBranchInSwitch(ifOp.WhenFalse, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, falseBranchLocals)) return false;
+                        return true;
+                    }
+
+                case IBlockOperation nestedBlockOp:
+                    {
+                        var nestedLocalPurityStatus = new Dictionary<ILocalSymbol, bool>(localPurityStatus, SymbolEqualityComparer.Default);
+                        // Recursively call this helper for nested blocks within the switch section
+                        foreach (var op in nestedBlockOp.Operations)
+                        {
+                            if (!AnalyzeSwitchSectionOperation(op, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, nestedLocalPurityStatus))
+                            {
+                                return false;
+                            }
+                        }
+                        return true;
+                    }
+
+                case IEmptyOperation _: return true;
+                case ILabeledOperation lblOp: // Allow labels within switch sections
+                                              // Analyze the operation associated with the label using switch rules
+                    if (lblOp.Operation != null)
+                    { // Add null check
+                        return AnalyzeSwitchSectionOperation(lblOp.Operation, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+                    }
+                    // If label has no operation (shouldn't happen?), treat as pure.
+                    return true;
+                case IBranchOperation branchOp when branchOp.BranchKind == BranchKind.Break:
+                    return true; // Break is allowed within switch
+                case IBranchOperation branchOp when branchOp.BranchKind == BranchKind.GoTo: // GoTo Case or GoTo Default
+                                                                                            // Goto another case label is allowed, assume pure jump for now.
+                    return true;
+
+                // Allow loops if their bodies use AnalyzeSwitchSectionOperation
+                case ILoopOperation loopOp:
+                    {
+                        bool bodyPure = true;
+                        if (loopOp.Body != null)
+                        {
+                            var loopLocals = new Dictionary<ILocalSymbol, bool>(localPurityStatus, SymbolEqualityComparer.Default);
+                            bodyPure = AnalyzeConditionalBranchInSwitch(loopOp.Body, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, loopLocals);
+                        }
+                        if (!bodyPure) return false;
+
+                        // Check condition/collection/etc.
+                        if (loopOp is IWhileLoopOperation whileLoop)
+                        {
+                            if (whileLoop.Condition != null && !IsOperationPure(whileLoop.Condition, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)) return false;
+                        }
+                        else if (loopOp is IForLoopOperation forLoop)
+                        {
+                            if (forLoop.Condition != null && !IsOperationPure(forLoop.Condition, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)) return false;
+                            foreach (var op in forLoop.Before) { if (!IsOperationPure(op, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)) return false; }
+                            foreach (var op in forLoop.AtLoopBottom) { if (!IsOperationPure(op, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)) return false; }
+                        }
+                        else if (loopOp is IForEachLoopOperation forEachLoop)
+                        {
+                            if (!IsOperationPure(forEachLoop.Collection, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)) return false;
+                        }
+                        return true;
+                    }
+
+                default:
+                    // System.Diagnostics.Debug.WriteLine($"Unhandled Operation in Switch Section: {operation.Kind} -> {operation.Syntax?.Kind()}");
+                    return false;
+            }
         }
+
+        // Helper specifically for analyzing conditional branches within a switch section
+        private static bool AnalyzeConditionalBranchInSwitch(
+            IOperation branchOperation,
+            SyntaxNodeAnalysisContext context,
+            INamedTypeSymbol enforcePureAttributeSymbol,
+            HashSet<IMethodSymbol> visited,
+            IMethodSymbol containingMethodSymbol,
+            Dictionary<ILocalSymbol, bool> localPurityStatus)
+        {
+            if (branchOperation is IBlockOperation branchBlock)
+            {
+                // Analyze the nested block using switch rules
+                var nestedStatus = new Dictionary<ILocalSymbol, bool>(localPurityStatus, SymbolEqualityComparer.Default);
+                foreach (var op in branchBlock.Operations)
+                {
+                    if (!AnalyzeSwitchSectionOperation(op, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, nestedStatus)) return false;
+                }
+                return true;
+            }
+            else
+            {
+                // Analyze the single operation using switch rules
+                return AnalyzeSwitchSectionOperation(branchOperation, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+            }
+        }
+
+
+        /// <summary>
+        /// Helper to analyze an operation that represents a branch in a conditional (if/else).
+        /// It might be a BlockOperation or some other single operation.
+        /// </summary>
+        private static bool AnalyzeOperationConditionalBranch(
+            IOperation branchOperation,
+            SyntaxNodeAnalysisContext context,
+            INamedTypeSymbol enforcePureAttributeSymbol,
+            HashSet<IMethodSymbol> visited,
+            IMethodSymbol containingMethodSymbol,
+            Dictionary<ILocalSymbol, bool> localPurityStatus)
+        {
+            if (branchOperation is IBlockOperation branchBlock)
+            {
+                // Analyze the nested block, disallowing returns within it.
+                // Create mutable copy for the nested analysis
+                var nestedStatus = new Dictionary<ILocalSymbol, bool>(localPurityStatus, SymbolEqualityComparer.Default);
+                return AnalyzeNestedBlockOperation(branchBlock, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, nestedStatus, allowReturnAtEnd: false);
+            }
+            else
+            {
+                // Analyze the single operation.
+                // A return statement is invalid here (must be inside a block analyzed by AnalyzeNestedBlockOperation)
+                if (branchOperation is IReturnOperation) return false;
+                // Delegate to IsOperationPure for single operations in branches
+                // IsOperationPure takes IReadOnlyDictionary, so no copy needed here.
+                return IsOperationPure(branchOperation, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+            }
+        }
+
+
+        /// <summary>
+        /// Checks if a given IOperation is considered pure based on the current rules.
+        /// </summary>
+        private static bool IsOperationPure(
+            IOperation? operation,
+            SyntaxNodeAnalysisContext context,
+            INamedTypeSymbol enforcePureAttributeSymbol,
+            HashSet<IMethodSymbol> visited,
+            IMethodSymbol containingMethodSymbol,
+            IReadOnlyDictionary<ILocalSymbol, bool> localPurityStatus)
+        {
+            // --- Debug Logging ---
+            // System.Diagnostics.Debug.WriteLine($"IsOperationPure Start: Kind={operation?.Kind}, Syntax='{operation?.Syntax?.ToString() ?? "N/A"}'");
+            // --- End Debug Logging ---
+
+            if (operation == null) return false; // Null operation -> impure
+
+            // Check for constant values first
+            var constantValue = operation.ConstantValue;
+            // Allow constant null. Check HasValue first.
+            // Add null suppression (!) assuming if HasValue is true, Value is intended to be non-null for primitive types.
+            if (constantValue.HasValue && constantValue.Value != null)
+            {
+                return true;
+            }
+            // Check explicit constant null literal
+            if (operation is ILiteralOperation litOp && litOp.ConstantValue.HasValue && litOp.ConstantValue.Value == null)
+            {
+                return true;
+            }
+
+            switch (operation)
+            {
+                // --- Assignments need to be ordered carefully ---
+                case IIncrementOrDecrementOperation incDecOp: // ++, -- (More specific than IAssignmentOperation)
+                    {
+                        // These always modify state.
+                        return false;
+                    }
+                case ICompoundAssignmentOperation compoundAssignOp: // a += b etc. (More specific than IAssignmentOperation)
+                    {
+                        // Desugars to read + write, inherently impure.
+                        return false;
+                    }
+                case ICoalesceAssignmentOperation _: return false; // ??=
+                case IEventAssignmentOperation _: return false; // +=, -=
+                case IAssignmentOperation assignmentOp: // General assignment
+                    {
+                        var target = assignmentOp.Target;
+                        bool isTargetPureContext = true; // Assume assignment itself is pure contextually if target symbol allows it
+
+                        if (target is IFieldReferenceOperation fieldRef)
+                        {
+                            // Allow assignment only to instance readonly fields in constructor
+                            isTargetPureContext = !fieldRef.Field.IsStatic && fieldRef.Field.IsReadOnly && containingMethodSymbol.MethodKind == MethodKind.Constructor;
+                        }
+                        else if (target is IPropertyReferenceOperation propRef)
+                        {
+                            var propertySymbol = propRef.Property;
+                            // Check if assigning to a readonly property (like {get;}) inside a constructor
+                            if (propertySymbol.IsReadOnly && containingMethodSymbol.MethodKind == MethodKind.Constructor)
+                            {
+                                isTargetPureContext = true; // Pure to assign readonly property backing field in constructor
+                            }
+                            else
+                            {
+                                // Otherwise, purity depends on the setter method analysis (init or regular setter)
+                                isTargetPureContext = IsPropertySetterPure(propertySymbol, context, enforcePureAttributeSymbol, visited, containingMethodSymbol);
+                            }
+                        }
+                        else if (target is IParameterReferenceOperation paramRef)
+                        {
+                            // Cannot assign to 'in' or non-ref/out parameters implicitly.
+                            // Explicit assignment to ref/out is inherently impure from caller perspective.
+                            isTargetPureContext = paramRef.Parameter.RefKind == RefKind.None || paramRef.Parameter.RefKind == RefKind.In;
+                            if (!isTargetPureContext) return false; // Direct impurity if assigning to ref/out
+                        }
+                        else if (target is ILocalReferenceOperation)
+                        {
+                            isTargetPureContext = true; // Assignment to local is fine
+                        }
+                        else if (target is IDiscardOperation)
+                        {
+                            isTargetPureContext = true; // Assignment to discard is fine
+                        }
+                        else
+                        {
+                            // Assignment to unknown target (indexer, event, etc.) -> impure
+                            isTargetPureContext = false;
+                        }
+
+                        if (!isTargetPureContext) return false;
+
+                        // Assignment is pure only if the assigned value is pure
+                        return IsOperationPure(assignmentOp.Value, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+                    }
+
+                // --- Invocations ---
+                case IInvocationOperation invocationOp:
+                    {
+                        var targetMethod = invocationOp.TargetMethod;
+                        // Handle nameof specifically
+                        if (targetMethod.Name == "nameof" && targetMethod.ContainingType?.SpecialType == SpecialType.System_String) return true; // Added null check
+
+                        var methodDisplayString = targetMethod.OriginalDefinition.ToDisplayString();
+                        if (KnownImpureMethods.Contains(methodDisplayString) ||
+                            methodDisplayString.StartsWith("System.Console.") ||
+                            methodDisplayString.StartsWith("System.IO.") ||
+                            methodDisplayString.StartsWith("System.Net.") ||
+                            methodDisplayString.StartsWith("System.Threading.") ||
+                            methodDisplayString.Contains("Random"))
+                        {
+                            return false;
+                        }
+
+                        // *** Check arguments FIRST ***
+                        var arguments = invocationOp.Arguments;
+                        var parameters = targetMethod.Parameters;
+                        int argCount = arguments.Length;
+                        int paramCount = parameters.Length;
+                        int checkLength = System.Math.Min(argCount, paramCount); // Handle params arrays etc.
+
+                        for (int i = 0; i < checkLength; i++)
+                        {
+                            var argOp = arguments[i];
+                            var paramSymbol = parameters[i];
+
+                            // Check for ref/in mismatch - IMPURE if found
+                            if (paramSymbol.RefKind == RefKind.Ref &&
+                                argOp.Value is IParameterReferenceOperation argValueParamRef &&
+                                argValueParamRef.Parameter.RefKind == RefKind.In)
+                            {
+                                return false;
+                            }
+
+                            // Check argument purity
+                            if (!IsOperationPure(argOp.Value, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus))
+                            {
+                                return false; // Impure if any argument is impure
+                            }
+                        }
+                        // Also check remaining arguments if argCount > paramCount (e.g. params array)
+                        for (int i = checkLength; i < argCount; i++)
+                        {
+                            if (!IsOperationPure(arguments[i].Value, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus))
+                            {
+                                return false; // Impure if any extra argument is impure
+                            }
+                        }
+                        // *** END Argument Checks ***
+
+                        // If arguments are pure, check the target method itself
+                        // Use OriginalDefinition to handle generics correctly in visited set
+                        return IsConsideredPure(targetMethod.OriginalDefinition, context, enforcePureAttributeSymbol, visited);
+                    }
+
+                // --- References (Reads) ---
+                case IFieldReferenceOperation fieldRefOp:
+                    {
+                        var fieldSymbol = fieldRefOp.Field;
+                        if (fieldSymbol.IsStatic && fieldSymbol.IsReadOnly) return true;
+                        // Allow reading instance readonly fields - Temporarily disable to align with test expectations
+                        // if (!fieldSymbol.IsStatic && fieldSymbol.IsReadOnly) return true;
+                        // Allow reading from 'in' or 'ref readonly' parameters (field access on parameter)
+                        if (fieldRefOp.Instance is IParameterReferenceOperation paramRef &&
+                            (paramRef.Parameter.RefKind == RefKind.In || paramRef.Parameter.RefKind == RefKind.RefReadOnly))
+                        {
+                            // Reading a field of an 'in' or 'ref readonly' parameter is pure
+                            return true;
+                        }
+                        // Reading non-static-readonly fields (or non-constructor instance readonly) is impure
+                        return false;
+                    }
+                case IPropertyReferenceOperation propRefOp: // Reading a property
+                    {
+                        var propSymbol = propRefOp.Property;
+                        if (propSymbol.GetMethod == null) return false; // No getter
+
+                        // *** ADDED CHECK ***
+                        // If accessing a readonly property via an 'in' or 'ref readonly' parameter instance, assume pure.
+                        if (propSymbol.IsReadOnly &&
+                            propRefOp.Instance is IParameterReferenceOperation paramRef &&
+                            (paramRef.Parameter.RefKind == RefKind.In || paramRef.Parameter.RefKind == RefKind.RefReadOnly))
+                        {
+                            return true;
+                        }
+                        // *** END ADDED CHECK ***
+
+                        // Check known impure getters first
+                        var propertyGetterName = propSymbol.ContainingType.ToDisplayString() + "." + propSymbol.Name + ".get";
+                        if (KnownImpureMethods.Contains(propertyGetterName)) return false;
+
+                        // Check getter purity (use original definition)
+                        // Use null-forgiving operator !. since we checked for null getter earlier.
+                        return IsConsideredPure(propSymbol.GetMethod!.OriginalDefinition, context, enforcePureAttributeSymbol, visited);
+                    }
+                case ILocalReferenceOperation localRefOp:
+                    {
+                        // If local isn't found, it might be an error state, assume impure.
+                        // Add null-forgiving operator as compiler warns localPurityStatus might be null.
+                        return localPurityStatus.TryGetValue(localRefOp.Local, out bool isPure) && isPure;
+                    }
+                case IParameterReferenceOperation paramRefOp:
+                    {
+                        return true;
+                    }
+                case IInstanceReferenceOperation instRefOp when instRefOp.ReferenceKind == InstanceReferenceKind.ContainingTypeInstance: // 'this' or 'base'
+                    return true;
+                case IEventReferenceOperation _: return false; // Referencing event often leads to +=/-=
+
+                // --- Literals / Constants / Defaults ---
+                case ILiteralOperation literalOp: return literalOp.Type?.SpecialType != SpecialType.System_IntPtr && literalOp.Type?.SpecialType != SpecialType.System_UIntPtr; // Exclude pointers
+                case IDefaultValueOperation _: return true;
+
+                // --- Binary/Unary Operations ---
+                case IBinaryOperation binaryOp:
+                    {
+                        // Check for user-defined operator
+                        if (binaryOp.OperatorMethod != null)
+                        {
+                            return IsConsideredPure(binaryOp.OperatorMethod.OriginalDefinition, context, enforcePureAttributeSymbol, visited);
+                        }
+                        // Handle && and || specifically? Might short-circuit.
+                        // For now, assume both operands are evaluated conceptually for purity check.
+                        return IsOperationPure(binaryOp.LeftOperand, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus) &&
+                               IsOperationPure(binaryOp.RightOperand, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+                    }
+                case IUnaryOperation unaryOp:
+                    {
+                        if (unaryOp.OperatorMethod != null)
+                        {
+                            return IsConsideredPure(unaryOp.OperatorMethod.OriginalDefinition, context, enforcePureAttributeSymbol, visited);
+                        }
+                        // Check for pointer indirection * / ->
+                        // OperationKind.PointerIndirectionReference doesn't seem reliable.
+                        // Remove syntax check causing CS0154
+                        // if (unaryOp.Syntax is PrefixUnaryExpressionSyntax { Kind: SyntaxKind.PointerIndirectionExpression } ||
+                        //     unaryOp.Syntax is MemberAccessExpressionSyntax { Kind: SyntaxKind.PointerMemberAccessExpression }) return false;
+
+                        // Purity depends on operand for standard ops like +, -, !, ~
+                        return IsOperationPure(unaryOp.Operand, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+                    }
+
+                // --- Conditional Operations ---
+                case IConditionalOperation conditionalOp: // ternary ?: or if statement expression
+                    {
+                        return IsOperationPure(conditionalOp.Condition, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus) &&
+                               IsOperationPure(conditionalOp.WhenTrue, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus) &&
+                               (conditionalOp.WhenFalse == null || IsOperationPure(conditionalOp.WhenFalse, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus));
+                    }
+                case ICoalesceOperation coalesceOp: // ??
+                    {
+                        return IsOperationPure(coalesceOp.Value, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus) &&
+                               IsOperationPure(coalesceOp.WhenNull, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+                    }
+                case IConditionalAccessOperation conditionalAccess: // ?.
+                    {
+                        // Pure if the accessed operation (WhenNotNull) is pure AND the receiver is pure.
+                        bool receiverPure = IsOperationPure(conditionalAccess.Operation, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+                        bool accessedPure = IsOperationPure(conditionalAccess.WhenNotNull, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+                        return receiverPure && accessedPure;
+                    }
+                case IConditionalAccessInstanceOperation conditionalInstance: return true; // Reading the instance part of ?. is pure if the underlying expr is pure, which is checked by receiverPure above.
+
+
+                // --- Type Operations ---
+                case ITypeOfOperation _: return true;
+                case ISizeOfOperation _:
+                    return true;
+
+                case IIsTypeOperation isOp: // Handles `is T` and `is T x`
+                    // --- Debug Logging ---
+                    // System.Diagnostics.Debug.WriteLine($"IsOperationPure In IIsTypeOperation Check: Kind={operation.Kind}, Type={operation.GetType().FullName}, ChildrenCount={operation.ChildOperations.Count()}, Syntax='{operation.Syntax?.ToString() ?? "N/A"}'");
+                    // --- End Debug Logging ---
+                    // Try accessing via ChildOperations instead of Operand
+                    if (operation.ChildOperations.Count() != 1) return false; // Safety check - Use ChildOperations
+                    var operandFromChildren = operation.ChildOperations.Single(); // Use ChildOperations
+                    return IsOperationPure(operandFromChildren, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+                case IConversionOperation convOp: // Casts, implicit conversions
+                    if (convOp.OperatorMethod != null)
+                    {
+                        return IsConsideredPure(convOp.OperatorMethod.OriginalDefinition, context, enforcePureAttributeSymbol, visited);
+                    }
+                    return IsOperationPure(convOp.Operand, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+
+                /* Start Commenting Object Creation etc.
+                // --- Object Creation ---
+                case IObjectCreationOperation objCreationOp:
+                    {
+                        if (objCreationOp.Constructor == null) return false;
+                        // Use OriginalDefinition for constructor check
+                        bool constructorIsPure = IsConsideredPure(objCreationOp.Constructor.OriginalDefinition, context, enforcePureAttributeSymbol, visited);
+                        if (!constructorIsPure) return false;
+
+                        // Check arguments
+                        foreach (var arg in objCreationOp.Arguments)
+                        {
+                            if (!IsOperationPure(arg.Value, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)) return false;
+                        }
+
+                        // Check initializer (if any)
+                        if (objCreationOp.Initializer != null)
+                        {
+                            if (!IsOperationPure(objCreationOp.Initializer, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)) return false;
+                        }
+
+                        return true;
+                    }
+                case IAnonymousObjectCreationOperation anonObjOp:
+                    { // Check initializers
+                        return anonObjOp.Initializers.All(init => IsOperationPure(init, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus));
+                    }
+                case ITypeParameterObjectCreationOperation typeParamObjOp: // new T()
+                    { // Relies on default constructor being pure
+                        // Find parameterless constructor using GetMembers
+                        var ctor = typeParamObjOp.Type?.GetMembers(".ctor")
+                                     .OfType<IMethodSymbol>()
+                                     .FirstOrDefault(c => c.Parameters.Length == 0 && c.MethodKind == MethodKind.Constructor);
+                        return ctor == null || IsConsideredPure(ctor.OriginalDefinition, context, enforcePureAttributeSymbol, visited);
+                    }
+                case IObjectOrCollectionInitializerOperation initializerOp: // The initializer part itself
+                    {
+                        foreach (var init in initializerOp.Initializers)
+                        {
+                            if (!IsOperationPure(init, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus))
+                            {
+                                return false;
+                            }
+                        }
+                        return true;
+                    }
+                case IMemberInitializerOperation memberInitOp: // e.g., new X { Prop = Value }
+                    {
+                        // The initializer is the assignment operation itself
+                        return IsOperationPure(memberInitOp.Initializer, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+                    }
+                case IArrayCreationOperation arrayCreationOp: // new T[...]
+                    {
+                        // Check dimension sizes
+                        foreach (var dim in arrayCreationOp.DimensionSizes)
+                        {
+                            if (!IsOperationPure(dim, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)) return false;
+                        }
+                        // Check initializer
+                        if (arrayCreationOp.Initializer != null && !IsOperationPure(arrayCreationOp.Initializer, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)) return false;
+                        return true;
+                    }
+                case IArrayInitializerOperation arrayInitOp: // { a, b, c }
+                    {
+                        return arrayInitOp.ElementValues.All(e => IsOperationPure(e, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus));
+                    }
+                case IDelegateCreationOperation delegateCreation: // new Action(...) or MethodGroup
+                    { // Creating delegate is pure if target expression (if any) is pure
+                        return delegateCreation.Target == null || IsOperationPure(delegateCreation.Target, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+                    }
+                case IAnonymousFunctionOperation _: return true; // Defining a lambda/anon method is pure
+                End Commenting Object Creation etc. */
+
+
+                // Remove comment markers
+                // --- Others ---
+                case IParenthesizedOperation parenOp: // (expr)
+                    return IsOperationPure(parenOp.Operand, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus); // Removed !
+                case IMethodReferenceOperation _: return true; // Referencing a method itself is pure
+                case INameOfOperation _: return true; // nameof() is pure
+                case ITupleOperation tupleOp: // Tuple literal (a, b)
+                    return tupleOp.Elements.All(e => IsOperationPure(e, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)); // Removed !
+                case IArgumentOperation argOp: // Check the underlying value of the argument
+                    return IsOperationPure(argOp.Value, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus); // Removed !
+                case IInterpolatedStringOperation intpStrOp:
+                    return intpStrOp.Parts.All(p => IsOperationPure(p, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)); // Removed !
+                case IInterpolatedStringTextOperation _: return true; // Constant text part
+                // Remove comment markers
+                /* Comment out IInterpolationOperation 
+                case IInterpolationOperation interpolationOp: // The {expr} part
+                    return IsOperationPure(interpolationOp.Expression, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus); // Removed !
+                */
+                // Uncomment IBlockOperation
+                /* Start commenting IBlockOperation again
+                case IBlockOperation blockOp: // Block in expression context (e.g., lambda expr body)
+                    var blockLocalStatus = new Dictionary<ILocalSymbol, bool>(localPurityStatus, SymbolEqualityComparer.Default);
+                    // Blocks used as expressions are only pure if they consist of a single return statement with a pure value.
+                    if (blockOp.Operations.Length == 1 && blockOp.Operations[0] is IReturnOperation returnOp)
+                    {
+                        return IsOperationPure(returnOp.ReturnedValue, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, blockLocalStatus!); // Re-added !
+                    }
+                    return false; // Otherwise impure in expression context
+                End commenting IBlockOperation again */
+                case IDeclarationExpressionOperation declExpr: return IsOperationPure(declExpr.Expression, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus); // Removed !
+                case IAwaitOperation awaitOp: // await
+                    // Await itself doesn't cause impurity, depends on awaited expression
+                    // return IsOperationPure(awaitOp.Operation, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus); // Removed !
+                    return false; // Assume await is impure unless origin is known pure task (future enhancement)
+                case ITranslatedQueryOperation _: return false; // LINQ query translations are complex, assume impure
+
+                // Patterns (Check value operand + subpatterns if applicable)
+                case IIsPatternOperation isPattern:
+                    // Restore Original:
+                    return IsOperationPure(isPattern.Value, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus) && IsOperationPure(isPattern.Pattern, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+                case IConstantPatternOperation constPattern:
+                    // Restore Original:
+                    return IsOperationPure(constPattern.Value, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+                case IDeclarationPatternOperation _: return true; // Pattern itself is pure check - KEEP AS IS
+                case IRecursivePatternOperation recursivePattern: // Type { Prop: pattern }
+                                                                  // Restore Original:
+                    return recursivePattern.DeconstructionSubpatterns.All(p => IsOperationPure(p, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)) && recursivePattern.PropertySubpatterns.All(p => IsOperationPure(p, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus));
+                case IRelationalPatternOperation relPattern:
+                    // Restore Original:
+                    return IsOperationPure(relPattern.Value, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+                case ITypePatternOperation _: return true; // Pattern itself is pure check - KEEP AS IS
+                case INegatedPatternOperation notPattern:
+                    // Restore Original:
+                    return IsOperationPure(notPattern.Pattern, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+                case IBinaryPatternOperation binaryPattern: // and/or pattern
+                    // Restore Original:
+                    return IsOperationPure(binaryPattern.LeftPattern, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus) && IsOperationPure(binaryPattern.RightPattern, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+                case IDiscardPatternOperation _: return true; // `_` pattern is pure - KEEP AS IS
+                case IPropertySubpatternOperation propSubpattern: // Prop: pattern
+                    // Restore Original: 
+                    // Need to check the member reference + the subpattern
+                    bool memberPure = IsOperationPure(propSubpattern.Member, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+                    bool patternPure = IsOperationPure(propSubpattern.Pattern, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+                    return memberPure && patternPure;
+                /* Comment out IListPatternOperation case
+                case IListPatternOperation listPattern: // [p1, p2, ..]
+                    // --- Debug Logging ---
+                    System.Diagnostics.Debug.WriteLine($"IsOperationPure In IListPatternOperation: PatternsCount={listPattern.Patterns.Length}, Syntax='{listPattern.Syntax?.ToString() ?? "N/A"}', LocalCount={localPurityStatus?.Count ?? -1}");
+                    // --- End Debug Logging ---
+                    return listPattern.Patterns.All(p => 
+                    {
+                        // --- Debug Logging ---
+                        System.Diagnostics.Debug.WriteLine($"  IListPatternOp Checking Pattern: Kind={p?.Kind}, Syntax='{p?.Syntax?.ToString() ?? "N/A"}'");
+                        if (p == null) return false; // Add null check for pattern
+                        // --- End Debug Logging ---
+                        // Try removing null-forgiving operator here specifically
+                        return IsOperationPure(p, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus); 
+                    }); // Use Patterns
+                */
+                case ISlicePatternOperation slicePattern: // .. or .. p
+                                                          // --- Debug Logging ---
+                                                          // System.Diagnostics.Debug.WriteLine($"IsOperationPure In ISlicePatternOperation: HasPattern={slicePattern.Pattern != null}, Syntax='{slicePattern.Syntax?.ToString() ?? "N/A"}', LocalCount={localPurityStatus?.Count ?? -1}");
+                                                          // --- End Debug Logging ---
+                    return slicePattern.Pattern == null || IsOperationPure(slicePattern.Pattern, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus!);
+
+
+                // Switch Expressions
+                case ISwitchExpressionOperation switchExpr:
+                    // Restore Original:
+                    return IsOperationPure(switchExpr.Value, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus) && // Added !
+                           switchExpr.Arms.All(arm => IsOperationPure(arm, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)); // Added !
+                case ISwitchExpressionArmOperation switchArm:
+                    // Restore Original: 
+                    return IsOperationPure(switchArm.Pattern, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus) && // Check pattern first Added !
+                           (switchArm.Guard == null || IsOperationPure(switchArm.Guard, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)) && // Added !
+                           IsOperationPure(switchArm.Value, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus); // Added !
+
+                // --- Return Value --- Add case for IReturnOperation
+                case IReturnOperation returnOp:
+                    return IsOperationPure(returnOp.ReturnedValue, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+
+                // --- Operations considered IMPURE by default --- 
+                case IAddressOfOperation _: return false; // Taking address
+                case ILocalFunctionOperation _: return false; // Defining is pure, but using it depends on call site analysis (handled by invocation)
+                case IThrowOperation _: return false; // throw statement
+                case IUsingOperation _: return false; // using(..) or await using(..)
+
+                // Add explicit handling for indexers - REMOVED as handled by IPropertyReferenceOperation
+                // case IElementAccessOperation _: return false; // Assume impure for now // Fixed type name
+
+                default:
+                    // If we haven't handled this specific operation type, assume impure.
+                    // System.Diagnostics.Debug.WriteLine($"Unhandled Operation for Purity: {operation.Kind} -> {operation.Syntax?.ToString() ?? "N/A"}");
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Checks property setter purity. Currently assumes impure unless init-only in constructor.
+        /// </summary>
+        private static bool IsPropertySetterPure(
+            IPropertySymbol propertySymbol,
+            SyntaxNodeAnalysisContext context,
+            INamedTypeSymbol enforcePureAttributeSymbol,
+            HashSet<IMethodSymbol> visited,
+            IMethodSymbol containingMethodSymbol)
+        {
+            // If setter is null (e.g. getter-only property), assignment isn't possible via normal means.
+            if (propertySymbol.SetMethod == null) return true; // Cannot assign
+
+            // Check for IsInitOnly property
+            bool isInitOnly = propertySymbol.SetMethod.IsInitOnly;
+
+            // Allow assigning init-only properties only within the constructor
+            if (isInitOnly && containingMethodSymbol.MethodKind == MethodKind.Constructor)
+            {
+                return false; // Safer assumption without analysis
+            }
+
+            // return IsConsideredPure(propertySymbol.SetMethod.OriginalDefinition, context, enforcePureAttributeSymbol, visited);
+            return false; // Default to impure for general setters without analysis
+        }
+
 
         /// <summary>
         /// Checks if a symbol is marked with the [EnforcePure] attribute.
@@ -674,8 +1068,9 @@ namespace PurelySharp.Analyzer.Engine
             {
                 return false;
             }
+            // Use OriginalDefinition for attribute class comparison
             return symbol.GetAttributes().Any(attr =>
-                SymbolEqualityComparer.Default.Equals(attr.AttributeClass, enforcePureAttributeSymbol));
+                SymbolEqualityComparer.Default.Equals(attr.AttributeClass?.OriginalDefinition, enforcePureAttributeSymbol));
         }
     }
 }

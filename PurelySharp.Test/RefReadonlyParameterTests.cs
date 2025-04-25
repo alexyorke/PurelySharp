@@ -23,15 +23,15 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    // Expect PS0002 because analyzer doesn't currently handle field access on ref readonly param within binary expr correctly.
-    public int {|PS0002:Sum|}(ref readonly int x, ref readonly int y)
+    // Reading ref readonly parameters is pure.
+    public int Sum(ref readonly int x, ref readonly int y)
     {
         // Only reading values, no modifications - this should be pure
         return x + y;
     }
 }";
 
-            // Expecting PS0002 temporarily due to analysis limitation
+            // Expecting NO diagnostic now.
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -146,8 +146,12 @@ public class TestClass
             var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
                                         .WithLocation(8, 16) // Location of Process
                                         .WithArguments("Process");
+            // ADDED: Expect PS0004 suggestion for NeedsRef as well
+            var expectedPS0004 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                        .WithSpan(15, 17, 15, 25) // Location of NeedsRef
+                                        .WithArguments("NeedsRef");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedCS8329, expectedPS0002);
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedCS8329, expectedPS0002, expectedPS0004);
         }
 
         [Test]
