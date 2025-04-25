@@ -161,9 +161,32 @@ namespace PurelySharp.Analyzer.Engine
                         // If the expression is pure (e.g., calling a pure method), the statement itself is pure. Continue.
                     }
                 }
+                else if (stmt is IfStatementSyntax ifStatement)
+                {
+                    // 1. Check the condition's purity
+                    if (!IsExpressionPure(ifStatement.Condition, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus))
+                    {
+                        return false; // Impure condition
+                    }
+
+                    // 2. Check the 'if' block/statement's purity
+                    if (!IsStatementPure(ifStatement.Statement, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, (IReadOnlyDictionary<ILocalSymbol, bool>)localPurityStatus))
+                    {
+                        return false; // Impure 'if' body
+                    }
+
+                    // 3. Check the 'else' block/statement's purity (if it exists)
+                    if (ifStatement.Else != null && !IsStatementPure(ifStatement.Else.Statement, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, (IReadOnlyDictionary<ILocalSymbol, bool>)localPurityStatus))
+                    {
+                        return false; // Impure 'else' body
+                    }
+
+                    // If all checks pass, the 'if' statement is pure in this context. Continue checking next statement.
+                    continue;
+                }
                 else
                 {
-                    // Any other statement type makes the method impure
+                    // Any other statement type makes the method impure for now
                     return false;
                 }
             }
@@ -172,6 +195,146 @@ namespace PurelySharp.Analyzer.Engine
             // This is valid for a void method or a method that returns implicitly (e.g., iterator block, async method - though not handled yet).
             // For a simple void method, this means purity is maintained.
             return containingMethodSymbol.ReturnsVoid; // Or potentially true if non-void but ends without return (e.g., throws) - needs more logic.
+        }
+
+        /// <summary>
+        /// Checks if a single statement (potentially a block) is pure.
+        /// Helper for handling nested statements like those in 'if'/'else'.
+        /// </summary>
+        private static bool IsStatementPure(StatementSyntax statement, SyntaxNodeAnalysisContext context, INamedTypeSymbol enforcePureAttributeSymbol, HashSet<IMethodSymbol> visited, IMethodSymbol containingMethodSymbol, IReadOnlyDictionary<ILocalSymbol, bool> localPurityStatus)
+        {
+            if (statement is BlockSyntax block)
+            {
+                // Analyze the block. Need to handle locals defined within this block scope.
+                // Create a mutable copy for this scope manually, ensuring the comparer is set.
+                var blockLocalPurityStatus = new Dictionary<ILocalSymbol, bool>(SymbolEqualityComparer.Default);
+                foreach (var kvp in localPurityStatus)
+                {
+                    blockLocalPurityStatus.Add(kvp.Key, kvp.Value);
+                }
+                return AnalyzeBlockBodyInternal(block, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, blockLocalPurityStatus, allowNestedReturn: false);
+            }
+            else if (statement is ExpressionStatementSyntax expressionStatement)
+            {
+                // Logic largely copied from AnalyzeBlockBody loop
+                if (expressionStatement.Expression is AssignmentExpressionSyntax assignmentExpr)
+                {
+                    var leftSymbolInfo = context.SemanticModel.GetSymbolInfo(assignmentExpr.Left, context.CancellationToken);
+                    if (leftSymbolInfo.Symbol is IFieldSymbol) return false; // Field assignment
+                    if (!IsExpressionPure(assignmentExpr.Right, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)) return false; // Impure RHS
+                    if (leftSymbolInfo.Symbol is ILocalSymbol) return true; // Local assignment (pure RHS)
+                    return false; // Assignment to anything else (property, indexer)
+                }
+                else
+                {
+                    // Other expression statement (e.g., method call)
+                    return IsExpressionPure(expressionStatement.Expression, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+                }
+            }
+            else if (statement is ReturnStatementSyntax returnStatement)
+            {
+                // A return statement is pure if its expression is pure.
+                // Control flow complexity (like returning early from loops) will be handled by the analysis of loops themselves.
+                // For simple blocks (like in if/else), a return is fine if the expression is pure.
+                return IsExpressionPure(returnStatement.Expression, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+            }
+            else if (statement is LocalDeclarationStatementSyntax localDecl)
+            {
+                // Analysis for purity requires tracking locals. For a single statement check,
+                // just ensure the initializer (if any) is pure. Tracking the local is handled by AnalyzeBlockBodyInternal if this is in a block.
+                foreach (var variable in localDecl.Declaration.Variables)
+                {
+                    if (variable.Initializer != null)
+                    {
+                        if (!IsExpressionPure(variable.Initializer.Value, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus))
+                        {
+                            return false; // Impure initializer
+                        }
+                    }
+                }
+                return true; // Declaration with pure initializer is fine.
+            }
+            else if (statement is IfStatementSyntax ifStatement) // Handle nested ifs
+            {
+                if (!IsExpressionPure(ifStatement.Condition, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)) return false;
+                if (!IsStatementPure(ifStatement.Statement, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)) return false; // Recurse
+                if (ifStatement.Else != null && !IsStatementPure(ifStatement.Else.Statement, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus)) return false; // Recurse
+                return true;
+            }
+            // Add other simple, pure statements here if needed.
+            // E.g., EmptyStatementSyntax is pure.
+            else if (statement is EmptyStatementSyntax)
+            {
+                return true;
+            }
+            // Default: Unhandled statement type is considered impure.
+            else
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Internal implementation for analyzing a block body, allowing control over nested returns.
+        /// Takes a mutable dictionary for local purity status within the block.
+        /// </summary>
+        private static bool AnalyzeBlockBodyInternal(
+            BlockSyntax body,
+            SyntaxNodeAnalysisContext context,
+            INamedTypeSymbol enforcePureAttributeSymbol,
+            HashSet<IMethodSymbol> visited,
+            IMethodSymbol containingMethodSymbol,
+            Dictionary<ILocalSymbol, bool> localPurityStatus, // Mutable dictionary for this scope
+            bool allowNestedReturn) // Can this block end with a return?
+        {
+            var statements = body.Statements;
+            for (int i = 0; i < statements.Count; i++)
+            {
+                var stmt = statements[i];
+
+                if (stmt is LocalDeclarationStatementSyntax localDecl)
+                {
+                    foreach (var variable in localDecl.Declaration.Variables)
+                    {
+                        var localSymbol = context.SemanticModel.GetDeclaredSymbol(variable, context.CancellationToken) as ILocalSymbol;
+                        if (localSymbol == null) continue;
+
+                        bool isInitializerPure = true;
+                        if (variable.Initializer != null)
+                        {
+                            // Analyze initializer using the current scope's purity status
+                            isInitializerPure = IsExpressionPure(variable.Initializer.Value, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+                            if (!isInitializerPure) return false;
+                        }
+                        // Add/update the local's purity in the *mutable* dictionary for this block
+                        localPurityStatus[localSymbol] = isInitializerPure;
+                    }
+                }
+                else if (stmt is ReturnStatementSyntax returnStatement)
+                {
+                    // Only pure if allowed (e.g., top-level block) AND it's the last statement AND expression is pure
+                    if (allowNestedReturn && i == statements.Count - 1)
+                    {
+                        return IsExpressionPure(returnStatement.Expression, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, localPurityStatus);
+                    }
+                    else
+                    {
+                        return false; // Nested return or return not at end
+                    }
+                }
+                // Delegate other statement types to the single statement checker
+                else if (!IsStatementPure(stmt, context, enforcePureAttributeSymbol, visited, containingMethodSymbol, (IReadOnlyDictionary<ILocalSymbol, bool>)localPurityStatus))
+                {
+                    return false; // Impure statement found
+                }
+                // If IsStatementPure handles 'if', 'expression', 'local decl', etc. and returns true, we continue the loop.
+            }
+
+            // If the loop completes without returning false, the block is pure up to this point.
+            // If it's the top-level block of a void method, purity is maintained.
+            // If it's a nested block, it's considered pure.
+            // The final return value semantics are handled by the top-level caller (IsConsideredPure).
+            return true;
         }
 
         /// <summary>
