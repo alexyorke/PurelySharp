@@ -208,7 +208,7 @@ using System.Collections.Generic;
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:TestMethod|}(List<int> list)
+    public int TestMethod(List<int> list)
     {
         return list.Count; // Reading Count property should be pure
     }
@@ -228,7 +228,7 @@ using System.Collections.Generic;
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:TestMethod|}(List<int> list)
+    public int TestMethod(List<int> list)
     {
         return list.Count > 0 ? list[0] : 0; // Reading via indexer should be pure
     }
@@ -248,7 +248,7 @@ using System.Collections.Generic;
 public class TestClass
 {
     [EnforcePure]
-    public bool {|PS0002:TestMethod|}(List<int> list, int item)
+    public bool TestMethod(List<int> list, int item)
     {
         return list.Contains(item); // Calling Contains should be pure
     }
@@ -350,7 +350,7 @@ using System.Collections.Generic;
 public class TestClass
 {
     [EnforcePure]
-    public bool {|PS0002:TestMethod|}(Dictionary<string, int> dict, string key)
+    public bool TestMethod(Dictionary<string, int> dict, string key)
     {
         return dict.ContainsKey(key); // Calling ContainsKey should be pure
     }
@@ -370,7 +370,7 @@ using System.Collections.Generic;
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:TestMethod|}(Dictionary<string, int> dict, string key)
+    public int TestMethod(Dictionary<string, int> dict, string key)
     {
         return dict.ContainsKey(key) ? dict[key] : 0; // Reading via indexer should be pure
     }

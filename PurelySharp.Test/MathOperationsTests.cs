@@ -23,17 +23,15 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public double {|PS0002:TestMethod|}(double x, double y, double z)
+    public double TestMethod(double x, double y, double z)
     {
         var a = Math.Sin(x) * Math.Cos(y);
-        var b = Math.Pow(Math.E, z) / Math.PI;
+        var b = Math.Pow(Math.E, z) / Math.PI; // Pure: Math.E/PI allowed
         var c = Math.Sqrt(Math.Abs(a * b));
         return Math.Max(a, Math.Min(b, c));
     }
 }";
-
-            // TODO: Update analyzer to recognize System.Math methods as pure
-            // Temporarily expect PS0002 due to current limitation
+            // Expect no diagnostic now
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -49,15 +47,13 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public double {|PS0002:TestMethod|}(double x)
+    public double TestMethod(double x)
     {
         return Math.Sin(x);
     }
 }";
-
-            // TODO: Update analyzer to recognize System.Math methods as pure
-            // Temporarily expect PS0002 due to current limitation
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect no diagnostic as Math.Sin is pure
+            await VerifyCS.VerifyAnalyzerAsync(test); // Correctly expects no diagnostic
         }
 
         [Test]
@@ -74,10 +70,10 @@ public class TestClass
     [EnforcePure]
     public double TestMethod()
     {
-        return Math.PI;
+        return Math.PI; // Pure: Math.PI allowed
     }
 }";
-
+            // Expect no diagnostic now
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -93,15 +89,14 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public double {|PS0002:TestMethod|}(double x)
+    public double TestMethod(double x)
     {
         return Math.Sin(Math.Cos(x));
     }
 }";
 
-            // TODO: Update analyzer to recognize System.Math methods as pure
-            // Temporarily expect PS0002 due to current limitation
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Assuming System.Math is pure
+            await VerifyCS.VerifyAnalyzerAsync(test); // Removed PS0002 expectation
         }
     }
 }

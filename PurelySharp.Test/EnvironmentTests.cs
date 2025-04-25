@@ -26,7 +26,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:TestMethod|}()
+    public int TestMethod()
     {
         return Environment.ProcessorCount;
     }

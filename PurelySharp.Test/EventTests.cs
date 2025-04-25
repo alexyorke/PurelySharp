@@ -25,7 +25,7 @@ public class TestClass
     public event EventHandler TestEvent;
 
     [EnforcePure]
-    public void {|PS0002:TestMethod|}()
+    public void TestMethod()
     {
         // Just referencing an event without subscribing is pure
         var evt = TestEvent;

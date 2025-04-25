@@ -152,7 +152,7 @@ namespace TestNamespace
     public class RawStringExample
     {
         [EnforcePure]
-        public string {|PS0002:CompareRawAndRegularStrings|}()
+        public string CompareRawAndRegularStrings()
         {
             // C# 11 raw string literal preserves backslashes (pure)
             string rawString = """"""C:\\Users\\Username\\Documents"""""";
@@ -165,7 +165,7 @@ namespace TestNamespace
         }
     }
 }";
-            // Expect PS0002 because interpolation/member access is not handled
+            // Expect no diagnostic now
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 

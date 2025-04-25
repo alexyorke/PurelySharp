@@ -5,28 +5,29 @@ using System.Threading.Tasks;
 using PurelySharp.Analyzer;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
     PurelySharp.Analyzer.PurelySharpAnalyzer>;
-// using PurelySharp.Attributes; // Not needed if defined inline
 
 namespace PurelySharp.Test
 {
     [TestFixture]
     public class RecordTests
     {
-        // Define the minimal attribute source for tests that need it
-        private const string MinimalEnforcePureAttributeSource = @"
+        // Minimal attribute definition reused by the test cases
+        private const string MinimalEnforcePureAttributeSource = """
 namespace PurelySharp.Attributes
 {
     [System.AttributeUsage(System.AttributeTargets.Method | System.AttributeTargets.Constructor | System.AttributeTargets.Property | System.AttributeTargets.Class | System.AttributeTargets.Struct | System.AttributeTargets.Interface)]
     public sealed class EnforcePureAttribute : System.Attribute { }
-}";
+}
+""";
 
         [Test]
         public async Task ImmutableRecord_NoDiagnostic()
         {
-            var isExternalInit = @"
-namespace System.Runtime.CompilerServices { internal static class IsExternalInit {} }";
+            var isExternalInit = """
+namespace System.Runtime.CompilerServices { internal static class IsExternalInit {} }
+""";
 
-            var testCode = @"
+            var testCode = """
 // Requires C# 9+ and IsExternalInit polyfill
 #nullable enable
 using System;
@@ -39,35 +40,36 @@ public record Person(string Name, int Age);
 public class TestClass
 {
     [EnforcePure]
-    // PS0002 expected as record purity is unknown
-    public string {|PS0002:GetPersonInfo|}(Person person)
+    public string GetPersonInfo(Person person)
     {
-        return $""{person.Name} is {person.Age} years old"";
+        // Accessing properties of an immutable record should be pure
+        return $"{ person.Name} is { person.Age } years old";
     }
-}";
+}
+""";
+
             var verifierTest = new VerifyCS.Test
             {
                 TestState =
                 {
-                    // Add both polyfill and attribute source
                     Sources = { testCode, isExternalInit, MinimalEnforcePureAttributeSource }
                 }
             };
+
             await verifierTest.RunAsync();
         }
 
         [Test]
         public async Task RecordWithPureMethod_NoDiagnostic()
         {
-            var test = @"
+            var test = """
 // Requires C# 9+
 #nullable enable
 using System;
 using PurelySharp.Attributes;
 using System.Runtime.CompilerServices;
 
-" + MinimalEnforcePureAttributeSource + @"
-
+""" + MinimalEnforcePureAttributeSource + """
 public record Calculator
 {
     [EnforcePure]
@@ -78,31 +80,27 @@ public class TestClass
 {
     [EnforcePure]
     // UseCalculator calls a pure method, so it should be considered pure by the analyzer
-    // If Add becomes impure or unverified, PS0002 might be needed here.
     public int UseCalculator(Calculator calc, int a, int b)
     {
         return calc.Add(a, b);
     }
-}";
+}
+""";
 
-            // Assuming IsExternalInit is not strictly needed if only using records with pure methods
-            // and no init-only setters.
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
         public async Task MutableRecord_ShouldProduceDiagnostic()
         {
-            // IsExternalInit not needed for set properties
-            var test = @"
+            var test = """
 // Requires C# 9+
 #nullable enable
 using System;
 using PurelySharp.Attributes;
 using System.Runtime.CompilerServices;
 
-" + MinimalEnforcePureAttributeSource + @"
-
+""" + MinimalEnforcePureAttributeSource + """
 public record MutablePerson
 {
     // CS8618 is on the property name
@@ -116,9 +114,10 @@ public class TestClass
     // PS0002 because it modifies state
     public void {|PS0002:UpdatePerson|}(MutablePerson person)
     {
-        person.Name = ""John""; // Impure assignment
+        person.Name = "John"; // Impure assignment
     }
-}";
+}
+""";
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
@@ -126,10 +125,11 @@ public class TestClass
         [Test]
         public async Task RecordWithMixedProperties_ShouldProduceDiagnostic()
         {
-            var isExternalInit = @"
-namespace System.Runtime.CompilerServices { internal static class IsExternalInit {} }";
+            var isExternalInit = """
+namespace System.Runtime.CompilerServices { internal static class IsExternalInit {} }
+""";
 
-            var testCode = @"
+            var testCode = """
 // Requires C# 9+
 #nullable enable
 using System;
@@ -156,18 +156,18 @@ public class TestClass
     {
         person.Age = 30;
     }
-}";
+}
+""";
+
             var verifierTest = new VerifyCS.Test
             {
                 TestState =
                 {
-                    // Add both polyfill and attribute source
                     Sources = { testCode, isExternalInit, MinimalEnforcePureAttributeSource }
                 }
             };
+
             await verifierTest.RunAsync();
         }
     }
 }
-
-

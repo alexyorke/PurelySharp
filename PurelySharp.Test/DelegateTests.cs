@@ -22,7 +22,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public void {|PS0002:TestMethod|}()
+    public void /*|PS0002:*/TestMethod/*|*/()
     {
         // Creating a delegate but not invoking it
         // The analyzer currently considers creating a delegate with an impure
@@ -31,10 +31,11 @@ public class TestClass
         
         // The method doesn't invoke the delegate, but it's still marked impure
         // due to the lambda's body containing an impure operation
+        action(); // Invoking might be impure, but defining might be okay
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(10, 29, 10, 39).WithArguments("TestMethod"));
         }
 
         [Test]

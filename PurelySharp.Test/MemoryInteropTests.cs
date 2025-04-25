@@ -30,14 +30,13 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public Span<byte> {|PS0002:TestMethod|}(byte[] data)
+    public Span<byte> TestMethod(byte[] data)
     {
         // Pure: Creates a view over existing memory
         return new Span<byte>(data);
     }
 }";
-            // TODO: Update analyzer to recognize Span<T>(T[]) ctor as pure
-            // Temporarily expect PS0002 due to current limitation
+            // Diagnostics are now inline
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -54,14 +53,16 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public Span<byte> {|PS0002:TestMethod|}(Span<byte> initialSpan)
+    public Span<byte> TestMethod(Span<byte> initialSpan)
     {
         // Pure: Creates a new view/slice
         return initialSpan.Slice(1, 2);
     }
 }";
             // Expect PS0002 because span.Slice is treated as unknown purity
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            await VerifyCS.VerifyAnalyzerAsync(test,
+                 VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(11, 23, 11, 33).WithArguments("TestMethod")
+            );
         }
 
         // --- Span<T> / Memory<T> Modification (Impure) ---

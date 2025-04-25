@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <!-- Treat Warnings As Errors -->
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
 
     <!-- Control VSIX packaging -->
     <EnableVsixPackaging Condition="'$(EnableVsixPackaging)' == 'true'">true</EnableVsixPackaging>

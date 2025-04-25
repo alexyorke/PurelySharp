@@ -68,14 +68,16 @@ public class Counter
         Value = value;
     }
 
+    // This operator is impure because it modifies static state
     public static Counter operator +(Counter a, Counter b)
     {
-        _totalOperations++;
+        _totalOperations++; 
         return new Counter(a.Value + b.Value);
     }
 }";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // No diagnostic is expected on the operator itself because it's not marked [EnforcePure].
+            // A diagnostic would be raised if a method marked [EnforcePure] called this operator.
+            await VerifyCS.VerifyAnalyzerAsync(test); // Expect 0 diagnostics
         }
 
         [Test]

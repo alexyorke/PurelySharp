@@ -83,7 +83,7 @@ public class TestClass
         [Test]
         public async Task PureMethodWithNestedInParameter_NoDiagnostic()
         {
-            var code = @"
+            var test = @"
 using PurelySharp.Attributes;
 
 public class TestClass
@@ -95,14 +95,16 @@ public class TestClass
     }
 
     // Method 'Add' is pure but not marked [EnforcePure]
-    public int {|PS0004:Add|}(in int a, int b)
+    public int Add(in int a, int b)
     {
         return a + b;
     }
 }
 ";
-            // REMOVED explicit diagnostic definition
-            await VerifyCS.VerifyAnalyzerAsync(code);
+            var expectedDiagnostic = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                            .WithSpan(7, 16, 7, 26) // Location of TestMethod
+                                            .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedDiagnostic);
         }
 
         [Test]

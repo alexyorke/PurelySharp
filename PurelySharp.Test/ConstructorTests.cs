@@ -156,7 +156,7 @@ public class TestClass
         _value = ProcessValue(value);
     }
 
-    private int {|PS0004:ProcessValue|}(int value)
+    private int ProcessValue(int value)
     {
         return value * 2; // Pure operation
     }

@@ -24,14 +24,14 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public string {|PS0002:TestMethod|}(TestClass obj)
+    public string /*|PS0002:*/TestMethod/*|*/(TestClass obj)
     {
         // Null conditional operator is considered pure
         return obj?.ToString() ?? ""null"";
     }
     }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(10, 31, 10, 41).WithArguments("TestMethod"));
         }
 
         [Test]

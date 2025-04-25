@@ -27,7 +27,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:ReadArray|}()
+    public int ReadArray()
     {
         int[] buffer = new int[10];
         // Reading from an array is pure

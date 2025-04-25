@@ -16,78 +16,81 @@ namespace PurelySharp.Test
         [Test]
         public async Task PureMethodWithUsing_NoDiagnostic()
         {
-            var test = @"
+            var code = @"
 using System;
 using PurelySharp.Attributes;
-
-public class PureDisposable : IDisposable
-{
-    public void Dispose() { } // Empty dispose method is pure
-}
 
 public class TestClass
 {
     [EnforcePure]
-    public void {|PS0002:TestMethod|}()
+    public int TestMethod()
     {
-        using (var disposable = new PureDisposable()) // Pure using statement
+        using (var disposable = new PureDisposable()) // Pure disposable, Dispose is pure
         {
-            // No impure operations
+            return 1; // Body is pure
         }
     }
-}";
+}
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+public class PureDisposable : IDisposable
+{
+    // Dispose is implicitly pure (empty body)
+    public void Dispose() { }
+}";
+            // Expect no diagnostic because the resource, body, and Dispose() are pure.
+            await VerifyCS.VerifyAnalyzerAsync(code);
         }
 
         [Test]
         public async Task ImpureMethodWithUsing_Diagnostic()
         {
-            var test = @"
+            var test = @$"
 using System;
 using PurelySharp.Attributes;
 using System.IO;
 
 public class TestClass
-{
+{{
     [EnforcePure]
-    public void {|PS0002:TestMethod|}()
-    {
-        using (var file = File.OpenRead(""test.txt""))
-        {
+    public void {{|PS0002:TestMethod|}}()
+    {{
+        using (var file = File.OpenRead(""test.txt"")) // Impure resource acquisition
+        {{
             // Some operation
-        }
-    }
-}";
+        }}
+    }}
+}}";
 
+            // Diagnostic expected on TestMethod
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
         public async Task PureMethodWithUsingAndImpureOperation_Diagnostic()
         {
-            var test = @"
+            var test = @$"
 using System;
 using PurelySharp.Attributes;
 using System.IO;
 
 public class PureDisposable : IDisposable
-{
-    public void Dispose() { } // Empty dispose method is pure
-}
+{{
+    public void Dispose() {{ }} // Empty dispose method is pure
+}}
 
 public class TestClass
-{
+{{
     [EnforcePure]
-    public void {|PS0002:TestMethod|}()
-    {
+    public void {{|PS0002:TestMethod|}}()
+    {{
         using (var disposable = new PureDisposable())
-        {
-            Console.WriteLine(""Inside using"");
-        }
-    }
-}";
+        {{
+            Console.WriteLine(""Inside using""); // Impure operation inside body
+        }}
+    }}
+}}";
 
+            // Diagnostic expected on TestMethod
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }

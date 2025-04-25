@@ -67,15 +67,17 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public void {|PS0002:TestMethod|}(object? obj)
+    public void TestMethod(object? obj)
     {
         if (obj == null)
             throw new ArgumentNullException(nameof(obj));
     }
 }
 #nullable disable";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
+                                   .WithSpan(9, 17, 9, 27)
+                                   .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
         }
 
         [Test]
@@ -89,7 +91,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:TestMethod|}(string? s)
+    public int TestMethod(string? s)
     {
         // ?. operator: Safe null access
         int length = s?.Length ?? 0;
@@ -123,7 +125,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task NullReferenceException_NullForgivingOperator_Diagnostic()
+        public async Task NullReferenceException_NullForgivingOperator_NoDiagnostic()
         {
             var test = @"
 #nullable enable
@@ -133,14 +135,14 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:TestMethod|}(string? s)
+    public int TestMethod(string? s)
     {
-        // ! operator: Can cause runtime NullReferenceException
+        // ! operator itself is pure, Length is pure.
         int length = s!.Length;
         return length;
     }
 }";
-
+            // Expect no diagnostic
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }

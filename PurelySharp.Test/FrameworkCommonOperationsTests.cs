@@ -65,7 +65,7 @@ namespace MockFramework
 public class TestClass
 {
     [EnforcePure]
-    public string {|PS0002:GetInput|}(TextBox textBox)
+    public string GetInput(TextBox textBox)
     {
         return textBox.Text; // Pure: Reading UI state (Line 21)
     }
@@ -103,7 +103,7 @@ namespace MockFramework
 public class TestClass
 {
     [EnforcePure]
-    public string? {|PS0002:ReadConfigIndexer|}(IConfiguration config)
+    public string? ReadConfigIndexer(IConfiguration config)
     {
         return config[""MyKey:MyValue""]; // Pure read
     }
@@ -111,7 +111,7 @@ public class TestClass
     [EnforcePure]
     public string? {|PS0002:ReadConfigGetSection|}(IConfiguration config)
     {
-        return config.GetSection(""MyKey"").Value; // Pure read
+        return config.GetSection(""MyKey"").Value; // Marked as impure/unknown
     }
 }";
             await VerifyCS.VerifyAnalyzerAsync(test);

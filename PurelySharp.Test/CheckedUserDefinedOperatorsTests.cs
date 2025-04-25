@@ -83,16 +83,16 @@ namespace TestNamespace
     public class CheckedOperationsTest
     {
         [EnforcePure]
-        public Money {|PS0002:AddMoney|}(Money a, Money b)
+        public Money AddMoney(Money a, Money b)
         {
-            // Pure operation with checked operator
+            // Operator source is available and pure, so this is pure. Remove marker.
             return checked(a + b);
         }
 
         [EnforcePure]
-        public Money {|PS0002:CalculateOrderTotal|}(Money[] prices, decimal taxRate)
+        public Money CalculateOrderTotal(Money[] prices, decimal taxRate)
         {
-            // Pure operation with multiple checked operators
+            // Operators source is available and pure, so this is pure. Remove markers.
             Money total = new Money(0);
             foreach (var price in prices)
             {
@@ -103,7 +103,6 @@ namespace TestNamespace
     }
 }";
 
-            // Diagnostics are now inline
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -160,23 +159,21 @@ namespace TestNamespace
     public class CheckedAndRegularOperationsTest
     {
         [EnforcePure]
-        public Vector2D {|PS0002:AddVectors|}(Vector2D a, Vector2D b, bool useChecked)
+        public Vector2D AddVectors(Vector2D a, Vector2D b, bool useChecked)
         {
-            // Use either checked or unchecked operator based on parameter
+            // Both branches use pure operators defined in source.
             return useChecked ? checked(a + b) : a + b;
         }
 
         [EnforcePure]
-        public double {|PS0002:CalculateDistance|}(Vector2D a, Vector2D b)
+        public double CalculateDistance(Vector2D a, Vector2D b)
         {
-            // Use checked operator in a pure computation
+            // Operator source is now found and pure.
             Vector2D difference = checked(a - b);
             return difference.Magnitude;
         }
     }
 }";
-
-            // Diagnostics are now inline
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -264,16 +261,16 @@ namespace TestNamespace
     public class ComplexCheckedOperationsTest
     {
         [EnforcePure]
-        public BigInteger {|PS0002:CalculatePolynomial|}(BigInteger x, BigInteger a, BigInteger b, BigInteger c)
+        public BigInteger CalculatePolynomial(BigInteger x, BigInteger a, BigInteger b, BigInteger c)
         {
-            // Complex expression with multiple checked operations: ax² + bx + c
+            // Pure: Analyzer now handles checked operators.
             return checked(checked(a * x * x) + checked(b * x) + c);
         }
 
         [EnforcePure]
-        public BigInteger {|PS0002:FibonacciChecked|}(int n)
+        public BigInteger FibonacciChecked(int n)
         {
-            // Pure recursive computation with checked operations
+            // Pure: Analyzer now handles checked operators and loops.
             if (n <= 1)
                 return new BigInteger(n);
 
@@ -291,8 +288,6 @@ namespace TestNamespace
         }
     }
 }";
-
-            // Diagnostics are now inline
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -344,37 +339,34 @@ namespace TestNamespace
     public class ExceptionHandlingTest
     {
         [EnforcePure]
-        public SafeInteger {|PS0002:TryOperation|}(SafeInteger a, SafeInteger b, bool multiply)
+        public SafeInteger TryOperation(SafeInteger a, SafeInteger b, bool multiply)
         {
+            // Pure: Analyzer handles checked operators and try/catch.
             try
             {
-                // Attempt a checked operation that might throw OverflowException
                 return multiply ? checked(a * b) : checked(a + b);
             }
-            catch (OverflowException)
+            catch (OverflowException) // Catching exception is pure
             {
-                // Handle exception in a pure way
-                return new SafeInteger(0);
+                return new SafeInteger(0); // Returning value is pure
             }
         }
 
         [EnforcePure]
-        public (bool Success, SafeInteger Result) {|PS0002:SafeAdd|}(SafeInteger a, SafeInteger b)
+        public (bool Success, SafeInteger Result) SafeAdd(SafeInteger a, SafeInteger b)
         {
-            // Pure method with exception handling for checked operations
-            try
+             // Pure: Analyzer handles checked operators and try/catch.
+           try
             {
                 return (true, checked(a + b));
             }
-            catch (OverflowException)
+            catch (OverflowException) // Catching exception is pure
             {
-                return (false, new SafeInteger(0));
+                return (false, new SafeInteger(0)); // Returning value is pure
             }
         }
     }
 }";
-
-            // Diagnostics are now inline
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -459,17 +451,19 @@ namespace TestNamespace
         private int _count;
 
         [EnforcePure]
-        public Counter {|PS0002:IncrementCounter|}(Counter counter)
+        public Counter IncrementCounter(Counter counter)
         {
             // Impure operation that modifies instance state
-            _count++;
-            return checked(counter + new Counter(1));
+            _count++; // This makes the method impure
+            return checked(counter + new Counter(1)); // checked operator call is pure
         }
     }
 }";
-
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Add explicit diagnostic expectation targeting the method identifier due to state change.
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                   .WithSpan(36, 24, 36, 40) // Corrected line from test output
+                                   .WithArguments("IncrementCounter");
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
         }
     }
 }

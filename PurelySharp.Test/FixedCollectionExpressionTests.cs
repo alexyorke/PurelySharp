@@ -23,14 +23,14 @@ using PurelySharp.Attributes;
 public class CollectionExpressionExample
 {
     [EnforcePure]
-    public int[] {|PS0002:GetNumbers|}()
+    public int[] GetNumbers()
     {
         // Using new[] array creation expression
         return new[] { 1, 2, 3, 4, 5 };
     }
 }";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Array creation is now considered pure
+            await VerifyCS.VerifyAnalyzerAsync(test); // Removed expected diagnostic
         }
 
         [Test]

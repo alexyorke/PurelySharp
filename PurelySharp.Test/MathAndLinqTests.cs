@@ -25,8 +25,9 @@ using System.Collections.Generic;
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:TestMethod|}(IEnumerable<int> numbers)
+    public int TestMethod(IEnumerable<int> numbers)
     {
+        // Currently impure due to unhandled DelegateCreation
         return numbers
             .Where(x => x > 0)
             .Select(x => x * x)
@@ -35,7 +36,11 @@ public class TestClass
             .Sum();
     }
 }";
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect diagnostic due to unhandled DelegateCreation
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
+                                   .WithSpan(12, 16, 12, 26) // Corrected: Line 12
+                                   .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
         }
 
         [Test]
@@ -50,14 +55,15 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public double {|PS0002:TestMethod|}(double x, double y, double z)
+    public double TestMethod(double x, double y, double z)
     {
-        var a = Math.Sin(x) * Math.Cos(y);
-        var b = Math.Pow(Math.E, z) / Math.PI;
-        var c = Math.Sqrt(Math.Abs(a * b));
-        return Math.Max(a, Math.Min(b, c));
+        var a = Math.Sin(x) * Math.Cos(y); // Pure
+        var b = Math.Pow(Math.E, z) / Math.PI; // Pure: Math.E and Math.PI reads are now allowed
+        var c = Math.Sqrt(Math.Abs(a * b)); // Pure
+        return Math.Max(a, Math.Min(b, c)); // Pure
     }
 }";
+            // Expect no diagnostic now
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -73,12 +79,14 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public double {|PS0002:TestMethod|}(double x)
+    public double TestMethod(double x)
     {
+        // Math.Sin is pure
         return Math.Sin(x);
     }
 }";
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect no diagnostic as Math.Sin is pure
+            await VerifyCS.VerifyAnalyzerAsync(test); // Removed diagnostic expectation
         }
 
         [Test]
@@ -95,10 +103,11 @@ public class TestClass
     [EnforcePure]
     public double TestMethod()
     {
+        // Pure: Math.PI read is now allowed
         return Math.PI;
     }
 }";
-
+            // Expect no diagnostic now
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -114,7 +123,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public double {|PS0002:TestMethod|}(double x)
+    public double TestMethod(double x)
     {
         return Math.Sin(Math.Cos(x));
     }
@@ -136,17 +145,22 @@ using System.Collections.Generic;
 public class TestClass
 {
     [EnforcePure]
-    public double {|PS0002:TestMethod|}(IEnumerable<double> numbers)
+    public double TestMethod(IEnumerable<double> numbers)
     {
+        // Impure due to unhandled DelegateCreation (LINQ methods)
         return numbers
-            .Where(x => x > Math.PI)
+            .Where(x => x > Math.PI) // Math.PI is pure, but Where() is not handled
             .Select(x => Math.Pow(Math.Sin(x), 2) + Math.Pow(Math.Cos(x), 2))
             .OrderBy(x => Math.Abs(x - 1))
             .Take(5)
             .Average();
     }
 }";
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect diagnostic due to unhandled DelegateCreation
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
+                                   .WithSpan(12, 19, 12, 29) // Span might change, but diagnostic remains
+                                   .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
         }
 
         [Test]
@@ -163,15 +177,19 @@ using System.Collections.Generic;
 public class TestClass
 {
     [EnforcePure]
-    public IEnumerable<int> {|PS0002:TestMethod|}(IEnumerable<int> numbers)
+    public IEnumerable<int> TestMethod(IEnumerable<int> numbers)
     {
+        // Impure due to DelegateCreation
         return numbers.Where(x => x > 0)
                      .Select(x => x * x)
                      .OrderBy(x => x);
     }
 }";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect diagnostic due to unhandled DelegateCreation
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
+                                   .WithSpan(12, 29, 12, 39) // Actual span from test output
+                                   .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
         }
     }
 }

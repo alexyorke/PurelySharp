@@ -24,7 +24,7 @@ namespace TestNamespace
     public class TestClass
     {
         [EnforcePure]
-        public Task {|PS0002:PureMethod|}()
+        public Task PureMethod()
         {
             return Task.CompletedTask;
         }

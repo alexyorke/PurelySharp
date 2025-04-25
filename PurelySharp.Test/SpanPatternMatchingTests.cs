@@ -15,7 +15,6 @@ namespace PurelySharp.Test
         // Note: These tests require C# 11+
 
         [Test]
-        [Ignore("Analyzer limitation: Cannot determine purity of Span<T> pattern matching.")]
         public async Task SpanPatternMatchingConstantString_PureMethod_NoDiagnostic()
         {
             var test = @"
@@ -29,7 +28,7 @@ namespace TestNamespace
     public class StringProcessor
     {
         [EnforcePure]
-        public string {|PS0002:ProcessCommand|}(ReadOnlySpan<char> command)
+        public string ProcessCommand(ReadOnlySpan<char> command)
         {
             // C# 11 feature: Pattern match Span<char> on constant string (pure)
             return command switch
@@ -42,12 +41,10 @@ namespace TestNamespace
         }
     }
 }";
-            // Analyzer considers this pure, remove expectation
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
-        [Ignore("Analyzer limitation: Cannot determine purity of Span<T> pattern matching.")]
         public async Task SpanPatternMatchingMultipleConstantStrings_PureMethod_NoDiagnostic()
         {
             var test = @"
@@ -61,7 +58,7 @@ namespace TestNamespace
     public class HttpRequestParser
     {
         [EnforcePure]
-        public string {|PS0002:ParseHttpMethod|}(ReadOnlySpan<char> method)
+        public string ParseHttpMethod(ReadOnlySpan<char> method)
         {
             // C# 11 feature: Pattern match Span<char> on multiple constant strings (pure)
             return method switch
@@ -78,7 +75,7 @@ namespace TestNamespace
         }
     }
 }";
-            // Analyzer considers this pure, remove expectation
+            // Analyzer considers this pure, expect no diagnostic
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 

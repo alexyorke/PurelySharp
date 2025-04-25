@@ -24,13 +24,13 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:TestMethod|}(string input)
+    public int TestMethod(string input)
     {
         // Null forgiving operator is considered pure
         return input!.Length;
     }
 }";
-
+            // Expect no diagnostic as null forgiving is pure
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -46,14 +46,17 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public void {|PS0002:TestMethod|}(string input)
+    public void TestMethod(string input)
     {
         // Null forgiving with console write is impure
         Console.WriteLine(input!);
     }
 }";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect diagnostic on the method identifier
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
+                                   .WithSpan(10, 17, 10, 27) // Span for TestMethod
+                                   .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
         }
 
         [Test]
@@ -70,7 +73,7 @@ public class TestClass
     private int _field;
 
     [EnforcePure]
-    public int {|PS0002:TestMethod|}(string input)
+    public int TestMethod(string input)
     {
         // Null forgiving is pure, but field increment is impure
         var length = input!.Length;
@@ -78,8 +81,11 @@ public class TestClass
         return length;
     }
 }";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect diagnostic on the method identifier
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
+                                   .WithSpan(12, 16, 12, 26) // Span for TestMethod
+                                   .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
         }
 
     }

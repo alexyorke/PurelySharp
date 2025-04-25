@@ -22,14 +22,27 @@ namespace PurelySharp.Analyzer
             context.EnableConcurrentExecution();
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
 
-            context.RegisterSyntaxNodeAction(MethodPurityAnalyzer.AnalyzeMethodDeclaration, SyntaxKind.MethodDeclaration);
+            context.RegisterSyntaxNodeAction(MethodPurityAnalyzer.AnalyzeSymbolForPurity,
+                SyntaxKind.MethodDeclaration,
+                SyntaxKind.GetAccessorDeclaration,
+                SyntaxKind.SetAccessorDeclaration,
+                SyntaxKind.ConstructorDeclaration,
+                SyntaxKind.OperatorDeclaration,
+                SyntaxKind.LocalFunctionStatement);
 
-            var allKindsExceptMethod = Enum.GetValues(typeof(SyntaxKind))
+            var analyzedKinds = ImmutableHashSet.Create(SyntaxKind.MethodDeclaration,
+                                                        SyntaxKind.GetAccessorDeclaration,
+                                                        SyntaxKind.SetAccessorDeclaration,
+                                                        SyntaxKind.ConstructorDeclaration,
+                                                        SyntaxKind.OperatorDeclaration,
+                                                        SyntaxKind.LocalFunctionStatement);
+
+            var allKindsExceptAnalyzed = Enum.GetValues(typeof(SyntaxKind))
                                            .Cast<SyntaxKind>()
-                                           .Where(k => k != SyntaxKind.MethodDeclaration)
+                                           .Where(k => !analyzedKinds.Contains(k))
                                            .ToImmutableArray();
 
-            context.RegisterSyntaxNodeAction(AttributePlacementAnalyzer.AnalyzeNonMethodDeclaration, allKindsExceptMethod);
+            context.RegisterSyntaxNodeAction(AttributePlacementAnalyzer.AnalyzeNonMethodDeclaration, allKindsExceptAnalyzed);
         }
     }
-} 
+}

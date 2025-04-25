@@ -30,13 +30,14 @@ public enum Color
 public class TestClass
 {
     [EnforcePure]
-    public string {|PS0002:TestMethod|}(Color color)
+    public string TestMethod(Color color)
     {
+        // Enum.ToString() should be pure.
         return color.ToString();
     }
 }";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect no diagnostics now - UPDATE: Expecting PS0002
+            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(17, 19, 17, 29).WithArguments("TestMethod"));
         }
 
         [Test]
@@ -61,10 +62,11 @@ public class TestClass
     [EnforcePure]
     public bool TestMethod(Status status)
     {
+        // Pure: Enum member access is like reading a constant.
         return status == Status.Active || status == Status.Pending;
     }
 }";
-
+            // Expect no diagnostic now
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 

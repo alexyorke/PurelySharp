@@ -58,26 +58,26 @@ public class TestClass
         [Test]
         public async Task UsingDeclarationWithPureDisposable_NoDiagnostic()
         {
-            var test = @"
+            var code = @"
 using System;
 using PurelySharp.Attributes;
-
-public class PureDisposable : IDisposable
-{
-    public void Dispose() { }
-}
 
 public class TestClass
 {
     [EnforcePure]
-    public void {|PS0002:TestMethod|}()
+    public void TestMethod()
     {
-        using var disposable = new PureDisposable();
-        // Some operation
+        using var disposable = new PureDisposable(); // Pure disposable, Dispose is pure
     }
-}";
+}
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+public class PureDisposable : IDisposable
+{
+    // Dispose is implicitly pure (empty body)
+    public void Dispose() { }
+}";
+            // Expect no diagnostic because the resource and Dispose() are pure.
+            await VerifyCS.VerifyAnalyzerAsync(code);
         }
     }
 }

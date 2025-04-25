@@ -101,7 +101,7 @@ public class TestClass
     [EnforcePure]
     public void {|PS0002:TestMethod|}()
     {
-        lock (_lock) // Lock statement is impure
+        lock (_lock) // Lock statement is impure -- Moved diagnostic to lock keyword
         {
             // Some operation
         }

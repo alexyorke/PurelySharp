@@ -22,7 +22,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:TestMethod|}(int value)
+    public int /*|PS0002:*/TestMethod/*|*/(int value)
     {
         switch (value)
         {

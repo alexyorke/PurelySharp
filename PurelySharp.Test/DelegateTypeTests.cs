@@ -25,7 +25,7 @@ public delegate int MathOperation(int x, int y);
 public class TestClass
 {
     [EnforcePure]
-    public MathOperation {|PS0002:GetAddOperation|}()
+    public MathOperation GetAddOperation()
     {
         // Return a pure delegate
         return (x, y) => x + y;
@@ -77,7 +77,7 @@ using System.Linq;
 public class TestClass
 {
     [EnforcePure]
-    public int[] {|PS0002:TestMethod|}(int[] numbers)
+    public int[] TestMethod(int[] numbers)
     {
         // Pure use of delegates as arguments to LINQ methods
         return numbers.Where(n => n > 0)
@@ -102,7 +102,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public Func<int, int> {|PS0002:TestMethod|}()
+    public Func<int, int> TestMethod()
     {
         // Return a pure Func delegate
         return x => x * 2;
@@ -139,7 +139,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public Func<int, int> {|PS0002:CreateMultiplier|}(int factor)
+    public Func<int, int> CreateMultiplier(int factor)
     {
         // Higher-order function returning a pure delegate
         return x => x * factor;
@@ -200,7 +200,7 @@ public delegate void Logger(string message);
 public class TestClass
 {
     [EnforcePure]
-    public Logger {|PS0002:CombineDelegates|}()
+    public Logger CombineDelegates()
     {
         // Create pure delegates that simply return values
         Logger logger1 = message => { /* Pure operation */ };

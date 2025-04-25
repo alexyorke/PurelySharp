@@ -14,7 +14,7 @@ namespace PurelySharp.Test
     public class YieldTests
     {
         [Test]
-        public async Task PureMethodWithYield_NoDiagnostic()
+        public async Task PureMethodWithYield_Diagnostic()
         {
             var test = @"
 using System;
@@ -24,15 +24,18 @@ using System.Collections.Generic;
 public class TestClass
 {
     [EnforcePure]
-    public IEnumerable<int> {|PS0002:GetNumbers|}()
+    public IEnumerable<int> GetNumbers()
     {
         yield return 1;
         yield return 2;
         yield return 3;
     }
 }";
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
+                                   .WithSpan(9, 29, 9, 39)
+                                   .WithArguments("GetNumbers");
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
         }
 
         [Test]
@@ -48,14 +51,17 @@ public class TestClass
     private int _state;
 
     [EnforcePure]
-    public IEnumerable<int> {|PS0002:GetNumbers|}()
+    public IEnumerable<int> GetNumbers()
     {
-        _state++; // Impure operation
+        _state++;
         yield return _state;
     }
 }";
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
+                                   .WithSpan(11, 29, 11, 39)
+                                   .WithArguments("GetNumbers");
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
         }
 
         [Test]
@@ -69,15 +75,18 @@ using System.Collections.Generic;
 public class TestClass
 {
     [EnforcePure]
-    public IEnumerable<int> {|PS0002:GetNumbers|}()
+    public IEnumerable<int> GetNumbers()
     {
-        Console.WriteLine(""Generating numbers""); // Impure operation
+        Console.WriteLine(""Generating numbers"");
         yield return 1;
         yield return 2;
     }
 }";
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
+                                   .WithSpan(9, 29, 9, 39)
+                                   .WithArguments("GetNumbers");
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
         }
     }
 }

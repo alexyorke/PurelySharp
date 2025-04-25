@@ -27,7 +27,7 @@ namespace TestNamespace
     public class ScopedRefTest
     {
         [EnforcePure]
-        public ref readonly int {|PS0002:GetValue|}(scoped ref readonly int[] array, int index)
+        public ref readonly int GetValue(scoped ref readonly int[] array, int index)
         {
             // Using scoped ref readonly parameters (pure)
             return ref array[index];
@@ -77,7 +77,7 @@ namespace TestNamespace
     public class ScopedRefLocalTest
     {
         [EnforcePure]
-        public int {|PS0002:GetValueSum|}(int[] array)
+        public int GetValueSum(int[] array)
         {
             // Using scoped ref readonly for locals (pure)
             scoped ref readonly int first = ref array[0];

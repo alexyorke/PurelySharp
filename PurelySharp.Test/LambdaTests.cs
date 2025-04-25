@@ -24,7 +24,7 @@ using System.Linq;
 public class TestClass
 {
     [EnforcePure]
-    public int[] {|PS0002:TestMethod|}(int[] numbers)
+    public int[] TestMethod(int[] numbers)
     {
         // Lambda that performs a pure operation
         return numbers.Select(x => x * 2).ToArray();
@@ -48,7 +48,7 @@ using System.Linq;
 public class TestClass
 {
     [EnforcePure]
-    public void {|PS0002:TestMethod|}(int[] numbers)
+    public void TestMethod(int[] numbers)
     {
         // Lambda that performs an impure operation (Console.WriteLine)
         numbers.ToList().ForEach(x => Console.WriteLine(x));
@@ -56,7 +56,10 @@ public class TestClass
 }";
 
             // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected1 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                    .WithSpan(11, 17, 11, 27) // Location of TestMethod
+                                    .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected1);
         }
 
         [Test]
@@ -74,7 +77,7 @@ public class TestClass
     private int _sum;
 
     [EnforcePure]
-    public int[] {|PS0002:TestMethod|}(int[] numbers)
+    public int[] {|PS0002:TestMethod|}/*TestMethod*/(int[] numbers)
     {
         // Lambda that captures and modifies a field (impure)
         numbers.ToList().ForEach(x => _sum += x);

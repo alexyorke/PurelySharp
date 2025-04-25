@@ -7,6 +7,7 @@ using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
     PurelySharp.Analyzer.PurelySharpAnalyzer>;
 using PurelySharp.Attributes;
 using System.IO;
+using System.Linq;
 
 namespace PurelySharp.Test
 {
@@ -100,7 +101,7 @@ namespace TestNamespace
     public class UnsignedRightShiftCompoundTest
     {
         [EnforcePure]
-        public int {|PS0002:UnsignedRightShiftCompoundAssignment|}(int value, int shift)
+        public int UnsignedRightShiftCompoundAssignment(int value, int shift)
         {
             int result = value;
             result >>>= shift;
@@ -108,17 +109,18 @@ namespace TestNamespace
         }
 
         [EnforcePure]
-        public uint {|PS0002:MultipleUnsignedRightShiftOperations|}(uint a, int b, int c)
+        public uint MultipleUnsignedRightShiftOperations(uint a, int b, int c)
         {
-            // Multiple operations with >>> operator
             a >>>= b;
             a = a >>> c;
             return a;
         }
     }
 }";
-            // Test expects PS0002 on both methods due to compound assignment >>>=
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expected diagnostics for the test case - NONE
+            var expected = DiagnosticResult.EmptyDiagnosticResults;
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -173,7 +175,7 @@ namespace TestNamespace
     }
 }";
             // Explicitly define expected diagnostic
-            var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+            var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
                                         .WithLocation(11, 21) // Location of UnsignedRightShiftWithSideEffect
                                         .WithArguments("UnsignedRightShiftWithSideEffect");
 

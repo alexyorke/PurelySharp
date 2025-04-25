@@ -7,8 +7,6 @@ using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
     PurelySharp.Analyzer.PurelySharpAnalyzer>;
 using PurelySharp.Attributes;
 using System;
-using System.Linq;
-using System.IO;
 
 // Polyfill for IsExternalInit required by records with init properties
 namespace System.Runtime.CompilerServices
@@ -38,13 +36,12 @@ public class Calculator(int initialValue)
     private readonly int _initialValue = initialValue;
 
     [EnforcePure]
-    public int {|PS0002:Add|}(int x)
+    public int Add(int x)
     {
         // Pure method that uses field initialized via primary constructor
         return _initialValue + x;
     }
 }";
-
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -63,15 +60,14 @@ public class Calculator(int initialValue)
     private int _value = initialValue;
 
     [EnforcePure]
-    public int {|PS0002:AddAndStore|}(int x)
+    public int AddAndStore(int x)
     {
         // Impure method that modifies a field
         _value += x;
         return _value;
     }
 }";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(13, 16, 13, 27).WithArguments("AddAndStore"));
         }
 
         [Test]
@@ -88,19 +84,22 @@ using System.Runtime.CompilerServices;
 public record GreetingRecord(string Message)
 {
     [EnforcePure]
-    // PS0002 expected because primary constructor parameters aren't handled yet
-    public string {|PS0002:GetGreeting|}() => $""Hello, {Message}!"";
+    // Primary constructor parameter access is now correctly handled as pure
+    public string GetGreeting() => $""Hello, {Message}!"";
 }";
-
             var verifierTest = new VerifyCS.Test
             {
                 TestCode = testCode,
                 ReferenceAssemblies = ReferenceAssemblies.Net.Net80,
-                SolutionTransforms = {
-                    (solution, projectId) => 
-                        solution.AddMetadataReference(projectId, MetadataReference.CreateFromFile(typeof(EnforcePureAttribute).Assembly.Location))
-                 }
+                SolutionTransforms =
+                {
+                    (solution, projectId) =>
+                        solution.AddMetadataReference(
+                            projectId,
+                            MetadataReference.CreateFromFile(typeof(EnforcePureAttribute).Assembly.Location))
+                }
             };
+            verifierTest.ExpectedDiagnostics.AddRange(DiagnosticResult.EmptyDiagnosticResults);
             await verifierTest.RunAsync();
         }
 
@@ -121,19 +120,21 @@ public readonly struct Vector2D(double x, double y)
     public double Y { get; } = y;
 
     [EnforcePure]
-    // PS0002 expected because primary constructor parameters aren't handled yet
-    public double {|PS0002:Length|}() => Math.Sqrt(X * X + Y * Y);
+    public double Length() => Math.Sqrt(X * X + Y * Y);
 }";
-            
             var verifierTest = new VerifyCS.Test
             {
                 TestCode = testCode,
                 ReferenceAssemblies = ReferenceAssemblies.Net.Net80,
-                SolutionTransforms = {
-                    (solution, projectId) => 
-                        solution.AddMetadataReference(projectId, MetadataReference.CreateFromFile(typeof(EnforcePureAttribute).Assembly.Location))
-                 }
+                SolutionTransforms =
+                {
+                    (solution, projectId) =>
+                        solution.AddMetadataReference(
+                            projectId,
+                            MetadataReference.CreateFromFile(typeof(EnforcePureAttribute).Assembly.Location))
+                }
             };
+            verifierTest.ExpectedDiagnostics.AddRange(DiagnosticResult.EmptyDiagnosticResults);
             await verifierTest.RunAsync();
         }
 
@@ -154,13 +155,12 @@ public class Rectangle(double width, double height)
     private readonly double _area = width * height;
 
     [EnforcePure]
-    public double {|PS0002:GetArea|}()
+    public double GetArea()
     {
         // Pure method that uses readonly field initialized in constructor
         return _area;
     }
 }";
-
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -177,18 +177,15 @@ using PurelySharp.Attributes;
 public class LoggingCalculator(int initialValue)
 {
     private readonly int _initialValue = initialValue;
-    
+
     [EnforcePure]
-    public int {|PS0002:Add|}(int x)
+    public int Add(int x)
     {
-        Console.WriteLine($""Adding {x} to {_initialValue}""); 
+        Console.WriteLine($""Adding {x} to {_initialValue}"");
         return _initialValue + x;
     }
 }";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(13, 16, 13, 19).WithArguments("Add"));
         }
     }
 }
-
-

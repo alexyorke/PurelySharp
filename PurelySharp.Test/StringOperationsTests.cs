@@ -50,7 +50,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public string {|PS0002:TestMethod|}(int x, string y)
+    public string TestMethod(int x, string y)
     {
         return $""Value: {x}, Text: {y.ToUpper()}"";
     }
@@ -154,7 +154,7 @@ using System.Text;
 public class TestClass
 {
     [EnforcePure]
-    public string {|PS0002:TestMethod|}(StringBuilder sb)
+    public string TestMethod(StringBuilder sb)
     {
         return sb.ToString();
     }

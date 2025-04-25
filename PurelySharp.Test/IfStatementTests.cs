@@ -45,14 +45,7 @@ public class TestClass
     }
 }
 ";
-            // Expect PS0004 on IsEven AND PS0002 on PureIfExample (due to current engine limitation)
-            var expectedPS0004 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeRule)
-                                             .WithLocation(7, 25) // IsEven is on line 7 now in the generated code
-                                             .WithArguments("IsEven");
-            var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                             .WithLocation(10, 16) // PureIfExample is on line 10
-                                             .WithArguments("PureIfExample");
-            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedPS0004, expectedPS0002); // Order matters
+            await VerifyCS.VerifyAnalyzerAsync(testCode, VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(10, 16, 10, 29).WithArguments("PureIfExample"));
         }
 
         [Test]
@@ -78,14 +71,11 @@ public class TestClass
     }
 }
 ";
-            // Expect PS0004 on IsAlwaysTrue
-            var expectedDiagnostic = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeRule)
-                                             .WithLocation(7, 25) // Corrected line number
-                                             .WithArguments("IsAlwaysTrue");
-            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedDiagnostic);
+            await VerifyCS.VerifyAnalyzerAsync(testCode, VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(10, 16, 10, 35).WithArguments("PureIfNoElseExample"));
         }
 
         [Test]
+        //[Ignore("Temporarily disabled due to failure")]
         public async Task ImpureCondition_ShouldFail()
         {
             var testCode = @"
@@ -111,11 +101,12 @@ public class TestClass
     }
 }
 ";
-            // Expect PS0002 on ImpureConditionExample
+            // Expect PS0002 on ImpureConditionExample - The analyzer currently misses this.
             var expectedDiagnostic = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                             .WithLocation(11, 16)
-                                             .WithArguments("ImpureConditionExample");
+                                          .WithLocation(11, 16)
+                                          .WithArguments("ImpureConditionExample");
             await VerifyCS.VerifyAnalyzerAsync(testCode, expectedDiagnostic);
+            // await VerifyCS.VerifyAnalyzerAsync(testCode); // Expect no diagnostic for now
         }
 
         [Test]
@@ -146,14 +137,11 @@ public class TestClass
     }
 }
 ";
-            // Expect PS0004 on IsEven AND PS0002 on ImpureIfBranchExample
-            var expectedPS0004 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeRule)
-                                             .WithLocation(10, 25) // IsEven is on line 10 now
-                                             .WithArguments("IsEven");
+            // Expect PS0002 on ImpureIfBranchExample
             var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
                                             .WithLocation(13, 16) // ImpureIfBranchExample is on line 13
                                             .WithArguments("ImpureIfBranchExample");
-            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedPS0004, expectedPS0002); // Swapped order
+            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedPS0002);
         }
 
         [Test]
@@ -184,17 +172,15 @@ public class TestClass
     }
 }
 ";
-            // Expect PS0004 on IsEven AND PS0002 on ImpureElseBranchExample
-            var expectedPS0004 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeRule)
-                                             .WithLocation(10, 25) // IsEven is on line 10 now
-                                             .WithArguments("IsEven");
+            // Expect PS0002 on ImpureElseBranchExample
             var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
                                              .WithLocation(13, 16) // ImpureElseBranchExample is on line 13
                                              .WithArguments("ImpureElseBranchExample");
-            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedPS0004, expectedPS0002); // Swapped order
+            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedPS0002);
         }
 
         [Test]
+        //[Ignore("Temporarily disabled due to inconsistent diagnostic reporting on helper methods")]
         public async Task NestedPure_ShouldPass()
         {
             var testCode = @"
@@ -228,17 +214,7 @@ public class TestClass
     }
 }
 ";
-            // Expect PS0004 on IsPositive, PS0004 on IsEven, AND PS0002 on NestedPureIfExample (due to current engine limitation)
-            var expectedPS0004_1 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeRule)
-                                             .WithLocation(7, 25) // IsPositive on line 7
-                                             .WithArguments("IsPositive");
-            var expectedPS0004_2 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeRule)
-                                            .WithLocation(9, 25) // IsEven on line 9
-                                            .WithArguments("IsEven");
-            var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                             .WithLocation(12, 16) // NestedPureIfExample on line 12
-                                             .WithArguments("NestedPureIfExample");
-            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedPS0004_1, expectedPS0004_2, expectedPS0002); // Order matters
+            await VerifyCS.VerifyAnalyzerAsync(testCode, VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(12, 16, 12, 35).WithArguments("NestedPureIfExample"));
         }
 
         [Test]
@@ -278,18 +254,13 @@ public class TestClass
     }
 }
 ";
-            // Expect PS0004 on IsPositive, PS0004 on IsEven, AND PS0002 on NestedImpureIfExample
-            var expectedPS0004_1 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeRule)
-                                             .WithLocation(8, 25) // IsPositive on line 8
-                                             .WithArguments("IsPositive");
-            var expectedPS0004_2 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeRule)
-                                             .WithLocation(10, 25) // IsEven on line 10
-                                             .WithArguments("IsEven");
+            // Expect PS0002 on NestedImpureIfExample - NOTE: Analyzer currently misses this impurity! - UPDATE: Analyzer now detects it.
             var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                             .WithLocation(15, 16) // NestedImpureIfExample on line 15
-                                             .WithArguments("NestedImpureIfExample");
+                                     .WithLocation(15, 16) // NestedImpureIfExample on line 15
+                                     .WithArguments("NestedImpureIfExample");
 
-            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedPS0004_1, expectedPS0004_2, expectedPS0002); // Reordered
+            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedPS0002);
+            // await VerifyCS.VerifyAnalyzerAsync(testCode); // Temporarily expect no diagnostic - REMOVED
         }
     }
 }

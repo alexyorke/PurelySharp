@@ -15,10 +15,10 @@ namespace PurelySharp.Test
     [TestFixture]
     public class XmlTests
     {
-        // --- XDocument.Parse (Pure) ---
+        // --- XDocument.Parse (Now considered Impure by default) ---
 
         [Test]
-        public async Task XDocument_Parse_NoDiagnostic()
+        public async Task XDocument_Parse_Diagnostic()
         {
             var test = @"
 #nullable enable
@@ -29,13 +29,17 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public XDocument {|PS0002:TestMethod|}(string xmlString)
+    public XDocument TestMethod(string xmlString)
     {
-        // Pure: Parses in-memory string
+        // Impure: XDocument.Parse is not explicitly pure
         return XDocument.Parse(xmlString);
     }
 }";
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
+                                   .WithSpan(10, 22, 10, 32)
+                                   .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
         }
 
         // --- LINQ to XML In-Memory Operations (Pure) ---
@@ -53,14 +57,14 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public string? {|PS0002:TestMethod|}(XDocument doc)
+    public string? TestMethod(XDocument doc)
     {
         // Pure: In-memory querying and transformation
         var value = doc.Root?
                        .Elements(""Element"")
                        .FirstOrDefault(e => (string?)e.Attribute(""id"") == ""1"")?
                        .Value;
-        return value?.ToUpperInvariant();
+        return value == null ? string.Empty : value.ToUpperInvariant();
     }
 }";
             await VerifyCS.VerifyAnalyzerAsync(test);
@@ -70,7 +74,7 @@ public class TestClass
         [Test]
         public async Task XElement_Creation_WithImpureDateTime_Diagnostic()
         {
-             var test = @"
+            var test = @"
 #nullable enable
 using System;
 using System.Xml.Linq;
@@ -79,13 +83,17 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public XElement {|PS0002:TestMethod|}(string name, object content)
+    public XElement TestMethod(string name, object content)
     {
         // Impure: Creates in-memory XML structure but uses DateTime.Now
         return new XElement(name, content, new XAttribute(""created"", DateTime.Now));
     }
 }";
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
+                                   .WithSpan(10, 21, 10, 31)
+                                   .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
         }
     }
 }

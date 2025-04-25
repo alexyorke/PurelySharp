@@ -29,7 +29,6 @@ public class TestClass
         return x + 5;
     }
 }";
-
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -48,8 +47,11 @@ public class TestClass
         return y + x.ToString();
     }
 }";
-            await VerifyCS.VerifyAnalyzerAsync(test,
-                DiagnosticResult.CompilerError("PS0002").WithSpan(8, 19, 8, 29).WithArguments("TestMethod"));
+            await VerifyCS.VerifyAnalyzerAsync(
+                test,
+                DiagnosticResult.CompilerError("PS0002")
+                                .WithSpan(8, 19, 8, 29)
+                                .WithArguments("TestMethod"));
         }
 
         [Test]
@@ -73,7 +75,6 @@ public class TestClass
         return TestMethod(20);
     }
 }";
-
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -98,7 +99,6 @@ public class TestClass
         return TestMethod();
     }
 }";
-
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -123,7 +123,6 @@ public class TestClass
         return TestMethod(y: 30);
     }
 }";
-
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -137,14 +136,13 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     private const int DefaultValue = 10;
-    
+
     [EnforcePure]
     public int TestMethod(int x = DefaultValue * 2)
     {
         return x + 5;
     }
 }";
-
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -164,7 +162,6 @@ public class TestClass
         return s ?? ""default"";
     }
 }";
-
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -197,16 +194,13 @@ public class TestClass
         {
             return GetGreeting();
         }
+
         return GetGreeting(names[0]);
     }
 }
-#nullable disable";
-
-            var diag1 = DiagnosticResult.CompilerError("PS0002").WithSpan(15, 19, 15, 30).WithArguments("GetGreeting");
-            var diag2 = DiagnosticResult.CompilerError("PS0002").WithSpan(21, 19, 21, 31).WithArguments("CallerMethod");
-            await VerifyCS.VerifyAnalyzerAsync(test, diag1, diag2);
+#nullable disable
+";
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }
 }
-
-

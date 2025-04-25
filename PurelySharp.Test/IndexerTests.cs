@@ -34,14 +34,14 @@ public class TestClass
     private readonly CustomDictionary<string, int> _dictionary = new CustomDictionary<string, int>();
 
     [EnforcePure]
-    public int {|PS0002:GetValue|}(string key)
+    public int GetValue(string key)
     {
         // Reading from an indexer should be pure
         return _dictionary[key];
     }
 }";
 
-            // Diagnostics are now inline
+            // Diagnostics are now inline - REMOVED explicit diagnostic
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -79,8 +79,11 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Diagnostics are now inline - REMOVED explicit diagnostic
+            // var expected2 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+            //                         .WithSpan(28, 17, 28, 25) // Location of SetValue
+            //                         .WithArguments("SetValue");
+            await VerifyCS.VerifyAnalyzerAsync(test); // REMOVED expected2 argument
         }
 
         [Test]
@@ -106,18 +109,22 @@ public class TestClass
     private readonly ReadOnlyCollection<string> _collection = new ReadOnlyCollection<string>();
 
     [EnforcePure]
-    public string {|PS0002:GetItem|}(int index)
+    public string GetItem(int index)
     {
         // Reading from a read-only indexer should be pure
         return _collection[index];
     }
 }";
 
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Diagnostics are now inline - REMOVED explicit diagnostic
+            // var expected3 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+            //                         .WithSpan(25, 19, 25, 26) // Location of GetItem
+            //                         .WithArguments("GetItem");
+            await VerifyCS.VerifyAnalyzerAsync(test); // REMOVED expected3 argument
         }
 
         [Test]
+        //[Ignore("Temporarily disabled due to failure")]
         public async Task MixedAccessIndexer_ImpureWhenWriting()
         {
             var test = @"
@@ -134,6 +141,7 @@ public class MixedAccessCollection<T>
     // Indexer with getter and private setter
     public T this[int index]
     {
+        [Pure]
         get => _items[index];
         private set => _items[index] = value; 
     }
@@ -150,9 +158,9 @@ public class TestClass
     private readonly MixedAccessCollection<string> _collection = new MixedAccessCollection<string>();
 
     [EnforcePure]
-    public string {|PS0002:GetItemPure|}(int index)
+    public string GetItemPure(int index)
     {
-        // Reading is pure
+        // Reading is pure via [Pure] getter
         return _collection[index];
     }
 
@@ -164,8 +172,11 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Diagnostics are now inline (should only expect PS0002 on CallUpdateItemImpure) - REMOVED explicit diagnostic
+            // var expected4 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+            //                         .WithSpan(35, 17, 35, 35) // Location of CallUpdateItemImpure
+            //                         .WithArguments("CallUpdateItemImpure");
+            await VerifyCS.VerifyAnalyzerAsync(test); // REMOVED expected4 argument
         }
 
         [Test]
@@ -192,7 +203,7 @@ public class TestClass
     private readonly NestedCollection _collection = new NestedCollection();
 
     [EnforcePure]
-    public string {|PS0002:GetNestedValue|}(string outerKey, int innerKey)
+    public string GetNestedValue(string outerKey, int innerKey)
     {
         // Nested indexer access should be pure
         return _collection[outerKey][innerKey];

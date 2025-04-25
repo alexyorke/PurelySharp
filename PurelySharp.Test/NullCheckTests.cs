@@ -23,8 +23,9 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public string {|PS0002:TestMethod|}(string input)
+    public string TestMethod(string input)
     {
+        // Null check itself is pure
         if (input == null)
         {
             return ""default"";

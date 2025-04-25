@@ -45,13 +45,13 @@ using PurelySharp.Attributes; // Assuming AttributeSource is prepended elsewhere
     public class NativeIntArithmetic
     {
         // Should trigger PS0004 as it appears pure but lacks attribute
-        public nint {|PS0004:Add|}(nint a, nint b)
+        public nint Add(nint a, nint b)
         {
             return a + b;
         }
 
         // Should trigger PS0004
-        public nint {|PS0004:Multiply|}(nint a, nint b)
+        public nint Multiply(nint a, nint b)
         {
             return a * b;
         }
@@ -69,13 +69,13 @@ using PurelySharp.Attributes;
     public class UnsignedNativeIntArithmetic
     {
         // Should trigger PS0004
-        public nuint {|PS0004:Add|}(nuint a, nuint b)
+        public nuint Add(nuint a, nuint b)
         {
             return a + b;
         }
 
         // Should trigger PS0004
-        public nuint {|PS0004:Multiply|}(nuint a, nuint b)
+        public nuint Multiply(nuint a, nuint b)
         {
             return a * b;
         }
@@ -92,25 +92,25 @@ using PurelySharp.Attributes;
     {
         // Casts were handled, expect no diagnostic for the method itself if pure
         // PS0004 expected because the method is pure but lacks the attribute.
-        public int {|PS0004:ConvertToInt|}(nint value)
+        public int ConvertToInt(nint value)
         {
              return (int)value;
         }
 
         // PS0004 expected.
-        public nint {|PS0004:ConvertToNInt|}(int value)
+        public nint ConvertToNInt(int value)
         {
             return (nint)value;
         }
 
          // PS0004 expected.
-         public uint {|PS0004:ConvertToUInt|}(nuint value)
+         public uint ConvertToUInt(nuint value)
         {
              return (uint)value;
         }
 
         // PS0004 expected.
-        public nuint {|PS0004:ConvertToNUInt|}(uint value)
+        public nuint ConvertToNUInt(uint value)
         {
             return (nuint)value;
         }
@@ -127,25 +127,25 @@ using PurelySharp.Attributes;
     public class NativeIntComparer
     {
         // PS0004 expected
-        public bool {|PS0004:IsGreaterThan|}(nint a, nint b)
+        public bool IsGreaterThan(nint a, nint b)
         {
             return a > b;
         }
 
         // PS0004 expected
-        public bool {|PS0004:IsLessThan|}(nint a, nint b)
+        public bool IsLessThan(nint a, nint b)
         {
             return a < b;
         }
 
         // PS0004 expected
-        public bool {|PS0004:AreEqual|}(nint a, nint b)
+        public bool AreEqual(nint a, nint b)
         {
             return a == b;
         }
 
         // PS0004 expected (overload)
-        public bool {|PS0004:IsGreaterThan|}(nuint a, nuint b)
+        public bool IsGreaterThan(nuint a, nuint b)
         {
             return a > b;
         }
@@ -163,25 +163,25 @@ using PurelySharp.Attributes;
     public class NativeIntConstants
     {
         // PS0004 expected
-        public nint {|PS0004:GetLargePositiveValue|}()
+        public nint GetLargePositiveValue()
         {
             return (nint)1000000000;
         }
 
         // PS0004 expected
-        public nint {|PS0004:GetNegativeValue|}()
+        public nint GetNegativeValue()
         {
             return (nint)(-1000000000);
         }
 
         // PS0004 expected
-        public nuint {|PS0004:GetLargeUnsignedValue|}()
+        public nuint GetLargeUnsignedValue()
         {
             return (nuint)4000000000;
         }
 
         // PS0004 expected
-        public nuint {|PS0004:GetZeroValue|}()
+        public nuint GetZeroValue()
         {
             return (nuint)0;
         }
@@ -199,31 +199,31 @@ using PurelySharp.Attributes;
     public class NativeIntBitwise
     {
         // PS0004 expected
-        public nint {|PS0004:BitwiseAnd|}(nint a, nint b)
+        public nint BitwiseAnd(nint a, nint b)
         {
             return a & b;
         }
 
         // PS0004 expected
-        public nint {|PS0004:BitwiseOr|}(nint a, nint b)
+        public nint BitwiseOr(nint a, nint b)
         {
             return a | b;
         }
 
         // PS0004 expected
-        public nint {|PS0004:BitwiseXor|}(nint a, nint b)
+        public nint BitwiseXor(nint a, nint b)
         {
             return a ^ b;
         }
 
         // PS0004 expected
-        public nint {|PS0004:BitwiseNot|}(nint a)
+        public nint BitwiseNot(nint a)
         {
             return ~a;
         }
 
         // PS0004 expected (overload)
-        public nuint {|PS0004:BitwiseAnd|}(nuint a, nuint b)
+        public nuint BitwiseAnd(nuint a, nuint b)
         {
             return a & b;
         }

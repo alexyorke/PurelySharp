@@ -31,7 +31,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public string {|PS0002:TestMethod|}()
+    public string TestMethod()
     {
         // Pure: InvariantCulture is constant
         CultureInfo invariant = CultureInfo.InvariantCulture;

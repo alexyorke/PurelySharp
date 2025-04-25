@@ -25,14 +25,14 @@ using System.Collections.Immutable;
 public class CollectionExpressionExample
 {
     [EnforcePure]
-    public ImmutableArray<int> {|PS0002:GetNumbers|}()
+    public ImmutableArray<int> GetNumbers()
     {
         // Using Create method for immutable array (pure)
         return ImmutableArray.Create(1, 2, 3, 4, 5);
     }
 }";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // ImmutableArray.Create is pure
+            await VerifyCS.VerifyAnalyzerAsync(test); // Removed expected diagnostic
         }
 
         [Test]
@@ -46,14 +46,14 @@ using System.Collections.Immutable;
 public class CollectionExpressionExample
 {
     [EnforcePure]
-    public ImmutableList<string> {|PS0002:GetNames|}()
+    public ImmutableList<string> GetNames()
     {
         // Using Create method for immutable list (pure)
         return ImmutableList.Create(""Alice"", ""Bob"", ""Charlie"");
     }
 }";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // ImmutableList.Create is pure
+            await VerifyCS.VerifyAnalyzerAsync(test); // Removed expected diagnostic
         }
 
         [Test]
@@ -66,15 +66,15 @@ using PurelySharp.Attributes;
 public class CollectionExpressionExample
 {
     [EnforcePure]
-    // Added PS0002 (returning new mutable array)
-    public int[] {|PS0002:GetNumbers|}()
+    // Creating a local array is now considered pure
+    public int[] GetNumbers()
     {
-        // Using new[] array creation expression (impure under strict rules)
+        // Using new[] array creation expression (pure for local)
         return new[] { 1, 2, 3, 4, 5 };
     }
 }";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Array creation is now considered pure
+            await VerifyCS.VerifyAnalyzerAsync(test); // Removed expected diagnostic
         }
 
         [Test]

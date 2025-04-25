@@ -10,6 +10,13 @@ using System;
 
 namespace PurelySharp.Test
 {
+    // Simple struct
+    public struct Point
+    {
+        public int X { get; set; }
+        public int Y { get; set; }
+    }
+
     [TestFixture]
     public class RefParameterTests
     {
@@ -23,9 +30,9 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int TestMethod(in int x)
+    public int TestMethod(in int a)
     {
-        return x + 10;
+        return a + 10;
     }
 }";
 
@@ -35,71 +42,97 @@ public class TestClass
         [Test]
         public async Task PureMethodWithRefParameter_Diagnostic()
         {
-            var test = @"
-using System;
+            var test = @$"
 using PurelySharp.Attributes;
 
-public class TestClass
-{
-    [EnforcePure]
-    public void {|PS0002:TestMethod|}(ref int x)
-    {
-        x += 10;
-    }
-}";
+public struct Point {{ public int X, Y; }}
 
+public class TestClass
+{{
+    [EnforcePure]
+    public int {{|PS0002:TestMethod|}}(ref Point p)
+    {{
+        p.X = 10; // Modifying ref parameter is impure
+        return p.Y;
+    }}
+}}";
+            // Expect diagnostic PS0002
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
         public async Task PureMethodWithOutParameter_Diagnostic()
         {
-            var test = @"
-using System;
+            var test = @$"
 using PurelySharp.Attributes;
 
-public class TestClass
-{
-    [EnforcePure]
-    public void {|PS0002:TestMethod|}(out int x)
-    {
-        x = 10;
-    }
-}";
+public struct Point {{ public int X, Y; }}
 
+public class TestClass
+{{
+    [EnforcePure]
+    public int {{|PS0002:TestMethod|}}(out Point p)
+    {{
+        p = new Point {{ X = 1, Y = 2 }}; // Assigning to out parameter is impure
+        return p.X;
+    }}
+}}";
+            // Expect diagnostic PS0002
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
         public async Task PureMethodWithInParameterAccess_NoDiagnostic()
         {
+            // Test accessing fields/properties of a struct passed with 'in'
             var test = @"
-using System;
 using PurelySharp.Attributes;
 
-public struct Point
-{
-    public int X { get; }
-    public int Y { get; }
-
-    public Point(int x, int y)
-    {
-        X = x;
-        Y = y;
-    }
-}
+// Corrected struct definition with proper { get; } accessors
+public struct Point { public int X { get; } public int Y { get; } }
 
 public class TestClass
 {
     [EnforcePure]
     public int TestMethod(in Point p)
     {
+        // Reading from 'in' parameter fields/properties is pure
         return p.X + p.Y;
     }
 }";
 
+            // Expect NO diagnostic because reading from 'in' parameter is pure.
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task PureMethodWithInParameterCall_NoDiagnostic()
+        {
+            // Test passing 'in' parameter to another pure method
+            var test = @"
+using PurelySharp.Attributes;
+
+// Corrected struct definition with proper { get; } accessors
+public struct Point { public int X { get; } public int Y { get; } }
+
+public class TestClass
+{
+    [EnforcePure]
+    public int TestMethod(in Point p)
+    {
+        return Helper(p); // Calling pure method with 'in' param
+    }
+
+    // Moved Helper method inside TestClass
+    [EnforcePure]
+    private int Helper(in Point p) => p.X;
+}";
+
+            // Expect NO diagnostic
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        // Add test for calling impure method with in parameter?
     }
 }
 
