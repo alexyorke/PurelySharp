@@ -269,7 +269,12 @@ public struct ComplexValue
                                     .WithSpan(65, 32, 65, 48) // Corrected span from test output
                                     .WithArguments("FibonacciChecked");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            // ADDED: Expect diagnostic for ComplexCalculationChecked due to HashCode use in operator+
+            var expected2 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                    .WithSpan(56, 32, 56, 57) // Span for ComplexCalculationChecked
+                                    .WithArguments("ComplexCalculationChecked");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected, expected2); // Pass both expected diagnostics
         }
 
         [Test]

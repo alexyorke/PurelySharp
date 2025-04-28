@@ -47,6 +47,7 @@ namespace PurelySharp.Analyzer.Engine
         private static readonly ImmutableList<IPurityRule> _purityRules = ImmutableList.Create<IPurityRule>(
             new AssignmentPurityRule(),
             new MethodInvocationPurityRule(),
+            new ConstructorInitializerPurityRule(), // <-- ADDED RULE
             new ReturnStatementPurityRule(),
             new BinaryOperationPurityRule(),
             new PropertyReferencePurityRule(),

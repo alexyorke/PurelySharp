@@ -72,24 +72,24 @@ namespace PurelySharp.Analyzer.Engine.Rules
             // Check constructor purity (if one is resolved)
             if (objectCreationOperation.Constructor is not null)
             {
-                PurityAnalysisEngine.LogDebug($"    [ObjCreationRule] Checking constructor: {objectCreationOperation.Constructor.ToDisplayString()}");
-                // Use the context directly for recursive calls
                 var constructorMethodSymbol = objectCreationOperation.Constructor;
-                // We need to recursively call the *method* analysis, not the operation analysis
+                PurityAnalysisEngine.LogDebug($"    [ObjCreationRule] Recursively checking constructor: {constructorMethodSymbol.ToDisplayString()}");
+
                 var constructorPurity = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
-                                                constructorMethodSymbol,
+                                                constructorMethodSymbol.OriginalDefinition, // Analyze the definition
                                                 context.SemanticModel,
                                                 context.EnforcePureAttributeSymbol,
                                                 context.AllowSynchronizationAttributeSymbol,
                                                 context.VisitedMethods,
                                                 context.PurityCache);
 
+                // Trust the result from the recursive analysis for the constructor.
                 if (!constructorPurity.IsPure)
                 {
-                    PurityAnalysisEngine.LogDebug($"    [ObjCreationRule] Constructor '{objectCreationOperation.Constructor.ToDisplayString()}' is Impure. Result: Impure.");
-                    return constructorPurity;
+                    PurityAnalysisEngine.LogDebug($"    [ObjCreationRule] Constructor '{constructorMethodSymbol.ToDisplayString()}' determined IMPURE by recursive check. Result: Impure.");
+                    return constructorPurity; // Return the trusted impure result
                 }
-                PurityAnalysisEngine.LogDebug($"    [ObjCreationRule] Constructor '{objectCreationOperation.Constructor.ToDisplayString()}' is Pure.");
+                PurityAnalysisEngine.LogDebug($"    [ObjCreationRule] Constructor '{constructorMethodSymbol.ToDisplayString()}' determined PURE by recursive check. Trusting result.");
             }
             else
             {

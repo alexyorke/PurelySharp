@@ -53,12 +53,35 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 PurityAnalysisEngine.LogDebug($"    [BinaryOp] Right Operand is Pure.");
             }
 
-            // If both operands are pure, the binary operation itself is pure (assuming no impure overloaded operator)
-            // TODO: Add check for impure overloaded operators if ISymbol can be obtained from IBinaryOperation
+            // If both operands are pure, check the operator method itself if it's user-defined
+            IMethodSymbol? operatorMethodSymbol = binaryOperation.OperatorMethod;
+            if (operatorMethodSymbol != null && !operatorMethodSymbol.IsImplicitlyDeclared) // Check if it's explicitly user-defined
+            {
+                PurityAnalysisEngine.LogDebug($"    [BinaryOp] Checking user-defined operator method: {operatorMethodSymbol.ToDisplayString()}");
+                // Analyze the operator method itself using the internal recursive checker
+                var operatorResult = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
+                    operatorMethodSymbol.OriginalDefinition, // Use original definition for consistency
+                    context.SemanticModel,
+                    context.EnforcePureAttributeSymbol,
+                    context.AllowSynchronizationAttributeSymbol,
+                    context.VisitedMethods,
+                    context.PurityCache); // Use the cache passed in the context
 
-            // Potential future enhancements:
-            // - Check for overloaded operators that might be impure.
-            PurityAnalysisEngine.LogDebug($"    [BinaryOp] Both operands pure. Binary operation {binaryOperation.OperatorKind} is Pure.");
+                if (!operatorResult.IsPure)
+                {
+                    PurityAnalysisEngine.LogDebug($"    [BinaryOp] User-defined operator method {operatorMethodSymbol.ToDisplayString()} is IMPURE. Result: Impure.");
+                    // If the operator is impure, use its impurity result (potentially more specific node)
+                    return operatorResult;
+                }
+                PurityAnalysisEngine.LogDebug($"    [BinaryOp] User-defined operator method {operatorMethodSymbol.ToDisplayString()} is Pure.");
+            }
+            else
+            {
+                PurityAnalysisEngine.LogDebug($"    [BinaryOp] Using built-in or implicitly declared operator ({binaryOperation.OperatorKind}). Assuming pure operation.");
+            }
+
+            // If operands and user-defined operator (if any) are pure, the operation is pure.
+            PurityAnalysisEngine.LogDebug($"    [BinaryOp] Operands and operator method (if applicable) pure. Binary operation {binaryOperation.OperatorKind} is Pure.");
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
         }
     }
