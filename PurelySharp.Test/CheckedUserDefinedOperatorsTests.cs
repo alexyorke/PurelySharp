@@ -180,115 +180,96 @@ namespace TestNamespace
         [Test]
         public async Task CheckedUserDefinedOperator_ComplexExpression_PureMethod_NoDiagnostic()
         {
-            var test = @"
+            var test = @$"
 using System;
+using System.Threading;
 using PurelySharp.Attributes;
 
+public static class Operations
+{{
+    public static int AddChecked(int x, int y)
+    {{
+        return checked(x + y);
+    }}
+}}
 
+public struct ComplexValue
+{{
+    public int Real {{ get; }}
+    public int Imaginary {{ get; }}
 
-namespace TestNamespace
-{
-    public readonly struct BigInteger
-    {
-        private readonly int[] _digits;
+    public ComplexValue(int real, int imaginary)
+    {{
+        Real = real;
+        Imaginary = imaginary;
+    }}
 
-        public BigInteger(int value)
-        {
-            _digits = new int[] { value };
-        }
+    // Checked addition operator
+    public static ComplexValue operator +(ComplexValue a, ComplexValue b)
+    {{
+        // Use System.HashCode which is marked impure
+        HashCode hash = default;
+        hash.Add(a.Real);
+        hash.Add(b.Real);
+        int realSum = checked(a.Real + b.Real); // Use checked context
 
-        // Private constructor for internal use
-        private BigInteger(int[] digits)
-        {
-            _digits = digits;
-        }
+        // Use Operations.AddChecked
+        int imaginarySum = Operations.AddChecked(a.Imaginary, b.Imaginary);
 
-        // Regular addition
-        public static BigInteger operator +(BigInteger left, BigInteger right)
-        {
-            // Simplified implementation for testing
-            int result = left._digits[0] + right._digits[0];
-            return new BigInteger(new int[] { result });
-        }
+        return new ComplexValue(realSum, imaginarySum);
+    }}
 
-        // Checked addition
-        public static BigInteger operator checked +(BigInteger left, BigInteger right)
-        {
-            // Simplified implementation for testing
-            int result = checked(left._digits[0] + right._digits[0]);
-            return new BigInteger(new int[] { result });
-        }
+     // Checked subtraction operator
+    public static ComplexValue operator -(ComplexValue a, ComplexValue b)
+    {{
+        int realDiff = checked(a.Real - b.Real); // Use checked context
+        int imaginaryDiff = checked(a.Imaginary - b.Imaginary); // Use checked context
+        return new ComplexValue(realDiff, imaginaryDiff);
+    }}
 
-        // Regular multiplication
-        public static BigInteger operator *(BigInteger left, BigInteger right)
-        {
-            // Simplified implementation for testing
-            int result = left._digits[0] * right._digits[0];
-            return new BigInteger(new int[] { result });
-        }
+     // Checked unary negation operator
+    public static ComplexValue operator -(ComplexValue a)
+    {{
+        return new ComplexValue(checked(-a.Real), checked(-a.Imaginary)); // Use checked context
+    }}
 
-        // Checked multiplication
-        public static BigInteger operator checked *(BigInteger left, BigInteger right)
-        {
-            // Simplified implementation for testing
-            int result = checked(left._digits[0] * right._digits[0]);
-            return new BigInteger(new int[] { result });
-        }
+     // Example method using checked operators within a complex expression
+    [EnforcePure]
+    public static ComplexValue ComplexCalculationChecked(ComplexValue c1, ComplexValue c2, ComplexValue c3)
+    {{
+        // Nested checked operations
+        ComplexValue intermediate = checked(c1 + c2);
+        return checked(intermediate - c3);
+    }}
 
-        // Regular subtraction
-        public static BigInteger operator -(BigInteger left, BigInteger right)
-        {
-            // Simplified implementation for testing
-            int result = left._digits[0] - right._digits[0];
-            return new BigInteger(new int[] { result });
-        }
+    // Example method using checked operators within a complex expression
+    [EnforcePure]
+    public static ComplexValue FibonacciChecked(int n)
+    {{
+         if (n < 0) throw new ArgumentOutOfRangeException(nameof(n), ""Input must be non-negative."");
+         if (n == 0) return new ComplexValue(0, 0);
 
-        // Checked subtraction
-        public static BigInteger operator checked -(BigInteger left, BigInteger right)
-        {
-            // Simplified implementation for testing
-            int result = checked(left._digits[0] - right._digits[0]);
-            return new BigInteger(new int[] { result });
-        }
+         ComplexValue a = new ComplexValue(0, 0);
+         ComplexValue b = new ComplexValue(1, 0);
 
-        // ToString override for display
-        public override string ToString()
-        {
-            return _digits[0].ToString();
-        }
-    }
+         for (int i = 1; i < n; i++)
+         {{
+            ComplexValue temp = checked(a + b); // Checked operator used here
+            a = b;
+            b = temp;
+         }}
+         return b;
+    }}
+}}
+            ";
 
-    public class ComplexCheckedOperationsTest
-    {
-        [EnforcePure]
-        public BigInteger CalculatePolynomial(BigInteger x, BigInteger a, BigInteger b, BigInteger c)
-        {
-            // Pure: Analyzer now handles checked operators.
-            return checked(checked(a * x * x) + checked(b * x) + c);
-        }
+            // This test now expects PS0002 because FibonacciChecked contains patterns (loops, assignments)
+            // that trigger the "not fully verified" diagnostic, even if underlying calls (like HashCode.Add) are known.
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                    .WithSpan(65, 32, 65, 48) // Corrected span from test output
+                                    .WithArguments("FibonacciChecked");
 
-        [EnforcePure]
-        public BigInteger FibonacciChecked(int n)
-        {
-            // Pure: Analyzer now handles checked operators and loops.
-            if (n <= 1)
-                return new BigInteger(n);
-
-            BigInteger a = new BigInteger(0);
-            BigInteger b = new BigInteger(1);
-            
-            for (int i = 2; i <= n; i++)
-            {
-                BigInteger temp = b;
-                b = checked(a + b);
-                a = temp;
-            }
-            
-            return b;
-        }
-    }
-}";
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]

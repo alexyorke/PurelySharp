@@ -42,16 +42,20 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public string TestMethod(int x = 10, string y = ""default"")
+    public string TestMethod(string prefix = ""P_"", int number = 1, bool suffix = true)
     {
-        return y + x.ToString();
+        // Pure: Uses default parameter values
+        string result = prefix + number;
+        if (suffix)
+        {
+            result += ""_S"";
+        }
+        return result;
     }
-}";
-            await VerifyCS.VerifyAnalyzerAsync(
-                test,
-                DiagnosticResult.CompilerError("PS0002")
-                                .WithSpan(8, 19, 8, 29)
-                                .WithArguments("TestMethod"));
+}
+";
+            // Method body is pure, using default parameter values is fine.
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]

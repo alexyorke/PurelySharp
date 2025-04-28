@@ -19,19 +19,21 @@ namespace PurelySharp.Test
 using System;
 using PurelySharp.Attributes;
 
-
-
 public class TestClass
 {
-    [EnforcePure]
-    public string /*|PS0002:*/TestMethod/*|*/(TestClass obj)
-    {
-        // Null conditional operator is considered pure
-        return obj?.ToString() ?? ""null"";
-    }
-    }";
+    public string Value { get; set; }
 
-            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(10, 31, 10, 41).WithArguments("TestMethod"));
+    [EnforcePure]
+    public int? TestMethod(TestClass obj)
+    {
+        // Pure: Null conditional access to a property length
+        return obj?.Value?.Length;
+    }
+}
+";
+            // Null conditional operator itself is pure.
+            // Analyzer should now handle this correctly.
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]

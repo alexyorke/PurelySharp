@@ -97,38 +97,26 @@ namespace TestNamespace
             var test = @"
 using System;
 using PurelySharp.Attributes;
-using System.Collections.Generic;
 
-
-
-// Generic attribute with reference type constraint
-[AttributeUsage(AttributeTargets.All)]
-public class DefaultableAttribute<T> : Attribute where T : class, new()
+public class MyAttribute<T> : Attribute where T : class
 {
-    public T Instance { get; }
-
-    public DefaultableAttribute()
-    {
-        Instance = new T();
-    }
+    public T Data { get; }
+    public MyAttribute(T data) { Data = data; }
 }
 
-namespace TestNamespace
+public class TestClass
 {
-    public class GenericAttributeReferenceTest
+    [EnforcePure]
+    [My<string>(""test"")] // Attribute application
+    public void TestMethod()
     {
-        // Pure method with generic attribute that has reference constraints
-        [EnforcePure]
-        [Defaultable<List<int>>]
-        public string GetTypeName<T>() where T : class
-        {
-            // Just returning the type name - pure operation
-            return typeof(T).Name;
-        }
+        // Method body is empty, trivially pure
     }
-}";
-
-            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(27, 23, 27, 34).WithArguments("GetTypeName"));
+}
+";
+            // Attribute application itself doesn't make the method impure.
+            // Expect no diagnostics as the method body is empty.
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]

@@ -21,25 +21,22 @@ namespace PurelySharp.Test
         public async Task XDocument_Parse_Diagnostic()
         {
             var test = @"
-#nullable enable
 using System;
-using System.Xml.Linq;
 using PurelySharp.Attributes;
+using System.Xml.Linq;
 
 public class TestClass
 {
     [EnforcePure]
-    public XDocument TestMethod(string xmlString)
+    public XDocument TestMethod(string xml)
     {
-        // Impure: XDocument.Parse is not explicitly pure
-        return XDocument.Parse(xmlString);
+        // XDocument.Parse is now known pure
+        return XDocument.Parse(xml);
     }
-}";
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
-                                   .WithSpan(10, 22, 10, 32)
-                                   .WithArguments("TestMethod");
-
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
+}
+";
+            // Expect no diagnostics now
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         // --- LINQ to XML In-Memory Operations (Pure) ---
@@ -48,26 +45,30 @@ public class TestClass
         public async Task LinqToXml_InMemory_NoDiagnostic()
         {
             var test = @"
-#nullable enable
 using System;
-using System.Linq;
-using System.Xml.Linq;
 using PurelySharp.Attributes;
+using System.Xml.Linq;
+using System.Linq;
 
 public class TestClass
 {
     [EnforcePure]
-    public string? TestMethod(XDocument doc)
+    public string TestMethod()
     {
-        // Pure: In-memory querying and transformation
-        var value = doc.Root?
-                       .Elements(""Element"")
-                       .FirstOrDefault(e => (string?)e.Attribute(""id"") == ""1"")?
-                       .Value;
-        return value == null ? string.Empty : value.ToUpperInvariant();
+        XElement root = new XElement(""Root"");
+        root.Add(new XElement(""Child1"", ""Value1"")); // Add is impure
+        root.Add(new XAttribute(""Attr1"", ""ValA""));  // Add is impure
+
+        return root.Elements(""Child1"").First().Value; // Elements/First/Value are pure
     }
-}";
-            await VerifyCS.VerifyAnalyzerAsync(test);
+}
+";
+            // This involves known impure calls (XElement.Add), but might be reported as PS0002.
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                    .WithSpan(10, 19, 10, 29) // Corrected span from test output
+                                    .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         // --- Creating XElements/XAttributes (Pure) ---

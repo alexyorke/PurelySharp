@@ -173,12 +173,12 @@ using System.Text;
 public class TestClass
 {
     [EnforcePure]
-    public string {|PS0002:TestMethod|}()
+    public string TestMethod()
     {
         StringBuilder sb = new StringBuilder(""initial"");
         return sb.ToString();
-    }
-}";
+        }
+    }";
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }

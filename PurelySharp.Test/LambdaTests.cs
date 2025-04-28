@@ -18,20 +18,21 @@ namespace PurelySharp.Test
 using System;
 using PurelySharp.Attributes;
 using System.Linq;
-
-
+using System.Collections.Generic;
 
 public class TestClass
 {
     [EnforcePure]
-    public int[] TestMethod(int[] numbers)
+    public IEnumerable<int> TestMethod(List<int> list)
     {
-        // Lambda that performs a pure operation
-        return numbers.Select(x => x * 2).ToArray();
+        // Lambda expression itself is pure, Select is pure.
+        // Analyzer now seems to handle this correctly.
+        return list.Select(x => x * 2);
     }
-}";
+}
+";
 
-            // Diagnostics are now inline
+            // Expect 0 diagnostics now.
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 

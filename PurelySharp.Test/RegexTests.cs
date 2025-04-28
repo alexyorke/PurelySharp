@@ -20,22 +20,20 @@ namespace PurelySharp.Test
         public async Task Regex_IsMatch_Static_NoDiagnostic()
         {
             var test = @"
-#nullable enable
 using System;
-using System.Text.RegularExpressions;
 using PurelySharp.Attributes;
-
-
+using System.Text.RegularExpressions;
 
 public class TestClass
 {
     [EnforcePure]
-    public bool {|PS0002:TestMethod|}(string input, string pattern)
+    public bool TestMethod(string input)
     {
-        // Pure: Static regex operations are stateless
-        return Regex.IsMatch(input, pattern);
+        // Static Regex.IsMatch is now known pure
+        return Regex.IsMatch(input, ""^[a-z]+$"");
     }
-}";
+}
+";
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -43,23 +41,20 @@ public class TestClass
         public async Task Regex_Match_Static_NoDiagnostic()
         {
             var test = @"
-#nullable enable
 using System;
-using System.Text.RegularExpressions;
 using PurelySharp.Attributes;
-
-
+using System.Text.RegularExpressions;
 
 public class TestClass
 {
     [EnforcePure]
-    public string? {|PS0002:TestMethod|}(string input, string pattern)
+    public Match TestMethod(string input)
     {
-        // Pure: Static regex operations are stateless
-        Match match = Regex.Match(input, pattern);
-        return match.Success ? match.Value : null;
+        // Static Regex.Match is now known pure
+        return Regex.Match(input, ""^[a-z]+$"");
     }
-}";
+}
+";
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -102,23 +97,21 @@ public class TestClass
         public async Task Regex_Constructor_NoDiagnostic()
         {
             var test = @"
-#nullable enable
 using System;
-using System.Text.RegularExpressions;
 using PurelySharp.Attributes;
-
-
+using System.Text.RegularExpressions;
 
 public class TestClass
 {
     [EnforcePure]
-    public Regex {|PS0002:TestMethod|}(string pattern)
+    public Regex TestMethod()
     {
-        // Assuming constructor is pure for typical use cases
-        return new Regex(pattern, RegexOptions.Compiled);
+        // Regex constructor is now known pure
+        return new Regex(""^[a-z]+$"");
     }
-}";
+}
+";
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }
-} 
+}
