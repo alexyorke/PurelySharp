@@ -593,6 +593,11 @@ namespace PurelySharp.Analyzer.Engine
             "System.Linq.Enumerable.ToLookup", // All overloads (create objects)
             "System.Text.StringBuilder.AppendJoin(string, object[])", // Simplified
             "System.Threading.Monitor.TryEnter(object)", // Simplified
+
+            // --- ValueTask/Task related --- 
+            "System.Threading.Tasks.ValueTask<TResult>.ValueTask(TResult)", // Add constructor as impure based on test expectations
+            "System.Threading.Tasks.Task.Run(System.Action)", // Task.Run should be impure
+            "System.IO.MemoryStream.MemoryStream()" // Corrected Signature: Treat constructor as impure by default
         };
 
         // Add a set of known PURE BCL method/property signatures (using OriginalDefinition.ToDisplayString() format)
@@ -719,7 +724,6 @@ namespace PurelySharp.Analyzer.Engine
             "int.ToString()", // Mostly pure (culture)
 
             // System.IO (Pure subset)
-            "System.IO.MemoryStream()", // Constructor
             "System.IO.MemoryStream.ToArray()",
             "System.IO.Path.Combine(string, string)", // Common overload
             "System.IO.Path.GetDirectoryName(string)",
@@ -876,28 +880,6 @@ namespace PurelySharp.Analyzer.Engine
             "System.Type.GetHashCode()", // Added override
             "System.Type.ToString()", // Added override
             // typeof() operator handled separately (it's pure)
-
-            // System.Uri
-            "System.Uri.Uri(string)", // Constructor
-            "System.Uri.Host.get",
-            "System.Uri.Scheme.get",
-            "System.Uri.TryCreate(string, System.UriKind, out System.Uri)", // Simplified
-
-            // System.Version
-            "System.Version.CompareTo(System.Version)",
-            "System.Version.Parse(string)",
-            "System.Version.ToString()", // Added common method
-
-            // System.Xml.Linq (Pure subset)
-            "System.Xml.Linq.XDocument.Parse(string)",
-            "System.Xml.Linq.XElement.Attribute(System.Xml.Linq.XName)",
-            "System.Xml.Linq.XElement.Descendants()", // Simplified
-            "System.Xml.Linq.XElement.Elements()", // Simplified
-            "System.Xml.Linq.XElement.Value.get", // Added common property
-            "System.Xml.Linq.XAttribute.Value.get", // Added common property
-
-            // typeof operator - handled by Roslyn directly, always pure.
-            "System.Reflection.Assembly.GetName()",
 
             // --- Added from third list (Pure/Mostly Pure/Conditionally Pure) ---
             "System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(System.ReadOnlySpan<byte>)",
@@ -1205,6 +1187,17 @@ namespace PurelySharp.Analyzer.Engine
             "System.Runtime.InteropServices.MemoryMarshal.AsBytes<T>(System.Span<T>)",
             "string.IsNullOrWhiteSpace(System.ReadOnlySpan<char>)",
             "System.TimeSpan.Zero.get", // Field access
+
+            // System.Xml.Linq (Pure subset)
+            "System.Xml.Linq.XDocument.Parse(string)",
+            "System.Xml.Linq.XElement.Attribute(System.Xml.Linq.XName)",
+            "System.Xml.Linq.XElement.Descendants()", // Simplified
+            "System.Xml.Linq.XElement.Elements()", // Simplified
+            "System.Xml.Linq.XElement.Value.get", // Added common property
+            "System.Xml.Linq.XAttribute.Value.get", // Added common property
+
+            // System.Text.RegularExpressions
+            "System.Text.RegularExpressions.Regex.IsMatch(string, string)",
         };
 
         /// <summary>
@@ -1279,196 +1272,202 @@ namespace PurelySharp.Analyzer.Engine
             HashSet<IMethodSymbol> visited,
             Dictionary<IMethodSymbol, PurityAnalysisResult> purityCache)
         {
-            // *** LOG ENTRY ***
-            LogDebug($"Entering DeterminePurityRecursiveInternal for {methodSymbol.ToDisplayString()}");
+            LogDebug($"Enter DeterminePurityRecursiveInternal: {methodSymbol.ToDisplayString()}, visited count: {visited.Count}");
 
-            // --- Cache Check ---
-            if (purityCache.TryGetValue(methodSymbol, out PurityAnalysisResult cachedResult))
+            // --- 1. Check Cache --- 
+            if (purityCache.TryGetValue(methodSymbol, out var cachedResult))
             {
-                LogDebug($"Cache hit for {methodSymbol.ToDisplayString()}, IsPure={cachedResult.IsPure}");
+                LogDebug($"  Purity CACHED: {cachedResult.IsPure} for {methodSymbol.ToDisplayString()}");
                 return cachedResult;
             }
 
-            // --- Cycle Detection ---
+            // --- 2. Detect Recursion --- 
             if (!visited.Add(methodSymbol))
             {
-                // Cycle detected, assume impure to be safe
-                LogDebug($"Cycle detected involving {methodSymbol.ToDisplayString()}, assuming impure.");
-                // Cache the impure result for this cycle participant
+                LogDebug($"  Recursion DETECTED for {methodSymbol.ToDisplayString()}. Assuming impure for this path.");
+                // Revert to previous behavior: Assume impure on cycle detection
                 purityCache[methodSymbol] = PurityAnalysisResult.ImpureUnknownLocation;
+                // NOTE: We do NOT remove from visited here, as the original call still needs to complete.
                 return PurityAnalysisResult.ImpureUnknownLocation;
             }
 
-            // --- Basic Checks (Before CFG) ---
-            // 2. Known Impure/Pure Checks (moved UP - check before assuming pure due to no body)
-            if (IsKnownImpure(methodSymbol))
+            try // Use try/finally to ensure visited.Remove is always called
             {
-                LogDebug($"Method {methodSymbol.ToDisplayString()} is known impure.");
-                purityCache[methodSymbol] = ImpureResult(null); // Or find syntax if possible
-                visited.Remove(methodSymbol);
-                return ImpureResult(null);
-            }
-            if (IsKnownPureBCLMember(methodSymbol))
-            {
-                LogDebug($"Method {methodSymbol.ToDisplayString()} is known pure BCL member.");
-                purityCache[methodSymbol] = PurityAnalysisResult.Pure;
-                visited.Remove(methodSymbol);
-                return PurityAnalysisResult.Pure;
-            }
-            if (IsInImpureNamespaceOrType(methodSymbol))
-            {
-                LogDebug($"Method {methodSymbol.ToDisplayString()} is in known impure namespace/type.");
-                purityCache[methodSymbol] = ImpureResult(null); // Or find syntax if possible
-                visited.Remove(methodSymbol);
-                return ImpureResult(null);
-            }
-
-            // 1. Abstract/External/Missing Body: Assumed pure (no implementation to violate purity)
-            if (methodSymbol.IsAbstract || methodSymbol.IsExtern || GetBodySyntaxNode(methodSymbol, default) == null) // Use default CancellationToken
-            {
-                // Only assume pure here if it wasn't already caught by the known lists above
-                LogDebug($"Method {methodSymbol.ToDisplayString()} is abstract, extern, or has no body AND not known impure/pure. Assuming pure.");
-                purityCache[methodSymbol] = PurityAnalysisResult.Pure;
-                visited.Remove(methodSymbol); // Remove before returning
-                return PurityAnalysisResult.Pure;
-            }
-
-            // --- Analyze Body using CFG ---
-            PurityAnalysisResult result = PurityAnalysisResult.Pure; // Assume pure until proven otherwise by CFG
-            var bodySyntaxNode = GetBodySyntaxNode(methodSymbol, default); // Pass CancellationToken.None
-            if (bodySyntaxNode != null)
-            {
-                LogDebug($"Analyzing body of {methodSymbol.ToDisplayString()} using CFG.");
-                // Call internal CFG analysis helper
-                result = AnalyzePurityUsingCFGInternal(
-                    bodySyntaxNode,
-                    semanticModel,
-                    enforcePureAttributeSymbol,
-                    allowSynchronizationAttributeSymbol,
-                    visited,
-                    methodSymbol, // Pass the containing method symbol
-                    purityCache);
-            }
-            else
-            {
-                LogDebug($"No body found for {methodSymbol.ToDisplayString()} to analyze with CFG. Assuming pure based on earlier checks.");
-                // Result remains Pure if no body found (matches abstract/extern check)
-            }
-
-            // Get the IOperation for the body *after* potential CFG analysis
-            // Used for post-CFG checks (Return, Throw)
-            IOperation? methodBodyIOperation = null;
-            if (bodySyntaxNode != null)
-            {
-                try
+                // --- 3. Check [Pure] Attribute ---
+                var pureAttrSymbol = semanticModel.Compilation.GetTypeByMetadataName(typeof(PureAttribute).FullName);
+                if (pureAttrSymbol != null && HasAttribute(methodSymbol, pureAttrSymbol))
                 {
-                    methodBodyIOperation = semanticModel.GetOperation(bodySyntaxNode, default);
+                    LogDebug($"  Method has [Pure] attribute: {methodSymbol.ToDisplayString()}. Returning Pure.");
+                    purityCache[methodSymbol] = PurityAnalysisResult.Pure;
+                    return PurityAnalysisResult.Pure;
                 }
-                catch (Exception ex)
+
+                // --- 4. Known Pure/Impure BCL Members --- 
+                if (IsKnownImpure(methodSymbol))
                 {
-                    LogDebug($"  Post-CFG: Error getting IOperation for method body: {ex.Message}");
-                    methodBodyIOperation = null; // Ensure it's null if GetOperation fails
+                    LogDebug($"Method {methodSymbol.ToDisplayString()} is known impure.");
+                    var knownImpureResult = ImpureResult(null); // Or find syntax if possible
+                    purityCache[methodSymbol] = knownImpureResult;
+                    return knownImpureResult;
                 }
-            }
-
-            // --- NEW: Post-CFG Full Operation Tree Walk ---
-            // If CFG analysis didn't find impurity, perform a full walk of the
-            // IOperation tree as a fallback to catch things missed by CFG structure.
-            if (result.IsPure && methodBodyIOperation != null)
-            {
-                LogDebug($"  Post-CFG: CFG result is Pure. Performing full IOperation tree walk for {methodSymbol.ToDisplayString()}");
-                // Use the REFINED walker
-                var fullWalker = new FullOperationPurityWalker(semanticModel, enforcePureAttributeSymbol, allowSynchronizationAttributeSymbol, visited, purityCache, methodSymbol);
-                fullWalker.Visit(methodBodyIOperation);
-
-                if (!fullWalker.OverallPurityResult.IsPure)
+                if (IsKnownPureBCLMember(methodSymbol))
                 {
-                    LogDebug($"  Post-CFG: IMPURITY FOUND during full IOperation walk. Overriding CFG result.");
-                    result = fullWalker.OverallPurityResult;
+                    LogDebug($"Method {methodSymbol.ToDisplayString()} is known pure BCL member.");
+                    purityCache[methodSymbol] = PurityAnalysisResult.Pure;
+                    return PurityAnalysisResult.Pure;
+                }
+
+                // 1. Abstract/External/Missing Body: Assumed pure (no implementation to violate purity)
+                if (methodSymbol.IsAbstract || methodSymbol.IsExtern || GetBodySyntaxNode(methodSymbol, default) == null) // Use default CancellationToken
+                {
+                    // Only assume pure here if it wasn't already caught by the known lists above
+                    LogDebug($"Method {methodSymbol.ToDisplayString()} is abstract, extern, or has no body AND not known impure/pure. Assuming pure.");
+                    purityCache[methodSymbol] = PurityAnalysisResult.Pure;
+                    return PurityAnalysisResult.Pure;
+                }
+
+                // --- Analyze Body using CFG ---
+                PurityAnalysisResult result = PurityAnalysisResult.Pure; // Assume pure until proven otherwise by CFG
+                var bodySyntaxNode = GetBodySyntaxNode(methodSymbol, default); // Pass CancellationToken.None
+                if (bodySyntaxNode != null)
+                {
+                    LogDebug($"Analyzing body of {methodSymbol.ToDisplayString()} using CFG.");
+                    // Call internal CFG analysis helper
+                    result = AnalyzePurityUsingCFGInternal(
+                        bodySyntaxNode,
+                        semanticModel,
+                        enforcePureAttributeSymbol,
+                        allowSynchronizationAttributeSymbol,
+                        visited,
+                        methodSymbol, // Pass the containing method symbol
+                        purityCache);
                 }
                 else
                 {
-                    LogDebug($"  Post-CFG: No impurity found during full IOperation walk.");
+                    LogDebug($"No body found for {methodSymbol.ToDisplayString()} to analyze with CFG. Assuming pure based on earlier checks.");
+                    // Result remains Pure if no body found (matches abstract/extern check)
                 }
-            }
-            // --- END NEW ---
 
-            // --- Post-CFG Check: Return Values (Original Check) ---
-            // If the analysis result is still pure after CFG + Full Walk, explicitly check Return operations
-            if (result.IsPure && methodBodyIOperation != null)
-            {
-                LogDebug($"Post-CFG: Result Pure. Performing post-CFG check on ReturnOperations in {methodSymbol.ToDisplayString()}");
-                var pureAttributeSymbol = semanticModel.Compilation.GetTypeByMetadataName("PurelySharp.Attributes.PureAttribute");
-
-                var returnContext = new Rules.PurityAnalysisContext(
-                    semanticModel,
-                    enforcePureAttributeSymbol,
-                    pureAttributeSymbol,
-                    allowSynchronizationAttributeSymbol,
-                    visited,
-                    purityCache,
-                    methodSymbol,
-                    _purityRules,
-                    CancellationToken.None);
-
-                bool returnFound = false;
-                foreach (var returnOp in methodBodyIOperation.DescendantsAndSelf().OfType<IReturnOperation>())
+                // Get the IOperation for the body *after* potential CFG analysis
+                // Used for post-CFG checks (Return, Throw)
+                IOperation? methodBodyIOperation = null;
+                if (bodySyntaxNode != null)
                 {
-                    returnFound = true;
-                    LogDebug($"  Post-CFG: Found ReturnOperation: {returnOp.Syntax}");
-                    if (returnOp.ReturnedValue != null)
+                    try
                     {
-                        LogDebug($"    Post-CFG: Checking ReturnedValue of kind {returnOp.ReturnedValue.Kind}: {returnOp.ReturnedValue.Syntax}");
-                        var returnPurity = CheckSingleOperation(returnOp.ReturnedValue, returnContext);
-                        if (!returnPurity.IsPure)
-                        {
-                            LogDebug($"    Post-CFG: Returned value found IMPURE. Overriding result.");
-                            result = returnPurity;
-                            break; // Found impurity, stop checking returns
-                        }
-                        else
-                        {
-                            LogDebug($"    Post-CFG: Returned value checked and found PURE.");
-                        }
+                        methodBodyIOperation = semanticModel.GetOperation(bodySyntaxNode, default);
+                    }
+                    catch (Exception ex)
+                    {
+                        LogDebug($"  Post-CFG: Error getting IOperation for method body: {ex.Message}");
+                        methodBodyIOperation = null; // Ensure it's null if GetOperation fails
+                    }
+                }
+
+                // --- NEW: Post-CFG Full Operation Tree Walk ---
+                // If CFG analysis didn't find impurity, perform a full walk of the
+                // IOperation tree as a fallback to catch things missed by CFG structure.
+                if (result.IsPure && methodBodyIOperation != null)
+                {
+                    LogDebug($"  Post-CFG: CFG result is Pure. Performing full IOperation tree walk for {methodSymbol.ToDisplayString()}");
+                    // Use the REFINED walker
+                    var fullWalker = new FullOperationPurityWalker(semanticModel, enforcePureAttributeSymbol, allowSynchronizationAttributeSymbol, visited, purityCache, methodSymbol);
+                    fullWalker.Visit(methodBodyIOperation);
+
+                    if (!fullWalker.OverallPurityResult.IsPure)
+                    {
+                        LogDebug($"  Post-CFG: IMPURITY FOUND during full IOperation walk. Overriding CFG result.");
+                        result = fullWalker.OverallPurityResult;
                     }
                     else
                     {
-                        LogDebug($"  Post-CFG: ReturnOperation has no ReturnedValue (e.g., return;). Pure.");
+                        LogDebug($"  Post-CFG: No impurity found during full IOperation walk.");
                     }
                 }
-                if (!returnFound)
-                {
-                    LogDebug($"  Post-CFG: No ReturnOperation found in method body operation tree.");
-                }
-            }
-            // --- END Post-CFG Check: Return Values (Original Check) ---
+                // --- END NEW ---
 
-            // --- FIX: Post-CFG Check for Throw Operations ---
-            // Even if CFG/Return checks passed, explicitly check for throw statements in the operation tree
-            // Use the retrieved methodBodyIOperation
-            if (result.IsPure && methodBodyIOperation != null)
-            {
-                LogDebug($"Post-CFG: Result still Pure. Performing post-CFG check for ThrowOperations in {methodSymbol.ToDisplayString()}");
+                // --- Post-CFG Check: Return Values (Original Check) ---
+                // If the analysis result is still pure after CFG + Full Walk, explicitly check Return operations
+                if (result.IsPure && methodBodyIOperation != null)
+                {
+                    LogDebug($"Post-CFG: Result Pure. Performing post-CFG check on ReturnOperations in {methodSymbol.ToDisplayString()}");
+                    var pureAttributeSymbol = semanticModel.Compilation.GetTypeByMetadataName("PurelySharp.Attributes.PureAttribute");
+
+                    var returnContext = new Rules.PurityAnalysisContext(
+                        semanticModel,
+                        enforcePureAttributeSymbol,
+                        pureAttributeSymbol,
+                        allowSynchronizationAttributeSymbol,
+                        visited,
+                        purityCache,
+                        methodSymbol,
+                        _purityRules,
+                        CancellationToken.None);
+
+                    bool returnFound = false;
+                    foreach (var returnOp in methodBodyIOperation.DescendantsAndSelf().OfType<IReturnOperation>())
+                    {
+                        returnFound = true;
+                        LogDebug($"  Post-CFG: Found ReturnOperation: {returnOp.Syntax}");
+                        if (returnOp.ReturnedValue != null)
+                        {
+                            LogDebug($"    Post-CFG: Checking ReturnedValue of kind {returnOp.ReturnedValue.Kind}: {returnOp.ReturnedValue.Syntax}");
+                            var returnPurity = CheckSingleOperation(returnOp.ReturnedValue, returnContext);
+                            if (!returnPurity.IsPure)
+                            {
+                                LogDebug($"    Post-CFG: Returned value found IMPURE. Overriding result.");
+                                result = returnPurity;
+                                break; // Found impurity, stop checking returns
+                            }
+                            else
+                            {
+                                LogDebug($"    Post-CFG: Returned value checked and found PURE.");
+                            }
+                        }
+                        else
+                        {
+                            LogDebug($"  Post-CFG: ReturnOperation has no ReturnedValue (e.g., return;). Pure.");
+                        }
+                    }
+                    if (!returnFound)
+                    {
+                        LogDebug($"  Post-CFG: No ReturnOperation found in method body operation tree.");
+                    }
+                }
+                // --- END Post-CFG Check: Return Values (Original Check) ---
+
+                // --- FIX: Post-CFG Check for Throw Operations ---
+                // Even if CFG/Return checks passed, explicitly check for throw statements in the operation tree
                 // Use the retrieved methodBodyIOperation
-                var firstThrowOp = methodBodyIOperation.DescendantsAndSelf().OfType<IThrowOperation>().FirstOrDefault();
-                if (firstThrowOp != null)
+                if (result.IsPure && methodBodyIOperation != null)
                 {
-                    LogDebug($"  Post-CFG: Found ThrowOperation: {firstThrowOp.Syntax}. Overriding result to Impure.");
-                    result = PurityAnalysisResult.Impure(firstThrowOp.Syntax);
+                    LogDebug($"Post-CFG: Result still Pure. Performing post-CFG check for ThrowOperations in {methodSymbol.ToDisplayString()}");
+                    // Use the retrieved methodBodyIOperation
+                    var firstThrowOp = methodBodyIOperation.DescendantsAndSelf().OfType<IThrowOperation>().FirstOrDefault();
+                    if (firstThrowOp != null)
+                    {
+                        LogDebug($"  Post-CFG: Found ThrowOperation: {firstThrowOp.Syntax}. Overriding result to Impure.");
+                        result = PurityAnalysisResult.Impure(firstThrowOp.Syntax);
+                    }
+                    else
+                    {
+                        LogDebug($"  Post-CFG: No ThrowOperation found in method body operation tree.");
+                    }
                 }
-                else
-                {
-                    LogDebug($"  Post-CFG: No ThrowOperation found in method body operation tree.");
-                }
+                // --- END FIX ---
+
+                // --- Caching and Cleanup ---
+                purityCache[methodSymbol] = result;
+
+                LogDebug($"Exiting DeterminePurityRecursiveInternal for {methodSymbol.ToDisplayString()}, Final IsPure={result.IsPure}");
+                return result;
             }
-            // --- END FIX ---
-
-            // --- Caching and Cleanup ---
-            purityCache[methodSymbol] = result;
-            visited.Remove(methodSymbol); // Remove after analysis is complete
-
-            LogDebug($"Exiting DeterminePurityRecursiveInternal for {methodSymbol.ToDisplayString()}, Final IsPure={result.IsPure}");
-            return result;
+            finally
+            {
+                // --- Ensure removal from visited set --- 
+                visited.Remove(methodSymbol);
+                LogDebug($"Exit DeterminePurityRecursiveInternal: {methodSymbol.ToDisplayString()}");
+            }
         }
 
         /// <summary>

@@ -243,6 +243,54 @@ public record struct CacheEntry(int Id, ImmutableList<string> Tags)
             // Expect PS0002 because Increment modifies struct state
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task PureReadonlyRecordStructWithPureConstructor_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+// Define the readonly record struct with a pure constructor
+public readonly record struct Zzz
+{
+    [Pure]
+    public Zzz(int x, int y)
+    {
+        X = x;
+        Y = y;
+    }
+
+    public int X { get; }
+    public int Y { get; }
+}
+
+// Class to use the struct (optional, but helps ensure context)
+public class Usage
+{
+    [EnforcePure]
+    public Zzz CreateZzz()
+    {
+        // Calling the pure constructor should be allowed in an EnforcePure context
+        return new Zzz(1, 2);
+    }
+}
+";
+
+            // Create and configure Test object, similar to other tests in this file
+            var verifierTest = new VerifyCS.Test
+            {
+                TestCode = test,
+                ReferenceAssemblies = ReferenceAssemblies.Net.Net80, // Assuming .NET 8 based on other tests
+                SolutionTransforms = {
+                    (solution, projectId) =>
+                        solution.AddMetadataReference(projectId, MetadataReference.CreateFromFile(typeof(EnforcePureAttribute).Assembly.Location))
+                 }
+            };
+
+            // Expect no diagnostics
+            await verifierTest.RunAsync();
+        }
     }
 }
 
