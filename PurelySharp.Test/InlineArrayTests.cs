@@ -35,8 +35,11 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect diagnostic because creating a mutable array is impure
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                   .WithSpan(10, 16, 10, 25) // Span of ReadArray identifier
+                                   .WithArguments("ReadArray");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected); // Added explicit diagnostic
         }
 
         [Test]

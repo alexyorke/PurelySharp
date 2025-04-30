@@ -32,14 +32,17 @@ public class TestClass
     private int _field;
 
     [EnforcePure]
-    // Added PS0002 markup (instance field assignment)
-    public void {|PS0002:TestMethod|}()
+    public void TestMethod()
     {
-        _field = 42;
+        _field = 42; // Removed inline diagnostic
     }
 }";
+            // Expect diagnostic on the method signature
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                 .WithSpan(10, 17, 10, 27) // Corrected line number to 10
+                                 .WithArguments("TestMethod");
 
-            await VerifyCS.VerifyAnalyzerAsync(test); // Rely on markup
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -55,13 +58,17 @@ class TestClass
 
     [EnforcePure]
     // Added PS0002 markup (static field assignment/increment)
-    public int {|PS0002:TestMethod|}()
+    public int TestMethod()
     {
-        return ++staticField; // Static field modification
+        return ++staticField; // Static field modification - Removed inline diagnostic
     }
 }";
+            // Expect diagnostic on the method signature
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                 .WithSpan(11, 16, 11, 26) // Span of TestMethod identifier
+                                 .WithArguments("TestMethod");
 
-            await VerifyCS.VerifyAnalyzerAsync(test); // Rely on markup
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -75,14 +82,16 @@ using System.Collections.Generic;
 public class TestClass
 {
     [EnforcePure]
-    // Added PS0002 markup (modifying List parameter)
-    public void {|PS0002:TestMethod|}(List<int> list)
+    public void TestMethod(List<int> list)
     {
-        list.Add(42); // Modifying input parameter is impure
+        list.Add(42); // Modifying input parameter is impure - Removed inline diagnostic
     }
 }";
-
-            await VerifyCS.VerifyAnalyzerAsync(test); // Rely on markup
+            // Expect diagnostic on the method signature
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                 .WithSpan(9, 17, 9, 27) // Span of TestMethod identifier
+                                 .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -103,14 +112,16 @@ public struct MutableStruct
 public class TestClass
 {
     [EnforcePure]
-    // Added PS0002 markup (modifying struct field)
-    public void {|PS0002:TestMethod|}(MutableStruct str)
+    public void TestMethod(MutableStruct str)
     {
-        str.Value = 42; // Modifying struct field assignment
+        str.Value = 42; // Modifying struct field assignment - Removed inline diagnostic
     }
 }";
-
-            await VerifyCS.VerifyAnalyzerAsync(test); // Rely on markup
+            // Expect diagnostic on the method signature
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                 .WithSpan(13, 17, 13, 27) // Span of TestMethod identifier
+                                 .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -123,14 +134,16 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    // Added PS0002 markup (ref parameter modification)
-    public void {|PS0002:TestMethod|}(ref int value)
+    public void TestMethod(ref int value)
     {
-        value = 42;
+        value = 42; // Removed inline diagnostic
     }
 }";
-
-            await VerifyCS.VerifyAnalyzerAsync(test); // Rely on markup
+            // Expect diagnostic on the method signature
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                 .WithSpan(8, 17, 8, 27) // Span of TestMethod identifier
+                                 .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -144,14 +157,16 @@ using System.Collections.Generic;
 public class TestClass
 {
     [EnforcePure]
-    // Added PS0002 markup (modifying List parameter via Remove)
-    public void {|PS0002:TestMethod|}(List<int> list)
+    public void TestMethod(List<int> list)
     {
-        list.Remove(42); // Modifying input parameter is impure
+        list.Remove(42); // Modifying input parameter is impure - Removed inline diagnostic
     }
 }";
-
-            await VerifyCS.VerifyAnalyzerAsync(test); // Rely on markup
+            // Expect diagnostic on the method signature
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                 .WithSpan(9, 17, 9, 27) // Span of TestMethod identifier
+                                 .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -165,14 +180,16 @@ using System.Collections.Generic;
 public class TestClass
 {
     [EnforcePure]
-    // Added PS0002 markup (modifying List parameter via Clear)
-    public void {|PS0002:TestMethod|}(List<int> list)
+    public void TestMethod(List<int> list)
     {
-        list.Clear(); // Modifying input parameter is impure
+        list.Clear(); // Modifying input parameter is impure - Removed inline diagnostic
     }
 }";
-
-            await VerifyCS.VerifyAnalyzerAsync(test); // Rely on markup
+            // Expect diagnostic on the method signature
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                 .WithSpan(9, 17, 9, 27) // Span of TestMethod identifier
+                                 .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -186,15 +203,17 @@ using System.Collections.Generic;
 public class TestClass
 {
     [EnforcePure]
-    // Added PS0002 markup (modifying List parameter via indexer)
-    public void {|PS0002:TestMethod|}(List<int> list)
+    public void TestMethod(List<int> list)
     {
         if (list.Count > 0)
-            list[0] = 100; // Modifying via indexer is impure
+            list[0] = 100; // Modifying via indexer is impure - Removed inline diagnostic
     }
 }";
-
-            await VerifyCS.VerifyAnalyzerAsync(test); // Rely on markup
+            // Expect diagnostic on the method signature
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                 .WithSpan(9, 17, 9, 27) // Span of TestMethod identifier
+                                 .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -270,13 +289,16 @@ using System.Collections.Generic;
 public class TestClass
 {
     [EnforcePure]
-    // Added PS0002 markup (modifying Dictionary parameter via Add)
-    public void {|PS0002:TestMethod|}(Dictionary<string, int> dict)
+    public void TestMethod(Dictionary<string, int> dict)
     {
-        dict.Add(""newKey"", 100); // Modifying dictionary is impure
+        dict.Add(""newKey"", 100); // Removed inline diagnostic
     }
 }";
-            await VerifyCS.VerifyAnalyzerAsync(test); // Rely on markup
+            // Expect diagnostic on the method signature
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                 .WithSpan(9, 17, 9, 27) // Span of TestMethod identifier
+                                 .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -290,13 +312,16 @@ using System.Collections.Generic;
 public class TestClass
 {
     [EnforcePure]
-    // Added PS0002 markup (modifying Dictionary parameter via Remove)
-    public void {|PS0002:TestMethod|}(Dictionary<string, int> dict)
+    public void TestMethod(Dictionary<string, int> dict)
     {
-        dict.Remove(""someKey""); // Modifying dictionary is impure
+        dict.Remove(""someKey""); // Removed inline diagnostic
     }
 }";
-            await VerifyCS.VerifyAnalyzerAsync(test); // Rely on markup
+            // Expect diagnostic on the method signature
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                 .WithSpan(9, 17, 9, 27) // Span of TestMethod identifier
+                                 .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -310,13 +335,16 @@ using System.Collections.Generic;
 public class TestClass
 {
     [EnforcePure]
-    // Added PS0002 markup (modifying Dictionary parameter via Clear)
-    public void {|PS0002:TestMethod|}(Dictionary<string, int> dict)
+    public void TestMethod(Dictionary<string, int> dict)
     {
-        dict.Clear(); // Modifying dictionary is impure
+        dict.Clear(); // Removed inline diagnostic
     }
 }";
-            await VerifyCS.VerifyAnalyzerAsync(test); // Rely on markup
+            // Expect diagnostic on the method signature
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                 .WithSpan(9, 17, 9, 27) // Span of TestMethod identifier
+                                 .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -330,13 +358,16 @@ using System.Collections.Generic;
 public class TestClass
 {
     [EnforcePure]
-    // Added PS0002 markup (modifying Dictionary parameter via indexer)
-    public void {|PS0002:TestMethod|}(Dictionary<string, int> dict)
+    public void TestMethod(Dictionary<string, int> dict)
     {
-        dict[""existingKey""] = 200; // Modifying via indexer is impure
+        dict[""existingKey""] = 200; // Removed inline diagnostic
     }
 }";
-            await VerifyCS.VerifyAnalyzerAsync(test); // Rely on markup
+            // Expect diagnostic on the method signature
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                 .WithSpan(9, 17, 9, 27) // Span of TestMethod identifier
+                                 .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -377,6 +408,32 @@ public class TestClass
 }";
 
             await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task StaticReadonlyFieldModification_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    private static int StaticReadonlyField = 10;
+
+    [EnforcePure]
+    public void ModifyStaticReadonly()
+    {
+        StaticReadonlyField = 20; // Now this is a valid (impure) assignment
+    }
+}";
+            // RESTORED: Expect diagnostic on the method signature because it modifies a static field
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                 .WithSpan(10, 17, 10, 37) // CORRECTED Line number and end column
+                                 .WithArguments("ModifyStaticReadonly");
+
+            // ADDED BACK verification call
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }

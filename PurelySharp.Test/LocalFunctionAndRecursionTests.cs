@@ -25,7 +25,7 @@ public class TestClass
     private int _field;
 
     [EnforcePure]
-    public int {|PS0002:TestMethod|}()
+    public int TestMethod()
     {
         int LocalFunction()
         {
@@ -37,8 +37,11 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect diagnostic on TestMethod due to impure local function
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                   .WithSpan(12, 16, 12, 26) // ACTUAL Span reported by test runner (attribute line)
+                                   .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -53,15 +56,18 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public void {|PS0002:TestMethod|}(int n)
+    public void TestMethod(int n)
     {
         if (n <= 0) return;
         Console.WriteLine(n); // Impure operation
         TestMethod(n - 1); // Recursive call
     }
 }";
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect diagnostic on TestMethod due to Console.WriteLine and recursive impure call
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                   .WithSpan(10, 17, 10, 27) // ACTUAL Span reported by test runner (attribute line)
+                                   .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -81,13 +87,16 @@ public class TestClass
     }
 
     [EnforcePure]
-    public void {|PS0002:TestMethod|}()
+    public void TestMethod()
     {
         ImpureMethod(); // Calling impure method
     }
 }";
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect diagnostic on TestMethod because it calls ImpureMethod
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                   .WithSpan(15, 17, 15, 27) // CORRECTED Span of TestMethod (method identifier line)
+                                   .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }

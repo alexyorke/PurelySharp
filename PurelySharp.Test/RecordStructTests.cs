@@ -125,18 +125,26 @@ public record struct Counter
     public Counter(int value) { Value = value; _instances++; }
 
     [EnforcePure]
-    public static int {|PS0002:GetInstanceCount|}()
+    public static int GetInstanceCount()
     {
         return _instances;
     }
 
     [EnforcePure]
-    public Counter {|PS0002:Increment|}()
+    public Counter Increment()
     {
         _instances++;
         return this with { Value = Value + 1 };
     }
 }";
+
+            // Explicitly define expected diagnostics on method identifiers
+            var expected1 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                    .WithSpan(17, 23, 17, 39) // Updated Span for GetInstanceCount
+                                    .WithArguments("GetInstanceCount");
+            var expected2 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                    .WithSpan(23, 20, 23, 29) // Updated Span for Increment again
+                                    .WithArguments("Increment");
 
             // Create and configure Test object
             var verifierTest = new VerifyCS.Test
@@ -146,7 +154,8 @@ public record struct Counter
                 SolutionTransforms = {
                     (solution, projectId) =>
                         solution.AddMetadataReference(projectId, MetadataReference.CreateFromFile(typeof(EnforcePureAttribute).Assembly.Location))
-                 }
+                 },
+                ExpectedDiagnostics = { expected1, expected2 } // ADDED explicit diagnostics
             };
 
             await verifierTest.RunAsync();
@@ -161,11 +170,11 @@ using System.Collections.Immutable;
 
 public record struct CacheEntry(int Id, ImmutableList<string> Tags)
 {{
-    // Method modifying Tags property (should be impure)
+    // Method modifying Tags property (should be pure now)
     [EnforcePure]
-    public CacheEntry {{|PS0002:AddTag|}}(string tag)
+    public CacheEntry AddTag(string tag)
     {{
-        // This assignment makes it impure, even though it returns a new record
+        // This assignment makes it pure now due to record struct rule
         Tags = Tags.Add(tag);
         return this;
     }}
@@ -193,8 +202,6 @@ public record struct CacheEntry(int Id, ImmutableList<string> Tags)
     }}
 }}";
 
-            // Expect diagnostics only for AddTag and WithTag, which perform assignments.
-            // Accessing Tags.Count and Tags.Contains on the readonly struct instance field is pure.
             await VerifyCS.VerifyAnalyzerAsync(code);
         }
 
@@ -231,7 +238,7 @@ public record struct CacheEntry(int Id, ImmutableList<string> Tags)
             private int _count;
 
             [EnforcePure]
-            public void {|PS0002:Increment|}()
+            public void Increment()
             {
                 // Impure operation: Modifies struct state
                 _count++;
@@ -241,7 +248,10 @@ public record struct CacheEntry(int Id, ImmutableList<string> Tags)
         }
         """;
             // Expect PS0002 because Increment modifies struct state
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                   .WithSpan(9, 17, 9, 26) // Updated span to method identifier
+                                   .WithArguments("Increment");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]

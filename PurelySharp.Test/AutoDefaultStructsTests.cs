@@ -11,7 +11,6 @@ namespace PurelySharp.Test
     [TestFixture]
     public class AutoDefaultStructsTests
     {
-        [NUnit.Framework.Ignore("Temporarily disabled due to failure")]
         [Test]
         public async Task AutoDefaultStruct_PureMethod_NoDiagnostic()
         {
@@ -28,7 +27,7 @@ namespace TestNamespace
         public double Y { get; set; }
 
         [EnforcePure]
-        public double {|PS0002:CalculateDistance|}(Point other)
+        public double CalculateDistance(Point other)
         {
             double dx = X - other.X;
             double dy = Y - other.Y;
@@ -51,7 +50,6 @@ namespace TestNamespace
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        [NUnit.Framework.Ignore("Temporarily disabled due to failure")]
         [Test]
         public async Task AutoDefaultStruct_WithConstructor_PureMethod_NoDiagnostic()
         {
@@ -75,7 +73,7 @@ namespace TestNamespace
         }
         
         [EnforcePure]
-        public double {|PS0002:CalculateMagnitude|}()
+        public double CalculateMagnitude()
         {
             // Pure method using auto-default values and manually set values
             return Math.Sqrt(X * X + Y * Y + Z * Z);
@@ -132,7 +130,6 @@ namespace TestNamespace
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        [NUnit.Framework.Ignore("Temporarily disabled due to failure")]
         [Test]
         public async Task AutoDefaultStruct_WithProperties_PureMethod_NoDiagnostic()
         {

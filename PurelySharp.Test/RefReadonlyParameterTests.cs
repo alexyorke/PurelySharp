@@ -71,7 +71,7 @@ using PurelySharp.Attributes;
 
 public struct LargeStruct
 {{
-    public int Value1; // Mutable fields
+    public int Value1;
     public int Value2;
     public int Value3;
 }}
@@ -79,20 +79,23 @@ public struct LargeStruct
 public class TestClass
 {{
     [EnforcePure]
-    public int {{|PS0002:GetMax|}}(ref readonly LargeStruct data)
+    public int GetMax(ref readonly LargeStruct data)
     {{
-        // Assigning ref readonly to a local mutable copy
         LargeStruct localCopy = data;
         // Reading from the local mutable copy IS considered impure
+        // The diagnostic should be on localCopy.Value1
         int max = localCopy.Value1;
         if (localCopy.Value2 > max) max = localCopy.Value2;
         if (localCopy.Value3 > max) max = localCopy.Value3;
         return max;
     }}
 }}";
-            // Analyzer correctly finds this impure (reading from mutable local copy).
-            // Test now expects a diagnostic.
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0002 on the method signature, as the local copy makes subsequent reads impure
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                   .WithSpan(14, 16, 14, 22) // Span updated to method identifier 'GetMax'
+                                   .WithArguments("GetMax");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected); // Use explicit diagnostic
         }
 
         [Test]
@@ -105,14 +108,21 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public void {|PS0002:Increment|}(ref readonly int x)
+    public void Increment(ref readonly int x)
     {
-        {|CS8331:x|}++; // CS8331: Cannot assign to variable 'x' or use it as the right hand side of a ref assignment because it is a readonly variable
+        x++;
     }
 }";
 
-            // Expect PS0002 from markup and the compiler error CS8331
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0002 from the analyzer (on method signature) and CS8331 from the compiler
+            var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                        .WithSpan(8, 17, 8, 26) // Updated Span to method identifier
+                                        .WithArguments("Increment");
+            var expectedCS8331 = DiagnosticResult.CompilerError("CS8331")
+                                                .WithSpan(10, 9, 10, 10); // Span of x in x++
+
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedPS0002, expectedCS8331); // Expect exactly 2 diagnostics
         }
 
         [Test]
@@ -138,11 +148,11 @@ public class TestClass
     }
 }";
 
-            // Re-specify the 2 actual diagnostics reported to potentially override incorrect test runner state
+            // Expect CS8329 compiler error and PS0002 on the method identifier (fallback)
             var expectedCS8329 = DiagnosticResult.CompilerError("CS8329")
-                                                .WithSpan(11, 29, 11, 34); // Location of value
+                                                .WithSpan(11, 29, 11, 34); // Location of value in NeedsRef(ref value)
             var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                        .WithLocation(8, 16) // Location of Process
+                                        .WithSpan(8, 16, 8, 23) // Span of Process identifier
                                         .WithArguments("Process");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expectedCS8329, expectedPS0002);
@@ -211,12 +221,12 @@ public class TestClass
     }
 }";
 
-            // Explicitly define expected diagnostics instead of relying on inline markup
+            // Expect PS0002 on the method identifier (fallback) and CS8329 compiler error
             var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                        .WithLocation(11, 16) // Location of Process
+                                        .WithSpan(11, 16, 11, 23) // Span of Process identifier
                                         .WithArguments("Process");
             var expectedCS8329 = DiagnosticResult.CompilerError("CS8329")
-                                                .WithSpan(15, 38, 15, 43); // Location of value
+                                                .WithSpan(15, 38, 15, 43); // Location of value in ModifyGlobalState(ref value)
 
             await VerifyCS.VerifyAnalyzerAsync(test, expectedPS0002, expectedCS8329);
         }

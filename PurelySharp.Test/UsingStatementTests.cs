@@ -5,6 +5,7 @@ using PurelySharp.Analyzer;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
     PurelySharp.Analyzer.PurelySharpAnalyzer>;
 using PurelySharp.Attributes;
+using System.IO;
 
 namespace PurelySharp.Test
 {
@@ -22,7 +23,7 @@ using System.IO;
 public class TestClass
 {
     [EnforcePure]
-    public void {|PS0002:TestMethod|}()
+    public void TestMethod()
     {
         using (var file = File.OpenRead(""test.txt""))
         {
@@ -30,8 +31,12 @@ public class TestClass
         }
     }
 }";
+            // Expect diagnostic on the method signature
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                 .WithSpan(9, 17, 9, 27) // Span of TestMethod identifier
+                                 .WithArguments("TestMethod");
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            await VerifyCS.VerifyAnalyzerAsync(test, expected); // Pass expected diagnostic
         }
 
         [Test]
@@ -45,14 +50,18 @@ using System.IO;
 public class TestClass
 {
     [EnforcePure]
-    public void {|PS0002:TestMethod|}()
+    public void TestMethod()
     {
         using var file = File.OpenRead(""test.txt"");
         // Some operation
     }
 }";
+            // Expect diagnostic on the method signature
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                 .WithSpan(9, 17, 9, 27) // Span of TestMethod identifier
+                                 .WithArguments("TestMethod");
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            await VerifyCS.VerifyAnalyzerAsync(test, expected); // Pass expected diagnostic
         }
 
         [Test]

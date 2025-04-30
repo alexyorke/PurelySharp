@@ -538,19 +538,23 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
 
-        [NUnit.Framework.Ignore("Temporarily disabled due to failure")]
         [Test]
         public async Task TestPureMethodReturningConstantEnum_NoDiagnostics()
         {
-            var testCode = @"
+            var test = @"
 using PurelySharp.Attributes;
 using System;
+
+public enum MyEnum { A, B }
+
 public class TestClass
 {
     [EnforcePure]
-    public DayOfWeek {|PS0002:GetDay|}() { return DayOfWeek.Friday; } // Expect diagnostic
-}";
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
+    public MyEnum GetEnum() => MyEnum.A; // Constant enum access, should be pure
+}
+";
+            // Analyzer treats enum consts as pure now
+            await VerifyCS.VerifyAnalyzerAsync(test); // Expect NO diagnostic
         }
 
         [Test]
@@ -762,6 +766,31 @@ public class TestClass
 }
 ";
             await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
+
+        // Test case from user for readonly record struct with [Pure] constructor
+        [Test]
+        public async Task ReadonlyRecordStructWithPureConstructor_NoDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System;
+
+public readonly record struct Zzz
+{
+    [Pure]
+    public Zzz(int x, int y)
+    {
+        X = x;
+        Y = y;
+    }
+
+    public int X { get; }
+    public int Y { get; }
+}
+";
+            // Expect no diagnostic as the constructor is marked [Pure] and only initializes readonly members.
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }
 }

@@ -25,7 +25,7 @@ using System.Collections.Generic;
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:TestMethod|}(IEnumerable<int> numbers)
+    public int TestMethod(IEnumerable<int> numbers)
     {
         return numbers
             .Where(x => x > 0)
@@ -54,7 +54,7 @@ using System.Collections.Generic;
 public class TestClass
 {
     [EnforcePure]
-    public double {|PS0002:TestMethod|}(IEnumerable<double> numbers)
+    public double TestMethod(IEnumerable<double> numbers)
     {
         return numbers
             .Where(x => x > Math.PI)
@@ -83,7 +83,7 @@ using System.Collections.Generic;
 public class TestClass
 {
     [EnforcePure]
-    public IEnumerable<int> {|PS0002:TestMethod|}(IEnumerable<int> numbers)
+    public IEnumerable<int> TestMethod(IEnumerable<int> numbers)
     {
         return numbers.Where(x => x > 0)
                      .Select(x => x * x)

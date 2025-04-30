@@ -48,7 +48,7 @@ using System.Collections.Generic;
 
 public class TestClass
 {
-    private int _state;
+    private int _state = 0;
 
     [EnforcePure]
     public IEnumerable<int> GetNumbers()
@@ -57,11 +57,10 @@ public class TestClass
         yield return _state;
     }
 }";
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
+            var expected = VerifyCS.Diagnostic("PS0002")
                                    .WithSpan(11, 29, 11, 39)
                                    .WithArguments("GetNumbers");
-
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]

@@ -1,12 +1,13 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace PurelySharp.Analyzer.Engine.Rules
 {
     /// <summary>
-    /// Rule that checks return statements.
-    /// Generally pure, but might check the returned value's purity.
+    /// Checks the purity of return statements.
+    /// The statement itself is pure, but the returned value might not be.
     /// </summary>
     internal class ReturnStatementPurityRule : IPurityRule
     {
@@ -16,46 +17,34 @@ namespace PurelySharp.Analyzer.Engine.Rules
         {
             if (!(operation is IReturnOperation returnOperation))
             {
+                // Should not happen
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
 
-            // A simple return (return;) is always pure.
+            // If there's no returned value (e.g., return; in a void method), it's pure.
             if (returnOperation.ReturnedValue == null)
             {
+                PurityAnalysisEngine.LogDebug("    [ReturnRule] No returned value - Pure");
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
 
-            // Get the operation representing the returned value.
+            // Check the purity of the returned value expression itself.
             IOperation returnedValueOperation = returnOperation.ReturnedValue;
 
-            // Find the rule applicable to the returned value's operation kind
-            // and delegate the purity check to that rule.
-            // Access the rules list from the context
-            foreach (var rule in context.PurityRules)
-            {
-                if (rule.ApplicableOperationKinds.Contains(returnedValueOperation.Kind))
-                {
-                    // Delegate the check to the specific rule for the returned value
-                    PurityAnalysisEngine.LogDebug($"    [ReturnRule] Delegating check for returned value ({returnedValueOperation.Kind}) to {rule.GetType().Name}");
-                    var valuePurityResult = rule.CheckPurity(returnedValueOperation, context);
-                    PurityAnalysisEngine.LogDebug($"    [ReturnRule] Delegated check result: IsPure={valuePurityResult.IsPure}");
-                    // If the returned value is impure, the return statement is impure.
-                    if (!valuePurityResult.IsPure)
-                    {
-                        return valuePurityResult; // Propagate the impure result (with specific node)
-                    }
-                    else
-                    {
-                        // Returned value is pure, so the return statement itself is pure.
-                        return PurityAnalysisEngine.PurityAnalysisResult.Pure;
-                    }
-                }
-            }
+            PurityAnalysisEngine.LogDebug($"    [ReturnRule] Checking returned value ({returnedValueOperation.Kind})");
+            var valuePurityResult = PurityAnalysisEngine.CheckSingleOperation(returnedValueOperation, context);
+            PurityAnalysisEngine.LogDebug($"    [ReturnRule] Returned value check result: IsPure={valuePurityResult.IsPure}, Node Type={valuePurityResult.ImpureSyntaxNode?.GetType().Name ?? "NULL"}");
 
-            // If no specific rule was found for the returned value's kind,
-            // default to impure to be safe.
-            PurityAnalysisEngine.LogDebug($"    [ReturnRule] No rule found for returned value kind {returnedValueOperation.Kind}. Defaulting to impure.");
-            return PurityAnalysisEngine.PurityAnalysisResult.Impure(returnedValueOperation.Syntax);
+            // Propagate the result from the returned value check.
+            if (!valuePurityResult.IsPure)
+            {
+                PurityAnalysisEngine.LogDebug($"    [ReturnRule] Returned value is impure. Propagating result.");
+            }
+            else
+            {
+                PurityAnalysisEngine.LogDebug($"    [ReturnRule] Returned value is pure. Return statement is Pure.");
+            }
+            return valuePurityResult;
         }
     }
 }

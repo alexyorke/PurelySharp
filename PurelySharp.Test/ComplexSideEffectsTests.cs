@@ -69,7 +69,7 @@ public class TestClass
     private int state;
 
     [EnforcePure]
-    public Func<int, int> {|PS0002:TestMethod|}(int multiplier)
+    public Func<int, int> TestMethod(int multiplier)
     {
         int LocalFunction(int x)
         {

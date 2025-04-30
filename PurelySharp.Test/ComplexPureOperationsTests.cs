@@ -106,7 +106,7 @@ public interface IConverter<in TSource, out TResult> { TResult Convert(TSource s
 public class TestClass
 {
     [EnforcePure]
-    public TResult {|PS0002:TestMethod|}<TSource, TMiddle, TResult>(
+    public TResult TestMethod<TSource, TMiddle, TResult>(
         IEnumerable<IValue<TSource>> sources,
         IConverter<TSource, TMiddle> firstConverter,
         IConverter<TMiddle, TResult> secondConverter)

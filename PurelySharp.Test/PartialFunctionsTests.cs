@@ -25,7 +25,7 @@ public class TestClass
 {
     [EnforcePure]
     // Throwing an exception is an impure operation (side effect)
-    public int {|PS0002:IdentityOrThrowIfNull|}(int? input)
+    public int IdentityOrThrowIfNull(int? input)
     {
         if (input == null)
         {
@@ -50,7 +50,11 @@ public class TestClass
 }
 "; // End of verbatim string
             // Verify that the analyzer flags the method definition due to the throw statement.
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                           .WithSpan(10, 16, 10, 37) // Updated Span to method identifier
+                           .WithArguments("IdentityOrThrowIfNull");
+
+            await VerifyCS.VerifyAnalyzerAsync(testCode, expected);
         }
 
         // Removed the previous runtime tests as they are superseded by the analyzer test.

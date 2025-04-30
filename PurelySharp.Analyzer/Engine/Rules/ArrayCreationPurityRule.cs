@@ -17,17 +17,14 @@ namespace PurelySharp.Analyzer.Engine.Rules
         {
             if (operation is not IArrayCreationOperation arrayCreation)
             {
-                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure; // Should not happen
             }
 
             PurityAnalysisEngine.LogDebug($"ArrayCreationRule: Analyzing {arrayCreation.Syntax}");
 
-            // Simplification: Assume the array creation *operation itself* is pure.
-            // The purity of the ELEMENTS within the initializer (if any) should be checked
-            // by the rule that *consumes* this array creation (e.g., ObjectCreationPurityRule
-            // when handling ParamArray, or AssignmentPurityRule when assigning an array).
-            PurityAnalysisEngine.LogDebug($"ArrayCreationRule: Assuming array creation operation itself is pure for {arrayCreation.Syntax}. Element purity handled elsewhere.");
-            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            // Array creation allocates memory and returns a mutable array, consider it impure.
+            PurityAnalysisEngine.LogDebug($"ArrayCreationRule: Array creation '{arrayCreation.Syntax}' is impure (mutable allocation).");
+            return PurityAnalysisEngine.PurityAnalysisResult.Impure(arrayCreation.Syntax);
 
             /* // --- Old logic that checked initializers --- (Now handled by consuming rules)
             if (arrayCreation.Initializer != null)

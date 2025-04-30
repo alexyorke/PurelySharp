@@ -101,10 +101,7 @@ public class TestClass
     }
 }
 ";
-            var expectedDiagnostic = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                            .WithSpan(7, 16, 7, 26) // Location of TestMethod
-                                            .WithArguments("TestMethod");
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedDiagnostic);
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]

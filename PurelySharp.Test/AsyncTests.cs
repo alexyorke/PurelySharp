@@ -71,7 +71,7 @@ namespace TestNamespace
     public class TestClass
     {
         [EnforcePure]
-        public async Task<int> {|PS0002:ImpureAsyncMethod|}()
+        public async Task<int> {|PS0002:MethodCallingImpureAsync|}()
         {
             int result = await GetValueAsync();
             return result + 1;

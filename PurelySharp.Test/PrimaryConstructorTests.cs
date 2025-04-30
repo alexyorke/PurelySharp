@@ -67,7 +67,13 @@ public class Calculator(int initialValue)
         return _value;
     }
 }";
-            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(13, 16, 13, 27).WithArguments("AddAndStore"));
+            // Impurity: Assignment to non-readonly field _value
+            // Expect diagnostic on the method signature (fallback)
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                    .WithSpan(13, 16, 13, 27) // Updated Span to method identifier
+                                    .WithArguments("AddAndStore");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -185,7 +191,12 @@ public class LoggingCalculator(int initialValue)
         return _initialValue + x;
     }
 }";
-            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(13, 16, 13, 19).WithArguments("Add"));
+            // Expect diagnostic on the method signature (fallback)
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                    .WithSpan(13, 16, 13, 19) // Updated Span to method identifier
+                                    .WithArguments("Add");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }

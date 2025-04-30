@@ -11,7 +11,6 @@ namespace PurelySharp.Test
     [TestFixture]
     public class GenericAttributesTests
     {
-        [NUnit.Framework.Ignore("Temporarily disabled due to failure")]
         [Test]
         public async Task GenericAttribute_PureMethod_UnknownPurityDiagnostic()
         {
@@ -48,8 +47,11 @@ namespace TestNamespace
     }
 }";
 
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // UPDATED: Expecting PS0002 as analyzer flags generic methods
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                   .WithSpan(26, 23, 26, 40)
+                                   .WithArguments("GetAttributeValue");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]

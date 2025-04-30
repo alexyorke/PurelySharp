@@ -45,7 +45,7 @@ namespace TestNamespace
     public class TestClass
     {
         [EnforcePure]
-        public Task<int> {|PS0002:PureMethod|}()
+        public Task<int> PureMethod()
         {
             return Task.FromResult(42);
         }
@@ -137,7 +137,7 @@ namespace TestNamespace
     public class TestClass
     {
         [EnforcePure]
-        public async Task<int> {|PS0002:PureMethod|}(Task<int> taskToAwait)
+        public async Task<int> PureMethod(Task<int> taskToAwait)
         {
             return await taskToAwait;
         }

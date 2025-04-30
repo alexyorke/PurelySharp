@@ -29,7 +29,7 @@ using System.Threading.Tasks;
 public class TestClass
 {
     [EnforcePure]
-    public async Task<int> {|PS0002:PureAsyncMethod|}()
+    public async Task<int> PureAsyncMethod()
     {
         // Task.FromResult is pure
         return await Task.FromResult(42);
@@ -53,7 +53,7 @@ class Program
     private int _counter = 0;
 
     [EnforcePure]
-    public async Task<int> {|PS0002:ImpureAsyncMethod|}()
+    public async Task<int> ImpureAsyncMethod()
     {
         // Task.Delay is impure, _counter++ is impure
         await Task.Delay(1);
@@ -61,8 +61,12 @@ class Program
         return _counter;
     }
 }";
+            // Expect diagnostic on the method signature (fallback)
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                    .WithSpan(11, 28, 11, 45) // Reverted end column back to 45
+                                    .WithArguments("ImpureAsyncMethod");
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]

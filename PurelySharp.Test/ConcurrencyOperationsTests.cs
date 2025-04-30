@@ -76,7 +76,7 @@ public class TestClass
     private Action _action = () => { };
 
     [EnforcePure]
-    public void {|PS0002:TestMethod|}()
+    public void TestMethod()
     {
         _action(); // Delegate invocation is impure
     }

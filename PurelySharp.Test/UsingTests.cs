@@ -52,7 +52,7 @@ using System.IO;
 public class TestClass
 {{
     [EnforcePure]
-    public void {{|PS0002:TestMethod|}}()
+    public void TestMethod()
     {{
         using (var file = File.OpenRead(""test.txt"")) // Impure resource acquisition
         {{
@@ -61,8 +61,11 @@ public class TestClass
     }}
 }}";
 
-            // Diagnostic expected on TestMethod
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Diagnostic expected on TestMethod (will override with WithSpan)
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                  .WithSpan(9, 17, 9, 27) // Updated span to method signature
+                                  .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -81,7 +84,7 @@ public class PureDisposable : IDisposable
 public class TestClass
 {{
     [EnforcePure]
-    public void {{|PS0002:TestMethod|}}()
+    public void TestMethod()
     {{
         using (var disposable = new PureDisposable())
         {{
@@ -90,8 +93,11 @@ public class TestClass
     }}
 }}";
 
-            // Diagnostic expected on TestMethod
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Diagnostic expected on TestMethod (will override with WithSpan)
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                   .WithSpan(14, 17, 14, 27) // Updated span to method signature
+                                   .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }

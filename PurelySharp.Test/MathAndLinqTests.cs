@@ -36,11 +36,8 @@ public class TestClass
             .Sum();
     }
 }";
-            // Expect diagnostic due to unhandled DelegateCreation
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
-                                   .WithSpan(12, 16, 12, 26) // Corrected: Line 12
-                                   .WithArguments("TestMethod");
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
+            // Expect no diagnostic (LINQ methods seem pure now)
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
@@ -156,11 +153,8 @@ public class TestClass
             .Average();
     }
 }";
-            // Expect diagnostic due to unhandled DelegateCreation
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
-                                   .WithSpan(12, 19, 12, 29) // Span might change, but diagnostic remains
-                                   .WithArguments("TestMethod");
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
+            // Expect no diagnostic (LINQ methods seem pure now)
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
@@ -185,11 +179,8 @@ public class TestClass
                      .OrderBy(x => x);
     }
 }";
-            // Expect diagnostic due to unhandled DelegateCreation
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
-                                   .WithSpan(12, 29, 12, 39) // Actual span from test output
-                                   .WithArguments("TestMethod");
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
+            // Expect no diagnostic (lazy LINQ seems pure now)
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }
 }

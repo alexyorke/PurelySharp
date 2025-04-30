@@ -35,7 +35,6 @@ namespace TestNamespace
         }
     }
 }";
-
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -64,7 +63,6 @@ namespace TestNamespace
         }
     }
 }";
-
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -98,7 +96,6 @@ namespace TestNamespace
         }
     }
 }";
-
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -134,7 +131,6 @@ namespace TestNamespace
         }
     }
 }";
-
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -165,7 +161,6 @@ namespace TestNamespace
         }
     }
 }";
-            // Expect no diagnostic now
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -184,7 +179,7 @@ namespace TestNamespace
     {
         [EnforcePure]
         // TODO: Analyzer currently fails to verify purity of u8 literals, expects PS0002
-        public ReadOnlySpan<byte> {|PS0002:GetRawStringAsUtf8|}()
+        public ReadOnlySpan<byte> GetRawStringAsUtf8()
         {
             // C# 11 raw string literal with UTF-8 encoding (pure)
             return """"""
@@ -193,8 +188,7 @@ namespace TestNamespace
                 """"""u8;
         }
     }
-}"; // Corrected closing quote
-
+}";
             // This is a compile-time constant, so it should be pure.
             // Temporarily expecting PS0002 due to analysis limitation.
             await VerifyCS.VerifyAnalyzerAsync(test);
@@ -215,19 +209,23 @@ namespace TestNamespace
     public class RawStringExample
     {
         [EnforcePure]
-        public void {|PS0002:WriteRawStringToFile|}()
+        public void WriteRawStringToFile()
         {
             string content = """"""
                 This is a raw string literal
                 with multiple lines
                 """""";
-            
+            // Impure operation
             File.WriteAllText(""output.txt"", content);
         }
     }
 }";
-            // Expect PS0002 because File.WriteAllText is impure (via block analysis)
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect the diagnostic on the method signature (fallback)
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                           .WithSpan(13, 21, 13, 41) // Span updated to method identifier
+                           .WithArguments("WriteRawStringToFile");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -262,5 +260,3 @@ namespace TestNamespace
         }
     }
 }
-
-

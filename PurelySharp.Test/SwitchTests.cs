@@ -53,12 +53,12 @@ public class TestClass
     private int _state;
 
     [EnforcePure]
-    public int {|PS0002:TestMethod|}(int value)
+    public int TestMethod(int value)
     {
         switch (value)
         {
             case 1:
-                _state++; // Impure operation
+                _state++; // Removed inline diagnostic
                 return 10;
             case 2:
                 return 20;
@@ -68,7 +68,12 @@ public class TestClass
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect diagnostic on the method signature
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                  .WithSpan(10, 16, 10, 26) // Span of TestMethod identifier
+                                  .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -81,7 +86,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:TestMethod|}(int value)
+    public int TestMethod(int value)
     {
         switch (value)
         {
@@ -96,7 +101,10 @@ public class TestClass
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                   .WithSpan(8, 16, 8, 26) // Updated span to method signature
+                                   .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }

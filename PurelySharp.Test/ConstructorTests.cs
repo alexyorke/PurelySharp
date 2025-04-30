@@ -45,10 +45,9 @@ public class TestClass
     public TestClass(int startValue)
     {
         _counter = startValue;
-        Console.WriteLine($""Initialized with: {startValue}""); // Impure operation
+        Console.WriteLine($""Initialized with: {startValue}"");
     }
 }";
-
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -85,10 +84,9 @@ public class TestClass
 
     public TestClass()
     {
-        _instanceCount++; // Impure: static field modification
+        _instanceCount++;
     }
 }";
-
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -127,16 +125,14 @@ public class TestClass
     public TestClass(int value)
     {
         _value = value;
-        LogInitialization(value); // Calling impure method
+        LogInitialization(value);
     }
 
     private void LogInitialization(int value)
     {
-        Console.WriteLine($""Initialized with: {value}""); // Impure operation
+        Console.WriteLine($""Initialized with: {value}"");
     }
 }";
-
-            // Analyzer no longer flags this according to logs
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -226,7 +222,7 @@ public class BaseClass
 
 public class DerivedClass : BaseClass
 {
-    public DerivedClass(int value) : base(value) // Calls impure base constructor
+    public DerivedClass(int value) : base(value)
     {
         // No impure operations here, but base constructor is impure
     }

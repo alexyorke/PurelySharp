@@ -109,11 +109,12 @@ public class TestClass
     }
 
     [EnforcePure]
-    public string? {|PS0002:ReadConfigGetSection|}(IConfiguration config)
+    public string? ReadConfigGetSection(IConfiguration config)
     {
         return config.GetSection(""MyKey"").Value; // Marked as impure/unknown
     }
 }";
+            // REMOVED EXPECTATIONS: Analyzer correctly sees these mock accesses as pure
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 

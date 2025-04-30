@@ -23,13 +23,17 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:TestMethod|}()
+    public int TestMethod()
     {
         return new Random().Next();
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                 .WithSpan(10, 16, 10, 26)
+                                 .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }

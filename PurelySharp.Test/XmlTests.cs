@@ -35,14 +35,14 @@ public class TestClass
     }
 }
 ";
-            // Expect no diagnostics now
+            // Expect no diagnostics as XDocument.Parse is now known pure
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         // --- LINQ to XML In-Memory Operations (Pure) ---
 
         [Test]
-        public async Task LinqToXml_InMemory_NoDiagnostic()
+        public async Task LinqToXml_Add_Impure_Diagnostic()
         {
             var test = @"
 using System;
@@ -63,9 +63,9 @@ public class TestClass
     }
 }
 ";
-            // This involves known impure calls (XElement.Add), but might be reported as PS0002.
+            // This involves known impure calls (XElement.Add).
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                    .WithSpan(10, 19, 10, 29) // Corrected span from test output
+                                    .WithSpan(10, 19, 10, 29) // UPDATED Span to 'TestMethod' identifier
                                     .WithArguments("TestMethod");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
@@ -91,7 +91,7 @@ public class TestClass
     }
 }";
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
-                                   .WithSpan(10, 21, 10, 31)
+                                   .WithSpan(10, 21, 10, 31) // UPDATED Span to 'TestMethod' identifier
                                    .WithArguments("TestMethod");
 
             await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });

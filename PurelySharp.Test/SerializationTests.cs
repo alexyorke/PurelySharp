@@ -12,7 +12,7 @@ namespace PurelySharp.Test
 {
     [TestFixture]
     public class SerializationTests
-    { 
+    {
         private const string TestSetup = @"
 #nullable enable
 using System;
@@ -34,7 +34,7 @@ public class SimplePoco
 public class TestClass
 {
     [EnforcePure]
-    public string {|PS0002:TestMethod|}(SimplePoco poco)
+    public string TestMethod(SimplePoco poco)
     {
         // Serialization of simple POCOs is generally considered pure
         return JsonSerializer.Serialize(poco);
@@ -53,7 +53,7 @@ public class TestClass
 public class TestClass
 {
     [EnforcePure]
-    public SimplePoco? {|PS0002:TestMethod|}(string json)
+    public SimplePoco? TestMethod(string json)
     {
         // Deserialization to simple POCOs (assuming no side effects in ctor/setters) is pure
         return JsonSerializer.Deserialize<SimplePoco>(json);
@@ -67,4 +67,4 @@ public class TestClass
         // (e.g., types with impure getters/setters/constructors)
         // This would likely require analyzer enhancements to detect.
     }
-} 
+}

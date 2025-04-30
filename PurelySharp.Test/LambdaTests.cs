@@ -56,8 +56,8 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
-            var expected1 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+            // Use PurityNotVerifiedId as it reflects the actual diagnostic
+            var expected1 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
                                     .WithSpan(11, 17, 11, 27) // Location of TestMethod
                                     .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected1);
@@ -78,7 +78,7 @@ public class TestClass
     private int _sum;
 
     [EnforcePure]
-    public int[] {|PS0002:TestMethod|}/*TestMethod*/(int[] numbers)
+    public int[] TestMethod/*TestMethod*/(int[] numbers)
     {
         // Lambda that captures and modifies a field (impure)
         numbers.ToList().ForEach(x => _sum += x);
@@ -86,8 +86,11 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect diagnostic on TestMethod due to impure lambda capture/modification
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                   .WithSpan(13, 18, 13, 28) // Span of TestMethod - CORRECTED LINE
+                                   .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }

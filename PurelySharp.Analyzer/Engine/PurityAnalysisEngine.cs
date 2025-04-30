@@ -50,6 +50,7 @@ namespace PurelySharp.Analyzer.Engine
             new ConstructorInitializerPurityRule(), // <-- ADDED RULE
             new ReturnStatementPurityRule(),
             new BinaryOperationPurityRule(),
+            new BinaryPatternPurityRule(), // <-- REGISTER NEW RULE
             new PropertyReferencePurityRule(),
             new ArrayElementReferencePurityRule(),
             new CollectionExpressionPurityRule(),
@@ -59,6 +60,7 @@ namespace PurelySharp.Analyzer.Engine
             new SwitchStatementPurityRule(),
             new SwitchExpressionPurityRule(),
             new ConstantPatternPurityRule(),
+            new DeclarationPatternPurityRule(), // <-- REGISTER NEW RULE
             new DiscardPatternPurityRule(),
             new LoopPurityRule(),
             new FlowCapturePurityRule(),
@@ -78,6 +80,7 @@ namespace PurelySharp.Analyzer.Engine
             new CoalesceOperationPurityRule(),
             new ConditionalAccessPurityRule(),
             new ThrowOperationPurityRule(),
+            new VariableDeclarationGroupPurityRule(), // <-- REGISTER NEW RULE
             new IsPatternPurityRule(),
             new IsNullPurityRule(),
             new StructuralPurityRule(),
@@ -88,7 +91,9 @@ namespace PurelySharp.Analyzer.Engine
             new WithOperationPurityRule(),
             new InstanceReferencePurityRule(),
             new ObjectOrCollectionInitializerPurityRule(),
-            new LockStatementPurityRule()
+            new LockStatementPurityRule(),
+            new AwaitPurityRule(),
+            new Utf8StringLiteralPurityRule() // Added Rule
         );
 
         // --- Add list of known impure namespaces ---
@@ -284,7 +289,7 @@ namespace PurelySharp.Analyzer.Engine
             "System.Security.Cryptography.RandomNumberGenerator.GetBytes(byte[])",
             "System.Text.Json.JsonSerializer.DeserializeAsync", // All overloads
             "System.Text.Json.JsonSerializer.SerializeAsync", // All overloads
-            "System.Text.StringBuilder.Append(string)", // Simplified, common overloads
+            "System.Text.StringBuilder.Append(string?)", // Simplified, common overloads - ADDED ?
             "System.Text.StringBuilder.Append(char)",
             "System.Text.StringBuilder.Append(object)",
             "System.Text.StringBuilder.AppendLine(string)", // Simplified
@@ -399,6 +404,20 @@ namespace PurelySharp.Analyzer.Engine
             "Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(System.Type)", // Simplified
             "System.IO.BufferedStream.BufferedStream(System.IO.Stream)", // Constructor tied to stream
             "System.IO.BufferedStream.Flush()",
+
+            // --- ADDED: string.Format considered impure due to potential ToString/IFormatProvider side effects ---
+            "string.Format(string, object?)", // Common overload
+            "string.Format(string, object?, object?)", // Common overload
+            "string.Format(string, object?, object?, object?)", // Common overload
+            "string.Format(string, params object?[])", // Param array overload
+            "string.Format(System.IFormatProvider?, string, params object?[])", // Provider overload
+            // -----------------------------------------------------------------------------------------------------
+
+            // --- ADDED: string.Split and string.Join --- 
+            "string.Split", // All overloads (allocates array/list)
+            "String.Split", // Added uppercase version
+            "string.Join", // All overloads (iterates, allocates string)
+            // -----------------------------------------
 
             // --- Added from third list (Impure) ---
             "Microsoft.Extensions.Configuration.IConfiguration.GetConnectionString(string)",
@@ -595,10 +614,26 @@ namespace PurelySharp.Analyzer.Engine
             "System.Text.StringBuilder.AppendJoin(string, object[])", // Simplified
             "System.Threading.Monitor.TryEnter(object)", // Simplified
 
+            // --- System.Xml.Linq --- 
+            "System.Xml.Linq.XContainer.Add(object)", // Added - Modifies the container
+            "System.Xml.Linq.XElement.Add(object)", // Added - Explicitly add XElement.Add too
+
             // --- ValueTask/Task related --- 
             "System.Threading.Tasks.ValueTask<TResult>.ValueTask(TResult)", // Add constructor as impure based on test expectations
             "System.Threading.Tasks.Task.Run(System.Action)", // Task.Run should be impure
-            "System.IO.MemoryStream.MemoryStream()" // Corrected Signature: Treat constructor as impure by default
+            "System.IO.MemoryStream.MemoryStream()", // Corrected Signature: Treat constructor as impure by default
+            // --- ADDED Sync Serialize/Deserialize --- 
+            "System.Text.Json.JsonSerializer.Deserialize", // All overloads (sync)
+            "System.Text.Json.JsonSerializer.Serialize", // All overloads (sync)
+            // --- END ADD --- 
+            "System.Text.Json.JsonSerializer.DeserializeAsync", // All overloads
+            "System.Text.Json.JsonSerializer.SerializeAsync", // All overloads
+            "System.Text.StringBuilder.Append(string?)", // Simplified, common overloads - ADDED ?
+            "System.Security.Cryptography.RandomNumberGenerator.Fill(byte[])",
+            // ADDED String.Split
+            "System.String.Split(params char[])", // Allocates array
+            // StringBuilder
+            "System.Text.StringBuilder.Append(string?)", // Corrected - Remove duplicate
         };
 
         // Add a set of known PURE BCL method/property signatures (using OriginalDefinition.ToDisplayString() format)
@@ -606,7 +641,6 @@ namespace PurelySharp.Analyzer.Engine
         private static readonly HashSet<string> KnownPureBCLMembers = new HashSet<string>(StringComparer.Ordinal)
         {
             // --- Pure / Mostly Pure / Conditionally Pure from list ---
-            // System.Array
             "System.Array.ConvertAll<TInput, TOutput>(TInput[], System.Converter<TInput, TOutput>)", // Purity depends on converter
             "System.Array.Empty<T>()",
             "System.Array.Exists<T>(T[], System.Predicate<T>)", // Purity depends on match
@@ -752,6 +786,13 @@ namespace PurelySharp.Analyzer.Engine
             "System.Linq.Enumerable.SequenceEqual<TSource>(System.Collections.Generic.IEnumerable<TSource>, System.Collections.Generic.IEnumerable<TSource>)", // Conditionally Pure
             "System.Linq.Enumerable.Sum", // All overloads - Conditionally Pure
             "System.Linq.Enumerable.Where<TSource>(System.Collections.Generic.IEnumerable<TSource>, System.Func<TSource, bool>)", // Conditionally Pure
+            // --- ADDED Common Pure LINQ Methods ---
+            "System.Linq.Enumerable.ToList<TSource>(System.Collections.Generic.IEnumerable<TSource>)",
+            "System.Linq.Enumerable.ToArray<TSource>(System.Collections.Generic.IEnumerable<TSource>)",
+            "System.Linq.Enumerable.ToDictionary<TSource, TKey>(System.Collections.Generic.IEnumerable<TSource>, System.Func<TSource, TKey>)", // Simplified
+            "System.Linq.Enumerable.ToHashSet<TSource>(System.Collections.Generic.IEnumerable<TSource>)",
+            "System.Linq.Enumerable.Contains<TSource>(System.Collections.Generic.IEnumerable<TSource>, TSource)",
+            // --------------------------------------
 
             // System.Math
             "System.Math.Abs(double)", // Simplified
@@ -818,7 +859,6 @@ namespace PurelySharp.Analyzer.Engine
             // System.String
             "string.Concat(string, string)", // Common overload
             "string.Concat(params string[])",
-            "string.Format(string, object)", // Common overload
             "string.IsNullOrEmpty(string)",
             "string.IsNullOrWhiteSpace(string)",
             "string.Replace(string, string)",
@@ -833,6 +873,10 @@ namespace PurelySharp.Analyzer.Engine
             "string.GetHashCode()", // Added for completeness
             "string.ToLowerInvariant()", // Added for completeness
             "string.ToUpperInvariant()", // Added for completeness
+
+            // --- ADDED: String constructor from Span --- 
+            "string.String(System.ReadOnlySpan<char>)",
+            // -----------------------------------------
 
             // System.StringComparer
             "System.StringComparer.InvariantCultureIgnoreCase.Compare(string, string)",
@@ -854,9 +898,9 @@ namespace PurelySharp.Analyzer.Engine
             "System.Text.RegularExpressions.Regex.Match(string)", // Instance
             "System.Text.RegularExpressions.Regex.Replace(string, string)", // Instance
             "System.Text.RegularExpressions.Regex.Split(string)", // Instance
-            "System.Text.StringBuilder()", // Constructor
-            "System.Text.StringBuilder.Capacity.get",
-            "System.Text.StringBuilder.ToString()",
+            // "System.Text.StringBuilder()", // Constructor - Removed, mutable state handled by usage
+            // "System.Text.StringBuilder.Capacity.get", // Removed, reading capacity is pure
+            // "System.Text.StringBuilder.ToString()", // Removed, should be pure
 
             // System.Threading (Pure subset)
             "System.Threading.Tasks.Task.CompletedTask.get",
@@ -1199,6 +1243,20 @@ namespace PurelySharp.Analyzer.Engine
 
             // System.Text.RegularExpressions
             "System.Text.RegularExpressions.Regex.IsMatch(string, string)",
+            "System.Linq.Enumerable.ToHashSet<TSource>(System.Collections.Generic.IEnumerable<TSource>)",
+            "System.Collections.Generic.List<T>.Find(System.Predicate<T>)",
+            "System.Collections.Generic.List<T>.get_Count()",
+            "System.String.StartsWith(System.String)",
+
+            // Common pure methods from System.Math
+            "System.Math.Abs",
+
+            // --- string.Format --- Added as potentially impure due to ToString overrides / IFormatProvider
+            // "string.Format(string, object?)", // Common overload // REMOVED
+            // "string.Format(string, object?, object?)", // Common overload // REMOVED
+            // "string.Format(string, object?, object?, object?)", // Common overload // REMOVED
+            // "string.Format(string, params object?[])", // Param array overload // REMOVED
+            // "string.Format(System.IFormatProvider?, string, params object?[])", // Provider overload // REMOVED
         };
 
         /// <summary>
@@ -1273,84 +1331,87 @@ namespace PurelySharp.Analyzer.Engine
             HashSet<IMethodSymbol> visited,
             Dictionary<IMethodSymbol, PurityAnalysisResult> purityCache)
         {
-            LogDebug($"Enter DeterminePurityRecursiveInternal: {methodSymbol.ToDisplayString()}, visited count: {visited.Count}");
+            // +++ DETAILED LOGGING +++
+            var indent = new string(' ', visited.Count * 2);
+            LogDebug($"{indent}>> Enter DeterminePurity: {methodSymbol.ToDisplayString()}");
+            // --- END LOGGING ---
 
             // --- 1. Check Cache --- 
             if (purityCache.TryGetValue(methodSymbol, out var cachedResult))
             {
-                LogDebug($"  Purity CACHED: {cachedResult.IsPure} for {methodSymbol.ToDisplayString()}");
+                LogDebug($"{indent}  Purity CACHED: {cachedResult.IsPure} for {methodSymbol.ToDisplayString()}");
+                LogDebug($"{indent}<< Exit DeterminePurity (Cached): {methodSymbol.ToDisplayString()}"); // Log exit
                 return cachedResult;
             }
 
             // --- 2. Detect Recursion --- 
             if (!visited.Add(methodSymbol))
             {
-                LogDebug($"  Recursion DETECTED for {methodSymbol.ToDisplayString()}. Assuming impure for this path.");
-                // Revert to previous behavior: Assume impure on cycle detection
+                LogDebug($"{indent}  Recursion DETECTED for {methodSymbol.ToDisplayString()}. Assuming impure for this path.");
                 purityCache[methodSymbol] = PurityAnalysisResult.ImpureUnknownLocation;
-                // NOTE: We do NOT remove from visited here, as the original call still needs to complete.
+                LogDebug($"{indent}<< Exit DeterminePurity (Recursion): {methodSymbol.ToDisplayString()}"); // Log exit
                 return PurityAnalysisResult.ImpureUnknownLocation;
             }
 
             try // Use try/finally to ensure visited.Remove is always called
             {
-                // --- 3. Check [Pure] Attribute ---
+                // --- 3. Check [Pure] Attribute --- (Priority 1)
                 var pureAttrSymbol = semanticModel.Compilation.GetTypeByMetadataName(typeof(PureAttribute).FullName);
                 if (pureAttrSymbol != null && HasAttribute(methodSymbol, pureAttrSymbol))
                 {
-                    LogDebug($"  Method has [Pure] attribute: {methodSymbol.ToDisplayString()}. Returning Pure.");
+                    LogDebug($"{indent}  Method has [Pure] attribute: {methodSymbol.ToDisplayString()}. Returning Pure.");
                     purityCache[methodSymbol] = PurityAnalysisResult.Pure;
+                    LogDebug($"{indent}<< Exit DeterminePurity (Pure Attribute): {methodSymbol.ToDisplayString()}"); // Log exit
                     return PurityAnalysisResult.Pure;
                 }
 
-                // --- 4. Known Pure/Impure BCL Members --- 
+                // --- 4. Known Impure BCL Members --- (Priority 2)
                 if (IsKnownImpure(methodSymbol))
                 {
-                    LogDebug($"Method {methodSymbol.ToDisplayString()} is known impure.");
+                    LogDebug($"{indent}Method {methodSymbol.ToDisplayString()} is known impure.");
                     var knownImpureResult = ImpureResult(null); // Or find syntax if possible
                     purityCache[methodSymbol] = knownImpureResult;
+                    LogDebug($"{indent}<< Exit DeterminePurity (Known Impure): {methodSymbol.ToDisplayString()}"); // Log exit
                     return knownImpureResult;
                 }
+
+                // --- 5. Known Pure BCL Members --- (Priority 3)
                 if (IsKnownPureBCLMember(methodSymbol))
                 {
-                    LogDebug($"Method {methodSymbol.ToDisplayString()} is known pure BCL member.");
+                    LogDebug($"{indent}Method {methodSymbol.ToDisplayString()} is known pure BCL member.");
                     purityCache[methodSymbol] = PurityAnalysisResult.Pure;
+                    LogDebug($"{indent}<< Exit DeterminePurity (Known Pure): {methodSymbol.ToDisplayString()}"); // Log exit
                     return PurityAnalysisResult.Pure;
                 }
 
-                // 1. Abstract/External/Missing Body: Assumed pure (no implementation to violate purity)
-                if (methodSymbol.IsAbstract || methodSymbol.IsExtern || GetBodySyntaxNode(methodSymbol, default) == null) // Use default CancellationToken
+                // --- 6. Handle Abstract/External/Missing Body for Unknown Methods --- (Priority 4)
+                SyntaxNode? bodySyntaxNode = GetBodySyntaxNode(methodSymbol, default); // Get body node once
+                if (methodSymbol.IsAbstract || methodSymbol.IsExtern || bodySyntaxNode == null)
                 {
-                    // Only assume pure here if it wasn't already caught by the known lists above
-                    LogDebug($"Method {methodSymbol.ToDisplayString()} is abstract, extern, or has no body AND not known impure/pure. Assuming pure.");
+                    LogDebug($"{indent}Method {methodSymbol.ToDisplayString()} is abstract, extern, or has no body AND not known impure/pure. Assuming pure.");
                     purityCache[methodSymbol] = PurityAnalysisResult.Pure;
+                    LogDebug($"{indent}<< Exit DeterminePurity (Abstract/Extern/NoBody): {methodSymbol.ToDisplayString()}"); // Log exit
                     return PurityAnalysisResult.Pure;
                 }
 
-                // --- Analyze Body using CFG ---
+                // --- 7. Analyze Body using CFG --- (Fallback for methods with bodies)
                 PurityAnalysisResult result = PurityAnalysisResult.Pure; // Assume pure until proven otherwise by CFG
-                var bodySyntaxNode = GetBodySyntaxNode(methodSymbol, default); // Pass CancellationToken.None
                 if (bodySyntaxNode != null)
                 {
-                    LogDebug($"Analyzing body of {methodSymbol.ToDisplayString()} using CFG.");
-                    // Call internal CFG analysis helper
+                    LogDebug($"{indent}Analyzing body of {methodSymbol.ToDisplayString()} using CFG.");
                     result = AnalyzePurityUsingCFGInternal(
                         bodySyntaxNode,
                         semanticModel,
                         enforcePureAttributeSymbol,
                         allowSynchronizationAttributeSymbol,
                         visited,
-                        methodSymbol, // Pass the containing method symbol
+                        methodSymbol,
                         purityCache);
-                }
-                else
-                {
-                    LogDebug($"No body found for {methodSymbol.ToDisplayString()} to analyze with CFG. Assuming pure based on earlier checks.");
-                    // Result remains Pure if no body found (matches abstract/extern check)
+                    // +++ DETAILED LOGGING +++
+                    LogDebug($"{indent}  CFG Analysis Result for {methodSymbol.ToDisplayString()}: IsPure={result.IsPure}, ImpureNode={result.ImpureSyntaxNode?.Kind()}");
+                    // --- END LOGGING ---
                 }
 
-                // Get the IOperation for the body *after* potential CFG analysis
-                // Used for post-CFG checks (Return, Throw)
                 IOperation? methodBodyIOperation = null;
                 if (bodySyntaxNode != null)
                 {
@@ -1360,114 +1421,87 @@ namespace PurelySharp.Analyzer.Engine
                     }
                     catch (Exception ex)
                     {
-                        LogDebug($"  Post-CFG: Error getting IOperation for method body: {ex.Message}");
-                        methodBodyIOperation = null; // Ensure it's null if GetOperation fails
+                        LogDebug($"{indent}  Post-CFG: Error getting IOperation for method body: {ex.Message}");
+                        methodBodyIOperation = null;
                     }
                 }
 
-                // --- NEW: Post-CFG Full Operation Tree Walk ---
-                // If CFG analysis didn't find impurity, perform a full walk of the
-                // IOperation tree as a fallback to catch things missed by CFG structure.
-                if (result.IsPure && methodBodyIOperation != null)
+                // --- Post-CFG Checks --- Only if CFG result was pure
+                if (result.IsPure)
                 {
-                    LogDebug($"  Post-CFG: CFG result is Pure. Performing full IOperation tree walk for {methodSymbol.ToDisplayString()}");
-                    // Use the REFINED walker
-                    var fullWalker = new FullOperationPurityWalker(semanticModel, enforcePureAttributeSymbol, allowSynchronizationAttributeSymbol, visited, purityCache, methodSymbol);
-                    fullWalker.Visit(methodBodyIOperation);
+                    LogDebug($"{indent}Post-CFG: CFG Result was Pure. Performing Post-CFG checks for {methodSymbol.ToDisplayString()}.");
 
-                    if (!fullWalker.OverallPurityResult.IsPure)
+                    if (methodBodyIOperation != null)
                     {
-                        LogDebug($"  Post-CFG: IMPURITY FOUND during full IOperation walk. Overriding CFG result.");
-                        result = fullWalker.OverallPurityResult;
+                        var postCfgContext = new Rules.PurityAnalysisContext(
+                            semanticModel,
+                            enforcePureAttributeSymbol,
+                            pureAttrSymbol, // Reuse from earlier
+                            allowSynchronizationAttributeSymbol,
+                            visited,
+                            purityCache,
+                            methodSymbol,
+                            _purityRules,
+                            CancellationToken.None);
+
+                        // Check Returns
+                        LogDebug($"{indent}  Post-CFG: Checking ReturnOperations...");
+                        foreach (var returnOp in methodBodyIOperation.DescendantsAndSelf().OfType<IReturnOperation>())
+                        {
+                            if (returnOp.ReturnedValue != null)
+                            {
+                                var returnPurity = CheckSingleOperation(returnOp.ReturnedValue, postCfgContext);
+                                if (!returnPurity.IsPure)
+                                {
+                                    LogDebug($"{indent}    Post-CFG: Return value IMPURE: {returnOp.ReturnedValue.Syntax}");
+                                    result = returnPurity;
+                                    goto PostCfgChecksDone; // Exit checks early
+                                }
+                            }
+                        }
+                        LogDebug($"{indent}  Post-CFG: ReturnOperations check complete (result still pure).");
+
+                        // Check Throws
+                        LogDebug($"{indent}  Post-CFG: Checking ThrowOperations...");
+                        var firstThrowOp = methodBodyIOperation.DescendantsAndSelf().OfType<IThrowOperation>().FirstOrDefault();
+                        if (firstThrowOp != null)
+                        {
+                            LogDebug($"{indent}    Post-CFG: Found ThrowOperation IMPURE: {firstThrowOp.Syntax}");
+                            result = PurityAnalysisResult.Impure(firstThrowOp.Syntax);
+                            goto PostCfgChecksDone; // Exit checks early
+                        }
+                        LogDebug($"{indent}  Post-CFG: ThrowOperations check complete (result still pure).");
+
+                        // Check Known Impure Invocations
+                        LogDebug($"{indent}  Post-CFG: Checking Known Impure Invocations...");
+                        foreach (var invocationOp in methodBodyIOperation.DescendantsAndSelf().OfType<IInvocationOperation>())
+                        {
+                            if (invocationOp.TargetMethod != null && IsKnownImpure(invocationOp.TargetMethod.OriginalDefinition))
+                            {
+                                LogDebug($"{indent}    Post-CFG: Found Known Impure Invocation IMPURE: {invocationOp.Syntax} calling {invocationOp.TargetMethod.ToDisplayString()}");
+                                result = PurityAnalysisResult.Impure(invocationOp.Syntax);
+                                goto PostCfgChecksDone; // Exit checks early
+                            }
+                        }
+                        LogDebug($"{indent}  Post-CFG: Known Impure Invocations check complete (result still pure).");
                     }
                     else
                     {
-                        LogDebug($"  Post-CFG: No impurity found during full IOperation walk.");
+                        LogDebug($"{indent}Post-CFG: methodBodyIOperation was null, skipping post-CFG checks.");
                     }
                 }
-                // --- END NEW ---
 
-                // --- Post-CFG Check: Return Values (Original Check) ---
-                // If the analysis result is still pure after CFG + Full Walk, explicitly check Return operations
-                if (result.IsPure && methodBodyIOperation != null)
-                {
-                    LogDebug($"Post-CFG: Result Pure. Performing post-CFG check on ReturnOperations in {methodSymbol.ToDisplayString()}");
-                    var pureAttributeSymbol = semanticModel.Compilation.GetTypeByMetadataName("PurelySharp.Attributes.PureAttribute");
+            PostCfgChecksDone:;
+                // --- END Post-CFG Checks ---
 
-                    var returnContext = new Rules.PurityAnalysisContext(
-                        semanticModel,
-                        enforcePureAttributeSymbol,
-                        pureAttributeSymbol,
-                        allowSynchronizationAttributeSymbol,
-                        visited,
-                        purityCache,
-                        methodSymbol,
-                        _purityRules,
-                        CancellationToken.None);
-
-                    bool returnFound = false;
-                    foreach (var returnOp in methodBodyIOperation.DescendantsAndSelf().OfType<IReturnOperation>())
-                    {
-                        returnFound = true;
-                        LogDebug($"  Post-CFG: Found ReturnOperation: {returnOp.Syntax}");
-                        if (returnOp.ReturnedValue != null)
-                        {
-                            LogDebug($"    Post-CFG: Checking ReturnedValue of kind {returnOp.ReturnedValue.Kind}: {returnOp.ReturnedValue.Syntax}");
-                            var returnPurity = CheckSingleOperation(returnOp.ReturnedValue, returnContext);
-                            if (!returnPurity.IsPure)
-                            {
-                                LogDebug($"    Post-CFG: Returned value found IMPURE. Overriding result.");
-                                result = returnPurity;
-                                break; // Found impurity, stop checking returns
-                            }
-                            else
-                            {
-                                LogDebug($"    Post-CFG: Returned value checked and found PURE.");
-                            }
-                        }
-                        else
-                        {
-                            LogDebug($"  Post-CFG: ReturnOperation has no ReturnedValue (e.g., return;). Pure.");
-                        }
-                    }
-                    if (!returnFound)
-                    {
-                        LogDebug($"  Post-CFG: No ReturnOperation found in method body operation tree.");
-                    }
-                }
-                // --- END Post-CFG Check: Return Values (Original Check) ---
-
-                // --- FIX: Post-CFG Check for Throw Operations ---
-                // Even if CFG/Return checks passed, explicitly check for throw statements in the operation tree
-                // Use the retrieved methodBodyIOperation
-                if (result.IsPure && methodBodyIOperation != null)
-                {
-                    LogDebug($"Post-CFG: Result still Pure. Performing post-CFG check for ThrowOperations in {methodSymbol.ToDisplayString()}");
-                    // Use the retrieved methodBodyIOperation
-                    var firstThrowOp = methodBodyIOperation.DescendantsAndSelf().OfType<IThrowOperation>().FirstOrDefault();
-                    if (firstThrowOp != null)
-                    {
-                        LogDebug($"  Post-CFG: Found ThrowOperation: {firstThrowOp.Syntax}. Overriding result to Impure.");
-                        result = PurityAnalysisResult.Impure(firstThrowOp.Syntax);
-                    }
-                    else
-                    {
-                        LogDebug($"  Post-CFG: No ThrowOperation found in method body operation tree.");
-                    }
-                }
-                // --- END FIX ---
-
-                // --- Caching and Cleanup ---
                 purityCache[methodSymbol] = result;
-
-                LogDebug($"Exiting DeterminePurityRecursiveInternal for {methodSymbol.ToDisplayString()}, Final IsPure={result.IsPure}");
+                LogDebug($"{indent}<< Exit DeterminePurity (Analyzed): {methodSymbol.ToDisplayString()}, Final IsPure={result.IsPure}"); // Log exit
                 return result;
             }
             finally
             {
-                // --- Ensure removal from visited set --- 
                 visited.Remove(methodSymbol);
-                LogDebug($"Exit DeterminePurityRecursiveInternal: {methodSymbol.ToDisplayString()}");
+                LogDebug($"{indent}-- Removed Walker for: {methodSymbol.ToDisplayString()}");
             }
         }
 
@@ -1587,7 +1621,7 @@ namespace PurelySharp.Analyzer.Engine
 
             if (exitBlock != null && blockStates.TryGetValue(exitBlock, out var exitState))
             {
-                LogDebug($"  [CFG] CFG Result Aggregation for {containingMethodSymbol.ToDisplayString()}: Exit Block #{exitBlock.Ordinal} Final State: HasImpurity={exitState.HasPotentialImpurity}, Node={exitState.FirstImpureSyntaxNode?.Kind()}, NodeText='{exitState.FirstImpureSyntaxNode?.ToString()}'");
+                LogDebug($"  [CFG] CFG Result Aggregation for {containingMethodSymbol.ToDisplayString()}: Exit Block #{exitBlock.Ordinal} Initial State: HasImpurity={exitState.HasPotentialImpurity}, Node={exitState.FirstImpureSyntaxNode?.Kind()}, NodeText='{exitState.FirstImpureSyntaxNode?.ToString()}'");
 
                 // --- FIX: Explicitly check operations in the exit block if state is currently pure ---
                 if (!exitState.HasPotentialImpurity)
@@ -1614,8 +1648,9 @@ namespace PurelySharp.Analyzer.Engine
                         if (!opResult.IsPure)
                         {
                             LogDebug($"    [CFG] Exit operation {exitOp.Kind} found IMPURE. Updating final result.");
-                            exitState = new PurityAnalysisState { HasPotentialImpurity = true, FirstImpureSyntaxNode = opResult.ImpureSyntaxNode ?? exitOp.Syntax };
                             // Update exitState for the final result calculation below
+                            // Ensure the node from opResult is used
+                            exitState = new PurityAnalysisState { HasPotentialImpurity = true, FirstImpureSyntaxNode = opResult.ImpureSyntaxNode ?? exitOp.Syntax };
                             break; // Found impurity, no need to check other exit operations
                         }
                     }
@@ -1627,19 +1662,29 @@ namespace PurelySharp.Analyzer.Engine
                 // --- END FIX ---
 
                 // Use the potentially updated exitState to determine the final result
-                finalResult = exitState.HasPotentialImpurity
-                    ? PurityAnalysisResult.Impure(exitState.FirstImpureSyntaxNode ?? bodyNode)
-                    : PurityAnalysisResult.Pure;
+                if (exitState.HasPotentialImpurity)
+                {
+                    // If impure, use the identified node. If node is null, return ImpureUnknownLocation.
+                    finalResult = exitState.FirstImpureSyntaxNode != null
+                        ? PurityAnalysisResult.Impure(exitState.FirstImpureSyntaxNode)
+                        : PurityAnalysisResult.ImpureUnknownLocation;
+                    LogDebug($"  [CFG] Final Result: IMPURE. Node={finalResult.ImpureSyntaxNode?.Kind() ?? (object)"NULL"}"); // Log node kind or NULL
+                }
+                else
+                {
+                    finalResult = PurityAnalysisResult.Pure;
+                    LogDebug($"  [CFG] Final Result: PURE.");
+                }
             }
             else if (exitBlock != null) // Has exit block, but state not found?
             {
-                LogDebug($"  [CFG] CFG Result Aggregation for {containingMethodSymbol.ToDisplayString()}: Could not get state for the exit block #{exitBlock.Ordinal}. Assuming impure (e.g., unreachable code).");
-                finalResult = PurityAnalysisResult.Impure(bodyNode);
+                LogDebug($"  [CFG] CFG Result Aggregation for {containingMethodSymbol.ToDisplayString()}: Could not get state for the exit block #{exitBlock.Ordinal}. Assuming impure (unreachable?).");
+                finalResult = PurityAnalysisResult.ImpureUnknownLocation; // Use Unknown instead of Impure(bodyNode)
             }
-            else // No blocks in CFG
+            else // No blocks / no exit block found
             {
-                LogDebug($"  [CFG] CFG Result Aggregation for {containingMethodSymbol.ToDisplayString()}: CFG has no blocks. Assuming pure.");
-                finalResult = PurityAnalysisResult.Pure; // Should have been caught earlier
+                LogDebug($"  [CFG] CFG Result Aggregation for {containingMethodSymbol.ToDisplayString()}: No reachable exit block found. Assuming pure.");
+                finalResult = PurityAnalysisResult.Pure; // No operations executed on path to exit
             }
 
             return finalResult;
@@ -1697,25 +1742,32 @@ namespace PurelySharp.Analyzer.Engine
                 _purityRules, // Pass the list of rules
                 CancellationToken.None); // Pass the token
 
-            // +++ Log ALL operations in the block +++
-            LogDebug($"    [ATF Block {block.Ordinal}] Operations:");
+            // Iterate through operations and check purity
             foreach (var op in block.Operations)
             {
-                if (op != null)
+                if (op == null) continue;
+
+                // Log the operation being checked
+                LogDebug($"    [ATF Block {block.Ordinal}] Checking Op Kind: {op.Kind}, Syntax: {op.Syntax.ToString().Replace("\r\n", " ").Replace("\n", " ")}");
+
+                // Check the purity of the current operation
+                var opResult = CheckSingleOperation(op, ruleContext);
+
+                if (!opResult.IsPure)
                 {
-                    LogDebug($"      - Kind: {op.Kind}, Syntax: {op.Syntax.ToString().Replace("\r\n", " ").Replace("\n", " ")}");
-                }
-                else
-                {
-                    LogDebug("      - Null Operation");
+                    LogDebug($"ApplyTransferFunction IMPURE DETECTED in Block #{block.Ordinal} by Op: {op.Kind} ({op.Syntax})");
+                    // Return the impure state immediately
+                    return new PurityAnalysisState
+                    {
+                        HasPotentialImpurity = true,
+                        FirstImpureSyntaxNode = opResult.ImpureSyntaxNode ?? op.Syntax
+                    };
                 }
             }
-            LogDebug($"    [ATF Block {block.Ordinal}] End Operations Log.");
-            // +++ End Log +++
 
-            // If we reach here, all operations in the block were handled by rules and deemed pure.
-            LogDebug($"ApplyTransferFunction END for Block #{block.Ordinal} - All ops handled and pure. Returning previous state.");
-            return stateBefore; // Return the initial (Pure) state if no operations caused impurity
+            // If the loop completes, all operations in the block were pure (or handled)
+            LogDebug($"ApplyTransferFunction END for Block #{block.Ordinal} - All ops handled and pure. Returning previous state (Pure).");
+            return stateBefore; // Return the initial (Pure) state
         }
 
         /// <summary>
@@ -1733,8 +1785,128 @@ namespace PurelySharp.Analyzer.Engine
                 return PurityAnalysisResult.Pure;
             }
 
+            // *** ADD Explicit Handling for Using Statement ***
+            if (operation is IUsingOperation usingOperation)
+            {
+                LogDebug($"    [CSO] Applying specialized check for UsingOperation: {usingOperation.Syntax.ToString().Trim()}");
 
-            // Find the first applicable rule
+                // 1. Check Resource Acquisition
+                if (usingOperation.Resources != null)
+                {
+                    var resourceResult = CheckSingleOperation(usingOperation.Resources, context);
+                    if (!resourceResult.IsPure)
+                    {
+                        LogDebug($"    [CSO] UsingOperation Resource Acquisition IMPURE: {resourceResult.ImpureSyntaxNode?.ToString() ?? "Unknown"}");
+                        return resourceResult.ImpureSyntaxNode != null
+                               ? resourceResult
+                               : PurityAnalysisResult.Impure(usingOperation.Resources.Syntax);
+                    }
+                }
+
+                // 2. Check Body
+                if (usingOperation.Body != null)
+                {
+                    var bodyResult = CheckSingleOperation(usingOperation.Body, context);
+                    if (!bodyResult.IsPure)
+                    {
+                        LogDebug($"    [CSO] UsingOperation Body IMPURE: {bodyResult.ImpureSyntaxNode?.ToString() ?? "Unknown"}");
+                        return bodyResult.ImpureSyntaxNode != null
+                               ? bodyResult
+                               : PurityAnalysisResult.Impure(usingOperation.Body.Syntax);
+                    }
+                }
+
+                // 3. Check Implicit Dispose 
+                ITypeSymbol? resourceType = null;
+                // Corrected: Access declarator symbol
+                if (usingOperation.Resources is IVariableDeclarationGroupOperation varGroup &&
+                    varGroup.Declarations.Length > 0 &&
+                    varGroup.Declarations[0].Declarators.Length > 0)
+                {
+                    resourceType = varGroup.Declarations[0].Declarators[0].Symbol.Type;
+                }
+                else if (usingOperation.Resources is IConversionOperation convOp && convOp.Operand != null)
+                {
+                    resourceType = convOp.Operand.Type;
+                }
+                else if (usingOperation.Resources?.Type != null)
+                {
+                    resourceType = usingOperation.Resources.Type;
+                }
+
+                if (resourceType != null)
+                {
+                    var disposableInterface = context.SemanticModel.Compilation.GetTypeByMetadataName("System.IDisposable");
+                    var asyncDisposableInterface = context.SemanticModel.Compilation.GetTypeByMetadataName("System.IAsyncDisposable");
+
+                    bool isDisposable = disposableInterface != null && resourceType.AllInterfaces.Contains(disposableInterface, SymbolEqualityComparer.Default);
+                    bool isAsyncDisposable = asyncDisposableInterface != null && resourceType.AllInterfaces.Contains(asyncDisposableInterface, SymbolEqualityComparer.Default);
+
+                    IMethodSymbol? disposeMethod = null;
+                    string disposeMethodName = "Dispose"; // Default to sync Dispose
+                    if (isAsyncDisposable && usingOperation.IsAsynchronous)
+                    {
+                        disposeMethodName = "DisposeAsync";
+                        disposeMethod = resourceType.GetMembers(disposeMethodName)
+                                                  .OfType<IMethodSymbol>()
+                                                  .FirstOrDefault(m => m.Parameters.Length == 0 && m.ReturnType.Name == "ValueTask");
+                    }
+
+                    if (disposeMethod == null && isDisposable)
+                    {
+                        disposeMethodName = "Dispose";
+                        disposeMethod = resourceType.GetMembers(disposeMethodName)
+                                                  .OfType<IMethodSymbol>()
+                                                  .FirstOrDefault(m => m.Parameters.Length == 0 && m.ReturnType.SpecialType == SpecialType.System_Void);
+                    }
+
+                    // Revised Dispose Check
+                    if (disposeMethod != null)
+                    {
+                        LogDebug($"    [CSO] UsingOperation checking implicit {disposeMethodName} method: {disposeMethod.ToDisplayString()}");
+
+                        // Check Cache first
+                        if (context.PurityCache.TryGetValue(disposeMethod.OriginalDefinition, out var cachedResult))
+                        {
+                            if (!cachedResult.IsPure)
+                            {
+                                LogDebug($"    [CSO] UsingOperation Implicit {disposeMethodName} IMPURE (Cached). Reporting impurity at using statement.");
+                                return PurityAnalysisResult.Impure(usingOperation.Syntax);
+                            }
+                            LogDebug($"    [CSO] UsingOperation Implicit {disposeMethodName} is PURE (Cached).");
+                        }
+                        // Check Known Lists / Attributes (using helpers)
+                        else if (IsKnownImpure(disposeMethod))
+                        {
+                            LogDebug($"    [CSO] UsingOperation Implicit {disposeMethodName} IMPURE (Known Impure). Reporting impurity at using statement.");
+                            return PurityAnalysisResult.Impure(usingOperation.Syntax);
+                        }
+                        else if (IsKnownPureBCLMember(disposeMethod) || (context.PureAttributeSymbol != null && HasAttribute(disposeMethod, context.PureAttributeSymbol))) // Check PureAttributeSymbol nullability
+                        {
+                            LogDebug($"    [CSO] UsingOperation Implicit {disposeMethodName} is PURE (Known/Attribute).");
+                            // Continue (Dispose is pure)
+                        }
+                        else
+                        {
+                            // Purity is unknown, assume impure for safety 
+                            LogDebug($"    [CSO] UsingOperation Implicit {disposeMethodName} purity UNKNOWN. Assuming impure for safety. Reporting impurity at using statement.");
+                            return PurityAnalysisResult.Impure(usingOperation.Syntax);
+                        }
+                    }
+                    else if (isDisposable || isAsyncDisposable)
+                    {
+                        LogDebug($"    [CSO] UsingOperation could not find expected {disposeMethodName} method on {resourceType.Name} despite interface. Assuming impure Dispose.");
+                        return PurityAnalysisResult.Impure(usingOperation.Syntax);
+                    }
+                }
+
+                // If resource, body, and Dispose are pure, the using statement is pure.
+                LogDebug($"    [CSO] UsingOperation determined PURE.");
+                return PurityAnalysisResult.Pure;
+            }
+            // *** END Using Statement Handling ***
+
+            // Find the first applicable rule from the list (existing logic)
             var applicableRule = _purityRules.FirstOrDefault(rule => rule.ApplicableOperationKinds.Contains(operation.Kind));
 
             if (applicableRule != null)
@@ -1746,8 +1918,17 @@ namespace PurelySharp.Analyzer.Engine
                 LogDebug($"    [CSO] Rule '{applicableRule.GetType().Name}' Result: IsPure={ruleResult.IsPure}");
                 if (!ruleResult.IsPure)
                 {
+                    // *** NEW CHECK ***: If rule resulted in impurity but lost the node, use the current operation's node.
+                    if (ruleResult.ImpureSyntaxNode == null)
+                    {
+                        LogDebug($"    [CSO] Rule '{applicableRule.GetType().Name}' returned impure result without syntax node. Using current operation syntax: {operation.Syntax}");
+                        // Ensure we have a non-null syntax node before calling PurityAnalysisResult.Impure
+                        return operation.Syntax != null
+                               ? PurityAnalysisResult.Impure(operation.Syntax)
+                               : PurityAnalysisResult.ImpureUnknownLocation; // Fallback if even current op syntax is null
+                    }
                     LogDebug($"    [CSO] Exit CheckSingleOperation (Impure from rule)");
-                    return ruleResult; // Return the impure result
+                    return ruleResult; // Return the original impure result (with node)
                 }
                 // Rule handled it and found it pure, stop checking this op
                 LogDebug($"    [CSO] Exit CheckSingleOperation (Pure from rule)");
@@ -1876,6 +2057,14 @@ namespace PurelySharp.Analyzer.Engine
         {
             if (symbol == null) return false;
             // Check method/property signature against known impure list
+
+            // +++ Log both original and constructed signatures +++
+            string constructedSignature = symbol.ToDisplayString();
+            string originalSignature = symbol.OriginalDefinition.ToDisplayString();
+            LogDebug($"    [IsKnownImpure] Checking Symbol: '{constructedSignature}'");
+            LogDebug($"    [IsKnownImpure] Checking Original Definition: '{originalSignature}'");
+            // +++ End Logging +++
+
             string signature = symbol.OriginalDefinition.ToDisplayString();
 
             // *** FIX: Append .get for Property Symbols before HashSet check ***
@@ -1890,13 +2079,29 @@ namespace PurelySharp.Analyzer.Engine
                 }
             }
 
+            // +++ Add Logging: Show signature being checked +++
+            LogDebug($"    [IsKnownImpure] Checking HashSet.Contains for signature: \"{signature}\"");
+
+            // --- Check 1: Full Signature --- 
             if (KnownImpureMethods.Contains(signature))
             {
-                LogDebug($"Helper IsKnownImpure: Match found for {symbol.ToDisplayString()} using signature '{signature}'");
+                LogDebug($"Helper IsKnownImpure: Match found for {symbol.ToDisplayString()} using full signature '{signature}'");
                 return true;
             }
 
-            // Handle generic methods if needed (e.g., Interlocked.CompareExchange<T>)
+            // --- Check 2: Simplified Name (Fallback) --- 
+            if (symbol.ContainingType != null)
+            {
+                string simplifiedName = $"{symbol.ContainingType.Name}.{symbol.Name}";
+                LogDebug($"    [IsKnownImpure] Checking HashSet.Contains for simplified name: \"{simplifiedName}\"");
+                if (KnownImpureMethods.Contains(simplifiedName))
+                {
+                    LogDebug($"Helper IsKnownImpure: Match found for {symbol.ToDisplayString()} using simplified name '{simplifiedName}'");
+                    return true;
+                }
+            }
+
+            // --- Check 3: Handle generic methods if needed (e.g., Interlocked.CompareExchange<T>) ---
             if (symbol is IMethodSymbol methodSymbol && methodSymbol.IsGenericMethod)
             {
                 signature = methodSymbol.ConstructedFrom.ToDisplayString();
@@ -2001,17 +2206,16 @@ namespace PurelySharp.Analyzer.Engine
         {
 #if DEBUG
             // New logging implementation: Write to Console
-            /* // Commented out to disable logging
+            // *** UNCOMMENTED TO ENABLE LOGGING ***
             try
             {
-                Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} [DEBUG] {message}");
+                // Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} [DEBUG] {message}"); // COMMENTED OUT TO REDUCE TEST NOISE
             }
             catch (Exception ex)
             {
                 // Fallback if Console logging fails for some reason
                 System.Diagnostics.Debug.WriteLine($"Console Logging failed: {ex.Message}");
             }
-            */
 #endif
         }
 
@@ -2117,14 +2321,21 @@ namespace PurelySharp.Analyzer.Engine
             // If either state is impure, the merged state is impure.
             if (state1.HasPotentialImpurity || state2.HasPotentialImpurity)
             {
-                // Try to keep the first impure node encountered.
-                // This isn't perfect without path tracking, but choose the one that isn't null.
+                // Try to keep the first impure node encountered based on position.
                 SyntaxNode? firstImpureNode = null;
                 if (state1.HasPotentialImpurity && state2.HasPotentialImpurity)
                 {
-                    // Both impure, prefer the existing one? Or the new one?
-                    // Let's prefer the one that isn't null. If both are not null, pick state1's arbitrarily.
-                    firstImpureNode = state1.FirstImpureSyntaxNode ?? state2.FirstImpureSyntaxNode;
+                    var node1 = state1.FirstImpureSyntaxNode;
+                    var node2 = state2.FirstImpureSyntaxNode;
+
+                    if (node1 == null) firstImpureNode = node2;
+                    else if (node2 == null) firstImpureNode = node1;
+                    else
+                    {
+                        // Both nodes exist, prefer the one starting earlier in the file
+                        firstImpureNode = node1.SpanStart <= node2.SpanStart ? node1 : node2;
+                    }
+                    // If both were null (defensive check), firstImpureNode remains null
                 }
                 else if (state1.HasPotentialImpurity)
                 {
@@ -2149,99 +2360,5 @@ namespace PurelySharp.Analyzer.Engine
             return symbol.GetAttributes().Any(ad => SymbolEqualityComparer.Default.Equals(ad.AttributeClass?.OriginalDefinition, attributeSymbol.OriginalDefinition));
         }
         // --- END ADDED HELPER ---
-
-        // --- NEW: REFINED FullOperationPurityWalker Helper Class ---
-        private class FullOperationPurityWalker : OperationWalker
-        {
-            private readonly Rules.PurityAnalysisContext _context;
-            private PurityAnalysisResult _overallPurityResult = PurityAnalysisResult.Pure;
-            private bool _firstImpurityFound = false;
-
-            public FullOperationPurityWalker(
-                SemanticModel semanticModel,
-                INamedTypeSymbol enforcePureAttributeSymbol,
-                INamedTypeSymbol? allowSynchronizationAttributeSymbol,
-                HashSet<IMethodSymbol> visited,
-                Dictionary<IMethodSymbol, PurityAnalysisResult> purityCache,
-                IMethodSymbol containingMethodSymbol)
-            {
-                var pureAttributeSymbol = semanticModel.Compilation.GetTypeByMetadataName("PurelySharp.Attributes.PureAttribute");
-                _context = new Rules.PurityAnalysisContext(
-                         semanticModel,
-                         enforcePureAttributeSymbol,
-                         pureAttributeSymbol,
-                         allowSynchronizationAttributeSymbol,
-                         visited,
-                         purityCache,
-                         containingMethodSymbol,
-                         _purityRules,
-                         CancellationToken.None);
-            }
-
-            public PurityAnalysisResult OverallPurityResult => _overallPurityResult;
-
-            public override void VisitWith(IWithOperation operation)
-            {
-                if (_firstImpurityFound) return; // Stop walking if impurity already found
-
-                LogDebug($"    [Final Walker] Visiting: With - '{operation.Syntax}'");
-                // Explicitly check the 'with' operation itself using rules
-                var withResult = CheckSingleOperation(operation, _context); // Calls WithOperationPurityRule
-                if (!withResult.IsPure)
-                {
-                    LogDebug($"    [Final Walker] IMPURITY FOUND by CheckSingleOperation: With at '{operation.Syntax}'");
-                    _overallPurityResult = withResult; // Use the result from the rule
-                    _firstImpurityFound = true;
-                    // Don't visit children if the operation itself is impure
-                    return;
-                }
-                else
-                {
-                    // If the rule handled it and found it pure, we assume the rule correctly
-                    // analyzed the necessary children (Operand, Initializer Values).
-                    // Therefore, DO NOT call base.VisitWith(operation) which would descend further.
-                    LogDebug($"    [Final Walker] Kind With checked pure by rule. SKIPPING base.VisitWith.");
-                    // base.VisitWith(operation); // <-- DO NOT DESCEND FURTHER
-                }
-            }
-
-            public override void DefaultVisit(IOperation operation)
-            {
-                if (_firstImpurityFound) return; // Stop walking if impurity already found
-
-                // Log the kind being visited
-                LogDebug($"    [Final Walker] Visiting: {operation.Kind} - '{operation.Syntax}'");
-
-                // Check if the operation itself requires a direct purity check via rules
-                bool requiresDirectCheck = _purityRules.Any(rule => rule.ApplicableOperationKinds.Contains(operation.Kind));
-
-                if (requiresDirectCheck)
-                {
-                    LogDebug($"    [Final Walker] Kind {operation.Kind} needs check via CheckSingleOperation.");
-                    var result = CheckSingleOperation(operation, _context);
-                    if (!result.IsPure)
-                    {
-                        LogDebug($"    [Final Walker] IMPURITY FOUND by CheckSingleOperation: {operation.Kind} at '{operation.Syntax}'");
-                        _overallPurityResult = result;
-                        _firstImpurityFound = true;
-                        return; // Stop walking this branch
-                    }
-                    else
-                    {
-                        LogDebug($"    [Final Walker] Kind {operation.Kind} checked pure. Visiting children.");
-                        // If pure, continue visiting children
-                        base.DefaultVisit(operation);
-                    }
-                }
-                else
-                {
-                    // If no specific rule applies, assume structurally pure FOR THE WALK
-                    // and visit children.
-                    LogDebug($"    [Final Walker] Kind {operation.Kind} is structurally pure. Visiting children.");
-                    base.DefaultVisit(operation);
-                }
-            }
-        }
-        // --- END NEW ---
     }
 }

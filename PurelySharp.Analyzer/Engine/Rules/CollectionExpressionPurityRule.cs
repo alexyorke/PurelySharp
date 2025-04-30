@@ -49,13 +49,14 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
             else
             {
-                PurityAnalysisEngine.LogDebug($" CollectionExpressionRule: Could not determine target type. Assuming PURE (optimistic). Element purity handled elsewhere.");
+                PurityAnalysisEngine.LogDebug($" CollectionExpressionRule: Could not determine target type. Assuming IMPURE (conservative default). Element purity handled elsewhere.");
+                // *** Assume IMPURE if type is unknown, as default is often mutable array ***
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(collectionExpression.Syntax);
             }
             // --- End Check --- 
 
-            // If the target type is immutable (or couldn't be determined), assume the expression itself is pure.
-            // The purity of the *elements* within the collection expression
-            // should be determined by the rules analyzing the operations that compute those elements.
+            // If we reached here, it means the target type was resolved and was immutable.
+            PurityAnalysisEngine.LogDebug($" CollectionExpressionRule: Target type is known immutable or analysis completed. Final Result: PURE.");
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
         }
 

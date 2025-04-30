@@ -29,7 +29,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public Expression<Func<int, int>> {|PS0002:TestMethod|}()
+    public Expression<Func<int, int>> TestMethod()
     {
         // Pure: Building in-memory representation of code
         ParameterExpression param = Expression.Parameter(typeof(int), ""x"");

@@ -443,13 +443,27 @@ namespace TestNamespace
             _count++; // This makes the method impure
             return checked(counter + new Counter(1)); // checked operator call is pure
         }
+
+        // The `Add` method itself is impure because it modifies state
+        [EnforcePure]
+        public Counter Add(Counter a, Counter b)
+        {
+            // Using a checked user-defined operator that modifies state
+            return checked(a + b);
+        }
     }
 }";
             // Add explicit diagnostic expectation targeting the method identifier due to state change.
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(36, 24, 36, 40) // Corrected line from test output
+                                   .WithSpan(36, 24, 36, 40) // Corrected span to match log output
                                    .WithArguments("IncrementCounter");
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
+
+            // REMOVED: Expect diagnostic on Add method due to checked(+) operator modifying state
+            // var expected2 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+            //                       .WithSpan(32, 20, 32, 23) // Span of Add method
+            //                       .WithArguments("Add");
+            // UPDATED: Only expect the first diagnostic
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }

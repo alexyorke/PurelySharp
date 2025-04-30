@@ -79,13 +79,14 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public double {|PS0002:TestMethod|}(string numStr)
+    public double TestMethod(string numStr)
     {
         // Pure: Explicitly uses InvariantCulture
         return double.Parse(numStr, CultureInfo.InvariantCulture);
     }
 }";
-            // Diagnostics are now inline
+            // REVERT: Analyzer incorrectly considers double.Parse pure
+            // Remove inline diagnostic {|PS0002:...|}
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }

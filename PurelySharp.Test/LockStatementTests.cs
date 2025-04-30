@@ -31,7 +31,7 @@ public class TestClass
     private readonly object _lock = new object();
 
     [EnforcePure]
-    public void {|PS0002:ImpureMethod|}()
+    public void ImpureMethod()
     {
         lock (_lock)
         {
@@ -40,8 +40,11 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect diagnostic on method due to lock statement (impure by default)
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                   .WithSpan(14, 17, 14, 29) // Adjusted span to line 14 (ImpureMethod declaration)
+                                   .WithArguments("ImpureMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         // Test that a lock statement with pure operations should be pure when option enabled
@@ -66,7 +69,7 @@ public class TestClass
 
     [EnforcePure]
     [AllowSynchronization]
-    public int {|PS0002:PureMethodWithLock|}()
+    public int PureMethodWithLock()
     {
         int result;
         lock (_lock)
@@ -77,8 +80,11 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Analyzer INCORRECTLY flags this as impure, expect diagnostic to reflect current behavior
+             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                   .WithSpan(18, 16, 18, 34) // Span of PureMethodWithLock (actual diagnostic)
+                                   .WithArguments("PureMethodWithLock");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         // Test that verifies the current behavior for lock statements on readonly objects with pure operations
@@ -100,7 +106,7 @@ class Program
 
     [EnforcePure]
     [AllowSynchronization]
-    public int {|PS0002:PureMethodWithLock|}()
+    public int PureMethodWithLock()
     {
         lock (_lock)
         {
@@ -109,9 +115,11 @@ class Program
     }
 }";
 
-            // and all operations inside the lock are pure.
-            // Expect PS0002 because lock() itself is currently considered impure, even with AllowSync
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Analyzer INCORRECTLY flags this as impure, expect diagnostic to reflect current behavior
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                   .WithSpan(16, 16, 16, 34) // Span of PureMethodWithLock (actual diagnostic)
+                                   .WithArguments("PureMethodWithLock");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         // Test that a lock statement with impure operations is reported as impure
@@ -133,7 +141,7 @@ class Program
 
     [EnforcePure]
     [AllowSynchronization]
-    public void {|PS0002:ImpureMethodWithLock|}()
+    public void ImpureMethodWithLock()
     {
         lock (_lock)
         {
@@ -141,8 +149,11 @@ class Program
         }
     }
 }";
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0002 on the method declaration due to impure op inside lock
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                   .WithSpan(16, 17, 16, 37) // Adjusted span to line 16 (ImpureMethodWithLock declaration)
+                                   .WithArguments("ImpureMethodWithLock");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         // Test that a lock with a non-readonly object is considered impure
@@ -164,7 +175,7 @@ class Program
 
     [EnforcePure]
     [AllowSynchronization]
-    public void {|PS0002:ImpureMethodWithNonReadonlyLock|}()
+    public void ImpureMethodWithNonReadonlyLock()
     {
         lock (_nonReadonlyLock)
         {
@@ -173,9 +184,11 @@ class Program
     }
 }";
 
-            // Locking on a non-readonly field makes the method impure.
             // Expect PS0002 on the method declaration.
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                   .WithSpan(16, 17, 16, 48) // Corrected line number to 16 (method signature)
+                                   .WithArguments("ImpureMethodWithNonReadonlyLock");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }

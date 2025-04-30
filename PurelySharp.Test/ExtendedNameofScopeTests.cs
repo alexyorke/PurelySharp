@@ -12,7 +12,6 @@ namespace PurelySharp.Test
     public class ExtendedNameofScopeTests
     {
         [Test]
-        [Ignore("Temporarily disabled due to failure")]
         public async Task ExtendedNameofScope_PureMethod_NoDiagnostic()
         {
             var test = @"
@@ -41,8 +40,11 @@ namespace TestNamespace
     }
 }";
 
-            // Analyzer now considers this pure
-            await VerifyCS.VerifyAnalyzerAsync(test); // Remove outdated expectation
+            // UPDATED: Analyzer flags instance methods, even if only using nameof
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                   .WithSpan(19, 23, 19, 38)
+                                   .WithArguments("GetPropertyName");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]

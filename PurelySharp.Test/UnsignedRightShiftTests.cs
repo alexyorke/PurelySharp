@@ -176,7 +176,7 @@ namespace TestNamespace
 }";
             // Explicitly define expected diagnostic
             var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                        .WithLocation(11, 21) // Location of UnsignedRightShiftWithSideEffect
+                                        .WithSpan(11, 21, 11, 53) // Span updated to match actual diagnostic on method signature
                                         .WithArguments("UnsignedRightShiftWithSideEffect");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expectedPS0002);

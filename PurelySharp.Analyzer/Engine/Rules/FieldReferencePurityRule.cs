@@ -135,7 +135,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     {
                         // Default: Instance is complex/non-readonly-local and field not known pure -> Impure
                         PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Instance is complex ({instanceOperation.Kind})/non-readonly-local and field '{fieldSymbol.Name}' not known pure BCL. Assuming read is Impure.");
-                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(instanceOperation.Syntax); // Report impurity at the instance op
+                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(fieldReference.Syntax);
                     }
                 }
             }

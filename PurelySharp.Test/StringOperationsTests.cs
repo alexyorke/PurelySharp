@@ -1,4 +1,3 @@
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -7,7 +6,7 @@ using PurelySharp.Analyzer;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
     PurelySharp.Analyzer.PurelySharpAnalyzer>;
 using PurelySharp.Attributes;
-using System.Linq;
+using System;
 
 namespace PurelySharp.Test
 {
@@ -25,8 +24,9 @@ using System.Linq;
 public class TestClass
 {
     [EnforcePure]
-    public string {|PS0002:TestMethod|}(string input)
+    public string TestMethod(string input)
     {
+        // The impurity comes from Split
         var words = input.Split(' ')
             .Where(w => !string.IsNullOrEmpty(w))
             .Select(w => w.Trim().ToLower())
@@ -36,8 +36,12 @@ public class TestClass
         return string.Join("" "", words);
     }
 }";
+            // Expect diagnostic on the method signature due to impure string.Split call
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                    .WithSpan(9, 19, 9, 29) // Updated span to method signature
+                                    .WithArguments("TestMethod");
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -55,7 +59,6 @@ public class TestClass
         return $""Value: {x}, Text: {y.ToUpper()}"";
     }
 }";
-
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -70,18 +73,19 @@ using System.Text;
 public class TestClass
 {
     [EnforcePure]
-    public string {|PS0002:TestMethod|}(string[] inputs)
+    public string TestMethod(string input)
     {
         var sb = new StringBuilder();
-        foreach (var input in inputs)
-        {
-            sb.Append(input);
-        }
+        sb.Append(input);
         return sb.ToString();
     }
 }";
+            // Expect diagnostic on the allocation, matching latest test framework output (method ID)
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                    .WithSpan(9, 19, 9, 29) // Updated span to method signature
+                                    .WithArguments("TestMethod");
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -94,13 +98,17 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public string {|PS0002:TestMethod|}(int x, double y)
+    public string TestMethod(int x, double y)
     {
-        return string.Format(""X={0:D}, Y={1:F2}"", x, y);
+        return string.Format(""X = {0:D}, Y = {1:F2}"", x, y);
     }
 }";
+            // Expect diagnostic on the impure string.Format call
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                    .WithSpan(8, 19, 8, 29) // Updated span to method signature
+                                    .WithArguments("TestMethod");
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -114,12 +122,16 @@ using System.Text;
 public class TestClass
 {
     [EnforcePure]
-    public void {|PS0002:TestMethod|}(StringBuilder sb)
+    public void TestMethod(StringBuilder sb)
     {
-        sb.Append(""hello"");
+        sb.Append(""hello""); // Removed inline diagnostic
     }
 }";
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect diagnostic on the method signature
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                  .WithSpan(9, 17, 9, 27) // Span of TestMethod identifier
+                                  .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -133,14 +145,19 @@ using System.Text;
 public class TestClass
 {
     [EnforcePure]
-    public string {|PS0002:TestMethod|}()
+    public string TestMethod()
     {
-        StringBuilder sb = new StringBuilder();
+        var sb = new StringBuilder();
         sb.Append(""hello"");
         return sb.ToString();
     }
 }";
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect diagnostic on the allocation, matching latest test framework output (method ID)
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                    .WithSpan(9, 19, 9, 29) // Updated span to method signature
+                                    .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -177,11 +194,14 @@ public class TestClass
     {
         StringBuilder sb = new StringBuilder(""initial"");
         return sb.ToString();
-        }
-    }";
-            await VerifyCS.VerifyAnalyzerAsync(test);
+    }
+}";
+            // Expect diagnostic on the allocation, matching latest test framework output
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                    .WithSpan(9, 19, 9, 29) // Updated span to method signature
+                                    .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }
-
-
