@@ -57,7 +57,7 @@ public class TestClass
 
     [EnforcePure]
     // NOTE: Analyzer currently misses impurity due to lambda modifying captured field _log
-    public IEnumerable<int> TestMethod(int[] numbers) // Temporarily remove PS0002 expectation
+    public IEnumerable<int> TestMethod(int[] numbers)
     {
         // The closure captures _log field and modifies it
         return numbers.Select(n => {
@@ -68,9 +68,12 @@ public class TestClass
 }
 ";
 
-            // Diagnostics are now inline - Temporarily expect no diagnostic due to analyzer limitation - UPDATE: Analyzer now detects it. - UPDATE 2: Still missing it. -> RESTORED
-            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(15, 29, 15, 39).WithArguments("TestMethod"));
-            // await VerifyCS.VerifyAnalyzerAsync(test); // Expect no diagnostic
+            // Expect diagnostic because the lambda modifies the captured field _log
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                 .WithSpan(15, 29, 15, 39) // Span for TestMethod signature
+                                 .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected); // Expect the diagnostic
         }
 
         [Test]
