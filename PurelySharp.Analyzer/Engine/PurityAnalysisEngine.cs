@@ -287,6 +287,9 @@ namespace PurelySharp.Analyzer.Engine
             "System.Runtime.InteropServices.Marshal.StructureToPtr(object, System.IntPtr, bool)",
             // "System.Runtime.InteropServices.Methods decorated with [DllImport]" -> Assume impure unless marked Pure
             "System.Security.Cryptography.RandomNumberGenerator.GetBytes(byte[])",
+            "System.Text.Json.JsonSerializer.Deserialize", // ADDED Simplified Entry
+            "System.Text.Json.JsonSerializer.Deserialize<TValue>(string, System.Text.Json.JsonSerializerOptions?)",
+            "System.Text.Json.JsonSerializer.Deserialize<TValue>(System.ReadOnlySpan<byte>, System.Text.Json.JsonSerializerOptions?)",
             "System.Text.Json.JsonSerializer.DeserializeAsync", // All overloads
             "System.Text.Json.JsonSerializer.SerializeAsync", // All overloads
             "System.Text.StringBuilder.Append(string?)", // Simplified, common overloads - ADDED ?

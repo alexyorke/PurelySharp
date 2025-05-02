@@ -46,7 +46,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task PureMethodWithJsonDeserializePoco_NoDiagnostic()
+        public async Task ImpureMethodWithJsonDeserializePoco_Diagnostic()
         {
             var test = TestSetup + @"
 
@@ -55,12 +55,15 @@ public class TestClass
     [EnforcePure]
     public SimplePoco? TestMethod(string json)
     {
-        // Deserialization to simple POCOs (assuming no side effects in ctor/setters) is pure
+        // Deserialization should be flagged as impure
         return JsonSerializer.Deserialize<SimplePoco>(json);
     }
 }";
-            // Similar to Serialize, depends on analyzer's handling of unknown external calls.
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0002 diagnostic because Deserialize is impure
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                 .WithSpan(17, 24, 17, 34) // CORRECTED Span reported by test runner
+                                 .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected); // Added expected diagnostic
         }
 
         // TODO: Add tests for impure serialization/deserialization 
