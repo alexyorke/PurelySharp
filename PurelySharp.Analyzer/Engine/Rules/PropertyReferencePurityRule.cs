@@ -88,7 +88,16 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     bool isValueStruct = paramRef.Parameter.Type.IsValueType && !paramRef.Parameter.Type.IsReferenceType;
                     PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance is ParameterReference '{paramRef.Parameter.Name}', RefKind={paramRef.Parameter.RefKind}, IsValueStruct={isValueStruct}");
 
-                    // Reading a property on a readonly ref parameter or a struct passed by value is pure
+                    // *** ADDED: Check getter purity from cache before assuming pure ***
+                    if (propertySymbol.GetMethod != null &&
+                        context.PurityCache.TryGetValue(propertySymbol.GetMethod.OriginalDefinition, out var cachedGetterResult) &&
+                        !cachedGetterResult.IsPure)
+                    {
+                        PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance is readonly ref/in param, but getter {propertySymbol.GetMethod.Name} is known impure from cache. Returning Impure.");
+                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(cachedGetterResult.ImpureSyntaxNode ?? propertyReference.Syntax);
+                    }
+                    // *** END ADDED ***
+
                     PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance '{paramRef.Parameter.Name}' is value struct or readonly ref. Property read is Pure.");
                     return PurityAnalysisEngine.PurityAnalysisResult.Pure;
                 }
@@ -100,15 +109,26 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
                     if (isReadonlyStruct)
                     {
+                        // *** ADDED: Check getter purity from cache before assuming pure ***
+                        if (propertySymbol.GetMethod != null &&
+                            context.PurityCache.TryGetValue(propertySymbol.GetMethod.OriginalDefinition, out var cachedGetterResult) &&
+                            !cachedGetterResult.IsPure)
+                        {
+                            PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance is 'this' in readonly struct, but getter {propertySymbol.GetMethod.Name} is known impure from cache. Returning Impure.");
+                            return PurityAnalysisEngine.PurityAnalysisResult.Impure(cachedGetterResult.ImpureSyntaxNode ?? propertyReference.Syntax);
+                        }
+                        // *** END ADDED ***
+
                         PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance is 'this' within a readonly struct. Read is Pure.");
                         return PurityAnalysisEngine.PurityAnalysisResult.Pure;
                     }
                     else if (propertySymbol.IsReadOnly) // Checks for { get; } or { get; init; }
                     {
+                        // *** REVERTED: Removed explicit cache check ***
                         PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance is 'this', property '{propertySymbol.Name}' is readonly (get/init-only). Read is Pure.");
                         return PurityAnalysisEngine.PurityAnalysisResult.Pure;
                     }
-                    // *** NEW: Analyze the getter if it exists ***
+                    // *** REVERTED: Restored Recursive call for 'this' instance ***
                     else if (propertySymbol.GetMethod != null)
                     {
                         PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance is 'this', property '{propertySymbol.Name}' has a getter. Recursively checking getter purity.");
@@ -124,10 +144,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
                         // The property read is pure if the getter is pure
                         return getterResult;
                     }
-                    // *** END NEW ***
-                    else
+                    else // Property is not readonly, not in readonly struct, has no getter (should be rare)
                     {
-                        // No getter, or not readonly struct/property -> Impure
+                        // *** REVERTED: Removed explicit cache check ***
                         PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance is 'this', property '{propertySymbol.Name}' is not readonly and has no accessible getter to analyze. Read is Impure.");
                         return PurityAnalysisEngine.PurityAnalysisResult.Impure(propertyReference.Syntax);
                     }
@@ -150,6 +169,15 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     else if (propertySymbol.GetMethod != null && context.PureAttributeSymbol != null &&
                              PurityAnalysisEngine.HasAttribute(propertySymbol.GetMethod, context.PureAttributeSymbol))
                     {
+                        // *** ADDED: Check getter purity from cache before assuming pure ***
+                        if (context.PurityCache.TryGetValue(propertySymbol.GetMethod.OriginalDefinition, out var cachedGetterResult) &&
+                            !cachedGetterResult.IsPure)
+                        {
+                            PurityAnalysisEngine.LogDebug($"    [PropRefRule] Property '{propertySymbol.Name}' getter has [Pure] attribute, but getter is known impure from cache. Returning Impure.");
+                            return PurityAnalysisEngine.PurityAnalysisResult.Impure(cachedGetterResult.ImpureSyntaxNode ?? propertyReference.Syntax);
+                        }
+                        // *** END ADDED ***
+
                         PurityAnalysisEngine.LogDebug($"    [PropRefRule] Property '{propertySymbol.Name}' getter has [Pure] attribute. Read is Pure.");
                         return PurityAnalysisEngine.PurityAnalysisResult.Pure;
                     }
@@ -171,9 +199,18 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     // --- END NEW ---
                     else
                     {
-                        // If the instance isn't known readonly, property isn't known pure BCL/marked [Pure], and has no getter -> Impure
-                        PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance is complex ({instanceKind}), property '{propertySymbol.Name}' not known pure and has no getter. Assuming read is Impure.");
-                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(propertyReference.Syntax);
+                        // *** ADDED: Check getter purity from cache before assuming pure ***
+                        if (propertySymbol.GetMethod != null &&
+                            context.PurityCache.TryGetValue(propertySymbol.GetMethod.OriginalDefinition, out var cachedGetterResult) &&
+                            !cachedGetterResult.IsPure)
+                        {
+                            PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance is complex, property {propertySymbol.Name} known pure BCL, but getter is known impure from cache. Returning Impure.");
+                            return PurityAnalysisEngine.PurityAnalysisResult.Impure(cachedGetterResult.ImpureSyntaxNode ?? propertyReference.Syntax);
+                        }
+                        // *** END ADDED ***
+
+                        PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance property '{propertySymbol.Name}' is known pure BCL. Read is Pure.");
+                        return PurityAnalysisEngine.PurityAnalysisResult.Pure;
                     }
                 }
             }

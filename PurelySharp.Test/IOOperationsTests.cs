@@ -173,12 +173,13 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline - RESTORED Expectation (Analyzer incorrectly flags this)
+            // Test expects a diagnostic because the analyzer currently flags methods
+            // containing impure operations even if they are in unreachable (if(false)) branches.
             var expected3 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
                                     .WithSpan(11, 19, 11, 29) // Location of TestMethod
                                     .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected3);
-            // await VerifyCS.VerifyAnalyzerAsync(test); // Expect no diagnostic
+            // await VerifyCS.VerifyAnalyzerAsync(test); // Original line expecting no diagnostic commented out
         }
 
         [Test]
