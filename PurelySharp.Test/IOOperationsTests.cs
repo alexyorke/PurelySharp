@@ -506,7 +506,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task IoPathUriManipulation_ShouldBePure_Test1()
+        public async Task IoPathUriManipulation_WithImpureWriteLine_Diagnostic()
         {
             // IO-related class for pure path manipulation
             var test = @"
