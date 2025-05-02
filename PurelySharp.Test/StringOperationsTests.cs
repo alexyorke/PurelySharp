@@ -35,12 +35,11 @@ public class TestClass
 
         return string.Join("" "", words);
     }
-}";
-            // Expect diagnostic on the method signature due to impure string.Split call
+    }";
+            // UPDATED: Expect diagnostic on TestMethod because string.Join is considered impure.
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                    .WithSpan(9, 19, 9, 29) // Updated span to method signature
-                                    .WithArguments("TestMethod");
-
+                                   .WithSpan(9, 19, 9, 29) // Method signature span from failure output
+                                   .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 

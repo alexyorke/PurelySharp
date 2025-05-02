@@ -634,6 +634,30 @@ namespace PurelySharp.Analyzer.Engine
             "System.String.Split(params char[])", // Allocates array
             // StringBuilder
             "System.Text.StringBuilder.Append(string?)", // Corrected - Remove duplicate
+
+            // --- Added String Split Overloads ---
+            "string.Split(params char[])",
+            "System.String.Split(params char[])", // With full namespace
+            "string.Split(char[])", // Without params keyword
+
+            "string.Split(char[], int)",
+            "System.String.Split(char[], int)",
+
+            "string.Split(char[], System.StringSplitOptions)",
+            "System.String.Split(char[], System.StringSplitOptions)",
+
+            "string.Split(char[], int, System.StringSplitOptions)",
+            "System.String.Split(char[], int, System.StringSplitOptions)",
+
+            "string.Split(string[], System.StringSplitOptions)",
+            "System.String.Split(string[], System.StringSplitOptions)",
+
+            "string.Split(string[], int, System.StringSplitOptions)",
+            "System.String.Split(string[], int, System.StringSplitOptions)",
+            // --- End Added String Split Overloads ---
+
+            // --- Potentially pure (check context) from list ---
+            "System.Convert.ChangeType(object, System.Type)", // Depends on conversion
         };
 
         // Add a set of known PURE BCL method/property signatures (using OriginalDefinition.ToDisplayString() format)
@@ -1257,6 +1281,18 @@ namespace PurelySharp.Analyzer.Engine
             // "string.Format(string, object?, object?, object?)", // Common overload // REMOVED
             // "string.Format(string, params object?[])", // Param array overload // REMOVED
             // "string.Format(System.IFormatProvider?, string, params object?[])", // Provider overload // REMOVED
+
+            // --- Added String Split Overloads ---
+            "string.Split(params char[])",
+            "string.Split(char[], int)",
+            "string.Split(char[], System.StringSplitOptions)",
+            "string.Split(char[], int, System.StringSplitOptions)",
+            "string.Split(string[], System.StringSplitOptions)",
+            "string.Split(string[], int, System.StringSplitOptions)",
+            // --- End Added String Split Overloads ---
+
+            // --- Potentially pure (check context) from list ---
+            "System.Convert.ChangeType(object, System.Type)", // Depends on conversion
         };
 
         /// <summary>
