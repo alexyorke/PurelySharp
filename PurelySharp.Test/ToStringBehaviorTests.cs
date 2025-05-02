@@ -36,7 +36,7 @@ namespace PurelySharp.Test // Add namespace to match outer scope
     public class TestClass
     {
         [EnforcePure]
-        public string {|PS0002:CallDefaultToString|}() // Line 16 - Added inline diagnostic markup
+        public string CallDefaultToString() // Line 16 - REMOVED inline diagnostic markup
         {
             var instance = new MySimpleClass { Value = 42 };
             // Calling the default object.ToString() implementation
@@ -45,8 +45,12 @@ namespace PurelySharp.Test // Add namespace to match outer scope
     }
 }";
 
-            // Pass only the test string; expectations are inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect diagnostic because default object.ToString() uses GetType() (reflection).
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                   .WithSpan(16, 23, 16, 42) // Corrected span based on test output
+                                   .WithArguments("CallDefaultToString");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected); // Pass expected diagnostic
         }
 
         // TODO: Add a test for an explicitly overridden PURE ToString()
