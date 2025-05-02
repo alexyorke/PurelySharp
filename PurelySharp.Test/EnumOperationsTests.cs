@@ -126,8 +126,13 @@ public class TestClass
         return LogLevel.Info; // Default
     }
 }";
-            // Expect diagnostic because Enum.TryParse is potentially impure
-            await VerifyCS.VerifyAnalyzerAsync(test); // Removed explicit diagnostic
+            // Test verifies the current analyzer limitation: Enum.TryParse is potentially impure
+            // (string parsing, reflection?) but is not currently flagged by the analyzer.
+            // var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+            //                       .WithSpan(18, 19, 18, 29) // Span for TestMethod signature - needs verification
+            //                       .WithArguments("TestMethod");
+            // await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            await VerifyCS.VerifyAnalyzerAsync(test); // Expect NO diagnostic (current behavior)
         }
 
         [Test]
@@ -195,8 +200,13 @@ public class TestClass
         return attr?.Description ?? code.ToString();
     }
 }";
-            // REVERT: Analyzer incorrectly considers reflection pure
-            await VerifyCS.VerifyAnalyzerAsync(test); // REVERTED - Expect no diagnostic
+            // Test verifies the current analyzer limitation: Reflection calls
+            // (typeof, GetField, GetCustomAttribute) are impure but are not currently flagged.
+            // var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+            //                       .WithSpan(24, 19, 24, 29) // Span for TestMethod signature - needs verification
+            //                       .WithArguments("TestMethod");
+            // await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            await VerifyCS.VerifyAnalyzerAsync(test); // Expect NO diagnostic (current behavior)
         }
     }
 }

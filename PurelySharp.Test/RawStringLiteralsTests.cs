@@ -164,6 +164,7 @@ namespace TestNamespace
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        // Expectation limitation: analyzer currently flags u8 raw string literals as impure (PS0002) but test asserts no diagnostic.
         [Test]
         public async Task RawStringLiteral_WithUtf8_PureMethod_NoDiagnostic()
         {

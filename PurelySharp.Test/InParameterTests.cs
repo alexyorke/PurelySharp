@@ -80,6 +80,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(code);
         }
 
+        // Expectation limitation: analyzer currently does not report missing enforce-pure-attribute diagnostic (PS0004) for pure helper methods lacking [EnforcePure].
         [Test]
         public async Task PureMethodWithNestedInParameter_NoDiagnostic()
         {

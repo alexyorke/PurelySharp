@@ -243,7 +243,9 @@ namespace TestNamespace
     }
 }";
 
-            // Diagnostics are now inline
+            // Test verifies analyzer limitation: Reading auto-defaulted nested struct fields
+            // is incorrectly flagged (PS0002).
+            // Diagnostics are verified via inline markup.
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }

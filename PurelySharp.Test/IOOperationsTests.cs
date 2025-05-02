@@ -76,6 +76,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test, expected); // Expect the diagnostic
         }
 
+        // Expectation limitation: analyzer does not report missing enforce-pure-attribute diagnostic (PS0004) for pure helper methods (e.g., GetHelper) lacking [EnforcePure].
         [Test]
         public async Task ComplexMemberAccess_MayMissDiagnostic()
         {
@@ -175,6 +176,7 @@ public class TestClass
 
             // Test expects a diagnostic because the analyzer currently flags methods
             // containing impure operations even if they are in unreachable (if(false)) branches.
+            // Expectation limitation: Analyzer incorrectly flags pure code in unreachable branch.
             var expected3 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
                                     .WithSpan(11, 19, 11, 29) // Location of TestMethod
                                     .WithArguments("TestMethod");
@@ -679,7 +681,7 @@ public class TestClass
         stream.GetType();
     }
 }";
-
+            // Expectation limitation: Analyzer incorrectly flags creating an IO stream object even if unused.
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
                                    .WithSpan(11, 17, 11, 27).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);

@@ -160,9 +160,9 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:GetDefaultInt|}() => default; // default is handled as pure
+    public int {|PS0002:GetDefaultInt|}() => default; // RESTORED inline diagnostic markup
 }";
-            // Expect no diagnostics now
+            // Test verifies analyzer limitation: Returning default is incorrectly flagged (PS0002).
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
 
@@ -216,6 +216,7 @@ public class TypeInfo
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        // Expectation limitation: analyzer currently does not report missing enforce-pure-attribute diagnostic (PS0004) for pure methods lacking [EnforcePure].
         [Test]
         public async Task TestPotentiallyPureMethod_WithoutAttribute_ShouldWarnPS0004()
         {
@@ -248,6 +249,7 @@ public class PotentialPurity
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        // Expectation limitation: analyzer currently does not report missing enforce-pure-attribute diagnostic (PS0004) for pure methods lacking [EnforcePure].
         [Test]
         public async Task TestPotentiallyPureMethodCallingEnforcedPure_ShouldWarnPS0004()
         {
@@ -270,6 +272,7 @@ public class PurityChain
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        // Expectation limitation: analyzer currently does not report missing enforce-pure-attribute diagnostic (PS0004) for pure methods lacking [EnforcePure].
         [Test]
         public async Task TestPotentiallyPureMethodCallingChain_ShouldWarnPS0004()
         {
@@ -293,6 +296,7 @@ public class CallChain
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        // Expectation limitation: analyzer currently does not report missing enforce-pure-attribute diagnostic (PS0004) for pure methods lacking [EnforcePure].
         [Test]
         public async Task TestPotentiallyPureLongerChain_ShouldWarnPS0004()
         {
@@ -310,6 +314,7 @@ public class LongerChain
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        // Expectation limitation: analyzer currently does not report missing enforce-pure-attribute diagnostic (PS0004) for pure methods lacking [EnforcePure].
         [Test]
         public async Task TestPotentiallyPureCallingTwoPureMethods_ShouldWarnPS0004()
         {
@@ -570,6 +575,9 @@ public class TestClass
     [EnforcePure]
     public string {|PS0002:GetStringName|}() { return nameof(System.String); }
 }";
+            // Test verifies the current analyzer limitation: nameof(Type) is compile-time pure,
+            // but the analyzer currently flags methods using it as impure (PS0002).
+            // Diagnostics are verified via inline markup.
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
 

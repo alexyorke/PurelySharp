@@ -211,15 +211,19 @@ public class TestClass
         {
             result[i] = numbers[i] * 2;
         }
+        // Expectation limitation: Analyzer incorrectly flags this method as impure.
+        // It only reads the input 'params' array and returns a new array.
         return result;
     }
 }";
 
+            // Test verifies the current analyzer limitation: The method only reads the
+            // input 'params' array and returns a NEW array. This should be pure,
+            // but the analyzer incorrectly flags it (PS0002).
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                           .WithSpan(8, 18, 8, 30)
+                           .WithSpan(8, 18, 8, 30) // Span based on previous failure
                            .WithArguments("ProcessArray");
-
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            await VerifyCS.VerifyAnalyzerAsync(test, expected); // Expect the incorrect diagnostic
         }
 
         [Test]
@@ -268,6 +272,8 @@ public class TestClass
         for (int i = 0; i < numbers.Length - 1; i += 2)
         {
             result += operation(numbers[i], numbers[i+1]); // Invokes IMPURE delegate
+            // Expectation limitation: Analyzer doesn't detect impurity when an impure
+            // delegate ('IncrementStaticCounter') is passed and invoked.
         }
         return result;
     }
@@ -282,7 +288,7 @@ public class TestClass
             // REMOVED: Expected diagnostic on ProcessNumbers (analyzer currently misses this)
             // ADDED: Expect diagnostic on TestMethod for calling ProcessNumbers with impure delegate
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(22, 16, 22, 26) // Adjusted span based on failure
+                                   .WithSpan(24, 16, 24, 26) // Adjusted span based on failure
                                    .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }

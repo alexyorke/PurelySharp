@@ -80,11 +80,14 @@ public class TestClass
     }
 }";
 
-            // Analyzer INCORRECTLY flags this as impure, expect diagnostic to reflect current behavior
-             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+            // Test verifies the current analyzer limitation: [AllowSynchronization] is present,
+            // the lock object is readonly, and operations inside are pure, but the analyzer
+            // still incorrectly flags the method as impure (PS0002).
+            // Expectation limitation: Analyzer incorrectly flags pure lock on readonly field with pure operations as impure.
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
                                    .WithSpan(18, 16, 18, 34) // Span of PureMethodWithLock (actual diagnostic)
                                    .WithArguments("PureMethodWithLock");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            await VerifyCS.VerifyAnalyzerAsync(test, expected); // Expect the incorrect diagnostic
         }
 
         // Test that verifies the current behavior for lock statements on readonly objects with pure operations
@@ -116,6 +119,7 @@ class Program
 }";
 
             // Analyzer INCORRECTLY flags this as impure, expect diagnostic to reflect current behavior
+            // Expectation limitation: Analyzer incorrectly flags pure lock on readonly field with pure operations as impure.
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
                                    .WithSpan(16, 16, 16, 34) // Span of PureMethodWithLock (actual diagnostic)
                                    .WithArguments("PureMethodWithLock");

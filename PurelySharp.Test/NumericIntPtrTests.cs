@@ -35,7 +35,7 @@ namespace TestNamespace
 }}";
         }
 
-
+        // Expectation limitation: missing enforce-pure-attribute diagnostic (PS0004) for pure native-int methods without [EnforcePure].
         [Test]
         public async Task NativeInt_PureMethod_NoDiagnostic()
         {
@@ -60,6 +60,7 @@ using PurelySharp.Attributes; // Assuming AttributeSource is prepended elsewhere
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        // Expectation limitation: missing enforce-pure-attribute diagnostic (PS0004) for pure native-int methods without [EnforcePure].
         [Test]
         public async Task UnsignedNativeInt_PureMethod_NoDiagnostic()
         {
@@ -84,6 +85,7 @@ using PurelySharp.Attributes;
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        // Expectation limitation: missing enforce-pure-attribute diagnostic (PS0004) for pure native-int methods without [EnforcePure].
         [Test]
         public async Task NativeIntWithConversions_PureMethod_NoDiagnostic()
         {
@@ -118,6 +120,7 @@ using PurelySharp.Attributes;
             await VerifyCS.VerifyAnalyzerAsync(CreateTestWithAttribute(testCode));
         }
 
+        // Expectation limitation: missing enforce-pure-attribute diagnostic (PS0004) for pure native-int methods without [EnforcePure].
         [Test]
         public async Task NativeIntWithComparisons_PureMethod_NoDiagnostic()
         {
@@ -154,6 +157,7 @@ using PurelySharp.Attributes;
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        // Expectation limitation: missing enforce-pure-attribute diagnostic (PS0004) for pure native-int methods without [EnforcePure].
         [Test]
         public async Task NativeIntWithConstants_PureMethod_NoDiagnostic()
         {
@@ -190,6 +194,7 @@ using PurelySharp.Attributes;
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        // Expectation limitation: missing enforce-pure-attribute diagnostic (PS0004) for pure native-int methods without [EnforcePure].
         [Test]
         public async Task NativeIntWithBitwiseOperations_PureMethod_NoDiagnostic()
         {

@@ -47,7 +47,8 @@ namespace TestNamespace
     }
 }";
 
-            // UPDATED: Expecting PS0002 as analyzer flags generic methods
+            // Test verifies analyzer limitation: Generic methods marked [EnforcePure]
+            // are incorrectly flagged (PS0002) even if their body is pure.
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
                                    .WithSpan(26, 23, 26, 40)
                                    .WithArguments("GetAttributeValue");
@@ -90,7 +91,9 @@ namespace TestNamespace
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(26, 18, 26, 33).WithArguments("GetDefaultValue"));
+            // Test verifies analyzer limitation: Generic methods marked [EnforcePure]
+            // are incorrectly flagged (PS0002) even if their body is pure.
+            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(26, 18, 26, 33).WithArguments("GetDefaultValue"));
         }
 
         [Test]

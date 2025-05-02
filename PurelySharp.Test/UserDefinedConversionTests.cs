@@ -12,6 +12,7 @@ namespace PurelySharp.Test
     [TestFixture]
     public class UserDefinedConversionTests
     {
+        // Expectation limitation: analyzer currently does not report missing enforce-pure-attribute diagnostic (PS0004) for pure user-defined conversions lacking [EnforcePure].
         [Test]
         public async Task ImplicitConversion_PureImplementation_NoDiagnostic()
         {
@@ -46,6 +47,7 @@ public struct Celsius
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        // Expectation limitation: analyzer currently does not report missing enforce-pure-attribute diagnostic (PS0004) for pure user-defined conversions lacking [EnforcePure].
         [Test]
         public async Task ExplicitConversion_PureImplementation_NoDiagnostic()
         {

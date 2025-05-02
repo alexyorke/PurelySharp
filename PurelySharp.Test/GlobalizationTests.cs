@@ -85,9 +85,13 @@ public class TestClass
         return double.Parse(numStr, CultureInfo.InvariantCulture);
     }
 }";
-            // REVERT: Analyzer incorrectly considers double.Parse pure
-            // Remove inline diagnostic {|PS0002:...|}
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Test verifies analyzer limitation: double.Parse with InvariantCulture
+            // is incorrectly considered pure by the analyzer.
+            // var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+            //                     .WithSpan(12, 19, 12, 29) // Span for TestMethod
+            //                     .WithArguments(\"TestMethod\");
+            // await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            await VerifyCS.VerifyAnalyzerAsync(test); // Expect NO diagnostic (current behavior)
         }
     }
 }

@@ -20,6 +20,7 @@ namespace PurelySharp.Test
 
         private static bool IsEven(int n) => n % 2 == 0; // Pure function
 
+        // Expectation limitation: analyzer does not report missing enforce-pure-attribute diagnostic (PS0004) for pure helper methods lacking [EnforcePure].
         [Test]
         public async Task PureIfElse_ShouldPass()
         {
@@ -48,6 +49,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
 
+        // Expectation limitation: analyzer does not report missing enforce-pure-attribute diagnostic (PS0004) for pure helper methods lacking [EnforcePure].
         [Test]
         public async Task PureIf_NoElse_ShouldPass()
         {
@@ -75,7 +77,6 @@ public class TestClass
         }
 
         [Test]
-        //[Ignore("Temporarily disabled due to failure")]
         public async Task ImpureCondition_ShouldFail()
         {
             var testCode = @"
@@ -103,10 +104,9 @@ public class TestClass
 ";
             // Expect PS0002 on ImpureConditionExample - The analyzer currently misses this.
             // var expectedDiagnostic = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-            //                              .WithLocation(11, 16)
+            //                              .WithLocation(11, 16) // Location of ImpureConditionExample identifier
             //                              .WithArguments("ImpureConditionExample");
-            // await VerifyCS.VerifyAnalyzerAsync(testCode, expectedDiagnostic); // REMOVED
-            await VerifyCS.VerifyAnalyzerAsync(testCode); // Expect no diagnostic for now
+            await VerifyCS.VerifyAnalyzerAsync(testCode); // Expect no diagnostic for now (analyzer limitation)
         }
 
         [Test]
@@ -180,7 +180,7 @@ public class TestClass
         }
 
         [Test]
-        //[Ignore("Temporarily disabled due to inconsistent diagnostic reporting on helper methods")]
+        // Expectation limitation: analyzer currently does not report missing enforce-pure-attribute diagnostic (PS0004) on pure helper methods without [EnforcePure].
         public async Task NestedPure_ShouldPass()
         {
             var testCode = @"
@@ -254,13 +254,12 @@ public class TestClass
     }
 }
 ";
-            // Expect PS0002 on NestedImpureIfExample - NOTE: Analyzer currently misses this impurity! - UPDATE: Analyzer now detects it. - UPDATE 2: Still misses it.
+            // Expect PS0002 on NestedImpureIfExample - NOTE: Analyzer currently misses this impurity!
             // var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-            //                         .WithLocation(15, 16) // NestedImpureIfExample on line 15
+            //                         .WithLocation(15, 16) // Location of NestedImpureIfExample identifier
             //                         .WithArguments("NestedImpureIfExample");
-
             // await VerifyCS.VerifyAnalyzerAsync(testCode, expectedPS0002);
-            await VerifyCS.VerifyAnalyzerAsync(testCode); // Temporarily expect no diagnostic
+            await VerifyCS.VerifyAnalyzerAsync(testCode); // Expect no diagnostic for now (analyzer limitation)
         }
     }
 }
