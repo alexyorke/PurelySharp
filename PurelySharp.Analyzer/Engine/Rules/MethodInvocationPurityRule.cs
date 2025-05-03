@@ -44,33 +44,36 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return PurityAnalysisEngine.PurityAnalysisResult.Impure(invocationOperation.Syntax); // Cannot resolve method
             }
 
-            // *** SIMPLIFIED: Check for Delegate Invocation (target is Delegate.Invoke) ***
+            // *** Check for Delegate Invocation (target is Delegate.Invoke) ***
             if (invokedMethodSymbol.Name == "Invoke" && invokedMethodSymbol.ContainingType?.TypeKind == TypeKind.Delegate)
             {
-                PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] === Simplified Delegate Invocation Check Start ===");
-                PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Invoked Symbol: {invokedMethodSymbol.ContainingType.Name}.Invoke()");
+                // --- Original Delegate Logic (UNCOMMENTED) ---
+                PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] === Simplified Delegate Invocation Check Start ==="); // Revert Log Prefix
+                PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Invoked Symbol: {invokedMethodSymbol.ContainingType.Name}.Invoke()"); // Revert Log Prefix
 
                 if (invocationOperation.Instance == null)
                 {
-                    PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Instance is NULL (static delegate?). Assuming impure.");
+                    PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Instance is NULL (static delegate?). Assuming impure."); // Revert Log Prefix
                     return PurityAnalysisEngine.ImpureResult(invocationOperation.Syntax);
                 }
 
                 PurityAnalysisEngine.PurityAnalysisResult result = PurityAnalysisEngine.PurityAnalysisResult.Pure; // Assume pure initially
                 IOperation delegateInstanceOp = invocationOperation.Instance;
-                PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Analyzing Delegate Instance Op: {delegateInstanceOp.Kind} | Syntax: {delegateInstanceOp.Syntax}");
+                PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Analyzing Delegate Instance Op: {delegateInstanceOp.Kind} | Syntax: {delegateInstanceOp.Syntax}"); // Revert Log Prefix
 
-                // --- Always use DFA state map --- 
+                // --- Revert to always using DFA state map --- 
                 ISymbol? delegateInstanceSymbol = TryResolveSymbol(delegateInstanceOp);
                 if (delegateInstanceSymbol != null)
                 {
-                    PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Resolved Instance Symbol: {delegateInstanceSymbol.ToDisplayString()} ({delegateInstanceSymbol.Kind})");
+                    PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Resolved Instance Symbol: {delegateInstanceSymbol.ToDisplayString()} ({delegateInstanceSymbol.Kind})"); // Revert Log Prefix
                     if (currentState.DelegateTargetMap.TryGetValue(delegateInstanceSymbol, out var potentialTargets))
                     {
-                        PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Found {potentialTargets.MethodSymbols.Count} potential target(s) in DFA map for {delegateInstanceSymbol.Name}.");
+                        PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S-MAP] Found entry for {delegateInstanceSymbol.Name} in map."); // *** ADDED LOG ***
+                        PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S-MAP]   Targets: [{string.Join(", ", potentialTargets.MethodSymbols.Select(m => m.Name))}]"); // *** ADDED LOG ***
+                        PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Found {potentialTargets.MethodSymbols.Count} potential target(s) in DFA map for {delegateInstanceSymbol.Name}."); // Revert Log Prefix
                         if (potentialTargets.MethodSymbols.IsEmpty)
                         {
-                            PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] --> Map entry is empty. Assuming PURE.");
+                            PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] --> Map entry is empty. Assuming PURE."); // Revert Log Prefix
                             result = PurityAnalysisEngine.PurityAnalysisResult.Pure;
                         }
                         else
@@ -78,14 +81,14 @@ namespace PurelySharp.Analyzer.Engine.Rules
                             result = PurityAnalysisEngine.PurityAnalysisResult.Pure; // Assume pure until proven otherwise
                             foreach (var targetMethod in potentialTargets.MethodSymbols)
                             {
-                                PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Checking Potential Target from Map: {targetMethod.ToDisplayString()}");
+                                PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Checking Potential Target from Map: {targetMethod.ToDisplayString()}"); // Revert Log Prefix
                                 var targetPurity = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
                                     targetMethod.OriginalDefinition, context.SemanticModel, context.EnforcePureAttributeSymbol, context.AllowSynchronizationAttributeSymbol,
                                     context.VisitedMethods, context.PurityCache);
-                                PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Potential Target Purity Result: IsPure={targetPurity.IsPure}");
+                                PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Potential Target Purity Result: IsPure={targetPurity.IsPure}"); // Revert Log Prefix
                                 if (!targetPurity.IsPure)
                                 {
-                                    PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] --> IMPURE target found in map. Invocation is impure.");
+                                    PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] --> IMPURE target found in map. Invocation is impure."); // Revert Log Prefix
                                     result = targetPurity;
                                     break;
                                 }
@@ -94,18 +97,19 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     }
                     else
                     {
-                        PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] --> IMPURE (Symbol {delegateInstanceSymbol.Name} NOT FOUND in DFA state map - untracked source). Fallback to PS0002 at invocation.");
+                        PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S-MAP] *** NO entry found for {delegateInstanceSymbol.Name} in map. Assuming impure. ***"); // *** ADDED LOG ***
+                        PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] --> IMPURE (Symbol {delegateInstanceSymbol.Name} NOT FOUND in DFA state map - untracked source). Fallback to PS0002 at invocation."); // Revert Log Prefix
                         result = PurityAnalysisEngine.ImpureResult(invocationOperation.Syntax); // Fallback impurity
                     }
                 }
                 else
                 {
-                    PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] --> IMPURE (Could not resolve instance {delegateInstanceOp.Kind} to a trackable symbol). Fallback to PS0002 at instance op.");
+                    PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] --> IMPURE (Could not resolve instance {delegateInstanceOp.Kind} to a trackable symbol). Fallback to PS0002 at instance op."); // Revert Log Prefix
                     result = PurityAnalysisEngine.ImpureResult(delegateInstanceOp.Syntax); // Fallback impurity
                 }
 
-                PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Final Result for Delegate Invocation: IsPure={result.IsPure}");
-                PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] === Simplified Delegate Invocation Check End ===");
+                PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Final Result for Delegate Invocation: IsPure={result.IsPure}"); // Revert Log Prefix
+                PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] === Simplified Delegate Invocation Check End ==="); // Revert Log Prefix
                 return result;
             }
             // *** END Delegate Invocation Check ***

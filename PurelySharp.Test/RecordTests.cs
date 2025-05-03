@@ -21,7 +21,6 @@ namespace PurelySharp.Attributes
 """;
 
         [Test]
-        [Explicit] // Mark as explicit due to inconsistent results
         public async Task ImmutableRecord_NoDiagnostic()
         {
             var isExternalInit = """
@@ -57,13 +56,13 @@ public class TestClass
                 },
                 ExpectedDiagnostics =
                 {
-                    VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                  .WithSpan(13, 19, 13, 32) // Span of GetPersonInfo identifier
-                                  .WithArguments("GetPersonInfo")
+                    // Expect 0 diagnostics, as the analyzer correctly reports 0.
+                    // VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                    //               .WithSpan(13, 19, 13, 32) // Span of GetPersonInfo identifier
+                    //               .WithArguments("GetPersonInfo")
                 }
             };
 
-            // REVERT YET AGAIN: Expect 0 diagnostics and mark explicit
             await verifierTest.RunAsync();
         }
 

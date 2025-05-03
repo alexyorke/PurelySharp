@@ -50,7 +50,9 @@ namespace PurelySharp.Analyzer
             }
 
             // --- Perform Purity Analysis --- 
-            PurityAnalysisEngine.PurityAnalysisResult purityResult = PurityAnalysisEngine.IsConsideredPure(
+            // Create a new engine instance for each analysis
+            var purityEngine = new PurityAnalysisEngine();
+            PurityAnalysisEngine.PurityAnalysisResult purityResult = purityEngine.IsConsideredPure( // Use instance method
                 methodSymbol,
                 context.SemanticModel, // Use context's SemanticModel
                 enforcePureAttributeSymbol,

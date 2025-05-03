@@ -18,8 +18,11 @@ namespace PurelySharp.Analyzer.Engine
     /// <summary>
     /// Contains the core logic for determining method purity using Control Flow Graph (CFG).
     /// </summary>
-    internal static class PurityAnalysisEngine
+    internal class PurityAnalysisEngine
     {
+        // Add a constructor (can be empty for now)
+        public PurityAnalysisEngine() { }
+
         // Define a consistent format for symbol comparison strings
         private static readonly SymbolDisplayFormat _signatureFormat = new SymbolDisplayFormat(
             globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.Omitted,
@@ -1533,17 +1536,48 @@ namespace PurelySharp.Analyzer.Engine
         /// Checks if a method symbol is considered pure based on its implementation using CFG data-flow analysis.
         /// Manages the visited set for cycle detection across the entire analysis.
         /// </summary>
-        internal static PurityAnalysisResult IsConsideredPure(
+        internal PurityAnalysisResult IsConsideredPure(
             IMethodSymbol methodSymbol,
             SemanticModel semanticModel,
             INamedTypeSymbol enforcePureAttributeSymbol,
             INamedTypeSymbol? allowSynchronizationAttributeSymbol)
         {
-            var purityCache = new Dictionary<IMethodSymbol, PurityAnalysisResult>(SymbolEqualityComparer.Default);
-            var visited = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+            // Check if already computed (shouldn't happen with instance-based, but safe)
+            // REMOVED STATIC CACHE CHECK
 
-            // Pass the (potentially null) attribute symbol down
-            return DeterminePurityRecursiveInternal(methodSymbol.OriginalDefinition, semanticModel, enforcePureAttributeSymbol, allowSynchronizationAttributeSymbol, visited, purityCache);
+            // Create NEW state for this specific analysis run
+            var visited = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+            var purityCache = new Dictionary<IMethodSymbol, PurityAnalysisResult>(SymbolEqualityComparer.Default);
+
+            LogDebug($">> Enter DeterminePurity: {methodSymbol.ToDisplayString(_signatureFormat)}");
+
+            // Call the internal static recursive method with the fresh state
+            var result = DeterminePurityRecursiveInternal(
+                methodSymbol,
+                semanticModel,
+                enforcePureAttributeSymbol,
+                allowSynchronizationAttributeSymbol,
+                visited, // Pass the newly created set
+                purityCache // Pass the newly created cache
+            );
+
+            LogDebug($"<< Exit DeterminePurity ({GetPuritySource(result)}): {methodSymbol.ToDisplayString(_signatureFormat)}, Final IsPure={result.IsPure}");
+            LogDebug($"-- Removed Walker for: {methodSymbol.ToDisplayString(_signatureFormat)}"); // Assuming walker context is tied to the call stack
+
+            // Add result to cache AFTER computation (though cache is local now)
+            purityCache[methodSymbol] = result; // Cache result for this run
+
+            return result;
+        }
+
+        // Helper to determine source string for logging
+        private static string GetPuritySource(PurityAnalysisResult result)
+        {
+            // Simplified logic - refine if needed based on how results are determined
+            if (result.IsPure) return "Assumed/Analyzed Pure";
+            if (result.ImpureSyntaxNode != null) return "Analyzed Impure";
+            // Could add more cases based on how different results are constructed if necessary
+            return "Unknown/Default Impure";
         }
 
         /// <summary>

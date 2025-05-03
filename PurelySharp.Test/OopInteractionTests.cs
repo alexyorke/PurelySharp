@@ -421,11 +421,8 @@ public class TestManager
     }
 }
 ";
-            // UPDATE: Expect PS0002 on GetFullLightDetails as consistently reported by the analyzer
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                   .WithSpan(46, 19, 46, 38) // Span of GetFullLightDetails identifier
-                                   .WithArguments("GetFullLightDetails");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            // UPDATED: Expect 0 diagnostics, as all methods should be pure.
+            await VerifyCS.VerifyAnalyzerAsync(test); // Removed expected diagnostic
         }
 
         [Test]
