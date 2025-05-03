@@ -66,6 +66,8 @@ public class TestClass
         [Test]
         public async Task PureMethodWithRefReadonlyParameter_AssigningLocally_NoDiagnostic()
         {
+            // Expectation limitation: Analyzer flags reading from a local mutable copy
+            // of a 'ref readonly' struct parameter as impure.
             var test = @$"
 using PurelySharp.Attributes;
 

@@ -164,6 +164,9 @@ public record struct Counter
         [Test]
         public async Task RecordStructWithImmutableList_NoDiagnostic()
         {
+            // Expectation limitation: Analyzer may not flag direct property assignment 
+            // (e.g., `Tags = Tags.Add(tag);`) within a record struct method as impure,
+            // even though it modifies the current instance's state.
             var code = @$"
 using PurelySharp.Attributes;
 using System.Collections.Immutable;

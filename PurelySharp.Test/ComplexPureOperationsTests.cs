@@ -14,6 +14,8 @@ namespace PurelySharp.Test
         [Test]
         public async Task DeepRecursiveMethodWithComplexLogic_NoDiagnostic()
         {
+            // Expectation limitation: Analyzer might miss flagging LINQ's .ToList()
+            // as impure in complex/recursive methods, or test expectation hides the issue.
             var test = @"
 using System;
 using PurelySharp.Attributes;

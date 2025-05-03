@@ -15,6 +15,7 @@ namespace PurelySharp.Test
         [Test]
         public async Task DynamicParameter_NoModification_NoDiagnostic()
         {
+            // Expectation limitation: Analyzer fails to detect impurity from property access on 'dynamic' objects.
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -38,6 +39,7 @@ public class TestClass
         [Test]
         public async Task DynamicParameter_PropertyModification_Diagnostic()
         {
+            // Expectation limitation: Analyzer fails to detect impurity from property modification on 'dynamic' objects.
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -60,6 +62,7 @@ public class TestClass
         [Test]
         public async Task DynamicParameter_MethodInvocation_Diagnostic()
         {
+            // Expectation limitation: Analyzer fails to detect impurity from method invocation on 'dynamic' objects.
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -82,6 +85,7 @@ public class TestClass
         [Test]
         public async Task DynamicCreation_Diagnostic()
         {
+            // Expectation limitation: Analyzer fails to detect impurity from creating/modifying 'dynamic' objects (e.g., ExpandoObject).
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -106,6 +110,8 @@ public class TestClass
         [Test]
         public async Task DynamicLocalVariable_ReadOnly_Diagnostic()
         {
+            // Expectation limitation: Analyzer fails to detect impurity from using 'dynamic' variables/fields,
+            // even in read-only operations.
             var test = @"
 using System;
 using PurelySharp.Attributes;

@@ -62,6 +62,7 @@ public class TestClass
         // Regex instances compiled with RegexOptions.Compiled are immutable
 
         /* // TODO: Fix - Analyzer flags static readonly field access as impure
+        // Expectation limitation: Analyzer incorrectly flags accessing static readonly fields as impure.
         [Test]
         public async Task Regex_IsMatch_Instance_NoDiagnostic()
         {
@@ -92,7 +93,8 @@ public class TestClass
         // the `new Regex(...)` constructor itself might involve compilation or internal state setup
         // that *could* be viewed as impure depending on strictness.
         // Current assumption: Treat constructor as pure for typical usage.
-
+        // Expectation limitation: Analyzer considers Regex constructor pure, though technically
+        // it performs complex operations (parsing, potential compilation/caching).
         [Test]
         public async Task Regex_Constructor_NoDiagnostic()
         {

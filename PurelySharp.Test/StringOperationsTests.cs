@@ -16,6 +16,7 @@ namespace PurelySharp.Test
         [Test]
         public async Task ComplexStringOperations_WithImpureSplit_Diagnostic()
         {
+            // Expectation limitation: Analyzer considers string.Split and/or string.Join impure.
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -64,6 +65,7 @@ public class TestClass
         [Test]
         public async Task StringBuilderOperations_Diagnostic()
         {
+            // Expectation limitation: Analyzer considers creating a new StringBuilder() instance impure.
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -90,6 +92,7 @@ public class TestClass
         [Test]
         public async Task StringFormatting_ImpureFormat_Diagnostic()
         {
+            // Expectation limitation: Analyzer considers string.Format impure.
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -181,6 +184,8 @@ public class TestClass
         [Test]
         public async Task PureMethodWithLocalStringBuilderToString_NoDiagnostic()
         {
+            // Expectation limitation: Analyzer considers creating a new StringBuilder() instance impure,
+            // even if only non-mutating methods like ToString() are called on the local instance.
             var test = @"
 using System;
 using PurelySharp.Attributes;

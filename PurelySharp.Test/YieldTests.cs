@@ -16,6 +16,8 @@ namespace PurelySharp.Test
         [Test]
         public async Task PureMethodWithYield_Diagnostic()
         {
+            // Expectation limitation: Analyzer considers any method using 'yield return' as impure,
+            // even if the yielded values are pure.
             var test = @"
 using System;
 using PurelySharp.Attributes;

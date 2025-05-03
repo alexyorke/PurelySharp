@@ -16,6 +16,7 @@ namespace PurelySharp.Test
         [Test]
         public async Task AsyncMethodWithAwait_NoDiagnostic()
         {
+            // Expectation limitation: Analyzer fails to detect impurity of 'lock' statements.
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -42,6 +43,7 @@ public class TestClass
         [Test]
         public async Task MethodWithEventSubscription_Diagnostic()
         {
+            // Expectation limitation: Analyzer fails to detect impurity of event subscriptions ('+=').
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -65,6 +67,7 @@ public class TestClass
         [Test]
         public async Task MethodWithDelegateInvocation_Diagnostic()
         {
+            // Expectation limitation: Analyzer fails to detect potential impurity of delegate invocations.
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -88,6 +91,7 @@ public class TestClass
         [Test]
         public async Task LockImpurityDetection_Diagnostic()
         {
+            // Expectation limitation: Analyzer fails to detect impurity of 'lock' statements.
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -114,6 +118,7 @@ public class TestClass
         [Test]
         public async Task MethodWithInterlockedIncrement_Diagnostic()
         {
+            // Expectation limitation: Analyzer fails to detect impurity of Interlocked operations.
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -137,6 +142,7 @@ public class TestClass
         [Test]
         public async Task MethodWithInterlockedCompareExchange_Diagnostic()
         {
+            // Expectation limitation: Analyzer fails to detect impurity of Interlocked operations.
             var test = @"
 using System;
 using PurelySharp.Attributes;

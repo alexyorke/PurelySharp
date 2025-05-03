@@ -34,6 +34,8 @@ public class TestClass
         [Test]
         public async Task ImpureConstructor_Diagnostic()
         {
+            // Expectation limitation: Analyzer fails to detect direct impure operations
+            // (e.g., Console.WriteLine) within a constructor.
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -74,6 +76,8 @@ public class TestClass
         [Test]
         public async Task ConstructorWithStaticFieldModification_Diagnostic()
         {
+            // Expectation limitation: Analyzer fails to detect static field modifications
+            // within a constructor.
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -93,6 +97,8 @@ public class TestClass
         [Test]
         public async Task ConstructorWithCollectionInitialization_ImpureDiagnostic()
         {
+            // Expectation limitation: Analyzer might not flag allocations of known mutable types
+            // (like List<T>) within a constructor (consistent with other findings).
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -114,6 +120,8 @@ public class TestClass
         [Test]
         public async Task ConstructorCallingImpureMethod_Diagnostic()
         {
+            // Expectation limitation: Analyzer fails to detect calls to impure helper methods
+            // from within a constructor.
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -208,6 +216,8 @@ public struct Point
         [Test]
         public async Task ConstructorWithBaseCallToImpureConstructor_NoDiagnostic()
         {
+            // Expectation limitation: Analyzer fails to detect impurity originating
+            // from an implicitly called base constructor.
             var test = @"
 using System;
 using PurelySharp.Attributes;

@@ -187,6 +187,7 @@ public class TestClass
         [Test]
         public async Task ConstantIoPath_ShouldBePure_Test1()
         {
+            // Expectation limitation: Analyzer considers Path.GetTempPath() impure, even if only used for string manipulation.
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -221,6 +222,7 @@ public class TestClass
         [Test]
         public async Task ExtensionMethodImpurity_MayMissDiagnostic()
         {
+            // Expectation limitation: Analyzer may not detect impurity within lambdas passed to extension methods.
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -661,6 +663,7 @@ public class TestClass
         [Test]
         public async Task StreamThatIsNeverUsed_ShouldBePure()
         {
+            // Expectation limitation: Analyzer incorrectly flags creating an IO stream object even if unused.
             // Creates streams but never uses them for IO
             var test = @"
 using System;

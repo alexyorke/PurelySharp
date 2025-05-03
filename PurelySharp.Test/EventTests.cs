@@ -13,6 +13,7 @@ namespace PurelySharp.Test
         [Test]
         public async Task PureMethodWithEvent_NoDiagnostic()
         {
+            // Expectation limitation: Analyzer incorrectly flags reading an event field as impure.
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -44,6 +45,7 @@ public class TestClass
         [Test]
         public async Task ImpureMethodWithEvent_Diagnostic()
         {
+            // Expectation limitation: Analyzer fails to detect impurity of event invocation ('Invoke').
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -69,6 +71,7 @@ public class TestClass
         [Test]
         public async Task PureMethodWithEventSubscription_Diagnostic()
         {
+            // Expectation limitation: Analyzer fails to detect impurity of event subscriptions ('+=').
             var test = @"
 using System;
 using PurelySharp.Attributes;

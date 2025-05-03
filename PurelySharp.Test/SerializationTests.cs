@@ -29,6 +29,8 @@ public class SimplePoco
         [Test]
         public async Task PureMethodWithJsonSerializePoco_NoDiagnostic()
         {
+            // Expectation limitation: Analyzer considers JsonSerializer.Serialize pure,
+            // although it could theoretically be impure if property getters have side effects.
             var test = TestSetup + @"
 
 public class TestClass
