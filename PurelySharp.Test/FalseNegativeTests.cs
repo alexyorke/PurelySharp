@@ -48,7 +48,7 @@ public class TestClass
     private static readonly Action ImpureAction = () => Console.WriteLine(""Side-effect"");
 
     [EnforcePure]
-    public void CallImpureDelegate()
+    public void {|PS0002:CallImpureDelegate|}()
     {
         // Invoking the delegate causes side-effects, but the analyzer misses it.
         ImpureAction();
@@ -221,7 +221,7 @@ public static class ImpureInitializer
 public class TestClass
 {
     [EnforcePure]
-    public int TriggerStaticConstructor()
+    public int {|PS0002:TriggerStaticConstructor|}()
     {
         // Accessing ImpureInitializer.Value triggers the impure .cctor
         return ImpureInitializer.Value;
@@ -278,7 +278,7 @@ public class ImpureConverter
 public class TestClass
 {
     [EnforcePure]
-    public int ConvertIt(ImpureConverter ic)
+    public int {|PS0002:ConvertIt|}(ImpureConverter ic)
     {
         // The assignment triggers the impure implicit conversion.
         int result = ic;

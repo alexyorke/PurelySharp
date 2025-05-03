@@ -47,6 +47,15 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 // Static property access
                 PurityAnalysisEngine.LogDebug($"    [PropRefRule] Static property access: {propertySymbol.Name}");
 
+                // *** ADDED: Check static constructor purity ***
+                var cctorResult = CheckStaticConstructorPurity(propertySymbol.ContainingType, context);
+                if (!cctorResult.IsPure)
+                {
+                    PurityAnalysisEngine.LogDebug($"    [PropRefRule] Static property '{propertySymbol.Name}' access IMPURE due to impure static constructor in {propertySymbol.ContainingType.Name}.");
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(propertyReference.Syntax);
+                }
+                // *** END ADDED ***
+
                 // +++ Log signature check +++
                 string staticPureSig = propertySymbol.OriginalDefinition.ToDisplayString();
                 bool staticKnownPure = PurityAnalysisEngine.IsKnownPureBCLMember(propertySymbol);
@@ -234,6 +243,31 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
             return false;
         }
+
+        // *** ADDED HELPER ***
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckStaticConstructorPurity(INamedTypeSymbol typeSymbol, PurityAnalysisContext context)
+        {
+            if (typeSymbol == null) return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+
+            var staticConstructor = typeSymbol.StaticConstructors.FirstOrDefault();
+            if (staticConstructor == null)
+            {
+                // No static constructor, trivially pure initialization
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            PurityAnalysisEngine.LogDebug($"        [CheckStaticCtor] Found static constructor for {typeSymbol.Name}. Checking recursively...");
+            // Use OriginalDefinition to avoid issues with constructed generics
+            return PurityAnalysisEngine.DeterminePurityRecursiveInternal(
+                staticConstructor.OriginalDefinition,
+                context.SemanticModel, // Use the context's model
+                context.EnforcePureAttributeSymbol,
+                context.AllowSynchronizationAttributeSymbol,
+                context.VisitedMethods, // Critical for cycle detection
+                context.PurityCache // Share cache
+            );
+        }
+        // *** END ADDED HELPER ***
 
         // +++ REMOVED HasAttribute HELPER (Moved to PurityAnalysisEngine) +++
         // private static bool HasAttribute(ISymbol symbol, INamedTypeSymbol attributeSymbol)

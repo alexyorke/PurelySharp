@@ -234,6 +234,18 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             // *** REGULAR METHOD INVOCATION ANALYSIS ***
 
+            // *** Check Static Constructor Purity First (for static calls) ***
+            if (invokedMethodSymbol.IsStatic && invokedMethodSymbol.ContainingType != null)
+            {
+                var cctorResult = CheckStaticConstructorPurity(invokedMethodSymbol.ContainingType, context);
+                if (!cctorResult.IsPure)
+                {
+                    PurityAnalysisEngine.LogDebug($"  [MIR] Static method call '{invokedMethodSymbol.Name}' IMPURE due to impure static constructor in {invokedMethodSymbol.ContainingType.Name}.");
+                    // Report impurity at the invocation site
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(invocationOperation.Syntax);
+                }
+            }
+
             // *** Check Instance Purity First (for regular method calls) ***
             if (invocationOperation.Instance != null)
             {
@@ -322,6 +334,31 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
             return null;
         }
+
+        // *** ADDED HELPER ***
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckStaticConstructorPurity(INamedTypeSymbol typeSymbol, PurityAnalysisContext context)
+        {
+            if (typeSymbol == null) return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+
+            var staticConstructor = typeSymbol.StaticConstructors.FirstOrDefault();
+            if (staticConstructor == null)
+            {
+                // No static constructor, trivially pure initialization
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            PurityAnalysisEngine.LogDebug($"        [CheckStaticCtor] Found static constructor for {typeSymbol.Name}. Checking recursively...");
+            // Use OriginalDefinition to avoid issues with constructed generics
+            return PurityAnalysisEngine.DeterminePurityRecursiveInternal(
+                staticConstructor.OriginalDefinition,
+                context.SemanticModel, // Use the context's model
+                context.EnforcePureAttributeSymbol,
+                context.AllowSynchronizationAttributeSymbol,
+                context.VisitedMethods, // Critical for cycle detection
+                context.PurityCache // Share cache
+            );
+        }
+        // *** END ADDED HELPER ***
 
         // *** REMOVED HELPER METHODS for delegate resolution *** 
         /*

@@ -45,6 +45,16 @@ namespace PurelySharp.Analyzer.Engine.Rules
             // Check for static fields
             if (fieldSymbol.IsStatic)
             {
+                // *** ADDED: Check static constructor purity ***
+                var cctorResult = CheckStaticConstructorPurity(fieldSymbol.ContainingType, context);
+                if (!cctorResult.IsPure)
+                {
+                    PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Static field '{fieldSymbol.Name}' access IMPURE due to impure static constructor in {fieldSymbol.ContainingType.Name}.");
+                    // Report impurity at the field access site
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(fieldReference.Syntax);
+                }
+                // *** END ADDED ***
+
                 if (fieldSymbol.IsReadOnly)
                 {
                     PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Static readonly field '{fieldSymbol.Name}' - Pure");
@@ -177,5 +187,30 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
             return false;
         }
+
+        // *** ADDED HELPER ***
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckStaticConstructorPurity(INamedTypeSymbol typeSymbol, PurityAnalysisContext context)
+        {
+            if (typeSymbol == null) return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+
+            var staticConstructor = typeSymbol.StaticConstructors.FirstOrDefault();
+            if (staticConstructor == null)
+            {
+                // No static constructor, trivially pure initialization
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            PurityAnalysisEngine.LogDebug($"        [CheckStaticCtor] Found static constructor for {typeSymbol.Name}. Checking recursively...");
+            // Use OriginalDefinition to avoid issues with constructed generics
+            return PurityAnalysisEngine.DeterminePurityRecursiveInternal(
+                staticConstructor.OriginalDefinition,
+                context.SemanticModel, // Use the context's model
+                context.EnforcePureAttributeSymbol,
+                context.AllowSynchronizationAttributeSymbol,
+                context.VisitedMethods, // Critical for cycle detection
+                context.PurityCache // Share cache
+            );
+        }
+        // *** END ADDED HELPER ***
     }
 }
