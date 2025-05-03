@@ -56,12 +56,12 @@ public class TestClass
             public int Value { get; set; }
         }
 
-        // [Test] ... remove this block ...
-        // public async Task Validator_TryValidateObject_PureAttributes_NoDiagnostic() ... remove this block ...
-        // { ... remove this block ...
-        //     ... remove this block ...
-        //     await VerifyCS.VerifyAnalyzerAsync(test); ... remove this block ...
-        // } ... remove this block ...
+        // // [Test] ... remove this block ... // Keep this commented out
+        // // public async Task Validator_TryValidateObject_PureAttributes_NoDiagnostic() ... remove this block ... // Keep this commented out
+        // // { ... remove this block ... // Keep this commented out
+        // //     ... remove this block ... // Keep this commented out
+        // //     await VerifyCS.VerifyAnalyzerAsync(test); ... remove this block ... // Keep this commented out
+        // // } ... remove this block ... // Keep this commented out
 
         /* // TODO: Fix - Analyzer flags context/list creation or TryValidateObject as impure
         [Test]
@@ -130,5 +130,12 @@ public class TestClass
              await Task.CompletedTask;
         }
         */
+
+        // ... existing code ...
+        // ValidationContext validationContext = new ValidationContext(model);
+        // var validationResults = new List<ValidationResult>();
+        // bool isValid = Validator.TryValidateObject(model, validationContext, validationResults, true);
+        // return validationResults.Select(vr => vr.ErrorMessage).ToList();
+        // ... existing code ...
     }
-} 
+}

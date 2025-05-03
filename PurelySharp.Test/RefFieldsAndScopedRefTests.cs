@@ -7,12 +7,22 @@ using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
     PurelySharp.Analyzer.PurelySharpAnalyzer>;
 using PurelySharp.Attributes;
 using System;
+using Microsoft.CodeAnalysis.CSharp.Testing;
 
 namespace PurelySharp.Test
 {
     [TestFixture]
     public class RefFieldsAndScopedRefTests
     {
+        // Minimal attribute definition (using verbatim string)
+        private const string MinimalEnforcePureAttributeSource = @"
+namespace PurelySharp.Attributes
+{
+    [System.AttributeUsage(System.AttributeTargets.All)]
+    public sealed class EnforcePureAttribute : System.Attribute { }
+}
+"; // Close verbatim string
+
         [Test]
         public async Task ScopedRef_PureMethod_NoDiagnostic()
         {
@@ -33,12 +43,12 @@ namespace TestNamespace
             return ref array[index];
         }
     }
-}";
+}
+" + MinimalEnforcePureAttributeSource; // Append attribute source
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-#if false // Temporarily disable problematic test
         [Test]
         public async Task ScopedRef_ImpureMethod_Diagnostic()
         {
@@ -53,23 +63,22 @@ namespace TestNamespace
     public class ScopedRefImpureTest
     {
         [EnforcePure]
-        public void {|PS0002:ModifyValue|}(scoped ref int[] array, int index)
+        public void ModifyValue(scoped ref int[] array, int index)
         {
             // Using scoped ref parameter but modifying the array (impure)
             array[index] = 42;
         }
     }
-}";
+}
+" + MinimalEnforcePureAttributeSource; // Append attribute source
 
-            // Expect diagnostic on the assignment inside the impure method
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(15, 13, 15, 30) // Span of array[index] = 42;
-                                   .WithArguments("ModifyValue");
+            // Expect diagnostic on the method definition (1 diagnostic)
+            var expected = new[] {
+                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(12, 21, 12, 32).WithArguments("ModifyValue"),
+            };
 
-            // Expect only the single diagnostic above
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
-#endif
 
         [Test]
         public async Task ScopedRefLocal_PureMethod_NoDiagnostic()
@@ -95,12 +104,12 @@ namespace TestNamespace
             return first + last;
         }
     }
-}";
+}
+" + MinimalEnforcePureAttributeSource; // Append attribute source
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-#if false // Temporarily disable test due to runner issue
         [Test]
         public async Task ModifyRefArray_ImpureMethod_Diagnostic()
         {
@@ -115,24 +124,24 @@ namespace TestNamespace
     public class RefArrayModifierTest
     {
         [EnforcePure]
-        public void {|PS0002:ModifyArray|}(int[] array)
+        public void ModifyArray(int[] array)
         {
             // Directly modify array element (impure)
             array[0] = 42;
         }
     }
-}";
+}
+" + MinimalEnforcePureAttributeSource; // Append attribute source
 
-            // Expect diagnostic on the assignment
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(15, 13, 15, 26) // Span for array[0] = 42;
-                                   .WithArguments("ModifyArray");
+            // Expect diagnostic on the method definition (1 diagnostic)
+            var expected = new[]
+            {
+                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(12, 21, 12, 32).WithArguments("ModifyArray"),
+            };
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
-#endif
 
-#if false // Temporarily disable problematic test
         [Test]
         public async Task RefArrayAssignment_ImpureMethod_Diagnostic()
         {
@@ -147,24 +156,23 @@ namespace TestNamespace
     public class RefArrayAssignmentTest
     {
         [EnforcePure]
-        public void {|PS0002:AssignValues|}(int[] array)
+        public void AssignValues(int[] array)
         {
             int temp = array[0];
             array[0] = array[1]; // Impure modification
             array[1] = temp;     // Impure modification
         }
     }
-}";
+}
+" + MinimalEnforcePureAttributeSource; // Append attribute source
 
-            // Expect diagnostic on the array assignment inside the impure method
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(15, 13, 15, 32) // Span of array[0] = array[1];
-                                   .WithArguments("AssignValues");
+            // Expect diagnostic on the method definition (1 diagnostic)
+            var expected = new[] {
+                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(12, 21, 12, 33).WithArguments("AssignValues"),
+            };
 
-            // Expect only the single diagnostic above
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
-#endif
     }
 }
 

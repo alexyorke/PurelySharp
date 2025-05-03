@@ -549,8 +549,8 @@ namespace TestNamespace
         public void UpdateProductName(Product product, string newName)
         {
             // Property set is allowed in init-only, but Console.WriteLine is impure
-            {|PS0002:Console.WriteLine($""Updating name to {newName}"")|};
-            product.Name = newName; // Allowed in init
+            Console.WriteLine($""Updating name to {newName}"");
+            // product.Name = newName; // Commented out: Allowed in init, but causes CS8852
         }
 
         public string GetProductSummary(Product product)
@@ -568,7 +568,7 @@ namespace TestNamespace
                 .WithLocation(60, 21) // Adjusted line number from error output
                 .WithArguments("UpdateProductName"); // Argument is just the method name for PS0002
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expected); // Expect 1 diagnostic
+            await VerifyCS.VerifyAnalyzerAsync(test, expected); // Expect 1 diagnostic for Console.WriteLine
         }
 
 
@@ -614,11 +614,11 @@ namespace TestNamespace
     }
 }";
             // Expect diagnostic PS0002 for UpdateAge (Current Analyzer Behavior)
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule) // Expect PS0002
-                .WithLocation(48, 21) // Adjusted line number from error output
-                .WithArguments("UpdateAge"); // Argument is just the method name for PS0002
-
-            await VerifyCS.VerifyAnalyzerAsync(test, expected); // Expect 1 diagnostic
+            var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule) // Expect PS0002
+                .WithLocation(48, 21) // Span of 'UpdateAge' identifier
+                .WithArguments("UpdateAge");
+            
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedPS0002); // Expect 1 diagnostic
         }
     }
 }

@@ -154,7 +154,7 @@ namespace TestNamespace
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        // [Test] // Temporarily disabled due to test framework/compiler interaction issues
+        [Test] // Temporarily disabled due to test framework/compiler interaction issues
         public async Task SpanPatternMatchingImpureOperation_Diagnostic()
         {
             var test = @"
@@ -173,13 +173,16 @@ public class CommandParser
         return command switch
         {
             ""increment"" => (++_commandCounter > 0),
-            ""reset"" => {|PS0002:_commandCounter = 0|} == 0,
+            ""reset"" => (_commandCounter = 0) == 0,
             _ => false
         };
     }
 }
 ";
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                   .WithSpan(12, 24, 12, 38)
+                                   .WithArguments("ExecuteCommand");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }

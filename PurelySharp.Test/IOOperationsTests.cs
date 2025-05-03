@@ -215,9 +215,26 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
-        // [Test] // Test removed due to edit issues
-        // public async Task DynamicDispatchImpurity_MayMissDiagnostic()
-        // { ... test removed ... }
+        [Test]
+        public async Task DynamicDispatchImpurity_MayMissDiagnostic()
+        {
+            // Test code was removed, maybe add a placeholder or a simple impure dynamic call?
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass 
+{
+    [EnforcePure]
+    public void TestMethod(dynamic d) 
+    { 
+        d.ImpureCall(); // Simple impure dynamic call 
+    } 
+}";
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                   .WithSpan(8, 17, 8, 27).WithArguments("TestMethod"); // Expect diagnostic
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
 
         [Test]
         public async Task ExtensionMethodImpurity_MayMissDiagnostic()
