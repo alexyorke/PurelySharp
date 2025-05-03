@@ -2,6 +2,8 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
 using System.Linq;
+using System.Collections.Immutable;
+using PurelySharp.Analyzer.Engine;
 
 namespace PurelySharp.Analyzer.Engine.Rules
 {
@@ -10,9 +12,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
     /// </summary>
     internal class ConditionalOperationPurityRule : IPurityRule
     {
-        public IEnumerable<OperationKind> ApplicableOperationKinds => new[] { OperationKind.Conditional };
+        public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.Conditional);
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
             if (!(operation is IConditionalOperation conditionalOperation))
             {
@@ -24,7 +26,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             PurityAnalysisEngine.LogDebug($"  [CondRule] Checking Conditional Operation: {conditionalOperation.Syntax}");
 
             // Check condition
-            var conditionResult = PurityAnalysisEngine.CheckSingleOperation(conditionalOperation.Condition, context);
+            var conditionResult = PurityAnalysisEngine.CheckSingleOperation(conditionalOperation.Condition, context, currentState);
             if (!conditionResult.IsPure)
             {
                 PurityAnalysisEngine.LogDebug($"    [CondRule] Condition is Impure: {conditionalOperation.Condition.Syntax}");
@@ -35,7 +37,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             // Check WhenTrue branch
             if (conditionalOperation.WhenTrue != null)
             {
-                var whenTrueResult = PurityAnalysisEngine.CheckSingleOperation(conditionalOperation.WhenTrue, context);
+                var whenTrueResult = PurityAnalysisEngine.CheckSingleOperation(conditionalOperation.WhenTrue, context, currentState);
                 if (!whenTrueResult.IsPure)
                 {
                     PurityAnalysisEngine.LogDebug($"    [CondRule] WhenTrue is Impure: {conditionalOperation.WhenTrue.Syntax}");
@@ -53,7 +55,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             // Check WhenFalse branch
             if (conditionalOperation.WhenFalse != null)
             {
-                var whenFalseResult = PurityAnalysisEngine.CheckSingleOperation(conditionalOperation.WhenFalse, context);
+                var whenFalseResult = PurityAnalysisEngine.CheckSingleOperation(conditionalOperation.WhenFalse, context, currentState);
                 if (!whenFalseResult.IsPure)
                 {
                     PurityAnalysisEngine.LogDebug($"    [CondRule] WhenFalse is Impure: {conditionalOperation.WhenFalse.Syntax}");

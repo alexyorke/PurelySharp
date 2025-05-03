@@ -1296,50 +1296,237 @@ namespace PurelySharp.Analyzer.Engine
 
             // --- Potentially pure (check context) from list ---
             "System.Convert.ChangeType(object, System.Type)", // Depends on conversion
+
+            // --- ADDED: System.Object ---
+            "object.Equals(object)", // Often pure, though overrides can be impure
+            "object.GetHashCode()", // Often pure if immutable or based on immutable fields
+            "object.GetType()", // Pure
+            "object.ReferenceEquals(object, object)", // Pure
+            "object.ToString()", // Depends on override, but often pure for value types/immutables
+
+            // System.ReadOnlySpan<T> / Span<T> (Properties/Methods often pure reads)
+            "System.ReadOnlySpan<T>.Length.get",
+            "System.ReadOnlySpan<T>.IsEmpty.get",
+            "System.ReadOnlySpan<T>.ToArray()", // Creates copy - pure
+            "System.ReadOnlySpan<T>.Slice(int, int)", // Pure view
+            "System.Span<T>.Length.get", // Added corresponding Span<T>
+            "System.Span<T>.IsEmpty.get", // Added corresponding Span<T>
+
+            // --- ADDED: System.String (Common Pure Methods) ---
+            "string.Clone()",
+            "string.CompareTo(string)",
+            "string.Contains(string)",
+            "string.EndsWith(string)",
+            "string.Equals(string)", // Static and instance overloads
+            "string.Equals(string, string)",
+            "string.Equals(string, System.StringComparison)",
+            "string.GetHashCode()",
+            "string.IndexOf(char)", // Common overload
+            "string.IndexOf(string)", // Common overload
+            "string.IsNullOrEmpty(string)",
+            "string.IsNullOrWhiteSpace(string)",
+            "string.Length.get",
+            "string.StartsWith(string)",
+            "string.Substring(int)", // Common overload
+            "string.Substring(int, int)",
+            "string.ToCharArray()",
+            "string.ToLower()",
+            "string.ToLowerInvariant()",
+            "string.ToString()", // Returns self
+            "string.ToUpper()",
+            "string.ToUpperInvariant()",
+            "string.Trim()",
+            "string.TrimEnd()",
+            "string.TrimStart()",
+            // Operator overloads are harder to list by signature, handled by Binary/Unary rules maybe
+            // "string.op_Equality(string, string)",
+            // "string.op_Inequality(string, string)",
+            // -----------------------------------------------
+
+            // System.Text.Encoding
+            "System.Text.Encoding.UTF8.get", // Static property access
+            "System.Text.Encoding.GetString(byte[])", // Common overload
         };
 
         /// <summary>
         /// Represents the purity state during CFG analysis.
+        /// Includes basic impurity tracking and potential delegate targets.
         /// </summary>
-        private struct PurityAnalysisState : System.IEquatable<PurityAnalysisState>
+        internal readonly struct PurityAnalysisState : IEquatable<PurityAnalysisState>
         {
-            public bool HasPotentialImpurity { get; set; }
-            public SyntaxNode? FirstImpureSyntaxNode { get; set; }
+            // --- Existing Fields ---
+            public bool HasPotentialImpurity { get; }
+            public SyntaxNode? FirstImpureSyntaxNode { get; }
 
-            public static PurityAnalysisState Pure => new PurityAnalysisState { HasPotentialImpurity = false, FirstImpureSyntaxNode = null };
+            // --- New Field for Delegate Tracking ---
+            // Maps a delegate variable/parameter/field symbol to its potential targets.
+            // Use ImmutableDictionary for state propagation.
+            public ImmutableDictionary<ISymbol, PotentialTargets> DelegateTargetMap { get; }
 
+            // --- Constructor ---
+            internal PurityAnalysisState(
+                bool hasPotentialImpurity,
+                SyntaxNode? firstImpureSyntaxNode,
+                ImmutableDictionary<ISymbol, PotentialTargets>? delegateTargetMap) // Nullable for initial state
+            {
+                HasPotentialImpurity = hasPotentialImpurity;
+                FirstImpureSyntaxNode = firstImpureSyntaxNode;
+                // Ensure map is never null, use Empty if needed. Use Ordinal comparer for ISymbol.
+                DelegateTargetMap = delegateTargetMap ?? ImmutableDictionary.Create<ISymbol, PotentialTargets>(SymbolEqualityComparer.Default);
+            }
+
+            // --- Static Factory for Initial Pure State ---
+            public static PurityAnalysisState Pure => new PurityAnalysisState(false, null, null); // Start with empty map
+
+            // --- Updated Merge Logic ---
             public static PurityAnalysisState Merge(IEnumerable<PurityAnalysisState> states)
             {
                 bool mergedImpurity = false;
                 SyntaxNode? firstImpureNode = null;
+                // Use a builder for efficient merging of dictionaries
+                var mergedTargetsBuilder = ImmutableDictionary.CreateBuilder<ISymbol, PotentialTargets>(SymbolEqualityComparer.Default);
+                var keysProcessed = new HashSet<ISymbol>(SymbolEqualityComparer.Default); // Track keys already merged
+
                 foreach (var state in states)
                 {
+                    // Merge basic impurity
                     if (state.HasPotentialImpurity)
                     {
                         mergedImpurity = true;
                         if (firstImpureNode == null) { firstImpureNode = state.FirstImpureSyntaxNode; }
                     }
+
+                    // Merge delegate targets
+                    foreach (var kvp in state.DelegateTargetMap)
+                    {
+                        var symbol = kvp.Key;
+                        var currentTargets = kvp.Value;
+
+                        if (mergedTargetsBuilder.TryGetValue(symbol, out var existingTargets))
+                        {
+                            // Key exists, merge the PotentialTargets (union of method symbols)
+                            if (!keysProcessed.Contains(symbol)) // Avoid merging the same key multiple times if it appears in multiple input states
+                            {
+                                mergedTargetsBuilder[symbol] = PotentialTargets.Merge(existingTargets, currentTargets);
+                                keysProcessed.Add(symbol); // Mark as processed for this merge operation
+                            }
+                        }
+                        else
+                        {
+                            // Key doesn't exist yet, add it
+                            mergedTargetsBuilder.Add(symbol, currentTargets);
+                            keysProcessed.Add(symbol); // Mark as processed
+                        }
+                    }
+                    keysProcessed.Clear(); // Reset for the next state in the enumeration
                 }
-                return new PurityAnalysisState { HasPotentialImpurity = mergedImpurity, FirstImpureSyntaxNode = firstImpureNode };
+
+                return new PurityAnalysisState(mergedImpurity, firstImpureNode, mergedTargetsBuilder.ToImmutable());
             }
 
-            public bool Equals(PurityAnalysisState other) =>
-                this.HasPotentialImpurity == other.HasPotentialImpurity &&
-                object.Equals(this.FirstImpureSyntaxNode, other.FirstImpureSyntaxNode); // Compare nodes too
+            // --- Updated Equals ---
+            public bool Equals(PurityAnalysisState other)
+            {
+                if (this.HasPotentialImpurity != other.HasPotentialImpurity ||
+                    !object.Equals(this.FirstImpureSyntaxNode, other.FirstImpureSyntaxNode) ||
+                    this.DelegateTargetMap.Count != other.DelegateTargetMap.Count) // Quick count check
+                {
+                    return false;
+                }
 
-            public override bool Equals(object obj) => obj is PurityAnalysisState other && Equals(other);
+                // Compare dictionaries element by element (immutable dictionaries handle this)
+                // Note: This relies on PotentialTargets implementing Equals correctly.
+                foreach (var kvp in this.DelegateTargetMap)
+                {
+                    if (!other.DelegateTargetMap.TryGetValue(kvp.Key, out var otherValue) || !kvp.Value.Equals(otherValue))
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
 
-            // Fix CS0103: Implement GetHashCode manually for netstandard2.0 compatibility
+            // --- Updated GetHashCode ---
             public override int GetHashCode()
             {
-                // Combine hash codes of both properties
+                // Combine hash codes of properties
                 int hash = 17;
                 hash = hash * 23 + HasPotentialImpurity.GetHashCode();
                 hash = hash * 23 + (FirstImpureSyntaxNode?.GetHashCode() ?? 0);
+                // Add hash code for the dictionary content
+                foreach (var kvp in DelegateTargetMap.OrderBy(kv => kv.Key.Name)) // Order for consistency
+                {
+                    hash = hash * 23 + kvp.Key.GetHashCode();
+                    hash = hash * 23 + kvp.Value.GetHashCode(); // Relies on PotentialTargets.GetHashCode()
+                }
                 return hash;
             }
+
             public static bool operator ==(PurityAnalysisState left, PurityAnalysisState right) => left.Equals(right);
             public static bool operator !=(PurityAnalysisState left, PurityAnalysisState right) => !(left == right);
+
+            // --- Methods to update state (immutable pattern) ---
+            public PurityAnalysisState WithImpurity(SyntaxNode node)
+            {
+                if (HasPotentialImpurity) return this; // Already impure
+                return new PurityAnalysisState(true, node, this.DelegateTargetMap);
+            }
+
+            public PurityAnalysisState WithDelegateTarget(ISymbol delegateSymbol, PotentialTargets targets)
+            {
+                // Use SetItem which adds or replaces
+                var newMap = this.DelegateTargetMap.SetItem(delegateSymbol, targets);
+                return new PurityAnalysisState(this.HasPotentialImpurity, this.FirstImpureSyntaxNode, newMap);
+            }
+        }
+
+        /// <summary>
+        /// Helper struct to store potential targets for a delegate symbol.
+        /// </summary>
+        internal readonly struct PotentialTargets : IEquatable<PotentialTargets>
+        {
+            // Store the method symbols this delegate might point to.
+            // Use ImmutableHashSet for efficient union operations and equality.
+            public ImmutableHashSet<IMethodSymbol> MethodSymbols { get; }
+
+            // Could add a pre-computed PurityStatus here later if needed
+
+            public PotentialTargets(ImmutableHashSet<IMethodSymbol>? methodSymbols)
+            {
+                MethodSymbols = methodSymbols ?? ImmutableHashSet.Create<IMethodSymbol>(SymbolEqualityComparer.Default);
+            }
+
+            public static PotentialTargets Empty => new PotentialTargets(null);
+
+            public static PotentialTargets FromSingle(IMethodSymbol methodSymbol)
+            {
+                if (methodSymbol == null) return Empty;
+                return new PotentialTargets(ImmutableHashSet.Create<IMethodSymbol>(SymbolEqualityComparer.Default, methodSymbol));
+            }
+
+            // Merge by taking the union of method symbols
+            public static PotentialTargets Merge(PotentialTargets first, PotentialTargets second)
+            {
+                return new PotentialTargets(first.MethodSymbols.Union(second.MethodSymbols));
+            }
+
+            public bool Equals(PotentialTargets other)
+            {
+                // ImmutableHashSet implements structural equality check efficiently
+                return this.MethodSymbols.SetEquals(other.MethodSymbols);
+            }
+
+            public override bool Equals(object obj) => obj is PotentialTargets other && Equals(other);
+
+            public override int GetHashCode()
+            {
+                int hash = 17;
+                foreach (var symbol in MethodSymbols.OrderBy(s => s.Name)) // Order for consistency
+                {
+                    hash = hash * 23 + SymbolEqualityComparer.Default.GetHashCode(symbol);
+                }
+                return hash;
+            }
         }
 
         /// <summary>
@@ -1510,7 +1697,8 @@ namespace PurelySharp.Analyzer.Engine
                         {
                             if (returnOp.ReturnedValue != null)
                             {
-                                var returnPurity = CheckSingleOperation(returnOp.ReturnedValue, postCfgContext);
+                                // Pass PurityAnalysisState.Pure here for isolated check
+                                var returnPurity = CheckSingleOperation(returnOp.ReturnedValue, postCfgContext, PurityAnalysisState.Pure);
                                 if (!returnPurity.IsPure)
                                 {
                                     LogDebug($"{indent}    Post-CFG: Return value IMPURE: {returnOp.ReturnedValue.Syntax}");
@@ -1704,13 +1892,13 @@ namespace PurelySharp.Analyzer.Engine
                     {
                         if (exitOp == null) continue;
                         LogDebug($"    [CFG] Checking exit operation: {exitOp.Kind} - '{exitOp.Syntax}'");
-                        var opResult = CheckSingleOperation(exitOp, ruleContext);
+                        var opResult = CheckSingleOperation(exitOp, ruleContext, exitState); // Added exitState argument
                         if (!opResult.IsPure)
                         {
                             LogDebug($"    [CFG] Exit operation {exitOp.Kind} found IMPURE. Updating final result.");
                             // Update exitState for the final result calculation below
                             // Ensure the node from opResult is used
-                            exitState = new PurityAnalysisState { HasPotentialImpurity = true, FirstImpureSyntaxNode = opResult.ImpureSyntaxNode ?? exitOp.Syntax };
+                            exitState = exitState.WithImpurity(opResult.ImpureSyntaxNode ?? exitOp.Syntax); // Use WithImpurity method
                             break; // Found impurity, no need to check other exit operations
                         }
                     }
@@ -1766,32 +1954,15 @@ namespace PurelySharp.Analyzer.Engine
         {
             LogDebug($"ApplyTransferFunction START for Block #{block.Ordinal} - Initial State: Impure={stateBefore.HasPotentialImpurity}");
 
-            // +++ Log ALL raw operations in the block upon entry +++
-            LogDebug($"    [ATF Raw Ops - Block {block.Ordinal}] START");
-            foreach (var rawOp in block.Operations)
-            {
-                if (rawOp != null)
-                {
-                    LogDebug($"      - Raw Kind: {rawOp.Kind}, Raw Syntax: {rawOp.Syntax.ToString().Replace("\r\n", " ").Replace("\n", " ")}");
-                }
-                else
-                {
-                    LogDebug("      - Raw Null Operation");
-                }
-            }
-            LogDebug($"    [ATF Raw Ops - Block {block.Ordinal}] END");
-            // +++ End Raw Log +++
-
-            if (stateBefore.HasPotentialImpurity) // Optimization: If already impure, no need to check further.
+            if (stateBefore.HasPotentialImpurity)
             {
                 LogDebug($"ApplyTransferFunction SKIP for Block #{block.Ordinal} - Already impure.");
                 return stateBefore;
             }
 
-            // Create context ONCE for this block's analysis
+            // Create context ONCE per block (no state needed in context)
             var pureAttributeSymbol_block = semanticModel.Compilation.GetTypeByMetadataName("PurelySharp.Attributes.PureAttribute");
-
-            var ruleContext = new PurelySharp.Analyzer.Engine.Rules.PurityAnalysisContext(
+            var ruleContext = new Rules.PurityAnalysisContext(
                 semanticModel,
                 enforcePureAttributeSymbol,
                 pureAttributeSymbol_block,
@@ -1799,43 +1970,47 @@ namespace PurelySharp.Analyzer.Engine
                 visited,
                 purityCache,
                 containingMethodSymbol,
-                _purityRules, // Pass the list of rules
-                CancellationToken.None); // Pass the token
+                _purityRules,
+                CancellationToken.None);
 
             // Iterate through operations and check purity
+            var currentStateInBlock = stateBefore; // Track state within the block
             foreach (var op in block.Operations)
             {
                 if (op == null) continue;
 
-                // Log the operation being checked
                 LogDebug($"    [ATF Block {block.Ordinal}] Checking Op Kind: {op.Kind}, Syntax: {op.Syntax.ToString().Replace("\r\n", " ").Replace("\n", " ")}");
 
-                // Check the purity of the current operation
-                var opResult = CheckSingleOperation(op, ruleContext);
+                // MODIFIED: Pass the currentStateInBlock to CheckSingleOperation
+                var opResult = CheckSingleOperation(op, ruleContext, currentStateInBlock);
 
                 if (!opResult.IsPure)
                 {
                     LogDebug($"ApplyTransferFunction IMPURE DETECTED in Block #{block.Ordinal} by Op: {op.Kind} ({op.Syntax})");
-                    // Return the impure state immediately
-                    return new PurityAnalysisState
-                    {
-                        HasPotentialImpurity = true,
-                        FirstImpureSyntaxNode = opResult.ImpureSyntaxNode ?? op.Syntax
-                    };
+                    // Update the state for the *rest* of the block (though loop breaks)
+                    currentStateInBlock = currentStateInBlock.WithImpurity(opResult.ImpureSyntaxNode ?? op.Syntax);
+                    break; // Stop checking this block once impurity is found
                 }
+
+                // --- *** UPDATE Delegate Target Map using Helper *** ---
+                LogDebug($"  [ApplyTF] Before UpdateDelegateMapForOperation: StateImpure={currentStateInBlock.HasPotentialImpurity}, MapCount={currentStateInBlock.DelegateTargetMap.Count}"); // *** ADDED LOG ***
+                currentStateInBlock = UpdateDelegateMapForOperation(op, ruleContext, currentStateInBlock);
+                LogDebug($"  [ApplyTF] After UpdateDelegateMapForOperation: StateImpure={currentStateInBlock.HasPotentialImpurity}, MapCount={currentStateInBlock.DelegateTargetMap.Count}"); // *** ADDED LOG ***
+                // --- *** END UPDATE *** ---
             }
 
-            // If the loop completes, all operations in the block were pure (or handled)
-            LogDebug($"ApplyTransferFunction END for Block #{block.Ordinal} - All ops handled and pure. Returning previous state (Pure).");
-            return stateBefore; // Return the initial (Pure) state
+            LogDebug($"ApplyTransferFunction END for Block #{block.Ordinal} - Final State: Impure={currentStateInBlock.HasPotentialImpurity}");
+            return currentStateInBlock; // Return the final state for this block
         }
 
         /// <summary>
         /// Checks the purity of a single IOperation using the registered purity rules.
+        /// NOTE: This currently DOES NOT use the new DelegateTargetMap state.
         /// </summary>
-        internal static PurityAnalysisResult CheckSingleOperation(IOperation operation, Rules.PurityAnalysisContext context)
+        internal static PurityAnalysisResult CheckSingleOperation(IOperation operation, Rules.PurityAnalysisContext context, PurityAnalysisState currentState)
         {
             LogDebug($"    [CSO] Enter CheckSingleOperation for Kind: {operation.Kind}, Syntax: '{operation.Syntax.ToString().Trim()}'");
+            LogDebug($"    [CSO] Current DFA State: Impure={currentState.HasPotentialImpurity}, MapCount={currentState.DelegateTargetMap.Count}");
 
             // Explicitly handle FlowCaptureReference and FlowCapture as pure.
             // These represent compiler-generated temporaries and should not affect purity.
@@ -1853,7 +2028,7 @@ namespace PurelySharp.Analyzer.Engine
                 // 1. Check Resource Acquisition
                 if (usingOperation.Resources != null)
                 {
-                    var resourceResult = CheckSingleOperation(usingOperation.Resources, context);
+                    var resourceResult = CheckSingleOperation(usingOperation.Resources, context, currentState); // Pass currentState
                     if (!resourceResult.IsPure)
                     {
                         LogDebug($"    [CSO] UsingOperation Resource Acquisition IMPURE: {resourceResult.ImpureSyntaxNode?.ToString() ?? "Unknown"}");
@@ -1866,7 +2041,7 @@ namespace PurelySharp.Analyzer.Engine
                 // 2. Check Body
                 if (usingOperation.Body != null)
                 {
-                    var bodyResult = CheckSingleOperation(usingOperation.Body, context);
+                    var bodyResult = CheckSingleOperation(usingOperation.Body, context, currentState); // Pass currentState
                     if (!bodyResult.IsPure)
                     {
                         LogDebug($"    [CSO] UsingOperation Body IMPURE: {bodyResult.ImpureSyntaxNode?.ToString() ?? "Unknown"}");
@@ -1973,7 +2148,8 @@ namespace PurelySharp.Analyzer.Engine
             {
                 // +++ Log Rule Application +++
                 LogDebug($"    [CSO] Applying Rule '{applicableRule.GetType().Name}' to Kind: {operation.Kind}, Syntax: '{operation.Syntax.ToString().Trim()}'");
-                var ruleResult = applicableRule.CheckPurity(operation, context);
+                // MODIFIED: Pass currentState to rule
+                var ruleResult = applicableRule.CheckPurity(operation, context, currentState);
                 // +++ Log Rule Result +++
                 LogDebug($"    [CSO] Rule '{applicableRule.GetType().Name}' Result: IsPure={ruleResult.IsPure}");
                 if (!ruleResult.IsPure)
@@ -2269,7 +2445,7 @@ namespace PurelySharp.Analyzer.Engine
             // *** UNCOMMENTED TO ENABLE LOGGING ***
             try
             {
-                // Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} [DEBUG] {message}"); // COMMENTED OUT TO REDUCE TEST NOISE
+                Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} [DEBUG] {message}"); // UNCOMMENTED
             }
             catch (Exception ex)
             {
@@ -2378,39 +2554,47 @@ namespace PurelySharp.Analyzer.Engine
         // --- Added MergeStates helper --- (Needed by PropagateToSuccessor)
         private static PurityAnalysisState MergeStates(PurityAnalysisState state1, PurityAnalysisState state2)
         {
-            // If either state is impure, the merged state is impure.
-            if (state1.HasPotentialImpurity || state2.HasPotentialImpurity)
+            LogDebug($"  [Merge] Merging States: S1(Impure={state1.HasPotentialImpurity}, MapCount={state1.DelegateTargetMap.Count}) + S2(Impure={state2.HasPotentialImpurity}, MapCount={state2.DelegateTargetMap.Count})"); // *** ADDED LOG ***
+            bool mergedImpurity = state1.HasPotentialImpurity || state2.HasPotentialImpurity;
+            SyntaxNode? firstImpureNode = state1.FirstImpureSyntaxNode; // Default to state1's node
+            if (state1.HasPotentialImpurity && state2.HasPotentialImpurity && state1.FirstImpureSyntaxNode != null && state2.FirstImpureSyntaxNode != null)
             {
-                // Try to keep the first impure node encountered based on position.
-                SyntaxNode? firstImpureNode = null;
-                if (state1.HasPotentialImpurity && state2.HasPotentialImpurity)
-                {
-                    var node1 = state1.FirstImpureSyntaxNode;
-                    var node2 = state2.FirstImpureSyntaxNode;
-
-                    if (node1 == null) firstImpureNode = node2;
-                    else if (node2 == null) firstImpureNode = node1;
-                    else
-                    {
-                        // Both nodes exist, prefer the one starting earlier in the file
-                        firstImpureNode = node1.SpanStart <= node2.SpanStart ? node1 : node2;
-                    }
-                    // If both were null (defensive check), firstImpureNode remains null
-                }
-                else if (state1.HasPotentialImpurity)
-                {
-                    firstImpureNode = state1.FirstImpureSyntaxNode;
-                }
-                else // Only state2 is impure
+                // Basic heuristic: take the one with the smaller starting position
+                if (state2.FirstImpureSyntaxNode.SpanStart < state1.FirstImpureSyntaxNode.SpanStart)
                 {
                     firstImpureNode = state2.FirstImpureSyntaxNode;
                 }
-
-                return new PurityAnalysisState { HasPotentialImpurity = true, FirstImpureSyntaxNode = firstImpureNode };
+            }
+            else if (state2.HasPotentialImpurity)
+            { // If only state2 was impure, use its node
+                firstImpureNode = state2.FirstImpureSyntaxNode;
             }
 
-            // Both are pure
-            return PurityAnalysisState.Pure;
+            // --- UPDATED Delegate Map Merging --- 
+            var mapBuilder = ImmutableDictionary.CreateBuilder<ISymbol, PotentialTargets>(SymbolEqualityComparer.Default);
+            // Add all from state1 first
+            foreach (var kvp in state1.DelegateTargetMap)
+            {
+                mapBuilder.Add(kvp.Key, kvp.Value);
+            }
+            // Now merge state2, performing union on duplicates
+            foreach (var kvp in state2.DelegateTargetMap)
+            {
+                if (mapBuilder.TryGetValue(kvp.Key, out var existingTargets))
+                {
+                    // Key exists in state1, merge targets by taking the union of method symbols
+                    mapBuilder[kvp.Key] = PotentialTargets.Merge(existingTargets, kvp.Value);
+                }
+                else
+                {
+                    // Key only exists in state2, add it
+                    mapBuilder.Add(kvp.Key, kvp.Value);
+                }
+            }
+            var finalMap = mapBuilder.ToImmutable();
+            // --- END UPDATED Delegate Map Merging --- 
+
+            return new PurityAnalysisState(mergedImpurity, firstImpureNode, finalMap);
         }
 
         // +++ ADDED HasAttribute HELPER +++
@@ -2420,5 +2604,143 @@ namespace PurelySharp.Analyzer.Engine
             return symbol.GetAttributes().Any(ad => SymbolEqualityComparer.Default.Equals(ad.AttributeClass?.OriginalDefinition, attributeSymbol.OriginalDefinition));
         }
         // --- END ADDED HELPER ---
+
+        /// <summary>
+        /// Checks the purity of the static constructor (.cctor) for a given type, if one exists.
+        /// </summary>
+        internal static PurityAnalysisResult CheckStaticConstructorPurity(ITypeSymbol? typeSymbol, Rules.PurityAnalysisContext context, PurityAnalysisState currentState)
+        {
+            if (typeSymbol == null)
+            {
+                return PurityAnalysisResult.Pure; // No type, no cctor
+            }
+
+            // Find the static constructor
+            IMethodSymbol? staticConstructor = typeSymbol.GetMembers(".cctor").OfType<IMethodSymbol>().FirstOrDefault();
+
+            if (staticConstructor == null)
+            {
+                LogDebug($"    [CctorCheck] Type {typeSymbol.Name} has no static constructor. Pure.");
+                return PurityAnalysisResult.Pure; // No static constructor found
+            }
+
+            LogDebug($"    [CctorCheck] Found static constructor for {typeSymbol.Name}. Checking purity recursively...");
+
+            // Check its purity using the main recursive logic (handles caching and cycles)
+            // Note: Pass a *new* visited set specific to this cctor check to avoid cross-contamination with the main method's visited set?
+            // For now, reusing the main visited set, assuming cctor calls within the same analysis context are okay.
+            var cctorResult = DeterminePurityRecursiveInternal(
+                staticConstructor.OriginalDefinition,
+                context.SemanticModel,
+                context.EnforcePureAttributeSymbol,
+                context.AllowSynchronizationAttributeSymbol,
+                context.VisitedMethods,
+                context.PurityCache
+            );
+
+            LogDebug($"    [CctorCheck] Static constructor purity result for {typeSymbol.Name}: IsPure={cctorResult.IsPure}");
+
+            // If the static constructor is impure, report it using the type's syntax or a default node
+            // Using the type symbol's declaration syntax might be best if available.
+            // Fallback to ImpureUnknownLocation if necessary.
+            return cctorResult.IsPure
+                ? PurityAnalysisResult.Pure
+                : PurityAnalysisResult.Impure(cctorResult.ImpureSyntaxNode ?? typeSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax() ?? ImpureResult(null).ImpureSyntaxNode ?? context.ContainingMethodSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax() ?? throw new InvalidOperationException("Cannot find syntax node for static constructor impurity")); // Fallback with unknown location
+        }
+
+        // +++ ADDED HELPER to encapsulate delegate map update logic +++
+        private static PurityAnalysisState UpdateDelegateMapForOperation(IOperation op, Rules.PurityAnalysisContext context, PurityAnalysisState currentState)
+        {
+            LogDebug($"  [UpdMap] Trying Update: OpKind={op.Kind}, CurrentImpure={currentState.HasPotentialImpurity}"); // *** ADDED LOG ***
+            // Only update if the current state is still pure (no need to track delegates if already impure)
+            if (currentState.HasPotentialImpurity)
+            {
+                PurityAnalysisState nextState = currentState; // Start with current state
+
+                // --- Logic from AssignmentPurityRule --- 
+                if (op is IAssignmentOperation assignmentOperation)
+                {
+                    var targetOperation = assignmentOperation.Target;
+                    var valueOperation = assignmentOperation.Value;
+                    var targetSymbol = TryResolveSymbol(targetOperation);
+
+                    if (valueOperation != null && targetSymbol != null && targetOperation.Type?.TypeKind == TypeKind.Delegate)
+                    {
+                        PurityAnalysisEngine.PotentialTargets? valueTargets = ResolvePotentialTargets(valueOperation, currentState); // Use helper
+                        if (valueTargets != null)
+                        {
+                            nextState = currentState.WithDelegateTarget(targetSymbol, valueTargets.Value);
+                            LogDebug($"    [ATF-DEL-ASSIGN] Updated map for {targetSymbol.Name} with {valueTargets.Value.MethodSymbols.Count} targets. New Map Count: {nextState.DelegateTargetMap.Count}");
+                        }
+                    }
+                }
+                // --- Logic from VariableDeclarationGroupPurityRule --- 
+                else if (op is IVariableDeclarationGroupOperation groupOperation)
+                {
+                    foreach (var declaration in groupOperation.Declarations)
+                    {
+                        foreach (var declarator in declaration.Declarators)
+                        {
+                            if (declarator.Initializer != null)
+                            {
+                                var initializerValue = declarator.Initializer.Value;
+                                ILocalSymbol declaredSymbol = declarator.Symbol;
+                                if (declaredSymbol.Type?.TypeKind == TypeKind.Delegate)
+                                {
+                                    PurityAnalysisEngine.PotentialTargets? valueTargets = ResolvePotentialTargets(initializerValue, currentState); // Use helper
+                                    if (valueTargets != null)
+                                    {
+                                        nextState = nextState.WithDelegateTarget(declaredSymbol, valueTargets.Value); // Update incrementally
+                                        LogDebug($"    [ATF-DEL-VAR] Updated map for {declaredSymbol.Name} with {valueTargets.Value.MethodSymbols.Count} targets. New Map Count: {nextState.DelegateTargetMap.Count}");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                // Add other operation kinds if needed (e.g., return statements passing delegates?)
+
+                return nextState;
+            }
+            return currentState;
+        }
+
+        // +++ ADDED HELPER to resolve potential targets from an operation +++ 
+        private static PurityAnalysisEngine.PotentialTargets? ResolvePotentialTargets(IOperation valueOperation, PurityAnalysisState currentState)
+        {
+            if (valueOperation is IMethodReferenceOperation methodRef)
+            {
+                return PurityAnalysisEngine.PotentialTargets.FromSingle(methodRef.Method.OriginalDefinition);
+            }
+            else if (valueOperation is IDelegateCreationOperation delegateCreation)
+            {
+                if (delegateCreation.Target is IMethodReferenceOperation lambdaRef)
+                {
+                    return PurityAnalysisEngine.PotentialTargets.FromSingle(lambdaRef.Method.OriginalDefinition);
+                }
+            }
+            else // Value is another variable/parameter/field/property reference
+            {
+                ISymbol? valueSourceSymbol = TryResolveSymbol(valueOperation);
+                if (valueSourceSymbol != null && currentState.DelegateTargetMap.TryGetValue(valueSourceSymbol, out var sourceTargets))
+                {
+                    return sourceTargets; // Propagate targets from the source symbol
+                }
+            }
+            return null; // Cannot resolve targets
+        }
+
+        // +++ ADDED TryResolveSymbol HELPER +++ 
+        private static ISymbol? TryResolveSymbol(IOperation? operation)
+        {
+            return operation switch
+            {
+                ILocalReferenceOperation localRef => localRef.Local,
+                IParameterReferenceOperation paramRef => paramRef.Parameter,
+                IFieldReferenceOperation fieldRef => fieldRef.Field,
+                IPropertyReferenceOperation propRef => propRef.Property,
+                _ => null
+            };
+        }
     }
 }

@@ -13,7 +13,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
     {
         public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.LocalReference);
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
             if (!(operation is ILocalReferenceOperation localReference))
             {

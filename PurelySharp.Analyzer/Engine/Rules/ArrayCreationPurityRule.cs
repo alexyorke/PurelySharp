@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using PurelySharp.Analyzer.Engine;
 
 namespace PurelySharp.Analyzer.Engine.Rules
 {
@@ -13,9 +14,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
     {
         public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.ArrayCreation);
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
-            if (operation is not IArrayCreationOperation arrayCreation)
+            if (!(operation is IArrayCreationOperation arrayCreation))
             {
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure; // Should not happen
             }
@@ -50,6 +51,33 @@ namespace PurelySharp.Analyzer.Engine.Rules
             PurityAnalysisEngine.LogDebug($"ArrayCreationRule: Array creation '{arrayCreation.Syntax}' determined to be Pure.");
             return PurityAnalysisResult.Pure;
             */
+
+            // Check dimension sizes
+            foreach (var dimensionSize in arrayCreation.DimensionSizes)
+            {
+                PurityAnalysisEngine.LogDebug($"    [ArrayCreationRule] Checking dimension size: {dimensionSize.Syntax} ({dimensionSize.Kind})");
+                var sizeResult = PurityAnalysisEngine.CheckSingleOperation(dimensionSize, context, currentState);
+                if (!sizeResult.IsPure)
+                {
+                    PurityAnalysisEngine.LogDebug($"    [ArrayCreationRule] Dimension size expression is Impure. Array creation is Impure.");
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(arrayCreation.Syntax);
+                }
+            }
+
+            // Check initializer (if present)
+            if (arrayCreation.Initializer != null)
+            {
+                PurityAnalysisEngine.LogDebug($"    [ArrayCreationRule] Checking initializer: {arrayCreation.Initializer.Syntax} ({arrayCreation.Initializer.Kind})");
+                var initializerResult = PurityAnalysisEngine.CheckSingleOperation(arrayCreation.Initializer, context, currentState);
+                if (!initializerResult.IsPure)
+                {
+                    PurityAnalysisEngine.LogDebug($"    [ArrayCreationRule] Initializer is Impure. Array creation is Impure.");
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(arrayCreation.Syntax);
+                }
+            }
+
+            PurityAnalysisEngine.LogDebug($"ArrayCreationRule: Array creation '{arrayCreation.Syntax}' determined to be Pure.");
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
         }
 
         // Removed IsElementConsideredPure helper as element analysis is deferred to other rules.

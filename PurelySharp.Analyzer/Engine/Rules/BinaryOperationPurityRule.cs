@@ -1,6 +1,8 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using PurelySharp.Analyzer.Engine;
 
 namespace PurelySharp.Analyzer.Engine.Rules
 {
@@ -10,9 +12,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
     /// </summary>
     internal class BinaryOperationPurityRule : IPurityRule
     {
-        public IEnumerable<OperationKind> ApplicableOperationKinds => new[] { OperationKind.Binary };
+        public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.Binary);
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
             if (!(operation is IBinaryOperation binaryOperation))
             {
@@ -20,69 +22,50 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
 
-            // Most standard binary operators are pure by themselves.
-            // The purity depends on the operands, which should be evaluated by other rules
-            // before reaching this point in the CFG analysis.
-            // For example, if an operand is an impure method call, the MethodInvocationPurityRule
-            // should have marked the state as impure already.
-            // Therefore, we can generally consider the binary operation itself pure.
+            PurityAnalysisEngine.LogDebug($"  [BinaryOpRule] Checking Binary Operation: {binaryOperation.Syntax} (Operator: {binaryOperation.OperatorKind})");
 
-            // Check Left Operand
-            PurityAnalysisEngine.LogDebug($"    [BinaryOp] Checking Left Operand: {binaryOperation.LeftOperand?.Kind}");
-            if (binaryOperation.LeftOperand != null)
+            // 1. Check Left Operand
+            var leftResult = PurityAnalysisEngine.CheckSingleOperation(binaryOperation.LeftOperand, context, currentState);
+            if (!leftResult.IsPure)
             {
-                var leftResult = PurityAnalysisEngine.CheckSingleOperation(binaryOperation.LeftOperand, context);
-                if (!leftResult.IsPure)
-                {
-                    PurityAnalysisEngine.LogDebug($"    [BinaryOp] Left Operand is IMPURE. Result: Impure.");
-                    return leftResult;
-                }
-                PurityAnalysisEngine.LogDebug($"    [BinaryOp] Left Operand is Pure.");
+                PurityAnalysisEngine.LogDebug($"    [BinaryOpRule] Left operand is Impure: {binaryOperation.LeftOperand.Syntax}");
+                return leftResult;
+            }
+            PurityAnalysisEngine.LogDebug($"    [BinaryOpRule] Left operand is Pure.");
+
+            // 2. Check Right Operand
+            var rightResult = PurityAnalysisEngine.CheckSingleOperation(binaryOperation.RightOperand, context, currentState);
+            if (!rightResult.IsPure)
+            {
+                PurityAnalysisEngine.LogDebug($"    [BinaryOpRule] Right operand is Impure: {binaryOperation.RightOperand.Syntax}");
+                return rightResult;
+            }
+            PurityAnalysisEngine.LogDebug($"    [BinaryOpRule] Right operand is Pure.");
+
+            // Check for user-defined operator method
+            if (binaryOperation.OperatorMethod != null && !IsPureOperator(binaryOperation.OperatorMethod, context))
+            {
+                PurityAnalysisEngine.LogDebug($"    [BinaryOpRule] User-defined operator method '{binaryOperation.OperatorMethod.Name}' is IMPURE. Binary operation is Impure.");
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(binaryOperation.Syntax);
             }
 
-            // Check Right Operand
-            PurityAnalysisEngine.LogDebug($"    [BinaryOp] Checking Right Operand: {binaryOperation.RightOperand?.Kind}");
-            if (binaryOperation.RightOperand != null)
-            {
-                var rightResult = PurityAnalysisEngine.CheckSingleOperation(binaryOperation.RightOperand, context);
-                if (!rightResult.IsPure)
-                {
-                    PurityAnalysisEngine.LogDebug($"    [BinaryOp] Right Operand is IMPURE. Result: Impure.");
-                    return rightResult;
-                }
-                PurityAnalysisEngine.LogDebug($"    [BinaryOp] Right Operand is Pure.");
-            }
-
-            // If both operands are pure, check the operator method itself if it's user-defined
-            IMethodSymbol? operatorMethodSymbol = binaryOperation.OperatorMethod;
-            if (operatorMethodSymbol != null && !operatorMethodSymbol.IsImplicitlyDeclared) // Check if it's explicitly user-defined
-            {
-                PurityAnalysisEngine.LogDebug($"    [BinaryOp] Checking user-defined operator method: {operatorMethodSymbol.ToDisplayString()}");
-                // Analyze the operator method itself using the internal recursive checker
-                var operatorResult = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
-                    operatorMethodSymbol.OriginalDefinition, // Use original definition for consistency
-                    context.SemanticModel,
-                    context.EnforcePureAttributeSymbol,
-                    context.AllowSynchronizationAttributeSymbol,
-                    context.VisitedMethods,
-                    context.PurityCache); // Use the cache passed in the context
-
-                if (!operatorResult.IsPure)
-                {
-                    PurityAnalysisEngine.LogDebug($"    [BinaryOp] User-defined operator method {operatorMethodSymbol.ToDisplayString()} is IMPURE. Result: Impure.");
-                    // If the operator is impure, use its impurity result (potentially more specific node)
-                    return operatorResult;
-                }
-                PurityAnalysisEngine.LogDebug($"    [BinaryOp] User-defined operator method {operatorMethodSymbol.ToDisplayString()} is Pure.");
-            }
-            else
-            {
-                PurityAnalysisEngine.LogDebug($"    [BinaryOp] Using built-in or implicitly declared operator ({binaryOperation.OperatorKind}). Assuming pure operation.");
-            }
-
-            // If operands and user-defined operator (if any) are pure, the operation is pure.
-            PurityAnalysisEngine.LogDebug($"    [BinaryOp] Operands and operator method (if applicable) pure. Binary operation {binaryOperation.OperatorKind} is Pure.");
+            // If both operands and user-defined operator (if any) are pure, the operation is pure.
+            PurityAnalysisEngine.LogDebug($"    [BinaryOpRule] Operands and operator method (if applicable) pure. Binary operation {binaryOperation.OperatorKind} is Pure.");
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private bool IsPureOperator(IMethodSymbol operatorMethod, PurityAnalysisContext context)
+        {
+            // Use the main engine's recursive check
+            var operatorPurity = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
+                operatorMethod.OriginalDefinition,
+                context.SemanticModel,
+                context.EnforcePureAttributeSymbol,
+                context.AllowSynchronizationAttributeSymbol,
+                context.VisitedMethods,
+                context.PurityCache);
+
+            return operatorPurity.IsPure;
         }
     }
 }

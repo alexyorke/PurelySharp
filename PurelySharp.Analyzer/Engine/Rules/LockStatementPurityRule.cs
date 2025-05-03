@@ -14,17 +14,15 @@ namespace PurelySharp.Analyzer.Engine.Rules
     {
         public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.Lock);
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
             if (operation is not ILockOperation lockOperation)
             {
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure; // Should not happen
             }
 
-            // Lock statements introduce potential blocking and thread interaction, making them impure.
-            // We could potentially check context.AllowSynchronizationAttributeSymbol here if we want
-            // to allow locks when the attribute is present, but for now, treat all locks as impure.
-            PurityAnalysisEngine.LogDebug($"  [LockRule] Detected lock statement. IMPURE.");
+            // Lock statements inherently involve synchronization, which is impure unless explicitly allowed.
+            PurityAnalysisEngine.LogDebug($"    [LockRule] Lock statement ({operation.Syntax}) - Impure by default");
             return PurityAnalysisEngine.PurityAnalysisResult.Impure(lockOperation.Syntax);
         }
     }

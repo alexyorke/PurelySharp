@@ -68,40 +68,42 @@ public class TestClass
         [Test]
         public async Task PassingDelegateAsArgument_NoDiagnostic()
         {
-            var test = @"
+            var testCode = @"
 using System;
 using PurelySharp.Attributes;
 
-delegate int MyDelegate(int x);
-
 public class TestClass
 {
+    // Delegate with lower accessibility
+    private delegate void MyDelegate(int x);
+
+    // Method using the less accessible delegate
     [EnforcePure]
-    public int Process(MyDelegate func, int value)
+    public static void Process(MyDelegate action, int value)
     {
-        return func(value);
+        action(value); // Invocation here
     }
 
     [EnforcePure]
-    public int TestMethod()
+    public static void TestMethod()
     {
-        MyDelegate square = x => x * x; // Pure lambda
-        return Process(square, 5); // Pass delegate as argument
+        MyDelegate impureAction = x => Console.WriteLine(x);
+        Process(impureAction, 5);
     }
-}";
-            // TestMethod uses a lambda and invokes Process which takes a delegate.
-            // This pattern might not be fully verified by current rules, resulting in PS0002 for TestMethod.
-            var expectedTestMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                     .WithSpan(16, 16, 16, 26) // Span covers the method name 'TestMethod'
-                                     .WithArguments("TestMethod");
+}
+";
 
-            // ADDED: Expect compiler error CS0051 due to delegate accessibility
-            var expectedCompilerError = DiagnosticResult.CompilerError("CS0051")
-                                                  .WithSpan(10, 16, 10, 23) // Span of Process method signature
-                                                  .WithArguments("TestClass.Process(MyDelegate, int)", "MyDelegate");
+            // Expect CS0051 due to accessibility (on Process method signature)
+            var expectedErrorCS0051 = DiagnosticResult.CompilerError("CS0051").WithSpan(12, 24, 12, 31).WithArguments("TestClass.Process(TestClass.MyDelegate, int)", "TestClass.MyDelegate");
 
-            // UPDATED: Expect PS0002 and CS0051
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedTestMethod, expectedCompilerError);
+            // Expect PS0002 on Process because purity of 'action' cannot be verified (on Process method identifier)
+            var expectedDiagPS0002_Process = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(12, 24, 12, 31).WithArguments("Process");
+
+            // Expect PS0002 on TestMethod because it calls Process which cannot guarantee purity (on TestMethod identifier)
+            var expectedDiagPS0002_TestMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(18, 24, 18, 34).WithArguments("TestMethod");
+
+
+            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedErrorCS0051, expectedDiagPS0002_Process, expectedDiagPS0002_TestMethod);
         }
 
         [Test]
@@ -144,28 +146,35 @@ public class TestClass
         [Test]
         public async Task HigherOrderFunctions_UnknownPurityDiagnostic()
         {
-            var test = @"
+            var testCode = @"
 using System;
 using PurelySharp.Attributes;
 
 public class TestClass
 {
-    [EnforcePure]
-    public Func<int, int> CreateMultiplier(int factor)
+    // Higher-order function taking an Action
+    [EnforcePure] // <= Assume this method itself is pure structurally
+    public void ApplyAction(Action action)
     {
-        // This lambda captures 'factor' but is pure
-        return x => x * factor;
+        // Invocation happens here, purity depends on 'action'
+        action(); // Should trigger PS0002 if action's purity cannot be guaranteed
     }
 
     [EnforcePure]
-    public int TestMethod(int value)
+    public void TestMethod()
     {
-        var multiplier = CreateMultiplier(10); // Pure call
-        return multiplier(value); // Invocation of returned delegate might be flagged
+        Action impureAction = () => Console.WriteLine();
+        ApplyAction(impureAction); // Pass an impure action
     }
-}";
-            // REMOVED: Expect diagnostic on CreateMultiplier (Analyzer doesn't flag HOFs yet)
-            await VerifyCS.VerifyAnalyzerAsync(test); // Changed to expect no diagnostics
+}
+";
+            // Expect PS0002 on ApplyAction because it takes a delegate whose purity cannot be verified.
+            var expectedDiagApplyAction = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(9, 17, 9, 28).WithArguments("ApplyAction");
+
+            // Expect PS0002 on TestMethod because ApplyAction cannot guarantee purity of the passed delegate
+            var expectedDiagTestMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(16, 17, 16, 27).WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedDiagApplyAction, expectedDiagTestMethod);
         }
 
         [Test]

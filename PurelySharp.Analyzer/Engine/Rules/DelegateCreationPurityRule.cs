@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using PurelySharp.Analyzer.Engine;
 
 namespace PurelySharp.Analyzer.Engine.Rules
 {
@@ -12,7 +13,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
     {
         public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.DelegateCreation);
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
             if (!(operation is IDelegateCreationOperation delegateCreation))
             {

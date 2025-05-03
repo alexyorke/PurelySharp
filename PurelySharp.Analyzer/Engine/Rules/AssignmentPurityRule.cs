@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using PurelySharp.Analyzer.Engine;
 
 namespace PurelySharp.Analyzer.Engine.Rules
 {
@@ -13,10 +14,10 @@ namespace PurelySharp.Analyzer.Engine.Rules
     {
         public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.SimpleAssignment, OperationKind.CompoundAssignment, OperationKind.Increment, OperationKind.Decrement);
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context) // Context is available if needed later
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
-            IOperation? targetOperation = null;
-            IOperation? valueOperation = null; // Initialize to null
+            IOperation targetOperation;
+            IOperation? valueOperation = null; // Make nullable and initialize
             SyntaxNode diagnosticNode = operation.Syntax; // Default diagnostic node to the operation itself
 
             if (operation is IAssignmentOperation assignmentOperation)
@@ -45,14 +46,153 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure; // Cannot determine target
             }
 
-            // --- Step 1: Check Purity of the Target ---
-            PurityAnalysisEngine.PurityAnalysisResult targetPurityResult;
+            // 1. Analyze the VALUE being assigned (RHS)
+            if (valueOperation != null) // Check if valueOperation is not null (e.g., for increment/decrement)
+            {
+                PurityAnalysisEngine.LogDebug($"    [AssignRule] Checking assignment value (RHS): {valueOperation.Syntax} ({valueOperation.Kind})");
+                var valueResult = PurityAnalysisEngine.CheckSingleOperation(valueOperation, context, currentState);
+                if (!valueResult.IsPure)
+                {
+                    PurityAnalysisEngine.LogDebug($"    [AssignRule] Assignment value (RHS) itself is IMPURE. Assignment is Impure.");
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(valueResult.ImpureSyntaxNode ?? valueOperation.Syntax);
+                }
+
+                // --- MODIFIED Implicit Conversion Check ---
+                // Check if an implicit conversion is likely involved and analyze it directly.
+                ITypeSymbol? targetType = (targetOperation as ILocalReferenceOperation)?.Type ??
+                                          (targetOperation as IParameterReferenceOperation)?.Type ??
+                                          (targetOperation as IFieldReferenceOperation)?.Type ??
+                                          (targetOperation as IPropertyReferenceOperation)?.Type;
+
+                ITypeSymbol? valueType = valueOperation.Type; // Store original value type
+
+                if (targetType != null && valueType != null && !SymbolEqualityComparer.Default.Equals(targetType, valueType))
+                {
+                    IConversionOperation? conversionOp = null;
+
+                    // Case 1: The valueOperation *is* the conversion (most common for direct assignment)
+                    if (valueOperation is IConversionOperation topLevelConv &&
+                        topLevelConv.Conversion.IsImplicit &&
+                        SymbolEqualityComparer.Default.Equals(topLevelConv.Type, targetType)) // Check if conversion result matches target
+                    {
+                        conversionOp = topLevelConv;
+                        PurityAnalysisEngine.LogDebug("    [AssignRule] Found implicit conversion as top-level value operation.");
+                    }
+                    else
+                    {
+                        // Case 2: Search descendants (less likely for direct assignment `T t = val;` but handle defensively)
+                        conversionOp = valueOperation.DescendantsAndSelf()
+                                        .OfType<IConversionOperation>()
+                                        .FirstOrDefault(conv => conv.Conversion.IsImplicit &&
+                                                               SymbolEqualityComparer.Default.Equals(conv.Type, targetType) && // Conversion result matches target
+                                                               conv.Operand != null && // Make sure operand exists
+                                                               SymbolEqualityComparer.Default.Equals(conv.Operand.Type, valueType)); // Operand type matches original value type
+                        if (conversionOp != null)
+                        {
+                            PurityAnalysisEngine.LogDebug("    [AssignRule] Found implicit conversion in descendants of value operation.");
+                        }
+                    }
+
+
+                    if (conversionOp != null)
+                    {
+                        PurityAnalysisEngine.LogDebug($"    [AssignRule] Checking implicit conversion operation: {conversionOp.Syntax}");
+                        var conversionResult = PurityAnalysisEngine.CheckSingleOperation(conversionOp, context, currentState);
+                        if (!conversionResult.IsPure)
+                        {
+                            // Report impurity on the node where the conversion happens (usually the RHS syntax like the literal '10')
+                            PurityAnalysisEngine.LogDebug("    [AssignRule] Implicit conversion operation reported IMPURE.");
+                            return PurityAnalysisEngine.PurityAnalysisResult.Impure(conversionResult.ImpureSyntaxNode ?? conversionOp.Operand?.Syntax ?? valueOperation.Syntax); // Fallback to operand or whole value op
+                        }
+                    }
+                }
+                // --- END MODIFIED Check ---
+            }
+
+            // 2. Analyze the TARGET of the assignment (LHS)
+            PurityAnalysisEngine.LogDebug($"    [AssignRule] Checking assignment target (LHS): {targetOperation.Syntax} ({targetOperation.Kind})");
+            var targetResult = PurityAnalysisEngine.CheckSingleOperation(targetOperation, context, currentState); // Pass currentState here too, as target could be complex (e.g., method call returning ref)
+            if (!targetResult.IsPure)
+            {
+                // If evaluating the *target* has side effects (e.g., `GetRefTarget() = value`), it's impure.
+                PurityAnalysisEngine.LogDebug($"AssignmentPurityRule: Target check failed (Kind: {targetOperation.Kind}, RefKind: {(targetOperation as IParameterReferenceOperation)?.Parameter.RefKind}). Reporting impurity on the whole operation: {operation.Syntax}");
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(operation.Syntax);
+            }
+
+            // 3. Check for side effects of the assignment itself (state mutation)
+            var targetSymbol = TryResolveSymbol(targetOperation); // Try to resolve target symbol
+            bool isPureAssignment = IsAssignmentTargetPure(targetOperation, context, targetSymbol); // Pass symbol
+
+            if (!isPureAssignment)
+            {
+                PurityAnalysisEngine.LogDebug($"    [AssignRule] Assignment target itself is considered impure for assignment. Assignment is Impure."); // MODIFIED LOG
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(operation.Syntax);
+            }
+
+            // --- *** NEW: Delegate Target Tracking *** ---
+            // If assignment is considered pure so far, AND it's a delegate assignment, update the state map
+            if (valueOperation != null && targetSymbol != null && targetOperation.Type?.TypeKind == TypeKind.Delegate)
+            {
+                PurityAnalysisEngine.LogDebug($"    [AssignRule-DEL] Detected delegate assignment to: {targetSymbol.Name} ({targetSymbol.Kind})");
+                PurityAnalysisEngine.LogDebug($"    [AssignRule-DEL]   Value Op Kind: {valueOperation.Kind} | Syntax: {valueOperation.Syntax}");
+
+                // Use fully qualified name for inner struct
+                PurityAnalysisEngine.PotentialTargets? valueTargets = null;
+                if (valueOperation is IMethodReferenceOperation methodRef)
+                {
+                    // Use fully qualified name for factory method
+                    valueTargets = PurityAnalysisEngine.PotentialTargets.FromSingle(methodRef.Method.OriginalDefinition);
+                     PurityAnalysisEngine.LogDebug($"    [AssignRule-DEL]   Value is Method Group: {methodRef.Method.ToDisplayString()}");
+                }
+                else if (valueOperation is IDelegateCreationOperation delegateCreation)
+                {
+                    if (delegateCreation.Target is IMethodReferenceOperation lambdaRef)
+                    {
+                        // Use fully qualified name for factory method
+                        valueTargets = PurityAnalysisEngine.PotentialTargets.FromSingle(lambdaRef.Method.OriginalDefinition);
+                         PurityAnalysisEngine.LogDebug($"    [AssignRule-DEL]   Value is Lambda/Delegate Creation targeting: {lambdaRef.Method.ToDisplayString()}");
+                    } else {
+                         PurityAnalysisEngine.LogDebug($"    [AssignRule-DEL]   Value is Lambda/Delegate Creation with unresolvable target ({delegateCreation.Target?.Kind}). Cannot track.");
+                    }
+                }
+                else // Value is another variable/parameter/field/property reference
+                {
+                    ISymbol? valueSourceSymbol = TryResolveSymbol(valueOperation);
+                    if (valueSourceSymbol != null && currentState.DelegateTargetMap.TryGetValue(valueSourceSymbol, out var sourceTargets))
+                    {
+                        valueTargets = sourceTargets; // Propagate targets from the source symbol
+                        PurityAnalysisEngine.LogDebug($"    [AssignRule-DEL]   Value is reference to {valueSourceSymbol.Name}. Propagating {sourceTargets.MethodSymbols.Count} targets.");
+                    } else {
+                         PurityAnalysisEngine.LogDebug($"    [AssignRule-DEL]   Value is reference ({valueOperation.Kind}) but source symbol ({valueSourceSymbol?.Name ?? "null"}) not found in map or unresolved. Cannot track.");
+                    }
+                }
+
+                if (valueTargets != null)
+                {
+                    // Update the state *within the CheckPurity method* (this is unconventional for DFA but necessary for logging here)
+                    // Use fully qualified name for inner struct
+                    var nextState = currentState.WithDelegateTarget(targetSymbol, valueTargets.Value);
+                    // Use fully qualified name for inner struct
+                    PurityAnalysisEngine.LogDebug($"    [AssignRule-DEL]   ---> Updating state map for {targetSymbol.Name} with {valueTargets.Value.MethodSymbols.Count} target(s). New Map Count: {nextState.DelegateTargetMap.Count}");
+                    // NOTE: This state change is local to this check for logging purposes.
+                    // The actual state propagation happens in the ApplyTransferFunction.
+                    // We need to ensure ApplyTransferFunction performs this same logic.
+                }
+            }
+            // --- *** END Delegate Target Tracking *** ---
+
+            PurityAnalysisEngine.LogDebug("AssignmentPurityRule: Both target and value (if applicable) are pure. Result: Pure");
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private bool IsAssignmentTargetPure(IOperation targetOperation, PurityAnalysisContext context, ISymbol? targetSymbol)
+        {
             switch (targetOperation.Kind)
             {
                 case OperationKind.LocalReference:
-                    PurityAnalysisEngine.LogDebug(" Assignment Target: LocalReference - Pure");
-                    targetPurityResult = PurityAnalysisEngine.PurityAnalysisResult.Pure;
-                    break;
+                    // Added logging for local symbol name
+                    PurityAnalysisEngine.LogDebug($"    [AssignRule-Target] Target: LocalReference '{targetSymbol?.Name ?? "Unknown"}' - Pure Target Location");
+                    return true;
 
                 case OperationKind.ParameterReference:
                     if (targetOperation is IParameterReferenceOperation paramRef)
@@ -64,21 +204,19 @@ namespace PurelySharp.Analyzer.Engine.Rules
                             paramRef.Parameter.RefKind == RefKind.RefReadOnly) // Treat 'ref readonly' modification as impure target
                         {
                             PurityAnalysisEngine.LogDebug($" Assignment Target: ParameterReference ({paramRef.Parameter.RefKind}) modification attempt - Impure Target");
-                            // Mark target check as impure, but the diagnostic location will be handled below
-                            targetPurityResult = PurityAnalysisEngine.PurityAnalysisResult.Impure(targetOperation.Syntax);
+                            return false;
                         }
                         else // Value parameters
                         {
                             PurityAnalysisEngine.LogDebug(" Assignment Target: ParameterReference (value) - Pure Target");
-                            targetPurityResult = PurityAnalysisEngine.PurityAnalysisResult.Pure;
+                            return true;
                         }
                     }
                     else
                     {
                         // Should not happen if Kind is ParameterReference, but handle defensively
-                        targetPurityResult = PurityAnalysisEngine.PurityAnalysisResult.Pure;
+                        return true;
                     }
-                    break;
 
                 case OperationKind.FieldReference:
                     if (targetOperation is IFieldReferenceOperation fieldRef &&
@@ -87,7 +225,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                         context.ContainingMethodSymbol.MethodKind == MethodKind.Constructor)
                     {
                         PurityAnalysisEngine.LogDebug(" Assignment Target: Instance FieldReference within Constructor - Allowed (Target is Pure)");
-                        targetPurityResult = PurityAnalysisEngine.PurityAnalysisResult.Pure;
+                        return true;
                     }
                     // --- REVERTED SPECIAL CASE --- 
                     else // Strict check for all other non-constructor field mods
@@ -95,10 +233,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
                         string fieldName = (targetOperation as IFieldReferenceOperation)?.Field?.Name ?? "Unknown Field";
                         string methodKind = context.ContainingMethodSymbol.MethodKind.ToString();
                         PurityAnalysisEngine.LogDebug($" Assignment Target: FieldReference '{fieldName}' outside Constructor - Impure"); // Simplified log
-                        targetPurityResult = PurityAnalysisEngine.PurityAnalysisResult.Impure(targetOperation.Syntax);
+                        return false;
                     }
-                    // --- END REVERT --- 
-                    break;
+                // --- END REVERT --- 
 
                 case OperationKind.PropertyReference:
                     // Allow assigning to instance properties ONLY within a constructor.
@@ -108,7 +245,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                         context.ContainingMethodSymbol.MethodKind == MethodKind.Constructor)
                     {
                         PurityAnalysisEngine.LogDebug(" Assignment Target: Instance PropertyReference within Constructor - Allowed (Target is Pure)");
-                        targetPurityResult = PurityAnalysisEngine.PurityAnalysisResult.Pure;
+                        return true;
                     }
                     // RE-ADD: Allow assignments to 'this' properties within ANY method of a record struct
                     // This covers compiler-generated 'with' methods and user-defined methods.
@@ -118,84 +255,38 @@ namespace PurelySharp.Analyzer.Engine.Rules
                              context.ContainingMethodSymbol.ContainingType.IsValueType)
                     {
                         PurityAnalysisEngine.LogDebug(" Assignment Target: Instance PropertyReference within Record Struct Method - Allowed (Target is Pure)");
-                        targetPurityResult = PurityAnalysisEngine.PurityAnalysisResult.Pure;
+                        return true;
                     }
                     else
                     {
                         PurityAnalysisEngine.LogDebug(" Assignment Target: PropertyReference (Non-Constructor / Non-RecordStruct Method) - Impure");
-                        // Report on the specific property reference
-                        targetPurityResult = PurityAnalysisEngine.PurityAnalysisResult.Impure(targetOperation.Syntax);
+                        return false;
                     }
-                    break;
 
                 case OperationKind.ArrayElementReference:
                     // Treat all array element assignments as impure for simplicity now.
                     // Distinguishing local vs non-local arrays is tricky and often requires flow analysis beyond this rule.
                     PurityAnalysisEngine.LogDebug(" Assignment Target: ArrayElementReference - Impure");
-                    // Report on the array element access expression
-                    targetPurityResult = PurityAnalysisEngine.PurityAnalysisResult.Impure(targetOperation.Syntax);
-                    break;
-                /* // Previous more complex logic:
-                if (targetOperation is IArrayElementReferenceOperation arrayElementRef &&
-                    arrayElementRef.ArrayReference is ILocalReferenceOperation)
-                {
-                    PurityAnalysisEngine.LogDebug(" Assignment Target: ArrayElementReference (Local Array) - Assuming Pure");
-                    targetPurityResult = PurityAnalysisEngine.PurityAnalysisResult.Pure;
-                }
-                else
-                {
-                    PurityAnalysisEngine.LogDebug(" Assignment Target: ArrayElementReference (Non-Local Array) - Impure");
-                    targetPurityResult = PurityAnalysisEngine.PurityAnalysisResult.Impure(syntaxNode);
-                }
-                break;
-                */
+                    return false;
 
                 default:
                     PurityAnalysisEngine.LogDebug($" Assignment Target: Unhandled Kind {targetOperation.Kind} - Assuming Impure");
-                    // Report on the unknown target kind's syntax
-                    targetPurityResult = PurityAnalysisEngine.PurityAnalysisResult.Impure(targetOperation.Syntax);
-                    break;
+                    return false;
             }
-
-            // If the target itself is impure, we can return immediately.
-            if (!targetPurityResult.IsPure)
-            {
-                // If the target is impure because it's an invalid modification target (ref/out/in/readonly ref param, static field, etc.)
-                // report the diagnostic on the entire assignment/increment/decrement operation's syntax.
-                PurityAnalysisEngine.LogDebug($"AssignmentPurityRule: Target check failed (Kind: {targetOperation.Kind}, RefKind: {(targetOperation as IParameterReferenceOperation)?.Parameter.RefKind}). Reporting impurity on the whole operation: {operation.Syntax}");
-                return PurityAnalysisEngine.PurityAnalysisResult.Impure(operation.Syntax);
-            }
-
-            // --- Step 2: Check Purity of the Assigned Value ---
-            if (valueOperation != null)
-            {
-                PurityAnalysisEngine.LogDebug($"AssignmentPurityRule: Target was pure. Analyzing Value operation {valueOperation.Kind}");
-
-                // Recursively check the purity of the assigned value using CheckSingleOperation
-                var valueResult = PurityAnalysisEngine.CheckSingleOperation(valueOperation, context);
-                if (!valueResult.IsPure)
-                {
-                    PurityAnalysisEngine.LogDebug($"AssignmentPurityRule: Value operation {valueOperation.Kind} is impure.");
-                    // Report impure, pointing the diagnostic at the value's syntax if possible
-                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(valueResult.ImpureSyntaxNode ?? valueOperation.Syntax);
-                }
-                else
-                {
-                    PurityAnalysisEngine.LogDebug($"AssignmentPurityRule: Value operation {valueOperation.Kind} is pure.");
-                }
-            }
-            else
-            {
-                // This might happen for simple increment/decrement (e.g., i++).
-                // Target was already checked and found pure in Step 1.
-                PurityAnalysisEngine.LogDebug("AssignmentPurityRule: Target was pure and Value operation is null/implicit (e.g., simple increment/decrement).");
-            }
-
-            // If both target and value (if applicable) are pure, the assignment is pure.
-            PurityAnalysisEngine.LogDebug("AssignmentPurityRule: Both target and value (if applicable) are pure. Result: Pure");
-            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
         }
 
-        // Removed GetTargetSymbol helper as it's not used in the new logic
+        // Add helper (could be in PurityAnalysisEngine or here)
+        private static ISymbol? TryResolveSymbol(IOperation? operation)
+        {
+            return operation switch
+            {
+                ILocalReferenceOperation localRef => localRef.Local,
+                IParameterReferenceOperation paramRef => paramRef.Parameter,
+                IFieldReferenceOperation fieldRef => fieldRef.Field,
+                IPropertyReferenceOperation propRef => propRef.Property,
+                // Add other relevant cases if needed (e.g., method returning ref?)
+                _ => null
+            };
+        }
     }
 }

@@ -18,7 +18,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             // Add other structural kinds if needed (e.g., FieldInitializer?)
             );
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
             // These operations are just containers. Assume pure structure.
             PurityAnalysisEngine.LogDebug($"    [StructuralRule] Structural operation ({operation.Kind}) - Pure");

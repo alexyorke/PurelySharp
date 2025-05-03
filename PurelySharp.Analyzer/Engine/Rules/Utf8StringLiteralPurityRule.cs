@@ -10,9 +10,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
     /// </summary>
     internal class Utf8StringLiteralPurityRule : IPurityRule
     {
-        public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.Utf8String);
+        public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray<OperationKind>.Empty;
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
             if (operation is IUtf8StringOperation utf8StringOperation)
             {

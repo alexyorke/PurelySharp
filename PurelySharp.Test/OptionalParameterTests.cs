@@ -204,6 +204,7 @@ public class TestClass
 }
 #nullable disable
 ";
+            // UPDATE (again): Expect 0 diagnostics assuming interpolation fix works
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }

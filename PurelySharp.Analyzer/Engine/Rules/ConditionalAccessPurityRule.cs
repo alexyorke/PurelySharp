@@ -8,7 +8,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
     {
         public IEnumerable<OperationKind> ApplicableOperationKinds => new[] { OperationKind.ConditionalAccess };
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
             if (!(operation is IConditionalAccessOperation conditionalAccessOperation))
             {
@@ -19,7 +19,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             PurityAnalysisEngine.LogDebug($"  [ConditionalAccessRule] Checking Conditional Access Operation: {conditionalAccessOperation.Syntax}");
 
             // Check the operation whose result is accessed (the part before '?.')
-            var operationResult = PurityAnalysisEngine.CheckSingleOperation(conditionalAccessOperation.Operation, context);
+            var operationResult = PurityAnalysisEngine.CheckSingleOperation(conditionalAccessOperation.Operation, context, currentState);
             if (!operationResult.IsPure)
             {
                 PurityAnalysisEngine.LogDebug($"    [ConditionalAccessRule] Operation before '?.' is Impure: {conditionalAccessOperation.Operation.Syntax}");
@@ -28,7 +28,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             PurityAnalysisEngine.LogDebug($"    [ConditionalAccessRule] Operation before '?.' is Pure.");
 
             // Check the operation performed when the accessed operation is not null (the part after '?.')
-            var whenNotNullResult = PurityAnalysisEngine.CheckSingleOperation(conditionalAccessOperation.WhenNotNull, context);
+            var whenNotNullResult = PurityAnalysisEngine.CheckSingleOperation(conditionalAccessOperation.WhenNotNull, context, currentState);
             if (!whenNotNullResult.IsPure)
             {
                 PurityAnalysisEngine.LogDebug($"    [ConditionalAccessRule] Operation after '?.' (WhenNotNull) is Impure: {conditionalAccessOperation.WhenNotNull.Syntax}");

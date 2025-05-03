@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using PurelySharp.Analyzer.Engine;
 
 namespace PurelySharp.Analyzer.Engine.Rules
 {
@@ -13,7 +14,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
     {
         public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.ExpressionStatement);
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
             if (!(operation is IExpressionStatementOperation expressionStatement))
             {
@@ -31,7 +32,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             // Use the recursive check for the inner operation
-            var innerResult = PurityAnalysisEngine.CheckSingleOperation(expressionStatement.Operation, context);
+            var innerResult = PurityAnalysisEngine.CheckSingleOperation(expressionStatement.Operation, context, currentState);
             PurityAnalysisEngine.LogDebug($"    [ExprStmtRule] Inner operation ({expressionStatement.Operation.Kind}) result: IsPure={innerResult.IsPure}");
 
             return innerResult;

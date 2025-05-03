@@ -12,7 +12,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
         // Use PurityAnalysisResult directly (should resolve via static using)
         // Parameter PurityAnalysisContext is defined in this namespace
-        public PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisState currentState)
         {
             // An IsPattern operation checks if an input value matches a given pattern.
             // Example: x is int i, obj is Point { X: 0, Y: > 0 }
@@ -24,7 +24,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             var isPatternOperation = (IIsPatternOperation)operation;
 
             // Call CheckSingleOperation directly (static using)
-            PurityAnalysisResult inputPurity = CheckSingleOperation(isPatternOperation.Value, context);
+            PurityAnalysisResult inputPurity = CheckSingleOperation(isPatternOperation.Value, context, currentState);
             if (!inputPurity.IsPure)
             {
                 // Call LogDebug directly (static using)
@@ -43,6 +43,15 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             // Example: If pattern is `ConstantPattern { Value: MethodCall() }`,
             // the MethodCall() should be analyzed separately by the engine.
+
+            // --- ADDED: Explicitly check the pattern operation --- 
+            PurityAnalysisResult patternPurity = CheckSingleOperation(isPatternOperation.Pattern, context, currentState);
+            if (!patternPurity.IsPure)
+            {
+                LogDebug($"    [IsPatternRule] Pattern expression '{isPatternOperation.Pattern.Syntax?.ToString() ?? "N/A"}' is impure.");
+                return patternPurity; // Propagate impurity from the pattern
+            }
+            // --- END ADDED --- 
 
             // Call LogDebug directly (static using)
             LogDebug($"    [IsPatternRule] Assuming pattern itself is pure, input was pure. Syntax: '{operation.Syntax?.ToString() ?? "N/A"}'");

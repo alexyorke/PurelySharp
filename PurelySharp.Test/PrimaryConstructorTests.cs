@@ -105,6 +105,7 @@ public record GreetingRecord(string Message)
                             MetadataReference.CreateFromFile(typeof(EnforcePureAttribute).Assembly.Location))
                 }
             };
+            // UPDATE (again): Expect 0 diagnostics assuming interpolation fix works
             verifierTest.ExpectedDiagnostics.AddRange(DiagnosticResult.EmptyDiagnosticResults);
             await verifierTest.RunAsync();
         }

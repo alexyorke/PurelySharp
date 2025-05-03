@@ -13,21 +13,29 @@ namespace PurelySharp.Analyzer.Engine.Rules
     {
         public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.YieldReturn);
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
-            // Yield return implies state machine manipulation, treat as impure.
-            PurityAnalysisEngine.LogDebug($"    [YieldReturnRule] YieldReturn operation ({operation.Syntax}) - Impure");
-            // Even if the returned expression itself is pure, the yield mechanism isn't.
-            return PurityAnalysisEngine.ImpureResult(operation.Syntax);
+            if (!(operation is IReturnOperation yieldReturnOperation))
+            {
+                // Yield return implies state machine manipulation, treat as impure.
+                PurityAnalysisEngine.LogDebug($"    [YieldReturnRule] YieldReturn operation ({operation.Syntax}) - Impure");
+                // Even if the returned expression itself is pure, the yield mechanism isn't.
+                return PurityAnalysisEngine.ImpureResult(operation.Syntax);
+            }
 
-            // Future enhancement: Could potentially check the returned expression's purity
-            // if needed for more granular analysis, but the yield itself is the primary concern.
-            // if (operation is IYieldReturnOperation yieldOp && yieldOp.ReturnedValue != null)
-            // {
-            //     var valueResult = PurityAnalysisEngine.CheckSingleOperation(yieldOp.ReturnedValue, context);
-            //     if (!valueResult.IsPure) return valueResult;
-            // }
-            // return PurityAnalysisEngine.ImpureResult(operation.Syntax);
+            // Check the expression being yielded
+            if (yieldReturnOperation.ReturnedValue != null)
+            {
+                PurityAnalysisEngine.LogDebug($"    [YieldReturnRule] Checking yielded value: {yieldReturnOperation.ReturnedValue.Syntax} ({yieldReturnOperation.ReturnedValue.Kind})");
+                var valueResult = PurityAnalysisEngine.CheckSingleOperation(yieldReturnOperation.ReturnedValue, context, currentState);
+                if (!valueResult.IsPure)
+                {
+                    PurityAnalysisEngine.LogDebug($"    [YieldReturnRule] Yielded value is IMPURE. Yield return is Impure.");
+                    return valueResult;
+                }
+            }
+
+            return PurityAnalysisEngine.ImpureResult(operation.Syntax);
         }
     }
 }

@@ -1,14 +1,15 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace PurelySharp.Analyzer.Engine.Rules
 {
     internal class ThrowOperationPurityRule : IPurityRule
     {
-        public IEnumerable<OperationKind> ApplicableOperationKinds => new[] { OperationKind.Throw };
+        public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.Throw);
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
             if (!(operation is IThrowOperation throwOperation))
             {
@@ -22,14 +23,14 @@ namespace PurelySharp.Analyzer.Engine.Rules
             // unless evaluating the exception object has side effects.
             if (throwOperation.Exception != null)
             {
-                PurityAnalysisEngine.LogDebug($"  [ThrowRule] Checking thrown exception expression: {throwOperation.Exception.Syntax}");
-                var exceptionPurity = PurityAnalysisEngine.CheckSingleOperation(throwOperation.Exception, context);
-                if (!exceptionPurity.IsPure)
+                PurityAnalysisEngine.LogDebug($"    [ThrowRule] Checking exception expression: {throwOperation.Exception.Syntax} ({throwOperation.Exception.Kind})");
+                var exceptionResult = PurityAnalysisEngine.CheckSingleOperation(throwOperation.Exception, context, currentState);
+                if (!exceptionResult.IsPure)
                 {
-                    PurityAnalysisEngine.LogDebug($"  [ThrowRule] Thrown exception expression is IMPURE. Result: Impure.");
-                    return exceptionPurity; // Impurity comes from creating/evaluating the exception
+                    PurityAnalysisEngine.LogDebug($"    [ThrowRule] Exception expression is IMPURE. Throw is Impure.");
+                    return exceptionResult; // Impurity comes from creating/evaluating the exception
                 }
-                PurityAnalysisEngine.LogDebug($"  [ThrowRule] Thrown exception expression is PURE.");
+                PurityAnalysisEngine.LogDebug($"    [ThrowRule] Exception expression is PURE.");
             }
             else
             {

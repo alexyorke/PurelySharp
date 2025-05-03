@@ -59,6 +59,7 @@ public class TestClass
         return $""Value: {x}, Text: {y.ToUpper()}"";
     }
 }";
+            // UPDATE: Expect 0 diagnostics after interpolation fix
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 

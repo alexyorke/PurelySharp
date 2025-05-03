@@ -13,23 +13,23 @@ namespace PurelySharp.Analyzer.Engine.Rules
     {
         public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.FieldReference);
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
-            if (!(operation is IFieldReferenceOperation fieldReference))
+            if (!(operation is IFieldReferenceOperation fieldReferenceOperation))
             {
                 PurityAnalysisEngine.LogDebug($"WARNING: FieldReferencePurityRule called with unexpected operation type: {operation.Kind}. Assuming Impure.");
                 return PurityAnalysisEngine.PurityAnalysisResult.Impure(operation.Syntax);
             }
 
-            IFieldSymbol fieldSymbol = fieldReference.Field;
+            var fieldSymbol = fieldReferenceOperation.Field;
             if (fieldSymbol == null)
             {
-                PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Impure due to null fieldSymbol for {fieldReference.Syntax.ToString()}");
-                return PurityAnalysisEngine.PurityAnalysisResult.Impure(fieldReference.Syntax); // Cannot determine purity
+                PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Impure due to null fieldSymbol for {fieldReferenceOperation.Syntax.ToString()}");
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(fieldReferenceOperation.Syntax); // Cannot determine purity
             }
 
             // If this field read is the target of an assignment, let AssignmentPurityRule handle it.
-            if (IsPartOfAssignmentTarget(fieldReference))
+            if (IsPartOfAssignmentTarget(fieldReferenceOperation))
             {
                 PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Skipping field read {fieldSymbol.Name} as it's an assignment target.");
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
@@ -42,18 +42,27 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
 
-            // Check for static fields
+            // First, check the instance expression if it's not a static field
+            if (!fieldSymbol.IsStatic && fieldReferenceOperation.Instance != null)
+            {
+                PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Checking instance expression for field '{fieldSymbol.Name}': {fieldReferenceOperation.Instance.Syntax} ({fieldReferenceOperation.Instance.Kind})");
+                var instanceResult = PurityAnalysisEngine.CheckSingleOperation(fieldReferenceOperation.Instance, context, currentState);
+                if (!instanceResult.IsPure)
+                {
+                    PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Instance expression is IMPURE. Field reference is Impure.");
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(fieldReferenceOperation.Syntax);
+                }
+            }
+
+            // Second, check for static constructor side effects if accessing a static member
             if (fieldSymbol.IsStatic)
             {
-                // *** ADDED: Check static constructor purity ***
-                var cctorResult = CheckStaticConstructorPurity(fieldSymbol.ContainingType, context);
-                if (!cctorResult.IsPure)
+                var staticCtorResult = PurityAnalysisEngine.CheckStaticConstructorPurity(fieldSymbol.ContainingType, context, currentState);
+                if (!staticCtorResult.IsPure)
                 {
-                    PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Static field '{fieldSymbol.Name}' access IMPURE due to impure static constructor in {fieldSymbol.ContainingType.Name}.");
-                    // Report impurity at the field access site
-                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(fieldReference.Syntax);
+                    PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Static constructor trigger for field '{fieldSymbol.Name}' is IMPURE. Field reference is Impure.");
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(fieldReferenceOperation.Syntax);
                 }
-                // *** END ADDED ***
 
                 if (fieldSymbol.IsReadOnly)
                 {
@@ -63,16 +72,16 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 else
                 {
                     PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Static non-readonly field '{fieldSymbol.Name}' - Impure");
-                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(fieldReference.Syntax);
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(fieldReferenceOperation.Syntax);
                 }
             }
 
             // Check instance fields
-            if (fieldReference.Instance != null)
+            if (fieldReferenceOperation.Instance != null)
             {
                 PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Instance field '{fieldSymbol.Name}'. Checking instance...");
                 // Check the instance through which the field is accessed
-                IOperation instanceOperation = fieldReference.Instance;
+                IOperation instanceOperation = fieldReferenceOperation.Instance;
 
                 if (instanceOperation is IParameterReferenceOperation paramRef)
                 {
@@ -90,7 +99,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     else
                     {
                         PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Instance '{paramRef.Parameter.Name}' is mutable ref/out. Read is Impure.");
-                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(fieldReference.Syntax);
+                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(fieldReferenceOperation.Syntax);
                     }
                 }
                 else if (instanceOperation is IInstanceReferenceOperation instanceRef && instanceRef.ReferenceKind == InstanceReferenceKind.ContainingTypeInstance)
@@ -145,14 +154,14 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     {
                         // Default: Instance is complex/non-readonly-local and field not known pure -> Impure
                         PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Instance is complex ({instanceOperation.Kind})/non-readonly-local and field '{fieldSymbol.Name}' not known pure BCL. Assuming read is Impure.");
-                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(fieldReference.Syntax);
+                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(fieldReferenceOperation.Syntax);
                     }
                 }
             }
 
             // Default case (shouldn't be reached ideally, but safety net)
             PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Unhandled case for field '{fieldSymbol.Name}'. Assuming Impure.");
-            return PurityAnalysisEngine.PurityAnalysisResult.Impure(fieldReference.Syntax);
+            return PurityAnalysisEngine.PurityAnalysisResult.Impure(fieldReferenceOperation.Syntax);
         }
 
         /// <summary>
@@ -187,30 +196,5 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
             return false;
         }
-
-        // *** ADDED HELPER ***
-        private static PurityAnalysisEngine.PurityAnalysisResult CheckStaticConstructorPurity(INamedTypeSymbol typeSymbol, PurityAnalysisContext context)
-        {
-            if (typeSymbol == null) return PurityAnalysisEngine.PurityAnalysisResult.Pure;
-
-            var staticConstructor = typeSymbol.StaticConstructors.FirstOrDefault();
-            if (staticConstructor == null)
-            {
-                // No static constructor, trivially pure initialization
-                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
-            }
-
-            PurityAnalysisEngine.LogDebug($"        [CheckStaticCtor] Found static constructor for {typeSymbol.Name}. Checking recursively...");
-            // Use OriginalDefinition to avoid issues with constructed generics
-            return PurityAnalysisEngine.DeterminePurityRecursiveInternal(
-                staticConstructor.OriginalDefinition,
-                context.SemanticModel, // Use the context's model
-                context.EnforcePureAttributeSymbol,
-                context.AllowSynchronizationAttributeSymbol,
-                context.VisitedMethods, // Critical for cycle detection
-                context.PurityCache // Share cache
-            );
-        }
-        // *** END ADDED HELPER ***
     }
 }

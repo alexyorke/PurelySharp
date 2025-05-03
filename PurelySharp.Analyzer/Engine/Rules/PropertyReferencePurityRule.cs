@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 //using System.Linq; // REMOVED - Now using PurityAnalysisEngine.HasAttribute
 using PurelySharp.Analyzer.Engine; // Ensure PurityAnalysisEngine is accessible
 
@@ -12,17 +13,24 @@ namespace PurelySharp.Analyzer.Engine.Rules
     /// </summary>
     internal class PropertyReferencePurityRule : IPurityRule
     {
-        public IEnumerable<OperationKind> ApplicableOperationKinds => new[] { OperationKind.PropertyReference };
+        public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.PropertyReference);
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
-            if (!(operation is IPropertyReferenceOperation propertyReference))
+            if (!(operation is IPropertyReferenceOperation propertyReferenceOperation))
             {
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure; // Should not happen
             }
 
-            IPropertySymbol propertySymbol = propertyReference.Property;
+            IPropertySymbol propertySymbol = propertyReferenceOperation.Property;
             PurityAnalysisEngine.LogDebug($"  [PropRefRule] Checking PropertyReference: {propertySymbol.Name} on Type: {propertySymbol.ContainingType?.ToDisplayString()}");
+
+            // Skip checks if this property reference is the target of an assignment
+            if (IsPartOfAssignmentTarget(propertyReferenceOperation))
+            {
+                PurityAnalysisEngine.LogDebug($"    [PropRefRule] Skipping property read {propertySymbol.Name} as it's an assignment target.");
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
 
             // If the property itself is marked [EnforcePure], assume it's pure.
             if (PurityAnalysisEngine.IsPureEnforced(propertySymbol, context.EnforcePureAttributeSymbol))
@@ -38,7 +46,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             if (PurityAnalysisEngine.IsKnownImpure(propertySymbol))
             {
                 PurityAnalysisEngine.LogDebug($"    [PropRefRule] Property {propertySymbol.Name} is known impure. Impure.");
-                return PurityAnalysisEngine.PurityAnalysisResult.Impure(propertyReference.Syntax);
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(propertyReferenceOperation.Syntax);
             }
 
             // Handle property access based on whether it's static or instance
@@ -47,14 +55,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 // Static property access
                 PurityAnalysisEngine.LogDebug($"    [PropRefRule] Static property access: {propertySymbol.Name}");
 
-                // *** ADDED: Check static constructor purity ***
-                var cctorResult = CheckStaticConstructorPurity(propertySymbol.ContainingType, context);
+                var cctorResult = PurityAnalysisEngine.CheckStaticConstructorPurity(propertySymbol.ContainingType, context, currentState);
                 if (!cctorResult.IsPure)
                 {
                     PurityAnalysisEngine.LogDebug($"    [PropRefRule] Static property '{propertySymbol.Name}' access IMPURE due to impure static constructor in {propertySymbol.ContainingType.Name}.");
-                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(propertyReference.Syntax);
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(propertyReferenceOperation.Syntax);
                 }
-                // *** END ADDED ***
 
                 // +++ Log signature check +++
                 string staticPureSig = propertySymbol.OriginalDefinition.ToDisplayString();
@@ -70,13 +76,13 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 {
                     // Accessing non-readonly static property is impure
                     PurityAnalysisEngine.LogDebug($"    [PropRefRule] Static property '{propertySymbol.Name}' is not readonly or known pure BCL. Read is Impure.");
-                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(propertyReference.Syntax);
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(propertyReferenceOperation.Syntax);
                 }
             }
             else // Instance property access
             {
                 PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance property access: {propertySymbol.Name}");
-                IOperation? instanceOperation = propertyReference.Instance;
+                IOperation? instanceOperation = propertyReferenceOperation.Instance;
 
                 // +++ Log instance symbol info +++
                 string instanceKind = instanceOperation?.Kind.ToString() ?? "null";
@@ -87,7 +93,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 {
                     // This can happen in some complex scenarios or invalid code.
                     PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance operation is null for property '{propertySymbol.Name}'. Assuming Impure for safety.");
-                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(propertyReference.Syntax);
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(propertyReferenceOperation.Syntax);
                 }
 
                 // Check if the instance itself is a parameter reference marked 'in' or 'ref readonly'
@@ -103,7 +109,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                         !cachedGetterResult.IsPure)
                     {
                         PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance is readonly ref/in param, but getter {propertySymbol.GetMethod.Name} is known impure from cache. Returning Impure.");
-                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(cachedGetterResult.ImpureSyntaxNode ?? propertyReference.Syntax);
+                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(cachedGetterResult.ImpureSyntaxNode ?? propertyReferenceOperation.Syntax);
                     }
                     // *** END ADDED ***
 
@@ -124,7 +130,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                             !cachedGetterResult.IsPure)
                         {
                             PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance is 'this' in readonly struct, but getter {propertySymbol.GetMethod.Name} is known impure from cache. Returning Impure.");
-                            return PurityAnalysisEngine.PurityAnalysisResult.Impure(cachedGetterResult.ImpureSyntaxNode ?? propertyReference.Syntax);
+                            return PurityAnalysisEngine.PurityAnalysisResult.Impure(cachedGetterResult.ImpureSyntaxNode ?? propertyReferenceOperation.Syntax);
                         }
                         // *** END ADDED ***
 
@@ -141,7 +147,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     else if (propertySymbol.GetMethod != null)
                     {
                         PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance is 'this', property '{propertySymbol.Name}' has a getter. Recursively checking getter purity.");
-                        var getterResult = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
+                        var thisGetterResult = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
                             propertySymbol.GetMethod.OriginalDefinition,
                             context.SemanticModel, // Use the current context's model
                             context.EnforcePureAttributeSymbol,
@@ -149,15 +155,15 @@ namespace PurelySharp.Analyzer.Engine.Rules
                             context.VisitedMethods,
                             context.PurityCache
                         );
-                        PurityAnalysisEngine.LogDebug($"    [PropRefRule] Getter purity result for '{propertySymbol.Name}': IsPure={getterResult.IsPure}");
+                        PurityAnalysisEngine.LogDebug($"    [PropRefRule] Getter purity result for '{propertySymbol.Name}': IsPure={thisGetterResult.IsPure}");
                         // The property read is pure if the getter is pure
-                        return getterResult;
+                        return thisGetterResult;
                     }
                     else // Property is not readonly, not in readonly struct, has no getter (should be rare)
                     {
                         // *** REVERTED: Removed explicit cache check ***
                         PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance is 'this', property '{propertySymbol.Name}' is not readonly and has no accessible getter to analyze. Read is Impure.");
-                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(propertyReference.Syntax);
+                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(propertyReferenceOperation.Syntax);
                     }
                 }
                 else
@@ -183,7 +189,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                             !cachedGetterResult.IsPure)
                         {
                             PurityAnalysisEngine.LogDebug($"    [PropRefRule] Property '{propertySymbol.Name}' getter has [Pure] attribute, but getter is known impure from cache. Returning Impure.");
-                            return PurityAnalysisEngine.PurityAnalysisResult.Impure(cachedGetterResult.ImpureSyntaxNode ?? propertyReference.Syntax);
+                            return PurityAnalysisEngine.PurityAnalysisResult.Impure(cachedGetterResult.ImpureSyntaxNode ?? propertyReferenceOperation.Syntax);
                         }
                         // *** END ADDED ***
 
@@ -194,7 +200,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     else if (propertySymbol.GetMethod != null)
                     {
                         PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance is complex ({instanceKind}), property '{propertySymbol.Name}' has getter. Checking getter purity.");
-                        var getterResult = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
+                        var complexGetterResult = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
                             propertySymbol.GetMethod.OriginalDefinition,
                             context.SemanticModel,
                             context.EnforcePureAttributeSymbol,
@@ -202,8 +208,8 @@ namespace PurelySharp.Analyzer.Engine.Rules
                             context.VisitedMethods,
                             context.PurityCache
                         );
-                        PurityAnalysisEngine.LogDebug($"    [PropRefRule] Getter purity result for complex instance access to '{propertySymbol.Name}': IsPure={getterResult.IsPure}");
-                        return getterResult; // Purity depends on getter
+                        PurityAnalysisEngine.LogDebug($"    [PropRefRule] Getter purity result for complex instance access to '{propertySymbol.Name}': IsPure={complexGetterResult.IsPure}");
+                        return complexGetterResult; // Purity depends on getter
                     }
                     // --- END NEW ---
                     else
@@ -214,7 +220,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                             !cachedGetterResult.IsPure)
                         {
                             PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance is complex, property {propertySymbol.Name} known pure BCL, but getter is known impure from cache. Returning Impure.");
-                            return PurityAnalysisEngine.PurityAnalysisResult.Impure(cachedGetterResult.ImpureSyntaxNode ?? propertyReference.Syntax);
+                            return PurityAnalysisEngine.PurityAnalysisResult.Impure(cachedGetterResult.ImpureSyntaxNode ?? propertyReferenceOperation.Syntax);
                         }
                         // *** END ADDED ***
 
@@ -223,6 +229,40 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     }
                 }
             }
+
+            // 2. Check Indexer Argument Purity (if applicable)
+            if (propertyReferenceOperation.Arguments.Any())
+            {
+                PurityAnalysisEngine.LogDebug($"    [PropRefRule] Checking {propertyReferenceOperation.Arguments.Length} Indexer Arguments...");
+                foreach (var argument in propertyReferenceOperation.Arguments)
+                {
+                    PurityAnalysisEngine.LogDebug($"      [PropRefRule.Args] Checking Argument: {argument.Syntax} ({argument.Value?.Kind})");
+                    var argumentResult = PurityAnalysisEngine.CheckSingleOperation(argument.Value, context, currentState); // Check the value of the argument
+                    if (!argumentResult.IsPure)
+                    {
+                        PurityAnalysisEngine.LogDebug($"      [PropRefRule.Args] Argument '{argument.Syntax}' is IMPURE. Property reference is Impure.");
+                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(argument.Syntax);
+                    }
+                }
+            }
+
+            // 4. Check Property Getter Purity
+            IMethodSymbol? getter = propertySymbol.GetMethod;
+            if (getter == null)
+            {
+                PurityAnalysisEngine.LogDebug($"    [PropRefRule] Property '{propertySymbol.Name}' has no getter. Read is Pure.");
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+            var getterResult = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
+                getter.OriginalDefinition,
+                context.SemanticModel,
+                context.EnforcePureAttributeSymbol,
+                context.AllowSynchronizationAttributeSymbol,
+                context.VisitedMethods,
+                context.PurityCache
+            );
+            PurityAnalysisEngine.LogDebug($"    [PropRefRule] Getter purity result for '{propertySymbol.Name}': IsPure={getterResult.IsPure}");
+            return getterResult;
         }
 
         private static bool IsPartOfAssignmentTarget(IOperation operation)
@@ -244,30 +284,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return false;
         }
 
-        // *** ADDED HELPER ***
-        private static PurityAnalysisEngine.PurityAnalysisResult CheckStaticConstructorPurity(INamedTypeSymbol typeSymbol, PurityAnalysisContext context)
-        {
-            if (typeSymbol == null) return PurityAnalysisEngine.PurityAnalysisResult.Pure;
-
-            var staticConstructor = typeSymbol.StaticConstructors.FirstOrDefault();
-            if (staticConstructor == null)
-            {
-                // No static constructor, trivially pure initialization
-                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
-            }
-
-            PurityAnalysisEngine.LogDebug($"        [CheckStaticCtor] Found static constructor for {typeSymbol.Name}. Checking recursively...");
-            // Use OriginalDefinition to avoid issues with constructed generics
-            return PurityAnalysisEngine.DeterminePurityRecursiveInternal(
-                staticConstructor.OriginalDefinition,
-                context.SemanticModel, // Use the context's model
-                context.EnforcePureAttributeSymbol,
-                context.AllowSynchronizationAttributeSymbol,
-                context.VisitedMethods, // Critical for cycle detection
-                context.PurityCache // Share cache
-            );
-        }
-        // *** END ADDED HELPER ***
+        // *** REMOVED CheckStaticConstructorPurity helper ***
 
         // +++ REMOVED HasAttribute HELPER (Moved to PurityAnalysisEngine) +++
         // private static bool HasAttribute(ISymbol symbol, INamedTypeSymbol attributeSymbol)

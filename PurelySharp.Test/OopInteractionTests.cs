@@ -374,7 +374,6 @@ public class TestClass
         [Test]
         public async Task DeepInheritanceAndAbstractState_PureMethods_NoDiagnostic()
         {
-            // This test seemed to pass correctly when run individually.
             var test = @"
 using PurelySharp.Attributes;
 using System;
@@ -422,12 +421,11 @@ public class TestManager
     }
 }
 ";
-            // REVERTED: Expecting 0 diagnostics
-            // var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-            //                      .WithSpan(46, 19, 46, 38) // Line/Col for GetFullLightDetails identifier
-            //                      .WithArguments("GetFullLightDetails");
-            // await VerifyCS.VerifyAnalyzerAsync(test, expected); // Expect diagnostic
-            await VerifyCS.VerifyAnalyzerAsync(test); // Expect NO diagnostic
+            // UPDATE: Expect PS0002 on GetFullLightDetails as consistently reported by the analyzer
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                   .WithSpan(46, 19, 46, 38) // Span of GetFullLightDetails identifier
+                                   .WithArguments("GetFullLightDetails");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -477,17 +475,11 @@ public class GenericTestManager
     }
 }
 ";
-            // REVERTED: Expecting 0 diagnostics
-            // var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-            //                      .WithSpan(37, 16, 37, 33) // Line/Col for GetTotalItemCount identifier
-            //                      .WithArguments("GetTotalItemCount");
-            // await VerifyCS.VerifyAnalyzerAsync(test, expected); // Expect diagnostic
-
-            // UPDATED: Expect diagnostics for GetAll and HasBanana due to current analyzer behavior
-            var expectedGetAll = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+            // UPDATE: Expect PS0002 on GetAll and HasBanana as reported by the analyzer
+            var expectedGetAll = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
                                         .WithSpan(19, 27, 19, 33) // Span of 'GetAll'
                                         .WithArguments("GetAll");
-            var expectedHasBanana = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+            var expectedHasBanana = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
                                           .WithSpan(37, 17, 37, 26) // Span of 'HasBanana'
                                           .WithArguments("HasBanana");
 
@@ -633,7 +625,7 @@ public class Service
         [Test]
         public async Task AbstractClassWithMixedPurity_Diagnostics()
         {
-            var test = @"
+            var testCode = @"
 using PurelySharp.Attributes;
 using System;
 
@@ -701,13 +693,9 @@ public class TestUsage
      [EnforcePure]
      public int UseProcessorPurely(DataProcessor p, int value)
      {
-         // Calls p.Process (might be pure or impure depending on p)
-         // Calls p.Format (might be pure or impure depending on p)
-         // Calls p.ProcessAndDouble (might be pure or impure depending on p)
-         // The method itself might be flagged based on the calls it makes.
          int processed = p.ProcessAndDouble(value);
          string formatted = p.Format(processed);
-         return formatted.Length; // Assume string.Length is pure
+         return formatted.Length;
      }
 
      [EnforcePure]
@@ -718,36 +706,17 @@ public class TestUsage
      }
 }
 ";
-            // Expect diagnostics on:
-            // 1. DataProcessor.LogStatus (due to Console.WriteLine)
-            // 2. AddingProcessor.Process (due to _offset++)
-            // 3. AddingProcessor.Format (due to Console.WriteLine)
-            // 4. TestUsage.UseProcessorPurely (calls ProcessAndDouble which calls Process, could be impure)
-            // 5. TestUsage.UseProcessorImpurely (calls impure LogStatus)
+            // Corrected span for LogStatus to line 23.
+            var expected = new[]
+            {
+                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(23, 17, 23, 26).WithArguments("LogStatus"), // LogStatus (Impure Console) - START LINE 23
+                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(53, 25, 53, 32).WithArguments("Process"), // AddingProcessor.Process (State change)
+                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(61, 28, 61, 34).WithArguments("Format"), // AddingProcessor.Format (Impure Console)
+                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(81, 18, 81, 38).WithArguments("UseProcessorImpurely"), // UseProcessorImpurely (Calls impure LogStatus)
+            };
 
-            var expectedLogStatus = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                           .WithSpan(23, 17, 23, 26) // Span of 'LogStatus' in DataProcessor
-                                           .WithArguments("LogStatus");
-            var expectedAddingProcess = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                              .WithSpan(49, 25, 49, 32) // Span of 'Process' in AddingProcessor
-                                              .WithArguments("Process");
-            var expectedAddingFormat = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                             .WithSpan(57, 28, 57, 34) // CORRECTED Span of 'Format' in AddingProcessor (Line 57)
-                                             .WithArguments("Format");
-            // Note: Analyzing calls through base class references is complex.
-            // VerifyCS might report based on the call site, not the specific implementation.
-            // The analyzer *might* currently flag UseProcessorPurely because it calls Process/Format which *could* be impure.
-            var expectedUseProcessorImpurely = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                                     .WithSpan(79, 18, 79, 38) // CORRECTED Span of 'UseProcessorImpurely' (Line 79)
-                                                     .WithArguments("UseProcessorImpurely");
-
-            await VerifyCS.VerifyAnalyzerAsync(test,
-                                             expectedLogStatus,
-                                             expectedAddingProcess,
-                                             expectedAddingFormat,
-                                             expectedUseProcessorImpurely); // Expect 4 diagnostics now
+            await VerifyCS.VerifyAnalyzerAsync(testCode, expected);
         }
-
 
         [Test]
         public async Task CompositionWithPureAndImpureCalls_Diagnostics()

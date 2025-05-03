@@ -15,7 +15,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
         // Apply to both using statements and using declarations (C# 8.0+)
         public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.Using, OperationKind.UsingDeclaration);
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
             SyntaxNode? impureSyntaxNode = null;
             IOperation? resourceOperation = null;
@@ -56,7 +56,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                             if (declarator.Initializer != null)
                             {
                                 PurityAnalysisEngine.LogDebug($"  UsingStatementPurityRule: Checking initializer for {declarator.Symbol.Name}: {declarator.Initializer.Value?.Syntax}");
-                                var initializerResult = PurityAnalysisEngine.CheckSingleOperation(declarator.Initializer.Value, context);
+                                var initializerResult = PurityAnalysisEngine.CheckSingleOperation(declarator.Initializer.Value, context, currentState);
                                 if (!initializerResult.IsPure)
                                 {
                                     PurityAnalysisEngine.LogDebug($"  UsingStatementPurityRule: Initializer for {declarator.Symbol.Name} is IMPURE.");
@@ -82,7 +82,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                         if (declarator.Initializer != null)
                         {
                             PurityAnalysisEngine.LogDebug($"  UsingStatementPurityRule: Checking initializer for {declarator.Symbol.Name}: {declarator.Initializer.Value?.Syntax}");
-                            var initializerResult = PurityAnalysisEngine.CheckSingleOperation(declarator.Initializer.Value, context);
+                            var initializerResult = PurityAnalysisEngine.CheckSingleOperation(declarator.Initializer.Value, context, currentState);
                             if (!initializerResult.IsPure)
                             {
                                 PurityAnalysisEngine.LogDebug($"  UsingStatementPurityRule: Initializer for {declarator.Symbol.Name} is IMPURE.");
@@ -100,7 +100,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 else // Resource is likely an expression (e.g., using (GetDisposable()))
                 {
                     PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Resource is an expression {resourceOperation.Kind}. Checking expression directly.");
-                    resourceResult = PurityAnalysisEngine.CheckSingleOperation(resourceOperation, context);
+                    resourceResult = PurityAnalysisEngine.CheckSingleOperation(resourceOperation, context, currentState);
                 }
 
                 // Check the final result for the resource acquisition part
@@ -116,7 +116,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             if (bodyOperation != null) // Only check body if it exists (i.e., for IUsingOperation)
             {
                 PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Checking Body operation {bodyOperation.Kind}");
-                var bodyResult = PurityAnalysisEngine.CheckSingleOperation(bodyOperation, context);
+                var bodyResult = PurityAnalysisEngine.CheckSingleOperation(bodyOperation, context, currentState);
                 if (!bodyResult.IsPure)
                 {
                     PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Body operation is IMPURE.");

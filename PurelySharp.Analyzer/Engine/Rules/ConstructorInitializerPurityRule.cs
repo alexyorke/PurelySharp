@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using PurelySharp.Analyzer.Engine;
 
 namespace PurelySharp.Analyzer.Engine.Rules
 {
@@ -11,9 +12,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
     /// </summary>
     internal class ConstructorInitializerPurityRule : IPurityRule
     {
-        public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.Invocation);
+        public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.ConstructorBodyOperation);
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
             if (!(operation.Syntax is ConstructorInitializerSyntax))
             {
@@ -32,7 +33,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             foreach (var argument in initializer.Arguments)
             {
                 PurityAnalysisEngine.LogDebug($"      [CtorInitRule] Checking argument: {argument.Syntax}");
-                var argumentPurity = PurityAnalysisEngine.CheckSingleOperation(argument.Value, context);
+                var argumentPurity = PurityAnalysisEngine.CheckSingleOperation(argument.Value, context, currentState);
                 if (!argumentPurity.IsPure)
                 {
                     PurityAnalysisEngine.LogDebug($"      [CtorInitRule] Argument '{argument.Syntax}' is Impure. Initializer is Impure.");

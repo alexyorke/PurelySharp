@@ -6,8 +6,7 @@ using System.Collections.Immutable;
 namespace PurelySharp.Analyzer.Engine.Rules
 {
     /// <summary>
-    /// Analyzes checked/unchecked expressions for purity.
-    /// The purity depends entirely on the operand.
+    /// Rule to flag 'checked' context operations. The actual purity check is deferred.
     /// </summary>
     internal class CheckedExpressionPurityRule : IPurityRule
     {
@@ -29,19 +28,14 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
         public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(
             OperationKind.Binary,
-            OperationKind.UnaryOperator // Covers unary plus/minus which can be checked
-                                        // Add OperationKind.Conversion if checked conversions need explicit handling?
+            OperationKind.Unary
+            // Add Conversion if needed
             );
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
-            // This rule currently focuses on identifying if the operation itself has the 'checked' flag.
-            // The actual purity check (operands, user-defined methods) is deferred to the specific rules (Binary, Unary).
-            // This rule itself doesn't determine purity, just logs if 'checked' is present.
-
+            // This rule ONLY flags the presence of 'checked'. Purity is handled by Binary/Unary rules.
             bool isChecked = false;
-            IOperation? operandToCheck = null;
-
             if (operation is IBinaryOperation binaryOp && binaryOp.IsChecked)
             {
                 PurityAnalysisEngine.LogDebug($"    [CheckedRule] Found Binary Operation with IsChecked=true: {operation.Syntax}");
@@ -52,21 +46,17 @@ namespace PurelySharp.Analyzer.Engine.Rules
             {
                 PurityAnalysisEngine.LogDebug($"    [CheckedRule] Found Unary Operation with IsChecked=true: {operation.Syntax}");
                 isChecked = true;
-                operandToCheck = unaryOp.Operand;
                 // Purity determined by UnaryOperationPurityRule checking the operand.
             }
-            // Add checks for IConversionOperation.IsChecked if necessary
+            // Add Conversion check if needed: else if (operation is IConversionOperation convOp && convOp.IsChecked) ...
 
             if (isChecked)
             {
-                PurityAnalysisEngine.LogDebug($"    [CheckedRule] Operation kind {operation.Kind} uses checked context. Deferring actual purity check to specific rule.");
-                // We don't return Impure here. The check simply notes the context.
-                // The specific rules (Binary, Unary) handle operand/method purity.
+                PurityAnalysisEngine.LogDebug($"    [CheckedRule] Operation kind {operation.Kind} uses checked context: {operation.Syntax}. Deferring purity check.");
+                // This rule doesn't determine purity itself.
             }
 
-            // This rule doesn't override the result; it lets the primary rule (Binary/Unary) decide.
-            // We return Pure here to indicate this rule itself doesn't find impurity,
-            // allowing the analysis engine to continue with other rules for this operation.
+            // Allow other rules (Binary/Unary) to determine purity.
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
         }
     }

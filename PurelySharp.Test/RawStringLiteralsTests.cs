@@ -161,6 +161,7 @@ namespace TestNamespace
         }
     }
 }";
+            // UPDATE (again): Expect 0 diagnostics assuming interpolation fix works
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -190,9 +191,11 @@ namespace TestNamespace
         }
     }
 }";
-            // This is a compile-time constant, so it should be pure.
-            // Temporarily expecting PS0002 due to analysis limitation.
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Explicitly expect PS0002 due to analysis limitation with u8 literals.
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                   .WithSpan(13, 35, 13, 53) // Span of GetRawStringAsUtf8 identifier
+                                   .WithArguments("GetRawStringAsUtf8");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]

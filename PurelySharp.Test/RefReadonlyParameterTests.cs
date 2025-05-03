@@ -130,34 +130,35 @@ public class TestClass
         [Test]
         public async Task PureMethodWithRefReadonlyParameter_PassingToAnotherMethodWithRef_CompilationError()
         {
-            var test = @"
-using System;
+            var testCode = @"
 using PurelySharp.Attributes;
+
+public struct Point { public int X, Y; }
 
 public class TestClass
 {
+    // Method expecting a mutable ref
+    public static void ModifyPoint(ref Point p) { p.X++; } // Impure
+
     [EnforcePure]
-    public int Process(ref readonly int value)
+    public static void TestModify(ref readonly Point p) // Line 12
     {
-        // Passing ref readonly as ref causes CS8329
-        return NeedsRef(ref value); 
+        ModifyPoint(ref p); // Error: Cannot pass ref readonly as ref (Line 14)
     }
-    
-    // Method expecting ref, not ref readonly
-    private int NeedsRef(ref int val)
-    {
-        return val * 2;
-    }
-}";
+}
+";
 
-            // Expect CS8329 compiler error and PS0002 on the method identifier (fallback)
-            var expectedCS8329 = DiagnosticResult.CompilerError("CS8329")
-                                                .WithSpan(11, 29, 11, 34); // Location of value in NeedsRef(ref value)
+            // Expect compiler error CS8329 for passing ref readonly as ref
+            var expectedError = DiagnosticResult.CompilerError("CS8329")
+                                                .WithSpan(14, 25, 14, 26) // Span of 'p' in ModifyPoint call
+                                                .WithArguments("variable", "p");
+
+            // Expect PS0002 on TestModify because it calls impure ModifyPoint (even though it's a compiler error)
             var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                        .WithSpan(8, 16, 8, 23) // Span of Process identifier
-                                        .WithArguments("Process");
+                                         .WithSpan(12, 24, 12, 34) // Span of 'TestModify' identifier
+                                         .WithArguments("TestModify");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedCS8329, expectedPS0002);
+            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedError, expectedPS0002);
         }
 
         [Test]

@@ -12,9 +12,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
     {
         public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.With);
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
-            if (operation is not IWithOperation withOperation)
+            if (!(operation is IWithOperation withOperation))
             {
                 // Should not happen if Applicability is correct
                 PurityAnalysisEngine.LogDebug($"[WithRule] Warning: Incorrect operation type {operation.Kind}.");
@@ -32,26 +32,23 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return PurityAnalysisEngine.PurityAnalysisResult.Impure(withOperation.Syntax);
             }
 
-            // First, check the operand
-            if (withOperation.Operand != null)
+            // 1. Check the operand (the object being cloned)
+            PurityAnalysisEngine.LogDebug($"    [WithRule] Checking operand: {withOperation.Operand.Syntax} ({withOperation.Operand.Kind})");
+            var operandResult = PurityAnalysisEngine.CheckSingleOperation(withOperation.Operand, context, currentState);
+            if (!operandResult.IsPure)
             {
-                PurityAnalysisEngine.LogDebug($"[WithRule] Checking Operand: {withOperation.Operand.Kind}");
-                var operandResult = PurityAnalysisEngine.CheckSingleOperation(withOperation.Operand, context);
-                if (!operandResult.IsPure)
-                {
-                    PurityAnalysisEngine.LogDebug($"[WithRule] Operand is impure.");
-                    return operandResult;
-                }
+                PurityAnalysisEngine.LogDebug($"    [WithRule] Operand is IMPURE. 'with' expression is Impure.");
+                return operandResult;
             }
 
-            // Then, check the initializer (if it exists)
+            // 2. Check the initializer (the property assignments)
             if (withOperation.Initializer != null)
             {
-                PurityAnalysisEngine.LogDebug($"[WithRule] Checking Initializer: {withOperation.Initializer.Kind}");
-                var initializerResult = PurityAnalysisEngine.CheckSingleOperation(withOperation.Initializer, context);
+                PurityAnalysisEngine.LogDebug($"    [WithRule] Checking initializer: {withOperation.Initializer.Syntax} ({withOperation.Initializer.Kind})");
+                var initializerResult = PurityAnalysisEngine.CheckSingleOperation(withOperation.Initializer, context, currentState);
                 if (!initializerResult.IsPure)
                 {
-                    PurityAnalysisEngine.LogDebug($"[WithRule] Initializer is impure.");
+                    PurityAnalysisEngine.LogDebug($"    [WithRule] Initializer is IMPURE. 'with' expression is Impure.");
                     return initializerResult;
                 }
             }

@@ -10,7 +10,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
     {
         public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.ObjectOrCollectionInitializer);
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
             if (operation is not IObjectOrCollectionInitializerOperation initializer)
             {
@@ -54,7 +54,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
                 if (valueToCheck != null)
                 {
-                    var valueResult = PurityAnalysisEngine.CheckSingleOperation(valueToCheck, context);
+                    var valueResult = PurityAnalysisEngine.CheckSingleOperation(valueToCheck, context, currentState);
                     if (!valueResult.IsPure)
                     {
                         PurityAnalysisEngine.LogDebug($"[ObjInitRule]  -> Initializer value IMPURE: {valueToCheck.Syntax}");

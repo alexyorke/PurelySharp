@@ -14,7 +14,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
     {
         public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.ParameterReference);
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
             if (!(operation is IParameterReferenceOperation parameterReference))
             {
@@ -25,24 +25,16 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             IParameterSymbol parameterSymbol = parameterReference.Parameter;
 
-            switch (parameterSymbol.RefKind)
-            {
-                case RefKind.None: // Value parameter
-                case RefKind.In:   // In parameter
-                case (RefKind)4: // RefKind.RefReadOnlyParameter (value = 4, check needed for older targets)
-                    PurityAnalysisEngine.LogDebug($"    [ParamRefRule] ParameterReference '{parameterSymbol.Name}' (RefKind={parameterSymbol.RefKind}) - Pure");
-                    return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            // Reading a parameter is generally pure, unless it's a ref/out/in parameter
+            // that hasn't been proven immutable/readonly within the current context.
+            // For simplicity now, let's assume reading any parameter is pure.
+            // Writing to parameters (especially ref/out/in) is handled by AssignmentPurityRule.
 
-                case RefKind.Ref:
-                case RefKind.Out:
-                    PurityAnalysisEngine.LogDebug($"    [ParamRefRule] ParameterReference '{parameterSymbol.Name}' (RefKind={parameterSymbol.RefKind}) - Impure");
-                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(operation.Syntax);
+            // Could add checks here later based on RefKind if needed, but reads are usually safe.
+            // Example: if (parameterSymbol.RefKind != RefKind.None && !IsEffectivelyReadonly(parameterSymbol, context)) return Impure...
 
-                default:
-                    // Should not happen, but treat unknown RefKind as potentially impure
-                    PurityAnalysisEngine.LogDebug($"    [ParamRefRule] ParameterReference '{parameterSymbol.Name}' (RefKind={parameterSymbol.RefKind}) - Unknown RefKind, Assuming Impure");
-                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(operation.Syntax);
-            }
+            PurityAnalysisEngine.LogDebug($"    [ParamRefRule] Parameter reference '{parameterSymbol.Name}' (RefKind: {parameterSymbol.RefKind}) - Assuming Pure read");
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
         }
     }
 }

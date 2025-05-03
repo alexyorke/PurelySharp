@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
 using System.Linq;
+using System.Collections.Immutable;
 
 namespace PurelySharp.Analyzer.Engine.Rules
 {
@@ -11,9 +12,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
     /// </summary>
     internal class ReturnStatementPurityRule : IPurityRule
     {
-        public IEnumerable<OperationKind> ApplicableOperationKinds => new[] { OperationKind.Return };
+        public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.Return);
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
             if (!(operation is IReturnOperation returnOperation))
             {
@@ -28,23 +29,24 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
 
-            // Check the purity of the returned value expression itself.
-            IOperation returnedValueOperation = returnOperation.ReturnedValue;
-
-            PurityAnalysisEngine.LogDebug($"    [ReturnRule] Checking returned value ({returnedValueOperation.Kind})");
-            var valuePurityResult = PurityAnalysisEngine.CheckSingleOperation(returnedValueOperation, context);
-            PurityAnalysisEngine.LogDebug($"    [ReturnRule] Returned value check result: IsPure={valuePurityResult.IsPure}, Node Type={valuePurityResult.ImpureSyntaxNode?.GetType().Name ?? "NULL"}");
-
-            // Propagate the result from the returned value check.
-            if (!valuePurityResult.IsPure)
+            // Check the expression being returned (if any)
+            if (returnOperation.ReturnedValue != null)
             {
-                PurityAnalysisEngine.LogDebug($"    [ReturnRule] Returned value is impure. Propagating result.");
+                PurityAnalysisEngine.LogDebug($"    [ReturnRule] Checking returned value: {returnOperation.ReturnedValue.Syntax} ({returnOperation.ReturnedValue.Kind})");
+                var valueResult = PurityAnalysisEngine.CheckSingleOperation(returnOperation.ReturnedValue, context, currentState);
+                if (!valueResult.IsPure)
+                {
+                    PurityAnalysisEngine.LogDebug($"    [ReturnRule] Returned value is IMPURE. Return statement is Impure.");
+                    return valueResult;
+                }
+                else
+                {
+                    PurityAnalysisEngine.LogDebug($"    [ReturnRule] Returned value is pure. Return statement is Pure.");
+                    return valueResult;
+                }
             }
-            else
-            {
-                PurityAnalysisEngine.LogDebug($"    [ReturnRule] Returned value is pure. Return statement is Pure.");
-            }
-            return valuePurityResult;
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
         }
     }
 }

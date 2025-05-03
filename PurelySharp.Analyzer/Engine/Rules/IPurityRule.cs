@@ -18,11 +18,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
         /// </summary>
         /// <param name="operation">The operation to check.</param>
         /// <param name="context">The analysis context containing relevant semantic information and state.</param>
+        /// <param name="currentState">The current DFA state.</param>
         /// <returns>
         /// A PurityAnalysisResult indicating whether the operation is pure according to this rule.
         /// Returns PurityAnalysisResult.Pure if pure, or PurityAnalysisResult.Impure(syntaxNode) if impure.
         /// </returns>
-        PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context);
+        PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState);
 
         /// <summary>
         /// Gets the specific kinds of operations this rule applies to.

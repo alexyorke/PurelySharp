@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
 using System.Linq;
+using System.Collections.Immutable;
 
 namespace PurelySharp.Analyzer.Engine.Rules
 {
@@ -11,16 +12,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
     internal class UnaryOperationPurityRule : IPurityRule
     {
         // Handle unary plus, minus, logical not, bitwise complement
-        public IEnumerable<OperationKind> ApplicableOperationKinds => new[]
-        {
-             OperationKind.UnaryOperator, 
-             // OperationKind.UnaryPlus, // Obsolete? Use UnaryOperator
-             // OperationKind.UnaryMinus, // Obsolete? Use UnaryOperator
-             // OperationKind.BitwiseNegation, // Obsolete? Use UnaryOperator
-             // OperationKind.LogicalNot // Obsolete? Use UnaryOperator
-        };
+        public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.Unary);
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
             if (!(operation is IUnaryOperation unaryOperation))
             {
@@ -28,18 +22,39 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
 
-            PurityAnalysisEngine.LogDebug($"  [UnaryRule] Checking Unary Operation: {unaryOperation.OperatorKind} on {unaryOperation.Syntax}");
+            PurityAnalysisEngine.LogDebug($"  [UnaryOpRule] Checking Unary Operation: {unaryOperation.Syntax} (Operator: {unaryOperation.OperatorKind})");
 
-            // Check the operand's purity
-            var operandResult = PurityAnalysisEngine.CheckSingleOperation(unaryOperation.Operand, context);
+            // 1. Check the Operand
+            var operandResult = PurityAnalysisEngine.CheckSingleOperation(unaryOperation.Operand, context, currentState);
             if (!operandResult.IsPure)
             {
-                PurityAnalysisEngine.LogDebug($"    [UnaryRule] Operand is Impure: {unaryOperation.Operand.Syntax}");
+                PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] Operand is Impure: {unaryOperation.Operand.Syntax}");
                 return operandResult;
             }
 
-            PurityAnalysisEngine.LogDebug($"    [UnaryRule] Operand is Pure. Unary operation is Pure.");
+            PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] Operand is Pure. Unary operation is Pure.");
+
+            // 2. Check for user-defined operator method
+            if (unaryOperation.OperatorMethod != null && !IsPureOperator(unaryOperation.OperatorMethod, context))
+            {
+                PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] User-defined operator method '{unaryOperation.OperatorMethod.Name}' is IMPURE. Unary operation is Impure.");
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(unaryOperation.Syntax);
+            }
+
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private bool IsPureOperator(IMethodSymbol operatorMethod, PurityAnalysisContext context)
+        {
+            var operatorPurity = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
+                operatorMethod.OriginalDefinition,
+                context.SemanticModel,
+                context.EnforcePureAttributeSymbol,
+                context.AllowSynchronizationAttributeSymbol,
+                context.VisitedMethods,
+                context.PurityCache);
+
+            return operatorPurity.IsPure;
         }
     }
 }

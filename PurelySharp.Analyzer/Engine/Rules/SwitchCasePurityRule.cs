@@ -14,7 +14,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
     {
         public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.CaseClause); // Note: OperationKind is CaseClause
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
             // A case clause label is pure control flow.
             PurityAnalysisEngine.LogDebug($"    [SwitchCaseRule] CaseClause operation ({operation.Syntax}) - Pure");

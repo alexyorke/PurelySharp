@@ -67,25 +67,28 @@ public class TestClass
         [Test]
         public async Task MethodWithDelegateInvocation_Diagnostic()
         {
-            // Expectation limitation: Analyzer fails to detect potential impurity of delegate invocations.
-            var test = @"
+            var testCode = @"
 using System;
+using System.Threading;
 using PurelySharp.Attributes;
-
-
 
 public class TestClass
 {
-    private Action _action = () => { };
+    private Action _impureAction = () => Console.WriteLine(); // Impure delegate target
 
     [EnforcePure]
     public void TestMethod()
     {
-        _action(); // Delegate invocation is impure
+        // Invoking a delegate whose target might be impure
+        _impureAction(); // Should trigger PS0002 if target analysis fails or is conservative
     }
-}";
+}
+";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0002 because the delegate target's purity cannot be guaranteed by current analysis
+            var expectedDiagnostic = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(11, 17, 11, 27).WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedDiagnostic);
         }
 
         [Test]

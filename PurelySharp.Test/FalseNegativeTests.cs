@@ -54,7 +54,7 @@ public class TestClass
         ImpureAction();
     }
 }";
-            // No diagnostic expected – the analyzer incorrectly considers the method pure.
+            // UPDATE: Now expect the diagnostic marked in the test string.
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -227,7 +227,7 @@ public class TestClass
         return ImpureInitializer.Value;
     }
 }";
-            // No diagnostic expected – analyzer limitation.
+            // UPDATE: Now expect the diagnostic marked in the test string.
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -250,7 +250,7 @@ public class TestClass
         GC.SuppressFinalize(r);
     }
 }";
-            // No diagnostic expected – analyzer limitation.
+            // UPDATE: Now expect the diagnostic marked in the test string.
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -285,8 +285,14 @@ public class TestClass
         return result;
     }
 }";
-            // No diagnostic expected – analyzer limitation.
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0002 on the containing method because the implicit conversion is impure
+            var expected = new[] {
+                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule) // Expect PS0002
+                                       .WithSpan(21, 13, 21, 15) // Target assignment 'y = ic' (line 21)
+                                       .WithArguments("ConvertIt") // Containing method name
+            };
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         // --- More Advanced / Robust Fix Tests ---
@@ -374,8 +380,12 @@ public class TestClass
         TakesInt(ic);
     }
 }";
-            // Expects diagnostic, but likely fails due to analyzer limitation.
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0002 on the containing method because the implicit conversion is impure
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule) // Expect PS0002
+                                   .WithSpan(23, 13, 23, 23) // Target method call 'TakesInt(ic)' (line 23)
+                                   .WithArguments("ConvertItViaArg"); // Containing method name
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]

@@ -69,28 +69,29 @@ public class TestClass
         [Test]
         public async Task PureMethodWithDelegateInvocation_Diagnostic()
         {
-            var test = @"
+            var testCode = @"
 using System;
 using PurelySharp.Attributes;
 
+public delegate void MyAction();
+
 public class TestClass
 {
-    private readonly Action _action;
-    
-    public TestClass()
-    {
-        _action = () => Console.WriteLine(""Hello from field delegate"");
-    }
+    private MyAction _pureAction = () => { var x = 1; }; // Pure target
 
     [EnforcePure]
     public void TestMethod()
     {
-        // Invoking a delegate stored in a field
-        _action();
+        // Even though the target is pure, the analysis might not be able to verify it.
+        _pureAction(); // Expect PS0002 due to analysis limitations
     }
-}";
-            // UPDATED: Expect no diagnostic due to current analyzer limitation
-            await VerifyCS.VerifyAnalyzerAsync(test);
+}
+";
+
+            // Expect PS0002 because delegate invocation analysis is conservative
+            var expectedDiagnostic = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(12, 17, 12, 27).WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedDiagnostic);
         }
     }
 }

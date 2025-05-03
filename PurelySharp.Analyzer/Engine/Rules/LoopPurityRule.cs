@@ -16,7 +16,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
         // Covers For, ForEach, While, DoWhile loops
         public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.Loop);
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
             if (!(operation is ILoopOperation loopOperation))
             {
@@ -33,7 +33,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 foreach (var bodyOp in loopOperation.Body.DescendantsAndSelf())
                 {
                     // Use the helper function to check each operation within the body
-                    var opResult = PurityAnalysisEngine.CheckSingleOperation(bodyOp, context);
+                    var opResult = PurityAnalysisEngine.CheckSingleOperation(bodyOp, context, currentState);
                     if (!opResult.IsPure)
                     {
                         PurityAnalysisEngine.LogDebug($"    [LoopRule] IMPURE due to operation in loop body: {bodyOp.Kind} at {bodyOp.Syntax.GetLocation()?.GetLineSpan().StartLinePosition}");

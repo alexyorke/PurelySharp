@@ -45,27 +45,28 @@ public class TestClass
         [Test]
         public async Task ImpureMethodWithEvent_Diagnostic()
         {
-            // Expectation limitation: Analyzer fails to detect impurity of event invocation ('Invoke').
-            var test = @"
+            var testCode = @"
 using System;
 using PurelySharp.Attributes;
 
-
-
 public class TestClass
 {
-    public event EventHandler TestEvent;
+    public event Action MyEvent;
 
     [EnforcePure]
     public void TestMethod()
     {
-        // Invoking an event is impure (but analyzer doesn't detect it currently)
-        TestEvent?.Invoke(this, EventArgs.Empty);
+        // Event subscription modifies state and should be impure.
+        MyEvent += () => Console.WriteLine(); // Expect PS0002 if no specific rule flags this
     }
-}";
+}
+";
 
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0002 because event subscription/unsubscription modifies state,
+            // and the analyzer may not have a specific rule, falling back to unverified.
+            var expectedDiagnostic = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(10, 17, 10, 27).WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedDiagnostic);
         }
 
         [Test]

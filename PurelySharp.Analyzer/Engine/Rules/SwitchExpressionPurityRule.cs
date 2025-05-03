@@ -14,7 +14,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
     {
         public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.SwitchExpression);
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
             if (!(operation is ISwitchExpressionOperation switchExpression))
             {
@@ -22,105 +22,57 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
 
-            PurityAnalysisEngine.LogDebug($"SwitchExpressionPurityRule: Analyzing {switchExpression.Syntax}");
+            PurityAnalysisEngine.LogDebug($"  [SwitchExprRule] Checking Switch Expression: {switchExpression.Syntax}");
 
-            // Check the value being switched on
-            PurityAnalysisEngine.LogDebug($" SwitchExpressionPurityRule: Checking ValueToMatch ({switchExpression.Value?.Kind})");
-            if (switchExpression.Value != null)
+            // 1. Check the expression being switched on
+            var valueResult = PurityAnalysisEngine.CheckSingleOperation(switchExpression.Value, context, currentState);
+            if (!valueResult.IsPure)
             {
-                var valueResult = PurityAnalysisEngine.CheckSingleOperation(switchExpression.Value, context);
-                if (!valueResult.IsPure)
-                {
-                    PurityAnalysisEngine.LogDebug($" SwitchExpressionPurityRule: ValueToMatch is IMPURE.");
-                    return valueResult;
-                }
-                PurityAnalysisEngine.LogDebug($" SwitchExpressionPurityRule: ValueToMatch is Pure.");
+                PurityAnalysisEngine.LogDebug($"    [SwitchExprRule] Value expression is Impure: {switchExpression.Value.Syntax}");
+                return valueResult;
             }
 
-            // --- MODIFICATION START --- 
-            PurityAnalysisEngine.PurityAnalysisResult firstNonOverriddenImpurity = PurityAnalysisEngine.PurityAnalysisResult.Pure; // Track first "real" impurity
-
-            // Check each arm (Pattern, WhenClause, Value)
+            // 2. Check all switch expression arms
             foreach (var arm in switchExpression.Arms)
             {
-                PurityAnalysisEngine.LogDebug($" SwitchExpressionPurityRule: Checking Arm Pattern ({arm.Pattern?.Kind})");
+                PurityAnalysisEngine.LogDebug($"    [SwitchExprRule] Checking Arm: {arm.Syntax}");
+
+                // Check pattern (if any)
                 if (arm.Pattern != null)
                 {
-                    // Note: Pattern matching operations themselves are generally pure,
-                    // but we check anyway in case a complex pattern operation exists.
-                    var patternResult = PurityAnalysisEngine.CheckSingleOperation(arm.Pattern, context);
+                    PurityAnalysisEngine.LogDebug($"      [SwitchExprRule.Arm] Checking Pattern: {arm.Pattern.Syntax} ({arm.Pattern.Kind})");
+                    var patternResult = PurityAnalysisEngine.CheckSingleOperation(arm.Pattern, context, currentState);
                     if (!patternResult.IsPure)
                     {
-                        PurityAnalysisEngine.LogDebug($" SwitchExpressionPurityRule: Arm Pattern is IMPURE.");
-                        // Update firstNonOverriddenImpurity if it's still pure
-                        if (firstNonOverriddenImpurity.IsPure) firstNonOverriddenImpurity = patternResult;
-                        // Continue checking other arms in case they have other impurities, but keep the first one found.
+                        PurityAnalysisEngine.LogDebug($"      [SwitchExprRule.Arm] Pattern is IMPURE. Switch expression is Impure.");
+                        return patternResult;
                     }
                 }
 
-                PurityAnalysisEngine.LogDebug($" SwitchExpressionPurityRule: Checking Arm Value ({arm.Value?.Kind})");
-                if (arm.Value != null) // Value can be null if arm throws an exception
+                // Check guard (when clause, if any)
+                if (arm.Guard != null)
                 {
-                    var armValueResult = PurityAnalysisEngine.CheckSingleOperation(arm.Value, context);
-                    if (!armValueResult.IsPure)
+                    PurityAnalysisEngine.LogDebug($"      [SwitchExprRule.Arm] Checking Guard: {arm.Guard.Syntax} ({arm.Guard.Kind})");
+                    var guardResult = PurityAnalysisEngine.CheckSingleOperation(arm.Guard, context, currentState);
+                    if (!guardResult.IsPure)
                     {
-                        // --- SPECIAL CASE CHECK --- 
-                        bool impurityOverridden = false;
-                        if (armValueResult.ImpureSyntaxNode is PrefixUnaryExpressionSyntax prefixUnary &&
-                            (prefixUnary.Kind() == SyntaxKind.PreIncrementExpression || prefixUnary.Kind() == SyntaxKind.PreDecrementExpression))
-                        {
-                            var operandOp = context.SemanticModel.GetOperation(prefixUnary.Operand, context.CancellationToken);
-                            if (operandOp is IFieldReferenceOperation fieldRef &&
-                                fieldRef.Instance is IInstanceReferenceOperation instanceRef &&
-                                instanceRef.ReferenceKind == InstanceReferenceKind.ContainingTypeInstance &&
-                                fieldRef.Field != null && !fieldRef.Field.IsStatic)
-                            {
-                                PurityAnalysisEngine.LogDebug($"    [SwitchExprRule] OVERRIDE: Impurity from ++/-- on 'this.{fieldRef.Field.Name}' in arm value ignored.");
-                                impurityOverridden = true;
-                            }
-                        }
-                        else if (armValueResult.ImpureSyntaxNode is PostfixUnaryExpressionSyntax postfixUnary &&
-                                 (postfixUnary.Kind() == SyntaxKind.PostIncrementExpression || postfixUnary.Kind() == SyntaxKind.PostDecrementExpression))
-                        {
-                            var operandOp = context.SemanticModel.GetOperation(postfixUnary.Operand, context.CancellationToken);
-                            if (operandOp is IFieldReferenceOperation fieldRef &&
-                               fieldRef.Instance is IInstanceReferenceOperation instanceRef &&
-                               instanceRef.ReferenceKind == InstanceReferenceKind.ContainingTypeInstance &&
-                               fieldRef.Field != null && !fieldRef.Field.IsStatic)
-                            {
-                                PurityAnalysisEngine.LogDebug($"    [SwitchExprRule] OVERRIDE: Impurity from ++/-- on 'this.{fieldRef.Field.Name}' in arm value ignored.");
-                                impurityOverridden = true;
-                            }
-                        }
-                        // --- END SPECIAL CASE CHECK ---
-
-                        if (!impurityOverridden)
-                        {
-                            PurityAnalysisEngine.LogDebug($" SwitchExpressionPurityRule: Arm Value is IMPURE (Non-overridden).");
-                            // Update firstNonOverriddenImpurity if it's still pure
-                            if (firstNonOverriddenImpurity.IsPure) firstNonOverriddenImpurity = armValueResult;
-                            // Continue checking other arms
-                        }
+                        PurityAnalysisEngine.LogDebug($"      [SwitchExprRule.Arm] Guard is IMPURE. Switch expression is Impure.");
+                        return guardResult;
                     }
                 }
-                else
+
+                // Check the expression value of the arm
+                PurityAnalysisEngine.LogDebug($"      [SwitchExprRule.Arm] Checking Value: {arm.Value.Syntax} ({arm.Value.Kind})");
+                var armValueResult = PurityAnalysisEngine.CheckSingleOperation(arm.Value, context, currentState);
+                if (!armValueResult.IsPure)
                 {
-                    PurityAnalysisEngine.LogDebug($" SwitchExpressionPurityRule: Arm Value is null (e.g., throws). Assuming handled by other operations.");
+                    PurityAnalysisEngine.LogDebug($"      [SwitchExprRule.Arm] Value is IMPURE. Switch expression is Impure.");
+                    return armValueResult;
                 }
-                PurityAnalysisEngine.LogDebug($" SwitchExpressionPurityRule: Arm processed and appears Pure.");
             }
 
-            // Return the first non-overridden impurity found, or Pure if none were found.
-            if (!firstNonOverriddenImpurity.IsPure)
-            {
-                PurityAnalysisEngine.LogDebug($"SwitchExpressionPurityRule: Finished checking arms. Returning first non-overridden impure result.");
-            }
-            else
-            {
-                PurityAnalysisEngine.LogDebug($"SwitchExpressionPurityRule: All parts checked and pure (or impurity overridden) for {switchExpression.Syntax}.");
-            }
-            return firstNonOverriddenImpurity;
-            // --- MODIFICATION END ---
+            PurityAnalysisEngine.LogDebug($"SwitchExpressionPurityRule: All parts checked and pure (or impurity overridden) for {switchExpression.Syntax}.");
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
         }
     }
 }

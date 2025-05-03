@@ -256,41 +256,40 @@ public class TestClass
         [Test]
         public async Task ParamsWithImpureDelegate_Diagnostic()
         {
-            var test = @"
+            var testCode = @"
 using System;
 using PurelySharp.Attributes;
 
+public delegate void ProcessAction(int number);
+
 public class TestClass
 {
-    private static int _counter = 0;
-    public static int IncrementStaticCounter(int a, int b) { _counter++; return a + b; } // IMPURE
+    public static void ImpureAction(int n) => Console.WriteLine(n);
 
     [EnforcePure]
-    public int ProcessNumbers(Func<int, int, int> operation, params int[] numbers)
+    public static void ProcessNumbers(ProcessAction processor, params int[] numbers)
     {
-        int result = 0;
-        for (int i = 0; i < numbers.Length - 1; i += 2)
+        foreach (var number in numbers)
         {
-            result += operation(numbers[i], numbers[i+1]); // Invokes IMPURE delegate
-            // Expectation limitation: Analyzer doesn't detect impurity when an impure
-            // delegate ('IncrementStaticCounter') is passed and invoked.
+            processor(number); // Impure call via delegate
         }
-        return result;
     }
 
     [EnforcePure]
-    public int TestMethod()
+    public static void TestMethod()
     {
-        Func<int, int, int> impureDelegate = IncrementStaticCounter;
-        return ProcessNumbers(impureDelegate, 1, 2, 3, 4);
+        ProcessNumbers(ImpureAction, 1, 2, 3);
     }
-}";
-            // REMOVED: Expected diagnostic on ProcessNumbers (analyzer currently misses this)
-            // ADDED: Expect diagnostic on TestMethod for calling ProcessNumbers with impure delegate
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(24, 16, 24, 26) // Adjusted span based on failure
-                                   .WithArguments("TestMethod");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+}
+";
+
+            // Expect PS0002 on ProcessNumbers because delegate invocation purity isn't guaranteed
+            var expectedDiagPS0002_Process = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(12, 24, 12, 38).WithArguments("ProcessNumbers");
+
+            // Expect PS0002 on TestMethod because it calls ProcessNumbers
+            var expectedDiagPS0002_TestMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(21, 24, 21, 34).WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedDiagPS0002_Process, expectedDiagPS0002_TestMethod);
         }
     }
 }

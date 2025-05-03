@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.Operations;
 using System.Linq; // Required for LINQ operations like Any
 using System.Collections.Generic; // For IEnumerable
 using System.Collections.Immutable; // For ImmutableArray.Create
+using PurelySharp.Analyzer.Engine; // Add this
 
 namespace PurelySharp.Analyzer.Engine.Rules
 {
@@ -15,7 +16,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
         public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.CollectionExpression);
 
         // Return type matches interface: PurityAnalysisEngine.PurityAnalysisResult (non-nullable)
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
             if (!(operation is ICollectionExpressionOperation collectionExpression))
             {

@@ -13,7 +13,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
     {
         public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.Tuple);
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context)
+        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
             if (!(operation is ITupleOperation tupleOperation))
             {
@@ -23,13 +23,14 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             PurityAnalysisEngine.LogDebug($"    [TupleRule] Checking Tuple operation ({operation.Syntax})...");
 
-            // Check each element within the tuple
+            // Check each element in the tuple
             foreach (var element in tupleOperation.Elements)
             {
-                var elementResult = PurityAnalysisEngine.CheckSingleOperation(element, context);
+                PurityAnalysisEngine.LogDebug($"    [TupleRule] Checking element: {element.Syntax} ({element.Kind})");
+                var elementResult = PurityAnalysisEngine.CheckSingleOperation(element, context, currentState);
                 if (!elementResult.IsPure)
                 {
-                    PurityAnalysisEngine.LogDebug($"    [TupleRule] Tuple IMPURE due to element: {element.Syntax}");
+                    PurityAnalysisEngine.LogDebug($"    [TupleRule] Element is IMPURE. Tuple creation is Impure.");
                     return elementResult;
                 }
             }

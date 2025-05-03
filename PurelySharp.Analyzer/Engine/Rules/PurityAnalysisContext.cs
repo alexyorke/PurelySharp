@@ -12,9 +12,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
     /// </summary>
     internal class PurityAnalysisContext
     {
-        // Add CancellationToken property
         public CancellationToken CancellationToken { get; }
-
         public SemanticModel SemanticModel { get; }
         public INamedTypeSymbol EnforcePureAttributeSymbol { get; }
         public INamedTypeSymbol? PureAttributeSymbol { get; }
@@ -22,7 +20,6 @@ namespace PurelySharp.Analyzer.Engine.Rules
         public HashSet<IMethodSymbol> VisitedMethods { get; }
         public Dictionary<IMethodSymbol, PurityAnalysisEngine.PurityAnalysisResult> PurityCache { get; }
         public IMethodSymbol ContainingMethodSymbol { get; }
-        // Added PurityRules property
         public ImmutableList<IPurityRule> PurityRules { get; }
 
         public PurityAnalysisContext(
