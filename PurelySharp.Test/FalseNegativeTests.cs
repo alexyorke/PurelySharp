@@ -288,5 +288,134 @@ public class TestClass
             // No diagnostic expected – analyzer limitation.
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        // --- More Advanced / Robust Fix Tests ---
+
+        [Test]
+        public async Task ImpureDelegateViaParameter_NoDiagnostic_Bug()
+        {
+            // Similar to the field delegate, but passed via parameter.
+            // Requires tracking delegate purity across method boundaries.
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    private static void ImpureTarget() => Console.WriteLine(""Impure Target Called"");
+
+    private void InvokeDelegate(Action action) => action();
+
+    [EnforcePure]
+    public void {|PS0002:CallImpureDelegateViaParam|}()
+    {
+        // Pass impure delegate as parameter; InvokeDelegate call becomes impure.
+        InvokeDelegate(ImpureTarget);
+    }
+}";
+            // Expects diagnostic, but likely fails due to analyzer limitation.
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ImpureDelegateViaReturnValue_NoDiagnostic_Bug()
+        {
+            // Requires tracking purity of returned delegates.
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    private Action GetImpureAction() {
+        return () => Console.WriteLine(""Impure action returned and called"");
+    }
+
+    [EnforcePure]
+    public void {|PS0002:CallImpureDelegateViaReturn|}()
+    {
+        // Get and invoke the impure delegate.
+        Action impure = GetImpureAction();
+        impure();
+    }
+}";
+            // Expects diagnostic, but likely fails due to analyzer limitation.
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ImpureImplicitConversionViaMethodArg_NoDiagnostic_Bug()
+        {
+            // Triggers impure conversion by passing object to method expecting converted type.
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class ImpureConverterArg
+{
+    public int Value { get; }
+    public ImpureConverterArg(int value) { Value = value; }
+
+    public static implicit operator int(ImpureConverterArg ic)
+    {
+        Console.WriteLine($""Converting ImpureConverterArg({ic.Value}) to int"" + Environment.NewLine); // Impure
+        return ic.Value;
+    }
+}
+
+public class TestClass
+{
+    private void TakesInt(int i) { /* Does nothing */ }
+
+    [EnforcePure]
+    public void {|PS0002:ConvertItViaArg|}(ImpureConverterArg ic)
+    {
+        // Passing 'ic' to TakesInt triggers the impure implicit conversion.
+        TakesInt(ic);
+    }
+}";
+            // Expects diagnostic, but likely fails due to analyzer limitation.
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task IndirectStaticConstructorTrigger_Diagnostic()
+        {
+            // Verify that the static constructor check handles indirect triggers.
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public static class IndirectImpureInitializer
+{
+    public static readonly int IndirectValue;
+    static IndirectImpureInitializer()
+    {
+        Console.WriteLine(""Indirect Static constructor ran!""); // Impure action
+        IndirectValue = 200;
+    }
+}
+
+public static class IntermediateCaller
+{
+    public static int GetValue()
+    {
+        return IndirectImpureInitializer.IndirectValue; // Triggers .cctor
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:TriggerIndirectStaticConstructor|}()
+    {
+        // Calling IntermediateCaller.GetValue() should trigger the impurity check
+        // for IndirectImpureInitializer's .cctor.
+        return IntermediateCaller.GetValue();
+    }
+}";
+            // Expects diagnostic because the .cctor check should propagate.
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
