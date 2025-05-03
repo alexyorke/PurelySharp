@@ -84,6 +84,29 @@ namespace PurelySharp.Analyzer.Engine.Rules
                                 PurityAnalysisEngine.LogDebug($"  [MIR] DelegateCreation target is neither MethodReference nor AnonymousFunction: {creationOp.Target?.Kind}");
                             }
                         }
+                        else if (invocationOperation.Instance is IFieldReferenceOperation fieldRefOp)
+                        {
+                            // Try to find the initializer for the field
+                            var fieldSymbol = fieldRefOp.Field;
+                            if (fieldSymbol?.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(context.CancellationToken) is VariableDeclaratorSyntax declarator &&
+                                declarator.Initializer?.Value is IOperation fieldInitializerOp)
+                            {
+                                PurityAnalysisEngine.LogDebug($"  [MIR] Delegate instance is FieldReference '{fieldSymbol.Name}'. Analyzing field initializer...");
+                                if (fieldInitializerOp is IDelegateCreationOperation fieldCreationOp)
+                                {
+                                    actualTarget = ResolveDelegateCreationTarget(fieldCreationOp);
+                                    PurityAnalysisEngine.LogDebug($"  [MIR] Resolved delegate target from FieldReference/Initializer/DelegateCreation: {actualTarget?.ToDisplayString() ?? "NULL"}");
+                                }
+                                else
+                                {
+                                    PurityAnalysisEngine.LogDebug($"  [MIR] Field initializer is not DelegateCreation: {fieldInitializerOp.Kind}");
+                                }
+                            }
+                            else
+                            {
+                                PurityAnalysisEngine.LogDebug($"  [MIR] Could not find initializer for field: {fieldSymbol?.Name ?? "Unknown"}");
+                            }
+                        }
                         else
                         {
                             // TODO: Handle other delegate instance kinds (local refs, params, field refs, method returns)
@@ -284,6 +307,20 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return recursiveResult.IsPure
                 ? PurityAnalysisEngine.PurityAnalysisResult.Pure
                 : PurityAnalysisEngine.PurityAnalysisResult.Impure(recursiveResult.ImpureSyntaxNode ?? invocationOperation.Syntax);
+        }
+
+        // Helper to resolve target from DelegateCreationOperation
+        private static IMethodSymbol? ResolveDelegateCreationTarget(IDelegateCreationOperation creationOp)
+        {
+            if (creationOp.Target is IMethodReferenceOperation methodRef)
+            {
+                return methodRef.Method;
+            }
+            else if (creationOp.Target is IAnonymousFunctionOperation lambdaOp)
+            {
+                return lambdaOp.Symbol;
+            }
+            return null;
         }
 
         // *** REMOVED HELPER METHODS for delegate resolution *** 
