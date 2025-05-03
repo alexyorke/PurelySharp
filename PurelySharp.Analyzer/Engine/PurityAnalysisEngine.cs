@@ -1423,8 +1423,29 @@ namespace PurelySharp.Analyzer.Engine
                     return PurityAnalysisResult.Pure;
                 }
 
-                // --- 6. Handle Abstract/External/Missing Body for Unknown Methods --- (Priority 4)
+                // --- GET BODY NODE EARLIER --- 
                 SyntaxNode? bodySyntaxNode = GetBodySyntaxNode(methodSymbol, default); // Get body node once
+
+                // --- ADDED: Check for ref returns --- (Priority 5)
+                if (methodSymbol.ReturnsByRef)
+                {
+                    LogDebug($"{indent}Method {methodSymbol.ToDisplayString()} returns by ref. IMPURE.");
+                    // Find syntax node for diagnostic. Use return type syntax if possible.
+                    SyntaxNode? locationSyntax = methodSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax()?.DescendantNodesAndSelf()
+                        .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.RefTypeSyntax>()
+                        .FirstOrDefault();
+                    // Fallback to method identifier if RefTypeSyntax not found
+                    locationSyntax ??= methodSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax()?.DescendantNodesAndSelf()
+                                            .FirstOrDefault(n => n is Microsoft.CodeAnalysis.CSharp.Syntax.IdentifierNameSyntax ins && ins.Identifier.ValueText == methodSymbol.Name)
+                                            ?.Parent; // Get parent (e.g., MethodDeclarationSyntax) for better span
+
+                    purityCache[methodSymbol] = ImpureResult(locationSyntax ?? bodySyntaxNode); // Use body as final fallback
+                    LogDebug($"{indent}<< Exit DeterminePurity (ReturnsByRef): {methodSymbol.ToDisplayString()}"); // Log exit
+                    return purityCache[methodSymbol];
+                }
+
+                // --- 6. Handle Abstract/External/Missing Body for Unknown Methods --- (Priority 6 - Renumbered)
+                // SyntaxNode? bodySyntaxNode = GetBodySyntaxNode(methodSymbol, default); // MOVED UP
                 if (methodSymbol.IsAbstract || methodSymbol.IsExtern || bodySyntaxNode == null)
                 {
                     LogDebug($"{indent}Method {methodSymbol.ToDisplayString()} is abstract, extern, or has no body AND not known impure/pure. Assuming pure.");
