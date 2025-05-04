@@ -620,7 +620,6 @@ public class Service
         }
 
         [Test]
-        [Ignore("Failing test - Expected diagnostic line mismatch")]
         public async Task AbstractClassWithMixedPurity_Diagnostics()
         {
             var testCode = @"
@@ -707,10 +706,10 @@ public class TestUsage
             // Corrected span for LogStatus to line 23.
             var expected = new[]
             {
-                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(22, 17, 22, 26).WithArguments("LogStatus"), // LogStatus (Impure Console) - Method signature on line 22
-                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(48, 25, 48, 32).WithArguments("Process"), // AddingProcessor.Process (State change) - Method signature on line 48
-                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(56, 28, 56, 34).WithArguments("Format"), // AddingProcessor.Format (Impure Console) - Method signature on line 56
-                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(74, 18, 74, 38).WithArguments("UseProcessorImpurely"), // UseProcessorImpurely (Calls impure LogStatus) - Method signature on line 74
+                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(23, 17, 23, 26).WithArguments("LogStatus"), // LogStatus (Impure Console) - CORRECTED Line 23
+                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(49, 25, 49, 32).WithArguments("Process"), // AddingProcessor.Process (State change) - CORRECTED Line 49
+                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(57, 28, 57, 34).WithArguments("Format"), // AddingProcessor.Format (Impure Console) - CORRECTED Line 57
+                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(75, 18, 75, 38).WithArguments("UseProcessorImpurely"), // UseProcessorImpurely (Calls impure LogStatus) - CORRECTED Line 75
             };
 
             await VerifyCS.VerifyAnalyzerAsync(testCode, expected);
