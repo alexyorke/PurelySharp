@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using PurelySharp.Analyzer.Engine;
+using static PurelySharp.Analyzer.Engine.PurityAnalysisEngine; // Import static members like PurityAnalysisResult
 
 namespace PurelySharp.Analyzer.Engine.Rules
 {
@@ -14,70 +15,52 @@ namespace PurelySharp.Analyzer.Engine.Rules
     {
         public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.ArrayCreation);
 
-        public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
+        public PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisState currentState)
         {
             if (!(operation is IArrayCreationOperation arrayCreation))
             {
-                return PurityAnalysisEngine.PurityAnalysisResult.Pure; // Should not happen
+                return PurityAnalysisResult.Pure; // Should not happen
             }
 
-            PurityAnalysisEngine.LogDebug($"ArrayCreationRule: Analyzing {arrayCreation.Syntax}");
+            LogDebug($"ArrayCreationRule: Analyzing {arrayCreation.Syntax}");
 
-            // Array creation allocates memory and returns a mutable array, consider it impure.
-            PurityAnalysisEngine.LogDebug($"ArrayCreationRule: Array creation '{arrayCreation.Syntax}' is impure (mutable allocation).");
-            return PurityAnalysisEngine.PurityAnalysisResult.Impure(arrayCreation.Syntax);
+            // Check if this array creation is directly used for a 'params' parameter argument.
+            bool isParamsArray = arrayCreation.Parent is IArgumentOperation argumentOperation &&
+                                argumentOperation.Parameter != null &&
+                                argumentOperation.Parameter.IsParams;
 
-            /* // --- Old logic that checked initializers --- (Now handled by consuming rules)
-            if (arrayCreation.Initializer != null)
+            if (isParamsArray)
             {
-                PurityAnalysisEngine.LogDebug($"  Checking {arrayCreation.Initializer.ElementValues.Length} initializer elements...");
-                foreach (var elementValue in arrayCreation.Initializer.ElementValues)
+                // LogDebug($"    [ArrCreateRule] Array creation '{arrayCreation.Syntax}' is for a 'params' parameter '{argumentOperation.Parameter.Name}'. Checking initializer elements."); // Removed log causing build error
+                // If it's for params, the allocation itself is generally acceptable.
+                // Check the *initializer elements* for purity.
+                if (arrayCreation.Initializer != null)
                 {
-                    var elementPurity = PurityAnalysisEngine.CheckSingleOperation(elementValue, context);
-                    if (!elementPurity.IsPure)
+                    foreach (var elementValue in arrayCreation.Initializer.ElementValues)
                     {
-                        PurityAnalysisEngine.LogDebug($"  Initializer element '{elementValue.Syntax}' is Impure. Result: Impure.");
-                        return elementPurity;
+                        var elementPurity = CheckSingleOperation(elementValue, context, currentState);
+                        if (!elementPurity.IsPure)
+                        {
+                            LogDebug($"    [ArrCreateRule] 'params' array initializer element '{elementValue.Syntax}' is IMPURE. Operation is Impure.");
+                            return PurityAnalysisResult.Impure(elementPurity.ImpureSyntaxNode ?? elementValue.Syntax);
+                        }
                     }
-                    PurityAnalysisEngine.LogDebug($"  Initializer element '{elementValue.Syntax}' is Pure.");
+                    LogDebug($"    [ArrCreateRule] All 'params' array initializer elements are Pure.");
                 }
-                PurityAnalysisEngine.LogDebug($"  All initializer elements are Pure.");
+                else
+                {
+                    LogDebug($"    [ArrCreateRule] 'params' array has no initializer elements to check.");
+                }
+                // If initializer is null or all elements are pure, treat this params allocation as pure.
+                LogDebug($"    [ArrCreateRule] 'params' array creation itself treated as PURE.");
+                return PurityAnalysisResult.Pure;
             }
             else
             {
-                PurityAnalysisEngine.LogDebug($"  No initializer elements to check.");
+                // Regular array creation allocates memory and returns a mutable array, consider it impure.
+                LogDebug($"    [ArrCreateRule] Array creation '{arrayCreation.Syntax}' is IMPURE (mutable allocation, not for params).");
+                return PurityAnalysisResult.Impure(arrayCreation.Syntax);
             }
-
-            PurityAnalysisEngine.LogDebug($"ArrayCreationRule: Array creation '{arrayCreation.Syntax}' determined to be Pure.");
-            return PurityAnalysisResult.Pure;
-            */
-
-            // Check dimension sizes
-            foreach (var dimensionSize in arrayCreation.DimensionSizes)
-            {
-                PurityAnalysisEngine.LogDebug($"    [ArrayCreationRule] Checking dimension size: {dimensionSize.Syntax} ({dimensionSize.Kind})");
-                var sizeResult = PurityAnalysisEngine.CheckSingleOperation(dimensionSize, context, currentState);
-                if (!sizeResult.IsPure)
-                {
-                    PurityAnalysisEngine.LogDebug($"    [ArrayCreationRule] Dimension size expression is Impure. Array creation is Impure.");
-                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(arrayCreation.Syntax);
-                }
-            }
-
-            // Check initializer (if present)
-            if (arrayCreation.Initializer != null)
-            {
-                PurityAnalysisEngine.LogDebug($"    [ArrayCreationRule] Checking initializer: {arrayCreation.Initializer.Syntax} ({arrayCreation.Initializer.Kind})");
-                var initializerResult = PurityAnalysisEngine.CheckSingleOperation(arrayCreation.Initializer, context, currentState);
-                if (!initializerResult.IsPure)
-                {
-                    PurityAnalysisEngine.LogDebug($"    [ArrayCreationRule] Initializer is Impure. Array creation is Impure.");
-                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(arrayCreation.Syntax);
-                }
-            }
-
-            PurityAnalysisEngine.LogDebug($"ArrayCreationRule: Array creation '{arrayCreation.Syntax}' determined to be Pure.");
-            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
         }
 
         // Removed IsElementConsideredPure helper as element analysis is deferred to other rules.

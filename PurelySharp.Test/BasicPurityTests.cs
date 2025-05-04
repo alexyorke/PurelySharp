@@ -160,9 +160,10 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:GetDefaultInt|}() => default; // RESTORED inline diagnostic markup
+    public int GetDefaultInt() => default; // REMOVED inline diagnostic markup
 }";
             // Test verifies analyzer limitation: Returning default is incorrectly flagged (PS0002).
+            // UPDATE: Analyzer now correctly handles default as pure.
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
 

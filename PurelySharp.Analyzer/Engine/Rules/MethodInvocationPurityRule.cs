@@ -226,6 +226,22 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 }
             }
 
+            // *** ADDED: Check Argument Purity ***
+            PurityAnalysisEngine.LogDebug($"  [MIR] Checking purity of {invocationOperation.Arguments.Length} arguments for {invokedMethodSymbol.OriginalDefinition.Name}.");
+            foreach (var argument in invocationOperation.Arguments)
+            {
+                PurityAnalysisEngine.LogDebug($"  [MIR]   Checking argument: {argument.Value.Kind} | Syntax: {argument.Value.Syntax.ToString().Trim()}");
+                var argumentResult = PurityAnalysisEngine.CheckSingleOperation(argument.Value, context, currentState);
+                PurityAnalysisEngine.LogDebug($"  [MIR]   Argument check result: IsPure={argumentResult.IsPure}");
+                if (!argumentResult.IsPure)
+                {
+                    PurityAnalysisEngine.LogDebug($"  [MIR] --> IMPURE (Argument is impure)");
+                    // Return the result from the impure argument analysis.
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(argumentResult.ImpureSyntaxNode ?? argument.Value.Syntax);
+                }
+            }
+            // *** END Argument Check ***
+
             // Use OriginalDefinition for checks
             var originalDefinitionSymbol = invokedMethodSymbol.OriginalDefinition;
 

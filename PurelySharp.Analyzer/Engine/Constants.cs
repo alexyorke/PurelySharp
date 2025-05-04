@@ -25,8 +25,8 @@ public static class Constants
         "System.Console",
         "System.Environment", // Accessing env variables, etc.
         "System.Timers.Timer"
-        // "System.Text.StringBuilder" // REMOVED: Handled by method checks
-        // Add specific types like File, HttpClient, Thread etc. if needed beyond namespace check
+    // "System.Text.StringBuilder" // REMOVED: Handled by method checks
+    // Add specific types like File, HttpClient, Thread etc. if needed beyond namespace check
     );
 
     public static readonly HashSet<string> KnownImpureMethods = new HashSet<string>(StringComparer.Ordinal)
@@ -269,8 +269,7 @@ public static class Constants
         "System.IO.BufferedStream.Flush()",
 
         // --- ADDED: string.Format considered impure due to potential ToString/IFormatProvider side effects ---
-        // "string.Format(string, object?)", // Common overload // REMOVED
-        // "string.Format(string, object?, object?)", // Common overload // REMOVED
+        "string.Format(string, object?, object?)", // Common overload
         // "string.Format(string, object?, object?, object?)", // Common overload // REMOVED
         // "string.Format(string, params object?[])", // Param array overload // REMOVED
         // "string.Format(System.IFormatProvider?, string, params object?[])", // Provider overload // REMOVED

@@ -91,7 +91,6 @@ public class TestClass
         }
 
         [Test]
-        [Ignore("Failing test - Mismatch between number of diagnostics returned, expected 1 actual 0")]
         public async Task StringFormatting_ImpureFormat_Diagnostic()
         {
             // Expectation limitation: Analyzer considers string.Format impure.
@@ -107,9 +106,9 @@ public class TestClass
         return string.Format(""X = {0:D}, Y = {1:F2}"", x, y);
     }
 }";
-            // Expect diagnostic on the impure string.Format call
+            // Restore original expectation: PS0002 on the containing method.
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                    .WithSpan(8, 19, 8, 29) // Updated span to method signature
+                                    .WithSpan(8, 19, 8, 29) // Original span for method signature
                                     .WithArguments("TestMethod");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);

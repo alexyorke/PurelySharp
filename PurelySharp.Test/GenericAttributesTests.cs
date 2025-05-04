@@ -93,7 +93,8 @@ namespace TestNamespace
 
             // Test verifies analyzer limitation: Generic methods marked [EnforcePure]
             // are incorrectly flagged (PS0002) even if their body is pure.
-            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(26, 18, 26, 33).WithArguments("GetDefaultValue"));
+            // UPDATE: Analyzer should now correctly handle this generic method as pure.
+            await VerifyCS.VerifyAnalyzerAsync(test /*, VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(26, 18, 26, 33).WithArguments("GetDefaultValue") */);
         }
 
         [Test]

@@ -13,7 +13,6 @@ namespace PurelySharp.Test
 {
     [TestFixture]
     // Commenting out entire class due to inconsistent failures in full suite run
-    // */ 
     public class SimpleCollectionExpressionTests
     {
         [Test]
@@ -183,5 +182,4 @@ public class CollectionExpressionExample
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
-    // */
 }

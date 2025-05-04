@@ -76,6 +76,7 @@ namespace PurelySharp.Analyzer.Engine
             new SwitchCasePurityRule(),
             new LiteralPurityRule(),
             new ConversionPurityRule(),
+            new DefaultValuePurityRule(), // <-- REGISTER NEW RULE
             new FlowCaptureReferencePurityRule(),
             new ConditionalOperationPurityRule(),
             new UnaryOperationPurityRule(),
@@ -729,7 +730,7 @@ namespace PurelySharp.Analyzer.Engine
                         purityCache,
                         containingMethodSymbol,
                         _purityRules,
-                        CancellationToken.None); // Pass the token
+                        CancellationToken.None);
 
                     foreach (var exitOp in exitBlock.Operations)
                     {
@@ -1288,7 +1289,7 @@ namespace PurelySharp.Analyzer.Engine
             // *** UNCOMMENTED TO ENABLE LOGGING ***
             try
             {
-                //Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} [DEBUG] {message}"); // UNCOMMENTED
+                Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} [DEBUG] {message}"); // UNCOMMENTED
             }
             catch (Exception ex)
             {
@@ -1305,23 +1306,25 @@ namespace PurelySharp.Analyzer.Engine
         {
             // Try to get MethodDeclarationSyntax or LocalFunctionStatementSyntax body
             var declaringSyntaxes = methodSymbol.DeclaringSyntaxReferences;
+            LogDebug($"  [GetBody] Checking {declaringSyntaxes.Length} declaring syntax refs for {methodSymbol.Name}"); // Log
             foreach (var syntaxRef in declaringSyntaxes)
             {
                 var syntaxNode = syntaxRef.GetSyntax(cancellationToken); // Use cancellation token
+                LogDebug($"  [GetBody]   SyntaxRef {syntaxRef.Span} yielded SyntaxNode of Kind: {syntaxNode?.Kind()}"); // Log
 
                 // Return the declaration node itself, ControlFlowGraph.Create can handle these.
                 if (syntaxNode is MethodDeclarationSyntax ||
                     syntaxNode is LocalFunctionStatementSyntax ||
                     syntaxNode is AccessorDeclarationSyntax ||
                     syntaxNode is ConstructorDeclarationSyntax ||
-                    syntaxNode is OperatorDeclarationSyntax) // Added Operator
+                    syntaxNode is OperatorDeclarationSyntax ||
+                    syntaxNode is ConversionOperatorDeclarationSyntax) // Added Conversion Operator
                 {
+                    LogDebug($"  [GetBody]   Found usable body node of Kind: {syntaxNode.Kind()}"); // Log
                     return syntaxNode;
                 }
-
-                // For properties with expression bodies, maybe return the ArrowExpressionClauseSyntax?
-                // Let's stick to returning the main declaration syntax for now.
             }
+            LogDebug($"  [GetBody] No usable body node found for {methodSymbol.Name}."); // Log
             return null;
         }
 
