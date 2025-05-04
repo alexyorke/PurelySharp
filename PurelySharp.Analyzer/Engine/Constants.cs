@@ -4,6 +4,7 @@ namespace PurelySharp.Analyzer.Engine;
 
 public static class Constants
 {
+
     public static readonly ImmutableHashSet<string> KnownImpureNamespaces = ImmutableHashSet.Create(
         StringComparer.Ordinal, // Use ordinal comparison for namespace names
         "System.IO",
@@ -116,7 +117,6 @@ public static class Constants
         "System.Lazy<T>.Value.get", // First access runs factory
         "System.Linq.Enumerable.ToArray<TSource>(System.Collections.Generic.IEnumerable<TSource>)", // Allocates
         "System.Linq.Enumerable.ToDictionary<TSource, TKey>(System.Collections.Generic.IEnumerable<TSource>, System.Func<TSource, TKey>)", // Allocates
-        "System.Linq.Enumerable.ToHashSet<TSource>(System.Collections.Generic.IEnumerable<TSource>)", // Allocates
         "System.Linq.Enumerable.ToList<TSource>(System.Collections.Generic.IEnumerable<TSource>)", // Allocates
         "System.Net.Dns.GetHostEntry(string)",
         "System.Net.Http.HttpClient.GetAsync(string)", // Simplified
@@ -145,9 +145,11 @@ public static class Constants
         "System.Runtime.InteropServices.Marshal.StructureToPtr(object, System.IntPtr, bool)",
         // "System.Runtime.InteropServices.Methods decorated with [DllImport]" -> Assume impure unless marked Pure
         "System.Security.Cryptography.RandomNumberGenerator.GetBytes(byte[])",
+        // --- Re-add JsonSerializer.Deserialize to impure list ---
         "System.Text.Json.JsonSerializer.Deserialize", // ADDED Simplified Entry
         "System.Text.Json.JsonSerializer.Deserialize<TValue>(string, System.Text.Json.JsonSerializerOptions?)",
         "System.Text.Json.JsonSerializer.Deserialize<TValue>(System.ReadOnlySpan<byte>, System.Text.Json.JsonSerializerOptions?)",
+        // --- End Re-add ---
         "System.Text.Json.JsonSerializer.DeserializeAsync", // All overloads
         "System.Text.Json.JsonSerializer.SerializeAsync", // All overloads
         "System.Text.StringBuilder.Append(string?)", // Simplified, common overloads - ADDED ?
@@ -267,17 +269,17 @@ public static class Constants
         "System.IO.BufferedStream.Flush()",
 
         // --- ADDED: string.Format considered impure due to potential ToString/IFormatProvider side effects ---
-        "string.Format(string, object?)", // Common overload
-        "string.Format(string, object?, object?)", // Common overload
-        "string.Format(string, object?, object?, object?)", // Common overload
-        "string.Format(string, params object?[])", // Param array overload
-        "string.Format(System.IFormatProvider?, string, params object?[])", // Provider overload
+        // "string.Format(string, object?)", // Common overload // REMOVED
+        // "string.Format(string, object?, object?)", // Common overload // REMOVED
+        // "string.Format(string, object?, object?, object?)", // Common overload // REMOVED
+        // "string.Format(string, params object?[])", // Param array overload // REMOVED
+        // "string.Format(System.IFormatProvider?, string, params object?[])", // Provider overload // REMOVED
         // -----------------------------------------------------------------------------------------------------
 
         // --- ADDED: string.Split and string.Join --- 
-        "string.Split", // All overloads (allocates array/list)
-        "String.Split", // Added uppercase version
-        "string.Join", // All overloads (iterates, allocates string)
+        // "string.Split", // All overloads (allocates array/list) // REMOVED
+        // "String.Split", // Added uppercase version // REMOVED
+        // "string.Join", // All overloads (iterates, allocates string) // REMOVED
         // -----------------------------------------
 
         // --- Added from third list (Impure) ---
@@ -290,7 +292,15 @@ public static class Constants
         "System.Collections.Generic.LinkedList<T>.AddFirst(T)",
         "System.Collections.Generic.LinkedListNode<T>.Value.set", // Property setter
         "System.Collections.Generic.SortedDictionary<TKey, TValue>.Add(TKey, TValue)",
-        "System.Collections.ObjectModel.KeyedCollection<TKey, TItem>.Remove(TKey)", // Corrected generic params
+        // --- REMOVE Pure SortedDictionary methods from Impure list ---
+        // "System.Collections.Generic.SortedDictionary<TKey, TValue>.Values.get", // Added common property
+        // "System.Collections.Generic.SortedDictionary<TKey, TValue>.Keys.get", // Added common property
+        // "System.Collections.Generic.SortedDictionary<TKey, TValue>.Count.get", // Added common property
+        // "System.Collections.Generic.SortedDictionary<TKey, TValue>.ContainsKey(TKey)",
+        // "System.Collections.Generic.SortedDictionary<TKey, TValue>.ContainsValue(TValue)",
+        // "System.Collections.Generic.SortedDictionary<TKey, TValue>.TryGetValue(TKey, out TValue)",
+        // --- END REMOVE ---
+        "System.Collections.Generic.KeyedCollection<TKey, TItem>.Remove(TKey)", // Corrected generic params
         "System.ComponentModel.CancelEventArgs.Cancel.set", // Property setter
         "System.ComponentModel.INotifyPropertyChanged.PropertyChanged", // Event add/remove implicitly impure
         "System.Data.DataTable.NewRow()",
@@ -492,29 +502,30 @@ public static class Constants
         "System.Text.StringBuilder.Append(string?)", // Simplified, common overloads - ADDED ?
         "System.Security.Cryptography.RandomNumberGenerator.Fill(byte[])",
         // ADDED String.Split
-        "System.String.Split(params char[])", // Allocates array
+        // "System.String.Split(params char[])", // Allocates array // REMOVED
         // StringBuilder
         "System.Text.StringBuilder.Append(string?)", // Corrected - Remove duplicate
 
+
         // --- Added String Split Overloads ---
-        "string.Split(params char[])",
-        "System.String.Split(params char[])", // With full namespace
-        "string.Split(char[])", // Without params keyword
+        // "string.Split(params char[])", // REMOVED
+        // "System.String.Split(params char[])", // With full namespace // REMOVED
+        // "string.Split(char[])", // Without params keyword // REMOVED
 
-        "string.Split(char[], int)",
-        "System.String.Split(char[], int)",
+        // "string.Split(char[], int)", // REMOVED
+        // "System.String.Split(char[], int)", // REMOVED
 
-        "string.Split(char[], System.StringSplitOptions)",
-        "System.String.Split(char[], System.StringSplitOptions)",
+        // "string.Split(char[], System.StringSplitOptions)", // REMOVED
+        // "System.String.Split(char[], System.StringSplitOptions)", // REMOVED
 
-        "string.Split(char[], int, System.StringSplitOptions)",
-        "System.String.Split(char[], int, System.StringSplitOptions)",
+        // "string.Split(char[], int, System.StringSplitOptions)", // REMOVED
+        // "System.String.Split(char[], int, System.StringSplitOptions)", // REMOVED
 
-        "string.Split(string[], System.StringSplitOptions)",
-        "System.String.Split(string[], System.StringSplitOptions)",
+        // "string.Split(string[], System.StringSplitOptions)", // REMOVED
+        // "System.String.Split(string[], System.StringSplitOptions)", // REMOVED
 
-        "string.Split(string[], int, System.StringSplitOptions)",
-        "System.String.Split(string[], int, System.StringSplitOptions)",
+        // "string.Split(string[], int, System.StringSplitOptions)", // REMOVED
+        // "System.String.Split(string[], int, System.StringSplitOptions)", // REMOVED
         // --- End Added String Split Overloads ---
 
         // --- Potentially pure (check context) from list ---
@@ -670,10 +681,10 @@ public static class Constants
         "System.Linq.Enumerable.Sum", // All overloads - Conditionally Pure
         "System.Linq.Enumerable.Where<TSource>(System.Collections.Generic.IEnumerable<TSource>, System.Func<TSource, bool>)", // Conditionally Pure
         // --- ADDED Common Pure LINQ Methods ---
-        "System.Linq.Enumerable.ToList<TSource>(System.Collections.Generic.IEnumerable<TSource>)",
-        "System.Linq.Enumerable.ToArray<TSource>(System.Collections.Generic.IEnumerable<TSource>)",
-        "System.Linq.Enumerable.ToDictionary<TSource, TKey>(System.Collections.Generic.IEnumerable<TSource>, System.Func<TSource, TKey>)", // Simplified
-        "System.Linq.Enumerable.ToHashSet<TSource>(System.Collections.Generic.IEnumerable<TSource>)",
+        // "System.Linq.Enumerable.ToList<TSource>(System.Collections.Generic.IEnumerable<TSource>)", // REMOVED
+        // "System.Linq.Enumerable.ToArray<TSource>(System.Collections.Generic.IEnumerable<TSource>)", // REMOVED
+        // "System.Linq.Enumerable.ToDictionary<TSource, TKey>(System.Collections.Generic.IEnumerable<TSource>, System.Func<TSource, TKey>)", // REMOVED
+        // "System.Linq.Enumerable.ToHashSet<TSource>(System.Collections.Generic.IEnumerable<TSource>)", // REMOVED
         "System.Linq.Enumerable.Contains<TSource>(System.Collections.Generic.IEnumerable<TSource>, TSource)",
         // --------------------------------------
 
@@ -770,7 +781,6 @@ public static class Constants
         "System.Text.Encoding.GetEncoding(string)",
         "System.Text.Encoding.GetString(byte[])",
         "System.Text.Encoding.UTF8.get",
-        "System.Text.Json.JsonSerializer.Deserialize<TValue>(string, System.Text.Json.JsonSerializerOptions?)", // Mostly Pure (depends on TValue ctors)
         "System.Text.Json.JsonSerializer.Serialize<TValue>(TValue, System.Text.Json.JsonSerializerOptions?)", // Mostly Pure (depends on TValue properties)
         "System.Text.RegularExpressions.Regex.Regex(string)", // Constructor
         "System.Text.RegularExpressions.Regex.IsMatch(string, string)", // Static
@@ -814,7 +824,13 @@ public static class Constants
         "System.Buffers.Text.Utf8Parser.TryParse(System.ReadOnlySpan<byte>, out int, out int)", // Simplified TryParse
         "System.Collections.Generic.LinkedListNode<T>.Value.get", // Property getter
         "System.Collections.Generic.SortedList<TKey, TValue>.IndexOfKey(TKey)",
-        "System.Collections.ObjectModel.KeyedCollection<TKey, TItem>.Contains(TKey)", // Corrected generic params
+        "System.Collections.Generic.SortedDictionary<TKey, TValue>.ContainsKey(TKey)",
+        "System.Collections.Generic.SortedDictionary<TKey, TValue>.ContainsValue(TValue)",
+        "System.Collections.Generic.SortedDictionary<TKey, TValue>.TryGetValue(TKey, out TValue)",
+        "System.Collections.Generic.SortedDictionary<TKey, TValue>.Count.get",
+        "System.Collections.Generic.SortedDictionary<TKey, TValue>.Keys.get",
+        "System.Collections.Generic.SortedDictionary<TKey, TValue>.Values.get",
+        "System.Collections.Generic.KeyedCollection<TKey, TItem>.Contains(TKey)", // Corrected generic params
         "System.ComponentModel.AddingNewEventArgs.AddingNewEventArgs()", // Simplified constructor
         "System.ComponentModel.CancelEventArgs.Cancel.get", // Property getter
         "System.Drawing.Color.FromArgb(int, int, int, int)",
@@ -1033,7 +1049,11 @@ public static class Constants
         "System.Collections.Generic.Queue<T>.ToArray()",
         "System.Collections.Generic.Stack<T>.Contains(T)",
         "System.Collections.Generic.Stack<T>.ToArray()",
-        "System.Convert.ChangeType(object, System.Type)", // Mostly Pure
+        "System.Convert.FromBase64String(string)",
+        "System.Convert.ToBase64String(byte[])",
+        "System.Convert.ToDouble(object)", // Simplified
+        "System.Convert.ToInt32(object)", // Simplified
+        "System.Convert.ToString(object)", // Simplified
         "System.DateTime.Day.get",
         "System.DateTime.DayOfWeek.get",
         "System.DateTime.DayOfYear.get",
@@ -1142,16 +1162,27 @@ public static class Constants
         // "string.Format(System.IFormatProvider?, string, params object?[])", // Provider overload // REMOVED
 
         // --- Added String Split Overloads ---
-        "string.Split(params char[])",
-        "string.Split(char[], int)",
-        "string.Split(char[], System.StringSplitOptions)",
-        "string.Split(char[], int, System.StringSplitOptions)",
-        "string.Split(string[], System.StringSplitOptions)",
-        "string.Split(string[], int, System.StringSplitOptions)",
+        // "string.Split(params char[])", // REMOVED
+        // "string.Split(char[])", // Without params keyword // REMOVED
+
+        // "string.Split(char[], int)", // REMOVED
+        // "System.String.Split(char[], int)", // REMOVED
+
+        // "string.Split(char[], System.StringSplitOptions)", // REMOVED
+        // "System.String.Split(char[], System.StringSplitOptions)", // REMOVED
+
+        // "string.Split(char[], int, System.StringSplitOptions)", // REMOVED
+        // "System.String.Split(char[], int, System.StringSplitOptions)", // REMOVED
+
+        // "string.Split(string[], System.StringSplitOptions)", // REMOVED
+        // "System.String.Split(string[], System.StringSplitOptions)", // REMOVED
+
+        // "string.Split(string[], int, System.StringSplitOptions)", // REMOVED
+        // "System.String.Split(string[], int, System.StringSplitOptions)", // REMOVED
         // --- End Added String Split Overloads ---
 
         // --- Potentially pure (check context) from list ---
-        "System.Convert.ChangeType(object, System.Type)", // Depends on conversion
+        // "System.Convert.ChangeType(object, System.Type)", // Depends on conversion // REMOVED
 
         // --- ADDED: System.Object ---
         "object.Equals(object)", // Often pure, though overrides can be impure

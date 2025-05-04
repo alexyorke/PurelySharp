@@ -253,6 +253,11 @@ namespace PurelySharp.Analyzer.Engine
                 return true;
             }
 
+            public override bool Equals(object obj)
+            {
+                return obj is PurityAnalysisState other && Equals(other);
+            }
+
             // --- Updated GetHashCode ---
             public override int GetHashCode()
             {
