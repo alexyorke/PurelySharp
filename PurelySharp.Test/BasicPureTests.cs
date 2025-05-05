@@ -132,5 +132,37 @@ public struct MyStruct
 ";
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task PositionalReadonlyRecordStruct_NoBodyOrInterfaces_ShouldBePure()
+        {
+            var test = @"
+namespace System.Runtime.CompilerServices
+{
+    internal static class IsExternalInit {}
+}
+
+namespace TestNamespace // Wrap everything in a namespace
+{
+    using PurelySharp.Attributes;
+
+    // Simple positional readonly record struct with no body or interfaces.
+    // Creating an instance should be pure.
+    public readonly record struct A(int X, int Y);
+
+    public class TestUsage
+    {
+        [EnforcePure]
+        public A CreateA()
+        {
+            // This object creation should be pure.
+            return new A(1, 2);
+        }
+    }
+}
+";
+            // Expect no diagnostics
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
