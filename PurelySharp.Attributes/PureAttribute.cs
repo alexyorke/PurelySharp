@@ -7,7 +7,7 @@ namespace PurelySharp.Attributes
     /// meaning it does not cause any externally visible side effects and
     /// its return value depends only on its input parameters (if any).
     /// </summary>
-    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Property | AttributeTargets.Constructor, Inherited = false, AllowMultiple = false)]
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Property | AttributeTargets.Constructor | AttributeTargets.Class | AttributeTargets.Struct, Inherited = false, AllowMultiple = false)]
     public sealed class PureAttribute : Attribute
     {
     }
