@@ -44,11 +44,6 @@ namespace PurelySharp.Analyzer
             bool hasEnforcePureAttribute = methodSymbol.GetAttributes().Any(attr =>
                 SymbolEqualityComparer.Default.Equals(attr.AttributeClass?.OriginalDefinition, enforcePureAttributeSymbol));
 
-            if (!hasEnforcePureAttribute)
-            {
-                return; // Only analyze symbols explicitly marked
-            }
-
             // --- Perform Purity Analysis --- 
             // Create a new engine instance for each analysis
             var purityEngine = new PurityAnalysisEngine();
@@ -81,6 +76,28 @@ namespace PurelySharp.Analyzer
                 {
                     // This case should be rare if context.Node is always valid
                     PurityAnalysisEngine.LogDebug($"[MPA] Could not get identifier location for diagnostic on impure method {methodSymbol.Name}.");
+                }
+            }
+            // +++ Report Diagnostic PS0004 if Pure but Missing Attribute +++
+            else if (isPure && !hasEnforcePureAttribute)
+            {
+                // If the method is determined to be pure BUT lacks the [EnforcePure] attribute, suggest adding it.
+                Location? diagnosticLocation = GetIdentifierLocation(context.Node);
+                PurityAnalysisEngine.LogDebug($"[MPA] Method '{methodSymbol.Name}' determined pure but lacks [EnforcePure]. Reporting PS0004 on identifier.");
+
+                if (diagnosticLocation != null)
+                {
+                    var diagnostic = Diagnostic.Create(
+                        PurelySharpDiagnostics.MissingEnforcePureAttributeRule, // Use the PS0004 rule
+                        diagnosticLocation,
+                        methodSymbol.Name
+                    );
+                    context.ReportDiagnostic(diagnostic);
+                    PurityAnalysisEngine.LogDebug($"[MPA] Reported diagnostic PS0004 for {methodSymbol.Name} at {diagnosticLocation}.");
+                }
+                else
+                {
+                    PurityAnalysisEngine.LogDebug($"[MPA] Could not get identifier location for diagnostic PS0004 on pure method {methodSymbol.Name}.");
                 }
             }
         }

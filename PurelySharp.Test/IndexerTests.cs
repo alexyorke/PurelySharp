@@ -72,18 +72,18 @@ public class TestClass
     private readonly CustomDictionary<string, int> _dictionary = new CustomDictionary<string, int>();
 
     [EnforcePure]
-    public void {|PS0002:SetValue|}(string key, int value)
+    public void SetValue(string key, int value)
     {
         // Writing to an indexer with a setter should be impure
         _dictionary[key] = value;
     }
 }";
 
-            // Diagnostics are now inline - REMOVED explicit diagnostic
-            // var expected2 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-            //                         .WithSpan(28, 17, 28, 25) // Location of SetValue
-            //                         .WithArguments("SetValue");
-            await VerifyCS.VerifyAnalyzerAsync(test); // REMOVED expected2 argument
+            // Expect PS0002 on set_Item, PS0004 on get_Item, and PS0002 on SetValue (3 diagnostics total)
+            var expectedSetItem = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(13, 19, 13, 23).WithArguments("set_Item");
+            var expectedGetItem = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(13, 19, 13, 23).WithArguments("get_Item");
+            var expectedSetValue = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(25, 17, 25, 25).WithArguments("SetValue");
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedSetItem, expectedGetItem, expectedSetValue });
         }
 
         [Test]
@@ -141,9 +141,9 @@ public class MixedAccessCollection<T>
     // Indexer with getter and private setter
     public T this[int index]
     {
-        [Pure]
+        [Pure] // Getter explicitly marked pure
         get => _items[index];
-        private set => _items[index] = value; 
+        private set => _items[index] = value;
     }
 
     // Non-pure method that uses the private setter
@@ -165,18 +165,19 @@ public class TestClass
     }
 
     [EnforcePure]
-    public void {|PS0002:CallUpdateItemImpure|}(int index, string value)
+    public void CallUpdateItemImpure(int index, string value)
     {
         // Calling a method that modifies state is impure
         _collection.UpdateItem(index, value);
     }
 }";
 
-            // Diagnostics are now inline (should only expect PS0002 on CallUpdateItemImpure) - REMOVED explicit diagnostic
-            // var expected4 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-            //                         .WithSpan(35, 17, 35, 35) // Location of CallUpdateItemImpure
-            //                         .WithArguments("CallUpdateItemImpure");
-            await VerifyCS.VerifyAnalyzerAsync(test); // REMOVED expected4 argument
+            // Expect PS0002 on set_Item, UpdateItem, CallUpdateItemImpure, and PS0004 on get_Item (4 diagnostics total)
+            var expectedSetItem = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(13, 14, 13, 18).WithArguments("set_Item");
+            var expectedGetItem = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(13, 14, 13, 18).WithArguments("get_Item");
+            var expectedUpdateItem = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(21, 17, 21, 27).WithArguments("UpdateItem");
+            var expectedCallUpdate = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(39, 17, 39, 37).WithArguments("CallUpdateItemImpure");
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedSetItem, expectedGetItem, expectedUpdateItem, expectedCallUpdate });
         }
 
         [Test]

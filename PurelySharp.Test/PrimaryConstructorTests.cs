@@ -141,7 +141,10 @@ public readonly struct Vector2D(double x, double y)
                             MetadataReference.CreateFromFile(typeof(EnforcePureAttribute).Assembly.Location))
                 }
             };
-            verifierTest.ExpectedDiagnostics.AddRange(DiagnosticResult.EmptyDiagnosticResults);
+            //verifierTest.ExpectedDiagnostics.AddRange(DiagnosticResult.EmptyDiagnosticResults);
+            // Expect PS0004 on the auto-generated getters for X and Y as they are pure but not marked.
+            verifierTest.ExpectedDiagnostics.Add(VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(11, 19, 11, 20).WithArguments("get_X"));
+            verifierTest.ExpectedDiagnostics.Add(VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(12, 19, 12, 20).WithArguments("get_Y"));
             await verifierTest.RunAsync();
         }
 

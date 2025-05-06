@@ -61,6 +61,10 @@ public record struct Point
                  }
             };
 
+            // await verifierTest.RunAsync();
+            // Expect PS0004 on the init accessors for X and Y
+            verifierTest.ExpectedDiagnostics.Add(VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(10, 19, 10, 20).WithArguments("get_X"));
+            verifierTest.ExpectedDiagnostics.Add(VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(11, 19, 11, 20).WithArguments("get_Y"));
             await verifierTest.RunAsync();
         }
 
@@ -155,8 +159,15 @@ public record struct Counter
                     (solution, projectId) =>
                         solution.AddMetadataReference(projectId, MetadataReference.CreateFromFile(typeof(EnforcePureAttribute).Assembly.Location))
                  },
-                ExpectedDiagnostics = { expected1, expected2 } // ADDED explicit diagnostics
+                //ExpectedDiagnostics = { expected1, expected2 } // ADDED explicit diagnostics
             };
+
+            // Add expectations for PS0004 on getter and PS0002 on constructors
+            verifierTest.ExpectedDiagnostics.Add(VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(11, 16, 11, 21).WithArguments("get_Value"));
+            verifierTest.ExpectedDiagnostics.Add(VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(13, 12, 13, 19).WithArguments(".ctor"));
+            verifierTest.ExpectedDiagnostics.Add(VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(14, 12, 14, 19).WithArguments(".ctor"));
+            verifierTest.ExpectedDiagnostics.Add(expected1); // GetInstanceCount PS0002
+            verifierTest.ExpectedDiagnostics.Add(expected2); // Increment PS0002
 
             await verifierTest.RunAsync();
         }
@@ -251,10 +262,14 @@ public record struct CacheEntry(int Id, ImmutableList<string> Tags)
         }
         """;
             // Expect PS0002 because Increment modifies struct state
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+            var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
                                    .WithSpan(9, 17, 9, 26) // Updated span to method identifier
                                    .WithArguments("Increment");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            // Expect PS0004 because GetCount is pure but not marked
+            var expectedPS0004 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                   .WithSpan(15, 16, 15, 24)
+                                   .WithArguments("GetCount");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedPS0002, expectedPS0004);
         }
 
         [Test]
@@ -302,6 +317,10 @@ public class Usage
             };
 
             // Expect no diagnostics
+            // Expect PS0004 on the constructor and auto-getters as they are pure but not marked [EnforcePure]
+            verifierTest.ExpectedDiagnostics.Add(VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(9, 12, 9, 15).WithArguments(".ctor"));
+            verifierTest.ExpectedDiagnostics.Add(VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(15, 16, 15, 17).WithArguments("get_X"));
+            verifierTest.ExpectedDiagnostics.Add(VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(16, 16, 16, 17).WithArguments("get_Y"));
             await verifierTest.RunAsync();
         }
     }

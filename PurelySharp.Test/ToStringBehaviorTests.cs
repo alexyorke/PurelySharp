@@ -50,7 +50,15 @@ namespace PurelySharp.Test // Add namespace to match outer scope
                                    .WithSpan(16, 23, 16, 42) // Corrected span based on test output
                                    .WithArguments("CallDefaultToString");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expected); // Pass expected diagnostic
+            // Expect PS0004 for getter and setter as they are pure but lack the attribute
+            var expectedGetter = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                        .WithSpan(10, 20, 10, 25) // Span from log for get_Value/set_Value
+                                        .WithArguments("get_Value");
+            var expectedSetter = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                        .WithSpan(10, 20, 10, 25) // Span from log for get_Value/set_Value
+                                        .WithArguments("set_Value");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected, expectedGetter, expectedSetter); // Pass expected diagnostics
         }
 
         // TODO: Add a test for an explicitly overridden PURE ToString()

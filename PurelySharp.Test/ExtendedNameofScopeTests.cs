@@ -12,39 +12,44 @@ namespace PurelySharp.Test
     public class ExtendedNameofScopeTests
     {
         [Test]
-        public async Task ExtendedNameofScope_PureMethod_NoDiagnostic()
+        public async Task ExtendedNameofScope_PureMethod_WithDiagnostics()
         {
             var test = @"
+#nullable enable
 using System;
+using System.Linq.Expressions;
 using PurelySharp.Attributes;
+using System.Reflection;
+using System.ComponentModel.DataAnnotations;
 
-namespace System.Runtime.CompilerServices
+public class MyModel
 {
-    internal static class IsExternalInit {}
+    public string? Name { get; set; } // PS0004 expected (get/set)
 }
 
-
-
-namespace TestNamespace
+public class TestClass
 {
-    public class Person
+    [EnforcePure]
+    public string GetPropertyName<T>(Expression<Func<T>> propertyLambda)
     {
-        public string Name { get; init; }
-        
-        [EnforcePure]
-        public string GetPropertyName()
-        {
-            // C# 11 feature: Extended nameof scope can access Name without 'this'
-            return nameof(Name);
-        }
+        MemberExpression member = propertyLambda.Body as MemberExpression ?? throw new ArgumentException();
+        return member.Member.Name;
+    }
+
+    // Example usage (should be pure) - Expect PS0002
+    [EnforcePure] 
+    public string GetNamePropertyName()
+    {
+        return GetPropertyName(() => new MyModel().Name);
     }
 }";
+            // Expect PS0004 for property accessors and PS0002 for methods (4 total)
+            var expectedGetName = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 20, 11, 24).WithArguments("get_Name");
+            var expectedSetName = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 20, 11, 24).WithArguments("set_Name");
+            var expectedGetProp = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(17, 19, 17, 34).WithArguments("GetPropertyName");
+            var expectedGetNameProp = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(25, 19, 25, 38).WithArguments("GetNamePropertyName");
 
-            // UPDATED: Analyzer flags instance methods, even if only using nameof
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(19, 23, 19, 38)
-                                   .WithArguments("GetPropertyName");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetName, expectedSetName, expectedGetProp, expectedGetNameProp });
         }
 
         [Test]
@@ -53,8 +58,6 @@ namespace TestNamespace
             var test = @"
 using System;
 using PurelySharp.Attributes;
-
-
 
 namespace TestNamespace
 {
@@ -68,8 +71,8 @@ namespace TestNamespace
         }
     }
 }";
-            // Analyzer now considers this pure - UPDATE: Expecting PS0002
-            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(12, 23, 12, 34).WithArguments("GetTypeName")); // Removed expected diagnostic
+            // Expect PS0002 for GetTypeName
+            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(10, 23, 10, 34).WithArguments("GetTypeName"));
         }
 
         [Test]
@@ -78,8 +81,6 @@ namespace TestNamespace
             var test = @"
 using System;
 using PurelySharp.Attributes;
-
-
 
 namespace TestNamespace
 {
@@ -93,35 +94,36 @@ namespace TestNamespace
         }
     }
 }";
-            // Analyzer now considers this pure - UPDATE: Expecting PS0002
-            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(12, 23, 12, 39).WithArguments("GetParameterName")); // Removed expected diagnostic
+            // Expect PS0002 for GetParameterName
+            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(10, 23, 10, 39).WithArguments("GetParameterName"));
         }
 
         [Test]
-        public async Task ExtendedNameofScopeWithLocalFunction_PureMethod_NoDiagnostic()
+        public async Task ExtendedNameofScopeWithLocalFunction_PureMethod_WithDiagnostics()
         {
             var test = @"
 using System;
 using PurelySharp.Attributes;
 
-
-
-namespace TestNamespace
+public class TestClass
 {
-    public class FunctionHelper
+    private static string GetInfo(string info) => info; // PS0004 expected
+
+    [EnforcePure]
+    public string GetFunctionInfo()
     {
         [EnforcePure]
-        public string GetFunctionInfo()
-        {
-            // C# 11 feature: Extended nameof scope can access local functions
-            string LocalFunction(int x) => x.ToString();
-            
-            return nameof(LocalFunction);
-        }
+        string LocalFunction(string msg) => GetInfo(msg); // Pure local function
+        
+        return nameof(LocalFunction);
     }
 }";
-            // nameof is pure, so no diagnostic is expected - UPDATE: Expecting PS0002
-            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(12, 23, 12, 38).WithArguments("GetFunctionInfo")); // Removed expected diagnostic
+            // Expect PS0004 for GetInfo and PS0002 for GetFunctionInfo and LocalFunction (3 total)
+            var expectedGetInfo = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(7, 27, 7, 34).WithArguments("GetInfo");
+            var expectedGetFunctionInfo = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(10, 19, 10, 34).WithArguments("GetFunctionInfo");
+            var expectedLocalFunction = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(13, 16, 13, 29).WithArguments("LocalFunction");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetInfo, expectedGetFunctionInfo, expectedLocalFunction });
         }
 
         [Test]
@@ -131,14 +133,12 @@ namespace TestNamespace
 using System;
 using PurelySharp.Attributes;
 
-
-
 namespace TestNamespace
 {
     public class LambdaHelper
     {
         [EnforcePure]
-        public string {|PS0002:GetLambdaName|}()
+        public string GetLambdaName()
         {
             // C# 11 feature: Extended nameof scope can access lambda expressions
             var lambda = (int x) => x * x;
@@ -148,8 +148,8 @@ namespace TestNamespace
     }
 }";
 
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0002 for GetLambdaName
+            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(10, 23, 10, 36).WithArguments("GetLambdaName"));
         }
 
         [Test]
@@ -161,14 +161,12 @@ using PurelySharp.Attributes;
 using System.Linq;
 using System.Collections.Generic;
 
-
-
 namespace TestNamespace
 {
     public class QueryHelper
     {
         [EnforcePure]
-        public List<string> {|PS0002:GetRangeVariableNames|}(List<int> numbers)
+        public List<string> GetRangeVariableNames(List<int> numbers)
         {
             // C# 11 feature: Extended nameof scope can access range variables
             return numbers
@@ -177,8 +175,8 @@ namespace TestNamespace
         }
     }
 }";
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0002 for GetRangeVariableNames
+            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(12, 29, 12, 50).WithArguments("GetRangeVariableNames"));
         }
 
         [Test]
@@ -188,14 +186,12 @@ namespace TestNamespace
 using System;
 using PurelySharp.Attributes;
 
-
-
 namespace TestNamespace
 {
     public class PatternHelper
     {
         [EnforcePure]
-        public string {|PS0002:GetPatternVariableName|}(object value)
+        public string GetPatternVariableName(object value)
         {
             // C# 11 feature: Extended nameof scope can access pattern variables
             if (value is int number)
@@ -207,35 +203,39 @@ namespace TestNamespace
         }
     }
 }";
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0002 for GetPatternVariableName
+            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(10, 23, 10, 45).WithArguments("GetPatternVariableName"));
         }
 
         [Test]
         public async Task ExtendedNameofScopeImpureMethod_Diagnostic()
         {
-            // Use standard string literal with escaped quotes and newlines
-            var test = "using System;\n"
-                     + "using System.IO;\n"
-                     + "using PurelySharp.Attributes;\n\n"
-                     + "namespace TestNamespace\n"
-                     + "{\n"
-                     + "    public class Logger\n"
-                     + "    {\n"
-                     + "        private string logFile;\n\n"
-                     + "        [EnforcePure]\n"
-                     + "        public void {|PS0002:LogParameterName|}(string message)\n"
-                     + "        {\n"
-                     + "            // Impure operation: field assignment using nameof\n"
-                     + "            logFile = \"Log for parameter: \" + nameof(message);\n\n"
-                     + "            // Impure operation: file system access\n"
-                     + "            File.AppendAllText(logFile, message);\n"
-                     + "        }\n"
-                     + "    }\n"
-                     + "}";
+            var test = @"
+using System;
+using System.IO;
+using PurelySharp.Attributes;
 
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+namespace TestNamespace
+{
+    public class Logger
+    {
+        private string logFile;
+
+        [EnforcePure]
+        public void LogParameterName(string message)
+        {
+            // Impure operation: field assignment using nameof
+            logFile = ""Log for parameter: "" + nameof(message);
+
+            // Impure operation: file system access
+            File.AppendAllText(logFile, message);
+        }
+    }
+}
+";
+
+            // Expect PS0002 for LogParameterName
+            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(13, 21, 13, 37).WithArguments("LogParameterName"));
         }
     }
 }

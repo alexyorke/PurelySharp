@@ -29,22 +29,36 @@ public class SimplePoco
         [Test]
         public async Task PureMethodWithJsonSerializePoco_NoDiagnostic()
         {
-            // Expectation limitation: Analyzer considers JsonSerializer.Serialize pure,
-            // although it could theoretically be impure if property getters have side effects.
             var test = TestSetup + @"
 
 public class TestClass
 {
-    [EnforcePure]
+    [EnforcePure] // Although Serialize might be pure, the method itself is marked
     public string TestMethod(SimplePoco poco)
     {
         // Serialization of simple POCOs is generally considered pure
         return JsonSerializer.Serialize(poco);
     }
 }";
-            // Analyzer needs to know JsonSerializer.Serialize is safe for simple types
-            // or not flag external calls it doesn't recognize as impure by default.
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expects no diagnostic because Serialize is assumed pure (or not flagged).
+            // However, the POCO properties themselves will trigger PS0004.
+            // await VerifyCS.VerifyAnalyzerAsync(test); // Original line, removed.
+
+            // Expect PS0004 for POCO getters/setters (pure but no [EnforcePure])
+            var expectedGetterId = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                          .WithSpan(9, 16, 9, 18) // Span from log for get_Id/set_Id
+                                          .WithArguments("get_Id");
+            var expectedSetterId = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                          .WithSpan(9, 16, 9, 18) // Span from log for get_Id/set_Id
+                                          .WithArguments("set_Id");
+            var expectedGetterName = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                            .WithSpan(10, 20, 10, 24) // Span from log for get_Name/set_Name
+                                            .WithArguments("get_Name");
+            var expectedSetterName = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                            .WithSpan(10, 20, 10, 24) // Span from log for get_Name/set_Name
+                                            .WithArguments("set_Name");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetterId, expectedSetterId, expectedGetterName, expectedSetterName);
         }
 
         [Test]
@@ -65,7 +79,22 @@ public class TestClass
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
                                  .WithSpan(17, 24, 17, 34) // CORRECTED Span reported by test runner
                                  .WithArguments("TestMethod");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected); // Added expected diagnostic
+
+            // Expect PS0004 for POCO getters/setters (pure but no [EnforcePure])
+            var expectedGetterId = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                          .WithSpan(9, 16, 9, 18) // Span from log for get_Id/set_Id
+                                          .WithArguments("get_Id");
+            var expectedSetterId = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                          .WithSpan(9, 16, 9, 18) // Span from log for get_Id/set_Id
+                                          .WithArguments("set_Id");
+            var expectedGetterName = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                            .WithSpan(10, 20, 10, 24) // Span from log for get_Name/set_Name
+                                            .WithArguments("get_Name");
+            var expectedSetterName = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                            .WithSpan(10, 20, 10, 24) // Span from log for get_Name/set_Name
+                                            .WithArguments("set_Name");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected, expectedGetterId, expectedSetterId, expectedGetterName, expectedSetterName); // Added expected diagnostics
         }
 
         // TODO: Add tests for impure serialization/deserialization 

@@ -10,6 +10,10 @@ namespace PurelySharp.Analyzer
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public class PurelySharpAnalyzer : DiagnosticAnalyzer
     {
+        // Alias diagnostic IDs for tests
+        public const string PS0002 = PurelySharpDiagnostics.PurityNotVerifiedId;
+        public const string PS0004 = PurelySharpDiagnostics.MissingEnforcePureAttributeId;
+
         private static readonly ImmutableArray<Type> _ruleTypes = ImmutableArray.Create<Type>();
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>

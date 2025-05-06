@@ -18,7 +18,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
         {
             if (!(operation is IUnaryOperation unaryOperation))
             {
-                PurityAnalysisEngine.LogDebug($"  [UnaryRule] WARNING: Incorrect operation type {operation.Kind}. Assuming Pure.");
+                PurityAnalysisEngine.LogDebug($"  [UnaryOpRule] WARNING: Incorrect operation type {operation.Kind}. Assuming Pure.");
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
 
@@ -32,29 +32,109 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return operandResult;
             }
 
-            PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] Operand is Pure. Unary operation is Pure.");
+            PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] Operand is Pure.");
 
             // 2. Check for user-defined operator method
-            if (unaryOperation.OperatorMethod != null && !IsPureOperator(unaryOperation.OperatorMethod, context))
+            if (unaryOperation.OperatorMethod != null)
             {
-                PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] User-defined operator method '{unaryOperation.OperatorMethod.Name}' is IMPURE. Unary operation is Impure.");
-                return PurityAnalysisEngine.PurityAnalysisResult.Impure(unaryOperation.Syntax);
+                // First, check if the operator method is already in the cache
+                if (context.PurityCache.TryGetValue(unaryOperation.OperatorMethod.OriginalDefinition, out var cachedResult))
+                {
+                    if (!cachedResult.IsPure)
+                    {
+                        PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] User-defined operator method '{unaryOperation.OperatorMethod.Name}' is IMPURE (cached). Unary operation is Impure.");
+                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(unaryOperation.Syntax);
+                    }
+                    PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] User-defined operator method '{unaryOperation.OperatorMethod.Name}' is Pure (cached).");
+                    return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+                }
+
+                // If not in cache, check if it's a known pure/impure method
+                if (PurityAnalysisEngine.IsKnownPureBCLMember(unaryOperation.OperatorMethod))
+                {
+                    PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] User-defined operator method '{unaryOperation.OperatorMethod.Name}' is known pure BCL member.");
+                    return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+                }
+
+                if (PurityAnalysisEngine.IsKnownImpure(unaryOperation.OperatorMethod))
+                {
+                    PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] User-defined operator method '{unaryOperation.OperatorMethod.Name}' is known impure. Unary operation is Impure.");
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(unaryOperation.Syntax);
+                }
+
+                // If not known, analyze the operator method recursively
+                var operatorPurity = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
+                    unaryOperation.OperatorMethod.OriginalDefinition,
+                    context.SemanticModel,
+                    context.EnforcePureAttributeSymbol,
+                    context.AllowSynchronizationAttributeSymbol,
+                    context.VisitedMethods,
+                    context.PurityCache);
+
+                if (!operatorPurity.IsPure)
+                {
+                    PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] User-defined operator method '{unaryOperation.OperatorMethod.Name}' is IMPURE. Unary operation is Impure.");
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(unaryOperation.Syntax);
+                }
+
+                PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] User-defined operator method '{unaryOperation.OperatorMethod.Name}' is Pure.");
             }
 
+            // 3. Check if this is a checked operation
+            if (unaryOperation.IsChecked)
+            {
+                PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] Operation is checked. Checking operator method purity.");
+
+                // If there's a user-defined operator method for the checked operation
+                if (unaryOperation.OperatorMethod != null)
+                {
+                    // First, check if the operator method is already in the cache
+                    if (context.PurityCache.TryGetValue(unaryOperation.OperatorMethod.OriginalDefinition, out var cachedResult))
+                    {
+                        if (!cachedResult.IsPure)
+                        {
+                            PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] Checked operator method '{unaryOperation.OperatorMethod.Name}' is IMPURE (cached). Unary operation is Impure.");
+                            return PurityAnalysisEngine.PurityAnalysisResult.Impure(unaryOperation.Syntax);
+                        }
+                        PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] Checked operator method '{unaryOperation.OperatorMethod.Name}' is Pure (cached).");
+                        return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+                    }
+
+                    // If not in cache, check if it's a known pure/impure method
+                    if (PurityAnalysisEngine.IsKnownPureBCLMember(unaryOperation.OperatorMethod))
+                    {
+                        PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] Checked operator method '{unaryOperation.OperatorMethod.Name}' is known pure BCL member.");
+                        return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+                    }
+
+                    if (PurityAnalysisEngine.IsKnownImpure(unaryOperation.OperatorMethod))
+                    {
+                        PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] Checked operator method '{unaryOperation.OperatorMethod.Name}' is known impure. Unary operation is Impure.");
+                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(unaryOperation.Syntax);
+                    }
+
+                    // If not known, analyze the operator method recursively
+                    var operatorPurity = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
+                        unaryOperation.OperatorMethod.OriginalDefinition,
+                        context.SemanticModel,
+                        context.EnforcePureAttributeSymbol,
+                        context.AllowSynchronizationAttributeSymbol,
+                        context.VisitedMethods,
+                        context.PurityCache);
+
+                    if (!operatorPurity.IsPure)
+                    {
+                        PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] Checked operator method '{unaryOperation.OperatorMethod.Name}' is IMPURE. Unary operation is Impure.");
+                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(unaryOperation.Syntax);
+                    }
+
+                    PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] Checked operator method '{unaryOperation.OperatorMethod.Name}' is Pure.");
+                }
+            }
+
+            // If we get here, all checks passed
+            PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] Unary operation is Pure.");
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
-        }
-
-        private bool IsPureOperator(IMethodSymbol operatorMethod, PurityAnalysisContext context)
-        {
-            var operatorPurity = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
-                operatorMethod.OriginalDefinition,
-                context.SemanticModel,
-                context.EnforcePureAttributeSymbol,
-                context.AllowSynchronizationAttributeSymbol,
-                context.VisitedMethods,
-                context.PurityCache);
-
-            return operatorPurity.IsPure;
         }
     }
 }

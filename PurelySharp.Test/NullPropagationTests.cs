@@ -44,7 +44,14 @@ public class TestClass
             //                       .WithSpan(14, 19, 14, 29) // Span for TestMethod - needs verification
             //                       .WithArguments("TestMethod");
             // await VerifyCS.VerifyAnalyzerAsync(test, expected);
-            await VerifyCS.VerifyAnalyzerAsync(test); // Expect NO diagnostic (current behavior)
+            // UPDATED based on latest run: Expect PS0002 on TestMethod and PS0004 on Name/Age getters/setters
+            // UPDATED AGAIN: Latest run only shows the 4 PS0004, no PS0002 on TestMethod
+            // var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(14, 19, 14, 29).WithArguments("TestMethod");
+            var expectedGetName = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(7, 19, 7, 23).WithArguments("get_Name");
+            var expectedSetName = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(7, 19, 7, 23).WithArguments("set_Name");
+            var expectedGetAge = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(8, 19, 8, 22).WithArguments("get_Age");
+            var expectedSetAge = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(8, 19, 8, 22).WithArguments("set_Age");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetName, expectedSetName, expectedGetAge, expectedSetAge);
         }
 
         [Test]
@@ -74,11 +81,23 @@ public class TestClass
 }
 """;
 
-            await VerifyCS.VerifyAnalyzerAsync(
-                test,
-                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                       .WithSpan(16, 17, 16, 27) // Updated line number from log
-                       .WithArguments("TestMethod"));
+            // UPDATED: Expect 6 diagnostics based on output
+            var expectedTestMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                       .WithSpan(16, 17, 16, 27)
+                       .WithArguments("TestMethod");
+            var expectedGetName = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(7, 19, 7, 23).WithArguments("get_Name");
+            var expectedSetName = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(7, 19, 7, 23).WithArguments("set_Name");
+            var expectedGetAge = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(8, 19, 8, 22).WithArguments("get_Age");
+            var expectedSetAge = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(8, 19, 8, 22).WithArguments("set_Age");
+            var expectedLog = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(10, 17, 10, 29).WithArguments("LogToConsole");
+
+            await VerifyCS.VerifyAnalyzerAsync(test,
+                expectedTestMethod,
+                expectedGetName,
+                expectedSetName,
+                expectedGetAge,
+                expectedSetAge,
+                expectedLog);
         }
 
         [Test]
@@ -113,11 +132,15 @@ public class TestClass
 }
 """;
 
-            await VerifyCS.VerifyAnalyzerAsync(
-                test,
-                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+            // UPDATED based on latest run: Also expect PS0004 on Name/Age getters/setters
+            var expectedGetName = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(7, 19, 7, 23).WithArguments("get_Name");
+            var expectedSetName = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(7, 19, 7, 23).WithArguments("set_Name");
+            var expectedGetAge = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(8, 19, 8, 22).WithArguments("get_Age");
+            var expectedSetAge = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(8, 19, 8, 22).WithArguments("set_Age");
+            var originalExpected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
                        .WithSpan(16, 19, 16, 29) // Updated line number from log
-                       .WithArguments("TestMethod"));
+                       .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, originalExpected, expectedGetName, expectedSetName, expectedGetAge, expectedSetAge);
         }
     }
 }

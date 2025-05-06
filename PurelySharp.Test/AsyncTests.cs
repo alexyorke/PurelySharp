@@ -24,7 +24,7 @@ namespace TestNamespace
     public class TestClass
     {
         [EnforcePure]
-        public async Task<int> {|PS0002:PureAsyncMethod|}()
+        public async Task<int> PureAsyncMethod()
         {
             await Task.Delay(10);
             return 42;
@@ -32,7 +32,8 @@ namespace TestNamespace
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0002 for PureAsyncMethod
+            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(10, 32, 10, 47).WithArguments("PureAsyncMethod"));
         }
 
         [Test]
@@ -48,7 +49,7 @@ namespace TestNamespace
     public class TestClass
     {
         [EnforcePure]
-        public async Task {|PS0002:ImpureAsyncMethod|}()
+        public async Task ImpureAsyncMethod()
         {
             await Task.Delay(10);
             File.WriteAllText(""temp.txt"", ""impure write"");
@@ -56,7 +57,8 @@ namespace TestNamespace
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0002 for ImpureAsyncMethod
+            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(11, 27, 11, 44).WithArguments("ImpureAsyncMethod"));
         }
 
         [Test]
@@ -71,7 +73,7 @@ namespace TestNamespace
     public class TestClass
     {
         [EnforcePure]
-        public async Task<int> {|PS0002:MethodCallingImpureAsync|}()
+        public async Task<int> MethodCallingImpureAsync()
         {
             int result = await GetValueAsync();
             return result + 1;
@@ -85,7 +87,11 @@ namespace TestNamespace
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0002 for both methods
+            var expectedOuter = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(10, 32, 10, 56).WithArguments("MethodCallingImpureAsync");
+            var expectedInner = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(16, 33, 16, 46).WithArguments("GetValueAsync");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedOuter, expectedInner });
         }
     }
 }

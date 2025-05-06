@@ -15,7 +15,8 @@ namespace PurelySharp.Test
         [Test]
         public async Task PureMethodWithNullConditional_NoDiagnostic()
         {
-            var test = @"
+            // Test using null-conditional operator ?. for property access
+            var test = """
 using System;
 using PurelySharp.Attributes;
 
@@ -30,10 +31,13 @@ public class TestClass
         return obj?.Value?.Length;
     }
 }
-";
-            // Null conditional operator itself is pure.
-            // Analyzer should now handle this correctly.
-            await VerifyCS.VerifyAnalyzerAsync(test);
+""";
+            // Expect no diagnostics as null propagation itself is pure
+            // await VerifyCS.VerifyAnalyzerAsync(test);
+            // UPDATED: Expect PS0004 on getter/setter at the correct spans
+            var expectedGet = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(6, 19, 6, 24).WithArguments("get_Value");
+            var expectedSet = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(6, 19, 6, 24).WithArguments("set_Value");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedGet, expectedSet);
         }
 
         [Test]

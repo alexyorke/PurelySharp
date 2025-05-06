@@ -22,14 +22,17 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     // No [Pure] or [EnforcePure] attribute here, but returns constant
-    // Analyzer doesn't report PS0004 currently, so expect no diagnostic.
+    // Analyzer should now report PS0004.
     public int GetConstant()
     {
         return 42;
     }
 }";
-            // Expect no diagnostics (temporarily disabling PS0004 check for this test)
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
+            // Expect PS0004 because the method is pure but lacks the attribute.
+            var expectedPS0004 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                    .WithSpan(8, 16, 8, 27) // Span of GetConstant identifier
+                                    .WithArguments("GetConstant");
+            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedPS0004);
         }
 
         [Test]
@@ -246,8 +249,27 @@ public class PotentialPurity
     public void ImpureStateChange() => _counter++;
 }";
 
-            // Temporarily expect no diagnostics (disabling PS0004 check)
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0004 for the potentially pure methods without attributes.
+            var expectedConst = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                     .WithSpan(7, 16, 7, 43) // Updated line number from 8 to 7
+                                     .WithArguments("GetConstantWithoutAttribute");
+            var expectedGreeting = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                     .WithSpan(10, 19, 10, 46) // Updated line number from 11 to 10
+                                     .WithArguments("GetGreetingWithoutAttribute");
+            var expectedCalc = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                    .WithSpan(13, 16, 13, 39) // GetCalcWithoutAttribute
+                                    .WithArguments("GetCalcWithoutAttribute");
+            var expectedNameof = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002)
+                                     .WithSpan(16, 19, 16, 44) // GetNameofWithoutAttribute
+                                     .WithArguments("GetNameofWithoutAttribute");
+            var expectedImpure = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002)
+                                     .WithSpan(19, 17, 19, 29) // ImpureMethod
+                                     .WithArguments("ImpureMethod");
+            var expectedStateChange = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002)
+                                     .WithSpan(23, 17, 23, 34) // ImpureStateChange
+                                     .WithArguments("ImpureStateChange");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedConst, expectedGreeting, expectedCalc, expectedNameof, expectedImpure, expectedStateChange);
         }
 
         // Expectation limitation: analyzer currently does not report missing enforce-pure-attribute diagnostic (PS0004) for pure methods lacking [EnforcePure].
@@ -269,8 +291,11 @@ public class PurityChain
     }
 }";
 
-            // Temporarily expect no diagnostics (disabling PS0004 check)
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0004 on the calling method
+            var expectedPS0004 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                    .WithSpan(10, 16, 10, 33) // CallingPureHelper
+                                    .WithArguments("CallingPureHelper");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedPS0004);
         }
 
         // Expectation limitation: analyzer currently does not report missing enforce-pure-attribute diagnostic (PS0004) for pure methods lacking [EnforcePure].
@@ -293,8 +318,20 @@ public class CallChain
     public int MethodD() => MethodC() - 1;
 }";
 
-            // Temporarily expect no diagnostics (disabling PS0004 check)
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0004 on all methods in the chain
+            var expectedA = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                               .WithSpan(5, 16, 5, 23) // MethodA
+                               .WithArguments("MethodA");
+            var expectedB = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                               .WithSpan(8, 16, 8, 23) // MethodB
+                               .WithArguments("MethodB");
+            var expectedC = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                               .WithSpan(11, 16, 11, 23) // MethodC
+                               .WithArguments("MethodC");
+            var expectedD = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                               .WithSpan(14, 16, 14, 23) // MethodD
+                               .WithArguments("MethodD");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedA, expectedB, expectedC, expectedD);
         }
 
         // Expectation limitation: analyzer currently does not report missing enforce-pure-attribute diagnostic (PS0004) for pure methods lacking [EnforcePure].
@@ -311,8 +348,14 @@ public class LongerChain
     public int MethodE() => MethodD() + 1;
     public int MethodF() => MethodE() + 1;
 }";
-            // Temporarily expect no diagnostics (disabling PS0004 check)
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0004 on all methods
+            var expectedA = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(4, 16, 4, 23).WithArguments("MethodA");
+            var expectedB = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(5, 16, 5, 23).WithArguments("MethodB");
+            var expectedC = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(6, 16, 6, 23).WithArguments("MethodC");
+            var expectedD = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(7, 16, 7, 23).WithArguments("MethodD");
+            var expectedE = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(8, 16, 8, 23).WithArguments("MethodE");
+            var expectedF = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(9, 16, 9, 23).WithArguments("MethodF");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedA, expectedB, expectedC, expectedD, expectedE, expectedF);
         }
 
         // Expectation limitation: analyzer currently does not report missing enforce-pure-attribute diagnostic (PS0004) for pure methods lacking [EnforcePure].
@@ -338,8 +381,11 @@ public class CombinedPurity
         return product;
     }
 }";
-            // Temporarily expect no diagnostics (disabling PS0004 check)
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0004 on GetSum
+            var expectedPS0004 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                    .WithSpan(13, 16, 13, 22) // GetSum
+                                    .WithArguments("GetSum");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedPS0004);
         }
 
         [Test]
@@ -413,14 +459,12 @@ using PurelySharp.Attributes;
 using System;
 public class TestClass
 {
-    private int ImpureHelper() { Console.WriteLine(); return 0; }
-
+    [EnforcePure] private int {|PS0002:ImpureHelper|}() { Console.WriteLine(); return 0; }
     [EnforcePure]
     public int {|PS0002:GetValFromImpureCall|}()
     {
-        // Impurity detected in the initializer check
-        var temp = ImpureHelper(); 
-        return temp;
+        var x = ImpureHelper();
+        return x;
     }
 }";
             await VerifyCS.VerifyAnalyzerAsync(testCode);
@@ -656,7 +700,7 @@ using PurelySharp.Attributes;
 using System;
 public class TestClass
 {
-    private int ImpureHelper() { Console.WriteLine(); return 0; } 
+    [EnforcePure] private int {|PS0002:ImpureHelper|}() { Console.WriteLine(); return 0; } 
     [EnforcePure]
     public int {|PS0002:BinaryOpImpure|}(int x)
     {
@@ -696,7 +740,7 @@ using PurelySharp.Attributes;
 using System;
 public class TestClass
 {
-    private bool ImpureBool() { Console.WriteLine(); return false; }
+    [EnforcePure] private bool {|PS0002:ImpureBool|}() { Console.WriteLine(); return false; }
     [EnforcePure]
     public bool {|PS0002:UnaryOpImpure|}()
     {
@@ -733,8 +777,8 @@ using System;
 public class TestClass
 {
     [EnforcePure] private int Pure1() => 1;
-    private int Impure2() { Console.WriteLine(); return 2; }
-    private bool ImpureCond() { Console.WriteLine(); return false; }
+    [EnforcePure] private int {|PS0002:Impure2|}() { Console.WriteLine(); return 2; }
+    [EnforcePure] private bool {|PS0002:ImpureCond|}() { Console.WriteLine(); return false; }
 
     [EnforcePure]
     public int {|PS0002:ConditionalImpureBranch|}(bool condition)
@@ -762,7 +806,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:MiscPure|}(int p, bool c)
+    public int MiscPure(int p, bool c)
     {
         const int localConst = 5;
         int x = sizeof(int); // Changed from Guid to int to avoid unsafe requirement
@@ -798,8 +842,18 @@ public readonly record struct Zzz
     public int Y { get; }
 }
 ";
-            // Expect no diagnostic as the constructor is marked [Pure] and only initializes readonly members.
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0004 on the auto-generated getters and constructor as they are pure but lack [EnforcePure]
+            var expectedGetX = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                  .WithSpan(14, 16, 14, 17) // Span covers 'X' in 'int X'
+                                  .WithArguments("get_X");
+            var expectedGetY = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                  .WithSpan(15, 16, 15, 17) // Span covers 'Y' in 'int Y'
+                                  .WithArguments("get_Y");
+            var expectedCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                  .WithSpan(8, 12, 8, 15) // Span covers 'Zzz' in constructor
+                                  .WithArguments(".ctor");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetX, expectedGetY, expectedCtor);
         }
     }
 }

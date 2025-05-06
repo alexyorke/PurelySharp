@@ -103,16 +103,11 @@ public class TestClass
     }
 }";
 
-            // Explicitly define expected diagnostics
-            var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                        .WithLocation(17, 17) // Location of TestMethod
-                                        .WithArguments("TestMethod");
-            //var expectedPS0004 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-            //                            .WithLocation(14, 23) // Location of GetHelper
-            //                            .WithArguments("GetHelper");
-
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedPS0002/*, expectedPS0004*/); // RESTORED expectation
-            // await VerifyCS.VerifyAnalyzerAsync(test); // Expect no diagnostic for now
+            // UPDATED: Expect PS0002 on TestMethod, DoSomethingImpure, and PS0004 on GetHelper
+            var expectedTestMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(17, 17, 17, 27).WithArguments("TestMethod");
+            var expectedDoSomething = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(8, 17, 8, 34).WithArguments("DoSomethingImpure");
+            var expectedGetHelper = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(14, 25, 14, 34).WithArguments("GetHelper");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedTestMethod, expectedDoSomething, expectedGetHelper);
         }
 
         [Test]
@@ -268,11 +263,10 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
-            var expected5 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                    .WithSpan(22, 17, 22, 27) // Updated span from NUnit error
-                                    .WithArguments("TestMethod");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected5);
+            // UPDATED: Expect PS0002 on TestMethod and ForEach
+            var expectedTestMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(22, 17, 22, 27).WithArguments("TestMethod");
+            var expectedForEach = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(10, 24, 10, 31).WithArguments("ForEach");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedTestMethod, expectedForEach);
         }
 
         [Test]
@@ -352,11 +346,10 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
-            var expected8 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                    .WithSpan(10, 17, 10, 27) // Location of TestMethod
-                                    .WithArguments("TestMethod");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected8);
+            // UPDATED: Expect PS0002 on TestMethod and PureWrapper
+            var expectedTestMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(10, 17, 10, 27).WithArguments("TestMethod");
+            var expectedWrapper = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(16, 18, 16, 29).WithArguments("PureWrapper");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedTestMethod, expectedWrapper);
         }
 
         [Test]
@@ -494,11 +487,10 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
-            var expected12 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                    .WithSpan(10, 17, 10, 27) // Location of TestMethod
-                                    .WithArguments("TestMethod");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected12);
+            // UPDATED: Expect PS0002 on TestMethod and LocalImpure
+            var expectedTestMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(10, 17, 10, 27).WithArguments("TestMethod");
+            var expectedLocal = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(13, 13, 13, 24).WithArguments("LocalImpure");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedTestMethod, expectedLocal);
         }
 
         [Test]
@@ -647,7 +639,7 @@ public class TestClass
         //[Ignore("Temporarily disabled due to failure")]
         public async Task IoClassPureMethod_ShouldBePure_Test2()
         {
-            // IO class with pure method that doesn't actually use IO
+            // UPDATED: Expect PS0004 on CombinePaths
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -674,7 +666,8 @@ public class TestClass
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test); // Expect no diagnostic
+            var expectedCombine = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(11, 26, 11, 38).WithArguments("CombinePaths");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedCombine);
         }
 
         [Test]
@@ -710,7 +703,7 @@ public class TestClass
         [Test]
         public async Task IoClassInheritanceButPureMethods_ShouldBePure()
         {
-            // Class inherits from IO class but only uses pure properties
+            // UPDATED: Expect PS0002 on Delete
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -741,16 +734,14 @@ public class TestClass
     }
 }";
 
-            // Add expected diagnostic as property getter is treated as impure - UPDATE: Expecting 0 now
-            // var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-            //                        .WithSpan(23, 19, 23, 29).WithArguments("TestMethod");
-            await VerifyCS.VerifyAnalyzerAsync(test); // Removed expected diagnostic
+            var expectedDelete = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(13, 26, 13, 32).WithArguments("Delete");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedDelete);
         }
 
         [Test]
         public async Task MockIoInterface_ShouldBePure()
         {
-            // Using interface that could represent IO but with pure implementation
+            // UPDATED: Expect PS0004 on interface ReadAllText, .ctor, and PS0002 on impl ReadAllText
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -790,9 +781,10 @@ public class TestClass
     }
 }";
 
-            // REMOVED: Incorrect diagnostic expectation. Analyzer correctly assumes interface call is pure.
-            // await VerifyCS.VerifyAnalyzerAsync(test, expected);
-            await VerifyCS.VerifyAnalyzerAsync(test); // No diagnostic expected
+            var expectedInterfaceRead = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(10, 12, 10, 23).WithArguments("ReadAllText");
+            var expectedImplRead = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(17, 19, 17, 30).WithArguments("ReadAllText");
+            var expectedCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(27, 12, 27, 21).WithArguments(".ctor");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedInterfaceRead, expectedImplRead, expectedCtor);
         }
 
         [Test]

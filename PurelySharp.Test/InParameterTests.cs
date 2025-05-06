@@ -76,8 +76,9 @@ public class TestClass
     }
 }
 ";
-            // Reverted: Expect 0 diagnostics now
-            await VerifyCS.VerifyAnalyzerAsync(code);
+            // UPDATED: Expect PS0002 on Main
+            var expectedMain = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(11, 24, 11, 28).WithArguments("Main");
+            await VerifyCS.VerifyAnalyzerAsync(code, expectedMain);
         }
 
         // Expectation limitation: analyzer currently does not report missing enforce-pure-attribute diagnostic (PS0004) for pure helper methods lacking [EnforcePure].
@@ -102,7 +103,9 @@ public class TestClass
     }
 }
 ";
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // UPDATED: Expect PS0004 on Add
+            var expectedAdd = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(13, 16, 13, 19).WithArguments("Add");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedAdd);
         }
 
         [Test]

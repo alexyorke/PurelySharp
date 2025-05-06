@@ -50,20 +50,24 @@ using PurelySharp.Attributes;
 
 public class TestClass
 {
+    // Note: ImpureHelperMethod lacks [EnforcePure]
     public void ImpureHelperMethod()
     {
-        Console.WriteLine(""This is impure"");
+        Console.WriteLine(""This is impure""); // Impure
     }
 
     [EnforcePure]
-    public void {|PS0002:TestMethod|}()
+    public void TestMethod()
     {
-        // Call to impure method should trigger diagnostic, but analyzer doesn't detect it
+        // Call to impure method should trigger diagnostic on TestMethod
         ImpureHelperMethod();
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0002 on TestMethod and ImpureHelperMethod based on runner output (2 diagnostics total)
+            var expectedImpureHelperPS0002 = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(10, 17, 10, 35).WithArguments("ImpureHelperMethod");
+            var expectedTestMethod = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(16, 17, 16, 27).WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedImpureHelperPS0002, expectedTestMethod });
         }
 
         [Test]

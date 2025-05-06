@@ -35,12 +35,20 @@ namespace MockFramework
 public class TestClass
 {
     [EnforcePure]
-    public void {|PS0002:UpdateUI|}(Button button)
+    public void UpdateUI(Button button)
     {
         button.Content = ""Clicked""; // Impure: UI Side Effect (Line 22 in this string)
     }
 }";
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0004 on mock framework members and PS0002 on UpdateUI (6 diagnostics total)
+            var expectedGetContent = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(10, 41, 10, 48).WithArguments("get_Content");
+            var expectedSetContent = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(10, 41, 10, 48).WithArguments("set_Content");
+            var expectedGetText = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 42, 11, 46).WithArguments("get_Text");
+            var expectedSetText = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 42, 11, 46).WithArguments("set_Text");
+            var expectedShow = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(12, 50, 12, 54).WithArguments("Show");
+            var expectedUpdateUI = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(20, 17, 20, 25).WithArguments("UpdateUI");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetContent, expectedSetContent, expectedGetText, expectedSetText, expectedShow, expectedUpdateUI });
         }
 
         [Test] // This should pass
@@ -70,7 +78,13 @@ public class TestClass
         return textBox.Text; // Pure: Reading UI state (Line 21)
     }
 }";
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0004 on mock framework members based on runner output (5 diagnostics total)
+            var expectedGetContent = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(10, 41, 10, 48).WithArguments("get_Content");
+            var expectedSetContent = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(10, 41, 10, 48).WithArguments("set_Content");
+            var expectedGetText = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 42, 11, 46).WithArguments("get_Text");
+            var expectedSetText = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 42, 11, 46).WithArguments("set_Text");
+            var expectedShow = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(12, 50, 12, 54).WithArguments("Show");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetContent, expectedSetContent, expectedGetText, expectedSetText, expectedShow);
         }
 
         // --- New Tests Added Below (Mostly Commented Out) ---
@@ -114,8 +128,13 @@ public class TestClass
         return config.GetSection(""MyKey"").Value; // Marked as impure/unknown
     }
 }";
-            // REMOVED EXPECTATIONS: Analyzer correctly sees these mock accesses as pure
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0004 on mock framework members
+            var expectedGetItem = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(10, 47, 10, 51).WithArguments("get_Item");
+            var expectedGetSection1 = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(10, 95, 10, 105).WithArguments("GetSection");
+            var expectedGetValue = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 54, 11, 59).WithArguments("get_Value");
+            var expectedGetSection2 = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(16, 38, 16, 48).WithArguments("GetSection"); // Second definition in MockConfiguration
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetItem, expectedGetSection1, expectedGetValue, expectedGetSection2);
         }
 
         // --- ASP.NET Core Minimal APIs / Middleware (Commented Out) ---

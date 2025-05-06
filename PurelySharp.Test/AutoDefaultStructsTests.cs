@@ -20,12 +20,11 @@ using PurelySharp.Attributes;
 
 namespace TestNamespace
 {
-    // Define a struct with a pure method
     public struct Point
     {
         public double X { get; set; }
         public double Y { get; set; }
-
+        
         [EnforcePure]
         public double CalculateDistance(Point other)
         {
@@ -34,20 +33,27 @@ namespace TestNamespace
             return Math.Sqrt(dx * dx + dy * dy);
         }
     }
-
-    public class TestClass
+    
+    public class PointTest
     {
-        public void ProcessPoint()
+        [EnforcePure]
+        public static void ProcessPoint()
         {
-            Point p1 = default; // Auto-default struct instantiation
+            Point p1 = default;
             Point p2 = new Point { X = 3, Y = 4 };
-            double distance = p1.CalculateDistance(p2); // Call pure method
+            double distance = p1.CalculateDistance(p2);
         }
     }
 }";
 
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0004 for property accessors and PS0002 for method (5 total)
+            var expectedGetX = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(9, 23, 9, 24).WithArguments("get_X");
+            var expectedSetX = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(9, 23, 9, 24).WithArguments("set_X");
+            var expectedGetY = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(10, 23, 10, 24).WithArguments("get_Y");
+            var expectedSetY = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(10, 23, 10, 24).WithArguments("set_Y");
+            var expectedProcessPoint = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(24, 28, 24, 40).WithArguments("ProcessPoint");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetX, expectedSetX, expectedGetY, expectedSetY, expectedProcessPoint });
         }
 
         [Test]
@@ -90,8 +96,11 @@ namespace TestNamespace
     }
 }";
 
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0004 for constructor and TestVector (2 total)
+            var expectedCtor = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(14, 16, 14, 24).WithArguments(".ctor");
+            var expectedTestVector = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(30, 30, 30, 40).WithArguments("TestVector");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedCtor, expectedTestVector });
         }
 
         [Test]
@@ -126,8 +135,10 @@ namespace TestNamespace
     }
 }";
 
-            // Remove expected diagnostic
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0002 for TestTemperature
+            var expectedTestTemperature = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(22, 28, 22, 43).WithArguments("TestTemperature");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedTestTemperature);
         }
 
         [Test]
@@ -163,8 +174,14 @@ namespace TestNamespace
     }
 }";
 
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0004 for property accessors and PS0002 for TestRectangle
+            var expectedGetWidth = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(10, 20, 10, 25).WithArguments("get_Width");
+            var expectedSetWidth = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(10, 20, 10, 25).WithArguments("set_Width");
+            var expectedGetHeight = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 20, 11, 26).WithArguments("get_Height");
+            var expectedSetHeight = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 20, 11, 26).WithArguments("set_Height");
+            var expectedTestRectangle = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(23, 28, 23, 41).WithArguments("TestRectangle");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetWidth, expectedSetWidth, expectedGetHeight, expectedSetHeight, expectedTestRectangle });
         }
 
         [Test]
@@ -183,7 +200,7 @@ namespace TestNamespace
         public string LogPath { get; set; }
 
         [EnforcePure]
-        public void {|PS0002:WriteLog|}(string message)
+        public void WriteLog(string message)
         {
             // Impure operation
             File.AppendAllText(LogPath, message + Environment.NewLine);
@@ -201,8 +218,13 @@ namespace TestNamespace
     }
 }";
 
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0004 for property accessors and PS0002 for methods (4 total)
+            var expectedGetLogPath = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 23, 11, 30).WithArguments("get_LogPath");
+            var expectedSetLogPath = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 23, 11, 30).WithArguments("set_LogPath");
+            var expectedWriteLog = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(14, 21, 14, 29).WithArguments("WriteLog");
+            var expectedLogSomething = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(23, 21, 23, 33).WithArguments("LogSomething");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetLogPath, expectedSetLogPath, expectedWriteLog, expectedLogSomething });
         }
 
         [Test]
@@ -226,7 +248,7 @@ namespace TestNamespace
         public string Name; // Auto-defaulted to null
         
         [EnforcePure]
-        public bool {|PS0002:IsOrigin|}()
+        public bool IsOrigin()
         {
             // Pure method using auto-default values in nested struct
             return Position.Latitude == 0 && Position.Longitude == 0;
@@ -243,10 +265,11 @@ namespace TestNamespace
     }
 }";
 
-            // Test verifies analyzer limitation: Reading auto-defaulted nested struct fields
-            // is incorrectly flagged (PS0002).
-            // Diagnostics are verified via inline markup.
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0002 for IsOrigin and TestGeo
+            var expectedIsOrigin = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(19, 21, 19, 29).WithArguments("IsOrigin");
+            var expectedTestGeo = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(28, 28, 28, 35).WithArguments("TestGeo");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedIsOrigin, expectedTestGeo });
         }
     }
 }

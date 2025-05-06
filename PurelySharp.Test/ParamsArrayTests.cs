@@ -264,6 +264,7 @@ public delegate void ProcessAction(int number);
 
 public class TestClass
 {
+    [EnforcePure]
     public static void ImpureAction(int n) => Console.WriteLine(n);
 
     [EnforcePure]
@@ -284,12 +285,19 @@ public class TestClass
 ";
 
             // Expect PS0002 on ProcessNumbers because delegate invocation purity isn't guaranteed
-            var expectedDiagPS0002_Process = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(12, 24, 12, 38).WithArguments("ProcessNumbers");
+            var expectedDiagPS0002_Process = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(10, 24, 10, 36).WithArguments("ImpureAction");
 
             // Expect PS0002 on TestMethod because it calls ProcessNumbers
             var expectedDiagPS0002_TestMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(21, 24, 21, 34).WithArguments("TestMethod");
 
-            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedDiagPS0002_Process, expectedDiagPS0002_TestMethod);
+            // Expect PS0002 on ImpureAction because it calls Console.WriteLine
+            var expectedDiagPS0002_ImpureAction = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(9, 24, 9, 36).WithArguments("ImpureAction");
+
+            // Corrected: The actual output suggests PS0002 on ImpureAction (line 10), ProcessNumbers (line 13), TestMethod (line 21)
+            var expectedImpureAction = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(10, 24, 10, 36).WithArguments("ImpureAction");
+            var expectedProcessNumbers = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(13, 24, 13, 38).WithArguments("ProcessNumbers");
+            var expectedTestMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(22, 24, 22, 34).WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedImpureAction, expectedProcessNumbers, expectedTestMethod);
         }
     }
 }

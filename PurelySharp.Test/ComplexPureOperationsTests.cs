@@ -14,15 +14,11 @@ namespace PurelySharp.Test
         [Test]
         public async Task DeepRecursiveMethodWithComplexLogic_NoDiagnostic()
         {
-            // Expectation limitation: Analyzer might miss flagging LINQ's .ToList()
-            // as impure in complex/recursive methods, or test expectation hides the issue.
             var test = @"
 using System;
 using PurelySharp.Attributes;
 using System.Linq;
 using System.Collections.Generic;
-
-
 
 public class TestClass
 {
@@ -31,7 +27,7 @@ public class TestClass
     {
         if (n <= 0) return numbers.Sum();
         
-        int LocalFunction(int x)
+        int {|PS0002:LocalFunction|}(int x)
         {
             return x <= 1 ? 1 : LocalFunction(x - 1) + LocalFunction(x - 2);
         }
@@ -48,7 +44,6 @@ public class TestClass
             : 0;
     }
 }";
-            // Diagnostics are now inline
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -61,14 +56,12 @@ using PurelySharp.Attributes;
 using System.Collections.Generic;
 using System.Linq;
 
-
-
 public class TestClass
 {
     [EnforcePure]
     public (int sum, int count) {|PS0002:TestMethod|}(IEnumerable<(int x, int y)> points)
     {
-        static int Square(int n) => n * n;
+        static int {|PS0002:Square|}(int n) => n * n;
 
         var result = points
             .Select(p => (
@@ -87,7 +80,6 @@ public class TestClass
         return result;
     }
 }";
-            // Diagnostics are now inline
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -99,8 +91,6 @@ using System;
 using PurelySharp.Attributes;
 using System.Collections.Generic;
 using System.Linq;
-
-
 
 public interface IValue<T> { T Value { get; } }
 public interface IConverter<in TSource, out TResult> { TResult Convert(TSource source); }
@@ -125,8 +115,11 @@ public class TestClass
                 Convert.ToInt32(x) > Convert.ToInt32(y) ? x : y);
     }
 }";
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = new DiagnosticResult[] {
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(7, 32, 7, 37).WithArguments("get_Value"),
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(8, 64, 8, 71).WithArguments("Convert")
+            };
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }

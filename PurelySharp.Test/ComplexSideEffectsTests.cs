@@ -85,8 +85,8 @@ public class TestClass
         };
     }
 }";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(16, 13, 16, 26).WithArguments("LocalFunction");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]

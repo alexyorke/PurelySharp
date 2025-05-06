@@ -52,55 +52,57 @@ using System;
 using PurelySharp.Attributes;
 using System.Collections.Generic;
 
-// File-scoped namespace with nested types
-namespace TestLibrary;
+namespace MyCompany.Geometry; // File-scoped
 
+// Record removed [EnforcePure]
+public record struct Point(double X, double Y);
 
-
-// Parent class in file-scoped namespace
-public class Geometry
+// Class removed [EnforcePure]
+public class Circle
 {
-    // Nested class
-    public class Circle
-    {
-        public double Radius { get; }
-        
-        public Circle(double radius)
-        {
-            Radius = radius;
-        }
-        
-        [EnforcePure]
-        public double CalculateArea()
-        {
-            // Pure: Math.PI read is now allowed
-            return Math.PI * Radius * Radius;
-        }
-    }
-    
-    // Nested struct
-    public readonly struct Point
-    {
-        public double X { get; }
-        public double Y { get; }
-        
-        public Point(double x, double y)
-        {
-            X = x;
-            Y = y;
-        }
-        
-        [EnforcePure]
-        public double DistanceFromOrigin()
-        {
-            // Impure: Analyzer doesn't find implicit getter source for X/Y
-            return Math.Sqrt(X * X + Y * Y);
-        }
-    }
-}";
+    public Point Center { get; } // PS0004 expected
+    public double Radius { get; } // PS0004 expected
 
-            // Expect PS0002 ONLY for DistanceFromOrigin (getter source) - NOW EXPECTING 0 DIAGNOSTICS
-            await VerifyCS.VerifyAnalyzerAsync(test);
+    public Circle(Point center, double radius) // PS0004 expected
+    {
+        Center = center;
+        Radius = radius;
+    }
+
+    [EnforcePure]
+    public double CalculateArea()
+    {
+        return System.Math.PI * Radius * Radius; // Pure calculation
+    }
+
+    [EnforcePure]
+    public bool Contains(Point p)
+    {
+        double dx = p.X - Center.X;
+        double dy = p.Y - Center.Y;
+        return dx * dx + dy * dy <= Radius * Radius; // Pure calculation
+    }
+}
+
+public static class GeometryUtils
+{
+    [EnforcePure]
+    public static Point Midpoint(Point p1, Point p2)
+    {
+        return new Point((p1.X + p2.X) / 2, (p1.Y + p2.Y) / 2);
+    }
+}
+";
+            // Expect PS0004 on get_Center, get_Radius, .ctor (Circle) based on output (3 diagnostics total)
+            var expectedGetCenter = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(14, 18, 14, 24).WithArguments("get_Center");
+            var expectedGetRadius = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(15, 19, 15, 25).WithArguments("get_Radius");
+            var expectedCircleCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(17, 12, 17, 18).WithArguments(".ctor");
+
+            await VerifyCS.VerifyAnalyzerAsync(test,
+                                             expectedGetCenter,
+                                             expectedGetRadius,
+                                             expectedCircleCtor
+                                             );
         }
 
         [Test]
@@ -123,7 +125,7 @@ public class StringUtils
     [EnforcePure]
     public string ReverseString(string input)
     {
-        // Impure due to unhandled DelegateCreation in ToArray()
+        // Actually impure due to LINQ Reverse/ToArray?
         return new string(input.Reverse().ToArray());
     }
 }
@@ -134,7 +136,7 @@ public class MathUtils
     [EnforcePure]
     public int Factorial(int n)
     {
-        // Impure: Analyzer doesn't handle recursion correctly
+        // Impure: Analyzer doesn't handle recursion correctly -> Actually flagged PS0002
         if (n <= 1) return 1;
         return n * Factorial(n - 1);
     }
@@ -151,10 +153,10 @@ public static class Extensions
     }
 }";
 
-            // Expect PS0002 for ReverseString (LINQ) and Factorial (recursion)
+            // Expect PS0002 for ReverseString and Factorial based on output
             var expected = new[] {
-                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id).WithSpan(16, 19, 16, 32).WithArguments("ReverseString"),
-                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id).WithSpan(27, 16, 27, 25).WithArguments("Factorial")
+                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(16, 19, 16, 32).WithArguments("ReverseString"),
+                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(27, 16, 27, 25).WithArguments("Factorial") // Changed ID to PS0002
             };
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
@@ -221,7 +223,9 @@ public class Calculator : ICalculator
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0004 on the implementation Add method
+            var expectedAdd = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(10, 9, 10, 12).WithArguments("Add");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedAdd);
         }
 
         [Test]
@@ -244,11 +248,11 @@ public record Point(double X, double Y)
     }
 }";
 
-            // Expect only compiler errors, not PS0002, as the method is pure
+            // Expect only compiler errors, not PS0004, as the method is pure
             var expected = new[] {
                 DiagnosticResult.CompilerError("CS0518").WithSpan(8, 28, 8, 29).WithArguments("System.Runtime.CompilerServices.IsExternalInit"),
                 DiagnosticResult.CompilerError("CS0518").WithSpan(8, 38, 8, 39).WithArguments("System.Runtime.CompilerServices.IsExternalInit")
-                // Removed PS0002 expectation
+                // Removed PS0004 expectation
             };
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }

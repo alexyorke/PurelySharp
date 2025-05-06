@@ -60,7 +60,10 @@ public class TestClass
 }";
 
             // Expect NO diagnostic because reading from 'in' parameter is pure.
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0004 on the auto-generated getters for X and Y
+            var expectedX = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(5, 34, 5, 35).WithArguments("get_X");
+            var expectedY = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(5, 56, 5, 57).WithArguments("get_Y");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedX, expectedY);
         }
 
         [Test]
@@ -87,7 +90,10 @@ public class TestClass
 }";
 
             // Expect NO diagnostic
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0004 on the auto-generated getters for X and Y
+            var expectedX = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(5, 34, 5, 35).WithArguments("get_X");
+            var expectedY = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(5, 56, 5, 57).WithArguments("get_Y");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedX, expectedY);
         }
 
         // Add test for calling impure method with in parameter?

@@ -97,7 +97,8 @@ namespace PurelySharp.Analyzer.Engine
             new ObjectOrCollectionInitializerPurityRule(),
             new LockStatementPurityRule(),
             new AwaitPurityRule(),
-            new Utf8StringLiteralPurityRule() // Added Rule
+            new Utf8StringLiteralPurityRule(), // Added Rule
+            new SizeOfPurityRule() // Added Rule
         );
 
         // --- Add list of known impure namespaces ---
@@ -576,6 +577,45 @@ namespace PurelySharp.Analyzer.Engine
                             }
                         }
                         LogDebug($"{indent}  Post-CFG: Known Impure Invocations check complete (result still pure).");
+
+                        // Check Checked Operations
+                        LogDebug($"{indent}  Post-CFG: Checking Checked Operations...");
+                        foreach (var operation in methodBodyIOperation.DescendantsAndSelf())
+                        {
+                            bool isChecked = false;
+                            IMethodSymbol? operatorMethod = null;
+
+                            if (operation is IBinaryOperation binaryOp && binaryOp.IsChecked)
+                            {
+                                isChecked = true;
+                                operatorMethod = binaryOp.OperatorMethod;
+                            }
+                            else if (operation is IUnaryOperation unaryOp && unaryOp.IsChecked)
+                            {
+                                isChecked = true;
+                                operatorMethod = unaryOp.OperatorMethod;
+                            }
+
+                            if (isChecked && operatorMethod != null)
+                            {
+                                LogDebug($"{indent}    Post-CFG: Found Checked Operation: {operation.Syntax} with operator method {operatorMethod.Name}");
+                                var operatorPurity = DeterminePurityRecursiveInternal(
+                                    operatorMethod.OriginalDefinition,
+                                    semanticModel,
+                                    enforcePureAttributeSymbol,
+                                    allowSynchronizationAttributeSymbol,
+                                    visited,
+                                    purityCache);
+
+                                if (!operatorPurity.IsPure)
+                                {
+                                    LogDebug($"{indent}    Post-CFG: Checked operator method '{operatorMethod.Name}' is IMPURE. Operation is Impure.");
+                                    result = PurityAnalysisResult.Impure(operation.Syntax);
+                                    goto PostCfgChecksDone; // Exit checks early
+                                }
+                            }
+                        }
+                        LogDebug($"{indent}  Post-CFG: Checked Operations check complete (result still pure).");
                     }
                     else
                     {
@@ -620,7 +660,6 @@ namespace PurelySharp.Analyzer.Engine
                 LogDebug($"Error creating ControlFlowGraph for {containingMethodSymbol.ToDisplayString()}: {ex.Message}. Assuming impure.");
                 return PurityAnalysisResult.Impure(bodyNode); // If CFG fails, assume impure
             }
-
 
             if (cfg == null || cfg.Blocks.IsEmpty)
             {
@@ -673,7 +712,6 @@ namespace PurelySharp.Analyzer.Engine
 
                 LogDebug($"  [CFG] StateBefore for Block #{currentBlock.Ordinal}: Impure={stateBefore.HasPotentialImpurity}");
 
-
                 // Apply transfer function to get state after this block's operations
                 var stateAfter = ApplyTransferFunction(
                     currentBlock,
@@ -685,9 +723,7 @@ namespace PurelySharp.Analyzer.Engine
                     containingMethodSymbol,
                     purityCache);
 
-
                 LogDebug($"  [CFG] State after Block #{currentBlock.Ordinal}: Impure={stateAfter.HasPotentialImpurity}");
-
 
                 // --- FIX: Always propagate the calculated stateAfter to successors ---
                 // The PropagateToSuccessor method will handle whether the successor needs enqueuing.
@@ -705,7 +741,6 @@ namespace PurelySharp.Analyzer.Engine
             {
                 LogDebug($"  [CFG] WARNING: Exited CFG dataflow loop due to iteration limit ({loopIterations}). Potential infinite loop?");
             }
-
 
             // --- Aggregate Result ---
             PurityAnalysisResult finalResult;
@@ -864,126 +899,122 @@ namespace PurelySharp.Analyzer.Engine
                 return PurityAnalysisResult.Pure;
             }
 
-            // *** ADD Explicit Handling for Using Statement ***
-            if (operation is IUsingOperation usingOperation)
+            // Check for checked operations first
+            bool isChecked = false;
+            IMethodSymbol? operatorMethod = null;
+
+            if (operation is IBinaryOperation binaryOp && binaryOp.IsChecked)
             {
-                LogDebug($"    [CSO] Applying specialized check for UsingOperation: {usingOperation.Syntax.ToString().Trim()}");
+                LogDebug($"    [CSO] Found Checked Binary Operation: {operation.Syntax}");
+                isChecked = true;
+                operatorMethod = binaryOp.OperatorMethod;
 
-                // 1. Check Resource Acquisition
-                if (usingOperation.Resources != null)
+                // Check operands first
+                var leftResult = CheckSingleOperation(binaryOp.LeftOperand, context, currentState);
+                if (!leftResult.IsPure)
                 {
-                    var resourceResult = CheckSingleOperation(usingOperation.Resources, context, currentState); // Pass currentState
-                    if (!resourceResult.IsPure)
-                    {
-                        LogDebug($"    [CSO] UsingOperation Resource Acquisition IMPURE: {resourceResult.ImpureSyntaxNode?.ToString() ?? "Unknown"}");
-                        return resourceResult.ImpureSyntaxNode != null
-                               ? resourceResult
-                               : PurityAnalysisResult.Impure(usingOperation.Resources.Syntax);
-                    }
+                    LogDebug($"    [CSO] Left operand of checked operation is Impure: {binaryOp.LeftOperand.Syntax}");
+                    return leftResult;
                 }
 
-                // 2. Check Body
-                if (usingOperation.Body != null)
+                var rightResult = CheckSingleOperation(binaryOp.RightOperand, context, currentState);
+                if (!rightResult.IsPure)
                 {
-                    var bodyResult = CheckSingleOperation(usingOperation.Body, context, currentState); // Pass currentState
-                    if (!bodyResult.IsPure)
-                    {
-                        LogDebug($"    [CSO] UsingOperation Body IMPURE: {bodyResult.ImpureSyntaxNode?.ToString() ?? "Unknown"}");
-                        return bodyResult.ImpureSyntaxNode != null
-                               ? bodyResult
-                               : PurityAnalysisResult.Impure(usingOperation.Body.Syntax);
-                    }
+                    LogDebug($"    [CSO] Right operand of checked operation is Impure: {binaryOp.RightOperand.Syntax}");
+                    return rightResult;
                 }
+            }
+            else if (operation is IUnaryOperation unaryOp && unaryOp.IsChecked)
+            {
+                LogDebug($"    [CSO] Found Checked Unary Operation: {operation.Syntax}");
+                isChecked = true;
+                operatorMethod = unaryOp.OperatorMethod;
 
-                // 3. Check Implicit Dispose 
-                ITypeSymbol? resourceType = null;
-                // Corrected: Access declarator symbol
-                if (usingOperation.Resources is IVariableDeclarationGroupOperation varGroup &&
-                    varGroup.Declarations.Length > 0 &&
-                    varGroup.Declarations[0].Declarators.Length > 0)
+                // Check operand first
+                var operandResult = CheckSingleOperation(unaryOp.Operand, context, currentState);
+                if (!operandResult.IsPure)
                 {
-                    resourceType = varGroup.Declarations[0].Declarators[0].Symbol.Type;
+                    LogDebug($"    [CSO] Operand of checked operation is Impure: {unaryOp.Operand.Syntax}");
+                    return operandResult;
                 }
-                else if (usingOperation.Resources is IConversionOperation convOp && convOp.Operand != null)
+            }
+
+            if (isChecked)
+            {
+                LogDebug($"    [CSO] Processing checked operation: {operation.Syntax}");
+
+                // If there's a user-defined operator method, check its purity
+                if (operatorMethod != null)
                 {
-                    resourceType = convOp.Operand.Type;
-                }
-                else if (usingOperation.Resources?.Type != null)
-                {
-                    resourceType = usingOperation.Resources.Type;
-                }
-
-                if (resourceType != null)
-                {
-                    var disposableInterface = context.SemanticModel.Compilation.GetTypeByMetadataName("System.IDisposable");
-                    var asyncDisposableInterface = context.SemanticModel.Compilation.GetTypeByMetadataName("System.IAsyncDisposable");
-
-                    bool isDisposable = disposableInterface != null && resourceType.AllInterfaces.Contains(disposableInterface, SymbolEqualityComparer.Default);
-                    bool isAsyncDisposable = asyncDisposableInterface != null && resourceType.AllInterfaces.Contains(asyncDisposableInterface, SymbolEqualityComparer.Default);
-
-                    IMethodSymbol? disposeMethod = null;
-                    string disposeMethodName = "Dispose"; // Default to sync Dispose
-                    if (isAsyncDisposable && usingOperation.IsAsynchronous)
+                    // First, check if the operator method is already in the cache
+                    if (context.PurityCache.TryGetValue(operatorMethod.OriginalDefinition, out var cachedResult))
                     {
-                        disposeMethodName = "DisposeAsync";
-                        disposeMethod = resourceType.GetMembers(disposeMethodName)
-                                                  .OfType<IMethodSymbol>()
-                                                  .FirstOrDefault(m => m.Parameters.Length == 0 && m.ReturnType.Name == "ValueTask");
-                    }
-
-                    if (disposeMethod == null && isDisposable)
-                    {
-                        disposeMethodName = "Dispose";
-                        disposeMethod = resourceType.GetMembers(disposeMethodName)
-                                                  .OfType<IMethodSymbol>()
-                                                  .FirstOrDefault(m => m.Parameters.Length == 0 && m.ReturnType.SpecialType == SpecialType.System_Void);
-                    }
-
-                    // Revised Dispose Check
-                    if (disposeMethod != null)
-                    {
-                        LogDebug($"    [CSO] UsingOperation checking implicit {disposeMethodName} method: {disposeMethod.ToDisplayString()}");
-
-                        // Check Cache first
-                        if (context.PurityCache.TryGetValue(disposeMethod.OriginalDefinition, out var cachedResult))
+                        if (!cachedResult.IsPure)
                         {
-                            if (!cachedResult.IsPure)
-                            {
-                                LogDebug($"    [CSO] UsingOperation Implicit {disposeMethodName} IMPURE (Cached). Reporting impurity at using statement.");
-                                return PurityAnalysisResult.Impure(usingOperation.Syntax);
-                            }
-                            LogDebug($"    [CSO] UsingOperation Implicit {disposeMethodName} is PURE (Cached).");
+                            LogDebug($"    [CSO] Checked operator method '{operatorMethod.Name}' is IMPURE (cached). Operation is Impure.");
+                            return PurityAnalysisResult.Impure(operation.Syntax);
                         }
-                        // Check Known Lists / Attributes (using helpers)
-                        else if (IsKnownImpure(disposeMethod))
-                        {
-                            LogDebug($"    [CSO] UsingOperation Implicit {disposeMethodName} IMPURE (Known Impure). Reporting impurity at using statement.");
-                            return PurityAnalysisResult.Impure(usingOperation.Syntax);
-                        }
-                        else if (IsKnownPureBCLMember(disposeMethod) || (context.PureAttributeSymbol != null && HasAttribute(disposeMethod, context.PureAttributeSymbol))) // Check PureAttributeSymbol nullability
-                        {
-                            LogDebug($"    [CSO] UsingOperation Implicit {disposeMethodName} is PURE (Known/Attribute).");
-                            // Continue (Dispose is pure)
-                        }
-                        else
-                        {
-                            // Purity is unknown, assume impure for safety 
-                            LogDebug($"    [CSO] UsingOperation Implicit {disposeMethodName} purity UNKNOWN. Assuming impure for safety. Reporting impurity at using statement.");
-                            return PurityAnalysisResult.Impure(usingOperation.Syntax);
-                        }
+                        LogDebug($"    [CSO] Checked operator method '{operatorMethod.Name}' is Pure (cached).");
+                        return PurityAnalysisResult.Pure;
                     }
-                    else if (isDisposable || isAsyncDisposable)
+
+                    // If not in cache, check if it's a known pure/impure method
+                    if (IsKnownPureBCLMember(operatorMethod))
                     {
-                        LogDebug($"    [CSO] UsingOperation could not find expected {disposeMethodName} method on {resourceType.Name} despite interface. Assuming impure Dispose.");
-                        return PurityAnalysisResult.Impure(usingOperation.Syntax);
+                        LogDebug($"    [CSO] Checked operator method '{operatorMethod.Name}' is known pure BCL member.");
+                        return PurityAnalysisResult.Pure;
+                    }
+
+                    if (IsKnownImpure(operatorMethod))
+                    {
+                        LogDebug($"    [CSO] Checked operator method '{operatorMethod.Name}' is known impure. Operation is Impure.");
+                        return PurityAnalysisResult.Impure(operation.Syntax);
+                    }
+
+                    // If not known, analyze the operator method recursively
+                    var operatorPurity = DeterminePurityRecursiveInternal(
+                        operatorMethod.OriginalDefinition,
+                        context.SemanticModel,
+                        context.EnforcePureAttributeSymbol,
+                        context.AllowSynchronizationAttributeSymbol,
+                        context.VisitedMethods,
+                        context.PurityCache);
+
+                    if (!operatorPurity.IsPure)
+                    {
+                        LogDebug($"    [CSO] Checked operator method '{operatorMethod.Name}' is IMPURE. Operation is Impure.");
+                        return PurityAnalysisResult.Impure(operation.Syntax);
+                    }
+
+                    LogDebug($"    [CSO] Checked operator method '{operatorMethod.Name}' is Pure.");
+                }
+
+                // Check if this operation is part of a method marked with [EnforcePure]
+                if (context.ContainingMethodSymbol != null &&
+                    IsPureEnforced(context.ContainingMethodSymbol, context.EnforcePureAttributeSymbol))
+                {
+                    LogDebug($"    [CSO] Checked operation is part of a method marked with [EnforcePure]. Checking purity of containing method.");
+
+                    // Check the containing method's purity
+                    var containingMethodPurity = DeterminePurityRecursiveInternal(
+                        context.ContainingMethodSymbol.OriginalDefinition,
+                        context.SemanticModel,
+                        context.EnforcePureAttributeSymbol,
+                        context.AllowSynchronizationAttributeSymbol,
+                        context.VisitedMethods,
+                        context.PurityCache);
+
+                    if (!containingMethodPurity.IsPure)
+                    {
+                        LogDebug($"    [CSO] Containing method is IMPURE. Operation is Impure.");
+                        return PurityAnalysisResult.Impure(operation.Syntax);
                     }
                 }
 
-                // If resource, body, and Dispose are pure, the using statement is pure.
-                LogDebug($"    [CSO] UsingOperation determined PURE.");
+                // If we get here, either there was no user-defined operator or it was pure
+                LogDebug($"    [CSO] Checked operation is Pure.");
                 return PurityAnalysisResult.Pure;
             }
-            // *** END Using Statement Handling ***
 
             // Find the first applicable rule from the list (existing logic)
             var applicableRule = _purityRules.FirstOrDefault(rule => rule.ApplicableOperationKinds.Contains(operation.Kind));
@@ -1287,15 +1318,15 @@ namespace PurelySharp.Analyzer.Engine
 #if DEBUG
             // New logging implementation: Write to Console
             // *** UNCOMMENTED TO ENABLE LOGGING ***
-            try
-            {
-                Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} [DEBUG] {message}"); // UNCOMMENTED
-            }
-            catch (Exception ex)
-            {
-                // Fallback if Console logging fails for some reason
-                System.Diagnostics.Debug.WriteLine($"Console Logging failed: {ex.Message}");
-            }
+            // try // Commented out
+            // { // Commented out
+            //    Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} [DEBUG] {message}"); // UNCOMMENTED // Commented out
+            // } // Commented out
+            // catch (Exception ex) // Commented out
+            // { // Commented out
+            // Fallback if Console logging fails for some reason
+            //    System.Diagnostics.Debug.WriteLine($"Console Logging failed: {ex.Message}"); // Commented out
+            // } // Commented out
 #endif
         }
 

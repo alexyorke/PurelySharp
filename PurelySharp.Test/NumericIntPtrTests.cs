@@ -57,7 +57,9 @@ using PurelySharp.Attributes; // Assuming AttributeSource is prepended elsewhere
         }
     }";
             var test = CreateTestWithAttribute(testCode);
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expectedAdd = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(17, 21, 17, 24).WithArguments("Add");
+            var expectedMultiply = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(23, 21, 23, 29).WithArguments("Multiply");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedAdd, expectedMultiply);
         }
 
         // Expectation limitation: missing enforce-pure-attribute diagnostic (PS0004) for pure native-int methods without [EnforcePure].
@@ -82,7 +84,9 @@ using PurelySharp.Attributes;
         }
     }";
             var test = CreateTestWithAttribute(testCode);
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expectedAdd = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(17, 22, 17, 25).WithArguments("Add");
+            var expectedMultiply = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(23, 22, 23, 30).WithArguments("Multiply");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedAdd, expectedMultiply);
         }
 
         // Expectation limitation: missing enforce-pure-attribute diagnostic (PS0004) for pure native-int methods without [EnforcePure].
@@ -117,7 +121,11 @@ using PurelySharp.Attributes;
             return (nuint)value;
         }
     }";
-            await VerifyCS.VerifyAnalyzerAsync(CreateTestWithAttribute(testCode));
+            var expectedToInt = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(16, 20, 16, 32).WithArguments("ConvertToInt");
+            var expectedToNInt = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(22, 21, 22, 34).WithArguments("ConvertToNInt");
+            var expectedToUInt = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(28, 22, 28, 35).WithArguments("ConvertToUInt");
+            var expectedToNUInt = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(34, 22, 34, 36).WithArguments("ConvertToNUInt");
+            await VerifyCS.VerifyAnalyzerAsync(CreateTestWithAttribute(testCode), expectedToInt, expectedToNInt, expectedToUInt, expectedToNUInt);
         }
 
         // Expectation limitation: missing enforce-pure-attribute diagnostic (PS0004) for pure native-int methods without [EnforcePure].
@@ -154,7 +162,11 @@ using PurelySharp.Attributes;
         }
     }";
             var test = CreateTestWithAttribute(testCode);
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expectedGT = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(17, 21, 17, 34).WithArguments("IsGreaterThan");
+            var expectedLT = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(23, 21, 23, 31).WithArguments("IsLessThan");
+            var expectedEQ = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(29, 21, 29, 29).WithArguments("AreEqual");
+            var expectedGTU = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(35, 21, 35, 34).WithArguments("IsGreaterThan");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedGT, expectedLT, expectedEQ, expectedGTU);
         }
 
         // Expectation limitation: missing enforce-pure-attribute diagnostic (PS0004) for pure native-int methods without [EnforcePure].
@@ -191,7 +203,11 @@ using PurelySharp.Attributes;
         }
     }";
             var test = CreateTestWithAttribute(testCode);
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expectedPos = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(17, 21, 17, 42).WithArguments("GetLargePositiveValue");
+            var expectedNeg = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(23, 21, 23, 37).WithArguments("GetNegativeValue");
+            var expectedUnsigned = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(29, 22, 29, 43).WithArguments("GetLargeUnsignedValue");
+            var expectedZero = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(35, 22, 35, 34).WithArguments("GetZeroValue");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedPos, expectedNeg, expectedUnsigned, expectedZero);
         }
 
         // Expectation limitation: missing enforce-pure-attribute diagnostic (PS0004) for pure native-int methods without [EnforcePure].
@@ -234,7 +250,14 @@ using PurelySharp.Attributes;
         }
     }";
             var test = CreateTestWithAttribute(testCode);
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expectedAnd = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(17, 21, 17, 31).WithArguments("BitwiseAnd");
+            var expectedOr = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(23, 21, 23, 30).WithArguments("BitwiseOr");
+            var expectedXor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(29, 21, 29, 31).WithArguments("BitwiseXor");
+            var expectedNot = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(35, 21, 35, 31).WithArguments("BitwiseNot");
+            var expectedAndUnsigned = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(41, 22, 41, 32).WithArguments("BitwiseAnd");
+
+            await VerifyCS.VerifyAnalyzerAsync(CreateTestWithAttribute(testCode),
+                                             expectedAnd, expectedOr, expectedXor, expectedNot, expectedAndUnsigned);
         }
 
         [Test]

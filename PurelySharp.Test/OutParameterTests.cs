@@ -85,6 +85,7 @@ using PurelySharp.Attributes;
 
 public class TestClass
 {
+    [EnforcePure]
     private void HelperMethod(out int x)
     {
         x = 42;
@@ -98,8 +99,8 @@ public class TestClass
         return result;
     }
 }";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expectedTest = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(8, 18, 8, 30).WithArguments("HelperMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedTest);
         }
 
         [Test]
@@ -111,6 +112,7 @@ using PurelySharp.Attributes;
 
 public class TestClass
 {
+    [EnforcePure]
     private void HelperMethod(out int x)
     {
         x = 42;
@@ -123,8 +125,8 @@ public class TestClass
         return result;
     }
 }";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expectedTest = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(8, 18, 8, 30).WithArguments("HelperMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedTest);
         }
 
         [Test]
@@ -136,6 +138,7 @@ using PurelySharp.Attributes;
 
 public class TestClass
 {
+    [EnforcePure]
     private void HelperMethod(out int x, out int y)
     {
         x = 42;
@@ -150,8 +153,8 @@ public class TestClass
         return result;
     }
 }";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expectedTest = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(8, 18, 8, 30).WithArguments("HelperMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedTest);
         }
     }
 }

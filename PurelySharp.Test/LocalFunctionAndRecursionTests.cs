@@ -38,10 +38,13 @@ public class TestClass
 }";
 
             // Expect diagnostic on TestMethod due to impure local function
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+            var expectedOuter = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
                                    .WithSpan(12, 16, 12, 26) // ACTUAL Span reported by test runner (attribute line)
                                    .WithArguments("TestMethod");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            var expectedLocal = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                   .WithSpan(14, 13, 14, 26) // ACTUAL Span reported by test runner (local function line)
+                                   .WithArguments("LocalFunction");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedOuter, expectedLocal);
         }
 
         [Test]
@@ -93,10 +96,13 @@ public class TestClass
     }
 }";
             // Expect diagnostic on TestMethod because it calls ImpureMethod
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+            var expectedOuter = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
                                    .WithSpan(15, 17, 15, 27) // CORRECTED Span of TestMethod (method identifier line)
                                    .WithArguments("TestMethod");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            var expectedImpure = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                   .WithSpan(9, 18, 9, 30) // CORRECTED Span of ImpureMethod (method identifier line)
+                                   .WithArguments("ImpureMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedOuter, expectedImpure);
         }
     }
 }

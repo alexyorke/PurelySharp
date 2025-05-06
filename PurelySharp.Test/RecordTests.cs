@@ -139,6 +139,11 @@ namespace PurelySharp.Attributes
                     .WithArguments("property", "Name"),
                 // PS0002: Method 'UpdatePerson' marked with [EnforcePure] has implementation, but its purity has not been verified by existing rules
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(16, 17, 16, 29).WithArguments("UpdatePerson"),
+                // Add PS0004 for getters/setters
+                VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(9, 19, 9, 23).WithArguments("get_Name"),
+                VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(9, 19, 9, 23).WithArguments("set_Name"),
+                VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(10, 16, 10, 19).WithArguments("get_Age"),
+                VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(10, 16, 10, 19).WithArguments("set_Age"),
             };
 
             await VerifyCS.VerifyAnalyzerAsync(source, expected);

@@ -20,8 +20,6 @@ using System;
 using PurelySharp.Attributes;
 using System.Threading.Tasks;
 
-
-
 class Program
 {
     [EnforcePure]
@@ -30,12 +28,8 @@ class Program
         return await Task.FromResult(42);
     }
 }";
-            // Analyzer seems to flag async methods returning Task.FromResult - REVERTED
-            // var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-            //                      .WithSpan(10, 28, 10, 43) // Span for PureAsyncMethod identifier
-            //                      .WithArguments("PureAsyncMethod");
-            // await VerifyCS.VerifyAnalyzerAsync(test, expected); // Expect diagnostic
-            await VerifyCS.VerifyAnalyzerAsync(test); // Expect NO diagnostic
+            // Expect no diagnostics as Task.FromResult is pure.
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
@@ -46,8 +40,6 @@ using System;
 using PurelySharp.Attributes;
 using System.Threading.Tasks;
 
-
-
 class Program
 {
     [EnforcePure]
@@ -57,6 +49,7 @@ class Program
     }
 }";
 
+            // Expect no diagnostics as Task.CompletedTask is pure.
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -68,18 +61,17 @@ using System;
 using PurelySharp.Attributes;
 using System.Threading.Tasks;
 
-
-
 class Program
 {
     [EnforcePure]
-    public async ValueTask<int> {|PS0002:PureAsyncMethod|}()
+    public async ValueTask<int> PureAsyncMethod()
     {
         return await new ValueTask<int>(42);
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0002 for PureAsyncMethod
+            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(9, 33, 9, 48).WithArguments("PureAsyncMethod"));
         }
 
         [Test]
@@ -90,18 +82,17 @@ using System;
 using PurelySharp.Attributes;
 using System.Threading.Tasks;
 
-
-
 class Program
 {
     [EnforcePure]
-    public async Task {|PS0002:ImpureAsyncMethod|}()
+    public async Task ImpureAsyncMethod()
     {
         await Task.Delay(100); // Impure operation
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0002 for ImpureAsyncMethod
+            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(9, 23, 9, 40).WithArguments("ImpureAsyncMethod"));
         }
 
         [Test]
@@ -112,21 +103,20 @@ using System;
 using PurelySharp.Attributes;
 using System.Threading.Tasks;
 
-
-
 class Program
 {
     private int _state;
 
     [EnforcePure]
-    public async Task<int> {|PS0002:ImpureAsyncMethod|}()
+    public async Task<int> ImpureAsyncMethod()
     {
         _state++; // State modification is impure
         return await Task.FromResult(_state);
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0002 for ImpureAsyncMethod
+            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(11, 28, 11, 45).WithArguments("ImpureAsyncMethod"));
         }
 
         [Test]
@@ -136,8 +126,6 @@ class Program
 using System;
 using PurelySharp.Attributes;
 using System.Threading.Tasks;
-
-
 
 class Program
 {
@@ -153,16 +141,8 @@ class Program
         return await Helper(); // Awaiting another pure method
     }
 }";
-            // REVERTED
-            // var expectedHelper = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-            //                          .WithSpan(10, 28, 10, 34) // Span for Helper identifier
-            //                          .WithArguments("Helper");
-            // var expectedPureAsync = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-            //                             .WithSpan(16, 28, 16, 43) // Span for PureAsyncMethod identifier
-            //                             .WithArguments("PureAsyncMethod");
-
-            // await VerifyCS.VerifyAnalyzerAsync(test, expectedHelper, expectedPureAsync);
-            await VerifyCS.VerifyAnalyzerAsync(test); // Expect NO diagnostics
+            // Expect no diagnostics as both methods are pure and await pure operations.
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
@@ -173,8 +153,6 @@ using System;
 using PurelySharp.Attributes;
 using System.Threading.Tasks;
 
-
-
 class Program
 {
     public async Task<int> ImpureHelper()
@@ -184,13 +162,16 @@ class Program
     }
 
     [EnforcePure]
-    public async Task<int> {|PS0002:ImpureAsyncMethod|}()
+    public async Task<int> ImpureAsyncMethod()
     {
         return await ImpureHelper(); // Awaiting an impure method
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0002 for ImpureAsyncMethod and ImpureHelper
+            var diag1 = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(15, 28, 15, 45).WithArguments("ImpureAsyncMethod");
+            var diag2 = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(8, 28, 8, 40).WithArguments("ImpureHelper");
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { diag1, diag2 });
         }
 
         [Test]
@@ -201,18 +182,17 @@ using System;
 using PurelySharp.Attributes;
 using System.Threading.Tasks;
 
-
-
 class Program
 {
     [EnforcePure]
-    public async Task {|PS0002:ImpureTaskRunMethod|}()
+    public async Task ImpureTaskRunMethod()
     {
         await Task.Run(() => Console.WriteLine(""Impure operation"")); // Task.Run is impure
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0002 for ImpureTaskRunMethod
+            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(9, 23, 9, 42).WithArguments("ImpureTaskRunMethod"));
         }
 
         [Test]
@@ -222,8 +202,6 @@ class Program
 using System;
 using PurelySharp.Attributes;
 using System.Threading.Tasks;
-
-
 
 class Program
 {
@@ -237,12 +215,8 @@ class Program
             return await Task.FromResult(42);
     }
 }";
-            // REVERTED
-            // var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-            //                      .WithSpan(10, 28, 10, 43) // Span for PureAsyncMethod identifier
-            //                      .WithArguments("PureAsyncMethod");
-            // await VerifyCS.VerifyAnalyzerAsync(test, expected); // Expect diagnostic
-            await VerifyCS.VerifyAnalyzerAsync(test); // Expect NO diagnostics
+            // Expect no diagnostics as both paths are pure.
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
@@ -252,8 +226,6 @@ class Program
 using System;
 using PurelySharp.Attributes;
 using System.Threading.Tasks;
-
-
 
 class Program
 {
@@ -267,7 +239,8 @@ class Program
         return 42;
     }
 }";
-            await VerifyCS.VerifyAnalyzerAsync(test); // Expect NO diagnostics
+            // Expect no diagnostics as both paths are pure.
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }
 }

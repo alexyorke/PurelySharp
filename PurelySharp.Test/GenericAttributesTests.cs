@@ -47,12 +47,15 @@ namespace TestNamespace
     }
 }";
 
-            // Test verifies analyzer limitation: Generic methods marked [EnforcePure]
-            // are incorrectly flagged (PS0002) even if their body is pure.
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+            // Expect PS0004 on attribute getter/ctor and PS0002 on GetAttributeValue (3 diagnostics total)
+            var expectedPS0004_Getter = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004)
+                                          .WithSpan(11, 14, 11, 19).WithArguments("get_Value");
+            var expectedPS0004_Ctor = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004)
+                                        .WithSpan(13, 12, 13, 25).WithArguments(".ctor");
+            var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002)
                                    .WithSpan(26, 23, 26, 40)
                                    .WithArguments("GetAttributeValue");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedPS0004_Getter, expectedPS0004_Ctor, expectedPS0002 });
         }
 
         [Test]
@@ -91,10 +94,15 @@ namespace TestNamespace
     }
 }";
 
-            // Test verifies analyzer limitation: Generic methods marked [EnforcePure]
-            // are incorrectly flagged (PS0002) even if their body is pure.
-            // UPDATE: Analyzer should now correctly handle this generic method as pure.
-            await VerifyCS.VerifyAnalyzerAsync(test /*, VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(26, 18, 26, 33).WithArguments("GetDefaultValue") */);
+            // Expect PS0004 on the getter and constructor of the attribute class
+            var expectedGetter = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                         .WithSpan(11, 14, 11, 26) // Span for get_DefaultValue
+                                         .WithArguments("get_DefaultValue");
+            var expectedCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                       .WithSpan(13, 12, 13, 26) // Span for .ctor
+                                       .WithArguments(".ctor");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetter, expectedCtor);
         }
 
         [Test]
@@ -121,8 +129,15 @@ public class TestClass
 }
 ";
             // Attribute application itself doesn't make the method impure.
-            // Expect no diagnostics as the method body is empty.
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0004 on the getter and constructor of the attribute class.
+            var expectedGetter = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                         .WithSpan(7, 14, 7, 18) // Span for get_Data
+                                         .WithArguments("get_Data");
+            var expectedCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                       .WithSpan(8, 12, 8, 23) // Span for .ctor
+                                       .WithArguments(".ctor");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetter, expectedCtor);
         }
 
         [Test]
@@ -163,8 +178,18 @@ namespace TestNamespace
     }
 }";
 
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0004 on the getters and constructor of the attribute class
+            var expectedKeyGetter = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                            .WithSpan(11, 17, 11, 20)
+                                            .WithArguments("get_Key");
+            var expectedValueGetter = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                              .WithSpan(12, 19, 12, 24) // Adjusted column from 16 to 19
+                                              .WithArguments("get_Value");
+            var expectedCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                       .WithSpan(14, 12, 14, 25) // Span for .ctor
+                                       .WithArguments(".ctor");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedKeyGetter, expectedValueGetter, expectedCtor);
         }
 
         [Test]
@@ -204,9 +229,13 @@ namespace TestNamespace
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test,
-                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(27, 21, 27, 29).WithArguments("LogValue")
-            );
+            // Expect PS0004 on attribute getter/ctor and PS0002 on LogValue (3 diagnostics total)
+            var expectedPS0004_Getter = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004)
+                                          .WithSpan(12, 14, 12, 19).WithArguments("get_Value");
+            var expectedPS0004_Ctor = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004)
+                                        .WithSpan(14, 12, 14, 24).WithArguments(".ctor");
+            var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(27, 21, 27, 29).WithArguments("LogValue");
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedPS0004_Getter, expectedPS0004_Ctor, expectedPS0002 });
         }
 
         [Test]
@@ -250,7 +279,14 @@ namespace TestNamespace
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0004 on attribute getters/ctor
+            var expectedMinGetter = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                          .WithSpan(12, 14, 12, 22).WithArguments("get_MinValue");
+            var expectedMaxGetter = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                          .WithSpan(13, 14, 13, 22).WithArguments("get_MaxValue");
+            var expectedCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                     .WithSpan(15, 12, 15, 29).WithArguments(".ctor");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedMinGetter, expectedMaxGetter, expectedCtor);
         }
     }
 }

@@ -37,8 +37,11 @@ public class PureDisposable : IDisposable
     // Dispose is implicitly pure (empty body)
     public void Dispose() { }
 }";
-            // Expect no diagnostic because the resource, body, and Dispose() are pure.
-            await VerifyCS.VerifyAnalyzerAsync(code);
+            // Expect PS0004 because Dispose() is pure but lacks [EnforcePure].
+            var expectedPS0004 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                    .WithSpan(20, 17, 20, 24) // Span of Dispose identifier
+                                    .WithArguments("Dispose");
+            await VerifyCS.VerifyAnalyzerAsync(code, expectedPS0004);
         }
 
         [Test]
@@ -97,7 +100,13 @@ public class TestClass
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
                                    .WithSpan(14, 17, 14, 27) // Updated span to method signature
                                    .WithArguments("TestMethod");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+
+            // Also expect PS0004 because Dispose() is pure but lacks [EnforcePure].
+            var expectedPS0004 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                    .WithSpan(8, 17, 8, 24) // Span of Dispose identifier
+                                    .WithArguments("Dispose");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected, expectedPS0004);
         }
     }
 }

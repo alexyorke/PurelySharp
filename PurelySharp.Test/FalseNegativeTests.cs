@@ -174,84 +174,103 @@ public class TestClass
         [Test]
         public async Task EventSubscription_NoDiagnostic_Bug()
         {
-            // Subscribing to an event modifies the event's invocation list (state change).
-            // Analyzer currently misses this impurity.
             var test = @"
 using System;
 using PurelySharp.Attributes;
 
-public class TestClass
+public class Button 
 {
-    public event EventHandler MyEvent;
+    public event EventHandler Clicked;
+    public void OnClick() => Clicked?.Invoke(this, EventArgs.Empty);
+}
 
-    private void Handler(object sender, EventArgs e) { }
+public class TestForm
+{
+    private Button _button = new Button();
 
-    [EnforcePure]
-    public void {|PS0002:SubscribeEvent|}()
+    [EnforcePure] // Should be impure due to subscription
+    public void SetupForm()
     {
-        // Event subscription '+=' modifies state and is impure.
-        MyEvent += Handler;
+        _button.Clicked += Button_Clicked; // Event subscription (impure?)
+    }
+
+    private void Button_Clicked(object sender, EventArgs e)
+    {
+        Console.WriteLine(""Button clicked"");
     }
 }";
-            // Analyzer correctly flags this, test expects it.
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0002 on OnClick, SetupForm, and Button_Clicked based on runner output (3 diagnostics total)
+            var expectedOnClick = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(8, 17, 8, 24).WithArguments("OnClick");
+            var expectedSetup = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(16, 17, 16, 26).WithArguments("SetupForm");
+            var expectedHandler = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(21, 18, 21, 32).WithArguments("Button_Clicked");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedOnClick, expectedSetup, expectedHandler });
         }
 
         [Test]
         public async Task ImpureStaticConstructorTrigger_NoDiagnostic_Bug()
         {
-            // Accessing a static member triggers the static constructor.
-            // If the .cctor is impure, the access point should be considered impure.
             var test = @"
 using System;
 using PurelySharp.Attributes;
 
-public static class ImpureInitializer
+public class Config
 {
-    public static readonly int Value;
+    private static readonly string Setting;
 
-    // Static constructor with side-effects
-    static ImpureInitializer()
+    [EnforcePure] // Static ctors with side effects are impure
+    static Config()
     {
-        Console.WriteLine(""Static constructor ran!""); // Impure action
-        Value = 100;
+        Console.WriteLine(""Initializing Config...""); // Impure
+        Setting = ""InitializedValue"";
     }
 }
 
 public class TestClass
 {
-    [EnforcePure]
-    public int {|PS0002:TriggerStaticConstructor|}()
+    [EnforcePure] // Accessing Config triggers static ctor
+    public void TriggerStaticConstructor()
     {
-        // Accessing ImpureInitializer.Value triggers the impure .cctor
-        return ImpureInitializer.Value;
+        string value = Config.Setting; // CS0122 Error Here
     }
 }";
-            // UPDATE: Now expect the diagnostic marked in the test string.
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0002 on .cctor, TriggerStaticConstructor, and Compiler Error CS0122 (3 total)
+            var expectedCctor = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(10, 12, 10, 18).WithArguments(".cctor");
+            var expectedTrigger = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(20, 17, 20, 41).WithArguments("TriggerStaticConstructor");
+            var compilerError = DiagnosticResult.CompilerError("CS0122").WithSpan(22, 31, 22, 38).WithArguments("Config.Setting");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedCctor, expectedTrigger, compilerError });
         }
 
         [Test]
         public async Task SuppressFinalizeCall_NoDiagnostic_Bug()
         {
-            // GC.SuppressFinalize interacts with the garbage collector, a side effect.
             var test = @"
 using System;
 using PurelySharp.Attributes;
 
-public class Resource : IDisposable { public void Dispose() {} }
+public class DisposableResource : IDisposable
+{
+    [EnforcePure] // Marked pure, but calls impure GC method
+    public void Dispose() { GC.SuppressFinalize(this); } // Impure call - Line 8
+}
 
 public class TestClass
 {
-    [EnforcePure]
-    public void {|PS0002:UseResource|}(Resource r)
+    // [EnforcePure] // Removed attribute
+    public void UseResource() // Expect PS0004 here - Line 14
     {
-        // GC.SuppressFinalize is impure.
-        GC.SuppressFinalize(r);
+        using (var res = new DisposableResource()) 
+        { 
+            // ... 
+        }
     }
 }";
-            // UPDATE: Now expect the diagnostic marked in the test string.
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0004 on UseResource and PS0002 on Dispose based on runner output (2 total)
+            var expectedUseResource = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(14, 17, 14, 28).WithArguments("UseResource");
+            var expectedDispose = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(8, 17, 8, 24).WithArguments("Dispose");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedUseResource, expectedDispose });
         }
 
         [Test]
@@ -397,41 +416,64 @@ public class TestClass
         [Test]
         public async Task IndirectStaticConstructorTrigger_Diagnostic()
         {
-            // Verify that the static constructor check handles indirect triggers.
             var test = @"
 using System;
 using PurelySharp.Attributes;
 
-public static class IndirectImpureInitializer
+public static class Helper
 {
-    public static readonly int IndirectValue;
-    static IndirectImpureInitializer()
+    private static readonly string InitializedValue;
+    [EnforcePure]
+    static Helper()
     {
-        Console.WriteLine(""Indirect Static constructor ran!""); // Impure action
-        IndirectValue = 200;
+        Console.WriteLine(""Initializing Helper...""); // Impure
+        InitializedValue = ""HelperValue"";
     }
+
+    [EnforcePure]
+    public static string GetValue() => InitializedValue;
 }
 
-public static class IntermediateCaller
+public class AnotherClass
 {
-    public static int GetValue()
+    // Calling Helper.GetValue implicitly runs Helper's static constructor
+    [EnforcePure]
+    public string TriggerIndirectStaticConstructor()
     {
-        return IndirectImpureInitializer.IndirectValue; // Triggers .cctor
+        return Helper.GetValue();
     }
 }
+";
+            // Expect PS0002 on Helper..cctor, Helper.GetValue, and TriggerIndirectStaticConstructor (3 total)
+            var expectedCctor = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(9, 12, 9, 18).WithArguments(".cctor");
+            var expectedGetValue = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(16, 26, 16, 34).WithArguments("GetValue");
+            var expectedTrigger = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(23, 19, 23, 51).WithArguments("TriggerIndirectStaticConstructor");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedCctor, expectedGetValue, expectedTrigger });
+        }
+
+        [Test]
+        public async Task DelegateInvocation_PureDelegate_NoDiagnostic_Bug()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
 
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:TriggerIndirectStaticConstructor|}()
+    public int PureCalculation(int a, int b) => a + b;
+
+    [EnforcePure]
+    public int TestMethod()
     {
-        // Calling IntermediateCaller.GetValue() should trigger the impurity check
-        // for IndirectImpureInitializer's .cctor.
-        return IntermediateCaller.GetValue();
+        Func<int, int, int> operation = PureCalculation;
+        return operation(5, 10); // Should be pure, analyzer misses it
     }
 }";
-            // Expects diagnostic because the .cctor check should propagate.
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            // Expect PS0002 on TestMethod because delegate invocation is not fully analyzed (1 total)
+            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(11, 16, 11, 26).WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
         }
     }
 }

@@ -95,13 +95,11 @@ class TestClass
     }
 }
 ";
-            // Test verifies the current analyzer limitation: Impure operations (Task.Delay, _count++)
-            // in an async void method are not currently flagged.
-            // var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-            //                       .WithSpan(15, 22, 15, 32) // Span for TestMethod signature - needs verification
-            //                       .WithArguments("TestMethod");
-            // await VerifyCS.VerifyAnalyzerAsync(test, expected);
-            await VerifyCS.VerifyAnalyzerAsync(test); // Expect NO diagnostic (current behavior)
+            // UPDATED: Expect PS0002 as impurity (Task.Delay, field write) is now detected
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                  .WithSpan(15, 23, 15, 33)
+                                  .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -130,13 +128,11 @@ class TestClass
     }
 }
 ";
-            // Test verifies the current analyzer limitation: Assignment to instance field _field
-            // is impure but is not currently flagged in this async method context.
-            // var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-            //                       .WithSpan(15, 21, 15, 31) // Span for TestMethod signature - needs verification
-            //                       .WithArguments("TestMethod");
-            // await VerifyCS.VerifyAnalyzerAsync(test, expected);
-            await VerifyCS.VerifyAnalyzerAsync(test); // Expect NO diagnostic (current behavior)
+            // UPDATED: Expect PS0002 as impurity (field write) is now detected
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                  .WithSpan(15, 23, 15, 33)
+                                  .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -163,6 +159,8 @@ class TestClass
         // Expectation limitation: Analyzer incorrectly fails to detect
         // impurity propagated from the called async local function 'ImpureLocalAsync'.
 
+        // Add [EnforcePure] to local function to ensure it's analyzed
+        [EnforcePure]
         async Task ImpureLocalAsync()
         {
             await Task.Delay(1); // Impure
@@ -173,11 +171,14 @@ class TestClass
 ";
             // Test verifies the current analyzer limitation: Impurity from the called
             // async local function ImpureLocalAsync is not currently propagated to OuterMethod.
-            // var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-            //                       .WithSpan(15, 21, 15, 32) // Span for OuterMethod signature - needs verification
-            //                       .WithArguments("OuterMethod");
-            // await VerifyCS.VerifyAnalyzerAsync(test, expected);
-            await VerifyCS.VerifyAnalyzerAsync(test); // Expect NO diagnostic (current behavior)
+            // UPDATED: Expect PS0002 on both OuterMethod and ImpureLocalAsync
+            var expectedOuter = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                       .WithSpan(15, 23, 15, 34)
+                                       .WithArguments("OuterMethod");
+            var expectedLocal = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                       .WithSpan(24, 20, 24, 36)
+                                       .WithArguments("ImpureLocalAsync");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedOuter, expectedLocal);
         }
     }
 }

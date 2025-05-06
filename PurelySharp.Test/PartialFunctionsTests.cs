@@ -35,6 +35,8 @@ public class TestClass
     }
 
     // Example usage (not strictly necessary for analyzer check, but good context)
+    // Add [EnforcePure] to trigger analysis of this method
+    [EnforcePure]
     public void UseMethod()
     {
         try
@@ -54,7 +56,12 @@ public class TestClass
                            .WithSpan(10, 16, 10, 37) // Updated Span to method identifier
                            .WithArguments("IdentityOrThrowIfNull");
 
-            await VerifyCS.VerifyAnalyzerAsync(testCode, expected);
+            // Expect PS0002 on UseMethod as well, because it calls the impure IdentityOrThrowIfNull
+            var expectedUse = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                    .WithSpan(22, 17, 22, 26) // Corrected line based on actual output
+                                    .WithArguments("UseMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(testCode, expected, expectedUse);
         }
 
         // Removed the previous runtime tests as they are superseded by the analyzer test.
