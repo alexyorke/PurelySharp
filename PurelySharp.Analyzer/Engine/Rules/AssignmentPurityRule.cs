@@ -194,95 +194,91 @@ namespace PurelySharp.Analyzer.Engine.Rules
             switch (targetOperation.Kind)
             {
                 case OperationKind.LocalReference:
-                    // Added logging for local symbol name
                     PurityAnalysisEngine.LogDebug($"    [AssignRule-Target] Target: LocalReference '{targetSymbol?.Name ?? "Unknown"}' - Pure Target Location");
                     return true;
 
                 case OperationKind.ParameterReference:
                     if (targetOperation is IParameterReferenceOperation paramRef)
                     {
-                        // Check for modification of ref/out/in/ref readonly parameters
-                        if (paramRef.Parameter.RefKind == RefKind.Ref ||
-                            paramRef.Parameter.RefKind == RefKind.Out ||
-                            paramRef.Parameter.RefKind == RefKind.In || // Treat 'in' modification as impure target
-                            paramRef.Parameter.RefKind == RefKind.RefReadOnly) // Treat 'ref readonly' modification as impure target
+                        if (paramRef.Parameter.RefKind == RefKind.Ref || paramRef.Parameter.RefKind == RefKind.Out ||
+                            paramRef.Parameter.RefKind == RefKind.In || paramRef.Parameter.RefKind == RefKind.RefReadOnly)
                         {
                             PurityAnalysisEngine.LogDebug($" Assignment Target: ParameterReference ({paramRef.Parameter.RefKind}) modification attempt - Impure Target");
                             return false;
                         }
-                        else // Value parameters
+                        else
                         {
                             PurityAnalysisEngine.LogDebug(" Assignment Target: ParameterReference (value) - Pure Target");
                             return true;
                         }
                     }
-                    else
-                    {
-                        // Should not happen if Kind is ParameterReference, but handle defensively
-                        return true;
-                    }
+                    return true; // Should not happen if Kind is ParameterReference
 
                 case OperationKind.FieldReference:
-                    if (targetOperation is IFieldReferenceOperation fieldRef &&
-                        fieldRef.Instance is IInstanceReferenceOperation instanceRef &&
+                    var fieldRefOp = (IFieldReferenceOperation)targetOperation;
+                    if (fieldRefOp.Field.IsStatic)
+                    {
+                        PurityAnalysisEngine.LogDebug($" Assignment Target: Static FieldReference '{fieldRefOp.Field.Name}' - Impure Target");
+                        return false;
+                    }
+                    if (fieldRefOp.Instance is IInstanceReferenceOperation instanceRef &&
                         instanceRef.ReferenceKind == InstanceReferenceKind.ContainingTypeInstance &&
                         context.ContainingMethodSymbol.MethodKind == MethodKind.Constructor)
                     {
-                        PurityAnalysisEngine.LogDebug(" Assignment Target: Instance FieldReference within Constructor - Allowed (Target is Pure)");
+                        PurityAnalysisEngine.LogDebug(" Assignment Target: Instance FieldReference 'this.Field' within Constructor - Allowed (Target is Pure)");
                         return true;
                     }
-                    // --- REVERTED SPECIAL CASE --- 
-                    else // Strict check for all other non-constructor field mods
-                    {
-                        string fieldName = (targetOperation as IFieldReferenceOperation)?.Field?.Name ?? "Unknown Field";
-                        string methodKind = context.ContainingMethodSymbol.MethodKind.ToString();
-                        PurityAnalysisEngine.LogDebug($" Assignment Target: FieldReference '{fieldName}' outside Constructor - Impure"); // Simplified log
-                        return false;
-                    }
-                // --- END REVERT --- 
+                    PurityAnalysisEngine.LogDebug($" Assignment Target: FieldReference '{fieldRefOp.Field.Name}' (Non-Static, Non-Constructor 'this.Field') - Impure Target");
+                    return false;
 
                 case OperationKind.PropertyReference:
-                    // Allow assigning to instance properties ONLY within a constructor.
-                    if (targetOperation is IPropertyReferenceOperation propRef &&
-                        propRef.Instance is IInstanceReferenceOperation instanceRef2 &&
-                        instanceRef2.ReferenceKind == InstanceReferenceKind.ContainingTypeInstance &&
-                        context.ContainingMethodSymbol.MethodKind == MethodKind.Constructor)
+                    var propRefOp = (IPropertyReferenceOperation)targetOperation;
+                    if (propRefOp.Property.IsStatic)
                     {
-                        PurityAnalysisEngine.LogDebug(" Assignment Target: Instance PropertyReference within Constructor - Allowed (Target is Pure)");
-                        return true;
-                    }
-                    // RE-ADD: Allow assignments to 'this' properties within ANY method of a record struct
-                    // This covers compiler-generated 'with' methods and user-defined methods.
-                    else if (targetOperation is IPropertyReferenceOperation propRef2 &&
-                             propRef2.Instance != null && // Ensure it's an instance property assignment
-                             propRef2.Instance.Kind == OperationKind.InstanceReference && // Specifically 'this'
-                             context.ContainingMethodSymbol.ContainingType.IsRecord &&
-                             context.ContainingMethodSymbol.ContainingType.IsValueType)
-                    {
-                        // If the current method is [EnforcePure], then assigning to 'this.Property'
-                        // is an impure act for that method, making the assignment target effectively impure.
-                        if (PurityAnalysisEngine.IsPureEnforced(context.ContainingMethodSymbol, context.EnforcePureAttributeSymbol))
-                        {
-                            PurityAnalysisEngine.LogDebug(" Assignment Target: Instance PropertyReference to 'this' within [EnforcePure] Record Struct Method - Target is Impure for this method");
-                            return false; // This will make AssignmentPurityRule flag the assignment as impure.
-                        }
-                        PurityAnalysisEngine.LogDebug(" Assignment Target: Instance PropertyReference to 'this' within Record Struct Method (not [EnforcePure] or compiler gen) - Allowed (Target is Pure)");
-                        return true; // Allowed for non-[EnforcePure] methods or potentially compiler-generated ones.
-                    }
-                    else
-                    {
-                        PurityAnalysisEngine.LogDebug(" Assignment Target: PropertyReference (Non-Constructor / Non-RecordStruct Method or not 'this') - Impure");
-                        return false;
+                        PurityAnalysisEngine.LogDebug(" Assignment Target: Static PropertyReference - Impure Target");
+                        return false; 
                     }
 
+                    // Assignments to init-only properties are part of initialization, target is considered pure here.
+                    if (propRefOp.Property.SetMethod != null && propRefOp.Property.SetMethod.IsInitOnly)
+                    {
+                        PurityAnalysisEngine.LogDebug(" Assignment Target: Init-only PropertyReference - Allowed (Target is Pure by IsAssignmentTargetPure)");
+                        return true;
+                    }
+                    
+                    // Assignments to 'this.Property' (non-init)
+                    if (propRefOp.Instance is IInstanceReferenceOperation instanceRefKind && 
+                        instanceRefKind.ReferenceKind == InstanceReferenceKind.ContainingTypeInstance) 
+                    {
+                        if (context.ContainingMethodSymbol.MethodKind == MethodKind.Constructor)
+                        {
+                            PurityAnalysisEngine.LogDebug(" Assignment Target: Instance PropertyReference 'this.Prop' (non-init) within Constructor - Allowed (Target is Pure)");
+                            return true;
+                        }
+                        // For non-init properties of 'this' in a record struct method marked [EnforcePure]
+                        if (context.ContainingMethodSymbol.ContainingType.IsRecord &&
+                            context.ContainingMethodSymbol.ContainingType.IsValueType && // record struct
+                            PurityAnalysisEngine.IsPureEnforced(context.ContainingMethodSymbol, context.EnforcePureAttributeSymbol))
+                        {
+                            PurityAnalysisEngine.LogDebug(" Assignment Target: Instance PropertyReference 'this.Prop' (non-init) within [EnforcePure] Record Struct Method - Target is Impure for this method context");
+                            return false; 
+                        }
+                        // Default for 'this.Property' (non-init, non-ctor, non-special-record-struct) is an impure target
+                        PurityAnalysisEngine.LogDebug(" Assignment Target: Instance PropertyReference 'this.Prop' (non-init, Non-Constructor/Special Record) - Impure Target due to 'this' modification");
+                        return false; 
+                    }
+                    
+                    // For other property assignments (e.g., local.Property, byValParam.Property) on non-init properties
+                    // These are generally considered impure targets for assignment by this rule to ensure methods are flagged.
+                    PurityAnalysisEngine.LogDebug($" Assignment Target: PropertyReference on local/param for non-init prop ('{propRefOp.Instance?.Syntax}') - Impure Target by IsAssignmentTargetPure rule.");
+                    return false; 
+
                 case OperationKind.ArrayElementReference:
-                    // Treat all array element assignments as impure for simplicity now.
-                    // Distinguishing local vs non-local arrays is tricky and often requires flow analysis beyond this rule.
-                    PurityAnalysisEngine.LogDebug(" Assignment Target: ArrayElementReference - Impure");
+                    PurityAnalysisEngine.LogDebug(" Assignment Target: ArrayElementReference - Impure Target");
                     return false;
 
                 default:
-                    PurityAnalysisEngine.LogDebug($" Assignment Target: Unhandled Kind {targetOperation.Kind} - Assuming Impure");
+                    PurityAnalysisEngine.LogDebug($" Assignment Target: Unhandled Kind {targetOperation.Kind} - Assuming Impure Target");
                     return false;
             }
         }

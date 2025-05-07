@@ -234,13 +234,11 @@ public class TestClass
     }
 }
 ";
-            // Expect PS0002 on TestMethod and PS0004 on MyObject getter/setter (3 total) + Compiler Error
             var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(13, 17, 13, 27).WithArguments("TestMethod");
             var expectedGetDisplay = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(8, 39, 8, 50).WithArguments("get_DisplayName");
-            // Match the actual diagnostic output which includes a duplicate span
             var compilerError = DiagnosticResult.CompilerError("CS8618").WithSpan(8, 39, 8, 50).WithSpan(8, 39, 8, 50).WithArguments("property", "DisplayName");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, compilerError, expectedGetDisplay, expectedPS0002); // Order matches output
+            await VerifyCS.VerifyAnalyzerAsync(test, compilerError, expectedGetDisplay, expectedPS0002);
         }
 
         // TODO: Add test for Validator.TryValidateObject with a custom, impure ValidationAttribute
