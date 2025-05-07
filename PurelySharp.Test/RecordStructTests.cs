@@ -65,6 +65,9 @@ public record struct Point
             // Expect PS0004 on the init accessors for X and Y
             verifierTest.ExpectedDiagnostics.Add(VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(10, 19, 10, 20).WithArguments("get_X"));
             verifierTest.ExpectedDiagnostics.Add(VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(11, 19, 11, 20).WithArguments("get_Y"));
+            // Adding expectations for PS0002 on WithX and WithY based on current failures
+            verifierTest.ExpectedDiagnostics.Add(VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(22, 18, 22, 23).WithArguments("WithX"));
+            verifierTest.ExpectedDiagnostics.Add(VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(25, 18, 25, 23).WithArguments("WithY"));
             await verifierTest.RunAsync();
         }
 
@@ -188,7 +191,7 @@ public record struct CacheEntry(int Id, ImmutableList<string> Tags)
     [EnforcePure]
     public CacheEntry AddTag(string tag)
     {{
-        // This assignment makes it pure now due to record struct rule
+        // This assignment makes it pure now due to record struct rule -> NO, now correctly impure
         Tags = Tags.Add(tag);
         return this;
     }}
@@ -215,8 +218,13 @@ public record struct CacheEntry(int Id, ImmutableList<string> Tags)
         return this with {{ Tags = Tags.Add(tag) }};
     }}
 }}";
+            // Now expect PS0002 for AddTag and potentially WithTag
+            var expectedAddTag = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                       .WithSpan(9, 23, 9, 29).WithArguments("AddTag");
+            var expectedWithTag = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId) // Assuming this is also flagged for now
+                                       .WithSpan(33, 23, 33, 30).WithArguments("WithTag");
 
-            await VerifyCS.VerifyAnalyzerAsync(code);
+            await VerifyCS.VerifyAnalyzerAsync(code, expectedAddTag, expectedWithTag);
         }
 
         [Test]

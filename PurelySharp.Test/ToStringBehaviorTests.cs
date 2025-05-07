@@ -54,11 +54,11 @@ namespace PurelySharp.Test // Add namespace to match outer scope
             var expectedGetter = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
                                         .WithSpan(10, 20, 10, 25) // Span from log for get_Value/set_Value
                                         .WithArguments("get_Value");
-            var expectedSetter = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                        .WithSpan(10, 20, 10, 25) // Span from log for get_Value/set_Value
-                                        .WithArguments("set_Value");
+            // var expectedSetter = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+            //                             .WithSpan(10, 20, 10, 25) // Span from log for get_Value/set_Value
+            //                             .WithArguments("set_Value"); // REMOVED
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expected, expectedGetter, expectedSetter); // Pass expected diagnostics
+            await VerifyCS.VerifyAnalyzerAsync(test, expected, expectedGetter /*, expectedSetter*/); // Pass expected diagnostics
         }
 
         // TODO: Add a test for an explicitly overridden PURE ToString()

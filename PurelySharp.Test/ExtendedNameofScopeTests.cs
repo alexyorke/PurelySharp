@@ -45,11 +45,10 @@ public class TestClass
 }";
             // Expect PS0004 for property accessors and PS0002 for methods (4 total)
             var expectedGetName = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 20, 11, 24).WithArguments("get_Name");
-            var expectedSetName = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 20, 11, 24).WithArguments("set_Name");
             var expectedGetProp = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(17, 19, 17, 34).WithArguments("GetPropertyName");
             var expectedGetNameProp = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(25, 19, 25, 38).WithArguments("GetNamePropertyName");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetName, expectedSetName, expectedGetProp, expectedGetNameProp });
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetName, expectedGetProp, expectedGetNameProp });
         }
 
         [Test]

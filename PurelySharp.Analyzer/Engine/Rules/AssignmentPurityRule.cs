@@ -142,7 +142,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 {
                     // Use fully qualified name for factory method
                     valueTargets = PurityAnalysisEngine.PotentialTargets.FromSingle(methodRef.Method.OriginalDefinition);
-                     PurityAnalysisEngine.LogDebug($"    [AssignRule-DEL]   Value is Method Group: {methodRef.Method.ToDisplayString()}");
+                    PurityAnalysisEngine.LogDebug($"    [AssignRule-DEL]   Value is Method Group: {methodRef.Method.ToDisplayString()}");
                 }
                 else if (valueOperation is IDelegateCreationOperation delegateCreation)
                 {
@@ -150,9 +150,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     {
                         // Use fully qualified name for factory method
                         valueTargets = PurityAnalysisEngine.PotentialTargets.FromSingle(lambdaRef.Method.OriginalDefinition);
-                         PurityAnalysisEngine.LogDebug($"    [AssignRule-DEL]   Value is Lambda/Delegate Creation targeting: {lambdaRef.Method.ToDisplayString()}");
-                    } else {
-                         PurityAnalysisEngine.LogDebug($"    [AssignRule-DEL]   Value is Lambda/Delegate Creation with unresolvable target ({delegateCreation.Target?.Kind}). Cannot track.");
+                        PurityAnalysisEngine.LogDebug($"    [AssignRule-DEL]   Value is Lambda/Delegate Creation targeting: {lambdaRef.Method.ToDisplayString()}");
+                    }
+                    else
+                    {
+                        PurityAnalysisEngine.LogDebug($"    [AssignRule-DEL]   Value is Lambda/Delegate Creation with unresolvable target ({delegateCreation.Target?.Kind}). Cannot track.");
                     }
                 }
                 else // Value is another variable/parameter/field/property reference
@@ -162,8 +164,10 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     {
                         valueTargets = sourceTargets; // Propagate targets from the source symbol
                         PurityAnalysisEngine.LogDebug($"    [AssignRule-DEL]   Value is reference to {valueSourceSymbol.Name}. Propagating {sourceTargets.MethodSymbols.Count} targets.");
-                    } else {
-                         PurityAnalysisEngine.LogDebug($"    [AssignRule-DEL]   Value is reference ({valueOperation.Kind}) but source symbol ({valueSourceSymbol?.Name ?? "null"}) not found in map or unresolved. Cannot track.");
+                    }
+                    else
+                    {
+                        PurityAnalysisEngine.LogDebug($"    [AssignRule-DEL]   Value is reference ({valueOperation.Kind}) but source symbol ({valueSourceSymbol?.Name ?? "null"}) not found in map or unresolved. Cannot track.");
                     }
                 }
 
@@ -250,16 +254,24 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     // RE-ADD: Allow assignments to 'this' properties within ANY method of a record struct
                     // This covers compiler-generated 'with' methods and user-defined methods.
                     else if (targetOperation is IPropertyReferenceOperation propRef2 &&
-                             propRef2.Instance != null && // Ensure it's an instance property assignment (RELAXED CHECK)
+                             propRef2.Instance != null && // Ensure it's an instance property assignment
+                             propRef2.Instance.Kind == OperationKind.InstanceReference && // Specifically 'this'
                              context.ContainingMethodSymbol.ContainingType.IsRecord &&
                              context.ContainingMethodSymbol.ContainingType.IsValueType)
                     {
-                        PurityAnalysisEngine.LogDebug(" Assignment Target: Instance PropertyReference within Record Struct Method - Allowed (Target is Pure)");
-                        return true;
+                        // If the current method is [EnforcePure], then assigning to 'this.Property'
+                        // is an impure act for that method, making the assignment target effectively impure.
+                        if (PurityAnalysisEngine.IsPureEnforced(context.ContainingMethodSymbol, context.EnforcePureAttributeSymbol))
+                        {
+                            PurityAnalysisEngine.LogDebug(" Assignment Target: Instance PropertyReference to 'this' within [EnforcePure] Record Struct Method - Target is Impure for this method");
+                            return false; // This will make AssignmentPurityRule flag the assignment as impure.
+                        }
+                        PurityAnalysisEngine.LogDebug(" Assignment Target: Instance PropertyReference to 'this' within Record Struct Method (not [EnforcePure] or compiler gen) - Allowed (Target is Pure)");
+                        return true; // Allowed for non-[EnforcePure] methods or potentially compiler-generated ones.
                     }
                     else
                     {
-                        PurityAnalysisEngine.LogDebug(" Assignment Target: PropertyReference (Non-Constructor / Non-RecordStruct Method) - Impure");
+                        PurityAnalysisEngine.LogDebug(" Assignment Target: PropertyReference (Non-Constructor / Non-RecordStruct Method or not 'this') - Impure");
                         return false;
                     }
 

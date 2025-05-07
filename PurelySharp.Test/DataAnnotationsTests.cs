@@ -162,16 +162,14 @@ public class TestRunner
             var expectedGetMax = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(10, 16, 10, 19).WithArguments("get_Max");
             var expectedAttrCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(11, 12, 11, 30).WithArguments(".ctor");
             var expectedGetValue = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(24, 16, 24, 21).WithArguments("get_Value");
-            var expectedSetValue = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(24, 16, 24, 21).WithArguments("set_Value");
             var expectedTestMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(30, 17, 30, 27).WithArguments("TestMethod");
 
-            // Ensure all 6 expectations are present and in the correct order
+            // Ensure all 5 expectations are present and in the correct order
             await VerifyCS.VerifyAnalyzerAsync(test, new[] {
                 expectedGetMin,
                 expectedGetMax,
                 expectedAttrCtor,
                 expectedGetValue,
-                expectedSetValue,
                 expectedTestMethod
             });
         }
@@ -205,16 +203,12 @@ public class MyValidatableObject : IValidatableObject // Line 7
             // Expect PS0004 for getter/setter pairs and the Validate method (5 total)
             // Update span for get_StartDate based on test failure output
             var expectedGetStart = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(10, 21, 10, 30).WithArguments("get_StartDate");
-            // Update span for set_StartDate based on test failure output
-            var expectedSetStart = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(10, 21, 10, 30).WithArguments("set_StartDate");
             // Update span for get_EndDate based on test failure output
             var expectedGetEnd = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(11, 21, 11, 28).WithArguments("get_EndDate");
-            // Update span for set_EndDate based on test failure output
-            var expectedSetEnd = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(11, 21, 11, 28).WithArguments("set_EndDate");
             // Update span for Validate based on test failure output
             var expectedValidate = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(14, 42, 14, 50).WithArguments("Validate");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetStart, expectedSetStart, expectedGetEnd, expectedSetEnd, expectedValidate);
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetStart, expectedGetEnd, expectedValidate);
         }
 
         [Test]
@@ -243,11 +237,10 @@ public class TestClass
             // Expect PS0002 on TestMethod and PS0004 on MyObject getter/setter (3 total) + Compiler Error
             var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(13, 17, 13, 27).WithArguments("TestMethod");
             var expectedGetDisplay = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(8, 39, 8, 50).WithArguments("get_DisplayName");
-            var expectedSetDisplay = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(8, 39, 8, 50).WithArguments("set_DisplayName");
             // Match the actual diagnostic output which includes a duplicate span
             var compilerError = DiagnosticResult.CompilerError("CS8618").WithSpan(8, 39, 8, 50).WithSpan(8, 39, 8, 50).WithArguments("property", "DisplayName");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, compilerError, expectedGetDisplay, expectedSetDisplay, expectedPS0002); // Order matches output
+            await VerifyCS.VerifyAnalyzerAsync(test, compilerError, expectedGetDisplay, expectedPS0002); // Order matches output
         }
 
         // TODO: Add test for Validator.TryValidateObject with a custom, impure ValidationAttribute

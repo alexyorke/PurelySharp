@@ -48,12 +48,10 @@ namespace TestNamespace
 
             // Expect PS0004 for property accessors and PS0002 for method (5 total)
             var expectedGetX = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(9, 23, 9, 24).WithArguments("get_X");
-            var expectedSetX = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(9, 23, 9, 24).WithArguments("set_X");
             var expectedGetY = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(10, 23, 10, 24).WithArguments("get_Y");
-            var expectedSetY = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(10, 23, 10, 24).WithArguments("set_Y");
             var expectedProcessPoint = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(24, 28, 24, 40).WithArguments("ProcessPoint");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetX, expectedSetX, expectedGetY, expectedSetY, expectedProcessPoint });
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetX, expectedGetY, expectedProcessPoint });
         }
 
         [Test]
@@ -176,12 +174,10 @@ namespace TestNamespace
 
             // Expect PS0004 for property accessors and PS0002 for TestRectangle
             var expectedGetWidth = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(10, 20, 10, 25).WithArguments("get_Width");
-            var expectedSetWidth = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(10, 20, 10, 25).WithArguments("set_Width");
             var expectedGetHeight = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 20, 11, 26).WithArguments("get_Height");
-            var expectedSetHeight = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 20, 11, 26).WithArguments("set_Height");
             var expectedTestRectangle = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(23, 28, 23, 41).WithArguments("TestRectangle");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetWidth, expectedSetWidth, expectedGetHeight, expectedSetHeight, expectedTestRectangle });
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetWidth, expectedGetHeight, expectedTestRectangle });
         }
 
         [Test]
@@ -220,11 +216,10 @@ namespace TestNamespace
 
             // Expect PS0004 for property accessors and PS0002 for methods (4 total)
             var expectedGetLogPath = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 23, 11, 30).WithArguments("get_LogPath");
-            var expectedSetLogPath = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 23, 11, 30).WithArguments("set_LogPath");
             var expectedWriteLog = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(14, 21, 14, 29).WithArguments("WriteLog");
             var expectedLogSomething = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(23, 21, 23, 33).WithArguments("LogSomething");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetLogPath, expectedSetLogPath, expectedWriteLog, expectedLogSomething });
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetLogPath, expectedWriteLog, expectedLogSomething });
         }
 
         [Test]

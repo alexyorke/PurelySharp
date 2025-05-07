@@ -81,23 +81,36 @@ namespace PurelySharp.Analyzer
             // +++ Report Diagnostic PS0004 if Pure but Missing Attribute +++
             else if (isPure && !hasEnforcePureAttribute)
             {
-                // If the method is determined to be pure BUT lacks the [EnforcePure] attribute, suggest adding it.
-                Location? diagnosticLocation = GetIdentifierLocation(context.Node);
-                PurityAnalysisEngine.LogDebug($"[MPA] Method '{methodSymbol.Name}' determined pure but lacks [EnforcePure]. Reporting PS0004 on identifier.");
-
-                if (diagnosticLocation != null)
+                bool isCompilerGeneratedSetter = false;
+                if (methodSymbol.MethodKind == MethodKind.PropertySet && context.Node is AccessorDeclarationSyntax setterNode)
                 {
-                    var diagnostic = Diagnostic.Create(
-                        PurelySharpDiagnostics.MissingEnforcePureAttributeRule, // Use the PS0004 rule
-                        diagnosticLocation,
-                        methodSymbol.Name
-                    );
-                    context.ReportDiagnostic(diagnostic);
-                    PurityAnalysisEngine.LogDebug($"[MPA] Reported diagnostic PS0004 for {methodSymbol.Name} at {diagnosticLocation}.");
+                    if (setterNode.Body == null && setterNode.ExpressionBody == null)
+                    {
+                        isCompilerGeneratedSetter = true;
+                        PurityAnalysisEngine.LogDebug($"[MPA] Method '{methodSymbol.Name}' is an auto-property setter. Not a candidate for PS0004.");
+                    }
                 }
-                else
+
+                if (!isCompilerGeneratedSetter)
                 {
-                    PurityAnalysisEngine.LogDebug($"[MPA] Could not get identifier location for diagnostic PS0004 on pure method {methodSymbol.Name}.");
+                    // If the method is determined to be pure BUT lacks the [EnforcePure] attribute, suggest adding it.
+                    Location? diagnosticLocation = GetIdentifierLocation(context.Node);
+                    PurityAnalysisEngine.LogDebug($"[MPA] Method '{methodSymbol.Name}' determined pure but lacks [EnforcePure]. Reporting PS0004 on identifier.");
+
+                    if (diagnosticLocation != null)
+                    {
+                        var diagnostic = Diagnostic.Create(
+                            PurelySharpDiagnostics.MissingEnforcePureAttributeRule, // Use the PS0004 rule
+                            diagnosticLocation,
+                            methodSymbol.Name
+                        );
+                        context.ReportDiagnostic(diagnostic);
+                        PurityAnalysisEngine.LogDebug($"[MPA] Reported diagnostic PS0004 for {methodSymbol.Name} at {diagnosticLocation}.");
+                    }
+                    else
+                    {
+                        PurityAnalysisEngine.LogDebug($"[MPA] Could not get identifier location for diagnostic PS0004 on pure method {methodSymbol.Name}.");
+                    }
                 }
             }
         }

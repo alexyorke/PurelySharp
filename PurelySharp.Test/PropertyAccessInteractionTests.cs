@@ -78,7 +78,6 @@ public class TestClass
             var expectedUseImpureGetter = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(41, 19, 41, 34).WithArguments("UseImpureGetter");
             var expectedUseImpureMethodCall = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(47, 17, 47, 36).WithArguments("UseImpureMethodCall");
             var expectedGetName = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(8, 19, 8, 23).WithArguments("get_Name");
-            var expectedSetName = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(8, 19, 8, 23).WithArguments("set_Name"); // Added PS0004
             var expectedCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(11, 12, 11, 22).WithArguments(".ctor"); // Added PS0004
 
             await VerifyCS.VerifyAnalyzerAsync(test,
@@ -87,7 +86,6 @@ public class TestClass
                                              expectedUseImpureGetter,
                                              expectedUseImpureMethodCall,
                                              expectedGetName,
-                                             expectedSetName,
                                              expectedCtor);
         }
     }

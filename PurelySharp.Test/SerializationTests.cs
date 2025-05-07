@@ -48,17 +48,11 @@ public class TestClass
             var expectedGetterId = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
                                           .WithSpan(9, 16, 9, 18) // Span from log for get_Id/set_Id
                                           .WithArguments("get_Id");
-            var expectedSetterId = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                          .WithSpan(9, 16, 9, 18) // Span from log for get_Id/set_Id
-                                          .WithArguments("set_Id");
             var expectedGetterName = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
                                             .WithSpan(10, 20, 10, 24) // Span from log for get_Name/set_Name
                                             .WithArguments("get_Name");
-            var expectedSetterName = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                            .WithSpan(10, 20, 10, 24) // Span from log for get_Name/set_Name
-                                            .WithArguments("set_Name");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetterId, expectedSetterId, expectedGetterName, expectedSetterName);
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetterId, expectedGetterName);
         }
 
         [Test]
@@ -84,17 +78,11 @@ public class TestClass
             var expectedGetterId = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
                                           .WithSpan(9, 16, 9, 18) // Span from log for get_Id/set_Id
                                           .WithArguments("get_Id");
-            var expectedSetterId = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                          .WithSpan(9, 16, 9, 18) // Span from log for get_Id/set_Id
-                                          .WithArguments("set_Id");
             var expectedGetterName = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
                                             .WithSpan(10, 20, 10, 24) // Span from log for get_Name/set_Name
                                             .WithArguments("get_Name");
-            var expectedSetterName = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                            .WithSpan(10, 20, 10, 24) // Span from log for get_Name/set_Name
-                                            .WithArguments("set_Name");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expected, expectedGetterId, expectedSetterId, expectedGetterName, expectedSetterName); // Added expected diagnostics
+            await VerifyCS.VerifyAnalyzerAsync(test, expected, expectedGetterId, expectedGetterName);
         }
 
         // TODO: Add tests for impure serialization/deserialization 

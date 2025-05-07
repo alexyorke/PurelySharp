@@ -42,13 +42,11 @@ public class TestClass
 }";
             // Expect PS0004 on mock framework members and PS0002 on UpdateUI (6 diagnostics total)
             var expectedGetContent = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(10, 41, 10, 48).WithArguments("get_Content");
-            var expectedSetContent = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(10, 41, 10, 48).WithArguments("set_Content");
             var expectedGetText = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 42, 11, 46).WithArguments("get_Text");
-            var expectedSetText = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 42, 11, 46).WithArguments("set_Text");
             var expectedShow = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(12, 50, 12, 54).WithArguments("Show");
             var expectedUpdateUI = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(20, 17, 20, 25).WithArguments("UpdateUI");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetContent, expectedSetContent, expectedGetText, expectedSetText, expectedShow, expectedUpdateUI });
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetContent, expectedGetText, expectedShow, expectedUpdateUI });
         }
 
         [Test] // This should pass
@@ -80,11 +78,9 @@ public class TestClass
 }";
             // Expect PS0004 on mock framework members based on runner output (5 diagnostics total)
             var expectedGetContent = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(10, 41, 10, 48).WithArguments("get_Content");
-            var expectedSetContent = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(10, 41, 10, 48).WithArguments("set_Content");
             var expectedGetText = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 42, 11, 46).WithArguments("get_Text");
-            var expectedSetText = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 42, 11, 46).WithArguments("set_Text");
             var expectedShow = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(12, 50, 12, 54).WithArguments("Show");
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetContent, expectedSetContent, expectedGetText, expectedSetText, expectedShow);
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetContent, expectedGetText, expectedShow);
         }
 
         // --- New Tests Added Below (Mostly Commented Out) ---

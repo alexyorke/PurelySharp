@@ -451,13 +451,12 @@ public class Calculator
 
             // Expect PS0004 warnings for pure methods that are not marked with [EnforcePure]
             var expectedGetValue = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(8, 19, 8, 24).WithArguments("get_Value");
-            var expectedSetValue = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(8, 19, 8, 24).WithArguments("set_Value");
             var expectedCtor = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(10, 12, 10, 22).WithArguments(".ctor");
             var expectedOpMul = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(18, 39, 18, 40).WithArguments("op_Multiply");
             var expectedLogPercentageCalculation = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(28, 17, 28, 41).WithArguments("LogPercentageCalculation");
 
             await VerifyCS.VerifyAnalyzerAsync(test, new[] {
-                expectedGetValue, expectedSetValue, expectedCtor, expectedOpMul, expectedLogPercentageCalculation
+                expectedGetValue, expectedCtor, expectedOpMul, expectedLogPercentageCalculation
             });
         }
 
