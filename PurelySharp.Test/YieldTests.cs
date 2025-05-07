@@ -16,8 +16,7 @@ namespace PurelySharp.Test
         [Test]
         public async Task PureMethodWithYield_Diagnostic()
         {
-            // Expectation limitation: Analyzer considers any method using 'yield return' as impure,
-            // even if the yielded values are pure.
+            // Expectation: This method SHOULD be pure. Analyzer currently considers yield impure.
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -33,11 +32,11 @@ public class TestClass
         yield return 3;
     }
 }";
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
-                                   .WithSpan(9, 29, 9, 39)
-                                   .WithArguments("GetNumbers");
-
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
+            // var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
+            //                        .WithSpan(9, 29, 9, 39)
+            //                        .WithArguments("GetNumbers");
+            // await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
+            await VerifyCS.VerifyAnalyzerAsync(test); // EXPECTING PURE (0 diagnostics)
         }
 
         [Test]

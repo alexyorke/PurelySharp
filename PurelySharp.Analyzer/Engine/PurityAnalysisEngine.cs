@@ -1239,6 +1239,13 @@ namespace PurelySharp.Analyzer.Engine
                 return true; // All Interlocked methods are treated as impure
             }
 
+            // ADDED: Check for System.Threading.Volatile methods
+            if (symbol.ContainingType?.ToString().Equals("System.Threading.Volatile", StringComparison.Ordinal) ?? false)
+            {
+                LogDebug($"Helper IsKnownImpure: Member {symbol.ToDisplayString()} belongs to System.Threading.Volatile and is considered impure.");
+                return true; // All Volatile methods (Read/Write) are impure due to memory barriers
+            }
+
             return false;
         }
 

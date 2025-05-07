@@ -205,10 +205,9 @@ public class MyValidatableObject : IValidatableObject // Line 7
             var expectedGetStart = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(10, 21, 10, 30).WithArguments("get_StartDate");
             // Update span for get_EndDate based on test failure output
             var expectedGetEnd = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(11, 21, 11, 28).WithArguments("get_EndDate");
-            // Update span for Validate based on test failure output
-            var expectedValidate = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(14, 42, 14, 50).WithArguments("Validate");
+            // var expectedValidate = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(14, 42, 14, 50).WithArguments("Validate"); // REMOVED - Validate is now pure
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetStart, expectedGetEnd, expectedValidate);
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetStart, expectedGetEnd /*, expectedValidate*/);
         }
 
         [Test]

@@ -7,7 +7,8 @@ namespace PurelySharp.Analyzer.Engine.Rules
 {
     /// <summary>
     /// Handles yield return statements.
-    /// Considered impure because it involves hidden state machine manipulation.
+    /// The purity of the yield return operation itself depends on the purity of the yielded value.
+    /// The overall iterator method's purity is determined by CFG analysis of the generated state machine.
     /// </summary>
     internal class YieldReturnPurityRule : IPurityRule
     {
@@ -17,9 +18,8 @@ namespace PurelySharp.Analyzer.Engine.Rules
         {
             if (!(operation is IReturnOperation yieldReturnOperation))
             {
-                // Yield return implies state machine manipulation, treat as impure.
-                PurityAnalysisEngine.LogDebug($"    [YieldReturnRule] YieldReturn operation ({operation.Syntax}) - Impure");
-                // Even if the returned expression itself is pure, the yield mechanism isn't.
+                // Should not happen given ApplicableOperationKinds
+                PurityAnalysisEngine.LogDebug($"    [YieldReturnRule] Unexpected operation type. Assuming impure.");
                 return PurityAnalysisEngine.ImpureResult(operation.Syntax);
             }
 
@@ -30,12 +30,21 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 var valueResult = PurityAnalysisEngine.CheckSingleOperation(yieldReturnOperation.ReturnedValue, context, currentState);
                 if (!valueResult.IsPure)
                 {
-                    PurityAnalysisEngine.LogDebug($"    [YieldReturnRule] Yielded value is IMPURE. Yield return is Impure.");
-                    return valueResult;
+                    PurityAnalysisEngine.LogDebug($"    [YieldReturnRule] Yielded value is IMPURE. Yield return operation is Impure.");
+                    return valueResult; // Propagate the impurity result from the value
                 }
+                PurityAnalysisEngine.LogDebug($"    [YieldReturnRule] Yielded value is PURE.");
+            }
+            else
+            {
+                // yield return default; or similar - this is pure if there's no value.
+                PurityAnalysisEngine.LogDebug($"    [YieldReturnRule] Yield return has no value. Operation is Pure.");
             }
 
-            return PurityAnalysisEngine.ImpureResult(operation.Syntax);
+            // If the yielded value is pure (or no value), the yield return operation itself is considered pure.
+            // The overall method purity depends on other operations in the iterator's state machine.
+            PurityAnalysisEngine.LogDebug($"    [YieldReturnRule] Yield return operation itself (excluding other method code) is Pure.");
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
         }
     }
 }
