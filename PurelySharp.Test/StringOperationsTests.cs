@@ -16,7 +16,8 @@ namespace PurelySharp.Test
         [Test]
         public async Task ComplexStringOperations_WithImpureSplit_Diagnostic()
         {
-            // Expectation limitation: Analyzer considers string.Split and/or string.Join impure.
+            // Expectation: This method should ideally be pure if string.Split and string.Join allocations are acceptable.
+            // REVERTING: Analyzer currently flags this as PS0002.
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -36,10 +37,9 @@ public class TestClass
 
         return string.Join("" "", words);
     }
-    }";
-            // UPDATED: Expect diagnostic on TestMethod because string.Join is considered impure.
+}";
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(9, 19, 9, 29) // Method signature span from failure output
+                                   .WithSpan(9, 19, 9, 29)
                                    .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
@@ -185,8 +185,7 @@ public class TestClass
         [Test]
         public async Task PureMethodWithLocalStringBuilderToString_NoDiagnostic()
         {
-            // Expectation limitation: Analyzer considers creating a new StringBuilder() instance impure,
-            // even if only non-mutating methods like ToString() are called on the local instance.
+            // Expectation: This method SHOULD be pure. Allocation of local SB is okay if only non-mutating methods are called.
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -201,12 +200,8 @@ public class TestClass
         return sb.ToString();
     }
 }";
-            // Expect diagnostic on the allocation, matching latest test framework output
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                    .WithSpan(9, 19, 9, 29) // Updated span to method signature
-                                    .WithArguments("TestMethod");
-
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            // UPDATED: Expect 0 diagnostics.
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }
 }

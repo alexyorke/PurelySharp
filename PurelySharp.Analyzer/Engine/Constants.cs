@@ -755,17 +755,29 @@ public static class Constants
         "string.IsNullOrEmpty(string)",
         "string.IsNullOrWhiteSpace(string)",
         "string.Replace(string, string)",
-        "string.Split(char[])", // Common overload
         "string.Substring(int, int)",
         "string.ToLower()",
         "string.ToUpper()",
         "string.Trim()",
         "string.Length.get",
-        "string.Equals(string)", // Added for completeness
-        "string.Equals(object)", // Added for completeness
-        "string.GetHashCode()", // Added for completeness
-        "string.ToLowerInvariant()", // Added for completeness
-        "string.ToUpperInvariant()", // Added for completeness
+        "string.Equals(string)",
+        "string.Equals(object)",
+        "string.GetHashCode()",
+        "string.ToLowerInvariant()",
+        "string.ToUpperInvariant()", 
+        // Add common Split overloads
+        "System.String.Split(char)",
+        "System.String.Split(params char[])",
+        "System.String.Split(char[])", // Already there, but keep for explicitness
+        "System.String.Split(char[], System.StringSplitOptions)",
+        "System.String.Split(string[], System.StringSplitOptions)",
+        "System.String.Split(char[], int, System.StringSplitOptions)",
+        "System.String.Split(string[], int, System.StringSplitOptions)",
+        // Add common Join overloads
+        "System.String.Join(string, string[])", // Already there
+        "System.String.Join(string, params string[])",
+        "System.String.Join(string, System.Collections.Generic.IEnumerable<string>)", // Already there
+        "System.String.Join<T>(string, System.Collections.Generic.IEnumerable<T>)",
 
         // --- ADDED: String constructor from Span --- 
         "string.String(System.ReadOnlySpan<char>)",
@@ -790,9 +802,9 @@ public static class Constants
         "System.Text.RegularExpressions.Regex.Match(string)", // Instance
         "System.Text.RegularExpressions.Regex.Replace(string, string)", // Instance
         "System.Text.RegularExpressions.Regex.Split(string)", // Instance
+        "System.Text.StringBuilder.ToString()", // ADDED: StringBuilder.ToString() is pure
         // "System.Text.StringBuilder()", // Constructor - Removed, mutable state handled by usage
         // "System.Text.StringBuilder.Capacity.get", // Removed, reading capacity is pure
-        // "System.Text.StringBuilder.ToString()", // Removed, should be pure
 
         // System.Threading (Pure subset)
         "System.Threading.Tasks.Task.CompletedTask.get",

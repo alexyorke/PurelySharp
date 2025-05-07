@@ -100,11 +100,10 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 typeName.StartsWith("System.Collections.Generic.Dictionary<") ||
                 typeName.StartsWith("System.Collections.Generic.HashSet<") ||
                 typeName.StartsWith("System.Collections.Generic.Queue<") || // Added
-                typeName.StartsWith("System.Collections.Generic.Stack<") || // Added
-                typeName.StartsWith("System.Text.StringBuilder") // Treat StringBuilder creation as impure
+                typeName.StartsWith("System.Collections.Generic.Stack<") // Added
             ))
             {
-                PurityAnalysisEngine.LogDebug($"    [ObjCreateRule] Object creation '{objectCreationOperation.Syntax}' is IMPURE because it creates a known mutable collection type or StringBuilder '{typeName}'.");
+                PurityAnalysisEngine.LogDebug($"    [ObjCreateRule] Object creation '{objectCreationOperation.Syntax}' is IMPURE because it creates a known mutable collection type '{typeName}'. StringBuilder is handled separately or by usage.");
                 return PurityAnalysisResult.Impure(objectCreationOperation.Syntax);
             }
 
