@@ -33,11 +33,10 @@ public class TestClass
     }
 }";
             // Expect diagnostic on the method name
-            // var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
-            //                        .WithSpan(11, 16, 11, 26) // Span for `GetCounter`
-            //                        .WithArguments("GetCounter");
-            // await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
-            await VerifyCS.VerifyAnalyzerAsync(test); // Expect no diagnostic due to limitation
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
+                                   .WithSpan(12, 16, 12, 26) // Span for `GetCounter` (Line 12 in actual code string)
+                                   .WithArguments("GetCounter");
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
         }
 
         [Test]
@@ -234,11 +233,11 @@ public class TestClass
                                     .WithArguments("Initialize");
 
             // Expect diagnostic on the GetValueIfInitialized method name
-            // var expected2 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-            //                         .WithSpan(19, 16, 19, 37) // Span for `GetValueIfInitialized`
-            //                         .WithArguments("GetValueIfInitialized");
+            var expected2 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                    .WithSpan(20, 16, 20, 37) // Span for `GetValueIfInitialized` (Line 20)
+                                    .WithArguments("GetValueIfInitialized");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected1 }); // Expect only 1 diagnostic due to limitation
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected1, expected2 });
         }
     }
 }

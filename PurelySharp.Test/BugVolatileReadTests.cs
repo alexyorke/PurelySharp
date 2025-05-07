@@ -14,7 +14,6 @@ namespace PurelySharp.Test
     public class BugVolatileReadTests
     {
         [Test]
-        [Ignore("Test is currently failing.")]
         public async Task VolatileRead_ShouldTriggerDiagnostic()
         {
             // Reading a volatile field is impure because it performs a memory barrier.

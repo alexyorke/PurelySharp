@@ -274,10 +274,8 @@ public class TestClass
         }
 
         [Test]
-        [Ignore("Analyzer correctly reports 1 diagnostic, but test framework mismatch causes failure (expects 2).")]
         public async Task ImpureImplicitConversion_NoDiagnostic_Bug()
         {
-            // Using an implicit conversion operator that has side effects.
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -287,10 +285,9 @@ public class ImpureConverter
     public int Value { get; }
     public ImpureConverter(int value) { Value = value; }
 
-    // Implicit conversion with a side effect
     public static implicit operator int(ImpureConverter ic)
     {
-        Console.WriteLine($""Converting ImpureConverter({ic.Value}) to int"" + Environment.NewLine); // Impure
+        Console.WriteLine($""Converting ImpureConverter({{ic.Value}}) to int"" + Environment.NewLine);
         return ic.Value;
     }
 }
@@ -298,85 +295,100 @@ public class ImpureConverter
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:ConvertIt|}(ImpureConverter ic)
+    public int ConvertIt(ImpureConverter ic)
     {
-        // The assignment triggers the impure implicit conversion.
         int result = ic;
         return result;
     }
 }";
-            // Restore original expectation: PS0002 on the containing method.
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule) // Expect 1 diagnostic now
-                                   .WithSpan(21, 16, 21, 25) // Target method identifier 'ConvertIt'
-                                   .WithArguments("ConvertIt");
+            var diagGetValue = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                          .WithSpan(7, 16, 7, 21)
+                                          .WithArguments("get_Value");
+            var diagCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                      .WithSpan(8, 12, 8, 27)
+                                      .WithArguments(".ctor");
+            var diagConvertIt = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                           .WithSpan(20, 16, 20, 25)
+                                           .WithArguments("ConvertIt");
 
-            // Pass expected diagnostic as a single-element array
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
+            // Expect 3 diagnostics in this order
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { diagGetValue, diagCtor, diagConvertIt });
         }
 
         // --- More Advanced / Robust Fix Tests ---
 
         // Bug: Invocation of delegate passed as parameter isn't checked reliably in full test run.
         [Test]
-        [Explicit("Fails in full run due to suspected inter-test state issue, passes when filtered.")]
+        // [Explicit("Fails in full run due to suspected inter-test state issue, passes when filtered.")] // REMOVING EXPLICIT
         public async Task ImpureDelegateViaParameter_NoDiagnostic_Bug()
         {
-            // Similar to the field delegate, but passed via parameter.
-            // Requires tracking delegate purity across method boundaries.
             var test = @"
 using System;
 using PurelySharp.Attributes;
 
-public class TestClass
+public class TestClass 
 {
-    private static void ImpureTarget() => Console.WriteLine(""Impure Target Called"");
+    private static void ImpureTarget() => Console.WriteLine(""Impure Target Called""); // Line 7
 
-    private void InvokeDelegate(Action action) => action();
+    private void InvokeDelegate(Action action) => action(); // Line 9
 
     [EnforcePure]
-    public void {|PS0002:CallImpureDelegateViaParam|}()
-    {
-        // Pass impure delegate as parameter; InvokeDelegate call becomes impure.
+    public void CallImpureDelegateViaParam() // Line 12 
+    {{
         InvokeDelegate(ImpureTarget);
-    }
-}";
-            // REVERT: Expect 0 diagnostics again (original failing state)
-            await VerifyCS.VerifyAnalyzerAsync(test);
+    }}
+}
+"; // End of string literal, ensure no trailing braces for the string itself
+            var expectedCallImpure = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                   .WithSpan(12, 17, 12, 43)
+                                   .WithArguments("CallImpureDelegateViaParam");
+            var expectedImpureTarget = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                       .WithSpan(7, 25, 7, 37)
+                                       .WithArguments("ImpureTarget");
+            var expectedInvokeDelegate = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                         .WithSpan(9, 18, 9, 32)
+                                         .WithArguments("InvokeDelegate");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedImpureTarget, expectedInvokeDelegate, expectedCallImpure);
         }
 
         // Bug: Invocation of delegate returned from method isn't checked reliably in full test run.
         [Test]
-        [Explicit("Fails in full run due to suspected inter-test state issue, passes when filtered.")]
+        // [Explicit("Fails in full run due to suspected inter-test state issue, passes when filtered.")]
         public async Task ImpureDelegateViaReturnValue_NoDiagnostic_Bug()
         {
-            // Requires tracking purity of returned delegates.
             var test = @"
 using System;
 using PurelySharp.Attributes;
 
-public class TestClass
+public class TestClass 
 {
-    private Action GetImpureAction() {
+    private Action GetImpureAction() // Line 7
+    {{
         return () => Console.WriteLine(""Impure action returned and called"");
-    }
+    }}
 
     [EnforcePure]
-    public void {|PS0002:CallImpureDelegateViaReturn|}()
-    {
-        // Get and invoke the impure delegate.
+    public void CallImpureDelegateViaReturn() // Line 13
+    {{
         Action impure = GetImpureAction();
         impure();
-    }
-}";
-            // REVERT: Expect 0 diagnostics again (original failing state)
-            await VerifyCS.VerifyAnalyzerAsync(test);
+    }}
+}
+"; // End of string literal
+            var expectedGetImpureAction = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                             .WithSpan(7, 20, 7, 35)
+                                             .WithArguments("GetImpureAction");
+            var expectedCallImpureReturn = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                          .WithSpan(13, 17, 13, 44)
+                                          .WithArguments("CallImpureDelegateViaReturn");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetImpureAction, expectedCallImpureReturn);
         }
 
         [Test]
-        [Ignore("Analyzer correctly reports 1 diagnostic, but test framework mismatch causes failure (expects 2).")]
         public async Task ImpureImplicitConversionViaMethodArg_NoDiagnostic_Bug()
         {
-            // Triggers impure conversion by passing object to method expecting converted type.
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -388,7 +400,7 @@ public class ImpureConverterArg
 
     public static implicit operator int(ImpureConverterArg ic)
     {
-        Console.WriteLine($""Converting ImpureConverterArg({ic.Value}) to int"" + Environment.NewLine); // Impure
+        Console.WriteLine($""Converting ImpureConverterArg({{ic.Value}}) to int"" + Environment.NewLine);
         return ic.Value;
     }
 }
@@ -398,19 +410,26 @@ public class TestClass
     private void TakesInt(int i) { /* Does nothing */ }
 
     [EnforcePure]
-    public void {|PS0002:ConvertItViaArg|}(ImpureConverterArg ic)
+    public void ConvertItViaArg(ImpureConverterArg ic)
     {
-        // Passing 'ic' to TakesInt triggers the impure implicit conversion.
         TakesInt(ic);
     }
 }";
-            // Expect PS0002 on the containing method because the implicit conversion is impure
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule) // Expect 1 diagnostic
-                                   .WithSpan(23, 17, 23, 32) // Target method identifier 'ConvertItViaArg'
-                                   .WithArguments("ConvertItViaArg");
+            var diagGetValue = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                          .WithSpan(7, 16, 7, 21)
+                                          .WithArguments("get_Value");
+            var diagCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                      .WithSpan(8, 12, 8, 30)
+                                      .WithArguments(".ctor");
+            var diagTakesInt = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                        .WithSpan(19, 18, 19, 26)
+                                        .WithArguments("TakesInt");
+            var diagConvertItViaArg = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                           .WithSpan(22, 17, 22, 32)
+                                           .WithArguments("ConvertItViaArg");
 
-            // Pass expected diagnostic as a single-element array
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
+            // Expect 4 diagnostics in this order
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { diagGetValue, diagCtor, diagTakesInt, diagConvertItViaArg });
         }
 
         [Test]

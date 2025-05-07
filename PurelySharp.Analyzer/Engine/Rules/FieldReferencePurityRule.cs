@@ -35,6 +35,13 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
 
+            // ADDED: Check for volatile fields
+            if (fieldSymbol.IsVolatile)
+            {
+                PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Field '{fieldSymbol.Name}' is volatile - Impure read.");
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(fieldReferenceOperation.Syntax);
+            }
+
             // Check for const fields (always pure)
             if (fieldSymbol.IsConst)
             {
