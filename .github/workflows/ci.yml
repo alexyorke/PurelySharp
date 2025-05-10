@@ -2,9 +2,9 @@ name: CI/CD
 
 on:
   push:
-    branches: [main, master]
+    branches: ["**"]
   pull_request:
-    branches: [main, master]
+    branches: ["**"]
   workflow_dispatch:
 
 jobs:
@@ -27,11 +27,8 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
-      - name: Build analyzer projects
-        run: |
-          dotnet build PurelySharp/PurelySharp.csproj --configuration Release --no-restore
-          dotnet build PurelySharp.CodeFixes/PurelySharp.CodeFixes.csproj --configuration Release --no-restore
-          dotnet build PurelySharp.Package/PurelySharp.Package.csproj --configuration Release --no-restore
+      - name: Build solution
+        run: dotnet build PurelySharp.sln --configuration Release --no-restore
 
       - name: Test
         run: dotnet test PurelySharp.Test/PurelySharp.Test.csproj --configuration Release --verbosity normal
