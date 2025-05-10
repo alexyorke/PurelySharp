@@ -259,17 +259,11 @@ public class PotentialPurity
             var expectedCalc = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
                                     .WithSpan(13, 16, 13, 39) // GetCalcWithoutAttribute
                                     .WithArguments("GetCalcWithoutAttribute");
-            var expectedNameof = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002)
-                                     .WithSpan(16, 19, 16, 44) // GetNameofWithoutAttribute
-                                     .WithArguments("GetNameofWithoutAttribute");
-            var expectedImpure = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002)
-                                     .WithSpan(19, 17, 19, 29) // ImpureMethod
-                                     .WithArguments("ImpureMethod");
-            var expectedStateChange = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002)
-                                     .WithSpan(23, 17, 23, 34) // ImpureStateChange
-                                     .WithArguments("ImpureStateChange");
+            // var expectedNameof = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId) // Was PS0002, nameof is pure. Currently not reported.
+            //                          .WithSpan(16, 19, 16, 44) // GetNameofWithoutAttribute
+            //                          .WithArguments("GetNameofWithoutAttribute");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedConst, expectedGreeting, expectedCalc, expectedNameof, expectedImpure, expectedStateChange);
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedConst, expectedGreeting, expectedCalc);
         }
 
         // Expectation limitation: analyzer currently does not report missing enforce-pure-attribute diagnostic (PS0004) for pure methods lacking [EnforcePure].
@@ -842,18 +836,18 @@ public readonly record struct Zzz
     public int Y { get; }
 }
 ";
-            // Expect PS0004 on the auto-generated getters and constructor as they are pure but lack [EnforcePure]
+            // Expect PS0004 on the auto-generated getters. Constructor has [Pure], so no PS0004 for it.
             var expectedGetX = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
                                   .WithSpan(14, 16, 14, 17) // Span covers 'X' in 'int X'
                                   .WithArguments("get_X");
             var expectedGetY = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
                                   .WithSpan(15, 16, 15, 17) // Span covers 'Y' in 'int Y'
                                   .WithArguments("get_Y");
-            var expectedCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                  .WithSpan(8, 12, 8, 15) // Span covers 'Zzz' in constructor
-                                  .WithArguments(".ctor");
+            // var expectedCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+            //                       .WithSpan(8, 12, 8, 15) // Span covers 'Zzz' in constructor
+            //                       .WithArguments(".ctor"); // Removed: Constructor has [Pure]
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetX, expectedGetY, expectedCtor);
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetX, expectedGetY);
         }
     }
 }

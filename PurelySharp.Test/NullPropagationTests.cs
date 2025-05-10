@@ -85,13 +85,12 @@ public class TestClass
                        .WithArguments("TestMethod");
             var expectedGetName = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(7, 19, 7, 23).WithArguments("get_Name");
             var expectedGetAge = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(8, 19, 8, 22).WithArguments("get_Age");
-            var expectedLog = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(10, 17, 10, 29).WithArguments("LogToConsole");
 
             await VerifyCS.VerifyAnalyzerAsync(test,
                 expectedTestMethod,
                 expectedGetName,
-                expectedGetAge,
-                expectedLog);
+                expectedGetAge
+                );
         }
 
         [Test]

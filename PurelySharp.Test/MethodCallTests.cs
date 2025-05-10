@@ -64,10 +64,10 @@ public class TestClass
     }
 }";
 
-            // Expect PS0002 on TestMethod and ImpureHelperMethod based on runner output (2 diagnostics total)
-            var expectedImpureHelperPS0002 = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(10, 17, 10, 35).WithArguments("ImpureHelperMethod");
+            // Expect PS0002 on TestMethod. ImpureHelperMethod is not marked, so it won't get PS0002 directly.
+            // var expectedImpureHelperPS0002 = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(10, 17, 10, 35).WithArguments("ImpureHelperMethod"); // Removed
             var expectedTestMethod = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(16, 17, 16, 27).WithArguments("TestMethod");
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedImpureHelperPS0002, expectedTestMethod });
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedTestMethod });
         }
 
         [Test]

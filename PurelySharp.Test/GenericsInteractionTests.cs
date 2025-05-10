@@ -68,11 +68,8 @@ public class GenericTestManager
             var expectedHasBanana = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
                                           .WithSpan(37, 17, 37, 26) // Span of 'HasBanana'
                                           .WithArguments("HasBanana");
-            var expectedCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                     .WithSpan(10, 12, 10, 22) // Span of Repository .ctor
-                                     .WithArguments(".ctor");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetAll, expectedHasBanana, expectedCtor);
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetAll, expectedHasBanana);
         }
 
         [Test]

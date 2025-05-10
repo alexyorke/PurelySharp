@@ -133,10 +133,10 @@ namespace TestNamespace
     }
 }";
 
-            // Expect PS0002 for TestTemperature
-            var expectedTestTemperature = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(22, 28, 22, 43).WithArguments("TestTemperature");
+            // TestTemperature is not marked, should not get PS0002.
+            // var expectedTestTemperature = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(22, 28, 22, 43).WithArguments("TestTemperature"); // Removed: Not marked
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedTestTemperature);
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
@@ -172,12 +172,12 @@ namespace TestNamespace
     }
 }";
 
-            // Expect PS0004 for property accessors and PS0002 for TestRectangle
+            // Expect PS0004 for property accessors. TestRectangle is not marked.
             var expectedGetWidth = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(10, 20, 10, 25).WithArguments("get_Width");
             var expectedGetHeight = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 20, 11, 26).WithArguments("get_Height");
-            var expectedTestRectangle = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(23, 28, 23, 41).WithArguments("TestRectangle");
+            // var expectedTestRectangle = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(23, 28, 23, 41).WithArguments("TestRectangle"); // Removed: Not marked
 
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetWidth, expectedGetHeight, expectedTestRectangle });
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetWidth, expectedGetHeight });
         }
 
         [Test]
@@ -214,12 +214,13 @@ namespace TestNamespace
     }
 }";
 
-            // Expect PS0004 for property accessors and PS0002 for methods (4 total)
+            // Expect PS0004 for get_LogPath and PS0002 for WriteLog.
+            // LogSomething is not marked and does not get PS0002 directly.
             var expectedGetLogPath = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 23, 11, 30).WithArguments("get_LogPath");
             var expectedWriteLog = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(14, 21, 14, 29).WithArguments("WriteLog");
-            var expectedLogSomething = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(23, 21, 23, 33).WithArguments("LogSomething");
+            // var expectedLogSomething = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(23, 21, 23, 33).WithArguments("LogSomething"); // Removed: Not marked
 
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetLogPath, expectedWriteLog, expectedLogSomething });
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetLogPath, expectedWriteLog });
         }
 
         [Test]
@@ -260,11 +261,11 @@ namespace TestNamespace
     }
 }";
 
-            // Expect PS0002 for IsOrigin and TestGeo
+            // Expect PS0002 for IsOrigin. TestGeo is not marked.
             var expectedIsOrigin = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(19, 21, 19, 29).WithArguments("IsOrigin");
-            var expectedTestGeo = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(28, 28, 28, 35).WithArguments("TestGeo");
+            // var expectedTestGeo = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(28, 28, 28, 35).WithArguments("TestGeo"); // Removed: Not marked
 
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedIsOrigin, expectedTestGeo });
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedIsOrigin });
         }
     }
 }

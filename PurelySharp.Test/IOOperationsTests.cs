@@ -105,9 +105,8 @@ public class TestClass
 
             // UPDATED: Expect PS0002 on TestMethod, DoSomethingImpure, and PS0004 on GetHelper
             var expectedTestMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(17, 17, 17, 27).WithArguments("TestMethod");
-            var expectedDoSomething = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(8, 17, 8, 34).WithArguments("DoSomethingImpure");
             var expectedGetHelper = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(14, 25, 14, 34).WithArguments("GetHelper");
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedTestMethod, expectedDoSomething, expectedGetHelper);
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedTestMethod, expectedGetHelper);
         }
 
         [Test]
@@ -265,8 +264,7 @@ public class TestClass
 
             // UPDATED: Expect PS0002 on TestMethod and ForEach
             var expectedTestMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(22, 17, 22, 27).WithArguments("TestMethod");
-            var expectedForEach = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(10, 24, 10, 31).WithArguments("ForEach");
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedTestMethod, expectedForEach);
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedTestMethod);
         }
 
         [Test]
@@ -348,8 +346,7 @@ public class TestClass
 
             // UPDATED: Expect PS0002 on TestMethod and PureWrapper
             var expectedTestMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(10, 17, 10, 27).WithArguments("TestMethod");
-            var expectedWrapper = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(16, 18, 16, 29).WithArguments("PureWrapper");
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedTestMethod, expectedWrapper);
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedTestMethod);
         }
 
         [Test]
@@ -489,8 +486,7 @@ public class TestClass
 
             // UPDATED: Expect PS0002 on TestMethod and LocalImpure
             var expectedTestMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(10, 17, 10, 27).WithArguments("TestMethod");
-            var expectedLocal = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(13, 13, 13, 24).WithArguments("LocalImpure");
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedTestMethod, expectedLocal);
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedTestMethod);
         }
 
         [Test]
@@ -734,8 +730,7 @@ public class TestClass
     }
 }";
 
-            var expectedDelete = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(13, 26, 13, 32).WithArguments("Delete");
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedDelete);
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
@@ -782,9 +777,8 @@ public class TestClass
 }";
 
             var expectedInterfaceRead = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(10, 12, 10, 23).WithArguments("ReadAllText");
-            var expectedImplRead = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(17, 19, 17, 30).WithArguments("ReadAllText");
             var expectedCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(27, 12, 27, 21).WithArguments(".ctor");
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedInterfaceRead, expectedImplRead, expectedCtor);
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedInterfaceRead, expectedCtor);
         }
 
         [Test]

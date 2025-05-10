@@ -153,21 +153,16 @@ public class TestClass
         ModifyPoint(ref p);
     }
 }";
-            // Expect PS0002 on TestModify, PS0002 on ModifyPoint (if marked?), and CS8329 (compiler error)
+            // Expect PS0002 on TestModify, and CS8329 (compiler error)
             var expectedTestModify = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
                                             .WithSpan(11, 17, 11, 27) // Corrected based on actual
                                             .WithArguments("TestModify");
-            // Note: ModifyPoint is not marked [EnforcePure], so analyzer won't report PS0002 on it directly
-            // unless called from an [EnforcePure] context that requires its analysis (which TestModify does).
-            // However, the compiler error stops analysis before that typically happens. Test run showed PS0002 was reported.
-            var expectedModifyPoint = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                           .WithSpan(8, 18, 8, 29) // Corrected based on actual
-                                           .WithArguments("ModifyPoint");
+            // Note: ModifyPoint is not marked [EnforcePure], so analyzer won't report PS0002 on it directly.
             var expectedCompiler = DiagnosticResult.CompilerError("CS8329")
                                            .WithSpan(14, 25, 14, 26) // Span for 'p' in ref p
                                            .WithArguments("variable", "p");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedModifyPoint, expectedTestModify, expectedCompiler); // Expect 3 diagnostics
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedTestModify, expectedCompiler); // Expect 2 diagnostics
         }
 
         [Test]
@@ -201,10 +196,10 @@ public class TestClass
     }
 }";
 
-            // UPDATED: Expect PS0004 only on the constructor, as GetValue and Add are marked [EnforcePure]
-            var expectedCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                       .WithSpan(10, 12, 10, 25).WithArguments(".ctor"); // Corrected based on actual
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedCtor);
+            // Constructor has [Pure], GetValue and Add have [EnforcePure]. All are pure. No PS0004 expected.
+            // var expectedCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+            //                            .WithSpan(10, 12, 10, 25).WithArguments(".ctor"); // Removed: Ctor has [Pure]
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]

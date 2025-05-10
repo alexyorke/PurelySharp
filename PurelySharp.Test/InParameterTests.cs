@@ -76,9 +76,9 @@ public class TestClass
     }
 }
 ";
-            // UPDATED: Expect PS0002 on Main
-            var expectedMain = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(11, 24, 11, 28).WithArguments("Main");
-            await VerifyCS.VerifyAnalyzerAsync(code, expectedMain);
+            // TestMethod is pure and marked. Main is pure and not marked.
+            // var expectedMain = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(11, 24, 11, 28).WithArguments("Main"); // Removed: Main is not marked
+            await VerifyCS.VerifyAnalyzerAsync(code);
         }
 
         // Expectation limitation: analyzer currently does not report missing enforce-pure-attribute diagnostic (PS0004) for pure helper methods lacking [EnforcePure].

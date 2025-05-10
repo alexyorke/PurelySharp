@@ -97,13 +97,12 @@ public class TestClass : EventSource
         Console.WriteLine(""Event handled"");
     }
 }";
-            // Expect PS0002 on base OnTestEvent, TestMethod, and override OnTestEvent
-            var expectedOnTestEventBase = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(9, 28, 9, 39).WithArguments("OnTestEvent");
+            // Expect PS0002 on TestMethod and override OnTestEvent. Base OnTestEvent is not marked.
+            // var expectedOnTestEventBase = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(9, 28, 9, 39).WithArguments("OnTestEvent"); // Removed: Not marked
             var expectedTestMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(15, 17, 15, 27).WithArguments("TestMethod");
             var expectedOnTestEventOverride = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(21, 29, 21, 40).WithArguments("OnTestEvent"); // Updated span
 
-            // Try passing as array to potentially fix count mismatch (Expected 5, Actual 3)
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedOnTestEventBase, expectedTestMethod, expectedOnTestEventOverride });
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedTestMethod, expectedOnTestEventOverride });
         }
     }
 }

@@ -87,15 +87,14 @@ public class TestClass
             var expectedGetId = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(7, 16, 7, 18).WithArguments("get_Id");
             var expectedShapeCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(8, 15, 8, 20).WithArguments(".ctor");
             var expectedGetRadius = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(19, 19, 19, 25).WithArguments("get_Radius");
-            var expectedCircleCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(22, 12, 22, 18).WithArguments(".ctor");
 
             await VerifyCS.VerifyAnalyzerAsync(test,
                                              expectedCreateScaledCopy,
                                              expectedGetScaledArea,
                                              expectedGetId,
                                              expectedShapeCtor,
-                                             expectedGetRadius,
-                                             expectedCircleCtor);
+                                             expectedGetRadius
+                                             );
         }
     }
 }

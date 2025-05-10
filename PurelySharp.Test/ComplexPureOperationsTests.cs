@@ -27,7 +27,7 @@ public class TestClass
     {
         if (n <= 0) return numbers.Sum();
         
-        int {|PS0002:LocalFunction|}(int x)
+        int LocalFunction(int x)
         {
             return x <= 1 ? 1 : LocalFunction(x - 1) + LocalFunction(x - 2);
         }
@@ -61,7 +61,7 @@ public class TestClass
     [EnforcePure]
     public (int sum, int count) {|PS0002:TestMethod|}(IEnumerable<(int x, int y)> points)
     {
-        static int {|PS0002:Square|}(int n) => n * n;
+        static int Square(int n) => n * n;
 
         var result = points
             .Select(p => (

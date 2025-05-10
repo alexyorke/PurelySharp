@@ -142,16 +142,13 @@ public class TestClass
 }
 ";
             // Expect PS0002 on ImpureMethod, ImpureIfBranchExample, and PS0004 on IsEven
-            var expectedPS0002_ImpureMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                                 .WithSpan(8, 24, 8, 36) // Span for ImpureMethod
-                                                 .WithArguments("ImpureMethod");
             var expectedPS0002_Caller = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
                                             .WithLocation(13, 16) // ImpureIfBranchExample is on line 13
                                             .WithArguments("ImpureIfBranchExample");
             var expectedPS0004_IsEven = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
                                             .WithSpan(10, 25, 10, 31) // Span of IsEven identifier - Adjusted line
                                             .WithArguments("IsEven");
-            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedPS0002_ImpureMethod, expectedPS0002_Caller, expectedPS0004_IsEven);
+            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedPS0002_Caller, expectedPS0004_IsEven);
         }
 
         [Test]
@@ -183,16 +180,16 @@ public class TestClass
 }
 ";
             // Expect PS0002 on ImpureMethod, ImpureElseBranchExample, and PS0004 on IsEven
-            var expectedPS0002_ImpureMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                                 .WithSpan(8, 24, 8, 36) // Span for ImpureMethod
-                                                 .WithArguments("ImpureMethod");
+            // var expectedPS0002_ImpureMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+            //                                      .WithSpan(8, 24, 8, 36) // Span for ImpureMethod
+            //                                      .WithArguments("ImpureMethod"); // Removed: Not marked
             var expectedPS0002_Caller = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
                                              .WithLocation(13, 16) // ImpureElseBranchExample is on line 13
                                              .WithArguments("ImpureElseBranchExample");
             var expectedPS0004_IsEven = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
                                              .WithSpan(10, 25, 10, 31) // Span of IsEven identifier - Adjusted line
                                              .WithArguments("IsEven");
-            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedPS0002_ImpureMethod, expectedPS0002_Caller, expectedPS0004_IsEven);
+            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedPS0002_Caller, expectedPS0004_IsEven);
         }
 
         [Test]

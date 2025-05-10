@@ -79,11 +79,12 @@ public class TestClass
     }
 }";
 
-            // Expect PS0002 on set_Item, PS0004 on get_Item, and PS0002 on SetValue (3 diagnostics total)
-            var expectedSetItem = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(13, 19, 13, 23).WithArguments("set_Item");
+            // Expect PS0004 on get_Item (not marked, pure) and PS0002 on SetValue (marked, calls impure setter).
+            // set_Item itself is not marked, so it does not get PS0002 directly.
+            // var expectedSetItem = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(13, 19, 13, 23).WithArguments("set_Item"); // Removed: Not marked
             var expectedGetItem = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(13, 19, 13, 23).WithArguments("get_Item");
             var expectedSetValue = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(25, 17, 25, 25).WithArguments("SetValue");
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedSetItem, expectedGetItem, expectedSetValue });
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetItem, expectedSetValue });
         }
 
         [Test]
@@ -172,12 +173,12 @@ public class TestClass
     }
 }";
 
-            // Expect PS0002 on set_Item, UpdateItem, CallUpdateItemImpure, and PS0004 on get_Item (4 diagnostics total)
-            var expectedSetItem = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(13, 14, 13, 18).WithArguments("set_Item");
-            var expectedGetItem = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(13, 14, 13, 18).WithArguments("get_Item");
-            var expectedUpdateItem = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(21, 17, 21, 27).WithArguments("UpdateItem");
+            // Expect PS0002 on CallUpdateItemImpure. Others are not marked or have [Pure].
+            // var expectedSetItem = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(13, 14, 13, 18).WithArguments("set_Item"); // Not marked
+            // var expectedGetItem = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(13, 14, 13, 18).WithArguments("get_Item"); // Has [Pure]
+            // var expectedUpdateItem = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(21, 17, 21, 27).WithArguments("UpdateItem"); // Not marked
             var expectedCallUpdate = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(39, 17, 39, 37).WithArguments("CallUpdateItemImpure");
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedSetItem, expectedGetItem, expectedUpdateItem, expectedCallUpdate });
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedCallUpdate });
         }
 
         [Test]

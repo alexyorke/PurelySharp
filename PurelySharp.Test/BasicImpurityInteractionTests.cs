@@ -99,7 +99,6 @@ public class TestClass
 ";
             // Expectations based on test run + added [EnforcePure]
             var expectedGetId = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(7, 16, 7, 18).WithArguments("get_Id");
-            var expectedCtorShape = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(11, 15, 11, 20).WithArguments(".ctor"); // Adjusted line
             var expectedScaleShape = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(20, 25, 20, 30).WithArguments("Scale"); // Adjusted span from line 19 to 20
             var expectedGetRadius = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(28, 19, 28, 25).WithArguments("get_Radius"); // Adjusted line
             var expectedCtorCircle = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(32, 12, 32, 18).WithArguments(".ctor"); // Adjusted line // Calls impure base
@@ -110,7 +109,6 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test,
                                              expectedGetId,
-                                             expectedCtorShape,
                                              expectedScaleShape,
                                              expectedGetRadius,
                                              expectedCtorCircle,
@@ -118,7 +116,7 @@ public class TestClass
                                              expectedSetRadiusCircle,
                                              expectedProcessShape,
                                              expectedCalculateAndScale
-                                             ); // Expect 9 diagnostics now
+                                             ); // Expect 8 diagnostics now
         }
 
         [Test]

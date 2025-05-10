@@ -426,16 +426,6 @@ namespace PurelySharp.Analyzer.Engine
 
             try // Use try/finally to ensure visited.Remove is always called
             {
-                // --- 3. Check [Pure] Attribute --- (Priority 1)
-                var pureAttrSymbol = semanticModel.Compilation.GetTypeByMetadataName(typeof(PureAttribute).FullName);
-                if (pureAttrSymbol != null && HasAttribute(methodSymbol, pureAttrSymbol))
-                {
-                    LogDebug($"{indent}  Method has [Pure] attribute: {methodSymbol.ToDisplayString()}. Returning Pure.");
-                    purityCache[methodSymbol] = PurityAnalysisResult.Pure;
-                    LogDebug($"{indent}<< Exit DeterminePurity (Pure Attribute): {methodSymbol.ToDisplayString()}"); // Log exit
-                    return PurityAnalysisResult.Pure;
-                }
-
                 // --- 4. Known Impure BCL Members --- (Priority 2)
                 if (IsKnownImpure(methodSymbol))
                 {
@@ -525,10 +515,11 @@ namespace PurelySharp.Analyzer.Engine
 
                     if (methodBodyIOperation != null)
                     {
+                        var pureAttrSymbolForContext = semanticModel.Compilation.GetTypeByMetadataName(typeof(PureAttribute).FullName); // Define pureAttrSymbol here
                         var postCfgContext = new Rules.PurityAnalysisContext(
                             semanticModel,
                             enforcePureAttributeSymbol,
-                            pureAttrSymbol, // Reuse from earlier
+                            pureAttrSymbolForContext, // Pass the fetched symbol
                             allowSynchronizationAttributeSymbol,
                             visited,
                             purityCache,
@@ -754,12 +745,12 @@ namespace PurelySharp.Analyzer.Engine
                 if (!exitState.HasPotentialImpurity)
                 {
                     LogDebug($"  [CFG] Exit block state is pure. Explicitly checking operations within Exit Block #{exitBlock.Ordinal}.");
-                    var pureAttributeSymbol = semanticModel.Compilation.GetTypeByMetadataName("PurelySharp.Attributes.PureAttribute");
+                    var pureAttrSymbolForContext = semanticModel.Compilation.GetTypeByMetadataName(typeof(PureAttribute).FullName);
 
-                    var ruleContext = new PurelySharp.Analyzer.Engine.Rules.PurityAnalysisContext(
+                    var ruleContext = new Rules.PurityAnalysisContext(
                         semanticModel,
                         enforcePureAttributeSymbol,
-                        pureAttributeSymbol,
+                        pureAttrSymbolForContext,
                         allowSynchronizationAttributeSymbol,
                         visited, // Note: visited might be incomplete here, but ok for stateless rules
                         purityCache,
@@ -1305,7 +1296,12 @@ namespace PurelySharp.Analyzer.Engine
             {
                 return false;
             }
-            return symbol.GetAttributes().Any(ad => SymbolEqualityComparer.Default.Equals(ad.AttributeClass?.OriginalDefinition, enforcePureAttributeSymbol));
+            // Also check for PureAttribute
+            var pureAttributeSymbol = symbol.ContainingAssembly.GetTypeByMetadataName(typeof(PureAttribute).FullName);
+            return symbol.GetAttributes().Any(ad =>
+                SymbolEqualityComparer.Default.Equals(ad.AttributeClass?.OriginalDefinition, enforcePureAttributeSymbol) ||
+                (pureAttributeSymbol != null && SymbolEqualityComparer.Default.Equals(ad.AttributeClass?.OriginalDefinition, pureAttributeSymbol))
+            );
         }
 
         /// <summary>

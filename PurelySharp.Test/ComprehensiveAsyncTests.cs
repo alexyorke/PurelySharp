@@ -168,10 +168,9 @@ class Program
     }
 }";
 
-            // Expect PS0002 for ImpureAsyncMethod and ImpureHelper
+            // Expect PS0002 for ImpureAsyncMethod. ImpureHelper is not marked.
             var diag1 = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(15, 28, 15, 45).WithArguments("ImpureAsyncMethod");
-            var diag2 = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(8, 28, 8, 40).WithArguments("ImpureHelper");
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { diag1, diag2 });
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { diag1 });
         }
 
         [Test]

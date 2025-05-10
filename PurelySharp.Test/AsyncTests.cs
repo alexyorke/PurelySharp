@@ -87,11 +87,11 @@ namespace TestNamespace
     }
 }";
 
-            // Expect PS0002 for both methods
-            var expectedOuter = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(10, 32, 10, 56).WithArguments("MethodCallingImpureAsync");
-            var expectedInner = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(16, 33, 16, 46).WithArguments("GetValueAsync");
+            // Expect PS0002 for MethodCallingImpureAsync. GetValueAsync is not marked.
+            var expectedOuter = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(10, 32, 10, 56).WithArguments("MethodCallingImpureAsync");
+            // var expectedInner = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(16, 33, 16, 46).WithArguments("GetValueAsync"); // Removed: Not marked
 
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedOuter, expectedInner });
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedOuter });
         }
     }
 }

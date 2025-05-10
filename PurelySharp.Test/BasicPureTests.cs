@@ -66,8 +66,9 @@ public class TestUsage
             var expectedCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(8, 12, 8, 15).WithArguments(".ctor");
             var expectedGetX = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(14, 16, 14, 17).WithArguments("get_X");
             var expectedGetY = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(15, 16, 15, 17).WithArguments("get_Y");
+            var expectedPS0003 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MisplacedAttributeId).WithSpan(4, 2, 4, 6);
 
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedCtor, expectedGetX, expectedGetY });
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedCtor, expectedGetX, expectedGetY, expectedPS0003 });
         }
 
         [Test]
@@ -110,10 +111,10 @@ public class TestUsage
             // UPDATE: Actually expects 4, including the already [EnforcePure] constructor.
             var expectedGetX = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(6, 16, 6, 17).WithArguments("get_X");
             var expectedGetY = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(7, 16, 7, 17).WithArguments("get_Y");
-            var expectedCtor1 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(10, 12, 10, 20).WithArguments(".ctor");
-            var expectedCtor2 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(17, 12, 17, 20).WithArguments(".ctor");
+            // var expectedCtor1 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(10, 12, 10, 20).WithArguments(".ctor");
+            // var expectedCtor2 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(17, 12, 17, 20).WithArguments(".ctor");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetX, expectedGetY, expectedCtor1, expectedCtor2 });
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetX, expectedGetY });
         }
 
         [Test]
@@ -222,7 +223,7 @@ public struct MyStruct
 
 public class TestUsage
 {
-    [EnforcePure]
+    [Pure]
     public MyStruct CreateMyStruct()
     {
         // Call to MyStruct(int, int) should be pure
@@ -233,12 +234,12 @@ public class TestUsage
             // Expect PS0004 for property accessors, constructors, and methods (6 total)
             var expectedGetX = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(6, 16, 6, 17).WithArguments("get_X");
             var expectedGetY = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(7, 16, 7, 17).WithArguments("get_Y");
-            var expectedCtor1 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(10, 12, 10, 20).WithArguments(".ctor");
-            var expectedCtor2 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(17, 12, 17, 20).WithArguments(".ctor");
+            // var expectedCtor1 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(10, 12, 10, 20).WithArguments(".ctor");
+            // var expectedCtor2 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(17, 12, 17, 20).WithArguments(".ctor");
             var expectedGetX2 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(22, 16, 22, 20).WithArguments("GetX");
             var expectedGetY2 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(27, 16, 27, 20).WithArguments("GetY");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetX, expectedGetY, expectedCtor1, expectedCtor2, expectedGetX2, expectedGetY2 });
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetX, expectedGetY, expectedGetX2, expectedGetY2 });
         }
     }
 }

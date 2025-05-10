@@ -32,31 +32,44 @@ namespace PurelySharp.Analyzer
 
             // --- Check for [EnforcePure] attribute --- 
             var enforcePureAttributeSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName(typeof(EnforcePureAttribute).FullName);
-            if (enforcePureAttributeSymbol == null)
+            var pureAttributeSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName(typeof(PureAttribute).FullName);
+
+            if (enforcePureAttributeSymbol == null && pureAttributeSymbol == null) // If neither attribute is found in compilation, can't proceed
             {
-                return; // Cannot check without attribute symbol
+                return; // Cannot check without attribute symbols
             }
 
             // +++ Get [AllowSynchronization] attribute symbol +++
             var allowSynchronizationAttributeSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName(typeof(AllowSynchronizationAttribute).FullName);
             // Null check is handled inside PurityAnalysisEngine
 
-            bool hasEnforcePureAttribute = methodSymbol.GetAttributes().Any(attr =>
-                SymbolEqualityComparer.Default.Equals(attr.AttributeClass?.OriginalDefinition, enforcePureAttributeSymbol));
+            bool hasPurityEnforcementAttribute = false;
+            if (enforcePureAttributeSymbol != null)
+            {
+                hasPurityEnforcementAttribute = methodSymbol.GetAttributes().Any(attr =>
+                    SymbolEqualityComparer.Default.Equals(attr.AttributeClass?.OriginalDefinition, enforcePureAttributeSymbol));
+            }
+            if (!hasPurityEnforcementAttribute && pureAttributeSymbol != null)
+            { // Only check for PureAttribute if EnforcePure is not found
+                hasPurityEnforcementAttribute = methodSymbol.GetAttributes().Any(attr =>
+                    SymbolEqualityComparer.Default.Equals(attr.AttributeClass?.OriginalDefinition, pureAttributeSymbol));
+            }
 
             // --- Perform Purity Analysis --- 
             // Create a new engine instance for each analysis
             var purityEngine = new PurityAnalysisEngine();
-            PurityAnalysisEngine.PurityAnalysisResult purityResult = purityEngine.IsConsideredPure( // Use instance method
+            // Pass enforcePureAttributeSymbol. PurityAnalysisEngine.IsPureEnforced now checks for both.
+            // If enforcePureAttributeSymbol is null here, but pureAttributeSymbol was not, IsPureEnforced inside the engine will still correctly use pureAttributeSymbol for its checks.
+            PurityAnalysisEngine.PurityAnalysisResult purityResult = purityEngine.IsConsideredPure(
                 methodSymbol,
-                context.SemanticModel, // Use context's SemanticModel
-                enforcePureAttributeSymbol,
-                allowSynchronizationAttributeSymbol // Pass the loaded symbol (can be null)
+                context.SemanticModel,
+                enforcePureAttributeSymbol, // Engine's IsPureEnforced handles PureAttribute internally too
+                allowSynchronizationAttributeSymbol
                 );
             bool isPure = purityResult.IsPure;
 
             // --- Report Diagnostic if Impure ---
-            if (!isPure)
+            if (!isPure && hasPurityEnforcementAttribute) // Only report PS0002 if an attribute was present
             {
                 // ALWAYS report on the method identifier if the method is impure
                 Location? diagnosticLocation = GetIdentifierLocation(context.Node);
@@ -79,7 +92,7 @@ namespace PurelySharp.Analyzer
                 }
             }
             // +++ Report Diagnostic PS0004 if Pure but Missing Attribute +++
-            else if (isPure && !hasEnforcePureAttribute)
+            else if (isPure && !hasPurityEnforcementAttribute) // Check against the combined flag
             {
                 bool isCompilerGeneratedSetter = false;
                 if (methodSymbol.MethodKind == MethodKind.PropertySet && context.Node is AccessorDeclarationSyntax setterNode)

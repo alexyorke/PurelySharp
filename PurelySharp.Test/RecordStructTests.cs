@@ -163,8 +163,6 @@ public record struct Counter
 
             // Add expectations for PS0004 on getter and PS0002 on constructors
             verifierTest.ExpectedDiagnostics.Add(VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(11, 16, 11, 21).WithArguments("get_Value"));
-            verifierTest.ExpectedDiagnostics.Add(VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(13, 12, 13, 19).WithArguments(".ctor"));
-            verifierTest.ExpectedDiagnostics.Add(VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(14, 12, 14, 19).WithArguments(".ctor"));
             verifierTest.ExpectedDiagnostics.Add(expected1); // GetInstanceCount PS0002
             verifierTest.ExpectedDiagnostics.Add(expected2); // Increment PS0002
 
@@ -322,7 +320,6 @@ public class Usage
 
             // Expect no diagnostics
             // Expect PS0004 on the constructor and auto-getters as they are pure but not marked [EnforcePure]
-            verifierTest.ExpectedDiagnostics.Add(VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(9, 12, 9, 15).WithArguments(".ctor"));
             verifierTest.ExpectedDiagnostics.Add(VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(15, 16, 15, 17).WithArguments("get_X"));
             verifierTest.ExpectedDiagnostics.Add(VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(16, 16, 16, 17).WithArguments("get_Y"));
             await verifierTest.RunAsync();

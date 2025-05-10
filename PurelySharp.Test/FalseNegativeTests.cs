@@ -199,12 +199,13 @@ public class TestForm
         Console.WriteLine(""Button clicked"");
     }
 }";
-            // Expect PS0002 on OnClick, SetupForm, and Button_Clicked based on runner output (3 diagnostics total)
-            var expectedOnClick = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(8, 17, 8, 24).WithArguments("OnClick");
+            // Expect PS0002 on SetupForm due to event subscription.
+            // OnClick and Button_Clicked are not marked and should not get PS0002 directly.
+            // var expectedOnClick = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(8, 17, 8, 24).WithArguments("OnClick");
             var expectedSetup = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(16, 17, 16, 26).WithArguments("SetupForm");
-            var expectedHandler = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(21, 18, 21, 32).WithArguments("Button_Clicked");
+            // var expectedHandler = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(21, 18, 21, 32).WithArguments("Button_Clicked");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedOnClick, expectedSetup, expectedHandler });
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedSetup });
         }
 
         [Test]
@@ -342,14 +343,14 @@ public class TestClass
             var expectedCallImpure = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
                                    .WithSpan(12, 17, 12, 43)
                                    .WithArguments("CallImpureDelegateViaParam");
-            var expectedImpureTarget = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                       .WithSpan(7, 25, 7, 37)
-                                       .WithArguments("ImpureTarget");
-            var expectedInvokeDelegate = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                         .WithSpan(9, 18, 9, 32)
-                                         .WithArguments("InvokeDelegate");
+            // var expectedImpureTarget = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+            //                            .WithSpan(7, 25, 7, 37)
+            //                            .WithArguments("ImpureTarget"); // Removed: Not marked
+            // var expectedInvokeDelegate = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+            //                              .WithSpan(9, 18, 9, 32)
+            //                              .WithArguments("InvokeDelegate"); // Removed: Not marked
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedImpureTarget, expectedInvokeDelegate, expectedCallImpure);
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedCallImpure);
         }
 
         // Bug: Invocation of delegate returned from method isn't checked reliably in full test run.
@@ -376,14 +377,14 @@ public class TestClass
     }}
 }
 "; // End of string literal
-            var expectedGetImpureAction = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                             .WithSpan(7, 20, 7, 35)
-                                             .WithArguments("GetImpureAction");
+            // var expectedGetImpureAction = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+            //                                  .WithSpan(7, 20, 7, 35)
+            //                                  .WithArguments("GetImpureAction"); // Removed: Not marked
             var expectedCallImpureReturn = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
                                           .WithSpan(13, 17, 13, 44)
                                           .WithArguments("CallImpureDelegateViaReturn");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetImpureAction, expectedCallImpureReturn);
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedCallImpureReturn);
         }
 
         [Test]
