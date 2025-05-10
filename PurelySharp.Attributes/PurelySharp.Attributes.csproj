@@ -15,7 +15,7 @@
     
     <!-- NuGet package properties -->
     <PackageId>PurelySharp.Attributes</PackageId>
-    <Version>0.0.1</Version> 
+    <Version>0.0.2</Version> 
     <Authors>Alex Yorke</Authors>
     <Description>Contains the EnforcePureAttribute for use with the PurelySharp Roslyn analyzer. Must be installed when using the VSIX extension.</Description>
     <PackageTags>PurelySharp;Attributes;Roslyn;Analyzer</PackageTags>
@@ -23,7 +23,8 @@
     <Title>PurelySharp.Attributes</Title>
     <RepositoryUrl>https://github.com/alexyorke/PurelySharp</RepositoryUrl>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-    <PackageReadmeFile>README.md</PackageReadmeFile> <!-- Example: Use your preferred license -->
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild> <!-- Example: Use your preferred license -->
     <!-- Add other relevant properties like ProjectUrl, RepositoryUrl etc. -->
 
   </PropertyGroup>
