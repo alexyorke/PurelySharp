@@ -15,7 +15,7 @@
     
     <!-- NuGet package properties -->
     <PackageId>PurelySharp.Attributes</PackageId>
-    <Version>0.0.2</Version> 
+    <Version>0.0.3</Version> 
     <Authors>Alex Yorke</Authors>
     <Description>Contains the EnforcePureAttribute for use with the PurelySharp Roslyn analyzer. Must be installed when using the VSIX extension.</Description>
     <PackageTags>PurelySharp;Attributes;Roslyn;Analyzer</PackageTags>
