@@ -19,7 +19,7 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.13.0" />
 
     <!-- Immutable Collections -->
-    <PackageReference Include="System.Collections.Immutable" Version="8.0.0" /> 
+    <PackageReference Include="System.Collections.Immutable" Version="9.0.4" /> 
   </ItemGroup>
 
   <!-- Release tracking files -->
