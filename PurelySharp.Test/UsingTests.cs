@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
@@ -37,9 +37,9 @@ public class PureDisposable : IDisposable
     // Dispose is implicitly pure (empty body)
     public void Dispose() { }
 }";
-            // Expect PS0004 because Dispose() is pure but lacks [EnforcePure].
+
             var expectedPS0004 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                    .WithSpan(20, 17, 20, 24) // Span of Dispose identifier
+                                    .WithSpan(20, 17, 20, 24)
                                     .WithArguments("Dispose");
             await VerifyCS.VerifyAnalyzerAsync(code, expectedPS0004);
         }
@@ -64,9 +64,9 @@ public class TestClass
     }}
 }}";
 
-            // Diagnostic expected on TestMethod (will override with WithSpan)
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                  .WithSpan(9, 17, 9, 27) // Updated span to method signature
+                                  .WithSpan(9, 17, 9, 27)
                                   .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
@@ -96,14 +96,14 @@ public class TestClass
     }}
 }}";
 
-            // Diagnostic expected on TestMethod (will override with WithSpan)
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                   .WithSpan(14, 17, 14, 27) // Updated span to method signature
+                                   .WithSpan(14, 17, 14, 27)
                                    .WithArguments("TestMethod");
 
-            // Also expect PS0004 because Dispose() is pure but lacks [EnforcePure].
+
             var expectedPS0004 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                    .WithSpan(8, 17, 8, 24) // Span of Dispose identifier
+                                    .WithSpan(8, 17, 8, 24)
                                     .WithArguments("Dispose");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected, expectedPS0004);

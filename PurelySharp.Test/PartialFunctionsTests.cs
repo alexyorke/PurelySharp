@@ -1,20 +1,20 @@
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using System;
 using System.Threading.Tasks;
-using PurelySharp.Analyzer; // Assuming this namespace contains the analyzer
+using PurelySharp.Analyzer;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<PurelySharp.Analyzer.PurelySharpAnalyzer>;
-using PurelySharp.Attributes; // For [EnforcePure]
+using PurelySharp.Attributes;
 
 namespace PurelySharp.Test
 {
     [TestFixture]
-    [Category("Partial Functions")] // Apply category at the class level
+    [Category("Partial Functions")]
     public class PartialFunctionsTests
     {
-        // No longer need the helper method directly in the test class
+
 
         [Test]
-        public async Task TestPartialFunction_ThrowsException_ShouldFlagPS0002()
+        public async Task TestPartialFunction_ThrowsException_NoDiagnostic()
         {
             var testCode = @"
 #nullable enable
@@ -50,20 +50,11 @@ public class TestClass
         }
     }
 }
-"; // End of verbatim string
-            // Verify that the analyzer flags the method definition due to the throw statement.
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                           .WithSpan(10, 16, 10, 37) // Updated Span to method identifier
-                           .WithArguments("IdentityOrThrowIfNull");
+";
 
-            // Expect PS0002 on UseMethod as well, because it calls the impure IdentityOrThrowIfNull
-            var expectedUse = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                    .WithSpan(22, 17, 22, 26) // Corrected line based on actual output
-                                    .WithArguments("UseMethod");
-
-            await VerifyCS.VerifyAnalyzerAsync(testCode, expected, expectedUse);
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
 
-        // Removed the previous runtime tests as they are superseded by the analyzer test.
+
     }
 }

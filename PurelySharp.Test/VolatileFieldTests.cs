@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
@@ -15,7 +15,7 @@ namespace PurelySharp.Test
         [Test]
         public async Task ReadingVolatileField_Diagnostic()
         {
-            // Expectation limitation: Analyzer fails to detect impurity of reading volatile fields.
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -32,9 +32,9 @@ public class TestClass
         return _counter; // Reading volatile field should be impure
     }
 }";
-            // Expect diagnostic on the method name
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
-                                   .WithSpan(12, 16, 12, 26) // Span for `GetCounter` (Line 12 in actual code string)
+                                   .WithSpan(12, 16, 12, 26)
                                    .WithArguments("GetCounter");
             await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
         }
@@ -58,9 +58,9 @@ public class TestClass
         _counter++; // Writing volatile field should be impure
     }
 }";
-            // Expect diagnostic on the method name
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
-                                   .WithSpan(12, 17, 12, 33) // Adjusted span (line 12)
+                                   .WithSpan(12, 17, 12, 33)
                                    .WithArguments("IncrementCounter");
 
             await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
@@ -87,9 +87,9 @@ public class TestClass
         return _regularField + _volatileField; // Impure read
     }
 }";
-            // Expect diagnostic on the method name
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
-                                   .WithSpan(13, 16, 13, 29) // Adjusted span (line 13)
+                                   .WithSpan(13, 16, 13, 29)
                                    .WithArguments("CombineFields");
 
             await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
@@ -114,9 +114,9 @@ public class TestClass
         return _staticVolatileCounter; // Reading static volatile field should be impure
     }
 }";
-            // Expect diagnostic on the method name
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
-                                   .WithSpan(12, 16, 12, 39) // Adjusted end column to 39
+                                   .WithSpan(12, 16, 12, 39)
                                    .WithArguments("ReadStaticVolatileField");
 
             await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
@@ -143,9 +143,9 @@ public class TestClass
         return Interlocked.Increment(ref _counter); // Impure call
     }
 }";
-            // Expect diagnostic on the method name
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
-                                   .WithSpan(13, 16, 13, 31) // Adjusted span (line 13)
+                                   .WithSpan(13, 16, 13, 31)
                                    .WithArguments("IncrementAndGet");
 
             await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
@@ -185,9 +185,9 @@ public class TestClass
         return _instance; // Volatile read
     }
 }";
-            // Expect diagnostic on the method name
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
-                                   .WithSpan(17, 19, 17, 39) // Adjusted span (line 17)
+                                   .WithSpan(17, 19, 17, 39)
                                    .WithArguments("GetSingletonInstance");
 
             await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
@@ -196,8 +196,8 @@ public class TestClass
         [Test]
         public async Task MultipleVolatileFields_Diagnostic()
         {
-            // Expectation limitation: Analyzer fails to detect impurity of reading volatile fields
-            // in GetValueIfInitialized.
+
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -227,14 +227,14 @@ public class TestClass
     }
 }";
 
-            // Expect diagnostic on the Initialize method name
+
             var expected1 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
-                                    .WithSpan(13, 17, 13, 27) // Adjusted Span (line 13)
+                                    .WithSpan(13, 17, 13, 27)
                                     .WithArguments("Initialize");
 
-            // Expect diagnostic on the GetValueIfInitialized method name
+
             var expected2 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                    .WithSpan(20, 16, 20, 37) // Span for `GetValueIfInitialized` (Line 20)
+                                    .WithSpan(20, 16, 20, 37)
                                     .WithArguments("GetValueIfInitialized");
 
             await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected1, expected2 });

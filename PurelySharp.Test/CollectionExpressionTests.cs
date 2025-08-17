@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -31,7 +31,7 @@ public class CollectionExpressionExample
     }
 }";
 
-            // Diagnostics are now inline
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -55,7 +55,7 @@ public class CollectionExpressionExample
     }
 }";
 
-            // Diagnostics are now inline
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -78,9 +78,9 @@ public class CollectionExpressionExample
     }
 }";
 
-            // Expect diagnostic as new[] creates mutable array
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                   .WithSpan(10, 18, 10, 28) // CORRECTED line number
+                                   .WithSpan(10, 18, 10, 28)
                                    .WithArguments("GetNumbers");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
@@ -105,12 +105,12 @@ public class CollectionExpressionExample
     }
 }";
 
-            // Expect diagnostic as List<T> is mutable
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                   .WithSpan(11, 25, 11, 33) // CORRECTED columns
+                                   .WithSpan(11, 25, 11, 33)
                                    .WithArguments("GetNames");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
-        } // ADDED missing closing brace for method
+        }
 
         [Test]
         public async Task PureMethod_MutableArrayCollectionExpressionSyntax_Diagnostic()
@@ -131,9 +131,9 @@ public class CollectionExpressionExample
     }
 }";
 
-            // Expect diagnostic as collection expression for array is impure
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(10, 18, 10, 26) // Span of GetArray identifier
+                                   .WithSpan(10, 18, 10, 26)
                                    .WithArguments("GetArray");
             await VerifyCS.VerifyAnalyzerAsync(testCode, expected);
         }
@@ -158,9 +158,9 @@ public class CollectionExpressionExample
     }
 }";
 
-            // Expect diagnostic as List<T> is mutable
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(11, 22, 11, 29) // Span of GetList identifier
+                                   .WithSpan(11, 22, 11, 29)
                                    .WithArguments("GetList");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
@@ -188,9 +188,9 @@ public class CollectionExpressionExample
     }
 }";
 
-            // Expect diagnostic as array modification is impure
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(10, 18, 10, 34) // Span of GetModifiedArray identifier
+                                   .WithSpan(10, 18, 10, 34)
                                    .WithArguments("GetModifiedArray");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
@@ -216,10 +216,10 @@ public class CollectionExpressionExample
     }
 }";
 
-            // Expect NO diagnostic because the target type is immutable
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
-    } // Class brace
-} // Namespace brace
+    }
+}
 
 

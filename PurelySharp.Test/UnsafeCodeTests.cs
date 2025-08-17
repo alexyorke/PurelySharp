@@ -1,4 +1,4 @@
-// #if false // Temporarily disable this class
+﻿
 using NUnit.Framework;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -9,15 +9,15 @@ using PurelySharp.Analyzer;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
     PurelySharp.Analyzer.PurelySharpAnalyzer>;
 using PurelySharp.Attributes;
-using Microsoft.CodeAnalysis.CSharp.Testing; // For CSharpParseOptions
+using Microsoft.CodeAnalysis.CSharp.Testing;
 
 namespace PurelySharp.Test
 {
     [TestFixture]
-    // [NUnit.Framework.Skip("Skipping for now")] // Removed skip attribute
+
     public class UnsafeCodeTests
     {
-        // Minimal attribute definition (using verbatim string)
+
         private const string MinimalEnforcePureAttributeSource = @"
 using System;
 
@@ -31,7 +31,7 @@ namespace PurelySharp.Attributes
         [Test]
         public async Task MethodWithUnsafeCode_Diagnostic()
         {
-            // Main test code without attribute definition concatenated
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -48,10 +48,10 @@ public class TestClass
 }
 ";
 
-            // Expect 1 diagnostic
+
             var expected = new[] {
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                       .WithSpan("/0/Test1.cs", 8, 24, 8, 34) // Use Test1.cs based on actual output
+                                       .WithSpan("/0/Test1.cs", 8, 24, 8, 34)
                                        .WithArguments("TestMethod")
             };
 
@@ -59,13 +59,13 @@ public class TestClass
             {
                 TestState =
                 {
-                    // Provide attribute source separately
+
                     Sources = { MinimalEnforcePureAttributeSource, test },
                     ExpectedDiagnostics = { expected[0] },
                 },
             };
 
-            // Enable unsafe code and set LanguageVersion via SolutionTransforms
+
             verifierTest.SolutionTransforms.Add((solution, projectId) =>
             {
                 var project = solution.GetProject(projectId);
@@ -73,12 +73,12 @@ public class TestClass
 
                 var parseOptions = (project.ParseOptions as CSharpParseOptions)?
                     .WithLanguageVersion(LanguageVersion.Latest);
-                // Explicitly check if original options were null before passing
+
                 solution = solution.WithProjectParseOptions(projectId, parseOptions ?? project.ParseOptions ?? new CSharpParseOptions());
 
                 var compilationOptions = (project.CompilationOptions as CSharpCompilationOptions)?
                     .WithAllowUnsafe(true);
-                // Explicitly check if original options were null before passing
+
                 solution = solution.WithProjectCompilationOptions(projectId, compilationOptions ?? project.CompilationOptions ?? new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
                 return solution;
@@ -89,7 +89,7 @@ public class TestClass
         [Test]
         public async Task MethodWithFixedStatement_Diagnostic()
         {
-            // Main test code without attribute definition concatenated
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -108,10 +108,10 @@ public class TestClass
 }
 ";
 
-            // Expect only 1 diagnostic on the method definition
+
             var expected = new[] {
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                    .WithSpan("/0/Test1.cs", 8, 31, 8, 41) // Use Test1.cs based on actual output
+                    .WithSpan("/0/Test1.cs", 8, 31, 8, 41)
                     .WithArguments("TestMethod")
             };
 
@@ -119,13 +119,13 @@ public class TestClass
             {
                 TestState =
                 {
-                     // Provide attribute source separately
+
                     Sources = { MinimalEnforcePureAttributeSource, test },
                     ExpectedDiagnostics = { expected[0] },
                 },
             };
 
-            // Enable unsafe code and set LanguageVersion via SolutionTransforms
+
             verifierTest.SolutionTransforms.Add((solution, projectId) =>
            {
                var project = solution.GetProject(projectId);
@@ -133,12 +133,12 @@ public class TestClass
 
                var parseOptions = (project.ParseOptions as CSharpParseOptions)?
                    .WithLanguageVersion(LanguageVersion.Latest);
-               // Explicitly check if original options were null before passing
+
                solution = solution.WithProjectParseOptions(projectId, parseOptions ?? project.ParseOptions ?? new CSharpParseOptions());
 
                var compilationOptions = (project.CompilationOptions as CSharpCompilationOptions)?
                    .WithAllowUnsafe(true);
-               // Explicitly check if original options were null before passing
+
                solution = solution.WithProjectCompilationOptions(projectId, compilationOptions ?? project.CompilationOptions ?? new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
                return solution;
@@ -148,6 +148,6 @@ public class TestClass
         }
     }
 }
-// #endif // Temporarily disable this class
+
 
 

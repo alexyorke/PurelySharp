@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
@@ -15,7 +15,7 @@ namespace PurelySharp.Test
         [Test]
         public async Task DynamicParameter_NoModification_NoDiagnostic()
         {
-            // Expectation limitation: Analyzer fails to detect impurity from property access on 'dynamic' objects.
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -32,14 +32,14 @@ public class TestClass
         return result + 1;
     }
 }";
-            // Diagnostics are now inline
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
         public async Task DynamicParameter_PropertyModification_Diagnostic()
         {
-            // Expectation limitation: Analyzer fails to detect impurity from property modification on 'dynamic' objects.
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -55,14 +55,14 @@ public class TestClass
         value.Count = 10;
     }
 }";
-            // Diagnostics are now inline
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
         public async Task DynamicParameter_MethodInvocation_Diagnostic()
         {
-            // Expectation limitation: Analyzer fails to detect impurity from method invocation on 'dynamic' objects.
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -78,14 +78,14 @@ public class TestClass
         value.Save();
     }
 }";
-            // Diagnostics are now inline
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
         public async Task DynamicCreation_Diagnostic()
         {
-            // Expectation limitation: Analyzer fails to detect impurity from creating/modifying 'dynamic' objects (e.g., ExpandoObject).
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -103,15 +103,15 @@ public class TestClass
         return obj;
     }
 }";
-            // Diagnostics are now inline
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
         public async Task DynamicLocalVariable_ReadOnly_Diagnostic()
         {
-            // Expectation limitation: Analyzer fails to detect impurity from using 'dynamic' variables/fields,
-            // even in read-only operations.
+
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -130,7 +130,7 @@ public class TestClass
         return result;
     }
 }";
-            // Diagnostics are now inline
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }

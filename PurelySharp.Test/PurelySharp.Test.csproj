@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -31,7 +31,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PurelySharp.CodeFixes\PurelySharp.CodeFixes.csproj" />
-    <!-- <ProjectReference Include="..\PurelySharp\PurelySharp.csproj" /> -->
+    
     <ProjectReference Include="..\PurelySharp.Attributes\PurelySharp.Attributes.csproj" />
     <ProjectReference Include="..\PurelySharp.Analyzer\PurelySharp.Analyzer.csproj" />
   </ItemGroup>

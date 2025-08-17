@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -11,7 +11,7 @@ namespace PurelySharp.Test
     [TestFixture]
     public class RecordTests
     {
-        // Minimal attribute definition reused by the test cases
+
         private const string MinimalEnforcePureAttributeSource = """
 namespace PurelySharp.Attributes
 {
@@ -56,10 +56,10 @@ public class TestClass
                 },
                 ExpectedDiagnostics =
                 {
-                    // Expect 0 diagnostics, as the analyzer correctly reports 0.
-                    // VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                    //               .WithSpan(13, 19, 13, 32) // Span of GetPersonInfo identifier
-                    //               .WithArguments("GetPersonInfo")
+
+
+
+
                 }
             };
 
@@ -131,15 +131,15 @@ namespace PurelySharp.Attributes
 """;
 
             var expected = new[] {
-                // CS8618: Non-nullable property 'Name' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable.
-                // This diagnostic comes from the compiler, not our analyzer, but is expected in this scenario.
+
+
                 DiagnosticResult.CompilerError("CS8618")
-                    .WithSpan(9, 19, 9, 23) // Primary location
-                    .WithSpan(9, 19, 9, 23) // Add the additional location reported by the compiler
+                    .WithSpan(9, 19, 9, 23)
+                    .WithSpan(9, 19, 9, 23)
                     .WithArguments("property", "Name"),
-                // PS0002: Method 'UpdatePerson' marked with [EnforcePure] has implementation, but its purity has not been verified by existing rules
+
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(16, 17, 16, 29).WithArguments("UpdatePerson"),
-                // Add PS0004 for getters/setters
+
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(9, 19, 9, 23).WithArguments("get_Name"),
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(10, 16, 10, 19).WithArguments("get_Age"),
             };
@@ -147,7 +147,7 @@ namespace PurelySharp.Attributes
             await VerifyCS.VerifyAnalyzerAsync(source, expected);
         }
 
-        // Removed problematic RecordWithMixedProperties_ShouldProduceDiagnostic test
+
 
     }
 }

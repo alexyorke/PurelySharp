@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -10,12 +10,12 @@ using System;
 
 namespace PurelySharp.Test
 {
-    // Simple struct
-    // public struct Point // REMOVE THIS DUPLICATE DEFINITION
-    // {
-    //     public int X { get; set; }
-    //     public int Y { get; set; }
-    // }
+
+
+
+
+
+
 
     [TestFixture]
     public class RefReadonlyParameterTests
@@ -38,7 +38,7 @@ public class TestClass
     }
 }";
 
-            // Expecting NO diagnostic now.
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -66,15 +66,15 @@ public class TestClass
         return (int)Math.Sqrt(dx * dx + dy * dy);
     }
 }";
-            // Analyzer now considers this pure
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
         public async Task PureMethodWithRefReadonlyParameter_AssigningLocally_NoDiagnostic()
         {
-            // Expectation limitation: Analyzer flags reading from a local mutable copy
-            // of a 'ref readonly' struct parameter as impure.
+
+
             var test = @$"
 using PurelySharp.Attributes;
 
@@ -99,12 +99,12 @@ public class TestClass
         return max;
     }}
 }}";
-            // Expect PS0002 on the method signature, as the local copy makes subsequent reads impure
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(14, 16, 14, 22) // Span updated to method identifier 'GetMax'
+                                   .WithSpan(14, 16, 14, 22)
                                    .WithArguments("GetMax");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expected); // Use explicit diagnostic
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -123,15 +123,15 @@ public class TestClass
     }
 }";
 
-            // Expect PS0002 on Increment, and CS8331 (compiler error)
+
             var expectedAnalyzer = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                         .WithSpan(7, 17, 7, 26) // Corrected based on actual
+                                         .WithSpan(7, 17, 7, 26)
                                          .WithArguments("Increment");
             var expectedCompiler = DiagnosticResult.CompilerError("CS8331")
-                                           .WithSpan(10, 9, 10, 10) // Span for x++
+                                           .WithSpan(10, 9, 10, 10)
                                            .WithArguments("variable", "x");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedAnalyzer, expectedCompiler); // Expect 2 diagnostics
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedAnalyzer, expectedCompiler);
         }
 
         [Test]
@@ -153,16 +153,16 @@ public class TestClass
         ModifyPoint(ref p);
     }
 }";
-            // Expect PS0002 on TestModify, and CS8329 (compiler error)
+
             var expectedTestModify = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                            .WithSpan(11, 17, 11, 27) // Corrected based on actual
+                                            .WithSpan(11, 17, 11, 27)
                                             .WithArguments("TestModify");
-            // Note: ModifyPoint is not marked [EnforcePure], so analyzer won't report PS0002 on it directly.
+
             var expectedCompiler = DiagnosticResult.CompilerError("CS8329")
-                                           .WithSpan(14, 25, 14, 26) // Span for 'p' in ref p
+                                           .WithSpan(14, 25, 14, 26)
                                            .WithArguments("variable", "p");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedTestModify, expectedCompiler); // Expect 2 diagnostics
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedTestModify, expectedCompiler);
         }
 
         [Test]
@@ -196,9 +196,9 @@ public class TestClass
     }
 }";
 
-            // Constructor has [Pure], GetValue and Add have [EnforcePure]. All are pure. No PS0004 expected.
-            // var expectedCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-            //                            .WithSpan(10, 12, 10, 25).WithArguments(".ctor"); // Removed: Ctor has [Pure]
+
+
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -232,19 +232,19 @@ public class TestClass
     }
 }";
 
-            // Expect PS0002 on Process, PS0002 on ModifyGlobalState, and CS8329 (compiler error)
+
             var expectedProcess = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                         .WithSpan(13, 17, 13, 24) // Corrected based on actual
+                                         .WithSpan(13, 17, 13, 24)
                                          .WithArguments("Process");
-            // Restore expectation for PS0002 on ModifyGlobalState, correcting the span based on the latest output
+
             var expectedModify = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                         .WithSpan(22, 18, 22, 35) // Corrected span based on latest output
+                                         .WithSpan(22, 18, 22, 35)
                                          .WithArguments("ModifyGlobalState");
             var expectedCompiler = DiagnosticResult.CompilerError("CS8329")
-                                           .WithSpan(17, 31, 17, 36) // Corrected based on actual output
+                                           .WithSpan(17, 31, 17, 36)
                                            .WithArguments("variable", "value");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedProcess, expectedModify, expectedCompiler); // Expect 3 diagnostics again
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedProcess, expectedModify, expectedCompiler);
         }
     }
 }

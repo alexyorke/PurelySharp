@@ -1,29 +1,29 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
 using PurelySharp.Analyzer;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
     PurelySharp.Analyzer.PurelySharpAnalyzer>;
-using PurelySharp.Attributes; // Added for [EnforcePure]
-using System; // Added for nint/nuint etc.
-using System.IO; // Added for File access example
+using PurelySharp.Attributes;
+using System;
+using System.IO;
 
 namespace PurelySharp.Test
 {
     [TestFixture]
     public class NumericIntPtrTests
     {
-        // Define the minimal attribute source once
+
         private const string AttributeSource = @"
 [System.AttributeUsage(System.AttributeTargets.Method | System.AttributeTargets.Constructor | System.AttributeTargets.Class | System.AttributeTargets.Struct | System.AttributeTargets.Interface)]
 public sealed class EnforcePureAttribute : System.Attribute { }
 ";
 
-        // Helper method to combine attribute source with test code
-        private string CreateTestWithAttribute(string testCode)
+
+        private static string CreateTestWithAttribute(string testCode)
         {
-            // Basic structure assuming testCode is within a namespace and potentially a class
+
             return $@"
 using System;
 using PurelySharp.Attributes;
@@ -35,7 +35,7 @@ namespace TestNamespace
 }}";
         }
 
-        // Expectation limitation: missing enforce-pure-attribute diagnostic (PS0004) for pure native-int methods without [EnforcePure].
+
         [Test]
         public async Task NativeInt_PureMethod_NoDiagnostic()
         {
@@ -62,7 +62,7 @@ using PurelySharp.Attributes; // Assuming AttributeSource is prepended elsewhere
             await VerifyCS.VerifyAnalyzerAsync(test, expectedAdd, expectedMultiply);
         }
 
-        // Expectation limitation: missing enforce-pure-attribute diagnostic (PS0004) for pure native-int methods without [EnforcePure].
+
         [Test]
         public async Task UnsignedNativeInt_PureMethod_NoDiagnostic()
         {
@@ -89,7 +89,7 @@ using PurelySharp.Attributes;
             await VerifyCS.VerifyAnalyzerAsync(test, expectedAdd, expectedMultiply);
         }
 
-        // Expectation limitation: missing enforce-pure-attribute diagnostic (PS0004) for pure native-int methods without [EnforcePure].
+
         [Test]
         public async Task NativeIntWithConversions_PureMethod_NoDiagnostic()
         {
@@ -128,7 +128,7 @@ using PurelySharp.Attributes;
             await VerifyCS.VerifyAnalyzerAsync(CreateTestWithAttribute(testCode), expectedToInt, expectedToNInt, expectedToUInt, expectedToNUInt);
         }
 
-        // Expectation limitation: missing enforce-pure-attribute diagnostic (PS0004) for pure native-int methods without [EnforcePure].
+
         [Test]
         public async Task NativeIntWithComparisons_PureMethod_NoDiagnostic()
         {
@@ -169,7 +169,7 @@ using PurelySharp.Attributes;
             await VerifyCS.VerifyAnalyzerAsync(test, expectedGT, expectedLT, expectedEQ, expectedGTU);
         }
 
-        // Expectation limitation: missing enforce-pure-attribute diagnostic (PS0004) for pure native-int methods without [EnforcePure].
+
         [Test]
         public async Task NativeIntWithConstants_PureMethod_NoDiagnostic()
         {
@@ -210,7 +210,7 @@ using PurelySharp.Attributes;
             await VerifyCS.VerifyAnalyzerAsync(test, expectedPos, expectedNeg, expectedUnsigned, expectedZero);
         }
 
-        // Expectation limitation: missing enforce-pure-attribute diagnostic (PS0004) for pure native-int methods without [EnforcePure].
+
         [Test]
         public async Task NativeIntWithBitwiseOperations_PureMethod_NoDiagnostic()
         {
@@ -287,8 +287,8 @@ namespace TestNamespace
         [Test]
         public async Task NativeIntImpureMethod_Diagnostic()
         {
-            // This test passed previously after fixing compound assignment.
-            // No changes needed here.
+
+
             var testCode = @"
 using PurelySharp.Attributes;
 

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
@@ -15,8 +15,8 @@ namespace PurelySharp.Test
     [TestFixture]
     public class StaticInterfaceMembersTests
     {
-        // Note: These tests require C# 11+ and a compatible .NET runtime (.NET 7+)
-        // They might report CS8919 if the test project's LangVersion/TargetFramework is lower.
+
+
 
         [Test]
         public async Task StaticInterfaceMethod_PureImplementation_NoDiagnostic()
@@ -49,21 +49,21 @@ namespace TestNamespace
     }
 }";
 
-            // Expect PS0004 on interface Add, Integer members (pure but no [EnforcePure])
+
             var expectedPS0004InterfaceAdd = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                                    .WithSpan(11, 27, 11, 30) // Span from log for interface Add
+                                                    .WithSpan(11, 27, 11, 30)
                                                     .WithArguments("Add");
             var expectedGetter = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                        .WithSpan(16, 20, 16, 25) // Span from log for get_Value
+                                        .WithSpan(16, 20, 16, 25)
                                         .WithArguments("get_Value");
             var expectedCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                       .WithSpan(18, 16, 18, 23) // Span from log for .ctor
+                                       .WithSpan(18, 16, 18, 23)
                                        .WithArguments(".ctor");
             var expectedPS0004StructAdd = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                               .WithSpan(22, 31, 22, 34) // Span from log for Integer.Add
+                                               .WithSpan(22, 31, 22, 34)
                                                .WithArguments("Add");
 
-            // Expect diagnostics now
+
             await new VerifyCS.Test
             {
                 TestCode = test,
@@ -100,10 +100,10 @@ class ImpureImplementation : IPureInterface
     // against [EnforcePure] on static abstract interface members.
 }
 ";
-            // Expect PS0002 because the implementation is impure but interface has [EnforcePure]
-            // var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-            //                               .WithSpan(17, 23, 17, 39) // Span from log for ImpureImplementation.PureStaticMethod
-            //                               .WithArguments("PureStaticMethod"); // Analyzer limitation
+
+
+
+
 
             await new VerifyCS.Test
             {
@@ -113,7 +113,7 @@ class ImpureImplementation : IPureInterface
                     (solution, projectId) =>
                         solution.AddMetadataReference(projectId, MetadataReference.CreateFromFile(typeof(EnforcePureAttribute).Assembly.Location))
                  },
-                // ExpectedDiagnostics = { expectedPS0002 } // Expect 0 due to limitation
+
             }.RunAsync();
         }
 
@@ -148,23 +148,26 @@ namespace TestNamespace
     }
 }";
 
-            // Interface default method is not marked, should not get PS0002
-            // var expectedPS0002Interface = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-            //                                      .WithSpan(13, 26, 13, 34) // Span from log for interface Multiply
-            //                                      .WithArguments("Multiply");
 
-            // Expect PS0004 on Double members (pure but no [EnforcePure])
+
+
+
+
+
             var expectedGetter = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                        .WithSpan(18, 23, 18, 28) // Span from log for get_Value
+                                        .WithSpan(18, 23, 18, 28)
                                         .WithArguments("get_Value");
             var expectedCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                       .WithSpan(19, 16, 19, 22) // Span from log for .ctor
+                                       .WithSpan(19, 16, 19, 22)
                                        .WithArguments(".ctor");
             var expectedPS0004Multiply = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                              .WithSpan(22, 30, 22, 38) // Span from log for Double.Multiply
+                                              .WithSpan(22, 30, 22, 38)
                                               .WithArguments("Multiply");
+            var expectedInterfaceMultiply = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                                 .WithSpan(13, 26, 13, 34)
+                                                 .WithArguments("Multiply");
 
-            // Expect diagnostics now
+
             await new VerifyCS.Test
             {
                 TestCode = test,
@@ -173,7 +176,7 @@ namespace TestNamespace
                     (solution, projectId) =>
                         solution.AddMetadataReference(projectId, MetadataReference.CreateFromFile(typeof(EnforcePureAttribute).Assembly.Location))
                  },
-                ExpectedDiagnostics = { expectedGetter, expectedCtor, expectedPS0004Multiply }
+                ExpectedDiagnostics = { expectedGetter, expectedCtor, expectedPS0004Multiply, expectedInterfaceMultiply }
             }.RunAsync();
         }
 
@@ -201,10 +204,10 @@ class ImpureImplementation : IPureInterface
     // against [EnforcePure] on static virtual interface members.
 }
 ";
-            // Expect PS0002 because the implementation is impure but interface has [EnforcePure]
-            // var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-            //                               .WithSpan(17, 23, 17, 39) // Span from log for ImpureImplementation.PureStaticMethod
-            //                               .WithArguments("PureStaticMethod"); // Analyzer limitation
+
+
+
+
 
             await new VerifyCS.Test
             {
@@ -214,7 +217,7 @@ class ImpureImplementation : IPureInterface
                     (solution, projectId) =>
                         solution.AddMetadataReference(projectId, MetadataReference.CreateFromFile(typeof(EnforcePureAttribute).Assembly.Location))
                  },
-                // ExpectedDiagnostics = { expectedPS0002 } // Expect 0 due to limitation
+
             }.RunAsync();
         }
     }

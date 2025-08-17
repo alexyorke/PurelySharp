@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Immutable;
 using System.Composition;
 using System.Linq;
@@ -65,12 +65,12 @@ namespace PurelySharp
             var newMethodDecl = methodDecl;
             if (attributeList.Attributes.Count == 1)
             {
-                // If this is the only attribute in the list, remove the entire list
+
                 newMethodDecl = methodDecl.RemoveNode(attributeList, SyntaxRemoveOptions.KeepNoTrivia)!;
             }
             else
             {
-                // Otherwise, just remove the specific attribute
+
                 if (attributeToRemove != null)
                 {
                     var nullNode = default(SyntaxNode);
@@ -80,9 +80,9 @@ namespace PurelySharp
                     }
                     else
                     {
-                        // Handle the case where default(SyntaxNode) is somehow null, though unlikely
-                        // Potentially just remove the attribute list if this is the only way
-                        // Or log an error, depending on desired behavior
+
+
+
                     }
                 }
             }

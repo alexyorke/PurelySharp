@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis.Testing;
+﻿using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System;
 using System.Linq.Expressions;
@@ -14,7 +14,7 @@ namespace PurelySharp.Test
     [TestFixture]
     public class ExpressionTreeTests
     {
-        // --- Building Expression Trees (Pure) ---
+
         [Test]
         public async Task Expression_Building_NoDiagnostic()
         {
@@ -38,18 +38,18 @@ public class TestClass
         return Expression.Lambda<Func<int, int>>(addExpr, param);
     }
 }";
-            // Diagnostics are now inline
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        // --- Expression.Compile() (Impure) ---
-        // TODO: Enable test once analyzer flags Compile() as impure
-        // Commented out test Expression_Compile_Diagnostic removed
 
-        // --- Invoking Compiled Expression (Depends on Expression Content) ---
-        // Commented out test Invoke_CompiledPureExpression_NoDiagnostic removed
 
-        // TODO: Enable test once analyzer can detect impurity from invoked delegate
-        // Commented out test Invoke_CompiledImpureExpression_Diagnostic removed
+
+
+
+
+
+
+
     }
 }

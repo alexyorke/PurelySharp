@@ -1,4 +1,4 @@
-# PurelySharp Analyzer
+﻿# PurelySharp Analyzer
 
 A Roslyn analyzer designed to help enforce method purity in C# projects.
 
@@ -12,10 +12,10 @@ The primary goal of PurelySharp is to provide developers with tools to identify 
 
 Currently, the analyzer provides the following checks:
 
-1.  **`[EnforcePure]` Attribute:** A custom attribute (`PurelySharp.Attributes.EnforcePureAttribute`) to mark methods that are intended to be pure.
-2.  **PS0002: Purity Not Verified:** If a method is marked with `[EnforcePure]` and the internal analysis engine cannot determine it to be pure based on the currently implemented rules (see below), it reports diagnostic `PS0002`.
-3.  **PS0003: Misplaced Attribute:** If the `[EnforcePure]` attribute is applied to any declaration _other than_ a method (e.g., class, struct, field, property, event, parameter), the analyzer reports diagnostic `PS0003`.
-4.  **PS0004: Missing Attribute:** If a method is _not_ marked with `[EnforcePure]` but the analysis engine determines it _is_ likely pure based on the currently implemented rules, it reports diagnostic `PS0004` as a suggestion.
+1.  **`[EnforcePure]` / `[Pure]` Attributes:** Use either `PurelySharp.Attributes.EnforcePureAttribute` or `PurelySharp.Attributes.PureAttribute` to mark methods intended to be pure. The analyzer treats `[Pure]` as an interchangeable shorthand for `[EnforcePure]`. Applying both at once yields `PS0005` (conflict).
+2.  **PS0002: Purity Not Verified:** If a method is marked with a purity attribute (`[EnforcePure]` or `[Pure]`) and the engine cannot determine it to be pure based on the current rules (see below), it reports diagnostic `PS0002`.
+3.  **PS0003: Misplaced Attribute:** If a purity attribute (`[EnforcePure]` or `[Pure]`) is applied to any declaration _other than_ a method (e.g., class, struct, field, property, event, parameter), the analyzer reports diagnostic `PS0003`.
+4.  **PS0004: Missing Attribute:** If a method is _not_ marked with a purity attribute but the analysis engine determines it _is_ likely pure based on the currently implemented rules, it reports diagnostic `PS0004` as a suggestion.
 5.  **Basic Purity Analysis:** A limited analysis engine (`PurityAnalysisEngine`) attempts to verify the purity of methods. It checks for:
     - Known impure operations (e.g., some I/O, `DateTime.Now`, field assignments).
     - Purity of invoked methods (recursive check with cycle detection).
@@ -35,11 +35,11 @@ Currently, the analyzer provides the following checks:
 The analyzer (`PurelySharp.Analyzer`) integrates with the C# compilation process:
 
 1.  It identifies method declarations and other symbols.
-2.  It checks for the presence and location of the `[EnforcePure]` attribute.
-3.  If `[EnforcePure]` is misplaced (not on a method), it reports `PS0003`.
-4.  If `[EnforcePure]` is on a method with implementation, it invokes the `PurityAnalysisEngine` to check its body.
+2.  It checks for the presence and location of the purity attributes (`[EnforcePure]` or `[Pure]`).
+3.  If either purity attribute is misplaced (not on a method), it reports `PS0003`.
+4.  If a purity attribute is on a method with implementation, it invokes the `PurityAnalysisEngine` to check its body.
     - If the engine determines the method is _not_ pure (based on current rules), it reports `PS0002`.
-5.  If `[EnforcePure]` is _not_ on a method with implementation, it invokes the `PurityAnalysisEngine`.
+5.  If no purity attribute is on a method with implementation, it invokes the `PurityAnalysisEngine`.
     - If the engine determines the method _is_ pure (based on current rules), it reports `PS0004`.
 6.  **The internal analysis (`PurityAnalysisEngine`) is still under development and does not cover all C# features or guarantee correctness.**
 
@@ -56,19 +56,52 @@ _This analyzer is not yet published._ Once released, installation will likely in
     - Add the `PurelySharp.Analyzer` NuGet package to your project(s) for build-time analysis.
     - Install the `PurelySharp.Vsix` extension in Visual Studio for real-time feedback.
 
+## Local build and install (VSIX + NuGet)
+
+Use the provided script to produce a VSIX for Visual Studio and a local NuGet package for `PurelySharp.Attributes`.
+
+1. Prerequisites
+   - Visual Studio 2022 with the "Visual Studio extension development" workload (VSSDK)
+   - .NET SDK 8.0+
+
+2. Build artifacts
+   ```powershell
+   # From the repo root
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
+   # Optional: Debug build
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Configuration Debug
+   ```
+   The script stops on any failure and prints where artifacts were written. Typical locations:
+   - VSIX: `PurelySharp.Vsix\bin\Release\net472\PurelySharp.Vsix.vsix`
+   - NuGet: `PurelySharp.Attributes\bin\Release\PurelySharp.Attributes.<version>.nupkg`
+
+3. Install the VSIX into Visual Studio
+   - Close Visual Studio.
+   - Double‑click the generated `.vsix` and complete the installer.
+   - Reopen Visual Studio.
+
+4. Use the local NuGet package (`PurelySharp.Attributes`)
+   - In Visual Studio: Tools → NuGet Package Manager → Package Manager Settings → Package Sources
+   - Add a new local source pointing to `PurelySharp.Attributes\bin\Release`
+   - In your test project: Manage NuGet Packages → select the local source → install `PurelySharp.Attributes`
+
+5. Updating/uninstalling
+   - Re-run the build script to produce a new VSIX/NuGet; reinstall the VSIX to update
+   - Manage installed extensions via Extensions → Manage Extensions in Visual Studio
+
 ## Usage
 
 1.  Reference the `PurelySharp.Attributes` project (or package, once available).
-2.  Add the `[EnforcePure]` attribute (from `PurelySharp.Attributes`) to methods you intend to be functionally pure.
-3.  Apply it incorrectly to see PS0003.
+2.  Add either `[EnforcePure]` or `[Pure]` (from `PurelySharp.Attributes`) to methods you intend to be functionally pure.
+3.  Apply the attribute incorrectly to see PS0003.
 
     ```csharp
     using PurelySharp.Attributes;
 
-    [EnforcePure] // PS0003: Misplaced attribute on class
+    [Pure] // PS0003: Misplaced attribute on class
     public class Calculator
     {
-        [EnforcePure]
+        [Pure]
         public int Add(int a, int b)
         {
             // PS0002: Purity Not Verified will be reported currently,
@@ -76,28 +109,32 @@ _This analyzer is not yet published._ Once released, installation will likely in
             return a + b;
         }
 
-        [EnforcePure]
+        [Pure]
         public int GetConstant(); // No implementation, PS0002 NOT reported.
 
-        [EnforcePure] // PS0003: Misplaced attribute on field
+        [Pure] // PS0003: Misplaced attribute on field
         private int _counter = 0;
     }
     ```
 
 4.  Observe the `PS0002` and `PS0003` diagnostics during build or in the IDE (if VSIX is installed).
 
+Note: Diagnostic messages refer to `[EnforcePure]` and `[Pure]` interchangeably.
+
 ## Diagnostics
 
 - **PS0002: Purity Not Verified**
 
-  - **Message:** `Method '{0}' marked with [EnforcePure] has implementation, but its purity has not been verified by existing rules`
+  - **Message:** `Method '{0}' is marked [EnforcePure]/[Pure], but its body contains operations the analyzer cannot prove pure`
   - **Severity:** Warning
   - **Meaning:** The method is marked for purity analysis, but the necessary rules haven't been implemented yet. This diagnostic acts as a placeholder.
+  - Note: Triggered for methods marked with either `[EnforcePure]` or `[Pure]`.
 
 - **PS0003: Misplaced Attribute**
   - **Message:** `The [EnforcePure] attribute can only be applied to method declarations.`
   - **Severity:** Warning
-  - **Meaning:** The `[EnforcePure]` attribute was found on a declaration type where it is not applicable (e.g., class, struct, field, property, parameter).
+  - **Meaning:** A purity attribute (`[EnforcePure]` or `[Pure]`) was found on a declaration type where it is not applicable (e.g., class, struct, field, property, parameter).
+  - Note: The message text mentions `[EnforcePure]`, but the rule applies equally to `[Pure]`.
 
 ## Building and Testing
 
@@ -140,7 +177,7 @@ Supported means there is _some_ level of analysis implemented, but it does not g
 - [x] Null coalescing operators (`??`, `?.`)
 - [ ] Interpolated strings (Assumed impure unless constant.)
 - [ ] Stack allocations and Span operations
-- [ ] Indices and ranges (C# 8.0+)
+- [/] Indices and ranges (C# 8.0+) — basic range construction is treated as pure when endpoints are pure
 - [x] Bit shift operations and basic binary/unary operators
 - [ ] Async/await expressions
 - [ ] Unsafe code blocks
@@ -1021,3 +1058,32 @@ public class Logger
 ```
 
 ## Cross-Framework and Language Version Support
+
+```
+
+## Demo project
+
+A ready-to-run demo app is included in the solution: `PurelySharp.Demo`.
+
+- What it shows
+  - PS0002: Methods marked `[EnforcePure]` performing impure operations (state mutation, I/O, volatile reads, array mutation)
+  - PS0004: Methods that appear pure but are missing `[EnforcePure]`
+  - PS0003 is intentionally not demonstrated in the demo to keep the focus on core purity rules
+
+- How it’s wired
+  - References `PurelySharp.Analyzer` and `PurelySharp.CodeFixes` as analyzers via project references
+  - References `PurelySharp.Attributes` as a normal project reference
+  - Local `.editorconfig` in `PurelySharp.Demo` tunes severities: PS0002=warning, PS0004=suggestion, PS0003=none
+
+- Run the demo
+  ```powershell
+  # Build the whole solution (ensures analyzers are built)
+  dotnet build .\PurelySharp.sln -c Release
+
+  # Build just the demo project
+  dotnet build .\PurelySharp.Demo\PurelySharp.Demo.csproj -c Release
+  ```
+
+- In Visual Studio
+  - Install the VSIX (see above) for live diagnostics while editing
+  - Open `PurelySharp.Demo` and inspect `Program.cs` to see the diagnostics inline

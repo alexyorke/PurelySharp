@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis.Testing;
+﻿using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Globalization;
 using System.Threading.Tasks;
@@ -14,8 +14,8 @@ namespace PurelySharp.Test
     [TestFixture]
     public class GlobalizationTests
     {
-        // TODO: Enable tests below once analyzer can handle culture-sensitive operations potentially being impure
-        // Commented out tests removed
+
+
 
         [Test]
         public async Task CultureInfo_InvariantCulture_NoDiagnostic()
@@ -61,7 +61,7 @@ public class TestClass
         return DateTime.Parse(dateStr, CultureInfo.InvariantCulture);
     }
 }";
-            // Diagnostics are now inline
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -85,13 +85,13 @@ public class TestClass
         return double.Parse(numStr, CultureInfo.InvariantCulture);
     }
 }";
-            // Test verifies analyzer limitation: double.Parse with InvariantCulture
-            // is incorrectly considered pure by the analyzer.
-            // var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-            //                     .WithSpan(12, 19, 12, 29) // Span for TestMethod
-            //                     .WithArguments(\"TestMethod\");
-            // await VerifyCS.VerifyAnalyzerAsync(test, expected);
-            await VerifyCS.VerifyAnalyzerAsync(test); // Expect NO diagnostic (current behavior)
+
+
+
+
+
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }
 }

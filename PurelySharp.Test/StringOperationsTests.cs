@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis.Testing;
+﻿using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
 using System.Text;
@@ -16,8 +16,8 @@ namespace PurelySharp.Test
         [Test]
         public async Task ComplexStringOperations_WithImpureSplit_Diagnostic()
         {
-            // Expectation: This method should ideally be pure if string.Split and string.Join allocations are acceptable.
-            // REVERTING: Analyzer currently flags this as PS0002.
+
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -59,14 +59,14 @@ public class TestClass
         return $""Value: {x}, Text: {y.ToUpper()}"";
     }
 }";
-            // UPDATE: Expect 0 diagnostics after interpolation fix
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
         public async Task StringBuilderOperations_Diagnostic()
         {
-            // Expectation limitation: Analyzer considers creating a new StringBuilder() instance impure.
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -82,9 +82,9 @@ public class TestClass
         return sb.ToString();
     }
 }";
-            // Expect diagnostic on the allocation, matching latest test framework output (method ID)
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                    .WithSpan(9, 19, 9, 29) // Updated span to method signature
+                                    .WithSpan(9, 19, 9, 29)
                                     .WithArguments("TestMethod");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
@@ -93,7 +93,7 @@ public class TestClass
         [Test]
         public async Task StringFormatting_ImpureFormat_Diagnostic()
         {
-            // Expectation limitation: Analyzer considers string.Format impure.
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -106,9 +106,9 @@ public class TestClass
         return string.Format(""X = {0:D}, Y = {1:F2}"", x, y);
     }
 }";
-            // Restore original expectation: PS0002 on the containing method.
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                    .WithSpan(8, 19, 8, 29) // Original span for method signature
+                                    .WithSpan(8, 19, 8, 29)
                                     .WithArguments("TestMethod");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
@@ -130,9 +130,9 @@ public class TestClass
         sb.Append(""hello""); // Removed inline diagnostic
     }
 }";
-            // Expect diagnostic on the method signature
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                  .WithSpan(9, 17, 9, 27) // Span of TestMethod identifier
+                                  .WithSpan(9, 17, 9, 27)
                                   .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
@@ -155,9 +155,9 @@ public class TestClass
         return sb.ToString();
     }
 }";
-            // Expect diagnostic on the allocation, matching latest test framework output (method ID)
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                    .WithSpan(9, 19, 9, 29) // Updated span to method signature
+                                    .WithSpan(9, 19, 9, 29)
                                     .WithArguments("TestMethod");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
@@ -185,7 +185,7 @@ public class TestClass
         [Test]
         public async Task PureMethodWithLocalStringBuilderToString_NoDiagnostic()
         {
-            // Expectation: This method SHOULD be pure. Allocation of local SB is okay if only non-mutating methods are called.
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -200,7 +200,7 @@ public class TestClass
         return sb.ToString();
     }
 }";
-            // UPDATED: Expect 0 diagnostics.
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }

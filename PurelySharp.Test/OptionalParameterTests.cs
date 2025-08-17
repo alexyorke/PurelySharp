@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -54,7 +54,7 @@ public class TestClass
     }
 }
 ";
-            // Method body is pure, using default parameter values is fine.
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -204,7 +204,7 @@ public class TestClass
 }
 #nullable disable
 ";
-            // UPDATE (again): Expect 0 diagnostics assuming interpolation fix works
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }

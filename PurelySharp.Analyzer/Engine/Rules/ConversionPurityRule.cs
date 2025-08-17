@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using PurelySharp.Analyzer.Configuration;
 using System.Collections.Generic;
@@ -30,13 +30,13 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             PurityAnalysisEngine.LogDebug($"    [ConversionRule] Operand Result: IsPure={operandResult.IsPure}");
 
-            // If operand is impure, the conversion is impure.
+
             if (!operandResult.IsPure)
             {
                 return operandResult;
             }
 
-            // If operand is pure, THEN check the conversion operator itself if it's user-defined
+
             if (conversionOperation.Conversion.IsUserDefined && conversionOperation.Conversion.MethodSymbol != null)
             {
                 IMethodSymbol operatorMethod = conversionOperation.Conversion.MethodSymbol;
@@ -49,33 +49,26 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 PurityAnalysisEngine.LogDebug($"    [ConversionRule] Operator Method Return Type: {operatorMethod.ReturnType?.ToDisplayString()}");
                 PurityAnalysisEngine.LogDebug($"    [ConversionRule] Operator Method Param Count: {operatorMethod.Parameters.Length}");
 
-                // Use the recursive internal method, passing context's visited set and cache
-                var operatorResult = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
-                    operatorMethod.OriginalDefinition,
-                    context.SemanticModel,
-                    context.EnforcePureAttributeSymbol,
-                    context.AllowSynchronizationAttributeSymbol,
-                    context.VisitedMethods, // Pass the visited set from context
-                    context.PurityCache // Pass the cache from context
-                );
+
+                var operatorResult = PurityAnalysisEngine.GetCalleePurity(operatorMethod, context);
 
                 PurityAnalysisEngine.LogDebug($"    [ConversionRule] Operator Method Result: IsPure={operatorResult.IsPure}");
 
-                // If the operator method analysis yields a result (pure or impure), return it.
-                // Adjust the impure node if necessary to point to the original conversion syntax.
+
+
                 if (!operatorResult.IsPure)
                 {
-                    // Return impure result, using the conversion operation's syntax as the location if operatorResult didn't specify one
+
                     return PurityAnalysisEngine.PurityAnalysisResult.Impure(operatorResult.ImpureSyntaxNode ?? conversionOperation.Syntax);
                 }
                 else
                 {
-                    // Operator is pure, and we already established operand is pure.
+
                     return PurityAnalysisEngine.PurityAnalysisResult.Pure;
                 }
             }
 
-            // If operand was pure and it wasn't a user-defined conversion (or symbol was null), return the (pure) operand result.
+
             return operandResult;
         }
     }

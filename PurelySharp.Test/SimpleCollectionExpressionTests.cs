@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -12,7 +12,7 @@ using System.Collections.Generic;
 namespace PurelySharp.Test
 {
     [TestFixture]
-    // Commenting out entire class due to inconsistent failures in full suite run
+
     public class SimpleCollectionExpressionTests
     {
         [Test]
@@ -72,18 +72,18 @@ public class CollectionExpressionExample
         return new[] { 1, 2, 3, 4, 5 };
     }
 }";
-            // Expect diagnostic as new[] creates mutable array
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
                                .WithSpan(8, 18, 8, 28)
                                .WithArguments("GetNumbers");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected); // Restored expected diagnostic
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
-        // [Test] // Duplicate test, commented out
-        // public async Task PureMethod_MutableListWithArrayInitializer_Diagnostic()
-        // {
-        //     ...
-        // }
+
+
+
+
+
 
         [Test]
         public async Task PureMethod_MutableArrayCollectionExpressionSyntax_Diagnostic_1()

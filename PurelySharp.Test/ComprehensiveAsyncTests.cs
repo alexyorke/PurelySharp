@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
@@ -28,7 +28,7 @@ class Program
         return await Task.FromResult(42);
     }
 }";
-            // Expect no diagnostics as Task.FromResult is pure.
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -49,7 +49,7 @@ class Program
     }
 }";
 
-            // Expect no diagnostics as Task.CompletedTask is pure.
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -70,7 +70,7 @@ class Program
     }
 }";
 
-            // Expect PS0002 for PureAsyncMethod
+
             await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(9, 33, 9, 48).WithArguments("PureAsyncMethod"));
         }
 
@@ -91,7 +91,7 @@ class Program
     }
 }";
 
-            // Expect PS0002 for ImpureAsyncMethod
+
             await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(9, 23, 9, 40).WithArguments("ImpureAsyncMethod"));
         }
 
@@ -115,7 +115,7 @@ class Program
     }
 }";
 
-            // Expect PS0002 for ImpureAsyncMethod
+
             await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(11, 28, 11, 45).WithArguments("ImpureAsyncMethod"));
         }
 
@@ -141,7 +141,7 @@ class Program
         return await Helper(); // Awaiting another pure method
     }
 }";
-            // Expect no diagnostics as both methods are pure and await pure operations.
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -168,7 +168,7 @@ class Program
     }
 }";
 
-            // Expect PS0002 for ImpureAsyncMethod. ImpureHelper is not marked.
+
             var diag1 = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(15, 28, 15, 45).WithArguments("ImpureAsyncMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, new[] { diag1 });
         }
@@ -190,7 +190,7 @@ class Program
     }
 }";
 
-            // Expect PS0002 for ImpureTaskRunMethod
+
             await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(9, 23, 9, 42).WithArguments("ImpureTaskRunMethod"));
         }
 
@@ -214,7 +214,7 @@ class Program
             return await Task.FromResult(42);
     }
 }";
-            // Expect no diagnostics as both paths are pure.
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -238,7 +238,7 @@ class Program
         return 42;
     }
 }";
-            // Expect no diagnostics as both paths are pure.
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }

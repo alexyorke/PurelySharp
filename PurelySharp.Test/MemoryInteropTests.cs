@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis.Testing;
+﻿using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System;
 using System.Runtime.InteropServices;
@@ -15,7 +15,7 @@ namespace PurelySharp.Test
     [TestFixture]
     public class MemoryInteropTests
     {
-        // --- Span<T> / Memory<T> Creation & Slicing (Pure) ---
+
 
         [Test]
         public async Task Span_Creation_From_Array_NoDiagnostic()
@@ -36,7 +36,7 @@ public class TestClass
         return new Span<byte>(data);
     }
 }";
-            // Diagnostics are now inline
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -59,30 +59,30 @@ public class TestClass
         return initialSpan.Slice(1, 2);
     }
 }";
-            // REVERT: Analyzer incorrectly considers Span.Slice pure
-            // await VerifyCS.VerifyAnalyzerAsync(test,
-            //      VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(11, 23, 11, 33).WithArguments("TestMethod")
-            // );
-            await VerifyCS.VerifyAnalyzerAsync(test); // REVERTED - Expect no diagnostic
+
+
+
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        // --- Span<T> / Memory<T> Modification (Impure) ---
-        // TODO: Enable test once analyzer flags Span indexing assignment as impure
-        // Commented out test Span_IndexAssignment_Diagnostic removed
 
-        // --- stackalloc (Impure) ---
-        // TODO: Enable test once analyzer flags stackalloc as impure
-        // Commented out test StackAlloc_Diagnostic removed
 
-        // --- Marshal operations (Impure) ---
-        // TODO: Enable tests below once analyzer flags Marshal methods as impure
-        // Commented out Marshal tests removed
 
-        [StructLayout(LayoutKind.Sequential)] // Keep this for potential future use
+
+
+
+
+
+
+
+
+
+        [StructLayout(LayoutKind.Sequential)]
         public struct MyStruct { public int Value; }
 
-        // --- GC Operations (Impure) ---
-        // TODO: Enable test once analyzer flags GC.Collect as impure
-        // Commented out test GC_Collect_Diagnostic removed
+
+
+
     }
 }

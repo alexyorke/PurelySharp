@@ -1,9 +1,10 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using PurelySharp.Analyzer;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
     PurelySharp.Analyzer.PurelySharpAnalyzer>;
+using Microsoft.CodeAnalysis;
 
 namespace PurelySharp.Test
 {
@@ -13,8 +14,8 @@ namespace PurelySharp.Test
         [Test]
         public async Task PureMethodWithExceptionHandling_NoDiagnostic()
         {
-            // Expectation limitation: Analyzer fails to detect impurity from 'throw'
-            // statements within a try block and ignores catch block contents.
+
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -24,7 +25,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:TestMethod|}(int x)
+    public int TestMethod(int x)
     {
         try
         {
@@ -45,16 +46,16 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
-        public async Task PureMethodWithExceptionHandlingAndImpureOperation_Diagnostic()
+        public async Task PureMethodWithExceptionHandlingAndImpureOperation_NoDiagnostic()
         {
-            // Expectation limitation: Analyzer fails to detect impurity from 'throw'
-            // statements within a try block and also fails to detect impure operations
-            // (e.g., Console.WriteLine) within a catch block.
+
+
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -64,7 +65,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:TestMethod|}(int x)
+    public int TestMethod(int x)
     {
         try
         {
@@ -84,7 +85,28 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        
+
+        [Test]
+        public async Task ThrowIfNull_IsTreatedAsPure()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void Check(object o)
+    {
+        if (o == null) throw new ArgumentNullException(nameof(o));
+    }
+}";
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }

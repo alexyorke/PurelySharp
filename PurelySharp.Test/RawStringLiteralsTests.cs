@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -161,11 +161,11 @@ namespace TestNamespace
         }
     }
 }";
-            // UPDATE (again): Expect 0 diagnostics assuming interpolation fix works
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        // Expectation limitation: analyzer currently flags u8 raw string literals as impure (PS0002) but test asserts no diagnostic.
+
         [Test]
         public async Task RawStringLiteral_WithUtf8_PureMethod_NoDiagnostic()
         {
@@ -191,9 +191,9 @@ namespace TestNamespace
         }
     }
 }";
-            // Explicitly expect PS0002 due to analysis limitation with u8 literals.
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                   .WithSpan(13, 35, 13, 53) // Span of GetRawStringAsUtf8 identifier
+                                   .WithSpan(13, 35, 13, 53)
                                    .WithArguments("GetRawStringAsUtf8");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
@@ -224,9 +224,9 @@ namespace TestNamespace
         }
     }
 }";
-            // Expect the diagnostic on the method signature (fallback)
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                           .WithSpan(13, 21, 13, 41) // Span updated to method identifier
+                           .WithSpan(13, 21, 13, 41)
                            .WithArguments("WriteRawStringToFile");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);

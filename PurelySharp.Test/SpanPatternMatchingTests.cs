@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -12,7 +12,7 @@ namespace PurelySharp.Test
     [TestFixture]
     public class SpanPatternMatchingTests
     {
-        // Note: These tests require C# 11+
+
 
         [Test]
         public async Task SpanPatternMatchingConstantString_PureMethod_NoDiagnostic()
@@ -75,7 +75,7 @@ namespace TestNamespace
         }
     }
 }";
-            // Analyzer considers this pure, expect no diagnostic
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -119,7 +119,7 @@ namespace TestNamespace
     }
 }";
 
-            // UPDATE (again): Expect 0 diagnostics assuming interpolation fix works
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -151,11 +151,11 @@ namespace TestNamespace
         }
     }
 }";
-            // Analyzer considers this pure, remove expectation
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        [Test] // Temporarily disabled due to test framework/compiler interaction issues
+        [Test]
         public async Task SpanPatternMatchingImpureOperation_Diagnostic()
         {
             var test = @"

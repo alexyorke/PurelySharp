@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
@@ -32,7 +32,7 @@ namespace TestNamespace
     }
 }";
 
-            // Expect PS0002 for PureAsyncMethod
+
             await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(10, 32, 10, 47).WithArguments("PureAsyncMethod"));
         }
 
@@ -57,7 +57,7 @@ namespace TestNamespace
     }
 }";
 
-            // Expect PS0002 for ImpureAsyncMethod
+
             await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(11, 27, 11, 44).WithArguments("ImpureAsyncMethod"));
         }
 
@@ -87,9 +87,9 @@ namespace TestNamespace
     }
 }";
 
-            // Expect PS0002 for MethodCallingImpureAsync. GetValueAsync is not marked.
+
             var expectedOuter = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(10, 32, 10, 56).WithArguments("MethodCallingImpureAsync");
-            // var expectedInner = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(16, 33, 16, 46).WithArguments("GetValueAsync"); // Removed: Not marked
+
 
             await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedOuter });
         }

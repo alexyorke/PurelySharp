@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis.CodeRefactorings;
+﻿using Microsoft.CodeAnalysis.CodeRefactorings;
 using Microsoft.CodeAnalysis.CSharp.Testing;
 using Microsoft.CodeAnalysis.Testing;
 

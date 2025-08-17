@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -11,7 +11,7 @@ namespace PurelySharp.Analyzer
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public class PurelySharpAnalyzer : DiagnosticAnalyzer
     {
-        // Alias diagnostic IDs for tests
+
         public const string PS0002 = PurelySharpDiagnostics.PurityNotVerifiedId;
         public const string PS0004 = PurelySharpDiagnostics.MissingEnforcePureAttributeId;
 
@@ -20,20 +20,31 @@ namespace PurelySharp.Analyzer
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
             ImmutableArray.Create(PurelySharpDiagnostics.PurityNotVerifiedRule,
                                   PurelySharpDiagnostics.MisplacedAttributeRule,
-                                  PurelySharpDiagnostics.MissingEnforcePureAttributeRule);
+                                  PurelySharpDiagnostics.MissingEnforcePureAttributeRule,
+                                  PurelySharpDiagnostics.ConflictingPurityAttributesRule,
+                                  PurelySharpDiagnostics.AllowSynchronizationWithoutPurityAttributeRule,
+                                  PurelySharpDiagnostics.MisplacedAllowSynchronizationAttributeRule,
+                                  PurelySharpDiagnostics.RedundantAllowSynchronizationRule);
 
         public override void Initialize(AnalysisContext context)
         {
             context.EnableConcurrentExecution();
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
 
-            context.RegisterSyntaxNodeAction(MethodPurityAnalyzer.AnalyzeSymbolForPurity,
-                SyntaxKind.MethodDeclaration,
-                SyntaxKind.GetAccessorDeclaration,
-                SyntaxKind.SetAccessorDeclaration,
-                SyntaxKind.ConstructorDeclaration,
-                SyntaxKind.OperatorDeclaration,
-                SyntaxKind.LocalFunctionStatement);
+            context.RegisterCompilationStartAction(startContext =>
+            {
+                var purityService = new Engine.CompilationPurityService(startContext.Compilation);
+                var config = Configuration.AnalyzerConfiguration.FromOptions(startContext.Options);
+                Engine.ImpurityCatalog.InitializeOverrides(config);
+
+                startContext.RegisterSyntaxNodeAction(c => MethodPurityAnalyzer.AnalyzeSymbolForPurity(c, purityService),
+                    SyntaxKind.MethodDeclaration,
+                    SyntaxKind.GetAccessorDeclaration,
+                    SyntaxKind.SetAccessorDeclaration,
+                    SyntaxKind.ConstructorDeclaration,
+                    SyntaxKind.OperatorDeclaration,
+                    SyntaxKind.LocalFunctionStatement);
+            });
 
             var analyzedKinds = ImmutableHashSet.Create(SyntaxKind.MethodDeclaration,
                                                         SyntaxKind.GetAccessorDeclaration,

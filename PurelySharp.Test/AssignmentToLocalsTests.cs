@@ -1,4 +1,4 @@
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using NUnit.Framework;
 
 namespace PurelySharp.Test
@@ -9,7 +9,7 @@ namespace PurelySharp.Test
         [Test]
         public void PureMethod_AssignLocalToProperty_Mismatch()
         {
-            // ... existing code ...
+
         }
     }
 }

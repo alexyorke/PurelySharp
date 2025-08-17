@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -103,7 +103,7 @@ namespace TestNamespace
     }
 }";
 
-            // Expect PS0004 warnings for pure methods that are not marked with [EnforcePure]
+
             var expectedGetValue = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 24, 11, 30).WithArguments("get_Amount");
             var expectedCtor = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(13, 16, 13, 21).WithArguments(".ctor");
             var expectedOpAdd = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(19, 38, 19, 39).WithArguments("op_Addition");
@@ -292,18 +292,18 @@ public struct ComplexValue
 }}
             ";
 
-            // This test now expects PS0002 because FibonacciChecked contains patterns (loops, assignments)
-            // that trigger the "not fully verified" diagnostic, even if underlying calls (like HashCode.Add) are known.
+
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                    .WithSpan(65, 32, 65, 48) // Corrected span from test output
+                                    .WithSpan(65, 32, 65, 48)
                                     .WithArguments("FibonacciChecked");
 
-            // ADDED: Expect diagnostic for ComplexCalculationChecked due to HashCode use in operator+
+
             var expected2 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                    .WithSpan(56, 32, 56, 57) // Span for ComplexCalculationChecked
+                                    .WithSpan(56, 32, 56, 57)
                                     .WithArguments("ComplexCalculationChecked");
 
-            // ADDED: Expect PS0004 warnings for pure methods that are not marked with [EnforcePure]
+
             var expectedAddChecked = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(8, 23, 8, 33).WithArguments("AddChecked");
             var expectedGetReal = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(16, 16, 16, 20).WithArguments("get_Real");
             var expectedGetImaginary = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(17, 16, 17, 25).WithArguments("get_Imaginary");
@@ -393,7 +393,7 @@ namespace TestNamespace
         }
     }
 }";
-            // Expect PS0004 for property accessors and operators, and PS0002 for methods
+
             var expectedGetValue = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 20, 11, 25).WithArguments("get_Value");
             var expectedCtor = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(13, 16, 13, 27).WithArguments(".ctor");
             var expectedOpAdd = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(19, 44, 19, 45).WithArguments("op_Addition");
@@ -410,7 +410,7 @@ namespace TestNamespace
         }
 
         [Test]
-        public async Task CheckedUserDefinedOperator_ImpureMethod_Diagnostic()
+        public async Task CheckedUserDefinedOperator_ImpureMethod_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -448,13 +448,11 @@ public class Calculator
 }
 ";
 
-            // Expect PS0004 warnings for pure methods that are not marked with [EnforcePure]
             var expectedGetValue = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(8, 19, 8, 24).WithArguments("get_Value");
-            // var expectedCtor = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(10, 12, 10, 22).WithArguments(".ctor"); // Not marked
-            // var expectedOpMul = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(18, 39, 18, 40).WithArguments("op_Multiply"); // Not marked, should be PS0004 if pure, but not reported
-            // var expectedLogPercentageCalculation = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(28, 17, 28, 41).WithArguments("LogPercentageCalculation"); // Not marked
+            var expectedCtor = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(10, 12, 10, 22).WithArguments(".ctor");
+            var expectedOpMultiply = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(18, 39, 18, 40).WithArguments("op_Multiply");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetValue });
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetValue, expectedCtor, expectedOpMultiply });
         }
 
         [Test]
@@ -511,7 +509,7 @@ namespace TestNamespace
         }
     }
 }";
-            // Expect PS0004 warnings for pure methods that are not marked with [EnforcePure]
+
             var expectedGetValue = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 20, 11, 25).WithArguments("get_Value");
             var expectedCtor = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(13, 16, 13, 23).WithArguments(".ctor");
             var expectedOpAdd = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(19, 40, 19, 41).WithArguments("op_Addition");

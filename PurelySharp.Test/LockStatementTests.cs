@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System;
@@ -14,7 +14,7 @@ namespace PurelySharp.Test
     [TestFixture]
     public class LockStatementTests
     {
-        // Test that a simple lock statement is considered impure by default
+
         [Test]
         public async Task LockStatement_ImpureByDefault()
         {
@@ -40,15 +40,38 @@ public class TestClass
     }
 }";
 
-            // Expect diagnostic on method due to lock statement (impure by default)
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(14, 17, 14, 29) // Adjusted span to line 14 (ImpureMethod declaration)
+                                   .WithSpan(14, 17, 14, 29)
                                    .WithArguments("ImpureMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
-        // Test that a lock statement with pure operations should be pure when option enabled
-        // Note: This test is marked Explicit because the feature is in progress
+
+        [Test]
+        public async Task AllowSynchronization_WithoutPurityAttribute_Warns()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class AllowSynchronizationAttribute : Attribute { }
+
+public class C
+{
+    [AllowSynchronization]
+    public void M() { }
+}";
+
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.AllowSynchronizationWithoutPurityAttributeId)
+                                   .WithSpan(11, 17, 11, 18)
+                                   .WithArguments("M");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+
+
         [Test]
         public async Task LockStatement_WithPureOperations_ShouldBePure()
         {
@@ -80,17 +103,17 @@ public class TestClass
     }
 }";
 
-            // Test verifies the current analyzer limitation: [AllowSynchronization] is present,
-            // the lock object is readonly, and operations inside are pure, but the analyzer
-            // still incorrectly flags the method as impure (PS0002).
-            // Expectation limitation: Analyzer incorrectly flags pure lock on readonly field with pure operations as impure.
+
+
+
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(18, 16, 18, 34) // Span of PureMethodWithLock (actual diagnostic)
+                                   .WithSpan(18, 16, 18, 34)
                                    .WithArguments("PureMethodWithLock");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected); // Expect the incorrect diagnostic
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
-        // Test that verifies the current behavior for lock statements on readonly objects with pure operations
+
         [Test]
         public async Task LockStatement_WithPureOperations_CurrentBehavior()
         {
@@ -118,15 +141,15 @@ class Program
     }
 }";
 
-            // Analyzer INCORRECTLY flags this as impure, expect diagnostic to reflect current behavior
-            // Expectation limitation: Analyzer incorrectly flags pure lock on readonly field with pure operations as impure.
+
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(16, 16, 16, 34) // Span of PureMethodWithLock (actual diagnostic)
+                                   .WithSpan(16, 16, 16, 34)
                                    .WithArguments("PureMethodWithLock");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
-        // Test that a lock statement with impure operations is reported as impure
+
         [Test]
         public async Task LockStatement_WithImpureOperations_IsImpure()
         {
@@ -153,14 +176,14 @@ class Program
         }
     }
 }";
-            // Expect PS0002 on the method declaration due to impure op inside lock
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(16, 17, 16, 37) // Adjusted span to line 16 (ImpureMethodWithLock declaration)
+                                   .WithSpan(16, 17, 16, 37)
                                    .WithArguments("ImpureMethodWithLock");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
-        // Test that a lock with a non-readonly object is considered impure
+
         [Test]
         public async Task LockStatement_NonReadonlyObject_IsImpure()
         {
@@ -188,10 +211,61 @@ class Program
     }
 }";
 
-            // Expect PS0002 on the method declaration.
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(16, 17, 16, 48) // Corrected line number to 16 (method signature)
+                                   .WithSpan(16, 17, 16, 48)
                                    .WithArguments("ImpureMethodWithNonReadonlyLock");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [Test]
+        public async Task AllowSynchronization_WithPurityAttribute_ButNoLock_WarnsPS0008()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class AllowSynchronizationAttribute : Attribute { }
+
+public class C
+{
+    [EnforcePure]
+    [AllowSynchronization]
+    public int M() => 42;
+}";
+
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.RedundantAllowSynchronizationId)
+                                   .WithSpan(12, 16, 12, 17)
+                                   .WithArguments("M");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [Test]
+        public async Task AllowSynchronization_WithLock_DoesNotWarnPS0008()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class AllowSynchronizationAttribute : Attribute { }
+
+public class C
+{
+    private readonly object _gate = new object();
+
+    [EnforcePure]
+    [AllowSynchronization]
+    public int M()
+    {
+        lock (_gate) { return 1; }
+    }
+}";
+
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                   .WithSpan(14, 16, 14, 17)
+                                   .WithArguments("M");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }

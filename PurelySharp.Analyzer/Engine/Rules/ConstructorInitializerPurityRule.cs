@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
@@ -7,9 +7,7 @@ using PurelySharp.Analyzer.Engine;
 
 namespace PurelySharp.Analyzer.Engine.Rules
 {
-    /// <summary>
-    /// Analyzes constructor initializer operations (this(...) or base(...)) for purity.
-    /// </summary>
+
     internal class ConstructorInitializerPurityRule : IPurityRule
     {
         public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.ConstructorBodyOperation);
@@ -43,13 +41,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
             PurityAnalysisEngine.LogDebug($"    [CtorInitRule] All arguments to initializer are Pure.");
 
-            var constructorPurity = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
-                                            constructorSymbol.OriginalDefinition,
-                                            context.SemanticModel,
-                                            context.EnforcePureAttributeSymbol,
-                                            context.AllowSynchronizationAttributeSymbol,
-                                            context.VisitedMethods,
-                                            context.PurityCache);
+            var constructorPurity = PurityAnalysisEngine.GetCalleePurity(constructorSymbol, context);
 
             if (!constructorPurity.IsPure)
             {

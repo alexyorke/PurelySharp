@@ -1,15 +1,13 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
-using PurelySharp.Analyzer.Engine; // Namespace for PurityAnalysisEngine
+using PurelySharp.Analyzer.Engine;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 
 namespace PurelySharp.Analyzer.Engine.Rules
 {
-    /// <summary>
-    /// Analyzes variable declaration groups for potential side effects in initializers.
-    /// </summary>
+
     internal class VariableDeclarationGroupPurityRule : IPurityRule
     {
         public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.VariableDeclarationGroup);
@@ -18,7 +16,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
         {
             if (operation is not IVariableDeclarationGroupOperation groupOperation)
             {
-                return PurityAnalysisEngine.PurityAnalysisResult.Pure; // Should not happen
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
 
             PurityAnalysisEngine.LogDebug($"  [VarDeclGrpRule] Checking VariableDeclarationGroup: {groupOperation.Syntax}");
@@ -31,19 +29,19 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     PurityAnalysisEngine.LogDebug($"      [VarDeclGrpRule] Checking Declarator: {declarator.Symbol.Name}");
                     if (declarator.Initializer != null)
                     {
-                        var initializerValue = declarator.Initializer.Value; // Get the IOperation for the value
-                        PurityAnalysisEngine.LogDebug($"        [VarDeclGrpRule] Checking Initializer: {initializerValue.Syntax} ({initializerValue.Kind})"); // Log kind
+                        var initializerValue = declarator.Initializer.Value;
+                        PurityAnalysisEngine.LogDebug($"        [VarDeclGrpRule] Checking Initializer: {initializerValue.Syntax} ({initializerValue.Kind})");
                         var initializerResult = PurityAnalysisEngine.CheckSingleOperation(initializerValue, context, currentState);
                         if (!initializerResult.IsPure)
                         {
                             PurityAnalysisEngine.LogDebug($"        [VarDeclGrpRule] --> IMPURE Initializer found: {declarator.Initializer.Syntax}");
-                            // Propagate the specific impure node from the initializer if possible
+
                             return initializerResult.ImpureSyntaxNode != null
                                    ? PurityAnalysisEngine.PurityAnalysisResult.Impure(initializerResult.ImpureSyntaxNode)
                                    : PurityAnalysisEngine.PurityAnalysisResult.Impure(declarator.Initializer.Syntax);
                         }
 
-                        // --- *** NEW: Delegate Target Tracking *** ---
+
                         ILocalSymbol declaredSymbol = declarator.Symbol;
                         if (declaredSymbol.Type?.TypeKind == TypeKind.Delegate)
                         {
@@ -68,12 +66,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
                                     PurityAnalysisEngine.LogDebug($"        [VarDeclGrpRule-DEL]   Initializer is Lambda/Delegate Creation with unresolvable target ({delegateCreation.Target?.Kind}). Cannot track.");
                                 }
                             }
-                            else // Initializer is another variable/parameter/field/property reference
+                            else
                             {
-                                ISymbol? valueSourceSymbol = TryResolveSymbol(initializerValue); // Use same helper
+                                ISymbol? valueSourceSymbol = TryResolveSymbol(initializerValue);
                                 if (valueSourceSymbol != null && currentState.DelegateTargetMap.TryGetValue(valueSourceSymbol, out var sourceTargets))
                                 {
-                                    valueTargets = sourceTargets; // Propagate targets
+                                    valueTargets = sourceTargets;
                                     PurityAnalysisEngine.LogDebug($"        [VarDeclGrpRule-DEL]   Initializer is reference to {valueSourceSymbol.Name}. Propagating {sourceTargets.MethodSymbols.Count} targets.");
                                 }
                                 else
@@ -86,10 +84,10 @@ namespace PurelySharp.Analyzer.Engine.Rules
                             {
                                 var nextState = currentState.WithDelegateTarget(declaredSymbol, valueTargets.Value);
                                 PurityAnalysisEngine.LogDebug($"        [VarDeclGrpRule-DEL]   ---> Updating state map for {declaredSymbol.Name} with {valueTargets.Value.MethodSymbols.Count} target(s). New Map Count: {nextState.DelegateTargetMap.Count}");
-                                // NOTE: State change local to this check for logging. Actual update in ApplyTransferFunction.
+
                             }
                         }
-                        // --- *** END Delegate Target Tracking *** ---
+
 
                         PurityAnalysisEngine.LogDebug($"        [VarDeclGrpRule] Initializer is Pure.");
                     }
@@ -104,7 +102,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
         }
 
-        // Add helper (could be in PurityAnalysisEngine or here) - Reuse from AssignmentPurityRule
+
         private static ISymbol? TryResolveSymbol(IOperation? operation)
         {
             return operation switch

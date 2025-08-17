@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -11,9 +11,9 @@ namespace PurelySharp.Test
     [TestFixture]
     public class InlineArrayTests
     {
-        // Since inline arrays require runtime support that's not available in the test environment,
-        // we'll just test the analysis of the ExpressionPurityChecker.IsInlineArrayType method
-        // by using conventional element access expressions but simulating the analyzer's behavior.
+
+
+
 
         [Test]
         public async Task ReadOnlyArray_IsPure()
@@ -35,11 +35,11 @@ public class TestClass
     }
 }";
 
-            // Expect diagnostic because creating a mutable array is impure
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(10, 16, 10, 25) // Span of ReadArray identifier
+                                   .WithSpan(10, 16, 10, 25)
                                    .WithArguments("ReadArray");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected); // Added explicit diagnostic
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -62,7 +62,7 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -90,7 +90,7 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }

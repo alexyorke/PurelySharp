@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using PurelySharp.Analyzer;
@@ -33,9 +33,9 @@ public class TestClass
     }
 }";
 
-            // Expect diagnostic on TestMethod due to impure lambda
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(8, 17, 8, 27) // CORRECTED Span of TestMethod
+                                   .WithSpan(8, 17, 8, 27)
                                    .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
@@ -59,9 +59,9 @@ public class TestClass
         action();
     }
 }";
-            // ADDED: Expect diagnostic on TestMethod
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(8, 17, 8, 27) // Span of TestMethod
+                                   .WithSpan(8, 17, 8, 27)
                                    .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
@@ -88,7 +88,7 @@ public class TestClass
 }
 ";
 
-            // Expect PS0002 because delegate invocation analysis is conservative
+
             var expectedDiagnostic = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(12, 17, 12, 27).WithArguments("TestMethod");
 
             await VerifyCS.VerifyAnalyzerAsync(testCode, expectedDiagnostic);

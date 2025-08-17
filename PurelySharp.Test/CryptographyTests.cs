@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis.Testing;
+﻿using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
@@ -13,12 +13,12 @@ namespace PurelySharp.Test
     [TestFixture]
     public class CryptographyTests
     {
-        // --- Hashing (Pure) ---
+
 
         [Test]
         public async Task HashAlgorithm_ComputeHash_UnknownPurityDiagnostic()
         {
-            // Hashing is generally pure (deterministic output for given input)
+
             var test = @"
 #nullable enable
 using System;
@@ -40,17 +40,17 @@ public class TestClass
         }
     }
 }";
-            // Diagnostics are now inline
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        // --- Random Number Generation (Impure) ---
 
-        // TODO: Enable once analyzer recognizes RNG as impure
-        // Commented out test RandomNumberGenerator_GetBytes_Diagnostic removed
 
-        // --- Symmetric/Asymmetric Encryption (Impure state management) ---
-        // Create methods themselves are pure, but using them often involves state/keys
+
+
+
+
+
 
         [Test]
         public async Task Aes_Create_UnknownPurityDiagnostic()
@@ -71,7 +71,7 @@ public class TestClass
         return Aes.Create(); // Pure: Factory method
     }
 }";
-            // Diagnostics are now inline
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -94,12 +94,12 @@ public class TestClass
         return RSA.Create(); // Pure: Factory method
     }
 }";
-            // Diagnostics are now inline
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        // TODO: Add tests for Encrypt/Decrypt methods once state/IO handling is refined
-        // Encrypt/Decrypt usually involve streams or byte arrays, which can be pure
-        // in isolation, but managing the Keys/IVs often makes the overall process impure.
+
+
+
     }
 }

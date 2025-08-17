@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using Microsoft.CodeAnalysis;
@@ -30,7 +30,7 @@ public class TestClass
         return input!.Length;
     }
 }";
-            // Expect no diagnostic as null forgiving is pure
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -52,9 +52,9 @@ public class TestClass
         Console.WriteLine(input!);
     }
 }";
-            // Expect diagnostic on the method identifier
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
-                                   .WithSpan(10, 17, 10, 27) // Span for TestMethod
+                                   .WithSpan(10, 17, 10, 27)
                                    .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
         }
@@ -81,9 +81,9 @@ public class TestClass
         return length;
     }
 }";
-            // Expect diagnostic on the method identifier
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
-                                   .WithSpan(12, 16, 12, 26) // Span for TestMethod
+                                   .WithSpan(12, 16, 12, 26)
                                    .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
         }

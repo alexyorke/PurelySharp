@@ -1,4 +1,4 @@
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using System.Threading.Tasks;
 using PurelySharp.Attributes;
 using PurelySharp.Analyzer;
@@ -27,8 +27,45 @@ public class TestClass
         return name;
     }
 }";
-            // Expect no diagnostics
+
             await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task Method_WithBothEnforcePureAndPure_ReportsPS0005()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class C
+{
+    [EnforcePure]
+    [Pure]
+    public int Add(int a, int b) => a + b;
+}";
+
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.ConflictingPurityAttributesId)
+                                   .WithSpan(9, 16, 9, 19)
+                                   .WithArguments("Add");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [Test]
+        public async Task Misplaced_AllowSynchronization_OnClass_ReportsPS0007()
+        {
+            var test = @"
+using System;
+namespace PurelySharp.Attributes { [AttributeUsage(AttributeTargets.All)] public sealed class AllowSynchronizationAttribute : Attribute {} }
+
+[PurelySharp.Attributes.AllowSynchronization]
+public class C { }
+";
+
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.MisplacedAllowSynchronizationAttributeId)
+                                   .WithSpan(5, 2, 5, 45);
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -61,8 +98,8 @@ public class TestUsage
     }
 }
 ";
-            // However, based on PS0004 behavior, it SHOULD warn for .ctor, get_X, get_Y
-            // if they are not marked [EnforcePure] and are indeed pure.
+
+
             var expectedCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(8, 12, 8, 15).WithArguments(".ctor");
             var expectedGetX = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(14, 16, 14, 17).WithArguments("get_X");
             var expectedGetY = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(15, 16, 15, 17).WithArguments("get_Y");
@@ -106,13 +143,13 @@ public class TestUsage
     }
 }
 ";
-            // So, expecting 3 x PS0004 diagnostics.
-            // Test currently expects 0.
-            // UPDATE: Actually expects 4, including the already [EnforcePure] constructor.
+
+
+
             var expectedGetX = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(6, 16, 6, 17).WithArguments("get_X");
             var expectedGetY = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(7, 16, 7, 17).WithArguments("get_Y");
-            // var expectedCtor1 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(10, 12, 10, 20).WithArguments(".ctor");
-            // var expectedCtor2 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(17, 12, 17, 20).WithArguments(".ctor");
+
+
 
             await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetX, expectedGetY });
         }
@@ -144,8 +181,8 @@ public struct MyStruct
     }
 }
 ";
-            // This means the analyzer thinks MyClass(int x) IS pure.
-            // This is problematic because it calls CreateSideEffectAndReturnY which is impure.
+
+
 
             var expectedGetX = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(6, 16, 6, 17).WithArguments("get_X");
             var expectedGetY = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(7, 16, 7, 17).WithArguments("get_Y");
@@ -182,7 +219,7 @@ namespace TestNamespace // Wrap everything in a namespace
     }
 }
 ";
-            // Expect no diagnostics
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -231,11 +268,11 @@ public class TestUsage
     }
 }
 ";
-            // Expect PS0004 for property accessors, constructors, and methods (6 total)
+
             var expectedGetX = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(6, 16, 6, 17).WithArguments("get_X");
             var expectedGetY = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(7, 16, 7, 17).WithArguments("get_Y");
-            // var expectedCtor1 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(10, 12, 10, 20).WithArguments(".ctor");
-            // var expectedCtor2 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(17, 12, 17, 20).WithArguments(".ctor");
+
+
             var expectedGetX2 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(22, 16, 22, 20).WithArguments("GetX");
             var expectedGetY2 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(27, 16, 27, 20).WithArguments("GetY");
 

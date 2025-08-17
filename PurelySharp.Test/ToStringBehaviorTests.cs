@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis.Testing;
+﻿using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
 using PurelySharp.Analyzer;
@@ -12,7 +12,7 @@ namespace PurelySharp.Test
     [TestFixture]
     public class ToStringBehaviorTests
     {
-        // Define a simple class that does NOT override ToString()
+
         public class MySimpleClass
         {
             public int Value { get; set; }
@@ -45,23 +45,23 @@ namespace PurelySharp.Test // Add namespace to match outer scope
     }
 }";
 
-            // Expect diagnostic because default object.ToString() uses GetType() (reflection).
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                   .WithSpan(16, 23, 16, 42) // Corrected span based on test output
+                                   .WithSpan(16, 23, 16, 42)
                                    .WithArguments("CallDefaultToString");
 
-            // Expect PS0004 for getter and setter as they are pure but lack the attribute
-            var expectedGetter = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                        .WithSpan(10, 20, 10, 25) // Span from log for get_Value/set_Value
-                                        .WithArguments("get_Value");
-            // var expectedSetter = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-            //                             .WithSpan(10, 20, 10, 25) // Span from log for get_Value/set_Value
-            //                             .WithArguments("set_Value"); // REMOVED
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expected, expectedGetter /*, expectedSetter*/); // Pass expected diagnostics
+            var expectedGetter = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                        .WithSpan(10, 20, 10, 25)
+                                        .WithArguments("get_Value");
+
+
+
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected, expectedGetter);
         }
 
-        // TODO: Add a test for an explicitly overridden PURE ToString()
-        // TODO: Add a test for an explicitly overridden IMPURE ToString()
+
+
     }
 }

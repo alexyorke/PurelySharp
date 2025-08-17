@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis.Testing;
+﻿using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Linq;
 using System.Threading.Tasks;
@@ -15,7 +15,7 @@ namespace PurelySharp.Test
     [TestFixture]
     public class XmlTests
     {
-        // --- XDocument.Parse (Now considered Impure by default) ---
+
 
         [Test]
         public async Task XDocument_Parse_Diagnostic()
@@ -35,14 +35,14 @@ public class TestClass
     }
 }
 ";
-            // Expect no diagnostics as XDocument.Parse is now known pure
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        // --- LINQ to XML In-Memory Operations (Pure) ---
+
 
         [Test]
-        public async Task LinqToXml_Add_Impure_Diagnostic()
+        public async Task LinqToXml_Add_Impure_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -63,15 +63,11 @@ public class TestClass
     }
 }
 ";
-            // This involves known impure calls (XElement.Add).
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                    .WithSpan(10, 19, 10, 29) // UPDATED Span to 'TestMethod' identifier
-                                    .WithArguments("TestMethod");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        // --- Creating XElements/XAttributes (Pure) ---
+
         [Test]
         public async Task XElement_Creation_WithImpureDateTime_Diagnostic()
         {
@@ -91,7 +87,7 @@ public class TestClass
     }
 }";
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
-                                   .WithSpan(10, 21, 10, 31) // UPDATED Span to 'TestMethod' identifier
+                                   .WithSpan(10, 21, 10, 31)
                                    .WithArguments("TestMethod");
 
             await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });

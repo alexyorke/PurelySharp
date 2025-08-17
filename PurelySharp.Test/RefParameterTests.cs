@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -10,7 +10,7 @@ using System;
 
 namespace PurelySharp.Test
 {
-    // Simple struct
+
     public struct Point
     {
         public int X { get; set; }
@@ -42,7 +42,7 @@ public class TestClass
         [Test]
         public async Task PureMethodWithInParameterAccess_NoDiagnostic()
         {
-            // Test accessing fields/properties of a struct passed with 'in'
+
             var test = @"
 using PurelySharp.Attributes;
 
@@ -59,8 +59,8 @@ public class TestClass
     }
 }";
 
-            // Expect NO diagnostic because reading from 'in' parameter is pure.
-            // Expect PS0004 on the auto-generated getters for X and Y
+
+
             var expectedX = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(5, 34, 5, 35).WithArguments("get_X");
             var expectedY = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(5, 56, 5, 57).WithArguments("get_Y");
             await VerifyCS.VerifyAnalyzerAsync(test, expectedX, expectedY);
@@ -69,7 +69,7 @@ public class TestClass
         [Test]
         public async Task PureMethodWithInParameterCall_NoDiagnostic()
         {
-            // Test passing 'in' parameter to another pure method
+
             var test = @"
 using PurelySharp.Attributes;
 
@@ -89,14 +89,14 @@ public class TestClass
     private int Helper(in Point p) => p.X;
 }";
 
-            // Expect NO diagnostic
-            // Expect PS0004 on the auto-generated getters for X and Y
+
+
             var expectedX = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(5, 34, 5, 35).WithArguments("get_X");
             var expectedY = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(5, 56, 5, 57).WithArguments("get_Y");
             await VerifyCS.VerifyAnalyzerAsync(test, expectedX, expectedY);
         }
 
-        // Add test for calling impure method with in parameter?
+
     }
 }
 

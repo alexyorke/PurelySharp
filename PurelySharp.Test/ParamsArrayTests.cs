@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -94,9 +94,9 @@ public class TestClass
         return Sum(myArray);
     }
 }";
-            // ADDED: Expect diagnostic on TestMethod because passing an existing array is potentially impure
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(19, 16, 19, 26) // Adjusted span slightly
+                                   .WithSpan(19, 16, 19, 26)
                                    .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
@@ -183,12 +183,12 @@ public class TestClass
         return FormatMessage(""Info: "", 1, ""text"", true);
     }
 }";
-            // UPDATED: Expect diagnostics on both FormatMessage and TestMethod
+
             var expectedFM = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(8, 19, 8, 32) // Span for FormatMessage
+                                   .WithSpan(8, 19, 8, 32)
                                    .WithArguments("FormatMessage");
             var expectedTM = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(19, 19, 19, 29) // Span for TestMethod (adjusted based on failure)
+                                   .WithSpan(19, 19, 19, 29)
                                    .WithArguments("TestMethod");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expectedFM, expectedTM);
@@ -217,13 +217,13 @@ public class TestClass
     }
 }";
 
-            // Test verifies the current analyzer limitation: The method only reads the
-            // input 'params' array and returns a NEW array. This should be pure,
-            // but the analyzer incorrectly flags it (PS0002).
+
+
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                           .WithSpan(8, 18, 8, 30) // Span based on previous failure
+                           .WithSpan(8, 18, 8, 30)
                            .WithArguments("ProcessArray");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected); // Expect the incorrect diagnostic
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -284,16 +284,16 @@ public class TestClass
 }
 ";
 
-            // Expect PS0002 on ProcessNumbers because delegate invocation purity isn't guaranteed
+
             var expectedDiagPS0002_Process = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(10, 24, 10, 36).WithArguments("ImpureAction");
 
-            // Expect PS0002 on TestMethod because it calls ProcessNumbers
+
             var expectedDiagPS0002_TestMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(21, 24, 21, 34).WithArguments("TestMethod");
 
-            // Expect PS0002 on ImpureAction because it calls Console.WriteLine
+
             var expectedDiagPS0002_ImpureAction = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(9, 24, 9, 36).WithArguments("ImpureAction");
 
-            // Corrected: The actual output suggests PS0002 on ImpureAction (line 10), ProcessNumbers (line 13), TestMethod (line 21)
+
             var expectedImpureAction = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(10, 24, 10, 36).WithArguments("ImpureAction");
             var expectedProcessNumbers = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(13, 24, 13, 38).WithArguments("ProcessNumbers");
             var expectedTestMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(22, 24, 22, 34).WithArguments("TestMethod");

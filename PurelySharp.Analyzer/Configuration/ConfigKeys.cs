@@ -1,10 +1,11 @@
-namespace PurelySharp.Analyzer.Configuration
+﻿namespace PurelySharp.Analyzer.Configuration
 {
-    /// <summary>
-    /// Contains constants for .editorconfig keys used by the analyzer.
-    /// </summary>
+
     internal static class ConfigKeys
     {
-        // TODO: Define constants for all configuration keys
+        public const string KnownImpureMethods = "purelysharp_known_impure_methods";
+        public const string KnownPureMethods = "purelysharp_known_pure_methods";
+        public const string KnownImpureNamespaces = "purelysharp_known_impure_namespaces";
+        public const string KnownImpureTypes = "purelysharp_known_impure_types";
     }
-} 
+}

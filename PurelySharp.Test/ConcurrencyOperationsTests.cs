@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -16,7 +16,7 @@ namespace PurelySharp.Test
         [Test]
         public async Task AsyncMethodWithAwait_NoDiagnostic()
         {
-            // Expectation limitation: Analyzer fails to detect impurity of 'lock' statements.
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -43,7 +43,7 @@ public class TestClass
         [Test]
         public async Task MethodWithEventSubscription_Diagnostic()
         {
-            // Expectation limitation: Analyzer fails to detect impurity of event subscriptions ('+=').
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -85,7 +85,7 @@ public class TestClass
 }
 ";
 
-            // Expect PS0002 because the delegate target's purity cannot be guaranteed by current analysis
+
             var expectedDiagnostic = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(11, 17, 11, 27).WithArguments("TestMethod");
 
             await VerifyCS.VerifyAnalyzerAsync(testCode, expectedDiagnostic);
@@ -94,7 +94,7 @@ public class TestClass
         [Test]
         public async Task LockImpurityDetection_Diagnostic()
         {
-            // Expectation limitation: Analyzer fails to detect impurity of 'lock' statements.
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -121,7 +121,7 @@ public class TestClass
         [Test]
         public async Task MethodWithInterlockedIncrement_Diagnostic()
         {
-            // Expectation limitation: Analyzer fails to detect impurity of Interlocked operations.
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -145,7 +145,7 @@ public class TestClass
         [Test]
         public async Task MethodWithInterlockedCompareExchange_Diagnostic()
         {
-            // Expectation limitation: Analyzer fails to detect impurity of Interlocked operations.
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -166,14 +166,14 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        // --- Monitor Tests ---
-        // TODO: Enable once analyzer recognizes Monitor.Enter/Exit as impure
-        // Commented out Monitor test removed.
 
-        // --- CancellationTokenSource Tests --- (MethodWithCTSCancel_Diagnostic is already commented out)
-        // ...
-        // --- TPL Dataflow Tests (Commented Out) ---
-        // ...
+
+
+
+
+
+
+
     }
 }
 
