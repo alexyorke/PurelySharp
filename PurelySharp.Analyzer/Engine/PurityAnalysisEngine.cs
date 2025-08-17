@@ -270,7 +270,7 @@ namespace PurelySharp.Analyzer.Engine
                 // Add hash code for the dictionary content
                 foreach (var kvp in DelegateTargetMap.OrderBy(kv => kv.Key.Name)) // Order for consistency
                 {
-                    hash = hash * 23 + kvp.Key.GetHashCode();
+                    hash = hash * 23 + SymbolEqualityComparer.Default.GetHashCode(kvp.Key);
                     hash = hash * 23 + kvp.Value.GetHashCode(); // Relies on PotentialTargets.GetHashCode()
                 }
                 return hash;
