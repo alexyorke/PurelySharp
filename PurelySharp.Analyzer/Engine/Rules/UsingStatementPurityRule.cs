@@ -53,10 +53,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     {
                         foreach (var declarator in declaration.Declarators)
                         {
-                            if (declarator.Initializer != null)
+                            var initVal = declarator.Initializer?.Value;
+                            if (initVal != null)
                             {
-                                PurityAnalysisEngine.LogDebug($"  UsingStatementPurityRule: Checking initializer for {declarator.Symbol.Name}: {declarator.Initializer.Value?.Syntax}");
-                                var initializerResult = PurityAnalysisEngine.CheckSingleOperation(declarator.Initializer.Value, context, currentState);
+                                PurityAnalysisEngine.LogDebug($"  UsingStatementPurityRule: Checking initializer for {declarator.Symbol.Name}: {initVal.Syntax}");
+                                var initializerResult = PurityAnalysisEngine.CheckSingleOperation(initVal, context, currentState);
                                 if (!initializerResult.IsPure)
                                 {
                                     PurityAnalysisEngine.LogDebug($"  UsingStatementPurityRule: Initializer for {declarator.Symbol.Name} is IMPURE.");
@@ -79,10 +80,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Resource is VariableDeclaration. Checking initializers.");
                     foreach (var declarator in variableDeclaration.Declarators)
                     {
-                        if (declarator.Initializer != null)
+                        var initVal = declarator.Initializer?.Value;
+                        if (initVal != null)
                         {
-                            PurityAnalysisEngine.LogDebug($"  UsingStatementPurityRule: Checking initializer for {declarator.Symbol.Name}: {declarator.Initializer.Value?.Syntax}");
-                            var initializerResult = PurityAnalysisEngine.CheckSingleOperation(declarator.Initializer.Value, context, currentState);
+                            PurityAnalysisEngine.LogDebug($"  UsingStatementPurityRule: Checking initializer for {declarator.Symbol.Name}: {initVal.Syntax}");
+                            var initializerResult = PurityAnalysisEngine.CheckSingleOperation(initVal, context, currentState);
                             if (!initializerResult.IsPure)
                             {
                                 PurityAnalysisEngine.LogDebug($"  UsingStatementPurityRule: Initializer for {declarator.Symbol.Name} is IMPURE.");

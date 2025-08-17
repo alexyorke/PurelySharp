@@ -119,8 +119,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 else if (instanceOperation is IInstanceReferenceOperation instanceRef && instanceRef.ReferenceKind == InstanceReferenceKind.ContainingTypeInstance)
                 {
                     // Reading instance property via 'this'
-                    bool isReadonlyStruct = context.ContainingMethodSymbol.ContainingType.IsReadOnly &&
-                                            context.ContainingMethodSymbol.ContainingType.IsValueType;
+                    bool isReadonlyStruct = context.ContainingMethodSymbol?.ContainingType is { IsReadOnly: true, IsValueType: true };
 
                     if (isReadonlyStruct)
                     {
@@ -230,39 +229,10 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 }
             }
 
-            // 2. Check Indexer Argument Purity (if applicable)
-            if (propertyReferenceOperation.Arguments.Any())
-            {
-                PurityAnalysisEngine.LogDebug($"    [PropRefRule] Checking {propertyReferenceOperation.Arguments.Length} Indexer Arguments...");
-                foreach (var argument in propertyReferenceOperation.Arguments)
-                {
-                    PurityAnalysisEngine.LogDebug($"      [PropRefRule.Args] Checking Argument: {argument.Syntax} ({argument.Value?.Kind})");
-                    var argumentResult = PurityAnalysisEngine.CheckSingleOperation(argument.Value, context, currentState); // Check the value of the argument
-                    if (!argumentResult.IsPure)
-                    {
-                        PurityAnalysisEngine.LogDebug($"      [PropRefRule.Args] Argument '{argument.Syntax}' is IMPURE. Property reference is Impure.");
-                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(argument.Syntax);
-                    }
-                }
-            }
-
-            // 4. Check Property Getter Purity
-            IMethodSymbol? getter = propertySymbol.GetMethod;
-            if (getter == null)
-            {
-                PurityAnalysisEngine.LogDebug($"    [PropRefRule] Property '{propertySymbol.Name}' has no getter. Read is Pure.");
-                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
-            }
-            var getterResult = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
-                getter.OriginalDefinition,
-                context.SemanticModel,
-                context.EnforcePureAttributeSymbol,
-                context.AllowSynchronizationAttributeSymbol,
-                context.VisitedMethods,
-                context.PurityCache
-            );
-            PurityAnalysisEngine.LogDebug($"    [PropRefRule] Getter purity result for '{propertySymbol.Name}': IsPure={getterResult.IsPure}");
-            return getterResult;
+            // Unreachable blocks removed: indexer-argument and final getter checks were after unconditional returns
+            // in the static/instance branches above.
+            // Keeping function total coverage via earlier returns.
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure; // Fallback; should not be reached
         }
 
         private static bool IsPartOfAssignmentTarget(IOperation operation)

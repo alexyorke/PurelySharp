@@ -246,7 +246,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             var originalDefinitionSymbol = invokedMethodSymbol.OriginalDefinition;
 
             // ADDED: Explicit check for JsonSerializer.Deserialize
-            string containingTypeName = originalDefinitionSymbol.ContainingType?.ToDisplayString();
+            string? containingTypeName = originalDefinitionSymbol.ContainingType?.ToDisplayString();
             string methodName = originalDefinitionSymbol.Name;
             if (methodName == "Deserialize" && containingTypeName == "System.Text.Json.JsonSerializer")
             {

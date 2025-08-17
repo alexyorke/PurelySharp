@@ -43,27 +43,19 @@ namespace PurelySharp.Analyzer
             var allowSynchronizationAttributeSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName(typeof(AllowSynchronizationAttribute).FullName);
             // Null check is handled inside PurityAnalysisEngine
 
-            bool hasPurityEnforcementAttribute = false;
-            if (enforcePureAttributeSymbol != null)
-            {
-                hasPurityEnforcementAttribute = methodSymbol.GetAttributes().Any(attr =>
-                    SymbolEqualityComparer.Default.Equals(attr.AttributeClass?.OriginalDefinition, enforcePureAttributeSymbol));
-            }
-            if (!hasPurityEnforcementAttribute && pureAttributeSymbol != null)
-            { // Only check for PureAttribute if EnforcePure is not found
-                hasPurityEnforcementAttribute = methodSymbol.GetAttributes().Any(attr =>
-                    SymbolEqualityComparer.Default.Equals(attr.AttributeClass?.OriginalDefinition, pureAttributeSymbol));
-            }
+            bool hasPurityEnforcementAttribute = HasPurityEnforcement(methodSymbol, enforcePureAttributeSymbol, pureAttributeSymbol);
 
             // --- Perform Purity Analysis --- 
             // Create a new engine instance for each analysis
             var purityEngine = new PurityAnalysisEngine();
             // Pass enforcePureAttributeSymbol. PurityAnalysisEngine.IsPureEnforced now checks for both.
             // If enforcePureAttributeSymbol is null here, but pureAttributeSymbol was not, IsPureEnforced inside the engine will still correctly use pureAttributeSymbol for its checks.
+            // Ensure we pass a non-null attribute symbol to the engine: prefer EnforcePure, fallback to Pure
+            var enforceOrPureAttributeSymbol = GetEffectivePurityAttributeSymbol(enforcePureAttributeSymbol, pureAttributeSymbol);
             PurityAnalysisEngine.PurityAnalysisResult purityResult = purityEngine.IsConsideredPure(
                 methodSymbol,
                 context.SemanticModel,
-                enforcePureAttributeSymbol, // Engine's IsPureEnforced handles PureAttribute internally too
+                enforceOrPureAttributeSymbol,
                 allowSynchronizationAttributeSymbol
                 );
             bool isPure = purityResult.IsPure;
@@ -128,38 +120,26 @@ namespace PurelySharp.Analyzer
             }
         }
 
-        // Helper to check if a node is part of a collection initializer
-        private static bool IsNodeInsideCollectionInitializer(SyntaxNode? node, out ExpressionSyntax? creationExpression)
+        private static bool HasPurityEnforcement(IMethodSymbol methodSymbol, INamedTypeSymbol? enforcePureAttributeSymbol, INamedTypeSymbol? pureAttributeSymbol)
         {
-            creationExpression = null;
-            SyntaxNode? current = node?.Parent; // Start walking from the parent
-
-            while (current != null)
+            foreach (var attributeData in methodSymbol.GetAttributes())
             {
-                if (current is InitializerExpressionSyntax initializer)
+                var attributeClass = attributeData.AttributeClass?.OriginalDefinition;
+                if (enforcePureAttributeSymbol != null && SymbolEqualityComparer.Default.Equals(attributeClass, enforcePureAttributeSymbol))
                 {
-                    // Check if the parent of the initializer is the creation expression
-                    if (initializer.Parent is ObjectCreationExpressionSyntax objCreation)
-                    {
-                        creationExpression = objCreation;
-                        return true;
-                    }
-                    // Potentially handle other initializer contexts if necessary
-                }
-                else if (current is CollectionExpressionSyntax collExpr)
-                {
-                    // If we hit a CollectionExpression directly while walking up from the impure node
-                    creationExpression = collExpr;
                     return true;
                 }
-                // Stop if we hit a statement or declaration boundary before finding an initializer/collection expr
-                if (current is StatementSyntax || current is MemberDeclarationSyntax || current is LocalFunctionStatementSyntax)
+                if (pureAttributeSymbol != null && SymbolEqualityComparer.Default.Equals(attributeClass, pureAttributeSymbol))
                 {
-                    return false;
+                    return true;
                 }
-                current = current.Parent;
             }
             return false;
+        }
+
+        private static INamedTypeSymbol GetEffectivePurityAttributeSymbol(INamedTypeSymbol? enforcePureAttributeSymbol, INamedTypeSymbol? pureAttributeSymbol)
+        {
+            return enforcePureAttributeSymbol ?? pureAttributeSymbol!;
         }
 
         // REVERTED Helper: Get identifier location from SyntaxNode
