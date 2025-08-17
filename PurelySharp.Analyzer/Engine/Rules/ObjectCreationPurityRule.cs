@@ -25,6 +25,10 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 foreach (var argument in objectCreationOperation.Arguments)
                 {
                     PurityAnalysisEngine.LogDebug($"      [ObjCreateRule.Args] Checking Argument: {argument.Syntax} ({argument.Value?.Kind})");
+                    if (argument.Value == null)
+                    {
+                        return PurityAnalysisResult.Impure(objectCreationOperation.Syntax);
+                    }
                     var argumentResult = PurityAnalysisEngine.CheckSingleOperation(argument.Value, context, currentState);
                     if (!argumentResult.IsPure)
                     {
@@ -59,7 +63,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 var cctorResult = PurityAnalysisEngine.CheckStaticConstructorPurity(constructorSymbol.ContainingType, context, currentState);
                 if (!cctorResult.IsPure)
                 {
-                    PurityAnalysisEngine.LogDebug($"    [ObjCreateRule] Constructor invocation IMPURE due to impure static constructor in {constructorSymbol.ContainingType.Name}.");
+                    PurityAnalysisEngine.LogDebug($"    [ObjCreateRule] Constructor invocation IMPURE due to impure static constructor in {constructorSymbol.ContainingType?.Name}.");
                     return cctorResult;
                 }
 
