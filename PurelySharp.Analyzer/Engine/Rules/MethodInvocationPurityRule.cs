@@ -1,5 +1,4 @@
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
 using PurelySharp.Analyzer.Engine; // Namespace for PurityAnalysisEngine
 using System.Collections.Generic;
@@ -15,19 +14,6 @@ namespace PurelySharp.Analyzer.Engine.Rules
     internal class MethodInvocationPurityRule : IPurityRule
     {
         public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.Invocation);
-
-        // Pre-compile a list of known collection mutating methods that are OK on local instances
-        // Format: TypeName.MethodName (without generics or parameters for simple check)
-        private static readonly ImmutableHashSet<string> _safeLocalMutationMethods = ImmutableHashSet.Create(
-            StringComparer.Ordinal,
-            "System.Collections.Generic.List.Add",
-            "System.Collections.Generic.List.Insert",
-            "System.Collections.Generic.List.AddRange",
-            "System.Collections.Generic.Dictionary.Add",
-            "System.Collections.Generic.HashSet.Add"
-        // Add others? Clear? Remove? Indexer Set? (Indexer set handled by AssignmentRule?)
-        // StringBuilder.Append? - No, StringBuilder is often used for return values.
-        );
 
         public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
@@ -245,15 +231,14 @@ namespace PurelySharp.Analyzer.Engine.Rules
             // Use OriginalDefinition for checks
             var originalDefinitionSymbol = invokedMethodSymbol.OriginalDefinition;
 
-            // ADDED: Explicit check for JsonSerializer.Deserialize
-            string? containingTypeName = originalDefinitionSymbol.ContainingType?.ToDisplayString();
-            string methodName = originalDefinitionSymbol.Name;
-            if (methodName == "Deserialize" && containingTypeName == "System.Text.Json.JsonSerializer")
+            // Explicit fast-path for System.Text.Json.JsonSerializer.Deserialize*
+            if (originalDefinitionSymbol.ContainingType != null &&
+                originalDefinitionSymbol.ContainingType.ToDisplayString() == "System.Text.Json.JsonSerializer" &&
+                originalDefinitionSymbol.Name.StartsWith("Deserialize", StringComparison.Ordinal))
             {
-                PurityAnalysisEngine.LogDebug($"  [MIR] --> IMPURE (Explicit check: JsonSerializer.Deserialize)");
+                PurityAnalysisEngine.LogDebug($"  [MIR] --> IMPURE (Explicit check: JsonSerializer.{originalDefinitionSymbol.Name})");
                 return PurityAnalysisEngine.PurityAnalysisResult.Impure(invocationOperation.Syntax);
             }
-            // END ADDED Check
 
             string methodDisplayString = originalDefinitionSymbol.ToDisplayString(); // For logging
             PurityAnalysisEngine.LogDebug($"  [MIR] Analyzing regular call to: {methodDisplayString} | Syntax: {invocationOperation.Syntax}");
@@ -326,31 +311,6 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
         // *** REMOVED CheckStaticConstructorPurity HELPER (Moved to PurityAnalysisEngine) *** 
 
-        // *** REMOVED HELPER METHODS for delegate resolution *** 
-        /*
-                // Helper to resolve the target method symbol from various delegate instance representations.
-                private static IMethodSymbol? ResolveDelegateInstanceTarget(IOperation delegateInstance, PurityAnalysisContext context)
-                {
-                    // ... removed ...
-                }
-
-                // Helper to resolve target from DelegateCreationOperation
-                private static IMethodSymbol? ResolveDelegateCreationTarget(IDelegateCreationOperation creationOp)
-                {
-                     // ... removed ...
-               }
-
-                // Placeholder helper to find assignment (requires flow analysis)
-                private static IOperation? FindAssignmentToLocal(ILocalReferenceOperation localRef, PurityAnalysisContext context)
-                {
-                    // ... removed ...
-                }
-
-                // Placeholder helper to find returned delegate target (requires analysis of source method)
-                private static IMethodSymbol? FindReturnedDelegateTarget(IMethodSymbol sourceMethod, PurityAnalysisContext context)
-                {
-                    // ... removed ...
-                }
-        */
+        // Removed legacy commented-out helpers
     }
 }
