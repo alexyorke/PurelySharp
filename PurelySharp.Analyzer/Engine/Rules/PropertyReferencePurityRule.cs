@@ -58,7 +58,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 var cctorResult = PurityAnalysisEngine.CheckStaticConstructorPurity(propertySymbol.ContainingType, context, currentState);
                 if (!cctorResult.IsPure)
                 {
-                    PurityAnalysisEngine.LogDebug($"    [PropRefRule] Static property '{propertySymbol.Name}' access IMPURE due to impure static constructor in {propertySymbol.ContainingType.Name}.");
+                    PurityAnalysisEngine.LogDebug($"    [PropRefRule] Static property '{propertySymbol.Name}' access IMPURE due to impure static constructor in {propertySymbol.ContainingType?.Name}.");
                     return PurityAnalysisEngine.PurityAnalysisResult.Impure(propertyReferenceOperation.Syntax);
                 }
 
@@ -229,10 +229,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 }
             }
 
-            // Unreachable blocks removed: indexer-argument and final getter checks were after unconditional returns
-            // in the static/instance branches above.
-            // Keeping function total coverage via earlier returns.
-            return PurityAnalysisEngine.PurityAnalysisResult.Pure; // Fallback; should not be reached
+            // All paths return inside static/instance branches above.
         }
 
         private static bool IsPartOfAssignmentTarget(IOperation operation)

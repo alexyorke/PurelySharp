@@ -1319,17 +1319,7 @@ namespace PurelySharp.Analyzer.Engine
         internal static void LogDebug(string message)
         {
 #if DEBUG
-            // New logging implementation: Write to Console
-            // *** UNCOMMENTED TO ENABLE LOGGING ***
-            // try // Commented out
-            // { // Commented out
-            //    Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} [DEBUG] {message}"); // UNCOMMENTED // Commented out
-            // } // Commented out
-            // catch (Exception ex) // Commented out
-            // { // Commented out
-            // Fallback if Console logging fails for some reason
-            //    System.Diagnostics.Debug.WriteLine($"Console Logging failed: {ex.Message}"); // Commented out
-            // } // Commented out
+            // Intentionally no-op in Release builds; keep minimal in Debug.
 #endif
         }
 
