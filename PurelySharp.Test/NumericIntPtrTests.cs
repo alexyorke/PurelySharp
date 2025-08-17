@@ -21,7 +21,7 @@ public sealed class EnforcePureAttribute : System.Attribute { }
 ";
 
 
-        private string CreateTestWithAttribute(string testCode)
+        private static string CreateTestWithAttribute(string testCode)
         {
 
             return $@"
