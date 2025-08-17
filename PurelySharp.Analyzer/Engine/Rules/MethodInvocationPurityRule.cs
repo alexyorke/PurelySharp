@@ -304,19 +304,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 : PurityAnalysisEngine.PurityAnalysisResult.Impure(recursiveResult.ImpureSyntaxNode ?? invocationOperation.Syntax);
         }
 
-        // Helper to resolve target from DelegateCreationOperation
-        private static IMethodSymbol? ResolveDelegateCreationTarget(IDelegateCreationOperation creationOp)
-        {
-            if (creationOp.Target is IMethodReferenceOperation methodRef)
-            {
-                return methodRef.Method;
-            }
-            else if (creationOp.Target is IAnonymousFunctionOperation lambdaOp)
-            {
-                return lambdaOp.Symbol;
-            }
-            return null;
-        }
+        // Helper kept minimal if needed in future
 
         // Helper to resolve the ISymbol from an IOperation representing a variable, parameter, field, etc.
         private static ISymbol? TryResolveSymbol(IOperation? operation)

@@ -251,13 +251,6 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return false;
         }
 
-        // *** REMOVED CheckStaticConstructorPurity helper ***
-
-        // +++ REMOVED HasAttribute HELPER (Moved to PurityAnalysisEngine) +++
-        // private static bool HasAttribute(ISymbol symbol, INamedTypeSymbol attributeSymbol)
-        // {
-        //     return symbol.GetAttributes().Any(ad => SymbolEqualityComparer.Default.Equals(ad.AttributeClass, attributeSymbol));
-        // }
-        // --- END REMOVED HELPER ---
+        // Helpers removed or centralized in engine
     }
 }
