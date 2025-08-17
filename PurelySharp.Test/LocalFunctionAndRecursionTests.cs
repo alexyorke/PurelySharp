@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -37,9 +37,9 @@ public class TestClass
     }
 }";
 
-            // Expect diagnostic on TestMethod due to impure local function
+
             var expectedOuter = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(12, 16, 12, 26) // ACTUAL Span reported by test runner (attribute line)
+                                   .WithSpan(12, 16, 12, 26)
                                    .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expectedOuter);
         }
@@ -63,9 +63,9 @@ public class TestClass
         TestMethod(n - 1); // Recursive call
     }
 }";
-            // Expect diagnostic on TestMethod due to Console.WriteLine and recursive impure call
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(10, 17, 10, 27) // ACTUAL Span reported by test runner (attribute line)
+                                   .WithSpan(10, 17, 10, 27)
                                    .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
@@ -92,9 +92,9 @@ public class TestClass
         ImpureMethod(); // Calling impure method
     }
 }";
-            // Expect diagnostic on TestMethod because it calls ImpureMethod
+
             var expectedOuter = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(15, 17, 15, 27) // CORRECTED Span of TestMethod (method identifier line)
+                                   .WithSpan(15, 17, 15, 27)
                                    .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expectedOuter);
         }

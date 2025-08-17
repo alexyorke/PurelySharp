@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -36,8 +36,8 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
-            await VerifyCS.VerifyAnalyzerAsync(test); // No diagnostic expected
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
@@ -68,15 +68,15 @@ public class TestClass
 }
 ";
 
-            // Expect diagnostic because the lambda modifies the captured field _log
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                 .WithSpan(15, 29, 15, 39) // Span for TestMethod signature
+                                 .WithSpan(15, 29, 15, 39)
                                  .WithArguments("TestMethod");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expected); // Expect the diagnostic
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
-        // Expectation limitation: analyzer does not report missing enforce-pure-attribute diagnostic (PS0004) for pure helper methods (e.g., GetHelper) lacking [EnforcePure].
+
         [Test]
         public async Task ComplexMemberAccess_MayMissDiagnostic()
         {
@@ -103,7 +103,7 @@ public class TestClass
     }
 }";
 
-            // UPDATED: Expect PS0002 on TestMethod, DoSomethingImpure, and PS0004 on GetHelper
+
             var expectedTestMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(17, 17, 17, 27).WithArguments("TestMethod");
             var expectedGetHelper = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(14, 25, 14, 34).WithArguments("GetHelper");
             await VerifyCS.VerifyAnalyzerAsync(test, expectedTestMethod, expectedGetHelper);
@@ -136,9 +136,9 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline - Updated to match actual reported diagnostic
+
             var expectedDiagnostic = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                             .WithSpan(10, 17, 10, 27) // Updated span from NUnit error
+                                             .WithSpan(10, 17, 10, 27)
                                              .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expectedDiagnostic);
         }
@@ -168,20 +168,20 @@ public class TestClass
     }
 }";
 
-            // Test expects a diagnostic because the analyzer currently flags methods
-            // containing impure operations even if they are in unreachable (if(false)) branches.
-            // Expectation limitation: Analyzer incorrectly flags pure code in unreachable branch.
+
+
+
             var expected3 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                    .WithSpan(11, 19, 11, 29) // Location of TestMethod
+                                    .WithSpan(11, 19, 11, 29)
                                     .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected3);
-            // await VerifyCS.VerifyAnalyzerAsync(test); // Original line expecting no diagnostic commented out
+
         }
 
         [Test]
         public async Task ConstantIoPath_ShouldBePure_Test1()
         {
-            // Expectation limitation: Analyzer considers Path.GetTempPath() impure, even if only used for string manipulation.
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -203,7 +203,7 @@ public class TestClass
     }
 }";
 
-            // Add expected diagnostic as Path.GetTempPath() is treated as impure
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
                                    .WithSpan(11, 19, 11, 29).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
@@ -212,7 +212,7 @@ public class TestClass
         [Test]
         public async Task DynamicDispatchImpurity_MayMissDiagnostic()
         {
-            // Test code was removed, maybe add a placeholder or a simple impure dynamic call?
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -226,14 +226,14 @@ public class TestClass
     } 
 }";
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(8, 17, 8, 27).WithArguments("TestMethod"); // Expect diagnostic
+                                   .WithSpan(8, 17, 8, 27).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
         public async Task ExtensionMethodImpurity_MayMissDiagnostic()
         {
-            // Expectation limitation: Analyzer may not detect impurity within lambdas passed to extension methods.
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -262,7 +262,7 @@ public class TestClass
     }
 }";
 
-            // UPDATED: Expect PS0002 on TestMethod and ForEach
+
             var expectedTestMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(22, 17, 22, 27).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expectedTestMethod);
         }
@@ -287,9 +287,9 @@ namespace ConsoleApplication1
 }
 ";
 
-            // Diagnostics are now inline
+
             var expected6 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                    .WithSpan(10, 21, 10, 31) // Updated span from NUnit error
+                                    .WithSpan(10, 21, 10, 31)
                                     .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected6);
         }
@@ -313,9 +313,9 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
+
             var expected7 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                    .WithSpan(11, 17, 11, 27) // Updated span from NUnit error
+                                    .WithSpan(11, 17, 11, 27)
                                     .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected7);
         }
@@ -344,7 +344,7 @@ public class TestClass
     }
 }";
 
-            // UPDATED: Expect PS0002 on TestMethod and PureWrapper
+
             var expectedTestMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(10, 17, 10, 27).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expectedTestMethod);
         }
@@ -352,7 +352,7 @@ public class TestClass
         [Test]
         public async Task StaticFieldAccess_MayMissDiagnostic()
         {
-            // Static field access can be impure but might be missed
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -371,9 +371,9 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
+
             var expected9 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                    .WithSpan(12, 19, 12, 29) // Location of TestMethod
+                                    .WithSpan(12, 19, 12, 29)
                                     .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected9);
         }
@@ -428,7 +428,7 @@ public class TestClass
 }";
 
             var expected10 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                    .WithSpan(11, 17, 11, 27) // Location of TestMethod
+                                    .WithSpan(11, 17, 11, 27)
                                     .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected10);
         }
@@ -452,9 +452,9 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
+
             var expected11 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                    .WithSpan(10, 24, 10, 34) // Updated span from test output
+                                    .WithSpan(10, 24, 10, 34)
                                     .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected11);
         }
@@ -484,7 +484,7 @@ public class TestClass
     }
 }";
 
-            // UPDATED: Expect PS0002 on TestMethod and LocalImpure
+
             var expectedTestMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(10, 17, 10, 27).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expectedTestMethod);
         }
@@ -511,9 +511,9 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
+
             var expected13 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                    .WithSpan(11, 16, 11, 26) // Location of TestMethod
+                                    .WithSpan(11, 16, 11, 26)
                                     .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected13);
         }
@@ -521,7 +521,7 @@ public class TestClass
         [Test]
         public async Task IoPathUriManipulation_WithImpureWriteLine_Diagnostic()
         {
-            // IO-related class for pure path manipulation
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -550,19 +550,19 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
+
             var expected14 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                    .WithSpan(11, 19, 11, 29) // Location of TestMethod
+                                    .WithSpan(11, 19, 11, 29)
                                     .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected14);
         }
 
         [Test]
-        //[Ignore("Temporarily disabled due to intermittent failure in full suite run (likely VerifyCS/state issue). Passed individually.")]
-        //[Ignore("Temporarily disabled due to failure")]
+
+
         public async Task ThreadStaticFieldImpurity_MayMissDiagnostic()
         {
-            // Thread static fields might not be properly detected
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -582,19 +582,19 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
+
             var expected15 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                    .WithSpan(13, 16, 13, 26) // Location of TestMethod
+                                    .WithSpan(13, 16, 13, 26)
                                     .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected15);
         }
 
         [Test]
-        //[Ignore("Temporarily disabled due to intermittent failure in full suite run (likely VerifyCS/state issue). Passed individually.")]
-        //[Ignore("Temporarily disabled due to failure")]
+
+
         public async Task LazyInitializationImpurity_MayMissDiagnostic()
         {
-            // Lazy initialization patterns might not be detected properly
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -623,19 +623,19 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
+
             var expected16 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                    .WithSpan(13, 19, 13, 29) // Location of TestMethod
+                                    .WithSpan(13, 19, 13, 29)
                                     .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected16);
         }
 
         [Test]
-        //[Ignore("Temporarily disabled due to intermittent failure in full suite run (likely VerifyCS/state issue). Passed individually.")]
-        //[Ignore("Temporarily disabled due to failure")]
+
+
         public async Task IoClassPureMethod_ShouldBePure_Test2()
         {
-            // UPDATED: Expect PS0004 on CombinePaths
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -669,8 +669,8 @@ public class TestClass
         [Test]
         public async Task StreamThatIsNeverUsed_ShouldBePure()
         {
-            // Expectation limitation: Analyzer incorrectly flags creating an IO stream object even if unused.
-            // Creates streams but never uses them for IO
+
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -690,7 +690,7 @@ public class TestClass
         stream.GetType();
     }
 }";
-            // Expectation limitation: Analyzer incorrectly flags creating an IO stream object even if unused.
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
                                    .WithSpan(11, 17, 11, 27).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
@@ -699,7 +699,7 @@ public class TestClass
         [Test]
         public async Task IoClassInheritanceButPureMethods_ShouldBePure()
         {
-            // UPDATED: Expect PS0002 on Delete
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -736,7 +736,7 @@ public class TestClass
         [Test]
         public async Task MockIoInterface_ShouldBePure()
         {
-            // UPDATED: Expect PS0004 on interface ReadAllText, .ctor, and PS0002 on impl ReadAllText
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -801,9 +801,9 @@ public class TestClass
     }
 }
 ";
-            // Reading an impure field doesn't automatically make the method impure
-            // if the field value isn't used in an impure operation.
-            // Analyzer should consider this pure.
+
+
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -826,20 +826,20 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
+
             var expected17 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                    .WithSpan(10, 17, 10, 27) // Location of TestMethod
+                                    .WithSpan(10, 17, 10, 27)
                                     .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected17);
         }
 
-        // --- System.IO.Compression Tests ---
-        // TODO: Enable tests once analyzer correctly identifies stream I/O as impure
-        // Commented out tests removed
 
-        // --- XDocument Load/Save Tests ---
-        // TODO: Enable tests once analyzer correctly identifies file/stream I/O as impure
-        // Commented out tests removed
+
+
+
+
+
+
 
         [Test]
         public async Task IoFileWriteAllText_ShouldBeImpure_Test1()
@@ -861,9 +861,9 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
+
             var expected18 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                    .WithSpan(11, 17, 11, 27) // Location of TestMethod
+                                    .WithSpan(11, 17, 11, 27)
                                     .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected18);
         }
@@ -888,9 +888,9 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
+
             var expected19 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                    .WithSpan(11, 19, 11, 29) // Location of TestMethod
+                                    .WithSpan(11, 19, 11, 29)
                                     .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected19);
         }

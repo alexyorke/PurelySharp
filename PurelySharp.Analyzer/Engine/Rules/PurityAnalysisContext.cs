@@ -1,15 +1,13 @@
-using Microsoft.CodeAnalysis;
-using PurelySharp.Analyzer.Engine.Rules; // Added for IPurityRule
-using System; // Added for Func
-using System.Collections.Generic; // Added for IEnumerable
-using System.Collections.Immutable; // Added for ImmutableList
-using System.Threading; // Added for CancellationToken
+﻿using Microsoft.CodeAnalysis;
+using PurelySharp.Analyzer.Engine.Rules;
+using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Threading;
 
 namespace PurelySharp.Analyzer.Engine.Rules
 {
-    /// <summary>
-    /// Provides context for purity rule checks within the PurityAnalysisEngine.
-    /// </summary>
+
     internal class PurityAnalysisContext
     {
         public CancellationToken CancellationToken { get; }

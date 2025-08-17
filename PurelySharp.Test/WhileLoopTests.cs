@@ -1,25 +1,25 @@
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using System;
 using System.Threading.Tasks;
 using PurelySharp.Analyzer;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
     PurelySharp.Analyzer.PurelySharpAnalyzer>;
 using PurelySharp.Attributes;
-using Microsoft.CodeAnalysis.Testing; // Added for DiagnosticResult
+using Microsoft.CodeAnalysis.Testing;
 
 namespace PurelySharp.Test
 {
     [TestFixture]
     public class WhileLoopTests
     {
-        // Minimal attribute definition (using verbatim string)
+
         private const string MinimalEnforcePureAttributeSource = @"
 namespace PurelySharp.Attributes
 {
     [System.AttributeUsage(System.AttributeTargets.All)]
     public sealed class EnforcePureAttribute : System.Attribute { }
 }
-"; // Close verbatim string
+";
 
         [Test]
         public async Task PureWhileLoop_NoDiagnostic()
@@ -46,7 +46,7 @@ namespace TestNamespace
         }
     }
 }
-" + MinimalEnforcePureAttributeSource; // Append attribute source
+" + MinimalEnforcePureAttributeSource;
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
@@ -84,13 +84,13 @@ namespace TestNamespace
         }
     }
 }
-" + MinimalEnforcePureAttributeSource; // Append attribute source
+" + MinimalEnforcePureAttributeSource;
 
-            // Expect 1 diagnostic based on actual output (ignore erroneous header count)
+
             var expected = new[]
             {
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(13, 22, 13, 36).WithArguments("IsConditionMet"),
-                // NOTE: The TestMethod diagnostic is NOT actually reported according to detailed output, only IsConditionMet is.
+
             };
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
@@ -122,12 +122,12 @@ namespace TestNamespace
         }
     }
 }
-" + MinimalEnforcePureAttributeSource; // Append attribute source
+" + MinimalEnforcePureAttributeSource;
 
-            // Expect 1 diagnostic based on actual output
+
             var expected = new[] {
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                   .WithSpan(12, 21, 12, 31) // Adjusted span based on actual output
+                                   .WithSpan(12, 21, 12, 31)
                                    .WithArguments("TestMethod"),
              };
 

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using PurelySharp.Analyzer;
@@ -33,7 +33,7 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -61,7 +61,7 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -93,13 +93,13 @@ public class TestClass
 }
 ";
 
-            // Expect CS0051 due to accessibility (on Process method signature)
+
             var expectedErrorCS0051 = DiagnosticResult.CompilerError("CS0051").WithSpan(12, 24, 12, 31).WithArguments("TestClass.Process(TestClass.MyDelegate, int)", "TestClass.MyDelegate");
 
-            // Expect PS0002 on Process because purity of 'action' cannot be verified (on Process method identifier)
+
             var expectedDiagPS0002_Process = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(12, 24, 12, 31).WithArguments("Process");
 
-            // Expect PS0002 on TestMethod because it calls Process which cannot guarantee purity (on TestMethod identifier)
+
             var expectedDiagPS0002_TestMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(18, 24, 18, 34).WithArguments("TestMethod");
 
 
@@ -139,7 +139,7 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -168,10 +168,10 @@ public class TestClass
     }
 }
 ";
-            // Expect PS0002 on ApplyAction because it takes a delegate whose purity cannot be verified.
+
             var expectedDiagApplyAction = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(9, 17, 9, 28).WithArguments("ApplyAction");
 
-            // Expect PS0002 on TestMethod because ApplyAction cannot guarantee purity of the passed delegate
+
             var expectedDiagTestMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(16, 17, 16, 27).WithArguments("TestMethod");
 
             await VerifyCS.VerifyAnalyzerAsync(testCode, expectedDiagApplyAction, expectedDiagTestMethod);
@@ -198,9 +198,9 @@ public class TestClass
         };
     }
 }";
-            // REMOVED: Expect diagnostic on CreateImpureDelegate (Analyzer doesn't detect capture impurity)
-            // await VerifyCS.VerifyAnalyzerAsync(test); // Changed to expect no diagnostics
-            // ADDED BACK:
+
+
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
                                  .WithSpan(10, 27, 10, 47)
                                  .WithArguments("CreateImpureDelegate");
@@ -240,12 +240,12 @@ public class TestClass
         combined(""Test message""); // Pure invocation if delegates are pure
     }
 }";
-            // REMOVED: Expect diagnostic on CombineDelegates (Analyzer thinks delegate combination is pure)
-            // var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-            //                        .WithSpan(8, 16, 8, 32) // Span of CombineDelegates
-            //                        .WithArguments("CombineDelegates");
-            // await VerifyCS.VerifyAnalyzerAsync(test); // Changed to expect no diagnostics
-            // ADDED BACK:
+
+
+
+
+
+
             var expectedCombine = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
                                           .WithSpan(12, 19, 12, 35).WithArguments("CombineDelegates");
             var expectedUseCombined = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)

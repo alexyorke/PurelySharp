@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -40,7 +40,7 @@ public class Calculator
         return Math.PI * radius * radius;
     }
 }";
-            // Expect no diagnostic now
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -93,7 +93,7 @@ public static class GeometryUtils
     }
 }
 ";
-            // Expect PS0004 on get_Center, get_Radius, .ctor (Circle) based on output (3 diagnostics total)
+
             var expectedGetCenter = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(14, 18, 14, 24).WithArguments("get_Center");
             var expectedGetRadius = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(15, 19, 15, 25).WithArguments("get_Radius");
             var expectedCircleCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(17, 12, 17, 18).WithArguments(".ctor");
@@ -153,10 +153,10 @@ public static class Extensions
     }
 }";
 
-            // Expect PS0002 for ReverseString and Factorial based on output
+
             var expected = new[] {
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(16, 19, 16, 32).WithArguments("ReverseString"),
-                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(27, 16, 27, 25).WithArguments("Factorial") // Changed ID to PS0002
+                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(27, 16, 27, 25).WithArguments("Factorial")
             };
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
@@ -191,7 +191,7 @@ public class FileManager
     }
 }";
 
-            // Correctly define two separate expected diagnostics
+
             var expected = new[] {
                 VerifyCS.Diagnostic("PS0002").WithSpan(14, 17, 14, 28).WithArguments("WriteToFile"),
                 VerifyCS.Diagnostic("PS0002").WithSpan(21, 19, 21, 34).WithArguments("ReadCurrentTime")
@@ -223,7 +223,7 @@ public class Calculator : ICalculator
     }
 }";
 
-            // Expect PS0004 on the implementation Add method
+
             var expectedAdd = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(10, 9, 10, 12).WithArguments("Add");
             await VerifyCS.VerifyAnalyzerAsync(test, expectedAdd);
         }
@@ -248,11 +248,11 @@ public record Point(double X, double Y)
     }
 }";
 
-            // Expect only compiler errors, not PS0004, as the method is pure
+
             var expected = new[] {
                 DiagnosticResult.CompilerError("CS0518").WithSpan(8, 28, 8, 29).WithArguments("System.Runtime.CompilerServices.IsExternalInit"),
                 DiagnosticResult.CompilerError("CS0518").WithSpan(8, 38, 8, 39).WithArguments("System.Runtime.CompilerServices.IsExternalInit")
-                // Removed PS0004 expectation
+
             };
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }

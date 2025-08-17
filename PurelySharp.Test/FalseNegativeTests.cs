@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
@@ -13,8 +13,8 @@ namespace PurelySharp.Test
         [Test]
         public async Task ThrowOnlyMethod_NoDiagnostic_Bug()
         {
-            // This test highlights that the analyzer currently treats 'throw' statements
-            // as pure even though they change control-flow and should be considered impure.
+
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -29,15 +29,15 @@ public class TestClass
         throw new InvalidOperationException();
     }
 }";
-            // Analyzer correctly flags this, test expects it.
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
         public async Task DelegateInvocationOfImpureAction_NoDiagnostic_Bug()
         {
-            // The analyzer does not follow delegate targets when the delegate is stored in a field.
-            // Invoking such a delegate should therefore be reported as impure but currently is not.
+
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -54,15 +54,15 @@ public class TestClass
         ImpureAction();
     }
 }";
-            // UPDATE: Now expect the diagnostic marked in the test string.
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
         public async Task LazyValueWithImpureFactory_NoDiagnostic_Bug()
         {
-            // Accessing .Value on Lazy<T> executes the factory if not initialized.
-            // If the factory is impure, this access is impure, but analyzer may miss it.
+
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -83,15 +83,15 @@ public class TestClass
         return _lazyValue.Value;
     }
 }";
-            // Analyzer correctly flags this, test expects it.
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
         public async Task ConcurrentDictGetOrAddImpureFactory_NoDiagnostic_Bug()
         {
-            // GetOrAdd executes the factory delegate only if the key is not present.
-            // Analyzer might not check the purity of this conditionally executed factory.
+
+
             var test = @"
 using System;
 using System.Collections.Concurrent;
@@ -113,15 +113,15 @@ public class TestClass
         });
     }
 }";
-            // Analyzer correctly flags this, test expects it.
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
         public async Task ReturnRefToMutableField_NoDiagnostic_Bug()
         {
-            // Returning a ref to a mutable field allows external modification, making the method impure.
-            // The analyzer might not consider the implication of returning the ref.
+
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -142,15 +142,15 @@ public class TestClass
     // ref int fieldRef = ref tester.GetMutableFieldRef();
     // fieldRef = 100; // Modifies the internal state via the returned ref
 }";
-            // Analyzer correctly flags this, test expects it.
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
         public async Task VolatileRead_NoDiagnostic_Bug()
         {
-            // Volatile.Read introduces memory barrier semantics and interacts with mutable state,
-            // making it impure. Analyzer might incorrectly treat it as a simple read.
+
+
             var test = @"
 using System;
 using System.Threading;
@@ -167,7 +167,7 @@ public class TestClass
         return Volatile.Read(ref _volatileField);
     }
 }";
-            // Analyzer correctly flags this, test expects it.
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -199,11 +199,11 @@ public class TestForm
         Console.WriteLine(""Button clicked"");
     }
 }";
-            // Expect PS0002 on SetupForm due to event subscription.
-            // OnClick and Button_Clicked are not marked and should not get PS0002 directly.
-            // var expectedOnClick = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(8, 17, 8, 24).WithArguments("OnClick");
+
+
+
             var expectedSetup = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(16, 17, 16, 26).WithArguments("SetupForm");
-            // var expectedHandler = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(21, 18, 21, 32).WithArguments("Button_Clicked");
+
 
             await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedSetup });
         }
@@ -235,7 +235,7 @@ public class TestClass
         string value = Config.Setting; // CS0122 Error Here
     }
 }";
-            // Expect PS0002 on .cctor, TriggerStaticConstructor, and Compiler Error CS0122 (3 total)
+
             var expectedCctor = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(10, 12, 10, 18).WithArguments(".cctor");
             var expectedTrigger = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(20, 17, 20, 41).WithArguments("TriggerStaticConstructor");
             var compilerError = DiagnosticResult.CompilerError("CS0122").WithSpan(22, 31, 22, 38).WithArguments("Config.Setting");
@@ -267,7 +267,7 @@ public class TestClass
         }
     }
 }";
-            // Expect PS0004 on UseResource and PS0002 on Dispose based on runner output (2 total)
+
             var expectedUseResource = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(14, 17, 14, 28).WithArguments("UseResource");
             var expectedDispose = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(8, 17, 8, 24).WithArguments("Dispose");
 
@@ -312,15 +312,15 @@ public class TestClass
                                            .WithSpan(20, 16, 20, 25)
                                            .WithArguments("ConvertIt");
 
-            // Expect 3 diagnostics in this order
+
             await VerifyCS.VerifyAnalyzerAsync(test, new[] { diagGetValue, diagCtor, diagConvertIt });
         }
 
-        // --- More Advanced / Robust Fix Tests ---
 
-        // Bug: Invocation of delegate passed as parameter isn't checked reliably in full test run.
+
+
         [Test]
-        // [Explicit("Fails in full run due to suspected inter-test state issue, passes when filtered.")] // REMOVING EXPLICIT
+
         public async Task ImpureDelegateViaParameter_NoDiagnostic_Bug()
         {
             var test = @"
@@ -339,23 +339,23 @@ public class TestClass
         InvokeDelegate(ImpureTarget);
     }}
 }
-"; // End of string literal, ensure no trailing braces for the string itself
+";
             var expectedCallImpure = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
                                    .WithSpan(12, 17, 12, 43)
                                    .WithArguments("CallImpureDelegateViaParam");
-            // var expectedImpureTarget = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-            //                            .WithSpan(7, 25, 7, 37)
-            //                            .WithArguments("ImpureTarget"); // Removed: Not marked
-            // var expectedInvokeDelegate = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-            //                              .WithSpan(9, 18, 9, 32)
-            //                              .WithArguments("InvokeDelegate"); // Removed: Not marked
+
+
+
+
+
+
 
             await VerifyCS.VerifyAnalyzerAsync(test, expectedCallImpure);
         }
 
-        // Bug: Invocation of delegate returned from method isn't checked reliably in full test run.
+
         [Test]
-        // [Explicit("Fails in full run due to suspected inter-test state issue, passes when filtered.")]
+
         public async Task ImpureDelegateViaReturnValue_NoDiagnostic_Bug()
         {
             var test = @"
@@ -376,10 +376,10 @@ public class TestClass
         impure();
     }}
 }
-"; // End of string literal
-            // var expectedGetImpureAction = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-            //                                  .WithSpan(7, 20, 7, 35)
-            //                                  .WithArguments("GetImpureAction"); // Removed: Not marked
+";
+
+
+
             var expectedCallImpureReturn = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
                                           .WithSpan(13, 17, 13, 44)
                                           .WithArguments("CallImpureDelegateViaReturn");
@@ -429,7 +429,7 @@ public class TestClass
                                            .WithSpan(22, 17, 22, 32)
                                            .WithArguments("ConvertItViaArg");
 
-            // Expect 4 diagnostics in this order
+
             await VerifyCS.VerifyAnalyzerAsync(test, new[] { diagGetValue, diagCtor, diagTakesInt, diagConvertItViaArg });
         }
 
@@ -464,7 +464,7 @@ public class AnotherClass
     }
 }
 ";
-            // Expect PS0002 on Helper..cctor, Helper.GetValue, and TriggerIndirectStaticConstructor (3 total)
+
             var expectedCctor = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(9, 12, 9, 18).WithArguments(".cctor");
             var expectedGetValue = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(16, 26, 16, 34).WithArguments("GetValue");
             var expectedTrigger = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(23, 19, 23, 51).WithArguments("TriggerIndirectStaticConstructor");
@@ -491,7 +491,7 @@ public class TestClass
         return operation(5, 10); // Should be pure, analyzer misses it
     }
 }";
-            // Expect PS0002 on TestMethod because delegate invocation is not fully analyzed (1 total)
+
             var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(11, 16, 11, 26).WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
         }

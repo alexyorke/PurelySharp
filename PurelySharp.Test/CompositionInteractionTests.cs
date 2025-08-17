@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis.Testing;
+﻿using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
 using PurelySharp.Analyzer;
@@ -64,18 +64,18 @@ public class Car
     }
 }
 ";
-            // Expect diagnostics on:
-            // 1. Engine.Start (due to Console.WriteLine)
-            // 2. Car.StartCar (calls impure Engine.Start)
-            // 3. Car.GetPowerToWheelRatio (calls impure Engine.Start)
+
+
+
+
             var expectedEngineStart = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                              .WithSpan(11, 17, 11, 22) // Span of 'Start' in Engine
+                                              .WithSpan(11, 17, 11, 22)
                                               .WithArguments("Start");
             var expectedCarStartCar = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                              .WithSpan(35, 17, 35, 25) // Span of 'StartCar' in Car
+                                              .WithSpan(35, 17, 35, 25)
                                               .WithArguments("StartCar");
             var expectedGetPowerToWheelRatio = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                                       .WithSpan(41, 16, 41, 36) // CORRECTED End column 36
+                                                       .WithSpan(41, 16, 41, 36)
                                                        .WithArguments("GetPowerToWheelRatio");
 
             await VerifyCS.VerifyAnalyzerAsync(test,

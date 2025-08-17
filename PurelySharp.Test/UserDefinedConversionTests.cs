@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -12,8 +12,8 @@ namespace PurelySharp.Test
     [TestFixture]
     public class UserDefinedConversionTests
     {
-        // Expectation limitation: analyzer currently does not report missing enforce-pure-attribute diagnostic (PS0004) for pure user-defined conversions lacking [EnforcePure].
-        // TODO: Re-enable PS0004 checks for the conversion operators themselves when implemented.
+
+
         [Test]
         public async Task ImplicitConversion_PureImplementation_NoDiagnostic()
         {
@@ -45,19 +45,19 @@ public struct Celsius
     }
 }";
 
-            // Expect PS0004 on getter and constructor
+
             var expectedGetter = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                        .WithSpan(9, 19, 9, 24) // Span of Value getter
+                                        .WithSpan(9, 19, 9, 24)
                                         .WithArguments("get_Value");
             var expectedCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                       .WithSpan(11, 12, 11, 19) // Span of Celsius ctor
+                                       .WithSpan(11, 12, 11, 19)
                                        .WithArguments(".ctor");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expectedGetter, expectedCtor);
         }
 
-        // Expectation limitation: analyzer currently does not report missing enforce-pure-attribute diagnostic (PS0004) for pure user-defined conversions lacking [EnforcePure].
-        // TODO: Re-enable PS0004 checks for the conversion operators themselves when implemented.
+
+
         [Test]
         public async Task ExplicitConversion_PureImplementation_NoDiagnostic()
         {
@@ -91,15 +91,15 @@ public class Money
     }
 }";
 
-            // Expect PS0004 on getters and constructor
+
             var expectedGetterAmount = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                        .WithSpan(9, 20, 9, 26) // Span of Amount getter
+                                        .WithSpan(9, 20, 9, 26)
                                         .WithArguments("get_Amount");
             var expectedGetterCurrency = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                          .WithSpan(10, 19, 10, 27) // Span of Currency getter
+                                          .WithSpan(10, 19, 10, 27)
                                           .WithArguments("get_Currency");
             var expectedCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                       .WithSpan(12, 12, 12, 17) // Span of Money ctor
+                                       .WithSpan(12, 12, 12, 17)
                                        .WithArguments(".ctor");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expectedGetterAmount, expectedGetterCurrency, expectedCtor);
@@ -133,12 +133,12 @@ public class Counter
     }
 }";
 
-            // Expect PS0004 on getter and constructor
+
             var expectedGetter = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                        .WithSpan(11, 16, 11, 21) // Span of Value getter
+                                        .WithSpan(11, 16, 11, 21)
                                         .WithArguments("get_Value");
             var expectedCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                       .WithSpan(13, 12, 13, 19) // Span of Counter ctor
+                                       .WithSpan(13, 12, 13, 19)
                                        .WithArguments(".ctor");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expectedGetter, expectedCtor);
@@ -184,22 +184,22 @@ public class DateOnly
     }
 }";
 
-            // Expect PS0004 on getters and constructor
+
             var expectedGetterYear = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                        .WithSpan(9, 16, 9, 20) // Span of Year getter
+                                        .WithSpan(9, 16, 9, 20)
                                         .WithArguments("get_Year");
             var expectedGetterMonth = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                         .WithSpan(10, 16, 10, 21) // Span of Month getter
+                                         .WithSpan(10, 16, 10, 21)
                                          .WithArguments("get_Month");
             var expectedGetterDay = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                       .WithSpan(11, 16, 11, 19) // Span of Day getter
+                                       .WithSpan(11, 16, 11, 19)
                                        .WithArguments("get_Day");
             var expectedCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                       .WithSpan(13, 12, 13, 20) // Span of DateOnly ctor
+                                       .WithSpan(13, 12, 13, 20)
                                        .WithArguments(".ctor");
 
-            // Note: DateOnly-to-string conversion might be pure depending on analysis of interpolation/ToString.
-            // We are only expecting PS0002 for the string-to-DateOnly conversion due to Split/Parse.
+
+
             await VerifyCS.VerifyAnalyzerAsync(test, expectedGetterYear, expectedGetterMonth, expectedGetterDay, expectedCtor);
         }
     }

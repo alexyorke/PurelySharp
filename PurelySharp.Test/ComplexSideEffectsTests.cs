@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -85,10 +85,10 @@ public class TestClass
         };
     }
 }";
-            // TestMethod is marked and returns an impure delegate. LocalFunction is not marked.
-            // Analyzer currently doesn't report PS0002 for TestMethod in this scenario.
-            // var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(13, 29, 13, 39).WithArguments("TestMethod");
-            await VerifyCS.VerifyAnalyzerAsync(test); // Expect 0 diagnostics based on current behavior
+
+
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]

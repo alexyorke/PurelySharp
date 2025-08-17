@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis.Testing;
+﻿using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
 using PurelySharp.Analyzer;
@@ -17,7 +17,7 @@ namespace PurelySharp.Test
         [Test]
         public async Task GenericClassWithPureOperations_NoDiagnostic()
         {
-            // This test also seemed to pass correctly when run individually.
+
             var test = @"
 using PurelySharp.Attributes;
 using System;
@@ -61,12 +61,12 @@ public class GenericTestManager
     }
 }
 ";
-            // UPDATE: Expect PS0002 on GetAll, HasBanana and .ctor
+
             var expectedGetAll = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                        .WithSpan(19, 27, 19, 33) // Span of 'GetAll'
+                                        .WithSpan(19, 27, 19, 33)
                                         .WithArguments("GetAll");
             var expectedHasBanana = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                          .WithSpan(37, 17, 37, 26) // Span of 'HasBanana'
+                                          .WithSpan(37, 17, 37, 26)
                                           .WithArguments("HasBanana");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expectedGetAll, expectedHasBanana);
@@ -98,12 +98,12 @@ public class Repository<T>
     }
 }
 ";
-            // Expect diagnostics on:
-            // 1. GetAll (consistent with previous findings for _items.ToList() or similar)
-            // 2. ContainsItem (consistent with previous findings for _items.Contains())
-            // 3. AddAndLog (due to List.Add and Console.WriteLine)
+
+
+
+
             var expectedAddAndLog = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                            .WithSpan(17, 17, 17, 26) // Span of 'AddAndLog'
+                                            .WithSpan(17, 17, 17, 26)
                                             .WithArguments("AddAndLog");
 
             await VerifyCS.VerifyAnalyzerAsync(test,

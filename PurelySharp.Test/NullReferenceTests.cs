@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -142,7 +142,7 @@ public class TestClass
         return length;
     }
 }";
-            // Expect no diagnostic
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }

@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -14,9 +14,9 @@ namespace PurelySharp.Test
         [Test]
         public async Task MethodWithAsyncOperation_Diagnostic()
         {
-            // Previously, we expected async methods to be marked as impure by default.
-            // Now, with our updated implementation, we check the contents of async methods instead.
-            // We're temporarily ignoring this test while we refine the async detection.
+
+
+
 
             var test = @"
 using System;
@@ -33,15 +33,15 @@ class Program
         return 1 + 2;
     }
 }";
-            // With the updated implementation, we no longer expect a diagnostic for this async method
-            // since it doesn't have any impure operations.
+
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
         public async Task AsyncMethodWithAwait_NoDiagnostic()
         {
-            // Test case with async method using await on a known pure method
+
             var test = @"
 using System.Threading.Tasks;
 using PurelySharp.Attributes;
@@ -60,7 +60,7 @@ namespace TestNamespace
     }
 }";
 
-            // Diagnostics are now inline in the test code
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }

@@ -1,9 +1,9 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
 using PurelySharp.Analyzer;
-using System.Text.Json; // Assuming System.Text.Json for tests
+using System.Text.Json;
 using PurelySharp.Attributes;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
     PurelySharp.Analyzer.PurelySharpAnalyzer>;
@@ -40,16 +40,16 @@ public class TestClass
         return JsonSerializer.Serialize(poco);
     }
 }";
-            // Expects no diagnostic because Serialize is assumed pure (or not flagged).
-            // However, the POCO properties themselves will trigger PS0004.
-            // await VerifyCS.VerifyAnalyzerAsync(test); // Original line, removed.
 
-            // Expect PS0004 for POCO getters/setters (pure but no [EnforcePure])
+
+
+
+
             var expectedGetterId = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                          .WithSpan(9, 16, 9, 18) // Span from log for get_Id/set_Id
+                                          .WithSpan(9, 16, 9, 18)
                                           .WithArguments("get_Id");
             var expectedGetterName = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                            .WithSpan(10, 20, 10, 24) // Span from log for get_Name/set_Name
+                                            .WithSpan(10, 20, 10, 24)
                                             .WithArguments("get_Name");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expectedGetterId, expectedGetterName);
@@ -69,24 +69,24 @@ public class TestClass
         return JsonSerializer.Deserialize<SimplePoco>(json);
     }
 }";
-            // Expect PS0002 diagnostic because Deserialize is impure
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                 .WithSpan(17, 24, 17, 34) // CORRECTED Span reported by test runner
+                                 .WithSpan(17, 24, 17, 34)
                                  .WithArguments("TestMethod");
 
-            // Expect PS0004 for POCO getters/setters (pure but no [EnforcePure])
+
             var expectedGetterId = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                          .WithSpan(9, 16, 9, 18) // Span from log for get_Id/set_Id
+                                          .WithSpan(9, 16, 9, 18)
                                           .WithArguments("get_Id");
             var expectedGetterName = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                            .WithSpan(10, 20, 10, 24) // Span from log for get_Name/set_Name
+                                            .WithSpan(10, 20, 10, 24)
                                             .WithArguments("get_Name");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected, expectedGetterId, expectedGetterName);
         }
 
-        // TODO: Add tests for impure serialization/deserialization 
-        // (e.g., types with impure getters/setters/constructors)
-        // This would likely require analyzer enhancements to detect.
+
+
+
     }
 }

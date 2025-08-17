@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
@@ -29,7 +29,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PurelySharp.CodeFixes\PurelySharp.CodeFixes.csproj" />
-    <!-- <ProjectReference Include="..\PurelySharp\PurelySharp.csproj" /> -->
+    
   </ItemGroup>
 
   <ItemGroup>

@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis.Testing;
+﻿using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -13,11 +13,11 @@ namespace PurelySharp.Test
     [TestFixture]
     public class AssemblyLoadingTests
     {
-        // --- Assembly Loading (Impure) ---
-        // TODO: Enable test once analyzer flags Assembly.Load as impure
-        // Commented out Assembly.Load test removed.
 
-        // --- Getting Current/Executing Assembly (Pure) ---
+
+
+
+
         [Test]
         public async Task Assembly_GetExecutingAssembly_NoDiagnostic()
         {
@@ -37,14 +37,14 @@ namespace TestNamespace
         }
     }
 }";
-            // REVERT: Analyzer incorrectly considers this pure
-            // var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-            //                         .WithSpan(10, 23, 10, 33) // Span of TestMethod identifier
-            //                         .WithArguments("TestMethod");
-            await VerifyCS.VerifyAnalyzerAsync(test); // REVERTED - Expect no diagnostic
+
+
+
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-        // --- Reading Assembly Metadata (Pure) ---
+
         [Test]
         public async Task Assembly_GetTypes_NoDiagnostic()
         {
@@ -65,11 +65,11 @@ namespace TestNamespace
         }
     }
 }";
-            // REVERT: Analyzer incorrectly considers this pure
-            // var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-            //                         .WithSpan(11, 21, 11, 31) // Span of TestMethod identifier
-            //                         .WithArguments("TestMethod");
-            await VerifyCS.VerifyAnalyzerAsync(test); // REVERTED - Expect no diagnostic
+
+
+
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
@@ -91,9 +91,9 @@ namespace TestNamespace
         }
     }
 }";
-            // ADDED: Expect diagnostic because LoadFile is impure
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(10, 25, 10, 35) // Span of TestMethod
+                                   .WithSpan(10, 25, 10, 35)
                                    .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }

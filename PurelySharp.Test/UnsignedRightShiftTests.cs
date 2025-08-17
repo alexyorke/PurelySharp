@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -117,7 +117,7 @@ namespace TestNamespace
         }
     }
 }";
-            // Expected diagnostics for the test case - NONE
+
             var expected = DiagnosticResult.EmptyDiagnosticResults;
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
@@ -174,9 +174,9 @@ namespace TestNamespace
         }
     }
 }";
-            // Explicitly define expected diagnostic
+
             var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                        .WithSpan(11, 21, 11, 53) // Span updated to match actual diagnostic on method signature
+                                        .WithSpan(11, 21, 11, 53)
                                         .WithArguments("UnsignedRightShiftWithSideEffect");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expectedPS0002);

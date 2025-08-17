@@ -1,4 +1,4 @@
-#if false // Temporarily disable this class
+﻿#if false // Temporarily disable this class
 using NUnit.Framework;
 using Microsoft.CodeAnalysis.Testing;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<

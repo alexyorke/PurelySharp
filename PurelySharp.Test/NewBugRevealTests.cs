@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis.Testing;
+﻿using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
 using PurelySharp.Analyzer;
@@ -29,14 +29,14 @@ public record struct Counter
         return this;
     }
 }";
-            // The original {|PS0002:Increment|} syntax is a shorthand for one expected diagnostic.
-            // We now explicitly define all expected diagnostics.
-            var expectedIncrement = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId) // PS0002
-                                           .WithSpan(9, 20, 9, 29) // Span of "Increment"
+
+
+            var expectedIncrement = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                           .WithSpan(9, 20, 9, 29)
                                            .WithArguments("Increment");
 
-            var expectedGetValue = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId) // PS0004
-                                          .WithSpan(6, 16, 6, 21) // Span of "Value" property name
+            var expectedGetValue = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                          .WithSpan(6, 16, 6, 21)
                                           .WithArguments("get_Value");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expectedIncrement, expectedGetValue);

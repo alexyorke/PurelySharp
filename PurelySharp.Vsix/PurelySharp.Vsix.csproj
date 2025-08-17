@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project>
   <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.props" />
 
@@ -6,7 +6,7 @@
     <TargetFramework>net472</TargetFramework>
     <RootNamespace>PurelySharp.Vsix</RootNamespace>
     <AssemblyName>PurelySharp.Vsix</AssemblyName>
-    <!-- EnableVsixPackaging is controlled by Directory.Build.props -->
+    
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
@@ -41,10 +41,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- https://github.com/dotnet/sdk/issues/433 -->
+    
     <ProjectReference Update="@(ProjectReference)" AdditionalProperties="TargetFramework=netstandard2.0" />
 
-    <!-- https://github.com/Microsoft/extendvs/issues/57 -->
+    
     <ProjectReference Update="@(ProjectReference)" Name="%(Filename)" />
   </ItemGroup>
 

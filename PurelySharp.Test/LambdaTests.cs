@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using Microsoft.CodeAnalysis.Testing;
@@ -32,7 +32,7 @@ public class TestClass
 }
 ";
 
-            // Expect 0 diagnostics now.
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -56,9 +56,9 @@ public class TestClass
     }
 }";
 
-            // Use PurityNotVerifiedId as it reflects the actual diagnostic
+
             var expected1 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                    .WithSpan(11, 17, 11, 27) // Location of TestMethod
+                                    .WithSpan(11, 17, 11, 27)
                                     .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected1);
         }
@@ -86,9 +86,9 @@ public class TestClass
     }
 }";
 
-            // Expect diagnostic on TestMethod due to impure lambda capture/modification
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(13, 18, 13, 28) // Span of TestMethod - CORRECTED LINE
+                                   .WithSpan(13, 18, 13, 28)
                                    .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }

@@ -1,19 +1,14 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
-    <!-- Consider adding package details for NuGet -->
-    <IsPackable>true</IsPackable> 
-    <!-- Example NuGet package properties:
-    <PackageId>PurelySharp.Attributes</PackageId>
-    <Version>0.0.1</Version> 
-    <Authors>alexyorke</Authors>
-    <Description>Contains the EnforcePureAttribute for use with the PurelySharp Roslyn analyzer.</Description>
-    -->
     
-    <!-- NuGet package properties -->
+    <IsPackable>true</IsPackable> 
+    
+    
+    
     <PackageId>PurelySharp.Attributes</PackageId>
     <Version>0.0.3</Version> 
     <Authors>Alex Yorke</Authors>
@@ -24,8 +19,8 @@
     <RepositoryUrl>https://github.com/alexyorke/PurelySharp</RepositoryUrl>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <GeneratePackageOnBuild>True</GeneratePackageOnBuild> <!-- Example: Use your preferred license -->
-    <!-- Add other relevant properties like ProjectUrl, RepositoryUrl etc. -->
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild> 
+    
 
   </PropertyGroup>
 

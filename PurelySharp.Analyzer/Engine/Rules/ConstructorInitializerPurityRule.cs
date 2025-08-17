@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
@@ -7,9 +7,7 @@ using PurelySharp.Analyzer.Engine;
 
 namespace PurelySharp.Analyzer.Engine.Rules
 {
-    /// <summary>
-    /// Analyzes constructor initializer operations (this(...) or base(...)) for purity.
-    /// </summary>
+
     internal class ConstructorInitializerPurityRule : IPurityRule
     {
         public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.ConstructorBodyOperation);

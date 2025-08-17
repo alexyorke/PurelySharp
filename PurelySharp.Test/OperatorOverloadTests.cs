@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -13,7 +13,7 @@ namespace PurelySharp.Test
     [TestFixture]
     public class OperatorOverloadTests
     {
-        // Expectation limitation: analyzer currently does not report missing enforce-pure-attribute diagnostic (PS0004) for pure operator overloads lacking [EnforcePure].
+
         [Test]
         public async Task PureOperatorOverload_NoDiagnostic()
         {
@@ -89,7 +89,7 @@ public class Counter
             await VerifyCS.VerifyAnalyzerAsync(test, expectedVal, expectedCtor, expectedOp);
         }
 
-        // Expectation limitation: analyzer currently does not report missing enforce-pure-attribute diagnostic (PS0004) for pure operator overloads lacking [EnforcePure].
+
         [Test]
         public async Task ComparisonOperatorOverload_NoDiagnostic()
         {
@@ -136,7 +136,7 @@ public struct Temperature
             await VerifyCS.VerifyAnalyzerAsync(test, expectedGet, expectedCtor, expectedLess, expectedGreater, expectedEqual, expectedNotEqual);
         }
 
-        // Expectation limitation: analyzer currently does not report missing enforce-pure-attribute diagnostic (PS0004) for pure operator overloads lacking [EnforcePure].
+
         [Test]
         public async Task ConversionOperatorOverload_NoDiagnostic()
         {

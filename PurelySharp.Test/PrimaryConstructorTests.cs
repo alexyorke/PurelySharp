@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -8,7 +8,7 @@ using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
 using PurelySharp.Attributes;
 using System;
 
-// Polyfill for IsExternalInit required by records with init properties
+
 namespace System.Runtime.CompilerServices
 {
     internal static class IsExternalInit { }
@@ -19,7 +19,7 @@ namespace PurelySharp.Test
     [TestFixture]
     public class PrimaryConstructorTests
     {
-        // Note: These tests require C# 12+
+
 
         [Test]
         public async Task PureMethodWithPrimaryConstructor_NoDiagnostic()
@@ -67,10 +67,10 @@ public class Calculator(int initialValue)
         return _value;
     }
 }";
-            // Impurity: Assignment to non-readonly field _value
-            // Expect diagnostic on the method signature (fallback)
+
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                    .WithSpan(13, 16, 13, 27) // Updated Span to method identifier
+                                    .WithSpan(13, 16, 13, 27)
                                     .WithArguments("AddAndStore");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
@@ -105,7 +105,7 @@ public record GreetingRecord(string Message)
                             MetadataReference.CreateFromFile(typeof(EnforcePureAttribute).Assembly.Location))
                 }
             };
-            // UPDATE (again): Expect 0 diagnostics assuming interpolation fix works
+
             verifierTest.ExpectedDiagnostics.AddRange(DiagnosticResult.EmptyDiagnosticResults);
             await verifierTest.RunAsync();
         }
@@ -141,8 +141,8 @@ public readonly struct Vector2D(double x, double y)
                             MetadataReference.CreateFromFile(typeof(EnforcePureAttribute).Assembly.Location))
                 }
             };
-            //verifierTest.ExpectedDiagnostics.AddRange(DiagnosticResult.EmptyDiagnosticResults);
-            // Expect PS0004 on the auto-generated getters for X and Y as they are pure but not marked.
+
+
             verifierTest.ExpectedDiagnostics.Add(VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(11, 19, 11, 20).WithArguments("get_X"));
             verifierTest.ExpectedDiagnostics.Add(VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(12, 19, 12, 20).WithArguments("get_Y"));
             await verifierTest.RunAsync();
@@ -195,9 +195,9 @@ public class LoggingCalculator(int initialValue)
         return _initialValue + x;
     }
 }";
-            // Expect diagnostic on the method signature (fallback)
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                    .WithSpan(13, 16, 13, 19) // Updated Span to method identifier
+                                    .WithSpan(13, 16, 13, 19)
                                     .WithArguments("Add");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);

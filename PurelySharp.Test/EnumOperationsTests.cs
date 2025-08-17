@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -36,8 +36,8 @@ public class TestClass
         return color.ToString();
     }
 }";
-            // Expect no diagnostics as Enum.ToString() seems pure
-            await VerifyCS.VerifyAnalyzerAsync(test); // Removed expected diagnostic
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
@@ -66,7 +66,7 @@ public class TestClass
         return status == Status.Active || status == Status.Pending;
     }
 }";
-            // Expect no diagnostic now
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -126,13 +126,13 @@ public class TestClass
         return LogLevel.Info; // Default
     }
 }";
-            // Test verifies the current analyzer limitation: Enum.TryParse is potentially impure
-            // (string parsing, reflection?) but is not currently flagged by the analyzer.
-            // var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-            //                       .WithSpan(18, 19, 18, 29) // Span for TestMethod signature - needs verification
-            //                       .WithArguments("TestMethod");
-            // await VerifyCS.VerifyAnalyzerAsync(test, expected);
-            await VerifyCS.VerifyAnalyzerAsync(test); // Expect NO diagnostic (current behavior)
+
+
+
+
+
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
@@ -162,8 +162,8 @@ public class TestClass
         return userPermissions.HasFlag(requiredPermissions);
     }
 }";
-            // REVERT: Analyzer incorrectly considers HasFlag pure
-            await VerifyCS.VerifyAnalyzerAsync(test); // REVERTED - Expect no diagnostic
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
@@ -200,13 +200,13 @@ public class TestClass
         return attr?.Description ?? code.ToString();
     }
 }";
-            // Test verifies the current analyzer limitation: Reflection calls
-            // (typeof, GetField, GetCustomAttribute) are impure but are not currently flagged.
-            // var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-            //                       .WithSpan(24, 19, 24, 29) // Span for TestMethod signature - needs verification
-            //                       .WithArguments("TestMethod");
-            // await VerifyCS.VerifyAnalyzerAsync(test, expected);
-            await VerifyCS.VerifyAnalyzerAsync(test); // Expect NO diagnostic (current behavior)
+
+
+
+
+
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }
 }

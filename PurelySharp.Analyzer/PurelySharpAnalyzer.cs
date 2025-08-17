@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -11,7 +11,7 @@ namespace PurelySharp.Analyzer
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public class PurelySharpAnalyzer : DiagnosticAnalyzer
     {
-        // Alias diagnostic IDs for tests
+
         public const string PS0002 = PurelySharpDiagnostics.PurityNotVerifiedId;
         public const string PS0004 = PurelySharpDiagnostics.MissingEnforcePureAttributeId;
 

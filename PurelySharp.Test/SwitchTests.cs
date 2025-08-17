@@ -1,4 +1,4 @@
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
@@ -68,9 +68,9 @@ public class TestClass
     }
 }";
 
-            // Expect diagnostic on the method signature
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                  .WithSpan(10, 16, 10, 26) // Span of TestMethod identifier
+                                  .WithSpan(10, 16, 10, 26)
                                   .WithArguments("TestMethod");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
@@ -102,7 +102,7 @@ public class TestClass
 }";
 
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                   .WithSpan(8, 16, 8, 26) // Updated span to method signature
+                                   .WithSpan(8, 16, 8, 26)
                                    .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }

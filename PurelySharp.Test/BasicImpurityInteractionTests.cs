@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis.Testing;
+﻿using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
 using PurelySharp.Analyzer;
@@ -97,15 +97,15 @@ public class TestClass
     public double GetStaticPi() => Circle.GetPi();
 }
 ";
-            // Expectations based on test run + added [EnforcePure]
+
             var expectedGetId = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(7, 16, 7, 18).WithArguments("get_Id");
-            var expectedScaleShape = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(20, 25, 20, 30).WithArguments("Scale"); // Adjusted span from line 19 to 20
-            var expectedGetRadius = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(28, 19, 28, 25).WithArguments("get_Radius"); // Adjusted line
-            var expectedCtorCircle = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(32, 12, 32, 18).WithArguments(".ctor"); // Adjusted line // Calls impure base
-            var expectedScaleCircle = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(41, 26, 41, 31).WithArguments("Scale"); // Adjusted line // Modifies this.Radius
-            var expectedSetRadiusCircle = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(47, 17, 47, 26).WithArguments("SetRadius"); // Adjusted line // Modifies this.Radius
-            var expectedProcessShape = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(61, 17, 61, 29).WithArguments("ProcessShape"); // Adjusted line // Calls impure SetRadius
-            var expectedCalculateAndScale = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(67, 19, 67, 36).WithArguments("CalculateAndScale"); // Adjusted line // Calls impure Scale
+            var expectedScaleShape = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(20, 25, 20, 30).WithArguments("Scale");
+            var expectedGetRadius = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(28, 19, 28, 25).WithArguments("get_Radius");
+            var expectedCtorCircle = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(32, 12, 32, 18).WithArguments(".ctor");
+            var expectedScaleCircle = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(41, 26, 41, 31).WithArguments("Scale");
+            var expectedSetRadiusCircle = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(47, 17, 47, 26).WithArguments("SetRadius");
+            var expectedProcessShape = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(61, 17, 61, 29).WithArguments("ProcessShape");
+            var expectedCalculateAndScale = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(67, 19, 67, 36).WithArguments("CalculateAndScale");
 
             await VerifyCS.VerifyAnalyzerAsync(test,
                                              expectedGetId,
@@ -116,13 +116,13 @@ public class TestClass
                                              expectedSetRadiusCircle,
                                              expectedProcessShape,
                                              expectedCalculateAndScale
-                                             ); // Expect 8 diagnostics now
+                                             );
         }
 
         [Test]
         public async Task ImpureMethodCall_Diagnostic()
         {
-            // This test passed previously with these explicit expectations.
+
             var test = @"
 using PurelySharp.Attributes;
 
@@ -147,11 +147,11 @@ public class TestClass
     }
 }
 ";
-            // Corrected based on runner output: Expect 4 diagnostics
-            var expectedSetName = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(7, 19, 7, 23).WithArguments("set_Name"); // PS0002
-            var expectedGetName = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(7, 19, 7, 23).WithArguments("get_Name"); // PS0004
-            var expectedConfigure = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(10, 17, 10, 26).WithArguments("Configure"); // PS0002
-            var expectedImpureMethodCall = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(19, 17, 19, 33).WithArguments("ImpureMethodCall");// PS0002
+
+            var expectedSetName = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(7, 19, 7, 23).WithArguments("set_Name");
+            var expectedGetName = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(7, 19, 7, 23).WithArguments("get_Name");
+            var expectedConfigure = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(10, 17, 10, 26).WithArguments("Configure");
+            var expectedImpureMethodCall = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(19, 17, 19, 33).WithArguments("ImpureMethodCall");
 
             await VerifyCS.VerifyAnalyzerAsync(test,
                                              expectedSetName,

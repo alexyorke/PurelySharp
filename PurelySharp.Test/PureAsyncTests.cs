@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -13,7 +13,7 @@ namespace PurelySharp.Test
     [TestFixture]
     public class PureAsyncTests
     {
-        // Helper minimal attribute for tests that define it inline
+
         private const string MinimalEnforcePureAttributeSource = @"
 [System.AttributeUsage(System.AttributeTargets.Method | System.AttributeTargets.Constructor | System.AttributeTargets.Class | System.AttributeTargets.Struct | System.AttributeTargets.Interface)]
 public sealed class EnforcePureAttribute : System.Attribute { }";
@@ -36,7 +36,7 @@ public class TestClass
     }
 }";
 
-            // Expect no diagnostics
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -61,9 +61,9 @@ class Program
         return _counter;
     }
 }";
-            // Expect diagnostic on the method signature (fallback)
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                    .WithSpan(11, 28, 11, 45) // Reverted end column back to 45
+                                    .WithSpan(11, 28, 11, 45)
                                     .WithArguments("ImpureAsyncMethod");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
@@ -95,11 +95,11 @@ class TestClass
     }
 }
 ";
-            // UPDATED: Expect PS0002 as impurity (Task.Delay, field write) is now detected
-            // var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-            //                       .WithSpan(15, 23, 15, 33)
-            //                       .WithArguments("TestMethod"); // Analyzer currently doesn't report this for async void
-            await VerifyCS.VerifyAnalyzerAsync(test); // Expect 0 diagnostics based on current behavior
+
+
+
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
@@ -128,11 +128,11 @@ class TestClass
     }
 }
 ";
-            // UPDATED: Expect PS0002 as impurity (field write) is now detected
-            // var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-            //                       .WithSpan(15, 23, 15, 33)
-            //                       .WithArguments("TestMethod"); // Analyzer currently doesn't report this for this async case
-            await VerifyCS.VerifyAnalyzerAsync(test); // Expect 0 diagnostics based on current behavior
+
+
+
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
@@ -169,16 +169,16 @@ class TestClass
     }
 }
 ";
-            // Test verifies the current analyzer limitation: Impurity from the called
-            // async local function ImpureLocalAsync is not currently propagated to OuterMethod.
-            // UPDATED: Expect PS0002 on both OuterMethod and ImpureLocalAsync
-            // var expectedOuter = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-            //                            .WithSpan(15, 23, 15, 34)
-            //                            .WithArguments("OuterMethod"); // Analyzer currently doesn't report these for this async case
-            // var expectedLocal = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-            //                            .WithSpan(24, 20, 24, 36)
-            //                            .WithArguments("ImpureLocalAsync");
-            await VerifyCS.VerifyAnalyzerAsync(test); // Expect 0 diagnostics based on current behavior
+
+
+
+
+
+
+
+
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }
 }

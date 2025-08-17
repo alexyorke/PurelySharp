@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -36,7 +36,7 @@ public class TestClass
             .Sum();
     }
 }";
-            // Expect no diagnostic (LINQ methods seem pure now)
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -60,7 +60,7 @@ public class TestClass
         return Math.Max(a, Math.Min(b, c)); // Pure
     }
 }";
-            // Expect no diagnostic now
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -82,8 +82,8 @@ public class TestClass
         return Math.Sin(x);
     }
 }";
-            // Expect no diagnostic as Math.Sin is pure
-            await VerifyCS.VerifyAnalyzerAsync(test); // Removed diagnostic expectation
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
@@ -104,7 +104,7 @@ public class TestClass
         return Math.PI;
     }
 }";
-            // Expect no diagnostic now
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -153,7 +153,7 @@ public class TestClass
             .Average();
     }
 }";
-            // Expect no diagnostic (LINQ methods seem pure now)
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -179,7 +179,7 @@ public class TestClass
                      .OrderBy(x => x);
     }
 }";
-            // Expect no diagnostic (lazy LINQ seems pure now)
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }

@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using NUnit.Framework;
 using System.Threading.Tasks;
 using PurelySharp.Analyzer;
@@ -31,13 +31,13 @@ public class TestClass
         }
     }
 }";
-            // Expect diagnostic on the method signature due to impure call inside
+
             var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                 .WithSpan(9, 17, 9, 27) // Span of TestMethod identifier
+                                 .WithSpan(9, 17, 9, 27)
                                  .WithArguments("TestMethod");
 
-            // REMOVED expectedPS0004 as FileStream.Dispose does not trigger it.
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedPS0002); // Pass only PS0002
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedPS0002);
         }
 
         [Test]
@@ -57,13 +57,13 @@ public class TestClass
         // Some operation
     }
 }";
-            // Expect diagnostic on the method signature due to impure call inside
+
             var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                 .WithSpan(9, 17, 9, 27) // Span of TestMethod identifier
+                                 .WithSpan(9, 17, 9, 27)
                                  .WithArguments("TestMethod");
 
-            // REMOVED expectedPS0004 as FileStream.Dispose does not trigger it.
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedPS0002); // Pass only PS0002
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedPS0002);
         }
 
         [Test]
@@ -87,9 +87,9 @@ public class PureDisposable : IDisposable
     // Dispose is implicitly pure (empty body)
     public void Dispose() { }
 }";
-            // Expect PS0004 because Dispose() is pure but lacks [EnforcePure].
+
             var expectedPS0004 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                    .WithSpan(17, 17, 17, 24) // Span of Dispose identifier
+                                    .WithSpan(17, 17, 17, 24)
                                     .WithArguments("Dispose");
             await VerifyCS.VerifyAnalyzerAsync(code, expectedPS0004);
         }
@@ -120,19 +120,19 @@ public class PureDisposable : IDisposable
     // Dispose is implicitly pure (empty body)
     public void Dispose() { }
 }";
-            // Expect PS0002 because the using statement implicitly calls Dispose, which might be impure.
-            // This diagnostic should appear on TestMethod because the purity of Dispose isn't guaranteed by an attribute.
-            // --- UPDATE: Removing this expectation as the test output shows it's not generated.
-            // var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
-            //                           .WithSpan(9, 17, 9, 27) // Span of TestMethod identifier in this test string
-            //                           .WithArguments("TestMethod");
 
-            // Also expect PS0004 because Dispose() itself is pure but lacks [EnforcePure]
+
+
+
+
+
+
+
             var expectedPS0004 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                        .WithSpan(22, 17, 22, 24) // CORRECTED Span for Dispose (line 22 in this test string)
+                                        .WithSpan(22, 17, 22, 24)
                                         .WithArguments("Dispose");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, /* expectedPS0002, */ expectedPS0004); // Pass only expected PS0004
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedPS0004);
         }
     }
 }

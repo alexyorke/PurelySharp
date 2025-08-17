@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -7,9 +7,7 @@ using PurelySharp.Analyzer.Engine;
 
 namespace PurelySharp.Analyzer.Engine.Rules
 {
-    /// <summary>
-    /// Analyzes the purity of array initializer operations.
-    /// </summary>
+
     internal class ArrayInitializerPurityRule : IPurityRule
     {
         public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.ArrayInitializer);
@@ -24,11 +22,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             PurityAnalysisEngine.LogDebug($"ArrayInitializerRule: Analyzing {arrayInitializer.Syntax}");
 
-            // Assume the array initializer operation itself is pure.
-            // The purity of the *elements* within the initializer
-            // should be determined by the rules analyzing the operations that compute those elements.
 
-            // Check purity of each element initializer
+
+
+
+
             foreach (var elementValue in arrayInitializer.ElementValues)
             {
                 var elementResult = PurityAnalysisEngine.CheckSingleOperation(elementValue, context, currentState);
@@ -43,6 +41,6 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
         }
 
-        // Removed IsElementConsideredPure helper as element analysis is deferred to other rules.
+
     }
 }

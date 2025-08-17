@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using PurelySharp.Analyzer;
@@ -8,7 +8,7 @@ using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<PurelySharp.Analyzer.Pu
 namespace PurelySharp.Test
 {
     [TestFixture]
-    public class ConstructorTests2 // Renamed class
+    public class ConstructorTests2
     {
         [Test]
         public async Task PureConstructor_ImpureDiagnostic()
@@ -51,12 +51,12 @@ public class TestClass
         Console.WriteLine($""Initialized with: {startValue}"");
     }
 }";
-            // await VerifyCS.VerifyAnalyzerAsync(
-            //     test,
-            //     VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-            //         .WithSpan(9, 12, 9, 21)
-            //         .WithArguments(".ctor")
-            // ); // Correct: Expect 0 as constructor is not marked
+
+
+
+
+
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -76,10 +76,10 @@ public class TestClass
         _counter = startValue;
     }
 }";
-            // This test was named "ImpureDiagnostic" but the operation is pure for a constructor.
-            // If it's pure and unmarked, it *should* get PS0004.
-            // The previous runs did not list this as failing with "Expected X, got 0", implying it passed or failed differently.
-            // For now, assuming the original PS0004 expectation was what the test intended for a *pure* unmarked ctor.
+
+
+
+
             await VerifyCS.VerifyAnalyzerAsync(
                 test,
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
@@ -104,12 +104,12 @@ public class TestClass
         _instanceCount++;
     }
 }";
-            // await VerifyCS.VerifyAnalyzerAsync(
-            //     test,
-            //     VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-            //         .WithSpan(9, 12, 9, 21)
-            //         .WithArguments(".ctor")
-            // ); // Correct: Expect 0 as constructor is not marked
+
+
+
+
+
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -130,12 +130,12 @@ public class TestClass
         _items = new List<int> { 1, 2, 3 };
     }
 }";
-            // await VerifyCS.VerifyAnalyzerAsync(
-            //     test,
-            //     VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-            //         .WithSpan(10, 12, 10, 21)
-            //         .WithArguments(".ctor")
-            // ); // Correct: Expect 0 as constructor is not marked
+
+
+
+
+
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -161,15 +161,15 @@ public class TestClass
         Console.WriteLine($""Initialized with: {value}"");
     }
 }";
-            // await VerifyCS.VerifyAnalyzerAsync(
-            //     test,
-            //     VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-            //         .WithSpan(9, 12, 9, 21)
-            //         .WithArguments(".ctor"),
-            //     VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-            //         .WithSpan(15, 18, 15, 35)
-            //         .WithArguments("LogInitialization")
-            // ); // Correct: Expect 0 as methods are not marked
+
+
+
+
+
+
+
+
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -226,13 +226,13 @@ public record Person // PS0004 expected for .ctor, get_Name, get_Age
             await VerifyCS.VerifyAnalyzerAsync(
                 test,
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                    .WithSpan(7, 12, 7, 18) // Span for Person constructor
+                    .WithSpan(7, 12, 7, 18)
                     .WithArguments(".ctor"),
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                    .WithSpan(13, 19, 13, 23) // Span for get_Name
+                    .WithSpan(13, 19, 13, 23)
                     .WithArguments("get_Name"),
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                    .WithSpan(14, 16, 14, 19) // Span for get_Age
+                    .WithSpan(14, 16, 14, 19)
                     .WithArguments("get_Age")
             );
         }
@@ -282,15 +282,15 @@ public class DerivedClass : BaseClass // PS0002 expected for DerivedClass..ctor 
 {
     public DerivedClass(int value) : base(value) { }
 }";
-            // await VerifyCS.VerifyAnalyzerAsync(
-            //     test,
-            //     VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-            //         .WithSpan(7, 15, 7, 24) // BaseClass..ctor
-            //         .WithArguments(".ctor"),
-            //     VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-            //         .WithSpan(15, 12, 15, 24) // DerivedClass..ctor
-            //         .WithArguments(".ctor")
-            // ); // Correct: Expect 0 as constructors are not marked
+
+
+
+
+
+
+
+
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -318,10 +318,10 @@ public class DerivedClass : BaseClass // PS0004 expected for DerivedClass..ctor
             await VerifyCS.VerifyAnalyzerAsync(
                 test,
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                    .WithSpan(9, 15, 9, 24) // BaseClass..ctor
+                    .WithSpan(9, 15, 9, 24)
                     .WithArguments(".ctor"),
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                    .WithSpan(17, 12, 17, 24) // DerivedClass..ctor
+                    .WithSpan(17, 12, 17, 24)
                     .WithArguments(".ctor")
             );
         }

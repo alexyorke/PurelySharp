@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -43,7 +43,7 @@ public class TestClass
         return GetPropertyName(() => new MyModel().Name);
     }
 }";
-            // Expect PS0004 for property accessors and PS0002 for methods (4 total)
+
             var expectedGetName = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 20, 11, 24).WithArguments("get_Name");
             var expectedGetProp = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(17, 19, 17, 34).WithArguments("GetPropertyName");
             var expectedGetNameProp = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(25, 19, 25, 38).WithArguments("GetNamePropertyName");
@@ -70,7 +70,7 @@ namespace TestNamespace
         }
     }
 }";
-            // Expect PS0002 for GetTypeName
+
             await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(10, 23, 10, 34).WithArguments("GetTypeName"));
         }
 
@@ -93,7 +93,7 @@ namespace TestNamespace
         }
     }
 }";
-            // Expect PS0002 for GetParameterName
+
             await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(10, 23, 10, 39).WithArguments("GetParameterName"));
         }
 
@@ -117,7 +117,7 @@ public class TestClass
         return nameof(LocalFunction);
     }
 }";
-            // Expect PS0004 for GetInfo and PS0002 for GetFunctionInfo and LocalFunction (3 total)
+
             var expectedGetInfo = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(7, 27, 7, 34).WithArguments("GetInfo");
             var expectedGetFunctionInfo = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(10, 19, 10, 34).WithArguments("GetFunctionInfo");
             var expectedLocalFunction = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(13, 16, 13, 29).WithArguments("LocalFunction");
@@ -147,7 +147,7 @@ namespace TestNamespace
     }
 }";
 
-            // Expect PS0002 for GetLambdaName
+
             await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(10, 23, 10, 36).WithArguments("GetLambdaName"));
         }
 
@@ -174,7 +174,7 @@ namespace TestNamespace
         }
     }
 }";
-            // Expect PS0002 for GetRangeVariableNames
+
             await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(12, 29, 12, 50).WithArguments("GetRangeVariableNames"));
         }
 
@@ -202,7 +202,7 @@ namespace TestNamespace
         }
     }
 }";
-            // Expect PS0002 for GetPatternVariableName
+
             await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(10, 23, 10, 45).WithArguments("GetPatternVariableName"));
         }
 
@@ -233,7 +233,7 @@ namespace TestNamespace
 }
 ";
 
-            // Expect PS0002 for LogParameterName
+
             await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(13, 21, 13, 37).WithArguments("LogParameterName"));
         }
     }

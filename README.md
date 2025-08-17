@@ -1,4 +1,4 @@
-# PurelySharp Analyzer
+﻿# PurelySharp Analyzer
 
 A Roslyn analyzer designed to help enforce method purity in C# projects.
 

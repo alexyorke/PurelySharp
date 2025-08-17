@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis.Testing;
+﻿using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
 using PurelySharp.Analyzer;
@@ -45,7 +45,7 @@ public class Usage
     }
 }
 ";
-            // All implementations and usages are pure
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -84,15 +84,15 @@ public class Service
     }
 }
 ";
-            // Expect diagnostic on ConsoleLogger.Log and PS0004 on Service.ctor (based on runner output)
+
             var expectedLog = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                      .WithSpan(14, 17, 14, 20) // Span of 'Log' in ConsoleLogger
+                                      .WithSpan(14, 17, 14, 20)
                                       .WithArguments("Log");
-            // var expectedDoWork = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId) // Removed based on output
-            //                       .WithSpan(26, 17, 26, 23) // Span of 'DoWork' in Service
-            //                       .WithArguments("DoWork");
+
+
+
             var expectedCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                     .WithSpan(23, 12, 23, 19) // Span of Service .ctor
+                                     .WithSpan(23, 12, 23, 19)
                                      .WithArguments(".ctor");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expectedLog, expectedCtor);

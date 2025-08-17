@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis.Testing;
+﻿using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
 using PurelySharp.Analyzer;
@@ -67,7 +67,7 @@ public class TestManager
     }
 }
 ";
-            // Expect 9 PS0004 warnings based on runner output
+
             var expectedGetDeviceIdProp = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(7, 17, 7, 25).WithArguments("get_DeviceId");
             var expectedCtorDevice = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(8, 15, 8, 21).WithArguments(".ctor");
             var expectedGetDeviceIdMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(11, 17, 11, 28).WithArguments("GetDeviceId");
@@ -174,19 +174,19 @@ public class TestUsage
      }
 }
 ";
-            // Corrected span for LogStatus to line 23.
+
             var expected = new[]
             {
-                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(23, 17, 23, 26).WithArguments("LogStatus"), // LogStatus (Impure Console) - CORRECTED Line 23
-                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(49, 25, 49, 32).WithArguments("Process"), // AddingProcessor.Process (State change) - CORRECTED Line 49
-                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(57, 28, 57, 34).WithArguments("Format"), // AddingProcessor.Format (Impure Console) - CORRECTED Line 57
-                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(75, 18, 75, 38).WithArguments("UseProcessorImpurely"), // UseProcessorImpurely (Calls impure LogStatus) - CORRECTED Line 75
+                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(23, 17, 23, 26).WithArguments("LogStatus"),
+                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(49, 25, 49, 32).WithArguments("Process"),
+                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(57, 28, 57, 34).WithArguments("Format"),
+                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(75, 18, 75, 38).WithArguments("UseProcessorImpurely"),
             };
 
-            // await VerifyCS.VerifyAnalyzerAsync(testCode, expected);
-            // Add expectation for PS0004 on get_Name
+
+
             var expectedGetName = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(7, 28, 7, 32).WithArguments("get_Name");
-            await VerifyCS.VerifyAnalyzerAsync(testCode, expected.Append(expectedGetName).ToArray()); // Now expect 5
+            await VerifyCS.VerifyAnalyzerAsync(testCode, expected.Append(expectedGetName).ToArray());
         }
     }
 }

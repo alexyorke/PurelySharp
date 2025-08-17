@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -18,7 +18,7 @@ namespace PurelySharp.Test
     [TestFixture]
     public class RecordStructTests
     {
-        // Note: These tests require C# 10+
+
 
         [Test]
         public async Task PureRecordStruct_NoDiagnostic()
@@ -50,7 +50,7 @@ public record struct Point
     public Point WithY(double newY) => this with { Y = newY };
 }";
 
-            // Create and configure Test object
+
             var verifierTest = new VerifyCS.Test
             {
                 TestCode = test,
@@ -61,7 +61,7 @@ public record struct Point
                  }
             };
 
-            // Expect PS0004 on the init accessors for X and Y
+
             verifierTest.ExpectedDiagnostics.Add(VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(10, 19, 10, 20).WithArguments("get_X"));
             verifierTest.ExpectedDiagnostics.Add(VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(11, 19, 11, 20).WithArguments("get_Y"));
             await verifierTest.RunAsync();
@@ -95,7 +95,7 @@ public readonly record struct Temperature(double Celsius)
     }
 }";
 
-            // Create and configure Test object
+
             var verifierTest = new VerifyCS.Test
             {
                 TestCode = test,
@@ -141,15 +141,15 @@ public record struct Counter
     }
 }";
 
-            // Explicitly define expected diagnostics on method identifiers
+
             var expected1 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                    .WithSpan(17, 23, 17, 39) // Updated Span for GetInstanceCount
+                                    .WithSpan(17, 23, 17, 39)
                                     .WithArguments("GetInstanceCount");
             var expected2 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                    .WithSpan(23, 20, 23, 29) // Updated Span for Increment again
+                                    .WithSpan(23, 20, 23, 29)
                                     .WithArguments("Increment");
 
-            // Create and configure Test object
+
             var verifierTest = new VerifyCS.Test
             {
                 TestCode = test,
@@ -158,13 +158,13 @@ public record struct Counter
                     (solution, projectId) =>
                         solution.AddMetadataReference(projectId, MetadataReference.CreateFromFile(typeof(EnforcePureAttribute).Assembly.Location))
                  },
-                //ExpectedDiagnostics = { expected1, expected2 } // ADDED explicit diagnostics
+
             };
 
-            // Add expectations for PS0004 on getter and PS0002 on constructors
+
             verifierTest.ExpectedDiagnostics.Add(VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(11, 16, 11, 21).WithArguments("get_Value"));
-            verifierTest.ExpectedDiagnostics.Add(expected1); // GetInstanceCount PS0002
-            verifierTest.ExpectedDiagnostics.Add(expected2); // Increment PS0002
+            verifierTest.ExpectedDiagnostics.Add(expected1);
+            verifierTest.ExpectedDiagnostics.Add(expected2);
 
             await verifierTest.RunAsync();
         }
@@ -172,9 +172,9 @@ public record struct Counter
         [Test]
         public async Task RecordStructWithImmutableList_NoDiagnostic()
         {
-            // Expectation limitation: Analyzer may not flag direct property assignment 
-            // (e.g., `Tags = Tags.Add(tag);`) within a record struct method as impure,
-            // even though it modifies the current instance's state.
+
+
+
             var code = @$"
 using PurelySharp.Attributes;
 using System.Collections.Immutable;
@@ -212,7 +212,7 @@ public record struct CacheEntry(int Id, ImmutableList<string> Tags)
         return this with {{ Tags = Tags.Add(tag) }};
     }}
 }}";
-            // Now expect PS0002 for AddTag AND WithTag based on current analyzer behavior.
+
             var expectedAddTag = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
                                        .WithSpan(9, 23, 9, 29).WithArguments("AddTag");
             var expectedWithTag = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
@@ -238,7 +238,7 @@ public record struct CacheEntry(int Id, ImmutableList<string> Tags)
             }
         }
         """;
-            // The method is pure (parameter + constant), so no diagnostic expected.
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -263,11 +263,11 @@ public record struct CacheEntry(int Id, ImmutableList<string> Tags)
             public int GetCount() => _count;
         }
         """;
-            // Expect PS0002 because Increment modifies struct state
+
             var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(9, 17, 9, 26) // Updated span to method identifier
+                                   .WithSpan(9, 17, 9, 26)
                                    .WithArguments("Increment");
-            // Expect PS0004 because GetCount is pure but not marked
+
             var expectedPS0004 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
                                    .WithSpan(15, 16, 15, 24)
                                    .WithArguments("GetCount");
@@ -307,19 +307,19 @@ public class Usage
 }
 ";
 
-            // Create and configure Test object, similar to other tests in this file
+
             var verifierTest = new VerifyCS.Test
             {
                 TestCode = test,
-                ReferenceAssemblies = ReferenceAssemblies.Net.Net80, // Assuming .NET 8 based on other tests
+                ReferenceAssemblies = ReferenceAssemblies.Net.Net80,
                 SolutionTransforms = {
                     (solution, projectId) =>
                         solution.AddMetadataReference(projectId, MetadataReference.CreateFromFile(typeof(EnforcePureAttribute).Assembly.Location))
                  }
             };
 
-            // Expect no diagnostics
-            // Expect PS0004 on the constructor and auto-getters as they are pure but not marked [EnforcePure]
+
+
             verifierTest.ExpectedDiagnostics.Add(VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(15, 16, 15, 17).WithArguments("get_X"));
             verifierTest.ExpectedDiagnostics.Add(VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(16, 16, 16, 17).WithArguments("get_Y"));
             await verifierTest.RunAsync();

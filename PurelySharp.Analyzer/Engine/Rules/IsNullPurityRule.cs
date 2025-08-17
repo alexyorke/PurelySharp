@@ -1,18 +1,16 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using static PurelySharp.Analyzer.Engine.PurityAnalysisEngine; // Use static using
+using static PurelySharp.Analyzer.Engine.PurityAnalysisEngine;
 
 namespace PurelySharp.Analyzer.Engine.Rules
 {
-    /// <summary>
-    /// Checks the purity of IsNull operations (e.g., 'x is null').
-    /// </summary>
+
     internal class IsNullPurityRule : IPurityRule
     {
         public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(
-            OperationKind.Binary // Check for == null or != null
+            OperationKind.Binary
             );
 
         public PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisState currentState)
@@ -45,8 +43,8 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 }
             }
 
-            // If not the specific binary null check pattern, assume pure for this rule
-            // and let other rules handle the operation.
+
+
             return PurityAnalysisResult.Pure;
         }
 

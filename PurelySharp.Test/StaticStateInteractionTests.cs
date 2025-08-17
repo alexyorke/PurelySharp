@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis.Testing;
+﻿using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
 using PurelySharp.Analyzer;
@@ -15,9 +15,9 @@ namespace PurelySharp.Test
         [Test]
         public async Task InteractionWithStaticState_Diagnostic()
         {
-            // Analyzer flags methods modifying static state (Increment, Reset)
-            // and methods calling impure methods (UseCounter)
-            // and methods reading mutable static state (GetCount, GetCurrentCountPurely)
+
+
+
             var test = @"
 using PurelySharp.Attributes;
 
@@ -61,21 +61,21 @@ public class TestClass
     }
 }
 ";
-            // Expect diagnostics for the 5 marked methods
+
             var expectedIncrement = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                           .WithSpan(9, 23, 9, 32) // Adjusted Span (+1 line)
+                                           .WithSpan(9, 23, 9, 32)
                                            .WithArguments("Increment");
             var expectedGetCount = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                          .WithSpan(16, 23, 16, 31) // Adjusted Span (+1 line)
+                                          .WithSpan(16, 23, 16, 31)
                                           .WithArguments("GetCount");
             var expectedReset = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                       .WithSpan(22, 24, 22, 29) // Adjusted Span (+1 line)
+                                       .WithSpan(22, 24, 22, 29)
                                        .WithArguments("Reset");
             var expectedUseCounter = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                            .WithSpan(31, 16, 31, 26) // Adjusted Span (+1 line)
+                                            .WithSpan(31, 16, 31, 26)
                                             .WithArguments("UseCounter");
             var expectedGetCurrentCountPurely = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                                        .WithSpan(38, 16, 38, 37) // Adjusted Span (+1 line)
+                                                        .WithSpan(38, 16, 38, 37)
                                                         .WithArguments("GetCurrentCountPurely");
 
             await VerifyCS.VerifyAnalyzerAsync(test,
@@ -127,18 +127,18 @@ public class Calculator
     }
 }
 ";
-            // Expect diagnostics on:
-            // 1. MathUtils.LogCalculation (due to Console.WriteLine)
-            // 2. Calculator.CalculatePure (due to _lastResult assignment)
-            // 3. Calculator.CalculateAndLog (calls LogCalculation and assigns _lastResult)
+
+
+
+
             var expectedLogCalculation = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                                 .WithSpan(11, 24, 11, 38) // Span of 'LogCalculation' in MathUtils
+                                                 .WithSpan(11, 24, 11, 38)
                                                  .WithArguments("LogCalculation");
             var expectedCalculatePure = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                                .WithSpan(22, 16, 22, 29) // Span of 'CalculatePure' in Calculator
+                                                .WithSpan(22, 16, 22, 29)
                                                 .WithArguments("CalculatePure");
             var expectedCalculateAndLog = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                                  .WithSpan(30, 16, 30, 31) // Span of 'CalculateAndLog' in Calculator
+                                                  .WithSpan(30, 16, 30, 31)
                                                   .WithArguments("CalculateAndLog");
 
 

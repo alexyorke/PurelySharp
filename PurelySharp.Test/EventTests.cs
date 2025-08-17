@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using PurelySharp.Analyzer;
@@ -13,7 +13,7 @@ namespace PurelySharp.Test
         [Test]
         public async Task PureMethodWithEvent_NoDiagnostic()
         {
-            // Expectation limitation: Analyzer incorrectly flags reading an event field as impure.
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -34,12 +34,12 @@ public class TestClass
         // Method doesn't interact with the event, so it's still pure
     }
 }";
-            // ADDED: Expect PS0002 because analyzer flags event reference as impure
+
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                 .WithSpan(13, 17, 13, 27) // Span of TestMethod identifier
+                                 .WithSpan(13, 17, 13, 27)
                                  .WithArguments("TestMethod");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expected); // Added expected diagnostic
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -62,8 +62,8 @@ public class TestClass
 }
 ";
 
-            // Expect PS0002 because event subscription/unsubscription modifies state,
-            // and the analyzer may not have a specific rule, falling back to unverified.
+
+
             var expectedDiagnostic = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(10, 17, 10, 27).WithArguments("TestMethod");
 
             await VerifyCS.VerifyAnalyzerAsync(testCode, expectedDiagnostic);
@@ -97,10 +97,10 @@ public class TestClass : EventSource
         Console.WriteLine(""Event handled"");
     }
 }";
-            // Expect PS0002 on TestMethod and override OnTestEvent. Base OnTestEvent is not marked.
-            // var expectedOnTestEventBase = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(9, 28, 9, 39).WithArguments("OnTestEvent"); // Removed: Not marked
+
+
             var expectedTestMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(15, 17, 15, 27).WithArguments("TestMethod");
-            var expectedOnTestEventOverride = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(21, 29, 21, 40).WithArguments("OnTestEvent"); // Updated span
+            var expectedOnTestEventOverride = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(21, 29, 21, 40).WithArguments("OnTestEvent");
 
             await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedTestMethod, expectedOnTestEventOverride });
         }

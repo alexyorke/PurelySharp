@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using PurelySharp.Analyzer;
@@ -13,8 +13,8 @@ namespace PurelySharp.Test
         [Test]
         public async Task PureMethodWithExceptionHandling_NoDiagnostic()
         {
-            // Expectation limitation: Analyzer fails to detect impurity from 'throw'
-            // statements within a try block and ignores catch block contents.
+
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -45,16 +45,16 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
         public async Task PureMethodWithExceptionHandlingAndImpureOperation_Diagnostic()
         {
-            // Expectation limitation: Analyzer fails to detect impurity from 'throw'
-            // statements within a try block and also fails to detect impure operations
-            // (e.g., Console.WriteLine) within a catch block.
+
+
+
             var test = @"
 using System;
 using PurelySharp.Attributes;
@@ -84,7 +84,7 @@ public class TestClass
     }
 }";
 
-            // Diagnostics are now inline
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }

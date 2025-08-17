@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -47,7 +47,7 @@ public class TestClass
     }
 }
 ";
-            // Reverted: Expect 0 diagnostics now
+
             await VerifyCS.VerifyAnalyzerAsync(code);
         }
 
@@ -76,12 +76,12 @@ public class TestClass
     }
 }
 ";
-            // TestMethod is pure and marked. Main is pure and not marked.
-            // var expectedMain = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(11, 24, 11, 28).WithArguments("Main"); // Removed: Main is not marked
+
+
             await VerifyCS.VerifyAnalyzerAsync(code);
         }
 
-        // Expectation limitation: analyzer currently does not report missing enforce-pure-attribute diagnostic (PS0004) for pure helper methods lacking [EnforcePure].
+
         [Test]
         public async Task PureMethodWithNestedInParameter_NoDiagnostic()
         {
@@ -103,7 +103,7 @@ public class TestClass
     }
 }
 ";
-            // UPDATED: Expect PS0004 on Add
+
             var expectedAdd = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(13, 16, 13, 19).WithArguments("Add");
             await VerifyCS.VerifyAnalyzerAsync(test, expectedAdd);
         }
@@ -127,7 +127,7 @@ public class TestClass
     }
 }";
 
-            // REMOVED explicit diagnostic definition
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
@@ -150,7 +150,7 @@ public class TestClass
     }
 }";
 
-            // PS0002 added inline. CompilerError CS8331 must remain explicit.
+
             await VerifyCS.VerifyAnalyzerAsync(test,
                 DiagnosticResult.CompilerError("CS8331").WithLocation(0).WithArguments("variable", "x")
             );

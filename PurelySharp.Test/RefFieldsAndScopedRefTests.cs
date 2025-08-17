@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -14,14 +14,14 @@ namespace PurelySharp.Test
     [TestFixture]
     public class RefFieldsAndScopedRefTests
     {
-        // Minimal attribute definition (using verbatim string)
+
         private const string MinimalEnforcePureAttributeSource = @"
 namespace PurelySharp.Attributes
 {
     [System.AttributeUsage(System.AttributeTargets.All)]
     public sealed class EnforcePureAttribute : System.Attribute { }
 }
-"; // Close verbatim string
+";
 
         [Test]
         public async Task ScopedRef_PureMethod_NoDiagnostic()
@@ -44,7 +44,7 @@ namespace TestNamespace
         }
     }
 }
-" + MinimalEnforcePureAttributeSource; // Append attribute source
+" + MinimalEnforcePureAttributeSource;
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
@@ -70,9 +70,9 @@ namespace TestNamespace
         }
     }
 }
-" + MinimalEnforcePureAttributeSource; // Append attribute source
+" + MinimalEnforcePureAttributeSource;
 
-            // Expect diagnostic on the method definition (1 diagnostic)
+
             var expected = new[] {
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(12, 21, 12, 32).WithArguments("ModifyValue"),
             };
@@ -105,7 +105,7 @@ namespace TestNamespace
         }
     }
 }
-" + MinimalEnforcePureAttributeSource; // Append attribute source
+" + MinimalEnforcePureAttributeSource;
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
@@ -131,9 +131,9 @@ namespace TestNamespace
         }
     }
 }
-" + MinimalEnforcePureAttributeSource; // Append attribute source
+" + MinimalEnforcePureAttributeSource;
 
-            // Expect diagnostic on the method definition (1 diagnostic)
+
             var expected = new[]
             {
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(12, 21, 12, 32).WithArguments("ModifyArray"),
@@ -164,9 +164,9 @@ namespace TestNamespace
         }
     }
 }
-" + MinimalEnforcePureAttributeSource; // Append attribute source
+" + MinimalEnforcePureAttributeSource;
 
-            // Expect diagnostic on the method definition (1 diagnostic)
+
             var expected = new[] {
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(12, 21, 12, 33).WithArguments("AssignValues"),
             };

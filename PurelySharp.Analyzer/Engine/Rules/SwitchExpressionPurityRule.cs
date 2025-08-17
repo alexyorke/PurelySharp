@@ -1,15 +1,13 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using Microsoft.CodeAnalysis.CSharp; // Added for SyntaxKind
-using Microsoft.CodeAnalysis.CSharp.Syntax; // Added for Increment/DecrementExpressionSyntax
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace PurelySharp.Analyzer.Engine.Rules
 {
-    /// <summary>
-    /// Analyzes the purity of switch expressions.
-    /// </summary>
+
     internal class SwitchExpressionPurityRule : IPurityRule
     {
         public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.SwitchExpression);
@@ -24,7 +22,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             PurityAnalysisEngine.LogDebug($"  [SwitchExprRule] Checking Switch Expression: {switchExpression.Syntax}");
 
-            // 1. Check the expression being switched on
+
             var valueResult = PurityAnalysisEngine.CheckSingleOperation(switchExpression.Value, context, currentState);
             if (!valueResult.IsPure)
             {
@@ -32,12 +30,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return valueResult;
             }
 
-            // 2. Check all switch expression arms
+
             foreach (var arm in switchExpression.Arms)
             {
                 PurityAnalysisEngine.LogDebug($"    [SwitchExprRule] Checking Arm: {arm.Syntax}");
 
-                // Check pattern (if any)
+
                 if (arm.Pattern != null)
                 {
                     PurityAnalysisEngine.LogDebug($"      [SwitchExprRule.Arm] Checking Pattern: {arm.Pattern.Syntax} ({arm.Pattern.Kind})");
@@ -49,7 +47,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     }
                 }
 
-                // Check guard (when clause, if any)
+
                 if (arm.Guard != null)
                 {
                     PurityAnalysisEngine.LogDebug($"      [SwitchExprRule.Arm] Checking Guard: {arm.Guard.Syntax} ({arm.Guard.Kind})");
@@ -61,7 +59,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     }
                 }
 
-                // Check the expression value of the arm
+
                 PurityAnalysisEngine.LogDebug($"      [SwitchExprRule.Arm] Checking Value: {arm.Value.Syntax} ({arm.Value.Kind})");
                 var armValueResult = PurityAnalysisEngine.CheckSingleOperation(arm.Value, context, currentState);
                 if (!armValueResult.IsPure)
