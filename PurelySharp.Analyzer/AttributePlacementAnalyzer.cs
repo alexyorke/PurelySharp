@@ -4,7 +4,6 @@ using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-using PurelySharp.Attributes;
 
 namespace PurelySharp.Analyzer
 {
@@ -12,8 +11,8 @@ namespace PurelySharp.Analyzer
     {
         internal static void AnalyzeNonMethodDeclaration(SyntaxNodeAnalysisContext context)
         {
-            var enforcePureAttributeSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName(typeof(EnforcePureAttribute).FullName);
-            var pureAttributeSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName(typeof(PureAttribute).FullName);
+            var enforcePureAttributeSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("PurelySharp.Attributes.EnforcePureAttribute");
+            var pureAttributeSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("PurelySharp.Attributes.PureAttribute");
 
             if (enforcePureAttributeSymbol == null && pureAttributeSymbol == null)
             {

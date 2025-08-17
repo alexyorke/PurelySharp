@@ -4,7 +4,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-using PurelySharp.Attributes;
 using System.Collections.Generic;
 using PurelySharp.Analyzer.Engine;
 
@@ -31,8 +30,8 @@ namespace PurelySharp.Analyzer
             }
 
 
-            var enforcePureAttributeSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName(typeof(EnforcePureAttribute).FullName);
-            var pureAttributeSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName(typeof(PureAttribute).FullName);
+            var enforcePureAttributeSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("PurelySharp.Attributes.EnforcePureAttribute");
+            var pureAttributeSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("PurelySharp.Attributes.PureAttribute");
 
             if (enforcePureAttributeSymbol == null && pureAttributeSymbol == null)
             {
@@ -40,7 +39,7 @@ namespace PurelySharp.Analyzer
             }
 
 
-            var allowSynchronizationAttributeSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName(typeof(AllowSynchronizationAttribute).FullName);
+            var allowSynchronizationAttributeSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("PurelySharp.Attributes.AllowSynchronizationAttribute");
 
 
             bool hasPurityEnforcementAttribute = HasPurityEnforcement(methodSymbol, enforcePureAttributeSymbol, pureAttributeSymbol);

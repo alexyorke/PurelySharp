@@ -10,7 +10,6 @@ using System.Collections.Immutable;
 using System;
 using System.IO;
 using PurelySharp.Analyzer.Engine.Rules;
-using PurelySharp.Attributes;
 using System.Threading;
 
 namespace PurelySharp.Analyzer.Engine
@@ -490,7 +489,7 @@ namespace PurelySharp.Analyzer.Engine
 
                     if (methodBodyIOperation != null)
                     {
-                        var pureAttrSymbolForContext = semanticModel.Compilation.GetTypeByMetadataName(typeof(PureAttribute).FullName);
+                        var pureAttrSymbolForContext = semanticModel.Compilation.GetTypeByMetadataName("PurelySharp.Attributes.PureAttribute");
                         var postCfgContext = new Rules.PurityAnalysisContext(
                             semanticModel,
                             enforcePureAttributeSymbol,
@@ -718,7 +717,7 @@ namespace PurelySharp.Analyzer.Engine
                 if (!exitState.HasPotentialImpurity)
                 {
                     LogDebug($"  [CFG] Exit block state is pure. Explicitly checking operations within Exit Block #{exitBlock.Ordinal}.");
-                    var pureAttrSymbolForContext = semanticModel.Compilation.GetTypeByMetadataName(typeof(PureAttribute).FullName);
+                    var pureAttrSymbolForContext = semanticModel.Compilation.GetTypeByMetadataName("PurelySharp.Attributes.PureAttribute");
 
                     var ruleContext = new Rules.PurityAnalysisContext(
                         semanticModel,
@@ -1256,7 +1255,7 @@ namespace PurelySharp.Analyzer.Engine
                 return false;
             }
 
-            var pureAttributeSymbol = symbol.ContainingAssembly.GetTypeByMetadataName(typeof(PureAttribute).FullName);
+            var pureAttributeSymbol = symbol.ContainingAssembly.GetTypeByMetadataName("PurelySharp.Attributes.PureAttribute");
             return symbol.GetAttributes().Any(ad =>
                 SymbolEqualityComparer.Default.Equals(ad.AttributeClass?.OriginalDefinition, enforcePureAttributeSymbol) ||
                 (pureAttributeSymbol != null && SymbolEqualityComparer.Default.Equals(ad.AttributeClass?.OriginalDefinition, pureAttributeSymbol))
