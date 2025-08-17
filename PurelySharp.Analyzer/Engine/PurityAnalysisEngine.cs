@@ -373,7 +373,7 @@ namespace PurelySharp.Analyzer.Engine
             );
 
             LogDebug($"<< Exit DeterminePurity ({GetPuritySource(result)}): {methodSymbol.ToDisplayString(_signatureFormat)}, Final IsPure={result.IsPure}");
-            LogDebug($"-- Removed Walker for: {methodSymbol.ToDisplayString(_signatureFormat)}"); // Assuming walker context is tied to the call stack
+            LogDebug($"-- Removed Walker for: {methodSymbol.ToDisplayString(_signatureFormat)}");
 
             // Add result to cache AFTER computation (though cache is local now)
             purityCache[methodSymbol] = result; // Cache result for this run
@@ -411,7 +411,7 @@ namespace PurelySharp.Analyzer.Engine
             if (purityCache.TryGetValue(methodSymbol, out var cachedResult))
             {
                 LogDebug($"{indent}  Purity CACHED: {cachedResult.IsPure} for {methodSymbol.ToDisplayString()}");
-                LogDebug($"{indent}<< Exit DeterminePurity (Cached): {methodSymbol.ToDisplayString()}"); // Log exit
+                LogDebug($"{indent}<< Exit DeterminePurity (Cached): {methodSymbol.ToDisplayString()}");
                 return cachedResult;
             }
 
@@ -420,7 +420,7 @@ namespace PurelySharp.Analyzer.Engine
             {
                 LogDebug($"{indent}  Recursion DETECTED for {methodSymbol.ToDisplayString()}. Assuming impure for this path.");
                 purityCache[methodSymbol] = PurityAnalysisResult.ImpureUnknownLocation;
-                LogDebug($"{indent}<< Exit DeterminePurity (Recursion): {methodSymbol.ToDisplayString()}"); // Log exit
+                LogDebug($"{indent}<< Exit DeterminePurity (Recursion): {methodSymbol.ToDisplayString()}");
                 return PurityAnalysisResult.ImpureUnknownLocation;
             }
 
@@ -432,7 +432,7 @@ namespace PurelySharp.Analyzer.Engine
                     LogDebug($"{indent}Method {methodSymbol.ToDisplayString()} is known impure.");
                     var knownImpureResult = ImpureResult(null); // Or find syntax if possible
                     purityCache[methodSymbol] = knownImpureResult;
-                    LogDebug($"{indent}<< Exit DeterminePurity (Known Impure): {methodSymbol.ToDisplayString()}"); // Log exit
+                    LogDebug($"{indent}<< Exit DeterminePurity (Known Impure): {methodSymbol.ToDisplayString()}");
                     return knownImpureResult;
                 }
 
@@ -441,7 +441,7 @@ namespace PurelySharp.Analyzer.Engine
                 {
                     LogDebug($"{indent}Method {methodSymbol.ToDisplayString()} is known pure BCL member.");
                     purityCache[methodSymbol] = PurityAnalysisResult.Pure;
-                    LogDebug($"{indent}<< Exit DeterminePurity (Known Pure): {methodSymbol.ToDisplayString()}"); // Log exit
+                    LogDebug($"{indent}<< Exit DeterminePurity (Known Pure): {methodSymbol.ToDisplayString()}");
                     return PurityAnalysisResult.Pure;
                 }
 
@@ -1344,7 +1344,7 @@ namespace PurelySharp.Analyzer.Engine
                     syntaxNode is OperatorDeclarationSyntax ||
                     syntaxNode is ConversionOperatorDeclarationSyntax) // Added Conversion Operator
                 {
-                    LogDebug($"  [GetBody]   Found usable body node of Kind: {syntaxNode.Kind()}"); // Log
+                    LogDebug($"  [GetBody]   Found usable body node of Kind: {syntaxNode.Kind()}");
                     return syntaxNode;
                 }
             }

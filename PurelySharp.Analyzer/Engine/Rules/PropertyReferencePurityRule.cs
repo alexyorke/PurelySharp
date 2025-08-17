@@ -3,7 +3,6 @@ using Microsoft.CodeAnalysis.Operations;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-//using System.Linq; // REMOVED - Now using PurityAnalysisEngine.HasAttribute
 using PurelySharp.Analyzer.Engine; // Ensure PurityAnalysisEngine is accessible
 
 namespace PurelySharp.Analyzer.Engine.Rules
@@ -138,11 +137,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     }
                     else if (propertySymbol.IsReadOnly) // Checks for { get; } or { get; init; }
                     {
-                        // *** REVERTED: Removed explicit cache check ***
                         PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance is 'this', property '{propertySymbol.Name}' is readonly (get/init-only). Read is Pure.");
                         return PurityAnalysisEngine.PurityAnalysisResult.Pure;
                     }
-                    // *** REVERTED: Restored Recursive call for 'this' instance ***
                     else if (propertySymbol.GetMethod != null)
                     {
                         PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance is 'this', property '{propertySymbol.Name}' has a getter. Recursively checking getter purity.");
@@ -160,7 +157,6 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     }
                     else // Property is not readonly, not in readonly struct, has no getter (should be rare)
                     {
-                        // *** REVERTED: Removed explicit cache check ***
                         PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance is 'this', property '{propertySymbol.Name}' is not readonly and has no accessible getter to analyze. Read is Impure.");
                         return PurityAnalysisEngine.PurityAnalysisResult.Impure(propertyReferenceOperation.Syntax);
                     }

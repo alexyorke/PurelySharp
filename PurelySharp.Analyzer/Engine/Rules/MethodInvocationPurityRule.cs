@@ -261,8 +261,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             // --- SIMPLIFIED CHECKS --- 
 
             // 1. Check known impure methods
-            string signatureForKnownImpure = originalDefinitionSymbol.ToDisplayString();
-            PurityAnalysisEngine.LogDebug($"  [MIR] Checking IsKnownImpure with signature: '{signatureForKnownImpure}'");
+            PurityAnalysisEngine.LogDebug($"  [MIR] Checking IsKnownImpure with signature: '{originalDefinitionSymbol.ToDisplayString()}'");
             if (PurityAnalysisEngine.IsKnownImpure(originalDefinitionSymbol))
             {
                 PurityAnalysisEngine.LogDebug($"  [MIR] --> IMPURE (Known Impure)");
@@ -270,8 +269,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             // 2. Check known pure BCL methods
-            string signatureForKnownPure = originalDefinitionSymbol.ToDisplayString();
-            PurityAnalysisEngine.LogDebug($"  [MIR] Checking IsKnownPureBCLMember with signature: '{signatureForKnownPure}'");
+            PurityAnalysisEngine.LogDebug($"  [MIR] Checking IsKnownPureBCLMember with signature: '{originalDefinitionSymbol.ToDisplayString()}'");
             if (PurityAnalysisEngine.IsKnownPureBCLMember(originalDefinitionSymbol))
             {
                 PurityAnalysisEngine.LogDebug($"  [MIR] --> PURE (Known Pure BCL)");
