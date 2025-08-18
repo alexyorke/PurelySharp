@@ -92,6 +92,57 @@ namespace PurelySharp.Analyzer.Engine.Analysis
 						}
 					}
 
+					// Capture delegate compound assignments (e.g., "+=") to accumulate targets
+					foreach (var compound in body.Descendants().OfType<ICompoundAssignmentOperation>())
+					{
+						if (compound.Target?.Type?.TypeKind != TypeKind.Delegate) continue;
+						var targetSymbol = TryResolveSymbol(compound.Target);
+						if (targetSymbol == null) continue;
+						IMethodSymbol? targetMethod = null;
+						if (compound.Value is IMethodReferenceOperation mr)
+						{
+							targetMethod = mr.Method?.OriginalDefinition;
+						}
+						else if (compound.Value is IDelegateCreationOperation dc && dc.Target is IMethodReferenceOperation mrInner)
+						{
+							targetMethod = mrInner.Method?.OriginalDefinition;
+						}
+						if (targetMethod != null)
+						{
+							if (!delegateTargetsBySymbol.TryGetValue(targetSymbol, out var set))
+							{
+								set = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+								delegateTargetsBySymbol[targetSymbol] = set;
+							}
+							set.Add(targetMethod);
+						}
+					}
+
+					// Capture event handler subscriptions (+=) mapping event symbols to potential handler targets
+					foreach (var evtAssign in body.Descendants().OfType<IEventAssignmentOperation>())
+					{
+						var eventSymbol = TryResolveSymbol(evtAssign.EventReference);
+						if (eventSymbol == null) continue;
+						IMethodSymbol? targetMethod = null;
+						if (evtAssign.HandlerValue is IMethodReferenceOperation mr)
+						{
+							targetMethod = mr.Method?.OriginalDefinition;
+						}
+						else if (evtAssign.HandlerValue is IDelegateCreationOperation dc && dc.Target is IMethodReferenceOperation mrInner)
+						{
+							targetMethod = mrInner.Method?.OriginalDefinition;
+						}
+						if (targetMethod != null)
+						{
+							if (!delegateTargetsBySymbol.TryGetValue(eventSymbol, out var set))
+							{
+								set = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+								delegateTargetsBySymbol[eventSymbol] = set;
+							}
+							set.Add(targetMethod);
+						}
+					}
+
 					foreach (var group in body.Descendants().OfType<IVariableDeclarationGroupOperation>())
 					{
 						foreach (var decl in group.Declarations)
@@ -152,6 +203,7 @@ namespace PurelySharp.Analyzer.Engine.Analysis
 				IParameterReferenceOperation paramRef => paramRef.Parameter,
 				IFieldReferenceOperation fieldRef => fieldRef.Field,
 				IPropertyReferenceOperation propRef => propRef.Property,
+				IEventReferenceOperation eventRef => eventRef.Event,
 				_ => null
 			};
 		}

@@ -10,7 +10,7 @@
 - **Centralized impurity/purity catalog**
   - Introduced `Engine/ImpurityCatalog` and routed helper checks in `PurityAnalysisEngine` through it.
   - Existing catalog content remains in `Engine/Constants.cs` (known impure members/namespaces/types and known pure BCL members).
-  - Kept one explicit rule for `System.Text.Json.JsonSerializer.Deserialize*` (tests rely on it). This can be moved to the catalog once tests reflect the catalog behavior.
+  - DONE: Removed explicit rule for `System.Text.Json.JsonSerializer.Deserialize*` from `MethodInvocationPurityRule`; behavior now driven solely by catalog (`Constants.KnownImpureMethods`) and `.editorconfig` overrides.
 
 - **Rule modularization**
   - Centralized rule registration via `Engine/Rules/RuleRegistry`.
@@ -37,10 +37,11 @@
    - DONE: Include edges for method group references, delegate creations, and anonymous functions.
    - DONE: Map delegate targets assigned/initialized to locals/fields and connect delegate `Invoke` to captured targets.
    - DONE: Handle `await` flows conservatively by adding edges for awaited invocations.
+   - DONE: Capture delegate compound assignments (`+=`) and event handler subscriptions (`IEventAssignmentOperation`) and map through `IEventReferenceOperation`.
    - TODO: Consider using Roslyn `ControlFlowGraph` to resolve additional potential targets where simple symbol extraction is insufficient.
 
 3. **Catalog consolidation**
-   - PENDING: Migrate the explicit `JsonSerializer.Deserialize*` impurity check into `Constants.KnownImpureMethods` (or config) after aligning tests.
+   - DONE: Migrated `JsonSerializer.Deserialize*` handling to catalog-only by removing rule-level special-case.
    - Add entries for common framework APIs (I/O, threading, environment) as needed; prefer signatures of `OriginalDefinition`.
 
 4. **Rule set evolution**
@@ -81,6 +82,6 @@
 ### How to continue
 
 - Extend call graph for delegate capture and async/await edges; keep tests green.
-- Migrate explicit JSON check into catalog once tests reflect it.
+- Ensure tests cover catalog-driven JSON deserialize impurity and `.editorconfig` overrides.
 
 

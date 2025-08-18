@@ -228,14 +228,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
 
             var originalDefinitionSymbol = invokedMethodSymbol.OriginalDefinition;
-
-            if (originalDefinitionSymbol.ContainingType != null &&
-                originalDefinitionSymbol.ContainingType.ToDisplayString() == "System.Text.Json.JsonSerializer" &&
-                originalDefinitionSymbol.Name.StartsWith("Deserialize", StringComparison.Ordinal))
-            {
-                PurityAnalysisEngine.LogDebug($"  [MIR] --> IMPURE (Explicit check: JsonSerializer.{originalDefinitionSymbol.Name})");
-                return PurityAnalysisEngine.PurityAnalysisResult.Impure(invocationOperation.Syntax);
-            }
+            
 
             string methodDisplayString = originalDefinitionSymbol.ToDisplayString();
             PurityAnalysisEngine.LogDebug($"  [MIR] Analyzing regular call to: {methodDisplayString} | Syntax: {invocationOperation.Syntax}");
