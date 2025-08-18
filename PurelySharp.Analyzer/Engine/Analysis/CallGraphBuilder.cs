@@ -81,6 +81,16 @@ namespace PurelySharp.Analyzer.Engine.Analysis
 						{
 							targetMethod = mr2.Method?.OriginalDefinition;
 						}
+						else if (assignment.Value is IAnonymousFunctionOperation anon1 && anon1.Symbol != null)
+						{
+							callees.Add(anon1.Symbol.OriginalDefinition);
+							if (!delegateTargetsBySymbol.TryGetValue(targetSymbol, out var set))
+							{
+								set = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+								delegateTargetsBySymbol[targetSymbol] = set;
+							}
+							set.Add(anon1.Symbol.OriginalDefinition);
+						}
 						if (targetMethod != null)
 						{
 							if (!delegateTargetsBySymbol.TryGetValue(targetSymbol, out var set))
@@ -107,6 +117,16 @@ namespace PurelySharp.Analyzer.Engine.Analysis
 						{
 							targetMethod = mrInner.Method?.OriginalDefinition;
 						}
+						else if (compound.Value is IAnonymousFunctionOperation anon3 && anon3.Symbol != null)
+						{
+							callees.Add(anon3.Symbol.OriginalDefinition);
+							if (!delegateTargetsBySymbol.TryGetValue(targetSymbol, out var set))
+							{
+								set = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+								delegateTargetsBySymbol[targetSymbol] = set;
+							}
+							set.Add(anon3.Symbol.OriginalDefinition);
+						}
 						if (targetMethod != null)
 						{
 							if (!delegateTargetsBySymbol.TryGetValue(targetSymbol, out var set))
@@ -131,6 +151,16 @@ namespace PurelySharp.Analyzer.Engine.Analysis
 						else if (evtAssign.HandlerValue is IDelegateCreationOperation dc && dc.Target is IMethodReferenceOperation mrInner)
 						{
 							targetMethod = mrInner.Method?.OriginalDefinition;
+						}
+						else if (evtAssign.HandlerValue is IAnonymousFunctionOperation anon4 && anon4.Symbol != null)
+						{
+							callees.Add(anon4.Symbol.OriginalDefinition);
+							if (!delegateTargetsBySymbol.TryGetValue(eventSymbol, out var set))
+							{
+								set = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+								delegateTargetsBySymbol[eventSymbol] = set;
+							}
+							set.Add(anon4.Symbol.OriginalDefinition);
 						}
 						if (targetMethod != null)
 						{

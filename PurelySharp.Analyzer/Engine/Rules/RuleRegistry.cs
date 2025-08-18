@@ -6,9 +6,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
 	{
 		public static ImmutableList<IPurityRule> GetDefaultRules()
 		{
-			// Group by construct families for clarity of ordering
+			// Group by construct families for clarity of ordering (keep stable behavior)
 			return ImmutableList.Create<IPurityRule>(
-				// Invocation/Calls
+				// Invocation/Calls (keep primary method invocation rule first)
 				new MethodInvocationPurityRule(),
 				new ConstructorInitializerPurityRule(),
 				new DelegateCreationPurityRule(),

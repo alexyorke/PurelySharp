@@ -1199,9 +1199,7 @@ namespace PurelySharp.Analyzer.Engine
         {
             LogDebug($"  [UpdMap] Trying Update: OpKind={op.Kind}, CurrentImpure={currentState.HasPotentialImpurity}");
 
-            if (currentState.HasPotentialImpurity)
-            {
-                PurityAnalysisState nextState = currentState;
+            PurityAnalysisState nextState = currentState;
 
 
                 if (op is IAssignmentOperation assignmentOperation)
@@ -1246,9 +1244,7 @@ namespace PurelySharp.Analyzer.Engine
                 }
 
 
-                return nextState;
-            }
-            return currentState;
+            return nextState;
         }
 
 
