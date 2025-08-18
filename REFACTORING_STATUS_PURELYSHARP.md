@@ -53,7 +53,7 @@
    - Guard against pathological graphs (cycle limits already present in solver; review thresholds).
 
 6. **Diagnostics/configuration**
-   - Allow severity toggles per rule or per pattern via `.editorconfig`.
+   - DONE: Allow severity toggles per rule via standard `.editorconfig` keys (`dotnet_diagnostic.PS0002.severity`, `dotnet_diagnostic.PS0004.severity`).
    - DONE: Optional debug logging flag parsed via `.editorconfig` key `purelysharp_enable_debug_logging` (no-op in Release).
 
 ### Relevant files and ownership

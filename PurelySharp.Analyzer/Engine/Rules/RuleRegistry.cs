@@ -6,58 +6,75 @@ namespace PurelySharp.Analyzer.Engine.Rules
 	{
 		public static ImmutableList<IPurityRule> GetDefaultRules()
 		{
+			// Group by construct families for clarity of ordering
 			return ImmutableList.Create<IPurityRule>(
-				new AssignmentPurityRule(),
+				// Invocation/Calls
 				new MethodInvocationPurityRule(),
 				new ConstructorInitializerPurityRule(),
-				new ReturnStatementPurityRule(),
-				new BinaryOperationPurityRule(),
-				new BinaryPatternPurityRule(),
-				new PropertyReferencePurityRule(),
-				new ArrayElementReferencePurityRule(),
-				new CollectionExpressionPurityRule(),
-				new ArrayCreationPurityRule(),
-				new ArrayInitializerPurityRule(),
-				new InterpolatedStringPurityRule(),
-				new SwitchStatementPurityRule(),
-				new SwitchExpressionPurityRule(),
-				new ConstantPatternPurityRule(),
-				new DeclarationPatternPurityRule(),
-				new DiscardPatternPurityRule(),
-				new LoopPurityRule(),
-				new FlowCapturePurityRule(),
+				new DelegateCreationPurityRule(),
+				new AwaitPurityRule(),
+				
+				// Assignments/References
+				new AssignmentPurityRule(),
 				new ExpressionStatementPurityRule(),
-				new UsingStatementPurityRule(),
 				new ParameterReferencePurityRule(),
 				new LocalReferencePurityRule(),
 				new FieldReferencePurityRule(),
-				new BranchPurityRule(),
-				new SwitchCasePurityRule(),
-				new LiteralPurityRule(),
-				new ConversionPurityRule(),
-				new DefaultValuePurityRule(),
-				new FlowCaptureReferencePurityRule(),
-				new ConditionalOperationPurityRule(),
-				new UnaryOperationPurityRule(),
+				new InstanceReferencePurityRule(),
+				
+				// Object/Array creation and initialization
 				new ObjectCreationPurityRule(),
+				new ObjectOrCollectionInitializerPurityRule(),
+				new ArrayCreationPurityRule(),
+				new ArrayInitializerPurityRule(),
+				new ArrayElementReferencePurityRule(),
+				new CollectionExpressionPurityRule(),
+				
+				// Expressions/Operators
+				new BinaryOperationPurityRule(),
+				new UnaryOperationPurityRule(),
 				new CoalesceOperationPurityRule(),
 				new ConditionalAccessPurityRule(),
-				new ThrowOperationPurityRule(),
-				new VariableDeclarationGroupPurityRule(),
+				new ConditionalOperationPurityRule(),
+				new ConversionPurityRule(),
+				new DefaultValuePurityRule(),
+				new InterpolatedStringPurityRule(),
+				new PropertyReferencePurityRule(),
+				new LiteralPurityRule(),
+				new TuplePurityRule(),
+				new TypeOfPurityRule(),
+				new Utf8StringLiteralPurityRule(),
+				new SizeOfPurityRule(),
+				
+				// Patterns
+				new BinaryPatternPurityRule(),
+				new ConstantPatternPurityRule(),
+				new DeclarationPatternPurityRule(),
+				new DiscardPatternPurityRule(),
 				new IsPatternPurityRule(),
 				new IsNullPurityRule(),
 				new StructuralPurityRule(),
-				new TuplePurityRule(),
-				new TypeOfPurityRule(),
-				new YieldReturnPurityRule(),
-				new DelegateCreationPurityRule(),
-				new WithOperationPurityRule(),
-				new InstanceReferencePurityRule(),
-				new ObjectOrCollectionInitializerPurityRule(),
+				
+				// Control Flow
+				new BranchPurityRule(),
+				new SwitchStatementPurityRule(),
+				new SwitchCasePurityRule(),
+				new SwitchExpressionPurityRule(),
+				new LoopPurityRule(),
+				new UsingStatementPurityRule(),
+				new ThrowOperationPurityRule(),
 				new LockStatementPurityRule(),
-				new AwaitPurityRule(),
-				new Utf8StringLiteralPurityRule(),
-				new SizeOfPurityRule()
+				new YieldReturnPurityRule(),
+				
+				// Flow/CFG helpers
+				new FlowCapturePurityRule(),
+				new FlowCaptureReferencePurityRule(),
+				
+				// Returns
+				new ReturnStatementPurityRule(),
+				
+				// Misc
+				new WithOperationPurityRule()
 			);
 		}
 	}
