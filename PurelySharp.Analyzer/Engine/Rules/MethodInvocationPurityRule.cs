@@ -229,7 +229,6 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             var originalDefinitionSymbol = invokedMethodSymbol.OriginalDefinition;
 
-
             if (originalDefinitionSymbol.ContainingType != null &&
                 originalDefinitionSymbol.ContainingType.ToDisplayString() == "System.Text.Json.JsonSerializer" &&
                 originalDefinitionSymbol.Name.StartsWith("Deserialize", StringComparison.Ordinal))

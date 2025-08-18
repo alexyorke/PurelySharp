@@ -29,7 +29,15 @@ namespace PurelySharp.Analyzer.Engine.Analysis
 							callees.Add(inv.TargetMethod.OriginalDefinition);
 						}
 					}
-					edges[containingMethod.OriginalDefinition] = callees.ToImmutableHashSet();
+
+					foreach (var methodRef in body.Descendants().OfType<IMethodReferenceOperation>())
+					{
+						if (methodRef.Method != null)
+						{
+							callees.Add(methodRef.Method.OriginalDefinition);
+						}
+					}
+					edges[containingMethod.OriginalDefinition] = System.Collections.Immutable.ImmutableHashSet.CreateRange<IMethodSymbol>(SymbolEqualityComparer.Default, callees);
 				}
 			}
 

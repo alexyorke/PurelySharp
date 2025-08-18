@@ -15,10 +15,23 @@ namespace PurelySharp.Analyzer.Engine.Analysis
 			var results = new Dictionary<IMethodSymbol, PurityAnalysisEngine.PurityAnalysisResult>(SymbolEqualityComparer.Default);
 			var engine = new PurityAnalysisEngine();
 			var worklist = new Queue<IMethodSymbol>();
+			var reverse = new Dictionary<IMethodSymbol, HashSet<IMethodSymbol>>(SymbolEqualityComparer.Default);
 
 			foreach (var method in graph.Edges.Keys)
 			{
 				worklist.Enqueue(method);
+				if (graph.Edges.TryGetValue(method, out var succs))
+				{
+					foreach (var callee in succs)
+					{
+						if (!reverse.TryGetValue(callee, out var callers))
+						{
+							callers = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+							reverse[callee] = callers;
+						}
+						callers.Add(method);
+					}
+				}
 			}
 
 			while (worklist.Count > 0)
@@ -35,11 +48,11 @@ namespace PurelySharp.Analyzer.Engine.Analysis
 				if (!results.TryGetValue(method, out var prior) || prior.IsPure != purity.IsPure)
 				{
 					results[method] = purity;
-					if (graph.Edges.TryGetValue(method, out var successors))
+					if (reverse.TryGetValue(method, out var callers))
 					{
-						foreach (var succ in successors)
+						foreach (var caller in callers)
 						{
-							worklist.Enqueue(succ);
+							worklist.Enqueue(caller);
 						}
 					}
 				}
