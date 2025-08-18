@@ -300,6 +300,48 @@ namespace PurelySharp.Analyzer.Engine.Analysis
 				}
 			}
 
+			// Optional CFG-guided pass to conservatively add invocation edges discovered per-block
+			foreach (var tree in compilation.SyntaxTrees)
+			{
+				var model = compilation.GetSemanticModel(tree);
+				var root = tree.GetRoot();
+				var methods = root.DescendantNodes().Select(n => model.GetDeclaredSymbol(n)).OfType<IMethodSymbol>();
+				foreach (var method in methods)
+				{
+					if (method == null) continue;
+					var declSyntaxRef = method.DeclaringSyntaxReferences.FirstOrDefault();
+					if (declSyntaxRef == null) continue;
+					var bodyNode = declSyntaxRef.GetSyntax();
+					Microsoft.CodeAnalysis.FlowAnalysis.ControlFlowGraph? cfg = null;
+					try
+					{
+						cfg = Microsoft.CodeAnalysis.FlowAnalysis.ControlFlowGraph.Create(bodyNode, model);
+					}
+					catch { cfg = null; }
+					if (cfg == null) continue;
+					if (!edges.TryGetValue(method.OriginalDefinition, out var callerSet))
+					{
+						callerSet = ImmutableHashSet<IMethodSymbol>.Empty;
+					}
+					var callerSetBuilder = callerSet.ToBuilder();
+					foreach (var block in cfg.Blocks)
+					{
+						foreach (var op in block.Operations)
+						{
+							if (op is IInvocationOperation inv && inv.TargetMethod != null)
+							{
+								var target = inv.TargetMethod.OriginalDefinition;
+								callerSetBuilder.Add(target);
+								foreach (var impl in ResolvePotentialTargetsForVirtualOrInterfaceCall(target, compilation))
+								{
+									callerSetBuilder.Add(impl);
+								}
+							}
+						}
+					}
+					edges[method.OriginalDefinition] = callerSetBuilder.ToImmutable();
+				}
+			}
 			return new CallGraph(edges.ToImmutableDictionary(SymbolEqualityComparer.Default));
 		}
 

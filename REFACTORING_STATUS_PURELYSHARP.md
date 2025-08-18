@@ -42,7 +42,7 @@
    - DONE: Add edges for user-defined operators (binary/unary) and user-defined conversions.
    - DONE: Add edges for constructor initializer calls (`base()`, `this()`).
    - DONE: Expand dynamic dispatch for interface/virtual calls by scanning compilation types for implementations/overrides.
-   - TODO: Consider using Roslyn `ControlFlowGraph` to resolve additional potential targets where simple symbol extraction is insufficient.
+   - DONE: Added a conservative CFG-guided pass to include per-block invocation edges missed by symbol-only extraction.
 
 3. **Catalog consolidation**
    - DONE: Migrated `JsonSerializer.Deserialize*` handling to catalog-only by removing rule-level special-case.
