@@ -27,7 +27,14 @@ namespace PurelySharp.Analyzer.Engine.Analysis
 					{
 						if (inv.TargetMethod != null)
 						{
-							callees.Add(inv.TargetMethod.OriginalDefinition);
+							var target = inv.TargetMethod.OriginalDefinition;
+							callees.Add(target);
+
+							// Expand potential dynamic targets for interface/virtual dispatch within the current compilation
+							foreach (var impl in ResolvePotentialTargetsForVirtualOrInterfaceCall(target, compilation))
+							{
+								callees.Add(impl);
+							}
 						}
 					}
 
@@ -236,6 +243,90 @@ namespace PurelySharp.Analyzer.Engine.Analysis
 				IEventReferenceOperation eventRef => eventRef.Event,
 				_ => null
 			};
+		}
+
+		private static IEnumerable<IMethodSymbol> ResolvePotentialTargetsForVirtualOrInterfaceCall(IMethodSymbol target, Compilation compilation)
+		{
+			// Interface dispatch: include implementations in types that implement the interface
+			if (target.ContainingType?.TypeKind == TypeKind.Interface)
+			{
+				foreach (var type in EnumerateAllNamedTypes(compilation.Assembly.GlobalNamespace))
+				{
+					if (!type.AllInterfaces.Contains(target.ContainingType, SymbolEqualityComparer.Default)) continue;
+					var impl = type.FindImplementationForInterfaceMember(target) as IMethodSymbol;
+					if (impl != null)
+					{
+						yield return impl.OriginalDefinition;
+					}
+				}
+				yield break;
+			}
+
+			// Virtual/abstract dispatch: include overrides declared in derived types within this compilation
+			if (target.IsVirtual || target.IsAbstract || target.IsOverride)
+			{
+				var baseType = target.ContainingType;
+				if (baseType != null)
+				{
+					foreach (var type in EnumerateAllNamedTypes(compilation.Assembly.GlobalNamespace))
+					{
+						if (!DerivesFrom(type, baseType)) continue;
+						foreach (var member in type.GetMembers())
+						{
+							if (member is IMethodSymbol m && m.OverriddenMethod != null && SymbolEqualityComparer.Default.Equals(m.OverriddenMethod.OriginalDefinition, target))
+							{
+								yield return m.OriginalDefinition;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		private static IEnumerable<INamedTypeSymbol> EnumerateAllNamedTypes(INamespaceSymbol root)
+		{
+			foreach (var member in root.GetMembers())
+			{
+				if (member is INamespaceSymbol ns)
+				{
+					foreach (var inner in EnumerateAllNamedTypes(ns))
+					{
+						yield return inner;
+					}
+				}
+				else if (member is INamedTypeSymbol type)
+				{
+					yield return type;
+					foreach (var nested in EnumerateNestedTypes(type))
+					{
+						yield return nested;
+					}
+				}
+			}
+		}
+
+		private static IEnumerable<INamedTypeSymbol> EnumerateNestedTypes(INamedTypeSymbol type)
+		{
+			foreach (var member in type.GetTypeMembers())
+			{
+				yield return member;
+				foreach (var nested in EnumerateNestedTypes(member))
+				{
+					yield return nested;
+				}
+			}
+		}
+
+		private static bool DerivesFrom(INamedTypeSymbol type, INamedTypeSymbol potentialBase)
+		{
+			for (var t = type.BaseType; t != null; t = t.BaseType)
+			{
+				if (SymbolEqualityComparer.Default.Equals(t.OriginalDefinition, potentialBase.OriginalDefinition))
+				{
+					return true;
+				}
+			}
+			return false;
 		}
 	}
 }
