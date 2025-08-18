@@ -519,13 +519,18 @@ namespace PurelySharp.Analyzer.Engine
                             if (isChecked && operatorMethod != null)
                             {
                                 LogDebug($"{indent}    Post-CFG: Found Checked Operation: {operation.Syntax} with operator method {operatorMethod.Name}");
-                                var operatorPurity = DeterminePurityRecursiveInternal(
-                                    operatorMethod.OriginalDefinition,
+                                var contextForOp = new Rules.PurityAnalysisContext(
                                     semanticModel,
                                     enforcePureAttributeSymbol,
+                                    semanticModel.Compilation.GetTypeByMetadataName("PurelySharp.Attributes.PureAttribute"),
                                     allowSynchronizationAttributeSymbol,
                                     visited,
-                                    purityCache);
+                                    purityCache,
+                                    methodSymbol,
+                                    _purityRules,
+                                    CancellationToken.None,
+                                    null);
+                                var operatorPurity = GetCalleePurity(operatorMethod, contextForOp);
 
                                 if (!operatorPurity.IsPure)
                                 {
@@ -910,13 +915,7 @@ namespace PurelySharp.Analyzer.Engine
                     LogDebug($"    [CSO] Checked operation is part of a method marked with [EnforcePure]. Checking purity of containing method.");
 
 
-                    var containingMethodPurity = DeterminePurityRecursiveInternal(
-                        context.ContainingMethodSymbol.OriginalDefinition,
-                        context.SemanticModel,
-                        context.EnforcePureAttributeSymbol,
-                        context.AllowSynchronizationAttributeSymbol,
-                        context.VisitedMethods,
-                        context.PurityCache);
+                    var containingMethodPurity = GetCalleePurity(context.ContainingMethodSymbol, context);
 
                     if (!containingMethodPurity.IsPure)
                     {

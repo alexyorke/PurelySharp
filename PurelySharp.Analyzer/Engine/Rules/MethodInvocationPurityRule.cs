@@ -66,9 +66,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                             foreach (var targetMethod in potentialTargets.MethodSymbols)
                             {
                                 PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Checking Potential Target from Map: {targetMethod.ToDisplayString()}");
-                                var targetPurity = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
-                                    targetMethod.OriginalDefinition, context.SemanticModel, context.EnforcePureAttributeSymbol, context.AllowSynchronizationAttributeSymbol,
-                                    context.VisitedMethods, context.PurityCache);
+                                var targetPurity = PurityAnalysisEngine.GetCalleePurity(targetMethod, context);
                                 PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Potential Target Purity Result: IsPure={targetPurity.IsPure}");
                                 if (!targetPurity.IsPure)
                                 {
