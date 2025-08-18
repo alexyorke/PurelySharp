@@ -37,7 +37,25 @@ namespace PurelySharp.Analyzer.Configuration
         private static ImmutableHashSet<string> GetValues(AnalyzerOptions options, string key)
         {
             var builder = ImmutableHashSet.CreateBuilder<string>(StringComparer.Ordinal);
-            // Placeholder: AnalyzerConfigOptionsProvider can be threaded through here to read .editorconfig options
+            try
+            {
+                var global = options.AnalyzerConfigOptionsProvider.GlobalOptions;
+                if (global.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value))
+                {
+                    foreach (var token in value.Split(new[] { ',', ';', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        var item = token.Trim();
+                        if (item.Length > 0)
+                        {
+                            builder.Add(item);
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore config parsing issues; default to empty overrides
+            }
             return builder.ToImmutable();
         }
     }

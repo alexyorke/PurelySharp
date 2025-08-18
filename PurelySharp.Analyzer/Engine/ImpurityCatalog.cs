@@ -110,6 +110,8 @@ namespace PurelySharp.Analyzer.Engine
 				return true;
 			}
 
+
+
 			if (symbol.ContainingType != null)
 			{
 				string simplifiedName = $"{symbol.ContainingType.Name}.{symbol.Name}";

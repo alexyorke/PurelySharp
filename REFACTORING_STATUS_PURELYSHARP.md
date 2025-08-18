@@ -31,13 +31,13 @@
      - `purelysharp_known_pure_methods`
      - `purelysharp_known_impure_namespaces`
      - `purelysharp_known_impure_types`
-   - TODO: Parse values from `AnalyzerConfigOptionsProvider` (comma/semicolon-separated lists) and merge with `Constants` (scaffolded; currently returns empty sets).
+   - DONE: Parse values from `AnalyzerConfigOptionsProvider` (comma/semicolon-separated lists) and merge with `Constants` via `ImpurityCatalog.InitializeOverrides`.
 
 2. **Call-graph coverage improvements**
-   - Include more edges for lambdas/anonymous methods/delegate flows (beyond method groups):
-     - Map captured delegates through assignments/initializers (some mapping exists; ensure edges are added to the call graph too).
-     - Handle `await` flows and async methods conservatively (treat awaited method as callee).
-   - Consider using Roslyn `ControlFlowGraph` to resolve additional potential targets where simple symbol extraction is insufficient.
+   - DONE: Include edges for method group references, delegate creations, and anonymous functions.
+   - DONE: Map delegate targets assigned/initialized to locals/fields and connect delegate `Invoke` to captured targets.
+   - DONE: Handle `await` flows conservatively by adding edges for awaited invocations.
+   - TODO: Consider using Roslyn `ControlFlowGraph` to resolve additional potential targets where simple symbol extraction is insufficient.
 
 3. **Catalog consolidation**
    - PENDING: Migrate the explicit `JsonSerializer.Deserialize*` impurity check into `Constants.KnownImpureMethods` (or config) after aligning tests.
@@ -67,7 +67,7 @@
 - `PurelySharp.Analyzer/Engine/Constants.cs` — known pure/impure defaults
 - `PurelySharp.Analyzer/Engine/Rules/RuleRegistry.cs` — rule list
 - `PurelySharp.Analyzer/Engine/Rules/*` — modular rules
-- `PurelySharp.Analyzer/Configuration/AnalyzerConfiguration.cs` — config scaffold (to be wired)
+- `PurelySharp.Analyzer/Configuration/AnalyzerConfiguration.cs` — config reader
 - `PurelySharp.Analyzer/Configuration/ConfigKeys.cs` — config keys
 
 ### Definition of done for this refactor
@@ -80,8 +80,7 @@
 
 ### How to continue
 
-- Implement .editorconfig reading in `AnalyzerConfiguration.FromOptions` and thread into `CompilationPurityService` → `ImpurityCatalog`.
-- Extend `CallGraphBuilder` for lambdas/async/await; add focused tests in `PurelySharp.Test`.
+- Extend call graph for delegate capture and async/await edges; keep tests green.
 - Migrate explicit JSON check into catalog once tests reflect it.
 
 
