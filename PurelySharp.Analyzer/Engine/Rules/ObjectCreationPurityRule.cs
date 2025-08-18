@@ -67,13 +67,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     return cctorResult;
                 }
 
-                var constructorPurity = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
-                                                constructorSymbol.OriginalDefinition,
-                                                context.SemanticModel,
-                                                context.EnforcePureAttributeSymbol,
-                                                context.AllowSynchronizationAttributeSymbol,
-                                                context.VisitedMethods,
-                                                context.PurityCache);
+                var constructorPurity = PurityAnalysisEngine.GetCalleePurity(constructorSymbol, context);
 
 
                 if (!constructorPurity.IsPure)

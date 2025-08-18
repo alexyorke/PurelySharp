@@ -19,6 +19,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
         public Dictionary<IMethodSymbol, PurityAnalysisEngine.PurityAnalysisResult> PurityCache { get; }
         public IMethodSymbol ContainingMethodSymbol { get; }
         public ImmutableList<IPurityRule> PurityRules { get; }
+        public CompilationPurityService? PurityService { get; }
 
         public PurityAnalysisContext(
             SemanticModel semanticModel,
@@ -29,7 +30,8 @@ namespace PurelySharp.Analyzer.Engine.Rules
             Dictionary<IMethodSymbol, PurityAnalysisEngine.PurityAnalysisResult> purityCache,
             IMethodSymbol containingMethodSymbol,
             ImmutableList<IPurityRule> purityRules,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            CompilationPurityService? purityService)
         {
             SemanticModel = semanticModel;
             EnforcePureAttributeSymbol = enforcePureAttributeSymbol;
@@ -40,6 +42,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             ContainingMethodSymbol = containingMethodSymbol;
             PurityRules = purityRules;
             CancellationToken = cancellationToken;
+            PurityService = purityService;
         }
     }
 }

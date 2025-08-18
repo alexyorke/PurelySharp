@@ -105,13 +105,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     }
 
 
-                    var operatorPurity = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
-                        operatorMethod.OriginalDefinition,
-                        context.SemanticModel,
-                        context.EnforcePureAttributeSymbol,
-                        context.AllowSynchronizationAttributeSymbol,
-                        context.VisitedMethods,
-                        context.PurityCache);
+                    var operatorPurity = PurityAnalysisEngine.GetCalleePurity(operatorMethod, context);
 
                     if (!operatorPurity.IsPure)
                     {
@@ -129,13 +123,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     PurityAnalysisEngine.LogDebug($"    [CheckedRule] Operation is part of a method marked with [EnforcePure]. Checking purity of containing method.");
 
 
-                    var containingMethodPurity = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
-                        context.ContainingMethodSymbol.OriginalDefinition,
-                        context.SemanticModel,
-                        context.EnforcePureAttributeSymbol,
-                        context.AllowSynchronizationAttributeSymbol,
-                        context.VisitedMethods,
-                        context.PurityCache);
+                    var containingMethodPurity = PurityAnalysisEngine.GetCalleePurity(context.ContainingMethodSymbol, context);
 
                     if (!containingMethodPurity.IsPure)
                     {

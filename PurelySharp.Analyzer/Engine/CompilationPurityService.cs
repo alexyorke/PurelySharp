@@ -32,7 +32,7 @@ namespace PurelySharp.Analyzer.Engine
                 {
                     return solved;
                 }
-                var engine = new PurityAnalysisEngine();
+                var engine = new PurityAnalysisEngine(this);
                 return engine.IsConsideredPure(m, semanticModel, enforcePureAttributeSymbol, allowSynchronizationAttributeSymbol);
             });
         }

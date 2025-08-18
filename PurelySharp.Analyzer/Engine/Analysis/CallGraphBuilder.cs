@@ -38,11 +38,57 @@ namespace PurelySharp.Analyzer.Engine.Analysis
 						}
 					}
 
+					// Include user-defined operator methods and conversion operators
+					foreach (var bin in body.Descendants().OfType<IBinaryOperation>())
+					{
+						if (bin.OperatorMethod != null)
+						{
+							callees.Add(bin.OperatorMethod.OriginalDefinition);
+						}
+					}
+
+					foreach (var un in body.Descendants().OfType<IUnaryOperation>())
+					{
+						if (un.OperatorMethod != null)
+						{
+							callees.Add(un.OperatorMethod.OriginalDefinition);
+						}
+					}
+
+					foreach (var conv in body.Descendants().OfType<IConversionOperation>())
+					{
+						var method = conv.Conversion.MethodSymbol;
+						if (conv.Conversion.IsUserDefined && method != null)
+						{
+							callees.Add(method.OriginalDefinition);
+						}
+					}
+
+					// Include constructor initializer targets (base()/this())
+					foreach (var ctorBody in body.Descendants().OfType<IConstructorBodyOperation>())
+					{
+						var init = ctorBody.Initializer;
+						if (init is IInvocationOperation initInv && initInv.TargetMethod != null)
+						{
+							callees.Add(initInv.TargetMethod.OriginalDefinition);
+						}
+					}
+
 					foreach (var methodRef in body.Descendants().OfType<IMethodReferenceOperation>())
 					{
 						if (methodRef.Method != null)
 						{
 							callees.Add(methodRef.Method.OriginalDefinition);
+						}
+					}
+
+					// Include property accessor methods when properties are referenced
+					foreach (var propRef in body.Descendants().OfType<IPropertyReferenceOperation>())
+					{
+						var getter = propRef.Property?.GetMethod;
+						if (getter != null)
+						{
+							callees.Add(getter.OriginalDefinition);
 						}
 					}
 
@@ -80,6 +126,11 @@ namespace PurelySharp.Analyzer.Engine.Analysis
 						var targetSymbol = TryResolveSymbol(assignment.Target);
 						if (targetSymbol == null) continue;
 						IMethodSymbol? targetMethod = null;
+						// If target is a property, include its setter in call graph
+						if (assignment.Target is IPropertyReferenceOperation propTarget && propTarget.Property?.SetMethod != null)
+						{
+							callees.Add(propTarget.Property.SetMethod.OriginalDefinition);
+						}
 						if (assignment.Value is IMethodReferenceOperation mr1)
 						{
 							targetMethod = mr1.Method?.OriginalDefinition;
@@ -142,6 +193,26 @@ namespace PurelySharp.Analyzer.Engine.Analysis
 								delegateTargetsBySymbol[targetSymbol] = set;
 							}
 							set.Add(targetMethod);
+						}
+					}
+
+					// For compound property assignments and increment/decrement, include property setters
+					foreach (var compoundProp in body.Descendants().OfType<ICompoundAssignmentOperation>())
+					{
+						if (compoundProp.Target is IPropertyReferenceOperation prop && prop.Property?.SetMethod != null)
+						{
+							callees.Add(prop.Property.SetMethod.OriginalDefinition);
+						}
+					}
+
+					foreach (var incdec in body.Descendants().OfType<IIncrementOrDecrementOperation>())
+					{
+						if (incdec.Target is IPropertyReferenceOperation prop && prop.Property != null)
+						{
+							if (prop.Property.GetMethod != null)
+								callees.Add(prop.Property.GetMethod.OriginalDefinition);
+							if (prop.Property.SetMethod != null)
+								callees.Add(prop.Property.SetMethod.OriginalDefinition);
 						}
 					}
 

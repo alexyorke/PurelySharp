@@ -260,21 +260,33 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
 
-            PurityAnalysisEngine.LogDebug($"  [MIR] Performing recursive check for: {methodDisplayString}");
-            var recursiveResult = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
-                originalDefinitionSymbol,
-                context.SemanticModel,
-                context.EnforcePureAttributeSymbol,
-                context.AllowSynchronizationAttributeSymbol,
-                context.VisitedMethods,
-                context.PurityCache);
+            PurityAnalysisEngine.LogDebug($"  [MIR] Performing purity check for: {methodDisplayString}");
 
-            PurityAnalysisEngine.LogDebug($"  [MIR] Recursive check result for {methodDisplayString}: IsPure={recursiveResult.IsPure}");
+            PurityAnalysisEngine.PurityAnalysisResult calleePurity;
+            if (context.PurityService != null)
+            {
+                calleePurity = context.PurityService.GetPurity(
+                    originalDefinitionSymbol,
+                    context.SemanticModel,
+                    context.EnforcePureAttributeSymbol,
+                    context.AllowSynchronizationAttributeSymbol);
+            }
+            else
+            {
+                calleePurity = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
+                    originalDefinitionSymbol,
+                    context.SemanticModel,
+                    context.EnforcePureAttributeSymbol,
+                    context.AllowSynchronizationAttributeSymbol,
+                    context.VisitedMethods,
+                    context.PurityCache);
+            }
 
+            PurityAnalysisEngine.LogDebug($"  [MIR] Callee purity result for {methodDisplayString}: IsPure={calleePurity.IsPure}");
 
-            return recursiveResult.IsPure
+            return calleePurity.IsPure
                 ? PurityAnalysisEngine.PurityAnalysisResult.Pure
-                : PurityAnalysisEngine.PurityAnalysisResult.Impure(recursiveResult.ImpureSyntaxNode ?? invocationOperation.Syntax);
+                : PurityAnalysisEngine.PurityAnalysisResult.Impure(calleePurity.ImpureSyntaxNode ?? invocationOperation.Syntax);
         }
 
 

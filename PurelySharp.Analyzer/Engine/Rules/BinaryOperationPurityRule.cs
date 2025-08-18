@@ -70,13 +70,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 }
 
 
-                var operatorPurity = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
-                    binaryOperation.OperatorMethod.OriginalDefinition,
-                    context.SemanticModel,
-                    context.EnforcePureAttributeSymbol,
-                    context.AllowSynchronizationAttributeSymbol,
-                    context.VisitedMethods,
-                    context.PurityCache);
+                var operatorPurity = PurityAnalysisEngine.GetCalleePurity(binaryOperation.OperatorMethod, context);
 
                 if (!operatorPurity.IsPure)
                 {
@@ -121,13 +115,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     }
 
 
-                    var operatorPurity = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
-                        binaryOperation.OperatorMethod.OriginalDefinition,
-                        context.SemanticModel,
-                        context.EnforcePureAttributeSymbol,
-                        context.AllowSynchronizationAttributeSymbol,
-                        context.VisitedMethods,
-                        context.PurityCache);
+                    var operatorPurity = PurityAnalysisEngine.GetCalleePurity(binaryOperation.OperatorMethod, context);
 
                     if (!operatorPurity.IsPure)
                     {

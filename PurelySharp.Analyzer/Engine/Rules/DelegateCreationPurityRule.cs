@@ -33,13 +33,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 {
                     PurityAnalysisEngine.LogDebug($"    [DelegateCreationRule] Recursively checking lambda: {lambdaSymbol.ToDisplayString()}");
 
-                    var bodyResult = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
-                        lambdaSymbol.OriginalDefinition,
-                        context.SemanticModel,
-                        context.EnforcePureAttributeSymbol,
-                        context.AllowSynchronizationAttributeSymbol,
-                        context.VisitedMethods,
-                        context.PurityCache);
+                    var bodyResult = PurityAnalysisEngine.GetCalleePurity(lambdaSymbol, context);
 
                     PurityAnalysisEngine.LogDebug($"    [DelegateCreationRule] Lambda body analysis result: IsPure={bodyResult.IsPure}");
                     return bodyResult;
@@ -57,13 +51,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 IMethodSymbol targetMethodSymbol = methodReference.Method;
 
 
-                var methodResult = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
-                    targetMethodSymbol.OriginalDefinition,
-                    context.SemanticModel,
-                    context.EnforcePureAttributeSymbol,
-                    context.AllowSynchronizationAttributeSymbol,
-                    context.VisitedMethods,
-                    context.PurityCache);
+                var methodResult = PurityAnalysisEngine.GetCalleePurity(targetMethodSymbol, context);
 
                 PurityAnalysisEngine.LogDebug($"    [DelegateCreationRule] Referenced method analysis result: IsPure={methodResult.IsPure}");
                 return methodResult;

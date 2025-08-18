@@ -150,15 +150,8 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
 
 
-                PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Recursively checking purity of {disposeMethod.ToDisplayString()}");
-                var disposeResult = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
-                    disposeMethod.OriginalDefinition,
-                    context.SemanticModel,
-                    context.EnforcePureAttributeSymbol,
-                    context.AllowSynchronizationAttributeSymbol,
-                    context.VisitedMethods,
-                    context.PurityCache
-                );
+                PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Checking callee purity of {disposeMethod.ToDisplayString()}");
+                var disposeResult = PurityAnalysisEngine.GetCalleePurity(disposeMethod, context);
 
                 if (!disposeResult.IsPure)
                 {

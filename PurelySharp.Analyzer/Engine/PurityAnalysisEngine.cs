@@ -17,8 +17,14 @@ namespace PurelySharp.Analyzer.Engine
 
     internal class PurityAnalysisEngine
     {
+        private readonly CompilationPurityService? _purityService;
 
         public PurityAnalysisEngine() { }
+
+        public PurityAnalysisEngine(CompilationPurityService? purityService)
+        {
+            _purityService = purityService;
+        }
 
 
         private static readonly SymbolDisplayFormat _signatureFormat = new SymbolDisplayFormat(
@@ -447,7 +453,8 @@ namespace PurelySharp.Analyzer.Engine
                             purityCache,
                             methodSymbol,
                             _purityRules,
-                            CancellationToken.None);
+                            CancellationToken.None,
+                            null);
 
 
                         LogDebug($"{indent}  Post-CFG: Checking ReturnOperations...");
@@ -676,7 +683,8 @@ namespace PurelySharp.Analyzer.Engine
                         purityCache,
                         containingMethodSymbol,
                         _purityRules,
-                        CancellationToken.None);
+                        CancellationToken.None,
+                        null);
 
                     foreach (var exitOp in exitBlock.Operations)
                     {
@@ -758,7 +766,8 @@ namespace PurelySharp.Analyzer.Engine
                 purityCache,
                 containingMethodSymbol,
                 _purityRules,
-                CancellationToken.None);
+                CancellationToken.None,
+                null);
 
 
             var currentStateInBlock = stateBefore;
@@ -968,6 +977,29 @@ namespace PurelySharp.Analyzer.Engine
 
 
         internal static bool IsKnownImpure(ISymbol symbol) => ImpurityCatalog.IsKnownImpure(symbol);
+
+
+        internal static PurityAnalysisResult GetCalleePurity(
+            IMethodSymbol methodSymbol,
+            Rules.PurityAnalysisContext context)
+        {
+            if (context.PurityService != null)
+            {
+                return context.PurityService.GetPurity(
+                    methodSymbol.OriginalDefinition,
+                    context.SemanticModel,
+                    context.EnforcePureAttributeSymbol,
+                    context.AllowSynchronizationAttributeSymbol);
+            }
+
+            return DeterminePurityRecursiveInternal(
+                methodSymbol.OriginalDefinition,
+                context.SemanticModel,
+                context.EnforcePureAttributeSymbol,
+                context.AllowSynchronizationAttributeSymbol,
+                context.VisitedMethods,
+                context.PurityCache);
+        }
 
 
 

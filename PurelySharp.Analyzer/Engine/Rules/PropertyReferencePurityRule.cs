@@ -140,15 +140,8 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     }
                     else if (propertySymbol.GetMethod != null)
                     {
-                        PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance is 'this', property '{propertySymbol.Name}' has a getter. Recursively checking getter purity.");
-                        var thisGetterResult = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
-                            propertySymbol.GetMethod.OriginalDefinition,
-                            context.SemanticModel,
-                            context.EnforcePureAttributeSymbol,
-                            context.AllowSynchronizationAttributeSymbol,
-                            context.VisitedMethods,
-                            context.PurityCache
-                        );
+                        PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance is 'this', property '{propertySymbol.Name}' has a getter. Checking getter purity via service/recursion.");
+                        var thisGetterResult = PurityAnalysisEngine.GetCalleePurity(propertySymbol.GetMethod, context);
                         PurityAnalysisEngine.LogDebug($"    [PropRefRule] Getter purity result for '{propertySymbol.Name}': IsPure={thisGetterResult.IsPure}");
 
                         return thisGetterResult;
@@ -192,15 +185,8 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
                     else if (propertySymbol.GetMethod != null)
                     {
-                        PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance is complex ({instanceKind}), property '{propertySymbol.Name}' has getter. Checking getter purity.");
-                        var complexGetterResult = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
-                            propertySymbol.GetMethod.OriginalDefinition,
-                            context.SemanticModel,
-                            context.EnforcePureAttributeSymbol,
-                            context.AllowSynchronizationAttributeSymbol,
-                            context.VisitedMethods,
-                            context.PurityCache
-                        );
+                        PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance is complex ({instanceKind}), property '{propertySymbol.Name}' has getter. Checking getter purity via service/recursion.");
+                        var complexGetterResult = PurityAnalysisEngine.GetCalleePurity(propertySymbol.GetMethod, context);
                         PurityAnalysisEngine.LogDebug($"    [PropRefRule] Getter purity result for complex instance access to '{propertySymbol.Name}': IsPure={complexGetterResult.IsPure}");
                         return complexGetterResult;
                     }

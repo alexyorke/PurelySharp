@@ -50,14 +50,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 PurityAnalysisEngine.LogDebug($"    [ConversionRule] Operator Method Param Count: {operatorMethod.Parameters.Length}");
 
 
-                var operatorResult = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
-                    operatorMethod.OriginalDefinition,
-                    context.SemanticModel,
-                    context.EnforcePureAttributeSymbol,
-                    context.AllowSynchronizationAttributeSymbol,
-                    context.VisitedMethods,
-                    context.PurityCache
-                );
+                var operatorResult = PurityAnalysisEngine.GetCalleePurity(operatorMethod, context);
 
                 PurityAnalysisEngine.LogDebug($"    [ConversionRule] Operator Method Result: IsPure={operatorResult.IsPure}");
 
