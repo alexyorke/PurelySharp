@@ -12,17 +12,20 @@ namespace PurelySharp.Analyzer.Configuration
         public ImmutableHashSet<string> ExtraKnownPureMethods { get; }
         public ImmutableHashSet<string> ExtraKnownImpureNamespaces { get; }
         public ImmutableHashSet<string> ExtraKnownImpureTypes { get; }
+        public bool EnableDebugLogging { get; }
 
         private AnalyzerConfiguration(
             ImmutableHashSet<string> extraImpureMethods,
             ImmutableHashSet<string> extraPureMethods,
             ImmutableHashSet<string> extraImpureNamespaces,
-            ImmutableHashSet<string> extraImpureTypes)
+            ImmutableHashSet<string> extraImpureTypes,
+            bool enableDebugLogging)
         {
             ExtraKnownImpureMethods = extraImpureMethods;
             ExtraKnownPureMethods = extraPureMethods;
             ExtraKnownImpureNamespaces = extraImpureNamespaces;
             ExtraKnownImpureTypes = extraImpureTypes;
+            EnableDebugLogging = enableDebugLogging;
         }
 
         public static AnalyzerConfiguration FromOptions(AnalyzerOptions options)
@@ -31,7 +34,8 @@ namespace PurelySharp.Analyzer.Configuration
             var pureMethods = GetValues(options, ConfigKeys.KnownPureMethods);
             var impureNamespaces = GetValues(options, ConfigKeys.KnownImpureNamespaces);
             var impureTypes = GetValues(options, ConfigKeys.KnownImpureTypes);
-            return new AnalyzerConfiguration(impureMethods, pureMethods, impureNamespaces, impureTypes);
+            bool debug = GetBool(options, "purelysharp_enable_debug_logging");
+            return new AnalyzerConfiguration(impureMethods, pureMethods, impureNamespaces, impureTypes, debug);
         }
 
         private static ImmutableHashSet<string> GetValues(AnalyzerOptions options, string key)
@@ -57,6 +61,22 @@ namespace PurelySharp.Analyzer.Configuration
                 // Ignore config parsing issues; default to empty overrides
             }
             return builder.ToImmutable();
+        }
+
+        private static bool GetBool(AnalyzerOptions options, string key)
+        {
+            try
+            {
+                var global = options.AnalyzerConfigOptionsProvider.GlobalOptions;
+                if (global.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value))
+                {
+                    if (bool.TryParse(value.Trim(), out var b)) return b;
+                    var lowered = value.Trim().ToLowerInvariant();
+                    if (lowered == "1" || lowered == "true" || lowered == "yes" || lowered == "on") return true;
+                }
+            }
+            catch { }
+            return false;
         }
     }
 }

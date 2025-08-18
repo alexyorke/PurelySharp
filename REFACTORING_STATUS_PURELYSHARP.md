@@ -53,7 +53,7 @@
 
 6. **Diagnostics/configuration**
    - Allow severity toggles per rule or per pattern via `.editorconfig`.
-   - Add optional verbose logging toggle (kept no-op in Release builds today).
+   - DONE: Optional debug logging flag parsed via `.editorconfig` key `purelysharp_enable_debug_logging` (no-op in Release).
 
 ### Relevant files and ownership
 
