@@ -30,6 +30,8 @@ namespace PurelySharp.Analyzer
             context.RegisterCompilationStartAction(startContext =>
             {
                 var purityService = new Engine.CompilationPurityService(startContext.Compilation);
+                var config = Configuration.AnalyzerConfiguration.FromOptions(startContext.Options);
+                Engine.ImpurityCatalog.InitializeOverrides(config);
 
                 startContext.RegisterSyntaxNodeAction(c => MethodPurityAnalyzer.AnalyzeSymbolForPurity(c, purityService),
                     SyntaxKind.MethodDeclaration,

@@ -1,10 +1,25 @@
 using System;
+using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
+using PurelySharp.Analyzer.Configuration;
 
 namespace PurelySharp.Analyzer.Engine
 {
 	internal static class ImpurityCatalog
 	{
+		private static ImmutableHashSet<string> _extraImpureMethods = ImmutableHashSet<string>.Empty;
+		private static ImmutableHashSet<string> _extraPureMethods = ImmutableHashSet<string>.Empty;
+		private static ImmutableHashSet<string> _extraImpureNamespaces = ImmutableHashSet<string>.Empty;
+		private static ImmutableHashSet<string> _extraImpureTypes = ImmutableHashSet<string>.Empty;
+
+		public static void InitializeOverrides(AnalyzerConfiguration config)
+		{
+			_extraImpureMethods = config.ExtraKnownImpureMethods;
+			_extraPureMethods = config.ExtraKnownPureMethods;
+			_extraImpureNamespaces = config.ExtraKnownImpureNamespaces;
+			_extraImpureTypes = config.ExtraKnownImpureTypes;
+		}
+
 		public static bool IsKnownPureBCLMember(ISymbol symbol)
 		{
 			if (symbol == null) return false;
@@ -39,13 +54,13 @@ namespace PurelySharp.Analyzer.Engine
 			}
 
 			PurityAnalysisEngine.LogDebug($"    [IsKnownPure] Checking HashSet.Contains for signature: \"{signature}\"");
-			bool isKnownPure = Constants.KnownPureBCLMembers.Contains(signature);
+			bool isKnownPure = Constants.KnownPureBCLMembers.Contains(signature) || _extraPureMethods.Contains(signature);
 			PurityAnalysisEngine.LogDebug($"    [IsKnownPure] HashSet.Contains result: {isKnownPure}");
 
 			if (!isKnownPure && symbol is IMethodSymbol methodSymbol && methodSymbol.IsGenericMethod)
 			{
 				signature = methodSymbol.ConstructedFrom.ToDisplayString();
-				isKnownPure = Constants.KnownPureBCLMembers.Contains(signature);
+				isKnownPure = Constants.KnownPureBCLMembers.Contains(signature) || _extraPureMethods.Contains(signature);
 			}
 			else if (!isKnownPure && symbol is IPropertySymbol propertySymbol && propertySymbol.ContainingType.IsGenericType)
 			{
@@ -57,7 +72,7 @@ namespace PurelySharp.Analyzer.Engine
 				{
 					signature = $"{propertySymbol.ContainingType.ConstructedFrom.ToDisplayString()}.{propertySymbol.Name}.get";
 				}
-				isKnownPure = Constants.KnownPureBCLMembers.Contains(signature);
+				isKnownPure = Constants.KnownPureBCLMembers.Contains(signature) || _extraPureMethods.Contains(signature);
 			}
 
 			if (isKnownPure)
@@ -89,7 +104,7 @@ namespace PurelySharp.Analyzer.Engine
 			}
 
 			PurityAnalysisEngine.LogDebug($"    [IsKnownImpure] Checking HashSet.Contains for signature: \"{signature}\"");
-			if (Constants.KnownImpureMethods.Contains(signature))
+			if (Constants.KnownImpureMethods.Contains(signature) || _extraImpureMethods.Contains(signature))
 			{
 				PurityAnalysisEngine.LogDebug($"Helper IsKnownImpure: Match found for {symbol.ToDisplayString()} using full signature '{signature}'");
 				return true;
@@ -99,7 +114,7 @@ namespace PurelySharp.Analyzer.Engine
 			{
 				string simplifiedName = $"{symbol.ContainingType.Name}.{symbol.Name}";
 				PurityAnalysisEngine.LogDebug($"    [IsKnownImpure] Checking HashSet.Contains for simplified name: \"{simplifiedName}\"");
-				if (Constants.KnownImpureMethods.Contains(simplifiedName))
+				if (Constants.KnownImpureMethods.Contains(simplifiedName) || _extraImpureMethods.Contains(simplifiedName))
 				{
 					PurityAnalysisEngine.LogDebug($"Helper IsKnownImpure: Match found for {symbol.ToDisplayString()} using simplified name '{simplifiedName}'");
 					return true;
@@ -109,7 +124,7 @@ namespace PurelySharp.Analyzer.Engine
 			if (symbol is IMethodSymbol methodSymbol && methodSymbol.IsGenericMethod)
 			{
 				signature = methodSymbol.ConstructedFrom.ToDisplayString();
-				if (Constants.KnownImpureMethods.Contains(signature))
+				if (Constants.KnownImpureMethods.Contains(signature) || _extraImpureMethods.Contains(signature))
 				{
 					PurityAnalysisEngine.LogDebug($"Helper IsKnownImpure: Generic match found for {symbol.ToDisplayString()} using signature '{signature}'");
 					return true;
@@ -147,7 +162,7 @@ namespace PurelySharp.Analyzer.Engine
 				string typeName = containingType.OriginalDefinition.ToDisplayString();
 				PurityAnalysisEngine.LogDebug($"    [INOT] Checking type: {typeName}");
 				PurityAnalysisEngine.LogDebug($"    [INOT] Comparing '{typeName}' against KnownImpureTypeNames...");
-				if (Constants.KnownImpureTypeNames.Contains(typeName))
+				if (Constants.KnownImpureTypeNames.Contains(typeName) || _extraImpureTypes.Contains(typeName))
 				{
 					PurityAnalysisEngine.LogDebug($"    [INOT] --> Match found for impure type: {typeName}");
 					return true;
@@ -158,7 +173,7 @@ namespace PurelySharp.Analyzer.Engine
 				{
 					string namespaceName = ns.ToDisplayString();
 					PurityAnalysisEngine.LogDebug($"    [INOT] Checking namespace: {namespaceName}");
-					if (Constants.KnownImpureNamespaces.Contains(namespaceName))
+					if (Constants.KnownImpureNamespaces.Contains(namespaceName) || _extraImpureNamespaces.Contains(namespaceName))
 					{
 						PurityAnalysisEngine.LogDebug($"    [INOT] --> Match found for impure namespace: {namespaceName}");
 						return true;
