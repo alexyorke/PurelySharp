@@ -38,7 +38,9 @@
    - DONE: Map delegate targets assigned/initialized to locals/fields and connect delegate `Invoke` to captured targets.
    - DONE: Handle `await` flows conservatively by adding edges for awaited invocations.
    - DONE: Capture delegate compound assignments (`+=`) and event handler subscriptions (`IEventAssignmentOperation`) and map through `IEventReferenceOperation`.
-   - DONE: Include property accessor edges (getter/setter) when properties are read/written.
+   - DONE: Include property accessor edges (getter/setter) when properties are read/written, including compound assignments and increment/decrement.
+   - DONE: Add edges for user-defined operators (binary/unary) and user-defined conversions.
+   - DONE: Add edges for constructor initializer calls (`base()`, `this()`).
    - DONE: Expand dynamic dispatch for interface/virtual calls by scanning compilation types for implementations/overrides.
    - TODO: Consider using Roslyn `ControlFlowGraph` to resolve additional potential targets where simple symbol extraction is insufficient.
 
@@ -48,6 +50,7 @@
 
 4. **Rule set evolution**
    - Group rules by construct families (Invocation/Assignment/Flow/Patterns) for clarity.
+   - DONE: Route callee purity checks through `CompilationPurityService` when available via `GetCalleePurity` (updated invocation, object creation, property reference, operator/checked, conversion, delegate creation, constructor initializer, using statement rules).
    - Expand rules for newer C# features as needed (records, slices/spans patterns, primary constructors).
 
 5. **Performance/robustness**

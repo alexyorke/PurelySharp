@@ -891,13 +891,7 @@ namespace PurelySharp.Analyzer.Engine
                     }
 
 
-                    var operatorPurity = DeterminePurityRecursiveInternal(
-                        operatorMethod.OriginalDefinition,
-                        context.SemanticModel,
-                        context.EnforcePureAttributeSymbol,
-                        context.AllowSynchronizationAttributeSymbol,
-                        context.VisitedMethods,
-                        context.PurityCache);
+                    var operatorPurity = GetCalleePurity(operatorMethod, context);
 
                     if (!operatorPurity.IsPure)
                     {
@@ -1206,14 +1200,7 @@ namespace PurelySharp.Analyzer.Engine
 
 
 
-            var cctorResult = DeterminePurityRecursiveInternal(
-                staticConstructor.OriginalDefinition,
-                context.SemanticModel,
-                context.EnforcePureAttributeSymbol,
-                context.AllowSynchronizationAttributeSymbol,
-                context.VisitedMethods,
-                context.PurityCache
-            );
+            var cctorResult = GetCalleePurity(staticConstructor, context);
 
             LogDebug($"    [CctorCheck] Static constructor purity result for {typeSymbol.Name}: IsPure={cctorResult.IsPure}");
 

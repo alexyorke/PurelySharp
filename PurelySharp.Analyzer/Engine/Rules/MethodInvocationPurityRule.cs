@@ -260,25 +260,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             PurityAnalysisEngine.LogDebug($"  [MIR] Performing purity check for: {methodDisplayString}");
 
-            PurityAnalysisEngine.PurityAnalysisResult calleePurity;
-            if (context.PurityService != null)
-            {
-                calleePurity = context.PurityService.GetPurity(
-                    originalDefinitionSymbol,
-                    context.SemanticModel,
-                    context.EnforcePureAttributeSymbol,
-                    context.AllowSynchronizationAttributeSymbol);
-            }
-            else
-            {
-                calleePurity = PurityAnalysisEngine.DeterminePurityRecursiveInternal(
-                    originalDefinitionSymbol,
-                    context.SemanticModel,
-                    context.EnforcePureAttributeSymbol,
-                    context.AllowSynchronizationAttributeSymbol,
-                    context.VisitedMethods,
-                    context.PurityCache);
-            }
+            var calleePurity = PurityAnalysisEngine.GetCalleePurity(originalDefinitionSymbol, context);
 
             PurityAnalysisEngine.LogDebug($"  [MIR] Callee purity result for {methodDisplayString}: IsPure={calleePurity.IsPure}");
 
@@ -301,6 +283,10 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     return ((IParameterReferenceOperation)operation).Parameter;
                 case OperationKind.FieldReference:
                     return ((IFieldReferenceOperation)operation).Field;
+                case OperationKind.PropertyReference:
+                    return ((IPropertyReferenceOperation)operation).Property;
+                case OperationKind.EventReference:
+                    return ((IEventReferenceOperation)operation).Event;
 
                 default:
 
