@@ -27,13 +27,18 @@ namespace PurelySharp.Analyzer
             context.EnableConcurrentExecution();
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
 
-            context.RegisterSyntaxNodeAction(MethodPurityAnalyzer.AnalyzeSymbolForPurity,
-                SyntaxKind.MethodDeclaration,
-                SyntaxKind.GetAccessorDeclaration,
-                SyntaxKind.SetAccessorDeclaration,
-                SyntaxKind.ConstructorDeclaration,
-                SyntaxKind.OperatorDeclaration,
-                SyntaxKind.LocalFunctionStatement);
+            context.RegisterCompilationStartAction(startContext =>
+            {
+                var purityService = new Engine.CompilationPurityService(startContext.Compilation);
+
+                startContext.RegisterSyntaxNodeAction(c => MethodPurityAnalyzer.AnalyzeSymbolForPurity(c, purityService),
+                    SyntaxKind.MethodDeclaration,
+                    SyntaxKind.GetAccessorDeclaration,
+                    SyntaxKind.SetAccessorDeclaration,
+                    SyntaxKind.ConstructorDeclaration,
+                    SyntaxKind.OperatorDeclaration,
+                    SyntaxKind.LocalFunctionStatement);
+            });
 
             var analyzedKinds = ImmutableHashSet.Create(SyntaxKind.MethodDeclaration,
                                                         SyntaxKind.GetAccessorDeclaration,

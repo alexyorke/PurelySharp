@@ -12,7 +12,7 @@ namespace PurelySharp.Analyzer
     internal static class MethodPurityAnalyzer
     {
 
-        internal static void AnalyzeSymbolForPurity(SyntaxNodeAnalysisContext context)
+        internal static void AnalyzeSymbolForPurity(SyntaxNodeAnalysisContext context, Engine.CompilationPurityService purityService)
         {
 
             ISymbol? declaredSymbol = context.SemanticModel.GetDeclaredSymbol(context.Node, context.CancellationToken);
@@ -45,18 +45,12 @@ namespace PurelySharp.Analyzer
             bool hasPurityEnforcementAttribute = HasPurityEnforcement(methodSymbol, enforcePureAttributeSymbol, pureAttributeSymbol);
 
 
-
-            var purityEngine = new PurityAnalysisEngine();
-
-
-
             var enforceOrPureAttributeSymbol = GetEffectivePurityAttributeSymbol(enforcePureAttributeSymbol, pureAttributeSymbol);
-            PurityAnalysisEngine.PurityAnalysisResult purityResult = purityEngine.IsConsideredPure(
+            PurityAnalysisEngine.PurityAnalysisResult purityResult = purityService.GetPurity(
                 methodSymbol,
                 context.SemanticModel,
                 enforceOrPureAttributeSymbol,
-                allowSynchronizationAttributeSymbol
-                );
+                allowSynchronizationAttributeSymbol);
             bool isPure = purityResult.IsPure;
 
 
