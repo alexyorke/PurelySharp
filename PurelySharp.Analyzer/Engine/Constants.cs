@@ -147,6 +147,7 @@ public static class Constants
         "System.Security.Cryptography.RandomNumberGenerator.GetBytes(byte[])",
 
         "System.Text.Json.JsonSerializer.Deserialize",
+        "JsonSerializer.Deserialize",
         "System.Text.Json.JsonSerializer.Deserialize<TValue>(string, System.Text.Json.JsonSerializerOptions?)",
         "System.Text.Json.JsonSerializer.Deserialize<TValue>(System.ReadOnlySpan<byte>, System.Text.Json.JsonSerializerOptions?)",
 
