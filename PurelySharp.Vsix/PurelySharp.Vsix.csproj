@@ -11,6 +11,10 @@
     <GenerateVsixContainer>true</GenerateVsixContainer>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(MSBuildRuntimeType)' == 'Core'">
+    <DeployExtension>false</DeployExtension>
+  </PropertyGroup>
+
   <PropertyGroup>
     <GeneratePkgDefFile>false</GeneratePkgDefFile>
     <IncludeAssemblyInVSIXContainer>false</IncludeAssemblyInVSIXContainer>
