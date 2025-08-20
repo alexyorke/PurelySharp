@@ -32,6 +32,27 @@ public class TestClass
         }
 
         [Test]
+        public async Task Method_WithBothEnforcePureAndPure_ReportsPS0005()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class C
+{
+    [EnforcePure]
+    [Pure]
+    public int Add(int a, int b) => a + b;
+}";
+
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.ConflictingPurityAttributesId)
+                                   .WithSpan(9, 16, 9, 19)
+                                   .WithArguments("Add");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [Test]
         public async Task ReadonlyRecordStructConstructor_ShouldBePure()
         {
             var test = @"

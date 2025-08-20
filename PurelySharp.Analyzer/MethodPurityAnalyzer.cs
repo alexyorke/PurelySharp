@@ -41,6 +41,22 @@ namespace PurelySharp.Analyzer
 
             var allowSynchronizationAttributeSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("PurelySharp.Attributes.AllowSynchronizationAttribute");
 
+            bool hasEnforcePureAttribute = enforcePureAttributeSymbol != null && HasAttribute(methodSymbol, enforcePureAttributeSymbol);
+            bool hasPureAttribute = pureAttributeSymbol != null && HasAttribute(methodSymbol, pureAttributeSymbol);
+
+            if (hasEnforcePureAttribute && hasPureAttribute)
+            {
+                Location? conflictingDiagnosticLocation = GetIdentifierLocation(context.Node);
+                if (conflictingDiagnosticLocation != null)
+                {
+                    var conflicting = Diagnostic.Create(
+                        PurelySharpDiagnostics.ConflictingPurityAttributesRule,
+                        conflictingDiagnosticLocation,
+                        methodSymbol.Name);
+                    context.ReportDiagnostic(conflicting);
+                }
+            }
+
 
             bool hasPurityEnforcementAttribute = HasPurityEnforcement(methodSymbol, enforcePureAttributeSymbol, pureAttributeSymbol);
 
@@ -123,6 +139,19 @@ namespace PurelySharp.Analyzer
                     return true;
                 }
                 if (pureAttributeSymbol != null && SymbolEqualityComparer.Default.Equals(attributeClass, pureAttributeSymbol))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static bool HasAttribute(IMethodSymbol methodSymbol, INamedTypeSymbol attributeType)
+        {
+            foreach (var attributeData in methodSymbol.GetAttributes())
+            {
+                var attributeClass = attributeData.AttributeClass?.OriginalDefinition;
+                if (SymbolEqualityComparer.Default.Equals(attributeClass, attributeType))
                 {
                     return true;
                 }

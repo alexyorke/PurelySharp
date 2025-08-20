@@ -67,5 +67,20 @@ namespace PurelySharp.Analyzer
             defaultSeverity: DiagnosticSeverity.Warning,
             isEnabledByDefault: true,
             description: MissingEnforcePureAttributeDescription);
+
+
+        public const string ConflictingPurityAttributesId = "PS0005";
+        private static readonly LocalizableString ConflictingPurityAttributesTitle = "Conflicting purity attributes";
+        private static readonly LocalizableString ConflictingPurityAttributesMessageFormat = "Method '{0}' has both [EnforcePure] and [Pure] attributes applied";
+        private static readonly LocalizableString ConflictingPurityAttributesDescription = "Apply only one of [EnforcePure] or [Pure] to a method. Both attributes together are redundant and can be confusing.";
+
+        public static readonly DiagnosticDescriptor ConflictingPurityAttributesRule = new DiagnosticDescriptor(
+            id: ConflictingPurityAttributesId,
+            title: ConflictingPurityAttributesTitle,
+            messageFormat: ConflictingPurityAttributesMessageFormat,
+            category: "Usage",
+            defaultSeverity: DiagnosticSeverity.Warning,
+            isEnabledByDefault: true,
+            description: ConflictingPurityAttributesDescription);
     }
 }

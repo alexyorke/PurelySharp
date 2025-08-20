@@ -20,7 +20,8 @@ namespace PurelySharp.Analyzer
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
             ImmutableArray.Create(PurelySharpDiagnostics.PurityNotVerifiedRule,
                                   PurelySharpDiagnostics.MisplacedAttributeRule,
-                                  PurelySharpDiagnostics.MissingEnforcePureAttributeRule);
+                                  PurelySharpDiagnostics.MissingEnforcePureAttributeRule,
+                                  PurelySharpDiagnostics.ConflictingPurityAttributesRule);
 
         public override void Initialize(AnalysisContext context)
         {
