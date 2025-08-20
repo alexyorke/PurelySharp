@@ -75,25 +75,16 @@ public class TestClass
 }
 ";
 
-            var expectedCreateScaledCopy = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                                   .WithSpan(32, 19, 32, 35)
-                                                   .WithArguments("CreateScaledCopy");
-            var expectedGetScaledArea = VerifyCS.Diagnostic("PS0002")
-                                                .WithSpan(48, 19, 48, 32)
-                                                .WithArguments("GetScaledArea");
-
-
-
             var expectedGetId = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(7, 16, 7, 18).WithArguments("get_Id");
             var expectedShapeCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(8, 15, 8, 20).WithArguments(".ctor");
+            var expectedCircleCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(22, 12, 22, 18).WithArguments(".ctor");
             var expectedGetRadius = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(19, 19, 19, 25).WithArguments("get_Radius");
 
             await VerifyCS.VerifyAnalyzerAsync(test,
-                                             expectedCreateScaledCopy,
-                                             expectedGetScaledArea,
                                              expectedGetId,
                                              expectedShapeCtor,
-                                             expectedGetRadius
+                                             expectedGetRadius,
+                                             expectedCircleCtor
                                              );
         }
     }

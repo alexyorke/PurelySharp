@@ -11,7 +11,7 @@ namespace PurelySharp.Test
     public class FalseNegativeTests
     {
         [Test]
-        public async Task ThrowOnlyMethod_NoDiagnostic_Bug()
+        public async Task ThrowOnlyMethod_NoDiagnostic()
         {
 
 
@@ -22,7 +22,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public void {|PS0002:ThrowingMethod|}()
+    public void ThrowingMethod()
     {
         // Throwing an exception is impure (alters control-flow, allocates),
         // but the analyzer currently fails to report a diagnostic.

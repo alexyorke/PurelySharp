@@ -475,15 +475,24 @@ namespace PurelySharp.Analyzer.Engine
                         LogDebug($"{indent}  Post-CFG: ReturnOperations check complete (result still pure).");
 
 
-                        LogDebug($"{indent}  Post-CFG: Checking ThrowOperations...");
+                        LogDebug($"{indent}  Post-CFG: Checking ThrowOperations (divergence without side effects allowed)...");
+                        // Allow throw as a pure-diverging operation if its exception expression is pure.
                         var firstThrowOp = methodBodyIOperation.DescendantsAndSelf().OfType<IThrowOperation>().FirstOrDefault();
                         if (firstThrowOp != null)
                         {
-                            LogDebug($"{indent}    Post-CFG: Found ThrowOperation IMPURE: {firstThrowOp.Syntax}");
-                            result = PurityAnalysisResult.Impure(firstThrowOp.Syntax);
-                            goto PostCfgChecksDone;
+                            if (firstThrowOp.Exception != null)
+                            {
+                                var exResult = CheckSingleOperation(firstThrowOp.Exception, postCfgContext, PurityAnalysisState.Pure);
+                                if (!exResult.IsPure)
+                                {
+                                    LogDebug($"{indent}    Post-CFG: Throw exception expression is IMPURE: {firstThrowOp.Exception.Syntax}");
+                                    result = PurityAnalysisResult.Impure(exResult.ImpureSyntaxNode ?? firstThrowOp.Syntax);
+                                    goto PostCfgChecksDone;
+                                }
+                            }
+                            LogDebug($"{indent}    Post-CFG: Throw operation treated as pure-diverging (no side effects).");
                         }
-                        LogDebug($"{indent}  Post-CFG: ThrowOperations check complete (result still pure).");
+                        LogDebug($"{indent}  Post-CFG: ThrowOperations check complete (divergence allowed).");
 
 
                         LogDebug($"{indent}  Post-CFG: Checking Known Impure Invocations...");

@@ -260,10 +260,11 @@ public class PotentialPurity
                                     .WithSpan(13, 16, 13, 39)
                                     .WithArguments("GetCalcWithoutAttribute");
 
+            var expectedNameof = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                     .WithSpan(16, 19, 16, 44)
+                                     .WithArguments("GetNameofWithoutAttribute");
 
-
-
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedConst, expectedGreeting, expectedCalc);
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedConst, expectedGreeting, expectedCalc, expectedNameof);
         }
 
 
@@ -609,10 +610,10 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public string {|PS0002:GetClassName|}() => nameof(TestClass);
+    public string GetClassName() => nameof(TestClass);
 
     [EnforcePure]
-    public string {|PS0002:GetStringName|}() { return nameof(System.String); }
+    public string GetStringName() { return nameof(System.String); }
 }";
 
 

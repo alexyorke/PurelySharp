@@ -14,7 +14,7 @@ namespace PurelySharp.Test
 
 
         [Test]
-        public async Task TestPartialFunction_ThrowsException_ShouldFlagPS0002()
+        public async Task TestPartialFunction_ThrowsException_NoDiagnostic()
         {
             var testCode = @"
 #nullable enable
@@ -52,16 +52,7 @@ public class TestClass
 }
 ";
 
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                           .WithSpan(10, 16, 10, 37)
-                           .WithArguments("IdentityOrThrowIfNull");
-
-
-            var expectedUse = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                    .WithSpan(22, 17, 22, 26)
-                                    .WithArguments("UseMethod");
-
-            await VerifyCS.VerifyAnalyzerAsync(testCode, expected, expectedUse);
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
 
 

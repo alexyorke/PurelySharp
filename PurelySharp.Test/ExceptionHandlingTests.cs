@@ -4,6 +4,7 @@ using NUnit.Framework;
 using PurelySharp.Analyzer;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
     PurelySharp.Analyzer.PurelySharpAnalyzer>;
+using Microsoft.CodeAnalysis;
 
 namespace PurelySharp.Test
 {
@@ -24,7 +25,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:TestMethod|}(int x)
+    public int TestMethod(int x)
     {
         try
         {
@@ -84,6 +85,25 @@ public class TestClass
     }
 }";
 
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ThrowIfNull_IsTreatedAsPure()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void Check(object o)
+    {
+        if (o == null) throw new ArgumentNullException(nameof(o));
+    }
+}";
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }

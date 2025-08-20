@@ -173,7 +173,7 @@ Supported means there is _some_ level of analysis implemented, but it does not g
 - [x] Null coalescing operators (`??`, `?.`)
 - [ ] Interpolated strings (Assumed impure unless constant.)
 - [ ] Stack allocations and Span operations
-- [ ] Indices and ranges (C# 8.0+)
+- [/] Indices and ranges (C# 8.0+) — basic range construction is treated as pure when endpoints are pure
 - [x] Bit shift operations and basic binary/unary operators
 - [ ] Async/await expressions
 - [ ] Unsafe code blocks

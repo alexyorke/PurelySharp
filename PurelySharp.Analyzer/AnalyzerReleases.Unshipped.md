@@ -8,3 +8,9 @@
 | PS0006 | Usage | Warning | [AllowSynchronization] used without [EnforcePure]/[Pure] on the method. |
 | PS0007 | Usage | Error | Misplaced [AllowSynchronization] attribute applied to a non-method declaration. |
 | PS0008 | Usage | Info | Redundant [AllowSynchronization] on method with no synchronization constructs. |
+
+### Enhancements
+
+- Treat range expressions (OperationKind.Range) as pure when both endpoints are pure.
+- Treat nameof expressions (OperationKind.NameOf) as pure.
+- Consider ArgumentNullException.ThrowIfNull overloads as known pure BCL methods.

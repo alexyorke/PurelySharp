@@ -12,7 +12,7 @@ namespace PurelySharp.Test
     public class ThrowExpressionTests
     {
         [Test]
-        public async Task MethodWithThrowExpression_Diagnostic()
+        public async Task MethodWithThrowExpression_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -31,10 +31,7 @@ namespace TestNamespace
 }
 ";
 
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                   .WithSpan(10, 20, 10, 30)
-                                   .WithArguments("TestMethod");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }
 }

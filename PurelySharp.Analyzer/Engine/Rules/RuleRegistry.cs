@@ -46,6 +46,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
 				new LiteralPurityRule(),
 				new TuplePurityRule(),
 				new TypeOfPurityRule(),
+				new NameOfPurityRule(),
 				new Utf8StringLiteralPurityRule(),
 				new SizeOfPurityRule(),
 				

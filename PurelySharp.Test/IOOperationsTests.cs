@@ -17,7 +17,7 @@ namespace PurelySharp.Test
     public class IOOperationsTests
     {
         [Test]
-        public async Task AsyncAwaitImpurity_ShouldDetectDiagnostic()
+        public async Task AsyncAwaitImpurity_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -35,7 +35,6 @@ public class TestClass
         return await Task.FromResult(42);
     }
 }";
-
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
@@ -730,7 +729,10 @@ public class TestClass
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expectedDelete = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004)
+                                       .WithSpan(13, 26, 13, 32)
+                                       .WithArguments("Delete");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedDelete);
         }
 
         [Test]

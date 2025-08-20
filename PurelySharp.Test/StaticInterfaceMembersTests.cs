@@ -163,6 +163,9 @@ namespace TestNamespace
             var expectedPS0004Multiply = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
                                               .WithSpan(22, 30, 22, 38)
                                               .WithArguments("Multiply");
+            var expectedInterfaceMultiply = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                                 .WithSpan(13, 26, 13, 34)
+                                                 .WithArguments("Multiply");
 
 
             await new VerifyCS.Test
@@ -173,7 +176,7 @@ namespace TestNamespace
                     (solution, projectId) =>
                         solution.AddMetadataReference(projectId, MetadataReference.CreateFromFile(typeof(EnforcePureAttribute).Assembly.Location))
                  },
-                ExpectedDiagnostics = { expectedGetter, expectedCtor, expectedPS0004Multiply }
+                ExpectedDiagnostics = { expectedGetter, expectedCtor, expectedPS0004Multiply, expectedInterfaceMultiply }
             }.RunAsync();
         }
 

@@ -45,10 +45,9 @@ public class TestClass
 }";
 
             var expectedGetName = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 20, 11, 24).WithArguments("get_Name");
-            var expectedGetProp = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(17, 19, 17, 34).WithArguments("GetPropertyName");
             var expectedGetNameProp = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(25, 19, 25, 38).WithArguments("GetNamePropertyName");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetName, expectedGetProp, expectedGetNameProp });
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetName, expectedGetNameProp });
         }
 
         [Test]
@@ -71,7 +70,7 @@ namespace TestNamespace
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(10, 23, 10, 34).WithArguments("GetTypeName"));
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
@@ -94,7 +93,7 @@ namespace TestNamespace
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(10, 23, 10, 39).WithArguments("GetParameterName"));
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
@@ -119,10 +118,9 @@ public class TestClass
 }";
 
             var expectedGetInfo = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(7, 27, 7, 34).WithArguments("GetInfo");
-            var expectedGetFunctionInfo = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(10, 19, 10, 34).WithArguments("GetFunctionInfo");
             var expectedLocalFunction = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(13, 16, 13, 29).WithArguments("LocalFunction");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetInfo, expectedGetFunctionInfo, expectedLocalFunction });
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetInfo, expectedLocalFunction });
         }
 
         [Test]
@@ -203,7 +201,7 @@ namespace TestNamespace
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(10, 23, 10, 45).WithArguments("GetPatternVariableName"));
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]

@@ -57,7 +57,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task NullReferenceWithThrow_Diagnostic()
+        public async Task NullReferenceWithThrow_NoDiagnostic()
         {
             var test = @"
 #nullable enable
@@ -74,10 +74,7 @@ public class TestClass
     }
 }
 #nullable disable";
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
-                                   .WithSpan(9, 17, 9, 27)
-                                   .WithArguments("TestMethod");
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]

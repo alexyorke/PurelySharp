@@ -1245,5 +1245,8 @@ public static class Constants
 
         "System.Text.Encoding.UTF8.get",
         "System.Text.Encoding.GetString(byte[])",
+        // Exception guard helpers considered pure (diverging without side effects)
+        "System.ArgumentNullException.ThrowIfNull(object)",
+        "System.ArgumentNullException.ThrowIfNull(object, string)",
     };
 }
