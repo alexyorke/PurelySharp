@@ -217,6 +217,57 @@ class Program
                                    .WithArguments("ImpureMethodWithNonReadonlyLock");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
+
+        [Test]
+        public async Task AllowSynchronization_WithPurityAttribute_ButNoLock_WarnsPS0008()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class AllowSynchronizationAttribute : Attribute { }
+
+public class C
+{
+    [EnforcePure]
+    [AllowSynchronization]
+    public int M() => 42;
+}";
+
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.RedundantAllowSynchronizationId)
+                                   .WithSpan(12, 16, 12, 17)
+                                   .WithArguments("M");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [Test]
+        public async Task AllowSynchronization_WithLock_DoesNotWarnPS0008()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class AllowSynchronizationAttribute : Attribute { }
+
+public class C
+{
+    private readonly object _gate = new object();
+
+    [EnforcePure]
+    [AllowSynchronization]
+    public int M()
+    {
+        lock (_gate) { return 1; }
+    }
+}";
+
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                   .WithSpan(14, 16, 14, 17)
+                                   .WithArguments("M");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
     }
 }
 

@@ -74,6 +74,21 @@ namespace PurelySharp.Analyzer
                 }
             }
 
+            // Report redundant [AllowSynchronization] if present but no synchronization constructs exist in the body
+            if (hasAllowSynchronization && hasPurityEnforcementAttribute)
+            {
+                bool containsLock = context.Node.DescendantNodes().OfType<LockStatementSyntax>().Any();
+                if (!containsLock)
+                {
+                    Location? redundantLoc = GetIdentifierLocation(context.Node);
+                    if (redundantLoc != null)
+                    {
+                        var redundant = Diagnostic.Create(PurelySharpDiagnostics.RedundantAllowSynchronizationRule, redundantLoc, methodSymbol.Name);
+                        context.ReportDiagnostic(redundant);
+                    }
+                }
+            }
+
 
             var enforceOrPureAttributeSymbol = GetEffectivePurityAttributeSymbol(enforcePureAttributeSymbol, pureAttributeSymbol);
             PurityAnalysisEngine.PurityAnalysisResult purityResult = purityService.GetPurity(

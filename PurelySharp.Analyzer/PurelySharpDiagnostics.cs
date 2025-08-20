@@ -112,5 +112,20 @@ namespace PurelySharp.Analyzer
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true,
             description: MisplacedAllowSynchronizationDescription);
+
+
+        public const string RedundantAllowSynchronizationId = "PS0008";
+        private static readonly LocalizableString RedundantAllowSynchronizationTitle = "Redundant [AllowSynchronization]";
+        private static readonly LocalizableString RedundantAllowSynchronizationMessageFormat = "Method '{0}' is marked with [AllowSynchronization] but contains no synchronization constructs";
+        private static readonly LocalizableString RedundantAllowSynchronizationDescription = "Remove [AllowSynchronization] when the method does not use synchronization (e.g., lock).";
+
+        public static readonly DiagnosticDescriptor RedundantAllowSynchronizationRule = new DiagnosticDescriptor(
+            id: RedundantAllowSynchronizationId,
+            title: RedundantAllowSynchronizationTitle,
+            messageFormat: RedundantAllowSynchronizationMessageFormat,
+            category: "Usage",
+            defaultSeverity: DiagnosticSeverity.Info,
+            isEnabledByDefault: true,
+            description: RedundantAllowSynchronizationDescription);
     }
 }

@@ -23,7 +23,8 @@ namespace PurelySharp.Analyzer
                                   PurelySharpDiagnostics.MissingEnforcePureAttributeRule,
                                   PurelySharpDiagnostics.ConflictingPurityAttributesRule,
                                   PurelySharpDiagnostics.AllowSynchronizationWithoutPurityAttributeRule,
-                                  PurelySharpDiagnostics.MisplacedAllowSynchronizationAttributeRule);
+                                  PurelySharpDiagnostics.MisplacedAllowSynchronizationAttributeRule,
+                                  PurelySharpDiagnostics.RedundantAllowSynchronizationRule);
 
         public override void Initialize(AnalysisContext context)
         {
