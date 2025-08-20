@@ -48,6 +48,29 @@ public class TestClass
         }
 
 
+        [Test]
+        public async Task AllowSynchronization_WithoutPurityAttribute_Warns()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+[AttributeUsage(AttributeTargets.Method)]
+public class AllowSynchronizationAttribute : Attribute { }
+
+public class C
+{
+    [AllowSynchronization]
+    public void M() { }
+}";
+
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.AllowSynchronizationWithoutPurityAttributeId)
+                                   .WithSpan(11, 17, 11, 18)
+                                   .WithArguments("M");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+
 
         [Test]
         public async Task LockStatement_WithPureOperations_ShouldBePure()

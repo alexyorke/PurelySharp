@@ -82,5 +82,35 @@ namespace PurelySharp.Analyzer
             defaultSeverity: DiagnosticSeverity.Warning,
             isEnabledByDefault: true,
             description: ConflictingPurityAttributesDescription);
+
+
+        public const string AllowSynchronizationWithoutPurityAttributeId = "PS0006";
+        private static readonly LocalizableString AllowSyncWithoutPurityTitle = "[AllowSynchronization] requires a purity attribute";
+        private static readonly LocalizableString AllowSyncWithoutPurityMessageFormat = "Method '{0}' is marked with [AllowSynchronization] but is not marked with [EnforcePure] or [Pure]";
+        private static readonly LocalizableString AllowSyncWithoutPurityDescription = "[AllowSynchronization] only affects methods participating in purity analysis. Apply [EnforcePure] or [Pure] for it to have effect.";
+
+        public static readonly DiagnosticDescriptor AllowSynchronizationWithoutPurityAttributeRule = new DiagnosticDescriptor(
+            id: AllowSynchronizationWithoutPurityAttributeId,
+            title: AllowSyncWithoutPurityTitle,
+            messageFormat: AllowSyncWithoutPurityMessageFormat,
+            category: "Usage",
+            defaultSeverity: DiagnosticSeverity.Warning,
+            isEnabledByDefault: true,
+            description: AllowSyncWithoutPurityDescription);
+
+
+        public const string MisplacedAllowSynchronizationAttributeId = "PS0007";
+        private static readonly LocalizableString MisplacedAllowSynchronizationTitle = "Misplaced [AllowSynchronization] Attribute";
+        private static readonly LocalizableString MisplacedAllowSynchronizationMessageFormat = "The [AllowSynchronization] attribute can only be applied to method declarations";
+        private static readonly LocalizableString MisplacedAllowSynchronizationDescription = "[AllowSynchronization] configures analyzer behavior for a method and should not be used on non-method declarations.";
+
+        public static readonly DiagnosticDescriptor MisplacedAllowSynchronizationAttributeRule = new DiagnosticDescriptor(
+            id: MisplacedAllowSynchronizationAttributeId,
+            title: MisplacedAllowSynchronizationTitle,
+            messageFormat: MisplacedAllowSynchronizationMessageFormat,
+            category: "Usage",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            description: MisplacedAllowSynchronizationDescription);
     }
 }

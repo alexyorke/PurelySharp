@@ -59,6 +59,20 @@ namespace PurelySharp.Analyzer
 
 
             bool hasPurityEnforcementAttribute = HasPurityEnforcement(methodSymbol, enforcePureAttributeSymbol, pureAttributeSymbol);
+            bool hasAllowSynchronization =
+                (allowSynchronizationAttributeSymbol != null && HasAttribute(methodSymbol, allowSynchronizationAttributeSymbol))
+                || HasAttributeByName(methodSymbol, "AllowSynchronizationAttribute");
+
+            // Report if [AllowSynchronization] is present without [EnforcePure]/[Pure]
+            if (hasAllowSynchronization && !hasPurityEnforcementAttribute)
+            {
+                Location? allowSyncLocation = GetIdentifierLocation(context.Node);
+                if (allowSyncLocation != null)
+                {
+                    var diag = Diagnostic.Create(PurelySharpDiagnostics.AllowSynchronizationWithoutPurityAttributeRule, allowSyncLocation, methodSymbol.Name);
+                    context.ReportDiagnostic(diag);
+                }
+            }
 
 
             var enforceOrPureAttributeSymbol = GetEffectivePurityAttributeSymbol(enforcePureAttributeSymbol, pureAttributeSymbol);
@@ -93,7 +107,7 @@ namespace PurelySharp.Analyzer
                 }
             }
 
-            else if (isPure && !hasPurityEnforcementAttribute)
+            else if (isPure && !hasPurityEnforcementAttribute && !hasAllowSynchronization)
             {
                 bool isCompilerGeneratedSetter = false;
                 if (methodSymbol.MethodKind == MethodKind.PropertySet && context.Node is AccessorDeclarationSyntax setterNode)
@@ -152,6 +166,19 @@ namespace PurelySharp.Analyzer
             {
                 var attributeClass = attributeData.AttributeClass?.OriginalDefinition;
                 if (SymbolEqualityComparer.Default.Equals(attributeClass, attributeType))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static bool HasAttributeByName(IMethodSymbol methodSymbol, string attributeTypeName)
+        {
+            foreach (var attributeData in methodSymbol.GetAttributes())
+            {
+                var attributeClass = attributeData.AttributeClass;
+                if (attributeClass != null && string.Equals(attributeClass.Name, attributeTypeName, StringComparison.Ordinal))
                 {
                     return true;
                 }

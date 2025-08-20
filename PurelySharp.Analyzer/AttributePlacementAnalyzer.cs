@@ -13,8 +13,9 @@ namespace PurelySharp.Analyzer
         {
             var enforcePureAttributeSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("PurelySharp.Attributes.EnforcePureAttribute");
             var pureAttributeSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("PurelySharp.Attributes.PureAttribute");
+            var allowSynchronizationAttributeSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("PurelySharp.Attributes.AllowSynchronizationAttribute");
 
-            if (enforcePureAttributeSymbol == null && pureAttributeSymbol == null)
+            if (enforcePureAttributeSymbol == null && pureAttributeSymbol == null && allowSynchronizationAttributeSymbol == null)
             {
                 return;
             }
@@ -34,6 +35,19 @@ namespace PurelySharp.Analyzer
                 if (attributeLocation == null && pureAttributeSymbol != null)
                 {
                     attributeLocation = FindAttributeLocation(memberDecl.AttributeLists, pureAttributeSymbol, context.SemanticModel);
+                }
+
+                if (attributeLocation == null && allowSynchronizationAttributeSymbol != null)
+                {
+                    attributeLocation = FindAttributeLocation(memberDecl.AttributeLists, allowSynchronizationAttributeSymbol, context.SemanticModel);
+                    if (attributeLocation != null)
+                    {
+                        var diag = Diagnostic.Create(
+                            PurelySharpDiagnostics.MisplacedAllowSynchronizationAttributeRule,
+                            attributeLocation);
+                        context.ReportDiagnostic(diag);
+                        return;
+                    }
                 }
             }
 

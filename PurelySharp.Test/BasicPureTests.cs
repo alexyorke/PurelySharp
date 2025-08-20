@@ -53,6 +53,22 @@ public class C
         }
 
         [Test]
+        public async Task Misplaced_AllowSynchronization_OnClass_ReportsPS0007()
+        {
+            var test = @"
+using System;
+namespace PurelySharp.Attributes { [AttributeUsage(AttributeTargets.All)] public sealed class AllowSynchronizationAttribute : Attribute {} }
+
+[PurelySharp.Attributes.AllowSynchronization]
+public class C { }
+";
+
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.MisplacedAllowSynchronizationAttributeId)
+                                   .WithSpan(5, 2, 5, 45);
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [Test]
         public async Task ReadonlyRecordStructConstructor_ShouldBePure()
         {
             var test = @"

@@ -21,7 +21,9 @@ namespace PurelySharp.Analyzer
             ImmutableArray.Create(PurelySharpDiagnostics.PurityNotVerifiedRule,
                                   PurelySharpDiagnostics.MisplacedAttributeRule,
                                   PurelySharpDiagnostics.MissingEnforcePureAttributeRule,
-                                  PurelySharpDiagnostics.ConflictingPurityAttributesRule);
+                                  PurelySharpDiagnostics.ConflictingPurityAttributesRule,
+                                  PurelySharpDiagnostics.AllowSynchronizationWithoutPurityAttributeRule,
+                                  PurelySharpDiagnostics.MisplacedAllowSynchronizationAttributeRule);
 
         public override void Initialize(AnalysisContext context)
         {
