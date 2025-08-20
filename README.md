@@ -12,10 +12,10 @@ The primary goal of PurelySharp is to provide developers with tools to identify 
 
 Currently, the analyzer provides the following checks:
 
-1.  **`[EnforcePure]` Attribute:** A custom attribute (`PurelySharp.Attributes.EnforcePureAttribute`) to mark methods that are intended to be pure.
-2.  **PS0002: Purity Not Verified:** If a method is marked with `[EnforcePure]` and the internal analysis engine cannot determine it to be pure based on the currently implemented rules (see below), it reports diagnostic `PS0002`.
-3.  **PS0003: Misplaced Attribute:** If the `[EnforcePure]` attribute is applied to any declaration _other than_ a method (e.g., class, struct, field, property, event, parameter), the analyzer reports diagnostic `PS0003`.
-4.  **PS0004: Missing Attribute:** If a method is _not_ marked with `[EnforcePure]` but the analysis engine determines it _is_ likely pure based on the currently implemented rules, it reports diagnostic `PS0004` as a suggestion.
+1.  **`[EnforcePure]` / `[Pure]` Attributes:** Use either `PurelySharp.Attributes.EnforcePureAttribute` or `PurelySharp.Attributes.PureAttribute` to mark methods intended to be pure. The analyzer treats `[Pure]` as an interchangeable shorthand for `[EnforcePure]`. Applying both at once yields `PS0005` (conflict).
+2.  **PS0002: Purity Not Verified:** If a method is marked with a purity attribute (`[EnforcePure]` or `[Pure]`) and the engine cannot determine it to be pure based on the current rules (see below), it reports diagnostic `PS0002`.
+3.  **PS0003: Misplaced Attribute:** If a purity attribute (`[EnforcePure]` or `[Pure]`) is applied to any declaration _other than_ a method (e.g., class, struct, field, property, event, parameter), the analyzer reports diagnostic `PS0003`.
+4.  **PS0004: Missing Attribute:** If a method is _not_ marked with a purity attribute but the analysis engine determines it _is_ likely pure based on the currently implemented rules, it reports diagnostic `PS0004` as a suggestion.
 5.  **Basic Purity Analysis:** A limited analysis engine (`PurityAnalysisEngine`) attempts to verify the purity of methods. It checks for:
     - Known impure operations (e.g., some I/O, `DateTime.Now`, field assignments).
     - Purity of invoked methods (recursive check with cycle detection).
@@ -35,11 +35,11 @@ Currently, the analyzer provides the following checks:
 The analyzer (`PurelySharp.Analyzer`) integrates with the C# compilation process:
 
 1.  It identifies method declarations and other symbols.
-2.  It checks for the presence and location of the `[EnforcePure]` attribute.
-3.  If `[EnforcePure]` is misplaced (not on a method), it reports `PS0003`.
-4.  If `[EnforcePure]` is on a method with implementation, it invokes the `PurityAnalysisEngine` to check its body.
+2.  It checks for the presence and location of the purity attributes (`[EnforcePure]` or `[Pure]`).
+3.  If either purity attribute is misplaced (not on a method), it reports `PS0003`.
+4.  If a purity attribute is on a method with implementation, it invokes the `PurityAnalysisEngine` to check its body.
     - If the engine determines the method is _not_ pure (based on current rules), it reports `PS0002`.
-5.  If `[EnforcePure]` is _not_ on a method with implementation, it invokes the `PurityAnalysisEngine`.
+5.  If no purity attribute is on a method with implementation, it invokes the `PurityAnalysisEngine`.
     - If the engine determines the method _is_ pure (based on current rules), it reports `PS0004`.
 6.  **The internal analysis (`PurityAnalysisEngine`) is still under development and does not cover all C# features or guarantee correctness.**
 
@@ -92,16 +92,16 @@ Use the provided script to produce a VSIX for Visual Studio and a local NuGet pa
 ## Usage
 
 1.  Reference the `PurelySharp.Attributes` project (or package, once available).
-2.  Add the `[EnforcePure]` attribute (from `PurelySharp.Attributes`) to methods you intend to be functionally pure.
-3.  Apply it incorrectly to see PS0003.
+2.  Add either `[EnforcePure]` or `[Pure]` (from `PurelySharp.Attributes`) to methods you intend to be functionally pure.
+3.  Apply the attribute incorrectly to see PS0003.
 
     ```csharp
     using PurelySharp.Attributes;
 
-    [EnforcePure] // PS0003: Misplaced attribute on class
+    [Pure] // PS0003: Misplaced attribute on class
     public class Calculator
     {
-        [EnforcePure]
+        [Pure]
         public int Add(int a, int b)
         {
             // PS0002: Purity Not Verified will be reported currently,
@@ -109,15 +109,17 @@ Use the provided script to produce a VSIX for Visual Studio and a local NuGet pa
             return a + b;
         }
 
-        [EnforcePure]
+        [Pure]
         public int GetConstant(); // No implementation, PS0002 NOT reported.
 
-        [EnforcePure] // PS0003: Misplaced attribute on field
+        [Pure] // PS0003: Misplaced attribute on field
         private int _counter = 0;
     }
     ```
 
 4.  Observe the `PS0002` and `PS0003` diagnostics during build or in the IDE (if VSIX is installed).
+
+Note: Diagnostic messages may reference `[EnforcePure]` explicitly in their text. Using `[Pure]` produces the same diagnostics and behavior.
 
 ## Diagnostics
 
@@ -126,11 +128,13 @@ Use the provided script to produce a VSIX for Visual Studio and a local NuGet pa
   - **Message:** `Method '{0}' marked with [EnforcePure] has implementation, but its purity has not been verified by existing rules`
   - **Severity:** Warning
   - **Meaning:** The method is marked for purity analysis, but the necessary rules haven't been implemented yet. This diagnostic acts as a placeholder.
+  - Note: Triggered for methods marked with either `[EnforcePure]` or `[Pure]`.
 
 - **PS0003: Misplaced Attribute**
   - **Message:** `The [EnforcePure] attribute can only be applied to method declarations.`
   - **Severity:** Warning
-  - **Meaning:** The `[EnforcePure]` attribute was found on a declaration type where it is not applicable (e.g., class, struct, field, property, parameter).
+  - **Meaning:** A purity attribute (`[EnforcePure]` or `[Pure]`) was found on a declaration type where it is not applicable (e.g., class, struct, field, property, parameter).
+  - Note: The message text mentions `[EnforcePure]`, but the rule applies equally to `[Pure]`.
 
 ## Building and Testing
 
