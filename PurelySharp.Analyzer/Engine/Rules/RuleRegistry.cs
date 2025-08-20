@@ -38,6 +38,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
 				new CoalesceOperationPurityRule(),
 				new ConditionalAccessPurityRule(),
 				new ConditionalOperationPurityRule(),
+				new RangeOperationPurityRule(),
 				new ConversionPurityRule(),
 				new DefaultValuePurityRule(),
 				new InterpolatedStringPurityRule(),
