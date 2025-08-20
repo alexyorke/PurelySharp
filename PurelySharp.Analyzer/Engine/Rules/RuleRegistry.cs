@@ -13,6 +13,8 @@ namespace PurelySharp.Analyzer.Engine.Rules
 				new ConstructorInitializerPurityRule(),
 				new DelegateCreationPurityRule(),
 				new AwaitPurityRule(),
+				new EventReferencePurityRule(),
+				new EventAssignmentPurityRule(),
 				
 				// Assignments/References
 				new AssignmentPurityRule(),

@@ -35,11 +35,7 @@ public class TestClass
     }
 }";
 
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                 .WithSpan(13, 17, 13, 27)
-                                 .WithArguments("TestMethod");
-
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
