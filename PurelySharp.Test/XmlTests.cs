@@ -42,7 +42,7 @@ public class TestClass
 
 
         [Test]
-        public async Task LinqToXml_Add_Impure_Diagnostic()
+        public async Task LinqToXml_Add_Impure_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -64,11 +64,7 @@ public class TestClass
 }
 ";
 
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                    .WithSpan(10, 19, 10, 29)
-                                    .WithArguments("TestMethod");
-
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
 

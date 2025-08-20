@@ -1248,5 +1248,14 @@ public static class Constants
         // Exception guard helpers considered pure (diverging without side effects)
         "System.ArgumentNullException.ThrowIfNull(object)",
         "System.ArgumentNullException.ThrowIfNull(object, string)",
+        "System.ArgumentException.ThrowIfNullOrEmpty(string)",
+        "System.ArgumentException.ThrowIfNullOrWhiteSpace(string)",
+        "System.ArgumentOutOfRangeException.ThrowIfNegative<T>(T)",
+        "System.ArgumentOutOfRangeException.ThrowIfZero<T>(T)",
+        "System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero<T>(T)",
+        "System.ArgumentOutOfRangeException.ThrowIfLessThan<T>(T, T)",
+        "System.ArgumentOutOfRangeException.ThrowIfLessThanOrEqual<T>(T, T)",
+        "System.ArgumentOutOfRangeException.ThrowIfGreaterThan<T>(T, T)",
+        "System.ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual<T>(T, T)",
     };
 }

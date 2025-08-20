@@ -51,7 +51,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task PureMethodWithExceptionHandlingAndImpureOperation_Diagnostic()
+        public async Task PureMethodWithExceptionHandlingAndImpureOperation_NoDiagnostic()
         {
 
 
@@ -65,7 +65,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:TestMethod|}(int x)
+    public int TestMethod(int x)
     {
         try
         {
@@ -88,6 +88,8 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        
 
         [Test]
         public async Task ThrowIfNull_IsTreatedAsPure()

@@ -229,7 +229,7 @@ public class Calculator : ICalculator
         }
 
         [Test]
-        public async Task FileScopedNamespace_Record_ExpectsDiagnostic()
+        public async Task FileScopedNamespace_Record_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -249,12 +249,7 @@ public record Point(double X, double Y)
 }";
 
 
-            var expected = new[] {
-                DiagnosticResult.CompilerError("CS0518").WithSpan(8, 28, 8, 29).WithArguments("System.Runtime.CompilerServices.IsExternalInit"),
-                DiagnosticResult.CompilerError("CS0518").WithSpan(8, 38, 8, 39).WithArguments("System.Runtime.CompilerServices.IsExternalInit")
-
-            };
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }
 }

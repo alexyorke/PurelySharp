@@ -380,11 +380,15 @@ public class TestClass
 
 
 
-            var expectedCallImpureReturn = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+            var expectedGetImpure = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                          .WithSpan(7, 20, 7, 35)
+                                          .WithArguments("GetImpureAction");
+
+            var expectedCallImpureReturn = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
                                           .WithSpan(13, 17, 13, 44)
                                           .WithArguments("CallImpureDelegateViaReturn");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedCallImpureReturn);
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetImpure, expectedCallImpureReturn);
         }
 
         [Test]
