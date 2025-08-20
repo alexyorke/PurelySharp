@@ -7,8 +7,8 @@ namespace PurelySharp.Demo
 	{
 		private int _counter = 0;
 
-		// Impure under [EnforcePure] (mutates instance state) → PS0002
-		[EnforcePure]
+		// Impure under [Pure] (mutates instance state) → PS0002
+		[Pure]
 		public int AddImpure(int a, int b)
 		{
 			_counter++;
@@ -18,30 +18,30 @@ namespace PurelySharp.Demo
 		// Pure without [EnforcePure] → PS0004
 		public static int PureAdd(int a, int b) => a + b;
 
-		// Pure and correctly annotated → no diagnostic
-		[EnforcePure]
+		// Pure and correctly annotated (using [Pure]) → no diagnostic
+		[Pure]
 		public static int ProperPureAdd(int a, int b) => a + b;
 	}
 
 	// Demonstrate PS0003 (misplaced attribute on type)
-	[EnforcePure]
+	[Pure]
 	public class MisplacedAttributeExample
 	{
 		// Demonstrate PS0003 (misplaced attribute on property)
-		[EnforcePure]
+		[Pure]
 		public int Value { get; } = 42;
 	}
 
 	public static class ImpureScenarios
 	{
-		// I/O under [EnforcePure] → PS0002
-		[EnforcePure]
+		// I/O under [Pure] → PS0002
+		[Pure]
 		public static void Log(string message) => Console.WriteLine(message);
 
 		private static int _global;
 
-		// Static state mutation under [EnforcePure] → PS0002
-		[EnforcePure]
+		// Static state mutation under [Pure] → PS0002
+		[Pure]
 		public static int IncrementGlobal(int delta)
 		{
 			_global += delta;
@@ -69,8 +69,8 @@ namespace PurelySharp.Demo
 		// Pure property getter without [EnforcePure] → PS0004
 		public int DoubleX => X * 2;
 
-		// Properly annotated pure method → no diagnostic
-		[EnforcePure]
+		// Properly annotated pure method (using [Pure]) → no diagnostic
+		[Pure]
 		public static bool IsEven(int v) => (v & 1) == 0;
 	}
 
