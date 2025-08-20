@@ -1,22 +1,33 @@
 ﻿using System;
 using PurelySharp.Attributes;
 
-class Program
+// PS0003: Misplaced attribute on class
+[EnforcePure]
+public class Demo
 {
-    // Should trigger PS0004 (pure but missing EnforcePure)
-    static int Add(int a, int b) => a + b;
+    private int _counter = 0;
 
-    // Should trigger PS0002 (marked pure but impure)
+    // PS0002: Marked pure but mutates instance state
     [EnforcePure]
-    static int Impure()
+    public int AddImpure(int a, int b)
     {
-        Console.WriteLine("side-effect");
-        return 0;
+        _counter++;
+        return a + b + _counter;
     }
 
+    // PS0004: Pure method missing [EnforcePure]
+    public static int PureAdd(int a, int b) => a + b;
+
+    // PS0003: Misplaced attribute on field
+    [EnforcePure]
+    private int _misplaced = 0;
+}
+
+class Program
+{
     static void Main()
     {
-        Console.WriteLine(Add(1, 2));
-        Console.WriteLine(Impure());
+        Console.WriteLine(Demo.PureAdd(1, 2));
+        Console.WriteLine(new Demo().AddImpure(3, 4));
     }
 }

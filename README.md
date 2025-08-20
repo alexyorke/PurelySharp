@@ -1054,3 +1054,32 @@ public class Logger
 ```
 
 ## Cross-Framework and Language Version Support
+
+```
+
+## Demo project
+
+A ready-to-run demo app is included in the solution: `PurelySharp.Demo`.
+
+- What it shows
+  - PS0002: Methods marked `[EnforcePure]` performing impure operations (state mutation, I/O, volatile reads, array mutation)
+  - PS0004: Methods that appear pure but are missing `[EnforcePure]`
+  - PS0003 is intentionally not demonstrated in the demo to keep the focus on core purity rules
+
+- How it’s wired
+  - References `PurelySharp.Analyzer` and `PurelySharp.CodeFixes` as analyzers via project references
+  - References `PurelySharp.Attributes` as a normal project reference
+  - Local `.editorconfig` in `PurelySharp.Demo` tunes severities: PS0002=warning, PS0004=suggestion, PS0003=none
+
+- Run the demo
+  ```powershell
+  # Build the whole solution (ensures analyzers are built)
+  dotnet build .\PurelySharp.sln -c Release
+
+  # Build just the demo project
+  dotnet build .\PurelySharp.Demo\PurelySharp.Demo.csproj -c Release
+  ```
+
+- In Visual Studio
+  - Install the VSIX (see above) for live diagnostics while editing
+  - Open `PurelySharp.Demo` and inspect `Program.cs` to see the diagnostics inline

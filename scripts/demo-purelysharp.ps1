@@ -3,6 +3,8 @@ param(
     [string]$Framework = 'net8.0',
     [string]$DemoDir = 'tmp-purelysharp-demo/DemoApp',
     [string]$LocalFeed = 'artifacts/nuget',
+    [ValidateSet('Vsix','NuGet')]
+    [string]$Mode = 'Vsix',
     [switch]$Clean
 )
 
@@ -40,9 +42,15 @@ try {
     Write-Host "Project: $proj" -ForegroundColor Green
 
     # 3) Install packages from local feed
-    Write-Host "Installing PurelySharp packages from local feed..." -ForegroundColor Cyan
-    dotnet add "$proj" package PurelySharp --source "$feedPath" | Out-Host
-    dotnet add "$proj" package PurelySharp.Attributes --source "$feedPath" | Out-Host
+    if ($Mode -eq 'NuGet') {
+        Write-Host "Installing PurelySharp (analyzer) + PurelySharp.Attributes from local feed..." -ForegroundColor Cyan
+        dotnet add "$proj" package PurelySharp --source "$feedPath" | Out-Host
+        dotnet add "$proj" package PurelySharp.Attributes --source "$feedPath" | Out-Host
+    }
+    else {
+        Write-Host "Installing only PurelySharp.Attributes from local feed (use VSIX for analyzer)..." -ForegroundColor Cyan
+        dotnet add "$proj" package PurelySharp.Attributes --source "$feedPath" | Out-Host
+    }
 
     # 4) Write sample source that should produce analyzer diagnostics
     $programPath = Join-Path $demoPath 'Program.cs'
@@ -51,30 +59,41 @@ try {
 using System;
 using PurelySharp.Attributes;
 
-class Program
+// PS0003: Misplaced attribute on class
+[EnforcePure]
+public class Demo
 {
-    // Should trigger PS0004 (pure but missing EnforcePure)
-    static int Add(int a, int b) => a + b;
+    private int _counter = 0;
 
-    // Should trigger PS0002 (marked pure but impure)
+    // PS0002: Marked pure but mutates instance state
     [EnforcePure]
-    static int Impure()
+    public int AddImpure(int a, int b)
     {
-        Console.WriteLine("side-effect");
-        return 0;
+        _counter++;
+        return a + b + _counter;
     }
 
+    // PS0004: Pure method missing [EnforcePure]
+    public static int PureAdd(int a, int b) => a + b;
+
+    // PS0003: Misplaced attribute on field
+    [EnforcePure]
+    private int _misplaced = 0;
+}
+
+class Program
+{
     static void Main()
     {
-        Console.WriteLine(Add(1, 2));
-        Console.WriteLine(Impure());
+        Console.WriteLine(Demo.PureAdd(1, 2));
+        Console.WriteLine(new Demo().AddImpure(3, 4));
     }
 }
 '@
     Set-Content -Path $programPath -Value $code -Encoding UTF8
 
-    # 5) Build and show diagnostics
-    Write-Host "Building demo project to surface diagnostics..." -ForegroundColor Cyan
+    # 5) Build and show diagnostics (CLI shows analyzer diagnostics only in NuGet mode; VSIX diagnostics show in VS)
+    Write-Host "Building demo project..." -ForegroundColor Cyan
     dotnet build "$proj" -c $Configuration -v m | Out-Host
 
     Write-Host "Done." -ForegroundColor Green

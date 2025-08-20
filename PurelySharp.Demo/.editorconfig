@@ -1,0 +1,10 @@
+root = true
+
+[*.cs]
+# Demo focus: PS0002, PS0004
+# Make PS0002 a warning, PS0004 a suggestion, hide PS0003 in demo
+# Users can override in their own .editorconfig
+
+dotnet_diagnostic.PS0002.severity = warning
+dotnet_diagnostic.PS0004.severity = suggestion
+dotnet_diagnostic.PS0003.severity = none
