@@ -26,7 +26,7 @@ namespace PurelySharp.Analyzer
 
         public const string PurityNotVerifiedId = "PS0002";
         private static readonly LocalizableString PurityNotVerifiedTitle = "Purity Not Verified";
-        private static readonly LocalizableString PurityNotVerifiedMessageFormat = "Method '{0}' marked with [EnforcePure] has implementation, but its purity has not been verified by existing rules";
+        private static readonly LocalizableString PurityNotVerifiedMessageFormat = "Method '{0}' is marked [EnforcePure]/[Pure], but its body contains operations the analyzer cannot prove pure";
         private static readonly LocalizableString PurityNotVerifiedDescription = "Methods marked with [EnforcePure] require analysis. This diagnostic indicates the analysis rules did not determine the method's purity status.";
 
         public static readonly DiagnosticDescriptor PurityNotVerifiedRule = new DiagnosticDescriptor(

@@ -119,13 +119,13 @@ Use the provided script to produce a VSIX for Visual Studio and a local NuGet pa
 
 4.  Observe the `PS0002` and `PS0003` diagnostics during build or in the IDE (if VSIX is installed).
 
-Note: Diagnostic messages may reference `[EnforcePure]` explicitly in their text. Using `[Pure]` produces the same diagnostics and behavior.
+Note: Diagnostic messages refer to `[EnforcePure]` and `[Pure]` interchangeably.
 
 ## Diagnostics
 
 - **PS0002: Purity Not Verified**
 
-  - **Message:** `Method '{0}' marked with [EnforcePure] has implementation, but its purity has not been verified by existing rules`
+  - **Message:** `Method '{0}' is marked [EnforcePure]/[Pure], but its body contains operations the analyzer cannot prove pure`
   - **Severity:** Warning
   - **Meaning:** The method is marked for purity analysis, but the necessary rules haven't been implemented yet. This diagnostic acts as a placeholder.
   - Note: Triggered for methods marked with either `[EnforcePure]` or `[Pure]`.
