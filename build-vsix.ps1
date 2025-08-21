@@ -30,7 +30,7 @@ $msbuild = Find-MSBuild
 Write-Host "MSBuild: $msbuild" -ForegroundColor Green
 
 Write-Host "Building VSIX ($Configuration)..." -ForegroundColor Cyan
-& $msbuild $vsixProj /t:Restore,Build /p:Configuration=$Configuration /v:m | Out-Host
+& $msbuild $vsixProj /t:Restore,Build /p:Configuration=$Configuration /p:EnableVsixPackaging=true /v:m | Out-Host
 
 $vsixDir = Join-Path $repoRoot "PurelySharp.Vsix\bin\$Configuration"
 $vsix = Get-ChildItem -Path $vsixDir -Recurse -Filter *.vsix | Sort-Object LastWriteTime -Descending | Select-Object -ExpandProperty FullName -First 1
