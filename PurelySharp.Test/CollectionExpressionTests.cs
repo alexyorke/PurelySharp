@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -203,21 +203,61 @@ public class CollectionExpressionExample
 #nullable enable
 using System;
 using PurelySharp.Attributes;
-using System.Collections.Immutable; // Required for ImmutableArray<T>
+using System.Collections.Immutable;
 
 public class CollectionExpressionExample
 {
     [EnforcePure]
     public ImmutableArray<int> GetImmutableArray()
     {
-        // Using collection expression syntax with ImmutableArray<T> type (should be pure)
-        // Reverted to ImmutableArray.Create due to CS9210 in test runner
-        return ImmutableArray.Create(1, 2, 3, 4, 5);
+        return [1, 2, 3, 4, 5];
     }
 }";
 
 
             await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task PureMethod_ReadOnlySpanCollectionExpression_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class CollectionExpressionExample
+{
+    [EnforcePure]
+    public ReadOnlySpan<int> GetSpan()
+    {
+        return [1, 2, 3, 4, 5];
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task PureMethod_ImmutableArrayCollectionExpression_ImpureElement_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+using System.Collections.Immutable;
+
+public class CollectionExpressionExample
+{
+    [EnforcePure]
+    public ImmutableArray<int> GetImmutableArray()
+    {
+        return [1, 2, Random.Shared.Next(), 4];
+    }
+}";
+
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                   .WithSpan(9, 32, 9, 49)
+                                   .WithArguments("GetImmutableArray");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }

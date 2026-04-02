@@ -232,7 +232,7 @@ Supported means there is _some_ level of analysis implemented, but it does not g
 - [x] Read-only collections (IReadOnly\* interfaces) - Creation assumed impure.
 - [x] Arrays (when used in a read-only manner)
 - [x] Tuples (creation)
-- [x] Collection expressions (C# 12)
+- [x] Collection expressions (C# 12) — `System.Collections.Immutable.*`, `Span<T>` / `ReadOnlySpan<T>`; each element is analyzed; arrays and mutable collection targets remain impure
 - [x] Mutable collections (List, Dictionary, etc.) - Creation/modification assumed impure.
 - [x] Modifying collection elements - Assumed impure.
 - [x] Inline arrays (C# 12)
@@ -345,7 +345,7 @@ Supported means there is _some_ level of analysis implemented, but it does not g
 
 ### C# 12 Specific Features
 
-- [~] Collection expressions - _Partial support: only when creating immutable collections_
+- [x] Collection expressions — immutable collection types under `System.Collections.Immutable`, stack-only `Span` / `ReadOnlySpan`, with per-element purity checks; other targets (e.g. arrays, `List<T>`) stay impure
 - [x] Primary constructors
 - [x] Inline arrays
 - [x] Optional parameters in lambda expressions
