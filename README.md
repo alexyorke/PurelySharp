@@ -25,7 +25,7 @@ Currently, the analyzer provides the following checks:
 **Features NOT Currently Implemented in Detail (or planned):**
 
 - **Exhaustive proof of purity across all C# constructs and BCL APIs.** Many patterns are handled, but the analyzer remains conservative and may report `PS0002` for code that is arguably pure (e.g., some `try`/`catch`/`finally` shapes, local function + invocation interaction).
-- **Different target frameworks** (.NET Framework vs .NET Core vs .NET 5+) as a fully exhaustive automated matrix — **not** claimed; the analyzer targets `netstandard2.0` and is mainly exercised on .NET 8 (see **Cross-Framework and Language Version Support** below).
+- **Different target frameworks** as an exhaustive matrix across every TFM — **not** claimed; the analyzer targets `netstandard2.0`, is smoke-built on .NET Framework 4.7.2 via `PurelySharp.Smoke.Net472`, and the main automated tests run on .NET 8 (see **Cross-Framework and Language Version Support** below).
 
 **Recently implemented (see codebase):**
 
@@ -173,6 +173,9 @@ dotnet build PurelySharp.sln
 
 # Run tests (analyzer, code fixes, and attribute / purity rules)
 dotnet test PurelySharp.sln
+
+# Optional: smoke-build a .NET Framework 4.7.2 consumer with the analyzer enabled
+dotnet build PurelySharp.Smoke.Net472/PurelySharp.Smoke.Net472.csproj
 ```
 
 ## Contributing
@@ -569,7 +572,7 @@ Note that delegate invocations are analyzed conservatively. If the analyzer cann
 ## Cross-Framework and Language Version Support
 
 - [x] C# 8.0+ language features
-- [/] Different target frameworks (.NET Framework, .NET Core, .NET 5+) — not exhaustively matrix-tested; analyzer is `netstandard2.0`
+- [x] Different target frameworks — analyzer is `netstandard2.0`; in-repo `PurelySharp.Smoke.Net472` builds with the analyzer on .NET Framework 4.7.2; primary regression suite runs on .NET 8 (`PurelySharp.Test`)
 
 ## Examples
 
