@@ -18,7 +18,6 @@ namespace PurelySharp.Analyzer.Engine.Rules
             OperationKind.VariableDeclarator,
             OperationKind.Labeled,
             OperationKind.Empty,
-            OperationKind.FlowCapture,
             OperationKind.FieldInitializer,
             OperationKind.PropertyInitializer
             );

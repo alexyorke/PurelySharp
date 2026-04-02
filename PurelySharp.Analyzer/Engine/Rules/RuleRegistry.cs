@@ -70,10 +70,6 @@ namespace PurelySharp.Analyzer.Engine.Rules
 				new LockStatementPurityRule(),
 				new YieldReturnPurityRule(),
 				
-				// Flow/CFG helpers
-				new FlowCapturePurityRule(),
-				new FlowCaptureReferencePurityRule(),
-				
 				// Returns
 				new ReturnStatementPurityRule(),
 				
