@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -167,7 +167,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task EnumWithAttributes_UnknownPurityDiagnostic()
+        public async Task EnumWithAttributes_ReflectionBody_ReportsPS0002()
         {
             var test = @"
 using System;
@@ -206,7 +206,10 @@ public class TestClass
 
 
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                .WithSpan(23, 19, 23, 29)
+                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }

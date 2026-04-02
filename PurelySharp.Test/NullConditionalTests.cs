@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using Microsoft.CodeAnalysis;
@@ -36,7 +36,8 @@ public class TestClass
 
 
             var expectedGet = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(6, 19, 6, 24).WithArguments("get_Value");
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedGet);
+            var expectedMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(9, 17, 9, 27).WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedGet, expectedMethod);
         }
 
         [Test]

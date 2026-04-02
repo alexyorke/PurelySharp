@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using Microsoft.CodeAnalysis;
@@ -49,7 +49,8 @@ public class TestClass
 
             var expectedGetName = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(7, 19, 7, 23).WithArguments("get_Name");
             var expectedGetAge = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(8, 19, 8, 22).WithArguments("get_Age");
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetName, expectedGetAge);
+            var expectedMethod = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(14, 19, 14, 29).WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetName, expectedGetAge, expectedMethod);
         }
 
         [Test]

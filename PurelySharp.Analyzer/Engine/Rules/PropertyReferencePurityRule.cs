@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using System;
 using System.Collections.Generic;
@@ -154,8 +154,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 }
                 else
                 {
-
-
+                    var instanceExprResult = PurityAnalysisEngine.CheckSingleOperation(instanceOperation, context, currentState);
+                    if (!instanceExprResult.IsPure)
+                    {
+                        PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance expression for '{propertySymbol.Name}' is impure. Propagating.");
+                        return instanceExprResult;
+                    }
 
                     string instancePureSig = propertySymbol.OriginalDefinition.ToDisplayString();
                     bool instanceKnownPure = PurityAnalysisEngine.IsKnownPureBCLMember(propertySymbol);

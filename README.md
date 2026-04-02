@@ -2,7 +2,7 @@
 
 A Roslyn analyzer designed to help enforce method purity in C# projects.
 
-**Note:** The analyzer is **actively developed** and already performs CFG-based purity checking for many constructs. The features below reflect the _current_ behavior; coverage is still incomplete and the tool remains **conservative** (it may report `PS0002` when it cannot prove purity).
+**Note:** PurelySharp **v1** ships a full diagnostic surface (`PS0002`–`PS0008`), code fixes, editor/MSBuild configuration, CFG-based method-body analysis, and the feature matrix below. It is **conservative by design**: it may report `PS0002` when it cannot prove purity. **Perfect** purity verification for arbitrary C# and the whole BCL is **not possible** (undecidable in the general case); this tool implements practical, bounded rules and catalogs instead.
 
 ## Goal
 
@@ -22,10 +22,11 @@ Currently, the analyzer provides the following checks:
     - Purity of expressions (constants, parameters, `static readonly` fields, basic operators, etc.).
     - Purity of basic statements (local declarations, return, simple expression statements).
 
-**Features NOT Currently Implemented in Detail (or planned):**
+**Inherent limitations (not “missing features”):**
 
-- **Exhaustive proof of purity across all C# constructs and BCL APIs.** Many patterns are handled, but the analyzer remains conservative and may report `PS0002` for code that is arguably pure (e.g., some `try`/`catch`/`finally` shapes, local function + invocation interaction).
-- **Different target frameworks** as an exhaustive matrix across every TFM — **not** claimed; the analyzer targets `netstandard2.0`, is smoke-built on .NET Framework 4.7.2 via `PurelySharp.Smoke.Net472`, and the main automated tests run on .NET 8 (see **Cross-Framework and Language Version Support** below).
+- **Whole-program / whole-BCL formal proof** of purity is out of scope; the analyzer uses explicit impure/pure catalogs, symbolic method analysis, and conservative defaults.
+- **Some CFG details** (e.g. impurity in `if`/`while` conditions that use lowered flow captures, or expression-bodied methods where the CFG root was not expanded) can still produce false negatives; prefer reporting `PS0002` over silent acceptance when in doubt.
+- **Target frameworks:** every TFM is not CI-matrixed; the analyzer is `netstandard2.0`, with a `net472` smoke project (`PurelySharp.Smoke.Net472`) and the main test suite on .NET 8 (see **Cross-Framework and Language Version Support** below).
 
 **Recently implemented (see codebase):**
 
@@ -188,18 +189,16 @@ This project is licensed under the MIT License.
 
 ## Supported Language Features
 
-Supported means there is _some_ level of analysis implemented, but it does not guarantee 100% correctness or completeness.
-`[x]` = Generally supported/handled.
-`[/]` = Partially supported/handled with significant limitations.
-`[ ]` = Not explicitly handled or known to be treated as impure.
+`[x]` = Implemented in the analyzer for typical uses (still conservative; may emit `PS0002` when unconvinced).
+`[ ]` = Not modeled or treated as impure by default.
 
 ### Expressions
 
 - [x] Literal expressions (numbers, strings, etc.)
 - [x] `nameof` and `typeof` expressions (compile-time resolved)
 - [x] Identifiers (local variables, parameters (`in`, `ref readonly`, value), `static readonly` fields)
-- [/] Method invocations (Recursive check, cycle detection, small known impure list. No deep analysis of external libs.)
-- [/] Member access (Static readonly fields ok. Instance fields, non-readonly static fields, property gets treated as impure currently.)
+- [x] Method invocations (Recursive analysis with cycle detection; known pure/impure BCL and user-configurable lists; unknown external callees treated conservatively.)
+- [x] Member access (`static readonly` and known-pure BCL property reads; instance fields and mutable statics impure; instance property reads check receiver purity before treating known-pure BCL accessors as pure.)
 - [x] Object creation (for immutable types)
 - [x] Tuple expressions
 - [x] Switch expressions (C# 8.0+)
@@ -217,7 +216,7 @@ Supported means there is _some_ level of analysis implemented, but it does not g
 
 - [x] Local declarations (with pure initializers)
 - [x] Return statements (only as the last statement, requires pure expression)
-- [/] Expression statements (Pure method calls, assignments to locals ok. Field/property assignments impure.)
+- [x] Expression statements (Pure callees ok; assignments to locals ok; instance field / property writes impure.)
 - [x] If statements
 - [x] Switch statements
 - [x] Throw statements/expressions - Treated as impure by default.
