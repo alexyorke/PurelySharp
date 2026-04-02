@@ -2,7 +2,7 @@
 
 A Roslyn analyzer designed to help enforce method purity in C# projects.
 
-**Note:** This project is currently in the **very early stages of development**. The features described below reflect the _current_ implemented state. The primary goal is to eventually provide detailed purity analysis, but that is **not yet implemented**.
+**Note:** The analyzer is **actively developed** and already performs CFG-based purity checking for many constructs. The features below reflect the _current_ behavior; coverage is still incomplete and the tool remains **conservative** (it may report `PS0002` when it cannot prove purity).
 
 ## Goal
 
@@ -25,7 +25,7 @@ Currently, the analyzer provides the following checks:
 **Features NOT Currently Implemented in Detail (or planned):**
 
 - **Exhaustive proof of purity across all C# constructs and BCL APIs.** Many patterns are handled, but the analyzer remains conservative and may report `PS0002` for code that is arguably pure (e.g., some `try`/`catch`/`finally` shapes, local function + invocation interaction).
-- **Different target frameworks** (.NET Framework vs .NET Core vs .NET 5+) as a tested/support matrix (the analyzer targets Roslyn/`netstandard2.0`; behavior on older runtimes is not continuously validated).
+- **Different target frameworks** (.NET Framework vs .NET Core vs .NET 5+) as a fully exhaustive automated matrix — **not** claimed; the analyzer targets `netstandard2.0` and is mainly exercised on .NET 8 (see **Cross-Framework and Language Version Support** below).
 
 **Recently implemented (see codebase):**
 
@@ -44,7 +44,7 @@ The analyzer (`PurelySharp.Analyzer`) integrates with the C# compilation process
     - If the engine determines the method is _not_ pure (based on current rules), it reports `PS0002`.
 5.  If no purity attribute is on a method with implementation, it invokes the `PurityAnalysisEngine`.
     - If the engine determines the method _is_ pure (based on current rules), it reports `PS0004`.
-6.  **The internal analysis (`PurityAnalysisEngine`) is still under development and does not cover all C# features or guarantee correctness.**
+6.  **The internal analysis (`PurityAnalysisEngine`) does not cover every C# feature and does not guarantee completeness; unknown or unhandled operations are treated conservatively.**
 
 ## Installation
 
@@ -107,8 +107,7 @@ Use the provided script to produce a VSIX for Visual Studio and a local NuGet pa
         [Pure]
         public int Add(int a, int b)
         {
-            // PS0002: Purity Not Verified will be reported currently,
-            // as no actual purity analysis is performed yet.
+            // Simple arithmetic on parameters is treated as pure — no PS0002 here.
             return a + b;
         }
 
@@ -129,8 +128,8 @@ Note: Diagnostic messages refer to `[EnforcePure]` and `[Pure]` interchangeably.
 - **PS0002: Purity Not Verified**
 
   - **Message:** `Method '{0}' is marked [EnforcePure]/[Pure], but its body contains operations the analyzer cannot prove pure`
-  - **Severity:** Warning
-  - **Meaning:** The method is marked for purity analysis, but the necessary rules haven't been implemented yet. This diagnostic acts as a placeholder.
+  - **Severity:** Error (default; can be overridden in `.editorconfig` / ruleset)
+  - **Meaning:** The method is marked for purity analysis, but the engine found at least one operation it treats as impure or could not classify as proven pure.
   - Note: Triggered for methods marked with either `[EnforcePure]` or `[Pure]`.
 
 - **PS0003: Misplaced Attribute**
@@ -172,7 +171,7 @@ You can build the solution and run the tests using the .NET CLI:
 # Build the solution
 dotnet build PurelySharp.sln
 
-# Run tests (These currently verify PS0002/PS0003 behavior)
+# Run tests (analyzer, code fixes, and attribute / purity rules)
 dotnet test PurelySharp.sln
 ```
 
@@ -625,7 +624,7 @@ public class TestClass
     }
 }
 
-// Analyzer Error: PMA0001 - Method 'TestMethod' is marked as pure but contains impure operations
+// Analyzer diagnostic PS0002 — method is marked pure but contains impure operations
 ```
 
 #### I/O Operations
@@ -646,7 +645,7 @@ public class TestClass
     }
 }
 
-// Analyzer Error: PMA0001 - Method 'TestMethod' is marked as pure but contains impure operations
+// Analyzer diagnostic PS0002 — method is marked pure but contains impure operations
 ```
 
 #### Console Output
@@ -667,7 +666,7 @@ public class TestClass
     }
 }
 
-// Analyzer Error: PMA0001 - Method 'TestMethod' is marked as pure but contains impure operations
+// Analyzer diagnostic PS0002 — method is marked pure but contains impure operations
 ```
 
 #### Static Field Access
@@ -690,7 +689,7 @@ public class TestClass
     }
 }
 
-// Analyzer Error: PMA0001 - Method 'TestMethod' is marked as pure but contains impure operations
+// Analyzer diagnostic PS0002 — method is marked pure but contains impure operations
 ```
 
 #### Volatile Field Access
@@ -720,8 +719,7 @@ public class TestClass
     }
 }
 
-// Analyzer Error: PMA0001 - Method 'GetCounter' is marked as pure but contains impure operations
-// Analyzer Error: PMA0001 - Method 'UpdateCounter' is marked as pure but contains impure operations
+// Analyzer diagnostic PS0002 — volatile reads/writes are treated as impure
 ```
 
 #### Thread Synchronization with Volatile Fields
@@ -760,7 +758,7 @@ public class TestClass
     private void Initialize() { /* ... */ }
 }
 
-// Analyzer Error: PMA0001 - Method 'EnsureInitialized' is marked as pure but contains impure operations
+// Analyzer diagnostic PS0002 — volatile access remains impure even with [AllowSynchronization]
 ```
 
 #### Atomic Operations with Interlocked
@@ -792,8 +790,7 @@ public class TestClass
     }
 }
 
-// Analyzer Error: PMA0001 - Method 'IncrementAndGet' is marked as pure but contains impure operations
-// Analyzer Error: PMA0001 - Method 'CompareExchange' is marked as pure but contains impure operations
+// Analyzer diagnostic PS0002 — Interlocked operations are treated as impure
 ```
 
 ### More Complex Examples
@@ -1006,9 +1003,7 @@ The following examples demonstrate cases where the analyzer may fail to correctl
 
 #### Indirect Method Impurity
 
-```
-
-```
+The analyzer does not trace through arbitrary virtual calls or opaque library code; impurity may be missed if it is hidden behind such calls.
 
 ## Constructor Analysis
 
@@ -1083,10 +1078,6 @@ public class Logger
         Console.WriteLine($"Logger {_name} initialized"); // Impure operation
     }
 }
-```
-
-## Cross-Framework and Language Version Support
-
 ```
 
 ## Demo project
