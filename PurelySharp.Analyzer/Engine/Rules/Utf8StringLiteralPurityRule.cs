@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -8,7 +8,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
     internal class Utf8StringLiteralPurityRule : IPurityRule
     {
-        public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray<OperationKind>.Empty;
+        public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.Utf8String);
 
         public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {

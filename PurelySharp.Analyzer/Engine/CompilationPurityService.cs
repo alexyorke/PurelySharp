@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 using PurelySharp.Analyzer.Engine.Analysis;
 
@@ -8,6 +7,7 @@ namespace PurelySharp.Analyzer.Engine
     internal sealed class CompilationPurityService
     {
         private readonly ConcurrentDictionary<IMethodSymbol, PurityAnalysisEngine.PurityAnalysisResult> _purityCache = new(SymbolEqualityComparer.Default);
+        private readonly object _fixedPointLock = new();
 
         public CompilationPurityService(Compilation compilation)
         {
@@ -22,13 +22,11 @@ namespace PurelySharp.Analyzer.Engine
             INamedTypeSymbol enforcePureAttributeSymbol,
             INamedTypeSymbol? allowSynchronizationAttributeSymbol)
         {
+            EnsureFixedPoint(enforcePureAttributeSymbol, allowSynchronizationAttributeSymbol);
+
             return _purityCache.GetOrAdd(methodSymbol, m =>
             {
-                if (_fixedPoint == null)
-                {
-                    _fixedPoint = WorklistPuritySolver.Solve(_callGraph, _compilation, enforcePureAttributeSymbol, allowSynchronizationAttributeSymbol);
-                }
-                if (_fixedPoint.TryGetValue(m, out var solved))
+                if (_fixedPoint!.TryGetValue(m, out var solved))
                 {
                     return solved;
                 }
@@ -37,9 +35,32 @@ namespace PurelySharp.Analyzer.Engine
             });
         }
 
+        private void EnsureFixedPoint(
+            INamedTypeSymbol enforcePureAttributeSymbol,
+            INamedTypeSymbol? allowSynchronizationAttributeSymbol)
+        {
+            if (_fixedPoint != null)
+            {
+                return;
+            }
+
+            lock (_fixedPointLock)
+            {
+                if (_fixedPoint != null)
+                {
+                    return;
+                }
+
+                _fixedPoint = WorklistPuritySolver.Solve(
+                    _callGraph,
+                    _compilation,
+                    enforcePureAttributeSymbol,
+                    allowSynchronizationAttributeSymbol);
+            }
+        }
+
         private readonly CallGraph _callGraph;
         private readonly Compilation _compilation;
         private volatile System.Collections.Immutable.ImmutableDictionary<IMethodSymbol, PurityAnalysisEngine.PurityAnalysisResult>? _fixedPoint;
     }
 }
-

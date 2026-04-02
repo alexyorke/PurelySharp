@@ -52,6 +52,23 @@ namespace PurelySharp.Analyzer.Engine
 
         private static readonly ImmutableList<IPurityRule> _purityRules = Rules.RuleRegistry.GetDefaultRules();
 
+        /// <summary>First registry rule per <see cref="OperationKind"/>; matches former <c>FirstOrDefault</c> over <see cref="_purityRules"/>.</summary>
+        private static readonly ImmutableDictionary<OperationKind, IPurityRule> _firstRuleByOperationKind = BuildFirstRuleByOperationKind(_purityRules);
+
+        private static ImmutableDictionary<OperationKind, IPurityRule> BuildFirstRuleByOperationKind(ImmutableList<IPurityRule> rules)
+        {
+            var builder = ImmutableDictionary.CreateBuilder<OperationKind, IPurityRule>();
+            foreach (var rule in rules)
+            {
+                foreach (var kind in rule.ApplicableOperationKinds)
+                {
+                    if (!builder.ContainsKey(kind))
+                        builder.Add(kind, rule);
+                }
+            }
+            return builder.ToImmutable();
+        }
+
 
 
 
@@ -484,6 +501,7 @@ namespace PurelySharp.Analyzer.Engine
 
 
                 PurityAnalysisResult result = PurityAnalysisResult.Pure;
+                var mergedDelegateTargetsFromCfg = ImmutableDictionary.Create<ISymbol, PotentialTargets>(SymbolEqualityComparer.Default);
                 if (bodySyntaxNode != null)
                 {
                     LogDebug($"{indent}Analyzing body of {methodSymbol.ToDisplayString()} using CFG.");
@@ -494,7 +512,8 @@ namespace PurelySharp.Analyzer.Engine
                         allowSynchronizationAttributeSymbol,
                         visited,
                         methodSymbol,
-                        purityCache);
+                        purityCache,
+                        out mergedDelegateTargetsFromCfg);
 
                     LogDebug($"{indent}  CFG Analysis Result for {methodSymbol.ToDisplayString()}: IsPure={result.IsPure}, ImpureNode={result.ImpureSyntaxNode?.Kind()}");
 
@@ -535,13 +554,13 @@ namespace PurelySharp.Analyzer.Engine
                             null);
 
 
-                        LogDebug($"{indent}  Post-CFG: Checking ReturnOperations...");
+                        LogDebug($"{indent}  Post-CFG: Checking ReturnOperations (with merged delegate map from CFG)...");
+                        var postCfgReturnState = new PurityAnalysisState(false, null, mergedDelegateTargetsFromCfg, null);
                         foreach (var returnOp in methodBodyIOperation.DescendantsAndSelf().OfType<IReturnOperation>())
                         {
                             if (returnOp.ReturnedValue != null)
                             {
-
-                                var returnPurity = CheckSingleOperation(returnOp.ReturnedValue, postCfgContext, PurityAnalysisState.Pure);
+                                var returnPurity = CheckSingleOperation(returnOp.ReturnedValue, postCfgContext, postCfgReturnState);
                                 if (!returnPurity.IsPure)
                                 {
                                     LogDebug($"{indent}    Post-CFG: Return value IMPURE: {returnOp.ReturnedValue.Syntax}");
@@ -580,7 +599,7 @@ namespace PurelySharp.Analyzer.Engine
                             {
                                 if (catchClause.Syntax != null)
                                 {
-                                    var catchCfgResult = AnalyzePurityUsingCFGInternal(catchClause.Syntax, semanticModel, enforcePureAttributeSymbol, allowSynchronizationAttributeSymbol, visited, methodSymbol, purityCache);
+                                    var catchCfgResult = AnalyzePurityUsingCFGInternal(catchClause.Syntax, semanticModel, enforcePureAttributeSymbol, allowSynchronizationAttributeSymbol, visited, methodSymbol, purityCache, out _);
                                     if (!catchCfgResult.IsPure)
                                     {
                                         result = catchCfgResult;
@@ -590,7 +609,7 @@ namespace PurelySharp.Analyzer.Engine
                             }
                             if (tryOp.Finally != null && tryOp.Finally.Syntax != null)
                             {
-                                var finallyCfgResult = AnalyzePurityUsingCFGInternal(tryOp.Finally.Syntax, semanticModel, enforcePureAttributeSymbol, allowSynchronizationAttributeSymbol, visited, methodSymbol, purityCache);
+                                var finallyCfgResult = AnalyzePurityUsingCFGInternal(tryOp.Finally.Syntax, semanticModel, enforcePureAttributeSymbol, allowSynchronizationAttributeSymbol, visited, methodSymbol, purityCache, out _);
                                 if (!finallyCfgResult.IsPure)
                                 {
                                     result = finallyCfgResult;
@@ -605,7 +624,7 @@ namespace PurelySharp.Analyzer.Engine
                             var lfSyntax = localFuncOp.Body?.Syntax;
                             if (lfSyntax != null)
                             {
-                                var lfCfgResult = AnalyzePurityUsingCFGInternal(lfSyntax, semanticModel, enforcePureAttributeSymbol, allowSynchronizationAttributeSymbol, visited, methodSymbol, purityCache);
+                                var lfCfgResult = AnalyzePurityUsingCFGInternal(lfSyntax, semanticModel, enforcePureAttributeSymbol, allowSynchronizationAttributeSymbol, visited, methodSymbol, purityCache, out _);
                                 if (!lfCfgResult.IsPure)
                                 {
                                     result = lfCfgResult;
@@ -691,6 +710,22 @@ namespace PurelySharp.Analyzer.Engine
         }
 
 
+        private static ImmutableDictionary<ISymbol, PotentialTargets> MergeDelegateTargetMapsFromBlockStates(
+            IEnumerable<PurityAnalysisState> states)
+        {
+            var map = ImmutableDictionary.Create<ISymbol, PotentialTargets>(SymbolEqualityComparer.Default);
+            foreach (var s in states)
+            {
+                foreach (var kvp in s.DelegateTargetMap)
+                {
+                    map = map.TryGetValue(kvp.Key, out var cur)
+                        ? map.SetItem(kvp.Key, PotentialTargets.Merge(cur, kvp.Value))
+                        : map.Add(kvp.Key, kvp.Value);
+                }
+            }
+            return map;
+        }
+
         private static PurityAnalysisResult AnalyzePurityUsingCFGInternal(
             SyntaxNode bodyNode,
             SemanticModel semanticModel,
@@ -698,8 +733,10 @@ namespace PurelySharp.Analyzer.Engine
             INamedTypeSymbol? allowSynchronizationAttributeSymbol,
             HashSet<IMethodSymbol> visited,
             IMethodSymbol containingMethodSymbol,
-            Dictionary<IMethodSymbol, PurityAnalysisResult> purityCache)
+            Dictionary<IMethodSymbol, PurityAnalysisResult> purityCache,
+            out ImmutableDictionary<ISymbol, PotentialTargets> mergedDelegateTargetsFromBlocks)
         {
+            mergedDelegateTargetsFromBlocks = ImmutableDictionary.Create<ISymbol, PotentialTargets>(SymbolEqualityComparer.Default);
             // Roslyn 4.x: Create(BlockSyntax|ArrowClause, model) throws ("operation has a non-null parent").
             // Create(BaseMethodDeclarationSyntax|LocalFunctionStatement|ConstructorDeclaration|... , model) is the supported root.
             ControlFlowGraph? cfg = null;
@@ -751,7 +788,7 @@ namespace PurelySharp.Analyzer.Engine
             int loopIterations = 0;
 
             LogDebug($"  [CFG] BEFORE WHILE CHECK: worklist.Count = {worklist.Count}, loopIterations = {loopIterations}");
-            while (worklist.Count > 0 && loopIterations < cfg.Blocks.Length * 5)
+            while (worklist.Count > 0 && loopIterations < cfg.Blocks.Length * 50)
             {
 
                 LogDebug("  [CFG] ENTERED WHILE LOOP.");
@@ -792,9 +829,10 @@ namespace PurelySharp.Analyzer.Engine
             }
             else
             {
-                LogDebug($"  [CFG] WARNING: Exited CFG dataflow loop due to iteration limit ({loopIterations}). Potential infinite loop?");
+                LogDebug($"  [CFG] WARNING: Exited CFG dataflow loop due to iteration limit ({loopIterations}). Potential incomplete merge; continuing with aggregated block states.");
             }
 
+            mergedDelegateTargetsFromBlocks = MergeDelegateTargetMapsFromBlockStates(blockStates.Values);
 
             PurityAnalysisResult finalResult = PurityAnalysisResult.Pure;
             
@@ -1023,7 +1061,7 @@ namespace PurelySharp.Analyzer.Engine
             }
 
 
-            var applicableRule = _purityRules.FirstOrDefault(rule => rule.ApplicableOperationKinds.Contains(operation.Kind));
+            _firstRuleByOperationKind.TryGetValue(operation.Kind, out var applicableRule);
 
             if (applicableRule != null)
             {
@@ -1368,26 +1406,38 @@ namespace PurelySharp.Analyzer.Engine
 
         private static PurityAnalysisEngine.PotentialTargets? ResolvePotentialTargets(IOperation valueOperation, PurityAnalysisState currentState)
         {
-            if (valueOperation is IMethodReferenceOperation methodRef)
+            var unwrapped = SkipImplicitConversions(valueOperation);
+            if (unwrapped == null) return null;
+            if (unwrapped is IMethodReferenceOperation methodRef)
             {
                 return PurityAnalysisEngine.PotentialTargets.FromSingle(methodRef.Method.OriginalDefinition);
             }
-            else if (valueOperation is IDelegateCreationOperation delegateCreation)
+
+            if (unwrapped is IDelegateCreationOperation delegateCreation)
             {
-                if (delegateCreation.Target is IMethodReferenceOperation lambdaRef)
+                var target = SkipImplicitConversions(delegateCreation.Target);
+                if (target is IMethodReferenceOperation lambdaRef)
                 {
                     return PurityAnalysisEngine.PotentialTargets.FromSingle(lambdaRef.Method.OriginalDefinition);
                 }
             }
-            else
+
+            ISymbol? valueSourceSymbol = TryResolveSymbol(unwrapped);
+            if (valueSourceSymbol != null && currentState.DelegateTargetMap.TryGetValue(valueSourceSymbol, out var sourceTargets))
             {
-                ISymbol? valueSourceSymbol = TryResolveSymbol(valueOperation);
-                if (valueSourceSymbol != null && currentState.DelegateTargetMap.TryGetValue(valueSourceSymbol, out var sourceTargets))
-                {
-                    return sourceTargets;
-                }
+                return sourceTargets;
             }
+
             return null;
+        }
+
+        private static IOperation? SkipImplicitConversions(IOperation? operation)
+        {
+            while (operation is IConversionOperation conv && conv.IsImplicit)
+            {
+                operation = conv.Operand;
+            }
+            return operation;
         }
 
 

@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -180,7 +180,6 @@ namespace TestNamespace
     public class RawStringExample
     {
         [EnforcePure]
-        // TODO: Analyzer currently fails to verify purity of u8 literals, expects PS0002
         public ReadOnlySpan<byte> GetRawStringAsUtf8()
         {
             // C# 11 raw string literal with UTF-8 encoding (pure)
@@ -192,10 +191,7 @@ namespace TestNamespace
     }
 }";
 
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                   .WithSpan(13, 35, 13, 53)
-                                   .WithArguments("GetRawStringAsUtf8");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]

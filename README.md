@@ -25,7 +25,7 @@ Currently, the analyzer provides the following checks:
 **Inherent limitations (not “missing features”):**
 
 - **Whole-program / whole-BCL formal proof** of purity is out of scope; the analyzer uses explicit impure/pure catalogs, symbolic method analysis, and conservative defaults.
-- **Some CFG details** (e.g. impurity in `if`/`while` conditions that use lowered flow captures, or expression-bodied methods where the CFG root was not expanded) can still produce false negatives; prefer reporting `PS0002` over silent acceptance when in doubt.
+- **CFG and dataflow:** method bodies are analyzed with Roslyn `ControlFlowGraph` rooted at the method (or constructor / local function) declaration, with flow-capture handling for lowered conditionals. Remaining edge cases (e.g. unusual control flow or incomplete delegate target tracking) may still produce false positives (`PS0002`) or false negatives; the engine stays conservative when in doubt.
 - **Target frameworks:** every TFM is not CI-matrixed; the analyzer is `netstandard2.0`, with a `net472` smoke project (`PurelySharp.Smoke.Net472`) and the main test suite on .NET 8 (see **Cross-Framework and Language Version Support** below).
 
 **Recently implemented (see codebase):**

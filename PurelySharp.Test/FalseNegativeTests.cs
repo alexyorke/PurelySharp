@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
@@ -492,12 +492,11 @@ public class TestClass
     public int TestMethod()
     {
         Func<int, int, int> operation = PureCalculation;
-        return operation(5, 10); // Should be pure, analyzer misses it
+        return operation(5, 10);
     }
 }";
 
-            var expected = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(11, 16, 11, 26).WithArguments("TestMethod");
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }
 }

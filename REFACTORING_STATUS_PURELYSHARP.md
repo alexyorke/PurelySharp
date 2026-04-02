@@ -21,7 +21,14 @@
   - `AttributePlacementAnalyzer` remains a separate focused check.
 
 - **Tests/build**
-  - Full suite passing: 482/482 tests (Release). Verified on Windows PowerShell.
+  - Full suite passing: 505/505 tests (`PurelySharp.Test`, .NET 8). Run `dotnet test PurelySharp.Test/PurelySharp.Test.csproj` from the repo root.
+
+- **Recent engine refinements**
+  - CFG worklist iteration budget scaled with block count (`Blocks.Length * 50`) for join-heavy graphs.
+  - `CompilationPurityService` runs `WorklistPuritySolver.Solve` once per compilation under a lock (safe with `EnableConcurrentExecution`).
+  - Per-operation rule dispatch uses an `OperationKind` → first-rule map (same order as `RuleRegistry` linear scan).
+  - Post-CFG return re-check uses the merged delegate-target map from all CFG blocks so delegate `Invoke` on locals matches CFG analysis (implicit conversions around method-group-to-delegate are unwrapped in `ResolvePotentialTargets`).
+  - UTF-8 string literals (`OperationKind.Utf8String`) handled via `Utf8StringLiteralPurityRule`.
 
 ### What’s next (prioritized)
 
@@ -55,7 +62,8 @@
 
 5. **Performance/robustness**
    - Cache call graph per compilation and consider incremental rebuild hooks (if analyzer context exposes them) for larger solutions.
-   - Guard against pathological graphs (cycle limits already present in solver; review thresholds).
+   - Guard against pathological graphs (cycle limits already present in solver; CFG worklist uses `Blocks.Length * 50` max iterations).
+   - Optional: replace `Queue.Contains` in CFG propagation with an “in queue” set for very large methods.
 
 6. **Diagnostics/configuration**
    - DONE: Allow severity toggles per rule via standard `.editorconfig` keys (`dotnet_diagnostic.PS0002.severity`, `dotnet_diagnostic.PS0004.severity`).
