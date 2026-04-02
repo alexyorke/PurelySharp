@@ -1,7 +1,8 @@
-﻿using Microsoft.CodeAnalysis.CodeFixes;
+using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp.Testing;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Testing;
+using static Microsoft.CodeAnalysis.Testing.ReferenceAssemblies;
 
 namespace PurelySharp.Test
 {
@@ -13,6 +14,7 @@ namespace PurelySharp.Test
         {
             public Test()
             {
+                ReferenceAssemblies = Net.Net80;
                 SolutionTransforms.Add((solution, projectId) =>
                 {
                     var project = solution.GetProject(projectId);

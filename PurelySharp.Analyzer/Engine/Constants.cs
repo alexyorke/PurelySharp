@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 
 namespace PurelySharp.Analyzer.Engine;
 
@@ -881,7 +881,6 @@ public static class Constants
         "System.IO.Hashing.Crc32.Hash(System.ReadOnlySpan<byte>)",
         "System.Linq.Enumerable.Chunk<TSource>(System.Collections.Generic.IEnumerable<TSource>, int)",
         "System.Runtime.InteropServices.MemoryMarshal.Read<T>(System.ReadOnlySpan<byte>)",
-        "System.ArgumentNullException.ArgumentNullException(string)",
         "System.ArgumentOutOfRangeException.ArgumentOutOfRangeException(string)",
         "System.ArraySegment<T>.ArraySegment(T[], int, int)",
         "System.Attribute.GetCustomAttributes(System.Reflection.MemberInfo)",
@@ -1246,6 +1245,8 @@ public static class Constants
         "System.Text.Encoding.UTF8.get",
         "System.Text.Encoding.GetString(byte[])",
         // Exception guard helpers considered pure (diverging without side effects)
+        "System.Exception.Message.get",
+        "System.ArgumentNullException.ArgumentNullException(string)",
         "System.ArgumentNullException.ThrowIfNull(object)",
         "System.ArgumentNullException.ThrowIfNull(object, string)",
         "System.ArgumentException.ThrowIfNullOrEmpty(string)",

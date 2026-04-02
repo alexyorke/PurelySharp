@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.FlowAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
@@ -65,6 +65,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 {
                     PurityAnalysisEngine.LogDebug($"    [ObjCreateRule] Constructor invocation IMPURE due to impure static constructor in {constructorSymbol.ContainingType?.Name}.");
                     return cctorResult;
+                }
+
+                if (PurityAnalysisEngine.IsKnownPureBCLMember(constructorSymbol))
+                {
+                    PurityAnalysisEngine.LogDebug($"    [ObjCreateRule] Constructor '{constructorSymbol.ToDisplayString()}' is a known-pure BCL member; skipping recursive callee analysis.");
+                    return PurityAnalysisResult.Pure;
                 }
 
                 var constructorPurity = PurityAnalysisEngine.GetCalleePurity(constructorSymbol, context);

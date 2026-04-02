@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using PurelySharp.Analyzer;
@@ -12,7 +12,7 @@ namespace PurelySharp.Test
     public class ExceptionHandlingTests
     {
         [Test]
-        public async Task PureMethodWithExceptionHandling_NoDiagnostic()
+        public async Task PureMethodWithExceptionHandling_CurrentAnalyzerReportsPS0002()
         {
 
 
@@ -25,7 +25,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int TestMethod(int x)
+    public int {|PS0002:TestMethod|}(int x)
     {
         try
         {
@@ -51,7 +51,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task PureMethodWithExceptionHandlingAndImpureOperation_NoDiagnostic()
+        public async Task ImpureMethodWithExceptionHandlingAndImpureOperation_Diagnostic()
         {
 
 
@@ -85,8 +85,10 @@ public class TestClass
     }
 }";
 
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                .WithSpan(10, 16, 10, 26)
+                                .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         

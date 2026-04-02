@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -118,9 +118,10 @@ public class TestClass
 }";
 
             var expectedGetInfo = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(7, 27, 7, 34).WithArguments("GetInfo");
+            var expectedGetFunctionInfo = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(10, 19, 10, 34).WithArguments("GetFunctionInfo");
             var expectedLocalFunction = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(13, 16, 13, 29).WithArguments("LocalFunction");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetInfo, expectedLocalFunction });
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetInfo, expectedGetFunctionInfo, expectedLocalFunction });
         }
 
         [Test]

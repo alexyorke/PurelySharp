@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -36,8 +36,9 @@ namespace PurelySharp.Analyzer
                 var purityService = new Engine.CompilationPurityService(startContext.Compilation);
                 var config = Configuration.AnalyzerConfiguration.FromOptions(startContext.Options);
                 Engine.ImpurityCatalog.InitializeOverrides(config);
+                var suggestMissingEnforcePure = config.SuggestMissingEnforcePure;
 
-                startContext.RegisterSyntaxNodeAction(c => MethodPurityAnalyzer.AnalyzeSymbolForPurity(c, purityService),
+                startContext.RegisterSyntaxNodeAction(c => MethodPurityAnalyzer.AnalyzeSymbolForPurity(c, purityService, suggestMissingEnforcePure),
                     SyntaxKind.MethodDeclaration,
                     SyntaxKind.GetAccessorDeclaration,
                     SyntaxKind.SetAccessorDeclaration,

@@ -1,8 +1,9 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp.Testing;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Testing;
+using PurelySharp.Analyzer;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -32,20 +33,29 @@ namespace PurelySharp.Test
                 TestCode = source,
             };
 
+            AddPurelySharpReferences(test);
             test.ExpectedDiagnostics.AddRange(expected);
             await test.RunAsync(CancellationToken.None);
         }
 
 
         public static async Task VerifyCodeFixAsync(string source, string fixedSource)
-            => await VerifyCodeFixAsync(source, DiagnosticResult.EmptyDiagnosticResults, fixedSource);
+            => await VerifyCodeFixAsync(source, DiagnosticResult.EmptyDiagnosticResults, fixedSource, null);
 
 
         public static async Task VerifyCodeFixAsync(string source, DiagnosticResult expected, string fixedSource)
-            => await VerifyCodeFixAsync(source, new[] { expected }, fixedSource);
+            => await VerifyCodeFixAsync(source, new[] { expected }, fixedSource, null, null);
 
 
-        public static async Task VerifyCodeFixAsync(string source, DiagnosticResult[] expected, string fixedSource)
+        public static async Task VerifyCodeFixAsync(string source, DiagnosticResult expected, string fixedSource, int codeActionIndex)
+            => await VerifyCodeFixAsync(source, new[] { expected }, fixedSource, codeActionIndex, null);
+
+
+        public static async Task VerifyCodeFixAsync(string source, DiagnosticResult expected, string fixedSource, string codeActionEquivalenceKey)
+            => await VerifyCodeFixAsync(source, new[] { expected }, fixedSource, null, codeActionEquivalenceKey);
+
+
+        public static async Task VerifyCodeFixAsync(string source, DiagnosticResult[] expected, string fixedSource, int? codeActionIndex = null, string? codeActionEquivalenceKey = null)
         {
             var test = new Test
             {
@@ -53,8 +63,21 @@ namespace PurelySharp.Test
                 FixedCode = fixedSource,
             };
 
+            if (codeActionIndex.HasValue)
+                test.CodeActionIndex = codeActionIndex.Value;
+            if (codeActionEquivalenceKey != null)
+                test.CodeActionEquivalenceKey = codeActionEquivalenceKey;
+
+            AddPurelySharpReferences(test);
             test.ExpectedDiagnostics.AddRange(expected);
             await test.RunAsync(CancellationToken.None);
+        }
+
+        private static void AddPurelySharpReferences(Test test)
+        {
+            test.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(PurelySharpAnalyzer).Assembly.Location));
+            test.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(PurelySharp.Attributes.EnforcePureAttribute).Assembly.Location));
+            test.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(PurelySharp.Attributes.PureAttribute).Assembly.Location));
         }
     }
 }

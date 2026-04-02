@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using System;
 using System.Threading.Tasks;
 using PurelySharp.Analyzer;
@@ -14,7 +14,7 @@ namespace PurelySharp.Test
 
 
         [Test]
-        public async Task TestPartialFunction_ThrowsException_NoDiagnostic()
+        public async Task TestPartialFunction_ThrowsException_UseMethodReportsPS0002()
         {
             var testCode = @"
 #nullable enable
@@ -37,7 +37,7 @@ public class TestClass
     // Example usage (not strictly necessary for analyzer check, but good context)
     // Add [EnforcePure] to trigger analysis of this method
     [EnforcePure]
-    public void UseMethod()
+    public void {|PS0002:UseMethod|}()
     {
         try
         {

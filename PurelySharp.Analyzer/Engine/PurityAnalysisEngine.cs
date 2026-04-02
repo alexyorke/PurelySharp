@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -495,6 +495,47 @@ namespace PurelySharp.Analyzer.Engine
                         LogDebug($"{indent}  Post-CFG: ThrowOperations check complete (divergence allowed).");
 
 
+                        LogDebug($"{indent}  Post-CFG: Checking Unreachable Code (Try, Catch)...");
+                        foreach (var tryOp in methodBodyIOperation.DescendantsAndSelf().OfType<ITryOperation>())
+                        {
+                            foreach (var catchClause in tryOp.Catches)
+                            {
+                                if (catchClause.Syntax != null)
+                                {
+                                    var catchCfgResult = AnalyzePurityUsingCFGInternal(catchClause.Syntax, semanticModel, enforcePureAttributeSymbol, allowSynchronizationAttributeSymbol, visited, methodSymbol, purityCache);
+                                    if (!catchCfgResult.IsPure)
+                                    {
+                                        result = catchCfgResult;
+                                        goto PostCfgChecksDone;
+                                    }
+                                }
+                            }
+                            if (tryOp.Finally != null && tryOp.Finally.Syntax != null)
+                            {
+                                var finallyCfgResult = AnalyzePurityUsingCFGInternal(tryOp.Finally.Syntax, semanticModel, enforcePureAttributeSymbol, allowSynchronizationAttributeSymbol, visited, methodSymbol, purityCache);
+                                if (!finallyCfgResult.IsPure)
+                                {
+                                    result = finallyCfgResult;
+                                    goto PostCfgChecksDone;
+                                }
+                            }
+                        }
+
+                        LogDebug($"{indent}  Post-CFG: Checking Unreachable Local Functions...");
+                        foreach (var localFuncOp in methodBodyIOperation.DescendantsAndSelf().OfType<ILocalFunctionOperation>())
+                        {
+                            var lfSyntax = localFuncOp.Body?.Syntax;
+                            if (lfSyntax != null)
+                            {
+                                var lfCfgResult = AnalyzePurityUsingCFGInternal(lfSyntax, semanticModel, enforcePureAttributeSymbol, allowSynchronizationAttributeSymbol, visited, methodSymbol, purityCache);
+                                if (!lfCfgResult.IsPure)
+                                {
+                                    result = lfCfgResult;
+                                    goto PostCfgChecksDone;
+                                }
+                            }
+                        }
+
                         LogDebug($"{indent}  Post-CFG: Checking Known Impure Invocations...");
                         foreach (var invocationOp in methodBodyIOperation.DescendantsAndSelf().OfType<IInvocationOperation>())
                         {
@@ -675,78 +716,21 @@ namespace PurelySharp.Analyzer.Engine
             }
 
 
-            PurityAnalysisResult finalResult;
-            BasicBlock? exitBlock = cfg.Blocks.LastOrDefault(b => b.Kind == BasicBlockKind.Exit);
-
-            if (exitBlock != null && blockStates.TryGetValue(exitBlock, out var exitState))
+            PurityAnalysisResult finalResult = PurityAnalysisResult.Pure;
+            
+            foreach (var exitState in blockStates.Values)
             {
-                LogDebug($"  [CFG] CFG Result Aggregation for {containingMethodSymbol.ToDisplayString()}: Exit Block #{exitBlock.Ordinal} Initial State: HasImpurity={exitState.HasPotentialImpurity}, Node={exitState.FirstImpureSyntaxNode?.Kind()}, NodeText='{exitState.FirstImpureSyntaxNode?.ToString()}'");
-
-
-                if (!exitState.HasPotentialImpurity)
-                {
-                    LogDebug($"  [CFG] Exit block state is pure. Explicitly checking operations within Exit Block #{exitBlock.Ordinal}.");
-                    var pureAttrSymbolForContext = semanticModel.Compilation.GetTypeByMetadataName("PurelySharp.Attributes.PureAttribute");
-
-                    var ruleContext = new Rules.PurityAnalysisContext(
-                        semanticModel,
-                        enforcePureAttributeSymbol,
-                        pureAttrSymbolForContext,
-                        allowSynchronizationAttributeSymbol,
-                        visited,
-                        purityCache,
-                        containingMethodSymbol,
-                        _purityRules,
-                        CancellationToken.None,
-                        null);
-
-                    foreach (var exitOp in exitBlock.Operations)
-                    {
-                        if (exitOp == null) continue;
-                        LogDebug($"    [CFG] Checking exit operation: {exitOp.Kind} - '{exitOp.Syntax}'");
-                        var opResult = CheckSingleOperation(exitOp, ruleContext, exitState);
-                        if (!opResult.IsPure)
-                        {
-                            LogDebug($"    [CFG] Exit operation {exitOp.Kind} found IMPURE. Updating final result.");
-
-
-                            exitState = exitState.WithImpurity(opResult.ImpureSyntaxNode ?? exitOp.Syntax);
-                            break;
-                        }
-                    }
-                    if (!exitState.HasPotentialImpurity)
-                    {
-                        LogDebug($"  [CFG] All exit block operations checked and found pure.");
-                    }
-                }
-
-
-
                 if (exitState.HasPotentialImpurity)
                 {
-
                     finalResult = exitState.FirstImpureSyntaxNode != null
                         ? PurityAnalysisResult.Impure(exitState.FirstImpureSyntaxNode)
                         : PurityAnalysisResult.ImpureUnknownLocation;
-                    LogDebug($"  [CFG] Final Result: IMPURE. Node={finalResult.ImpureSyntaxNode?.Kind() ?? (object)"NULL"}");
+                    LogDebug($"  [CFG] Final Result: IMPURE. Node={finalResult.ImpureSyntaxNode?.Kind()}");
+                    return finalResult;
                 }
-                else
-                {
-                    finalResult = PurityAnalysisResult.Pure;
-                    LogDebug($"  [CFG] Final Result: PURE.");
-                }
-            }
-            else if (exitBlock != null)
-            {
-                LogDebug($"  [CFG] CFG Result Aggregation for {containingMethodSymbol.ToDisplayString()}: Could not get state for the exit block #{exitBlock.Ordinal}. Assuming impure (unreachable?).");
-                finalResult = PurityAnalysisResult.ImpureUnknownLocation;
-            }
-            else
-            {
-                LogDebug($"  [CFG] CFG Result Aggregation for {containingMethodSymbol.ToDisplayString()}: No reachable exit block found. Assuming pure.");
-                finalResult = PurityAnalysisResult.Pure;
             }
 
+            LogDebug($"  [CFG] Final Result: PURE.");
             return finalResult;
         }
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -12,7 +12,7 @@ namespace PurelySharp.Analyzer
     internal static class MethodPurityAnalyzer
     {
 
-        internal static void AnalyzeSymbolForPurity(SyntaxNodeAnalysisContext context, Engine.CompilationPurityService purityService)
+        internal static void AnalyzeSymbolForPurity(SyntaxNodeAnalysisContext context, Engine.CompilationPurityService purityService, bool suggestMissingEnforcePure)
         {
 
             ISymbol? declaredSymbol = context.SemanticModel.GetDeclaredSymbol(context.Node, context.CancellationToken);
@@ -122,7 +122,7 @@ namespace PurelySharp.Analyzer
                 }
             }
 
-            else if (isPure && !hasPurityEnforcementAttribute && !hasAllowSynchronization)
+            else if (suggestMissingEnforcePure && isPure && !hasPurityEnforcementAttribute && !hasAllowSynchronization)
             {
                 bool isCompilerGeneratedSetter = false;
                 if (methodSymbol.MethodKind == MethodKind.PropertySet && context.Node is AccessorDeclarationSyntax setterNode)
