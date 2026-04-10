@@ -69,6 +69,46 @@ public class C
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task IndexVariable_IsPure()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class C
+{
+    [EnforcePure]
+    public int Last(int[] a)
+    {
+        Index idx = ^1;
+        return a[idx];
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task RangeVariable_IsPure()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class C
+{
+    [EnforcePure]
+    public int[] Middle(int[] a)
+    {
+        Range range = 1..^1;
+        return a[range];
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
 

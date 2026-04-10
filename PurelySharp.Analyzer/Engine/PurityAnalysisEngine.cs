@@ -766,17 +766,12 @@ namespace PurelySharp.Analyzer.Engine
             var worklist = new Queue<BasicBlock>();
             var inQueue = new HashSet<BasicBlock>();
 
-
-            LogDebug("  [CFG] Initializing CFG block states to Pure.");
-            foreach (var block in cfg.Blocks)
-            {
-                blockStates[block] = PurityAnalysisState.Pure;
-            }
             if (cfg.Blocks.Any())
             {
                 var entryBlock = cfg.Blocks.First();
 
                 LogDebug($"  [CFG] Adding Entry Block #{entryBlock.Ordinal} to worklist.");
+                blockStates[entryBlock] = PurityAnalysisState.Pure;
                 worklist.Enqueue(entryBlock);
                 inQueue.Add(entryBlock);
             }
@@ -802,7 +797,11 @@ namespace PurelySharp.Analyzer.Engine
                 inQueue.Remove(currentBlock);
                 LogDebug($"  [CFG] Processing CFG Block #{currentBlock.Ordinal}");
 
-                var stateBefore = blockStates[currentBlock];
+                if (!blockStates.TryGetValue(currentBlock, out var stateBefore))
+                {
+                    stateBefore = PurityAnalysisState.Pure;
+                    blockStates[currentBlock] = stateBefore;
+                }
 
                 LogDebug($"  [CFG] StateBefore for Block #{currentBlock.Ordinal}: Impure={stateBefore.HasPotentialImpurity}");
 
@@ -1208,12 +1207,16 @@ namespace PurelySharp.Analyzer.Engine
 
 
             bool previouslyVisited = blockStates.TryGetValue(successor, out var existingState);
+            if (!previouslyVisited)
+            {
+                existingState = PurityAnalysisState.Pure;
+            }
 
 
             var mergedState = previouslyVisited ? MergeStates(existingState, newState) : newState;
 
 
-            bool stateChanged = !mergedState.Equals(existingState);
+            bool stateChanged = !previouslyVisited || !mergedState.Equals(existingState);
 
 
 
