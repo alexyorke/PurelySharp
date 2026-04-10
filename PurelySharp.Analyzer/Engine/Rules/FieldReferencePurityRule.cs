@@ -136,10 +136,10 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
 
 
-                    if (instanceOperation is ILocalReferenceOperation localRef && localRef.Local?.Type != null &&
-                        localRef.Local.Type.IsValueType && localRef.Local.Type.IsReadOnly)
+                    var unwrappedInstance = PurityAnalysisEngine.SkipImplicitConversions(instanceOperation) ?? instanceOperation;
+                    if (IsByValueValueTypeReceiver(unwrappedInstance))
                     {
-                        PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Instance is local var '{localRef.Local.Name}' of readonly struct type. Read is Pure (heuristic).");
+                        PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Instance is a by-value value-type receiver ({unwrappedInstance.Kind}). Read is Pure.");
                         return PurityAnalysisEngine.PurityAnalysisResult.Pure;
                     }
 
@@ -198,6 +198,21 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 parent = parent.Parent;
             }
             return false;
+        }
+
+        private static bool IsByValueValueTypeReceiver(IOperation operation)
+        {
+            if (operation.Type == null || !operation.Type.IsValueType)
+            {
+                return false;
+            }
+
+            return operation switch
+            {
+                IObjectCreationOperation => true,
+                IDefaultValueOperation => true,
+                _ => false
+            };
         }
     }
 }
