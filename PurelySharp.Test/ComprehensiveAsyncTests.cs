@@ -71,7 +71,7 @@ class Program
 }";
 
 
-            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(9, 33, 9, 48).WithArguments("PureAsyncMethod"));
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]

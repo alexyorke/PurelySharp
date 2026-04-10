@@ -490,7 +490,6 @@ public static class Constants
         "System.Xml.Linq.XElement.Add(object)",
 
 
-        "System.Threading.Tasks.ValueTask<TResult>.ValueTask(TResult)",
         "System.Threading.Tasks.Task.Run(System.Action)",
         "System.IO.MemoryStream.MemoryStream()",
 
@@ -875,6 +874,7 @@ public static class Constants
         "System.Numerics.Plane.Normalize(System.Numerics.Plane)",
         "System.Reflection.Emit.Label.Equals(object)",
         "System.Runtime.InteropServices.SafeHandle.IsInvalid.get",
+        "System.Threading.Tasks.ValueTask<TResult>.ValueTask(TResult)",
         "System.Threading.Tasks.ValueTask.AsTask()",
         "System.Buffers.ReadOnlySequence<T>.Slice(long)",
         "System.Diagnostics.Metrics.Meter.CreateCounter<T>(string, string, string)",

@@ -125,19 +125,22 @@ namespace PurelySharp.Analyzer.Engine
             public ImmutableDictionary<ISymbol, PotentialTargets> DelegateTargetMap { get; }
 
             public ImmutableDictionary<CaptureId, PurityAnalysisResult> FlowCaptures { get; }
+            public ImmutableDictionary<CaptureId, PotentialTargets> FlowCaptureTargets { get; }
 
 
             internal PurityAnalysisState(
                 bool hasPotentialImpurity,
                 SyntaxNode? firstImpureSyntaxNode,
                 ImmutableDictionary<ISymbol, PotentialTargets>? delegateTargetMap,
-                ImmutableDictionary<CaptureId, PurityAnalysisResult>? flowCaptures)
+                ImmutableDictionary<CaptureId, PurityAnalysisResult>? flowCaptures,
+                ImmutableDictionary<CaptureId, PotentialTargets>? flowCaptureTargets = null)
             {
                 HasPotentialImpurity = hasPotentialImpurity;
                 FirstImpureSyntaxNode = firstImpureSyntaxNode;
 
                 DelegateTargetMap = delegateTargetMap ?? ImmutableDictionary.Create<ISymbol, PotentialTargets>(SymbolEqualityComparer.Default);
                 FlowCaptures = flowCaptures ?? ImmutableDictionary<CaptureId, PurityAnalysisResult>.Empty;
+                FlowCaptureTargets = flowCaptureTargets ?? ImmutableDictionary<CaptureId, PotentialTargets>.Empty;
             }
 
 
@@ -146,13 +149,10 @@ namespace PurelySharp.Analyzer.Engine
 
             public static PurityAnalysisState Merge(IEnumerable<PurityAnalysisState> states)
             {
+                var stateList = states.ToList();
                 bool mergedImpurity = false;
                 SyntaxNode? firstImpureNode = null;
-
-                var mergedTargetsBuilder = ImmutableDictionary.CreateBuilder<ISymbol, PotentialTargets>(SymbolEqualityComparer.Default);
-                var keysProcessed = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
-
-                foreach (var state in states)
+                foreach (var state in stateList)
                 {
 
                     if (state.HasPotentialImpurity)
@@ -162,32 +162,12 @@ namespace PurelySharp.Analyzer.Engine
                     }
 
 
-                    foreach (var kvp in state.DelegateTargetMap)
-                    {
-                        var symbol = kvp.Key;
-                        var currentTargets = kvp.Value;
-
-                        if (mergedTargetsBuilder.TryGetValue(symbol, out var existingTargets))
-                        {
-
-                            if (!keysProcessed.Contains(symbol))
-                            {
-                                mergedTargetsBuilder[symbol] = PotentialTargets.Merge(existingTargets, currentTargets);
-                                keysProcessed.Add(symbol);
-                            }
-                        }
-                        else
-                        {
-
-                            mergedTargetsBuilder.Add(symbol, currentTargets);
-                            keysProcessed.Add(symbol);
-                        }
-                    }
-                    keysProcessed.Clear();
                 }
 
-                var mergedCaptures = MergeFlowCaptureMaps(states.Select(s => s.FlowCaptures));
-                return new PurityAnalysisState(mergedImpurity, firstImpureNode, mergedTargetsBuilder.ToImmutable(), mergedCaptures);
+                var mergedTargets = MergeDelegateTargetMapsAcrossAll(stateList.Select(s => s.DelegateTargetMap));
+                var mergedCaptures = MergeFlowCaptureMaps(stateList.Select(s => s.FlowCaptures));
+                var mergedCaptureTargets = MergeFlowCaptureTargetMapsAcrossAll(stateList.Select(s => s.FlowCaptureTargets));
+                return new PurityAnalysisState(mergedImpurity, firstImpureNode, mergedTargets, mergedCaptures, mergedCaptureTargets);
             }
 
 
@@ -196,7 +176,8 @@ namespace PurelySharp.Analyzer.Engine
                 if (this.HasPotentialImpurity != other.HasPotentialImpurity ||
                     !object.Equals(this.FirstImpureSyntaxNode, other.FirstImpureSyntaxNode) ||
                     this.DelegateTargetMap.Count != other.DelegateTargetMap.Count ||
-                    this.FlowCaptures.Count != other.FlowCaptures.Count)
+                    this.FlowCaptures.Count != other.FlowCaptures.Count ||
+                    this.FlowCaptureTargets.Count != other.FlowCaptureTargets.Count)
                 {
                     return false;
                 }
@@ -214,6 +195,14 @@ namespace PurelySharp.Analyzer.Engine
                 foreach (var kvp in this.FlowCaptures)
                 {
                     if (!other.FlowCaptures.TryGetValue(kvp.Key, out var otherCap) || !PurityResultsEqual(kvp.Value, otherCap))
+                    {
+                        return false;
+                    }
+                }
+
+                foreach (var kvp in this.FlowCaptureTargets)
+                {
+                    if (!other.FlowCaptureTargets.TryGetValue(kvp.Key, out var otherTargets) || !kvp.Value.Equals(otherTargets))
                     {
                         return false;
                     }
@@ -248,6 +237,12 @@ namespace PurelySharp.Analyzer.Engine
                     hash = hash * 23 + (kvp.Value.ImpureSyntaxNode?.GetHashCode() ?? 0);
                 }
 
+                foreach (var kvp in FlowCaptureTargets.OrderBy(kv => kv.Key.GetHashCode()))
+                {
+                    hash = hash * 23 + kvp.Key.GetHashCode();
+                    hash = hash * 23 + kvp.Value.GetHashCode();
+                }
+
                 return hash;
             }
 
@@ -258,19 +253,24 @@ namespace PurelySharp.Analyzer.Engine
             public PurityAnalysisState WithImpurity(SyntaxNode node)
             {
                 if (HasPotentialImpurity) return this;
-                return new PurityAnalysisState(true, node, this.DelegateTargetMap, this.FlowCaptures);
+                return new PurityAnalysisState(true, node, this.DelegateTargetMap, this.FlowCaptures, this.FlowCaptureTargets);
             }
 
             public PurityAnalysisState WithDelegateTarget(ISymbol delegateSymbol, PotentialTargets targets)
             {
 
                 var newMap = this.DelegateTargetMap.SetItem(delegateSymbol, targets);
-                return new PurityAnalysisState(this.HasPotentialImpurity, this.FirstImpureSyntaxNode, newMap, this.FlowCaptures);
+                return new PurityAnalysisState(this.HasPotentialImpurity, this.FirstImpureSyntaxNode, newMap, this.FlowCaptures, this.FlowCaptureTargets);
             }
 
             public PurityAnalysisState WithFlowCaptureResult(CaptureId id, PurityAnalysisResult result)
             {
-                return new PurityAnalysisState(HasPotentialImpurity, FirstImpureSyntaxNode, DelegateTargetMap, FlowCaptures.SetItem(id, result));
+                return new PurityAnalysisState(HasPotentialImpurity, FirstImpureSyntaxNode, DelegateTargetMap, FlowCaptures.SetItem(id, result), FlowCaptureTargets);
+            }
+
+            public PurityAnalysisState WithFlowCaptureTarget(CaptureId id, PotentialTargets targets)
+            {
+                return new PurityAnalysisState(HasPotentialImpurity, FirstImpureSyntaxNode, DelegateTargetMap, FlowCaptures, FlowCaptureTargets.SetItem(id, targets));
             }
 
             private static bool PurityResultsEqual(PurityAnalysisResult a, PurityAnalysisResult b)
@@ -621,10 +621,11 @@ namespace PurelySharp.Analyzer.Engine
                         LogDebug($"{indent}  Post-CFG: Checking Unreachable Local Functions...");
                         foreach (var localFuncOp in methodBodyIOperation.DescendantsAndSelf().OfType<ILocalFunctionOperation>())
                         {
-                            var lfSyntax = localFuncOp.Body?.Syntax;
-                            if (lfSyntax != null)
+                            var localFunctionSymbol = localFuncOp.Symbol?.OriginalDefinition;
+                            var lfSyntax = localFuncOp.Syntax;
+                            if (lfSyntax != null && localFunctionSymbol != null)
                             {
-                                var lfCfgResult = AnalyzePurityUsingCFGInternal(lfSyntax, semanticModel, enforcePureAttributeSymbol, allowSynchronizationAttributeSymbol, visited, methodSymbol, purityCache, out _);
+                                var lfCfgResult = AnalyzePurityUsingCFGInternal(lfSyntax, semanticModel, enforcePureAttributeSymbol, allowSynchronizationAttributeSymbol, visited, localFunctionSymbol, purityCache, out _);
                                 if (!lfCfgResult.IsPure)
                                 {
                                     result = lfCfgResult;
@@ -763,6 +764,7 @@ namespace PurelySharp.Analyzer.Engine
 
             var blockStates = new Dictionary<BasicBlock, PurityAnalysisState>(cfg.Blocks.Length);
             var worklist = new Queue<BasicBlock>();
+            var inQueue = new HashSet<BasicBlock>();
 
 
             LogDebug("  [CFG] Initializing CFG block states to Pure.");
@@ -776,6 +778,7 @@ namespace PurelySharp.Analyzer.Engine
 
                 LogDebug($"  [CFG] Adding Entry Block #{entryBlock.Ordinal} to worklist.");
                 worklist.Enqueue(entryBlock);
+                inQueue.Add(entryBlock);
             }
             else
             {
@@ -796,6 +799,7 @@ namespace PurelySharp.Analyzer.Engine
 
                 LogDebug($"  [CFG] Worklist count: {worklist.Count}. Iteration: {loopIterations}");
                 var currentBlock = worklist.Dequeue();
+                inQueue.Remove(currentBlock);
                 LogDebug($"  [CFG] Processing CFG Block #{currentBlock.Ordinal}");
 
                 var stateBefore = blockStates[currentBlock];
@@ -818,8 +822,8 @@ namespace PurelySharp.Analyzer.Engine
 
 
                 LogDebug($"  [CFG] Propagating stateAfter (Impure={stateAfter.HasPotentialImpurity}) to successors of Block #{currentBlock.Ordinal}.");
-                PropagateToSuccessor(currentBlock.ConditionalSuccessor?.Destination, stateAfter, blockStates, worklist);
-                PropagateToSuccessor(currentBlock.FallThroughSuccessor?.Destination, stateAfter, blockStates, worklist);
+                PropagateToSuccessor(currentBlock.ConditionalSuccessor?.Destination, stateAfter, blockStates, worklist, inQueue);
+                PropagateToSuccessor(currentBlock.FallThroughSuccessor?.Destination, stateAfter, blockStates, worklist, inQueue);
 
             }
 
@@ -1193,7 +1197,12 @@ namespace PurelySharp.Analyzer.Engine
         }
 
 
-        private static void PropagateToSuccessor(BasicBlock? successor, PurityAnalysisState newState, Dictionary<BasicBlock, PurityAnalysisState> blockStates, Queue<BasicBlock> worklist)
+        private static void PropagateToSuccessor(
+            BasicBlock? successor,
+            PurityAnalysisState newState,
+            Dictionary<BasicBlock, PurityAnalysisState> blockStates,
+            Queue<BasicBlock> worklist,
+            HashSet<BasicBlock> inQueue)
         {
             if (successor == null) return;
 
@@ -1201,7 +1210,7 @@ namespace PurelySharp.Analyzer.Engine
             bool previouslyVisited = blockStates.TryGetValue(successor, out var existingState);
 
 
-            var mergedState = MergeStates(existingState, newState);
+            var mergedState = previouslyVisited ? MergeStates(existingState, newState) : newState;
 
 
             bool stateChanged = !mergedState.Equals(existingState);
@@ -1234,12 +1243,13 @@ namespace PurelySharp.Analyzer.Engine
 
 
 
-            if (stateChanged || !worklist.Contains(successor))
+            if (stateChanged || !inQueue.Contains(successor))
             {
-                if (!worklist.Contains(successor))
+                if (!inQueue.Contains(successor))
                 {
                     LogDebug($"PropagateToSuccessor: Enqueuing Block #{successor.Ordinal} (State Changed: {stateChanged}).");
                     worklist.Enqueue(successor);
+                    inQueue.Add(successor);
                 }
                 else
                 {
@@ -1281,31 +1291,90 @@ namespace PurelySharp.Analyzer.Engine
             }
 
 
-            var mapBuilder = ImmutableDictionary.CreateBuilder<ISymbol, PotentialTargets>(SymbolEqualityComparer.Default);
-
-            foreach (var kvp in state1.DelegateTargetMap)
-            {
-                mapBuilder.Add(kvp.Key, kvp.Value);
-            }
-
-            foreach (var kvp in state2.DelegateTargetMap)
-            {
-                if (mapBuilder.TryGetValue(kvp.Key, out var existingTargets))
-                {
-
-                    mapBuilder[kvp.Key] = PotentialTargets.Merge(existingTargets, kvp.Value);
-                }
-                else
-                {
-
-                    mapBuilder.Add(kvp.Key, kvp.Value);
-                }
-            }
-            var finalMap = mapBuilder.ToImmutable();
+            var finalMap = IntersectDelegateTargetMaps(state1.DelegateTargetMap, state2.DelegateTargetMap);
 
             var mergedCaptures = PurityAnalysisState.MergeFlowCaptureMapsForPair(state1.FlowCaptures, state2.FlowCaptures);
+            var mergedCaptureTargets = IntersectFlowCaptureTargetMaps(state1.FlowCaptureTargets, state2.FlowCaptureTargets);
 
-            return new PurityAnalysisState(mergedImpurity, firstImpureNode, finalMap, mergedCaptures);
+            return new PurityAnalysisState(mergedImpurity, firstImpureNode, finalMap, mergedCaptures, mergedCaptureTargets);
+        }
+
+        private static ImmutableDictionary<ISymbol, PotentialTargets> MergeDelegateTargetMapsAcrossAll(
+            IEnumerable<ImmutableDictionary<ISymbol, PotentialTargets>> maps)
+        {
+            using var enumerator = maps.GetEnumerator();
+            if (!enumerator.MoveNext())
+            {
+                return ImmutableDictionary.Create<ISymbol, PotentialTargets>(SymbolEqualityComparer.Default);
+            }
+
+            var merged = enumerator.Current;
+            while (enumerator.MoveNext())
+            {
+                merged = IntersectDelegateTargetMaps(merged, enumerator.Current);
+            }
+
+            return merged;
+        }
+
+        private static ImmutableDictionary<ISymbol, PotentialTargets> IntersectDelegateTargetMaps(
+            ImmutableDictionary<ISymbol, PotentialTargets> first,
+            ImmutableDictionary<ISymbol, PotentialTargets> second)
+        {
+            if (first.IsEmpty || second.IsEmpty)
+            {
+                return ImmutableDictionary.Create<ISymbol, PotentialTargets>(SymbolEqualityComparer.Default);
+            }
+
+            var builder = ImmutableDictionary.CreateBuilder<ISymbol, PotentialTargets>(SymbolEqualityComparer.Default);
+            foreach (var kvp in first)
+            {
+                if (second.TryGetValue(kvp.Key, out var otherTargets))
+                {
+                    builder[kvp.Key] = PotentialTargets.Merge(kvp.Value, otherTargets);
+                }
+            }
+
+            return builder.ToImmutable();
+        }
+
+        private static ImmutableDictionary<CaptureId, PotentialTargets> MergeFlowCaptureTargetMapsAcrossAll(
+            IEnumerable<ImmutableDictionary<CaptureId, PotentialTargets>> maps)
+        {
+            using var enumerator = maps.GetEnumerator();
+            if (!enumerator.MoveNext())
+            {
+                return ImmutableDictionary<CaptureId, PotentialTargets>.Empty;
+            }
+
+            var merged = enumerator.Current;
+            while (enumerator.MoveNext())
+            {
+                merged = IntersectFlowCaptureTargetMaps(merged, enumerator.Current);
+            }
+
+            return merged;
+        }
+
+        private static ImmutableDictionary<CaptureId, PotentialTargets> IntersectFlowCaptureTargetMaps(
+            ImmutableDictionary<CaptureId, PotentialTargets> first,
+            ImmutableDictionary<CaptureId, PotentialTargets> second)
+        {
+            if (first.IsEmpty || second.IsEmpty)
+            {
+                return ImmutableDictionary<CaptureId, PotentialTargets>.Empty;
+            }
+
+            var builder = ImmutableDictionary.CreateBuilder<CaptureId, PotentialTargets>();
+            foreach (var kvp in first)
+            {
+                if (second.TryGetValue(kvp.Key, out var otherTargets))
+                {
+                    builder[kvp.Key] = PotentialTargets.Merge(kvp.Value, otherTargets);
+                }
+            }
+
+            return builder.ToImmutable();
         }
 
 
@@ -1375,6 +1444,15 @@ namespace PurelySharp.Analyzer.Engine
                     }
                 }
 
+                else if (op is IFlowCaptureOperation flowCaptureOperation)
+                {
+                    PurityAnalysisEngine.PotentialTargets? valueTargets = ResolvePotentialTargets(flowCaptureOperation.Value, currentState);
+                    if (valueTargets != null)
+                    {
+                        nextState = nextState.WithFlowCaptureTarget(flowCaptureOperation.Id, valueTargets.Value);
+                    }
+                }
+
                 else if (op is IVariableDeclarationGroupOperation groupOperation)
                 {
                     foreach (var declaration in groupOperation.Declarations)
@@ -1404,13 +1482,23 @@ namespace PurelySharp.Analyzer.Engine
         }
 
 
-        private static PurityAnalysisEngine.PotentialTargets? ResolvePotentialTargets(IOperation valueOperation, PurityAnalysisState currentState)
+        internal static PurityAnalysisEngine.PotentialTargets? ResolvePotentialTargets(IOperation valueOperation, PurityAnalysisState currentState)
         {
             var unwrapped = SkipImplicitConversions(valueOperation);
             if (unwrapped == null) return null;
+            if (unwrapped is IFlowCaptureReferenceOperation flowCaptureReference &&
+                currentState.FlowCaptureTargets.TryGetValue(flowCaptureReference.Id, out var capturedTargets))
+            {
+                return capturedTargets;
+            }
             if (unwrapped is IMethodReferenceOperation methodRef)
             {
                 return PurityAnalysisEngine.PotentialTargets.FromSingle(methodRef.Method.OriginalDefinition);
+            }
+
+            if (unwrapped is IAnonymousFunctionOperation anonymousFunction && anonymousFunction.Symbol != null)
+            {
+                return PurityAnalysisEngine.PotentialTargets.FromSingle(anonymousFunction.Symbol.OriginalDefinition);
             }
 
             if (unwrapped is IDelegateCreationOperation delegateCreation)
@@ -1419,6 +1507,10 @@ namespace PurelySharp.Analyzer.Engine
                 if (target is IMethodReferenceOperation lambdaRef)
                 {
                     return PurityAnalysisEngine.PotentialTargets.FromSingle(lambdaRef.Method.OriginalDefinition);
+                }
+                if (target is IAnonymousFunctionOperation anonymousTarget && anonymousTarget.Symbol != null)
+                {
+                    return PurityAnalysisEngine.PotentialTargets.FromSingle(anonymousTarget.Symbol.OriginalDefinition);
                 }
             }
 
@@ -1431,7 +1523,7 @@ namespace PurelySharp.Analyzer.Engine
             return null;
         }
 
-        private static IOperation? SkipImplicitConversions(IOperation? operation)
+        internal static IOperation? SkipImplicitConversions(IOperation? operation)
         {
             while (operation is IConversionOperation conv && conv.IsImplicit)
             {
@@ -1441,7 +1533,7 @@ namespace PurelySharp.Analyzer.Engine
         }
 
 
-        private static ISymbol? TryResolveSymbol(IOperation? operation)
+        internal static ISymbol? TryResolveSymbol(IOperation? operation)
         {
             return operation switch
             {
@@ -1449,6 +1541,7 @@ namespace PurelySharp.Analyzer.Engine
                 IParameterReferenceOperation paramRef => paramRef.Parameter,
                 IFieldReferenceOperation fieldRef => fieldRef.Field,
                 IPropertyReferenceOperation propRef => propRef.Property,
+                IEventReferenceOperation eventRef => eventRef.Event,
                 _ => null
             };
         }

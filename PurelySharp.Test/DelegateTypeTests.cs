@@ -144,6 +144,31 @@ public class TestClass
         }
 
         [Test]
+        public async Task DelegateTargetTrackedOnOnlyOneBranch_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}(bool condition, Action action)
+    {
+        Action chosen = action;
+        if (condition)
+        {
+            chosen = () => { };
+        }
+
+        chosen();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task HigherOrderFunctions_UnknownPurityDiagnostic()
         {
             var testCode = @"

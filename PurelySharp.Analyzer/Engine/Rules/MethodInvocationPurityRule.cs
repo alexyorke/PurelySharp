@@ -4,7 +4,6 @@ using PurelySharp.Analyzer.Engine;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace PurelySharp.Analyzer.Engine.Rules
 {
@@ -45,48 +44,35 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 IOperation delegateInstanceOp = invocationOperation.Instance;
                 PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Analyzing Delegate Instance Op: {delegateInstanceOp.Kind} | Syntax: {delegateInstanceOp.Syntax}");
 
-
-                ISymbol? delegateInstanceSymbol = TryResolveSymbol(delegateInstanceOp);
-                if (delegateInstanceSymbol != null)
+                var potentialTargets = PurityAnalysisEngine.ResolvePotentialTargets(delegateInstanceOp, currentState);
+                if (potentialTargets != null)
                 {
-                    PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Resolved Instance Symbol: {delegateInstanceSymbol.ToDisplayString()} ({delegateInstanceSymbol.Kind})");
-                    if (currentState.DelegateTargetMap.TryGetValue(delegateInstanceSymbol, out var potentialTargets))
+                    PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Resolved {potentialTargets.Value.MethodSymbols.Count} target(s) for delegate invocation.");
+                    if (potentialTargets.Value.MethodSymbols.IsEmpty)
                     {
-                        PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S-MAP] Found entry for {delegateInstanceSymbol.Name} in map.");
-                        PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S-MAP]   Targets: [{string.Join(", ", potentialTargets.MethodSymbols.Select(m => m.Name))}]");
-                        PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Found {potentialTargets.MethodSymbols.Count} potential target(s) in DFA map for {delegateInstanceSymbol.Name}.");
-                        if (potentialTargets.MethodSymbols.IsEmpty)
-                        {
-                            PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] --> Map entry is empty. Assuming PURE.");
-                            result = PurityAnalysisEngine.PurityAnalysisResult.Pure;
-                        }
-                        else
-                        {
-                            result = PurityAnalysisEngine.PurityAnalysisResult.Pure;
-                            foreach (var targetMethod in potentialTargets.MethodSymbols)
-                            {
-                                PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Checking Potential Target from Map: {targetMethod.ToDisplayString()}");
-                                var targetPurity = PurityAnalysisEngine.GetCalleePurity(targetMethod, context);
-                                PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Potential Target Purity Result: IsPure={targetPurity.IsPure}");
-                                if (!targetPurity.IsPure)
-                                {
-                                    PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] --> IMPURE target found in map. Invocation is impure.");
-                                    result = targetPurity;
-                                    break;
-                                }
-                            }
-                        }
+                        PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] --> Resolved target set is empty. Assuming PURE.");
+                        result = PurityAnalysisEngine.PurityAnalysisResult.Pure;
                     }
                     else
                     {
-                        PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S-MAP] *** NO entry found for {delegateInstanceSymbol.Name} in map. Assuming impure. ***");
-                        PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] --> IMPURE (Symbol {delegateInstanceSymbol.Name} NOT FOUND in DFA state map - untracked source). Fallback to PS0002 at invocation.");
-                        result = PurityAnalysisEngine.ImpureResult(invocationOperation.Syntax);
+                        result = PurityAnalysisEngine.PurityAnalysisResult.Pure;
+                        foreach (var targetMethod in potentialTargets.Value.MethodSymbols)
+                        {
+                            PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Checking Potential Target: {targetMethod.ToDisplayString()}");
+                            var targetPurity = PurityAnalysisEngine.GetCalleePurity(targetMethod, context);
+                            PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Potential Target Purity Result: IsPure={targetPurity.IsPure}");
+                            if (!targetPurity.IsPure)
+                            {
+                                PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] --> IMPURE target found. Invocation is impure.");
+                                result = targetPurity;
+                                break;
+                            }
+                        }
                     }
                 }
                 else
                 {
-                    PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] --> IMPURE (Could not resolve instance {delegateInstanceOp.Kind} to a trackable symbol). Fallback to PS0002 at instance op.");
+                    PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] --> IMPURE (Could not resolve delegate targets for {delegateInstanceOp.Kind}). Fallback to PS0002 at instance op.");
                     result = PurityAnalysisEngine.ImpureResult(delegateInstanceOp.Syntax);
                 }
 
@@ -268,35 +254,6 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 ? PurityAnalysisEngine.PurityAnalysisResult.Pure
                 : PurityAnalysisEngine.PurityAnalysisResult.Impure(calleePurity.ImpureSyntaxNode ?? invocationOperation.Syntax);
         }
-
-
-
-
-        private static ISymbol? TryResolveSymbol(IOperation? operation)
-        {
-            if (operation == null) return null;
-            switch (operation.Kind)
-            {
-                case OperationKind.LocalReference:
-                    return ((ILocalReferenceOperation)operation).Local;
-                case OperationKind.ParameterReference:
-                    return ((IParameterReferenceOperation)operation).Parameter;
-                case OperationKind.FieldReference:
-                    return ((IFieldReferenceOperation)operation).Field;
-                case OperationKind.PropertyReference:
-                    return ((IPropertyReferenceOperation)operation).Property;
-                case OperationKind.EventReference:
-                    return ((IEventReferenceOperation)operation).Event;
-
-                default:
-
-                    PurityAnalysisEngine.LogDebug($"  [TryResolveSymbol] Could not resolve symbol for operation kind: {operation.Kind}");
-                    return null;
-            }
-        }
-
-
-
 
     }
 }

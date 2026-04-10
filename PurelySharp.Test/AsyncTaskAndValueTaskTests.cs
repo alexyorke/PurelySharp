@@ -66,7 +66,7 @@ namespace TestNamespace
     public class TestClass
     {
         [EnforcePure]
-        public ValueTask<int> {|PS0002:PureMethod|}()
+        public ValueTask<int> PureMethod()
         {
             return new ValueTask<int>(42);
         }
@@ -109,7 +109,7 @@ namespace TestNamespace
     public class TestClass
     {
         [EnforcePure]
-        public async Task<int> {|PS0002:PureMethod|}(bool condition)
+        public async Task<int> PureMethod(bool condition)
         {
             if (condition)
             {

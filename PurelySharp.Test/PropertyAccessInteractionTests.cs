@@ -75,6 +75,7 @@ public class TestClass
 ";
             var expectedGetVersion = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(13, 19, 13, 26).WithArguments("get_Version");
             var expectedConfigure = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(23, 17, 23, 26).WithArguments("Configure");
+            var expectedReadVersion = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(29, 19, 29, 30).WithArguments("ReadVersion");
             var expectedUseImpureGetter = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(41, 19, 41, 34).WithArguments("UseImpureGetter");
             var expectedUseImpureMethodCall = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(47, 17, 47, 36).WithArguments("UseImpureMethodCall");
             var expectedGetName = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(8, 19, 8, 23).WithArguments("get_Name");
@@ -83,6 +84,7 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test,
                                              expectedGetVersion,
                                              expectedConfigure,
+                                             expectedReadVersion,
                                              expectedUseImpureGetter,
                                              expectedUseImpureMethodCall,
                                              expectedGetName,
