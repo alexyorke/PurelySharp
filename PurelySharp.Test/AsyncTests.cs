@@ -13,7 +13,7 @@ namespace PurelySharp.Test
     public class AsyncTests
     {
         [Test]
-        public async Task PureAsyncMethod_UnknownPurityDiagnostic()
+    public async Task AsyncMethod_WithTaskDelay_Diagnostic()
         {
             var test = @"
 using System.Threading.Tasks;

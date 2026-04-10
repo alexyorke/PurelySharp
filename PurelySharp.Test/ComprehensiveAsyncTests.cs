@@ -13,7 +13,7 @@ namespace PurelySharp.Test
     public class ComprehensiveAsyncTests
     {
         [Test]
-        public async Task PureAsyncMethod_WithFromResult_UnknownPurityDiagnostic()
+    public async Task PureAsyncMethod_WithFromResult_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -120,7 +120,7 @@ class Program
         }
 
         [Test]
-        public async Task AsyncMethod_AwaitingPureMethod_UnknownPurityDiagnostic()
+    public async Task AsyncMethod_AwaitingPureMethod_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -195,7 +195,7 @@ class Program
         }
 
         [Test]
-        public async Task AsyncMethod_ReturnWithoutAwait_UnknownPurityDiagnostic()
+    public async Task AsyncMethod_ReturnWithoutAwait_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -219,7 +219,7 @@ class Program
         }
 
         [Test]
-        public async Task AsyncMethod_ConditionalAwait_UnknownPurityDiagnostic()
+    public async Task AsyncMethod_ConditionalAwait_NoDiagnostic()
         {
             var test = @"
 using System;
