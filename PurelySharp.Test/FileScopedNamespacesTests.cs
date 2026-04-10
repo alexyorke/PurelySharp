@@ -125,7 +125,7 @@ public class StringUtils
     [EnforcePure]
     public string ReverseString(string input)
     {
-        // Actually impure due to LINQ Reverse/ToArray?
+        // Still impure because Reverse().ToArray() remains conservatively modeled as impure.
         return new string(input.Reverse().ToArray());
     }
 }

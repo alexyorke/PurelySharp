@@ -477,7 +477,7 @@ public class AnotherClass
         }
 
         [Test]
-        public async Task DelegateInvocation_PureDelegate_NoDiagnostic_Bug()
+        public async Task DelegateInvocation_PureDelegate_NoDiagnostic()
         {
             var test = @"
 using System;

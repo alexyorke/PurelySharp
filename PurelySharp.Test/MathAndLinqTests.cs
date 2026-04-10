@@ -27,7 +27,7 @@ public class TestClass
     [EnforcePure]
     public int TestMethod(IEnumerable<int> numbers)
     {
-        // Currently impure due to unhandled DelegateCreation
+        // Pure LINQ delegate chain should stay diagnostic-free.
         return numbers
             .Where(x => x > 0)
             .Select(x => x * x)
@@ -144,7 +144,7 @@ public class TestClass
     [EnforcePure]
     public double TestMethod(IEnumerable<double> numbers)
     {
-        // Impure due to unhandled DelegateCreation (LINQ methods)
+        // Pure LINQ delegate chain with Math intrinsics should stay diagnostic-free.
         return numbers
             .Where(x => x > Math.PI) // Math.PI is pure, but Where() is not handled
             .Select(x => Math.Pow(Math.Sin(x), 2) + Math.Pow(Math.Cos(x), 2))
