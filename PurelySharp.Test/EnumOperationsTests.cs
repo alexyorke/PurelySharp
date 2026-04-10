@@ -12,7 +12,7 @@ namespace PurelySharp.Test
     public class EnumOperationsTests
     {
         [Test]
-        public async Task EnumValueAccess_UnknownPurityDiagnostic()
+        public async Task EnumValueAccess_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -99,7 +99,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task EnumParsing_UnknownPurityDiagnostic()
+        public async Task EnumParsing_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -136,7 +136,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task EnumFlagOperations_UnknownPurityDiagnostic()
+        public async Task EnumFlagOperations_NoDiagnostic()
         {
             var test = @"
 using System;

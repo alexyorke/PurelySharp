@@ -42,7 +42,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task DateTimeParse_InvariantCulture_NoDiagnostic()
+        public async Task DateTimeParse_InvariantCulture_ReportsPS0002()
         {
             var test = @"
 #nullable enable
@@ -66,7 +66,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task DoubleParse_InvariantCulture_UnknownPurityDiagnostic()
+        public async Task DoubleParse_InvariantCulture_NoDiagnostic()
         {
             var test = @"
 #nullable enable

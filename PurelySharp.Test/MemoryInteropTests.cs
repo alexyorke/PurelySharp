@@ -41,7 +41,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task Span_Slice_UnknownPurityDiagnostic()
+        public async Task Span_Slice_NoDiagnostic()
         {
             var test = @"
 #nullable enable
