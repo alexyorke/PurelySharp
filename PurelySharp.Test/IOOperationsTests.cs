@@ -170,10 +170,7 @@ public class TestClass
 
 
 
-            var expected3 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                    .WithSpan(11, 19, 11, 29)
-                                    .WithArguments("TestMethod");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected3);
+            await VerifyCS.VerifyAnalyzerAsync(test);
 
         }
 

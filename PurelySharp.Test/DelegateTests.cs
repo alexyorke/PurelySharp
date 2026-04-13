@@ -67,7 +67,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task PureMethodWithDelegateInvocation_Diagnostic()
+        public async Task PureMethodWithDelegateInvocation_NoDiagnostic()
         {
             var testCode = @"
 using System;
@@ -82,16 +82,12 @@ public class TestClass
     [EnforcePure]
     public void TestMethod()
     {
-        // Even though the target is pure, the analysis might not be able to verify it.
-        _pureAction(); // Expect PS0002 due to analysis limitations
+        _pureAction();
     }
 }
 ";
 
-
-            var expectedDiagnostic = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId).WithSpan(12, 17, 12, 27).WithArguments("TestMethod");
-
-            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedDiagnostic);
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
     }
 }

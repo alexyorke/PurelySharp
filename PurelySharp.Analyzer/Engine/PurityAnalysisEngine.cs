@@ -652,6 +652,11 @@ namespace PurelySharp.Analyzer.Engine
                         LogDebug($"{indent}  Post-CFG: Checking Known Impure Invocations...");
                         foreach (var invocationOp in methodBodyIOperation.DescendantsAndSelf().OfType<IInvocationOperation>())
                         {
+                            if (IsInStaticallyUnreachableBranch(invocationOp.Syntax, semanticModel))
+                            {
+                                continue;
+                            }
+
                             if (invocationOp.TargetMethod != null && IsKnownImpure(invocationOp.TargetMethod.OriginalDefinition))
                             {
                                 LogDebug($"{indent}    Post-CFG: Found Known Impure Invocation IMPURE: {invocationOp.Syntax} calling {invocationOp.TargetMethod.ToDisplayString()}");
@@ -846,8 +851,18 @@ namespace PurelySharp.Analyzer.Engine
 
 
                 LogDebug($"  [CFG] Propagating stateAfter (Impure={stateAfter.HasPotentialImpurity}) to successors of Block #{currentBlock.Ordinal}.");
-                PropagateToSuccessor(currentBlock.ConditionalSuccessor?.Destination, stateAfter, blockStates, worklist, inQueue);
-                PropagateToSuccessor(currentBlock.FallThroughSuccessor?.Destination, stateAfter, blockStates, worklist, inQueue);
+                if (TryGetConstantBranchDecision(currentBlock.BranchValue, out var takeConditionalSuccessor))
+                {
+                    var takenSuccessor = takeConditionalSuccessor
+                        ? currentBlock.FallThroughSuccessor?.Destination
+                        : currentBlock.ConditionalSuccessor?.Destination;
+                    PropagateToSuccessor(takenSuccessor, stateAfter, blockStates, worklist, inQueue);
+                }
+                else
+                {
+                    PropagateToSuccessor(currentBlock.ConditionalSuccessor?.Destination, stateAfter, blockStates, worklist, inQueue);
+                    PropagateToSuccessor(currentBlock.FallThroughSuccessor?.Destination, stateAfter, blockStates, worklist, inQueue);
+                }
 
             }
 
@@ -1099,6 +1114,65 @@ namespace PurelySharp.Analyzer.Engine
                     ancestor is Microsoft.CodeAnalysis.CSharp.Syntax.ForStatementSyntax)
                 {
                     return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TryGetConstantBranchDecision(IOperation? branchValue, out bool takeConditionalSuccessor)
+        {
+            takeConditionalSuccessor = false;
+
+            if (branchValue?.ConstantValue.HasValue == true &&
+                branchValue.ConstantValue.Value is bool constantBool)
+            {
+                takeConditionalSuccessor = constantBool;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool IsInStaticallyUnreachableBranch(SyntaxNode syntaxNode, SemanticModel semanticModel)
+        {
+            foreach (var ancestor in syntaxNode.Ancestors())
+            {
+                if (ancestor is Microsoft.CodeAnalysis.CSharp.Syntax.IfStatementSyntax ifStatementSyntax)
+                {
+                    var conditionValue = semanticModel.GetConstantValue(ifStatementSyntax.Condition);
+                    if (conditionValue.HasValue && conditionValue.Value is bool ifCondition)
+                    {
+                        bool inThenBranch = ifStatementSyntax.Statement.Span.Contains(syntaxNode.Span);
+                        bool inElseBranch = ifStatementSyntax.Else?.Statement.Span.Contains(syntaxNode.Span) == true;
+                        if ((ifCondition && inElseBranch) || (!ifCondition && inThenBranch))
+                        {
+                            return true;
+                        }
+                    }
+                }
+                else if (ancestor is Microsoft.CodeAnalysis.CSharp.Syntax.WhileStatementSyntax whileStatementSyntax)
+                {
+                    var conditionValue = semanticModel.GetConstantValue(whileStatementSyntax.Condition);
+                    if (conditionValue.HasValue &&
+                        conditionValue.Value is bool whileCondition &&
+                        !whileCondition &&
+                        whileStatementSyntax.Statement.Span.Contains(syntaxNode.Span))
+                    {
+                        return true;
+                    }
+                }
+                else if (ancestor is Microsoft.CodeAnalysis.CSharp.Syntax.ForStatementSyntax forStatementSyntax &&
+                         forStatementSyntax.Condition != null)
+                {
+                    var conditionValue = semanticModel.GetConstantValue(forStatementSyntax.Condition);
+                    if (conditionValue.HasValue &&
+                        conditionValue.Value is bool forCondition &&
+                        !forCondition &&
+                        forStatementSyntax.Statement.Span.Contains(syntaxNode.Span))
+                    {
+                        return true;
+                    }
                 }
             }
 
@@ -1658,7 +1732,7 @@ namespace PurelySharp.Analyzer.Engine
         }
 
 
-        internal static PurityAnalysisEngine.PotentialTargets? ResolvePotentialTargets(IOperation valueOperation, PurityAnalysisState currentState)
+        internal static PurityAnalysisEngine.PotentialTargets? ResolvePotentialTargets(IOperation valueOperation, PurityAnalysisState currentState, SemanticModel? semanticModel = null)
         {
             var unwrapped = SkipImplicitConversions(valueOperation);
             if (unwrapped == null) return null;
@@ -1702,6 +1776,50 @@ namespace PurelySharp.Analyzer.Engine
             if (valueSourceSymbol != null && currentState.DelegateTargetMap.TryGetValue(valueSourceSymbol, out var sourceTargets))
             {
                 return sourceTargets;
+            }
+
+            if (valueSourceSymbol != null && semanticModel != null)
+            {
+                var initializerTargets = TryResolveDelegateInitializerTargets(valueSourceSymbol, semanticModel, currentState);
+                if (initializerTargets != null)
+                {
+                    return initializerTargets;
+                }
+            }
+
+            return null;
+        }
+
+        private static PurityAnalysisEngine.PotentialTargets? TryResolveDelegateInitializerTargets(ISymbol symbol, SemanticModel semanticModel, PurityAnalysisState currentState)
+        {
+            foreach (var syntaxReference in symbol.DeclaringSyntaxReferences)
+            {
+                var syntax = syntaxReference.GetSyntax();
+                var model = semanticModel.Compilation.GetSemanticModel(syntax.SyntaxTree);
+
+                SyntaxNode? initializerSyntax = syntax switch
+                {
+                    Microsoft.CodeAnalysis.CSharp.Syntax.VariableDeclaratorSyntax variableDeclaratorSyntax => variableDeclaratorSyntax.Initializer?.Value,
+                    Microsoft.CodeAnalysis.CSharp.Syntax.PropertyDeclarationSyntax propertyDeclarationSyntax => propertyDeclarationSyntax.Initializer?.Value,
+                    _ => null
+                };
+
+                if (initializerSyntax == null)
+                {
+                    continue;
+                }
+
+                var initializerOperation = model.GetOperation(initializerSyntax);
+                if (initializerOperation == null)
+                {
+                    continue;
+                }
+
+                var initializerTargets = ResolvePotentialTargets(initializerOperation, currentState, model);
+                if (initializerTargets != null)
+                {
+                    return initializerTargets;
+                }
             }
 
             return null;
