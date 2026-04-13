@@ -33,5 +33,61 @@ namespace TestNamespace
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task DirectThrowExpression_ReportsPS0002()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:TestMethod|}() => throw new ArgumentException(""Invalid value"");
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task LocalFunctionWithDirectThrowExpression_ReportsPS0002()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:TestMethod|}()
+    {
+        int Local() => throw new ArgumentException(""Invalid value"");
+        return Local();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task LambdaWithDirectThrowExpression_ReportsPS0002()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:TestMethod|}()
+    {
+        Func<int> projector = () => throw new ArgumentException(""Invalid value"");
+        return projector();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

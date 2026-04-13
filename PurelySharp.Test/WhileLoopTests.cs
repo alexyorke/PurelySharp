@@ -67,7 +67,7 @@ namespace TestNamespace
 
         // Marked with EnforcePure but is impure due to field modification
         [EnforcePure]
-        private bool IsConditionMet()
+        private bool {|PS0002:IsConditionMet|}()
         {
             _counter++; // Impure operation
             return _counter < 5;
@@ -75,7 +75,7 @@ namespace TestNamespace
 
         // Marked with EnforcePure, calls impure method in loop condition
         [EnforcePure]
-        public void TestMethod()
+        public void {|PS0002:TestMethod|}()
         {
             while (IsConditionMet()) // Impure call in condition
             {
@@ -87,13 +87,7 @@ namespace TestNamespace
 " + MinimalEnforcePureAttributeSource;
 
 
-            var expected = new[]
-            {
-                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(13, 22, 13, 36).WithArguments("IsConditionMet"),
-
-            };
-
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
 

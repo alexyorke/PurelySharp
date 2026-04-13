@@ -81,7 +81,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task ImpureCondition_ShouldFail()
+        public async Task ImpureCondition_ShouldReportPS0002()
         {
             var testCode = @"
 using PurelySharp.Attributes;
@@ -106,9 +106,10 @@ public class TestClass
     }
 }
 ";
-
-            // Current CFG does not always propagate impurity from if-condition callees; no stable diagnostic set.
-            await VerifyCS.VerifyAnalyzerAsync(testCode);
+            var expectedPS0002_Caller = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                            .WithLocation(11, 16)
+                                            .WithArguments("ImpureConditionExample");
+            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedPS0002_Caller);
         }
 
         [Test]
@@ -233,7 +234,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task NestedImpureIf_ShouldFail()
+        public async Task NestedImpureIf_ShouldReportPS0002()
         {
             var testCode = @"
 using PurelySharp.Attributes;
@@ -275,8 +276,11 @@ public class TestClass
             var expectedPS0004_IsEven = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
                                                .WithSpan(10, 25, 10, 31)
                                                .WithArguments("IsEven");
+            var expectedPS0002_Caller = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                               .WithLocation(15, 16)
+                                               .WithArguments("NestedImpureIfExample");
 
-            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedPS0004_IsPositive, expectedPS0004_IsEven);
+            await VerifyCS.VerifyAnalyzerAsync(testCode, expectedPS0002_Caller, expectedPS0004_IsPositive, expectedPS0004_IsEven);
         }
     }
 }

@@ -661,6 +661,14 @@ namespace PurelySharp.Analyzer.Engine
                         }
                         LogDebug($"{indent}  Post-CFG: Known Impure Invocations check complete (result still pure).");
 
+                        var directThrowOnlySyntax = TryGetDirectThrowOnlySyntax(bodySyntaxNode);
+                        if (directThrowOnlySyntax != null)
+                        {
+                            LogDebug($"{indent}  Post-CFG: Found direct throw-only body IMPURE: {directThrowOnlySyntax}");
+                            result = PurityAnalysisResult.Impure(directThrowOnlySyntax);
+                            goto PostCfgChecksDone;
+                        }
+
 
                         LogDebug($"{indent}  Post-CFG: Checking Checked Operations...");
                         foreach (var operation in methodBodyIOperation.DescendantsAndSelf())
@@ -945,6 +953,24 @@ namespace PurelySharp.Analyzer.Engine
 
             }
 
+            if (!currentStateInBlock.HasPotentialImpurity &&
+                block.BranchValue != null &&
+                ShouldAnalyzeExplicitConditionBranchValue(block.BranchValue.Syntax))
+            {
+                LogDebug($"    [ATF Block {block.Ordinal}] Checking Branch Value Kind: {block.BranchValue.Kind}, Syntax: {block.BranchValue.Syntax.ToString().Replace("\r\n", " ").Replace("\n", " ")}");
+
+                var branchValueResult = CheckSingleOperation(block.BranchValue, ruleContext, currentStateInBlock);
+                if (!branchValueResult.IsPure)
+                {
+                    LogDebug($"ApplyTransferFunction IMPURE DETECTED in Block #{block.Ordinal} by Branch Value: {block.BranchValue.Kind} ({block.BranchValue.Syntax})");
+                    currentStateInBlock = currentStateInBlock.WithImpurity(branchValueResult.ImpureSyntaxNode ?? block.BranchValue.Syntax);
+                }
+                else
+                {
+                    currentStateInBlock = UpdateDelegateMapForOperation(block.BranchValue, ruleContext, currentStateInBlock);
+                }
+            }
+
             LogDebug($"ApplyTransferFunction END for Block #{block.Ordinal} - Final State: Impure={currentStateInBlock.HasPotentialImpurity}");
             return currentStateInBlock;
         }
@@ -1017,6 +1043,60 @@ namespace PurelySharp.Analyzer.Engine
             for (var parent = operation.Parent; parent != null && parent != rootOperation; parent = parent.Parent)
             {
                 if (parent is IAnonymousFunctionOperation || parent is IFlowAnonymousFunctionOperation || parent is ILocalFunctionOperation)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static SyntaxNode? TryGetDirectThrowOnlySyntax(SyntaxNode? bodySyntaxNode)
+        {
+            switch (bodySyntaxNode)
+            {
+                case Microsoft.CodeAnalysis.CSharp.Syntax.BlockSyntax blockSyntax
+                    when blockSyntax.Statements.Count == 1:
+                    return TryGetDirectThrowOnlySyntax(blockSyntax.Statements[0]);
+                case Microsoft.CodeAnalysis.CSharp.Syntax.ThrowStatementSyntax throwStatementSyntax:
+                    return throwStatementSyntax;
+                case Microsoft.CodeAnalysis.CSharp.Syntax.ArrowExpressionClauseSyntax arrowExpressionClauseSyntax
+                    when arrowExpressionClauseSyntax.Expression is Microsoft.CodeAnalysis.CSharp.Syntax.ThrowExpressionSyntax throwExpressionSyntax:
+                    return throwExpressionSyntax;
+                case Microsoft.CodeAnalysis.CSharp.Syntax.ThrowExpressionSyntax directThrowExpressionSyntax:
+                    return directThrowExpressionSyntax;
+                case Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax methodDeclarationSyntax
+                    when methodDeclarationSyntax.ExpressionBody != null:
+                    return TryGetDirectThrowOnlySyntax(methodDeclarationSyntax.ExpressionBody);
+                case Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax methodDeclarationSyntax
+                    when methodDeclarationSyntax.Body != null:
+                    return TryGetDirectThrowOnlySyntax(methodDeclarationSyntax.Body);
+                case Microsoft.CodeAnalysis.CSharp.Syntax.LocalFunctionStatementSyntax localFunctionStatementSyntax
+                    when localFunctionStatementSyntax.ExpressionBody != null:
+                    return TryGetDirectThrowOnlySyntax(localFunctionStatementSyntax.ExpressionBody);
+                case Microsoft.CodeAnalysis.CSharp.Syntax.LocalFunctionStatementSyntax localFunctionStatementSyntax
+                    when localFunctionStatementSyntax.Body != null:
+                    return TryGetDirectThrowOnlySyntax(localFunctionStatementSyntax.Body);
+                case Microsoft.CodeAnalysis.CSharp.Syntax.SimpleLambdaExpressionSyntax simpleLambdaExpressionSyntax:
+                    return TryGetDirectThrowOnlySyntax(simpleLambdaExpressionSyntax.Body);
+                case Microsoft.CodeAnalysis.CSharp.Syntax.ParenthesizedLambdaExpressionSyntax parenthesizedLambdaExpressionSyntax:
+                    return TryGetDirectThrowOnlySyntax(parenthesizedLambdaExpressionSyntax.Body);
+                case Microsoft.CodeAnalysis.CSharp.Syntax.AnonymousMethodExpressionSyntax anonymousMethodExpressionSyntax
+                    when anonymousMethodExpressionSyntax.Block != null:
+                    return TryGetDirectThrowOnlySyntax(anonymousMethodExpressionSyntax.Block);
+                default:
+                    return null;
+            }
+        }
+
+        private static bool ShouldAnalyzeExplicitConditionBranchValue(SyntaxNode branchValueSyntax)
+        {
+            foreach (var ancestor in branchValueSyntax.AncestorsAndSelf())
+            {
+                if (ancestor is Microsoft.CodeAnalysis.CSharp.Syntax.IfStatementSyntax ||
+                    ancestor is Microsoft.CodeAnalysis.CSharp.Syntax.WhileStatementSyntax ||
+                    ancestor is Microsoft.CodeAnalysis.CSharp.Syntax.DoStatementSyntax ||
+                    ancestor is Microsoft.CodeAnalysis.CSharp.Syntax.ForStatementSyntax)
                 {
                     return true;
                 }

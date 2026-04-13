@@ -195,9 +195,18 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
 
-            PurityAnalysisEngine.LogDebug($"  [MIR] Checking purity of {invocationOperation.Arguments.Length} arguments for {invokedMethodSymbol.OriginalDefinition.Name}.");
+            var originalDefinitionSymbol = invokedMethodSymbol.OriginalDefinition;
+
+            PurityAnalysisEngine.LogDebug($"  [MIR] Checking purity of {invocationOperation.Arguments.Length} arguments for {originalDefinitionSymbol.Name}.");
             foreach (var argument in invocationOperation.Arguments)
             {
+                if (argument.Parameter?.RefKind == RefKind.Out &&
+                    PurityAnalysisEngine.IsKnownPureBCLMember(originalDefinitionSymbol))
+                {
+                    PurityAnalysisEngine.LogDebug($"  [MIR]   Skipping purity check for out argument '{argument.Syntax}' on known pure member {originalDefinitionSymbol.ToDisplayString()}.");
+                    continue;
+                }
+
                 PurityAnalysisEngine.LogDebug($"  [MIR]   Checking argument: {argument.Value.Kind} | Syntax: {argument.Value.Syntax.ToString().Trim()}");
                 var argumentResult = PurityAnalysisEngine.CheckSingleOperation(argument.Value, context, currentState);
                 PurityAnalysisEngine.LogDebug($"  [MIR]   Argument check result: IsPure={argumentResult.IsPure}");
@@ -210,9 +219,6 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
 
-
-            var originalDefinitionSymbol = invokedMethodSymbol.OriginalDefinition;
-            
 
             string methodDisplayString = originalDefinitionSymbol.ToDisplayString();
             PurityAnalysisEngine.LogDebug($"  [MIR] Analyzing regular call to: {methodDisplayString} | Syntax: {invocationOperation.Syntax}");

@@ -974,6 +974,9 @@ public static class Constants
         "System.Delegate.Remove(System.Delegate, System.Delegate)",
         "System.Enum.Parse(System.Type, string)",
         "System.Enum.TryParse<TEnum>(string, out TEnum)",
+        "System.Enum.TryParse<TEnum>(string, bool, out TEnum)",
+        "System.Enum.TryParse<TEnum>(string?, out TEnum)",
+        "System.Enum.TryParse<TEnum>(string?, bool, out TEnum)",
         "System.Environment.NewLine.get",
 
 

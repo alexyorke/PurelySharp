@@ -37,8 +37,6 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 PurityAnalysisEngine.LogDebug($"  [ThrowRule] Found re-throw operation (exception is null). Assuming pure evaluation.");
             }
 
-
-
             PurityAnalysisEngine.LogDebug($"  [ThrowRule] Throw operation evaluation is pure. Returning Pure.");
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
         }
