@@ -77,6 +77,39 @@ namespace TestNamespace
         }
 
         [Test]
+        public async Task StaticInterfaceMethod_ContractOnInterface_PureImplementation_NoDiagnostic()
+        {
+            var test = @"
+// Requires LangVersion 11+
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+interface IPureInterface
+{
+    [EnforcePure]
+    static abstract int PureStaticMethod();
+}
+
+class PureImplementation : IPureInterface
+{
+    public static int PureStaticMethod() => 42;
+}
+";
+
+            await new VerifyCS.Test
+            {
+                TestCode = test,
+                ReferenceAssemblies = ReferenceAssemblies.Net.Net80,
+                SolutionTransforms = {
+                    (solution, projectId) =>
+                        solution.AddMetadataReference(projectId, MetadataReference.CreateFromFile(typeof(EnforcePureAttribute).Assembly.Location))
+                 },
+
+            }.RunAsync();
+        }
+
+        [Test]
         public async Task StaticInterfaceMethod_ImpureImplementation_Diagnostic()
         {
             var test = @"
@@ -94,10 +127,7 @@ interface IPureInterface
 class ImpureImplementation : IPureInterface
 {
     static int counter = 0;
-    // Impure implementation of method marked [EnforcePure] in interface
-    public static int PureStaticMethod() => ++counter;
-    // Expectation limitation: Analyzer doesn't check implementation purity
-    // against [EnforcePure] on static abstract interface members.
+    public static int {|PS0002:PureStaticMethod|}() => ++counter;
 }
 ";
 
@@ -193,10 +223,7 @@ interface IPureInterface
 class ImpureImplementation : IPureInterface
 {
     static int counter = 0;
-    // Impure override of method marked [EnforcePure] in interface
-    public static int PureStaticMethod() => ++counter;
-    // Expectation limitation: Analyzer doesn't check implementation purity
-    // against [EnforcePure] on static virtual interface members.
+    public static int {|PS0002:PureStaticMethod|}() => ++counter;
 }
 ";
 

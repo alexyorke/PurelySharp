@@ -27,12 +27,8 @@ public interface ICalculator
 
 public class SimpleCalculator : ICalculator
 {
-    // Pure implementation
-    [EnforcePure]
     public int Add(int a, int b) => a + b;
 
-    // Pure implementation
-    [EnforcePure]
     public int Multiply(int a, int b) => a * b;
 }
 
@@ -63,9 +59,7 @@ public interface ILogger
 
 public class ConsoleLogger : ILogger
 {
-    // Impure implementation
-    [EnforcePure]
-    public void Log(string message)
+    public void {|PS0002:Log|}(string message)
     {
         Console.WriteLine(message); // Impure call
     }
@@ -74,7 +68,7 @@ public class ConsoleLogger : ILogger
 public class Service
 {
     private ILogger _logger;
-    public Service(ILogger logger) { _logger = logger; }
+    public {|PS0004:Service|}(ILogger logger) { _logger = logger; }
 
     [EnforcePure]
     public void DoWork(string data)
@@ -85,17 +79,7 @@ public class Service
 }
 ";
 
-            var expectedLog = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                      .WithSpan(14, 17, 14, 20)
-                                      .WithArguments("Log");
-
-
-
-            var expectedCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                     .WithSpan(23, 12, 23, 19)
-                                     .WithArguments(".ctor");
-
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedLog, expectedCtor);
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }
 }

@@ -165,6 +165,21 @@ namespace PurelySharp.Analyzer
 
         private static bool HasPurityEnforcement(IMethodSymbol methodSymbol, INamedTypeSymbol? enforcePureAttributeSymbol, INamedTypeSymbol? pureAttributeSymbol)
         {
+            return HasPurityEnforcement(methodSymbol, enforcePureAttributeSymbol, pureAttributeSymbol, new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default));
+        }
+
+        private static bool HasPurityEnforcement(
+            IMethodSymbol methodSymbol,
+            INamedTypeSymbol? enforcePureAttributeSymbol,
+            INamedTypeSymbol? pureAttributeSymbol,
+            HashSet<IMethodSymbol> visitedMethods)
+        {
+            methodSymbol = methodSymbol.OriginalDefinition;
+            if (!visitedMethods.Add(methodSymbol))
+            {
+                return false;
+            }
+
             foreach (var attributeData in methodSymbol.GetAttributes())
             {
                 var attributeClass = attributeData.AttributeClass?.OriginalDefinition;
@@ -177,6 +192,33 @@ namespace PurelySharp.Analyzer
                     return true;
                 }
             }
+
+            if (methodSymbol.OverriddenMethod != null &&
+                HasPurityEnforcement(methodSymbol.OverriddenMethod, enforcePureAttributeSymbol, pureAttributeSymbol, visitedMethods))
+            {
+                return true;
+            }
+
+            if (methodSymbol.ContainingType != null)
+            {
+                foreach (var interfaceType in methodSymbol.ContainingType.AllInterfaces)
+                {
+                    foreach (var interfaceMember in interfaceType.GetMembers(methodSymbol.Name).OfType<IMethodSymbol>())
+                    {
+                        if (!HasPurityEnforcement(interfaceMember, enforcePureAttributeSymbol, pureAttributeSymbol, visitedMethods))
+                        {
+                            continue;
+                        }
+
+                        if (methodSymbol.ContainingType.FindImplementationForInterfaceMember(interfaceMember) is IMethodSymbol implementationMethod &&
+                            SymbolEqualityComparer.Default.Equals(implementationMethod.OriginalDefinition, methodSymbol))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+
             return false;
         }
 
