@@ -1,4 +1,5 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.FlowAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -42,6 +43,26 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 {
                     PurityAnalysisEngine.LogDebug($"    [DelegateCreationRule] Could not get symbol for anonymous function. Assuming impure.");
                     return PurityAnalysisEngine.PurityAnalysisResult.Impure(anonymousFunction.Syntax);
+                }
+            }
+            else if (target is IFlowAnonymousFunctionOperation flowAnonymousFunction)
+            {
+                PurityAnalysisEngine.LogDebug($"    [DelegateCreationRule] Found FlowAnonymousFunctionOperation. Analyzing its body.");
+
+                IMethodSymbol lambdaSymbol = flowAnonymousFunction.Symbol;
+                if (lambdaSymbol != null)
+                {
+                    PurityAnalysisEngine.LogDebug($"    [DelegateCreationRule] Recursively checking flow lambda: {lambdaSymbol.ToDisplayString()}");
+
+                    var bodyResult = PurityAnalysisEngine.GetCalleePurity(lambdaSymbol, context);
+
+                    PurityAnalysisEngine.LogDebug($"    [DelegateCreationRule] Flow lambda body analysis result: IsPure={bodyResult.IsPure}");
+                    return bodyResult;
+                }
+                else
+                {
+                    PurityAnalysisEngine.LogDebug($"    [DelegateCreationRule] Could not get symbol for flow anonymous function. Assuming impure.");
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(flowAnonymousFunction.Syntax);
                 }
             }
             else if (target is IMethodReferenceOperation methodReference)

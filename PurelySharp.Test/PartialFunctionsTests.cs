@@ -14,7 +14,7 @@ namespace PurelySharp.Test
 
 
         [Test]
-        public async Task TestPartialFunction_ThrowsException_UseMethodReportsPS0002()
+        public async Task TestPartialFunction_ThrowsException_UseMethodNoDiagnostic()
         {
             var testCode = @"
 #nullable enable
@@ -34,10 +34,9 @@ public class TestClass
         return input.Value;
     }
 
-    // Example usage (not strictly necessary for analyzer check, but good context)
-    // Add [EnforcePure] to trigger analysis of this method
+    // Example usage remains pure even though one path throws.
     [EnforcePure]
-    public void {|PS0002:UseMethod|}()
+    public void UseMethod()
     {
         try
         {

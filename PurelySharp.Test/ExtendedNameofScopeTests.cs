@@ -12,7 +12,7 @@ namespace PurelySharp.Test
     public class ExtendedNameofScopeTests
     {
         [Test]
-        public async Task ExtendedNameofScope_PureMethod_WithDiagnostics()
+        public async Task ExtendedNameofScope_PureMethod_GetterDiagnosticOnly()
         {
             var test = @"
 #nullable enable
@@ -36,7 +36,7 @@ public class TestClass
         return member.Member.Name;
     }
 
-    // Example usage (should be pure) - Expect PS0002
+    // Example usage should now remain pure.
     [EnforcePure] 
     public string GetNamePropertyName()
     {
@@ -45,9 +45,7 @@ public class TestClass
 }";
 
             var expectedGetName = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 20, 11, 24).WithArguments("get_Name");
-            var expectedGetNameProp = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(25, 19, 25, 38).WithArguments("GetNamePropertyName");
-
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetName, expectedGetNameProp });
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetName);
         }
 
         [Test]
@@ -97,7 +95,7 @@ namespace TestNamespace
         }
 
         [Test]
-        public async Task ExtendedNameofScopeWithLocalFunction_PureMethod_WithDiagnostics()
+        public async Task ExtendedNameofScopeWithLocalFunction_HelperDiagnosticOnly()
         {
             var test = @"
 using System;
@@ -118,10 +116,7 @@ public class TestClass
 }";
 
             var expectedGetInfo = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(7, 27, 7, 34).WithArguments("GetInfo");
-            var expectedGetFunctionInfo = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(10, 19, 10, 34).WithArguments("GetFunctionInfo");
-            var expectedLocalFunction = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(13, 16, 13, 29).WithArguments("LocalFunction");
-
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetInfo, expectedGetFunctionInfo, expectedLocalFunction });
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetInfo);
         }
 
         [Test]
@@ -147,7 +142,7 @@ namespace TestNamespace
 }";
 
 
-            await VerifyCS.VerifyAnalyzerAsync(test, VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(10, 23, 10, 36).WithArguments("GetLambdaName"));
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]

@@ -356,7 +356,7 @@ public class TestClass
 
         [Test]
 
-        public async Task ImpureDelegateViaReturnValue_NoDiagnostic_Bug()
+        public async Task ImpureDelegateViaReturnValue_ReportsPS0002()
         {
             var test = @"
 using System;
@@ -377,18 +377,11 @@ public class TestClass
     }}
 }
 ";
-
-
-
-            var expectedGetImpure = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                          .WithSpan(7, 20, 7, 35)
-                                          .WithArguments("GetImpureAction");
-
             var expectedCallImpureReturn = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
                                           .WithSpan(13, 17, 13, 44)
                                           .WithArguments("CallImpureDelegateViaReturn");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetImpure, expectedCallImpureReturn);
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedCallImpureReturn);
         }
 
         [Test]

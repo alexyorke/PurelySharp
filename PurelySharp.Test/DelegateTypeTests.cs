@@ -38,7 +38,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task PureDelegateWithPureOperation_UnknownPurityDiagnostic()
+        public async Task PureDelegateWithPureOperation_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -51,7 +51,7 @@ public delegate int MathOperation(int x, int y);
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:TestMethod|}(int a, int b)
+    public int TestMethod(int a, int b)
     {
         // Create a pure delegate that performs pure operations
         MathOperation add = (x, y) => x + y;
@@ -107,7 +107,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task FuncAndActionDelegates_UnknownPurityDiagnostic()
+        public async Task FuncAndActionDelegates_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -125,7 +125,7 @@ public class TestClass
     }
     
     [EnforcePure]
-    public int {|PS0002:UsePureDelegate|}(int value)
+    public int UsePureDelegate(int value)
     {
         // Create standard delegate types
         Func<int, int> doubler = x => x * 2;
@@ -233,7 +233,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task CombiningDelegates_NoDiagnostic()
+        public async Task CombiningDelegates_CreationNoDiagnostic_InvocationReportsPS0002()
         {
             var test = @"
 using System;
@@ -266,16 +266,9 @@ public class TestClass
     }
 }";
 
-
-
-
-
-
-            var expectedCombine = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                          .WithSpan(12, 19, 12, 35).WithArguments("CombineDelegates");
             var expectedUseCombined = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
                                             .WithSpan(25, 17, 25, 37).WithArguments("UseCombinedDelegates");
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedCombine, expectedUseCombined);
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedUseCombined);
         }
     }
 }

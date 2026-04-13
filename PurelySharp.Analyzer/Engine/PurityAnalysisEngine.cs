@@ -500,25 +500,6 @@ namespace PurelySharp.Analyzer.Engine
                 }
 
 
-                PurityAnalysisResult result = PurityAnalysisResult.Pure;
-                var mergedDelegateTargetsFromCfg = ImmutableDictionary.Create<ISymbol, PotentialTargets>(SymbolEqualityComparer.Default);
-                if (bodySyntaxNode != null)
-                {
-                    LogDebug($"{indent}Analyzing body of {methodSymbol.ToDisplayString()} using CFG.");
-                    result = AnalyzePurityUsingCFGInternal(
-                        bodySyntaxNode,
-                        semanticModel,
-                        enforcePureAttributeSymbol,
-                        allowSynchronizationAttributeSymbol,
-                        visited,
-                        methodSymbol,
-                        purityCache,
-                        out mergedDelegateTargetsFromCfg);
-
-                    LogDebug($"{indent}  CFG Analysis Result for {methodSymbol.ToDisplayString()}: IsPure={result.IsPure}, ImpureNode={result.ImpureSyntaxNode?.Kind()}");
-
-                }
-
                 IOperation? methodBodyIOperation = null;
                 if (bodySyntaxNode != null)
                 {
@@ -531,6 +512,40 @@ namespace PurelySharp.Analyzer.Engine
                         LogDebug($"{indent}  Post-CFG: Error getting IOperation for method body: {ex.Message}");
                         methodBodyIOperation = null;
                     }
+                }
+
+                PurityAnalysisResult result = PurityAnalysisResult.Pure;
+                var mergedDelegateTargetsFromCfg = ImmutableDictionary.Create<ISymbol, PotentialTargets>(SymbolEqualityComparer.Default);
+                if (bodySyntaxNode != null)
+                {
+                    bool requiresNestedBodyFallback = methodBodyIOperation?.Parent != null;
+                    if (requiresNestedBodyFallback && methodBodyIOperation != null)
+                    {
+                        LogDebug($"{indent}Analyzing body of {methodSymbol.ToDisplayString()} using nested subtree fallback.");
+                        result = AnalyzeOperationSubtreePurity(
+                            methodBodyIOperation,
+                            semanticModel,
+                            enforcePureAttributeSymbol,
+                            allowSynchronizationAttributeSymbol,
+                            visited,
+                            methodSymbol,
+                            purityCache);
+                    }
+                    else
+                    {
+                        LogDebug($"{indent}Analyzing body of {methodSymbol.ToDisplayString()} using CFG.");
+                        result = AnalyzePurityUsingCFGInternal(
+                            bodySyntaxNode,
+                            semanticModel,
+                            enforcePureAttributeSymbol,
+                            allowSynchronizationAttributeSymbol,
+                            visited,
+                            methodSymbol,
+                            purityCache,
+                            out mergedDelegateTargetsFromCfg);
+                    }
+
+                    LogDebug($"{indent}  CFG Analysis Result for {methodSymbol.ToDisplayString()}: IsPure={result.IsPure}, ImpureNode={result.ImpureSyntaxNode?.Kind()}");
                 }
 
 
@@ -597,22 +612,19 @@ namespace PurelySharp.Analyzer.Engine
                         {
                             foreach (var catchClause in tryOp.Catches)
                             {
-                                if (catchClause.Syntax != null)
+                                var catchResult = AnalyzeOperationSubtreePurity(catchClause, semanticModel, enforcePureAttributeSymbol, allowSynchronizationAttributeSymbol, visited, methodSymbol, purityCache);
+                                if (!catchResult.IsPure)
                                 {
-                                    var catchCfgResult = AnalyzePurityUsingCFGInternal(catchClause.Syntax, semanticModel, enforcePureAttributeSymbol, allowSynchronizationAttributeSymbol, visited, methodSymbol, purityCache, out _);
-                                    if (!catchCfgResult.IsPure)
-                                    {
-                                        result = catchCfgResult;
-                                        goto PostCfgChecksDone;
-                                    }
+                                    result = catchResult;
+                                    goto PostCfgChecksDone;
                                 }
                             }
-                            if (tryOp.Finally != null && tryOp.Finally.Syntax != null)
+                            if (tryOp.Finally != null)
                             {
-                                var finallyCfgResult = AnalyzePurityUsingCFGInternal(tryOp.Finally.Syntax, semanticModel, enforcePureAttributeSymbol, allowSynchronizationAttributeSymbol, visited, methodSymbol, purityCache, out _);
-                                if (!finallyCfgResult.IsPure)
+                                var finallyResult = AnalyzeOperationSubtreePurity(tryOp.Finally, semanticModel, enforcePureAttributeSymbol, allowSynchronizationAttributeSymbol, visited, methodSymbol, purityCache);
+                                if (!finallyResult.IsPure)
                                 {
-                                    result = finallyCfgResult;
+                                    result = finallyResult;
                                     goto PostCfgChecksDone;
                                 }
                             }
@@ -622,13 +634,16 @@ namespace PurelySharp.Analyzer.Engine
                         foreach (var localFuncOp in methodBodyIOperation.DescendantsAndSelf().OfType<ILocalFunctionOperation>())
                         {
                             var localFunctionSymbol = localFuncOp.Symbol?.OriginalDefinition;
-                            var lfSyntax = localFuncOp.Syntax;
-                            if (lfSyntax != null && localFunctionSymbol != null)
+                            if (localFunctionSymbol != null)
                             {
-                                var lfCfgResult = AnalyzePurityUsingCFGInternal(lfSyntax, semanticModel, enforcePureAttributeSymbol, allowSynchronizationAttributeSymbol, visited, localFunctionSymbol, purityCache, out _);
-                                if (!lfCfgResult.IsPure)
+                                if (SymbolEqualityComparer.Default.Equals(localFunctionSymbol, methodSymbol.OriginalDefinition))
                                 {
-                                    result = lfCfgResult;
+                                    continue;
+                                }
+                                var lfResult = AnalyzeOperationSubtreePurity(localFuncOp, semanticModel, enforcePureAttributeSymbol, allowSynchronizationAttributeSymbol, visited, localFunctionSymbol, purityCache);
+                                if (!lfResult.IsPure)
+                                {
+                                    result = lfResult;
                                     goto PostCfgChecksDone;
                                 }
                             }
@@ -763,6 +778,7 @@ namespace PurelySharp.Analyzer.Engine
 
 
             var blockStates = new Dictionary<BasicBlock, PurityAnalysisState>(cfg.Blocks.Length);
+            var exitBlockStates = new Dictionary<BasicBlock, PurityAnalysisState>(cfg.Blocks.Length);
             var worklist = new Queue<BasicBlock>();
             var inQueue = new HashSet<BasicBlock>();
 
@@ -816,6 +832,7 @@ namespace PurelySharp.Analyzer.Engine
                     containingMethodSymbol,
                     purityCache);
 
+                exitBlockStates[currentBlock] = stateAfter;
                 LogDebug($"  [CFG] State after Block #{currentBlock.Ordinal}: Impure={stateAfter.HasPotentialImpurity}");
 
 
@@ -835,11 +852,11 @@ namespace PurelySharp.Analyzer.Engine
                 LogDebug($"  [CFG] WARNING: Exited CFG dataflow loop due to iteration limit ({loopIterations}). Potential incomplete merge; continuing with aggregated block states.");
             }
 
-            mergedDelegateTargetsFromBlocks = MergeDelegateTargetMapsFromBlockStates(blockStates.Values);
+            mergedDelegateTargetsFromBlocks = MergeDelegateTargetMapsFromBlockStates(exitBlockStates.Values);
 
             PurityAnalysisResult finalResult = PurityAnalysisResult.Pure;
             
-            foreach (var exitState in blockStates.Values)
+            foreach (var exitState in exitBlockStates.Values)
             {
                 if (exitState.HasPotentialImpurity)
                 {
@@ -932,6 +949,81 @@ namespace PurelySharp.Analyzer.Engine
             return currentStateInBlock;
         }
 
+
+        private static PurityAnalysisResult AnalyzeOperationSubtreePurity(
+            IOperation rootOperation,
+            SemanticModel semanticModel,
+            INamedTypeSymbol enforcePureAttributeSymbol,
+            INamedTypeSymbol? allowSynchronizationAttributeSymbol,
+            HashSet<IMethodSymbol> visited,
+            IMethodSymbol containingMethodSymbol,
+            Dictionary<IMethodSymbol, PurityAnalysisResult> purityCache)
+        {
+            var pureAttributeSymbol = semanticModel.Compilation.GetTypeByMetadataName("PurelySharp.Attributes.PureAttribute");
+            var context = new Rules.PurityAnalysisContext(
+                semanticModel,
+                enforcePureAttributeSymbol,
+                pureAttributeSymbol,
+                allowSynchronizationAttributeSymbol,
+                visited,
+                purityCache,
+                containingMethodSymbol,
+                _purityRules,
+                CancellationToken.None,
+                null);
+
+            var currentState = PurityAnalysisState.Pure;
+            foreach (var operation in rootOperation.DescendantsAndSelf())
+            {
+                if (IsNestedFunctionDescendant(operation, rootOperation))
+                {
+                    continue;
+                }
+
+                if (operation is IFlowCaptureOperation flowCaptureOperation)
+                {
+                    var valueResult = CheckSingleOperation(flowCaptureOperation.Value, context, currentState);
+                    currentState = currentState.WithFlowCaptureResult(flowCaptureOperation.Id, valueResult);
+                    if (!valueResult.IsPure)
+                    {
+                        return valueResult;
+                    }
+
+                    currentState = UpdateDelegateMapForOperation(flowCaptureOperation, context, currentState);
+                    continue;
+                }
+
+                var operationResult = CheckSingleOperation(operation, context, currentState);
+                if (!operationResult.IsPure)
+                {
+                    return operationResult;
+                }
+
+                currentState = UpdateDelegateMapForOperation(operation, context, currentState);
+            }
+
+            return currentState.HasPotentialImpurity
+                ? ImpureResult(currentState.FirstImpureSyntaxNode)
+                : PurityAnalysisResult.Pure;
+        }
+
+        private static bool IsNestedFunctionDescendant(IOperation operation, IOperation rootOperation)
+        {
+            if (operation == rootOperation)
+            {
+                return false;
+            }
+
+            for (var parent = operation.Parent; parent != null && parent != rootOperation; parent = parent.Parent)
+            {
+                if (parent is IAnonymousFunctionOperation || parent is IFlowAnonymousFunctionOperation || parent is ILocalFunctionOperation)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
 
         internal static PurityAnalysisResult CheckSingleOperation(IOperation operation, Rules.PurityAnalysisContext context, PurityAnalysisState currentState)
         {
@@ -1182,6 +1274,7 @@ namespace PurelySharp.Analyzer.Engine
 
                 if (syntaxNode is MethodDeclarationSyntax ||
                     syntaxNode is LocalFunctionStatementSyntax ||
+                    syntaxNode is AnonymousFunctionExpressionSyntax ||
                     syntaxNode is AccessorDeclarationSyntax ||
                     syntaxNode is ConstructorDeclarationSyntax ||
                     syntaxNode is OperatorDeclarationSyntax ||
@@ -1503,6 +1596,10 @@ namespace PurelySharp.Analyzer.Engine
             {
                 return PurityAnalysisEngine.PotentialTargets.FromSingle(anonymousFunction.Symbol.OriginalDefinition);
             }
+            if (unwrapped is IFlowAnonymousFunctionOperation flowAnonymousFunction && flowAnonymousFunction.Symbol != null)
+            {
+                return PurityAnalysisEngine.PotentialTargets.FromSingle(flowAnonymousFunction.Symbol.OriginalDefinition);
+            }
 
             if (unwrapped is IDelegateCreationOperation delegateCreation)
             {
@@ -1514,6 +1611,10 @@ namespace PurelySharp.Analyzer.Engine
                 if (target is IAnonymousFunctionOperation anonymousTarget && anonymousTarget.Symbol != null)
                 {
                     return PurityAnalysisEngine.PotentialTargets.FromSingle(anonymousTarget.Symbol.OriginalDefinition);
+                }
+                if (target is IFlowAnonymousFunctionOperation flowAnonymousTarget && flowAnonymousTarget.Symbol != null)
+                {
+                    return PurityAnalysisEngine.PotentialTargets.FromSingle(flowAnonymousTarget.Symbol.OriginalDefinition);
                 }
             }
 

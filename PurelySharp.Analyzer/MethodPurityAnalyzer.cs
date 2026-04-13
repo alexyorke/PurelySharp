@@ -124,6 +124,11 @@ namespace PurelySharp.Analyzer
 
             else if (suggestMissingEnforcePure && isPure && !hasPurityEnforcementAttribute && !hasAllowSynchronization)
             {
+                if (context.Node is LocalFunctionStatementSyntax)
+                {
+                    return;
+                }
+
                 bool isCompilerGeneratedSetter = false;
                 if (methodSymbol.MethodKind == MethodKind.PropertySet && context.Node is AccessorDeclarationSyntax setterNode)
                 {

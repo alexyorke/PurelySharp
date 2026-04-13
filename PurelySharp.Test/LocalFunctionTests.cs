@@ -11,7 +11,7 @@ namespace PurelySharp.Test
     public class LocalFunctionTests
     {
         [Test]
-        public async Task PureLocalFunction_CurrentAnalyzerReportsPS0002()
+        public async Task PureLocalFunction_NoDiagnostic()
         {
             var code = @"
 using PurelySharp.Attributes;
@@ -19,7 +19,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:PureMethod|}()
+    public int PureMethod()
     {
         int LocalFunc(int a)
         {

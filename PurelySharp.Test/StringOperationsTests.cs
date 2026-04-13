@@ -14,7 +14,7 @@ namespace PurelySharp.Test
     public class StringOperationsTests
     {
         [Test]
-        public async Task ComplexStringOperations_WithImpureSplit_Diagnostic()
+        public async Task ComplexStringOperations_WithSplit_NoDiagnostic()
         {
 
 
@@ -28,7 +28,7 @@ public class TestClass
     [EnforcePure]
     public string TestMethod(string input)
     {
-        // The impurity comes from Split
+        // Split and the subsequent string/LINQ pipeline are pure in the current analyzer model.
         var words = input.Split(' ')
             .Where(w => !string.IsNullOrEmpty(w))
             .Select(w => w.Trim().ToLower())
@@ -38,10 +38,7 @@ public class TestClass
         return string.Join("" "", words);
     }
 }";
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(9, 19, 9, 29)
-                                   .WithArguments("TestMethod");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]

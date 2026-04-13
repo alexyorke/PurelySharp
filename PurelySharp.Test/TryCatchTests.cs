@@ -11,7 +11,7 @@ namespace PurelySharp.Test
     public class TryCatchTests
     {
         [Test]
-        public async Task PureTryCatch_CurrentAnalyzerReportsPS0002()
+        public async Task PureTryCatch_NoDiagnostic()
         {
             var code = @"
 using PurelySharp.Attributes;
@@ -19,7 +19,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:PureMethod|}()
+    public int PureMethod()
     {
         try
         {

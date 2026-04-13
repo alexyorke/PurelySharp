@@ -12,7 +12,7 @@ namespace PurelySharp.Test
     public class ExceptionHandlingTests
     {
         [Test]
-        public async Task PureMethodWithExceptionHandling_CurrentAnalyzerReportsPS0002()
+        public async Task PureMethodWithExceptionHandling_NoDiagnostic()
         {
 
 
@@ -25,7 +25,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int {|PS0002:TestMethod|}(int x)
+    public int TestMethod(int x)
     {
         try
         {
