@@ -657,8 +657,7 @@ public class TestClass
         var a = PureHelper1();
         const int b = 10;
         var c = PureHelper2();
-        // Currently fails because return temp; requires local analysis
-        // Also fails because return a + b + c; requires operator analysis
+        // Returning the combined expression would exercise a broader local/binary purity path.
         return b; // Return simple constant
     }
 }";

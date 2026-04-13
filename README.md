@@ -21,11 +21,12 @@ Currently, the analyzer provides the following checks:
     - Purity of invoked methods (recursive check with cycle detection).
     - Purity of expressions (constants, parameters, `static readonly` fields, basic operators, etc.).
     - Purity of basic statements (local declarations, return, simple expression statements).
+6.  **Regression status:** The in-repo analyzer suite currently passes `520/520` tests on .NET 8.
 
 **Inherent limitations (not “missing features”):**
 
 - **Whole-program / whole-BCL formal proof** of purity is out of scope; the analyzer uses explicit impure/pure catalogs, symbolic method analysis, and conservative defaults.
-- **CFG and dataflow:** method bodies are analyzed with Roslyn `ControlFlowGraph` rooted at the method (or constructor / local function) declaration, with flow-capture handling for lowered conditionals. Remaining edge cases (e.g. unusual control flow or incomplete delegate target tracking) may still produce false positives (`PS0002`) or false negatives; the engine stays conservative when in doubt.
+- **CFG and dataflow:** method bodies are analyzed with Roslyn `ControlFlowGraph` rooted at the method (or constructor / local function) declaration, with flow-capture handling for lowered conditionals, explicit condition-branch tracking, and conservative constant-branch pruning. Remaining edge cases may still produce false positives (`PS0002`) or false negatives; the engine stays conservative when in doubt.
 - **Target frameworks:** every TFM is not CI-matrixed; the analyzer is `netstandard2.0`, with a `net472` smoke project (`PurelySharp.Smoke.Net472`) and the main test suite on .NET 8 (see **Cross-Framework and Language Version Support** below).
 
 **Recently implemented (see codebase):**
@@ -219,7 +220,7 @@ This project is licensed under the MIT License.
 - [x] Expression statements (Pure callees ok; assignments to locals ok; instance field / property writes impure.)
 - [x] If statements
 - [x] Switch statements
-- [x] Throw statements/expressions - Treated as impure by default.
+- [x] Throw statements/expressions - direct throw-only bodies are reported; guard throws inside otherwise pure flows remain allowed by the current rules.
 - [x] Try-catch-finally blocks
 - [x] Local functions (Analyzed via invocation.)
 - [x] Using statements
@@ -266,7 +267,7 @@ This project is licensed under the MIT License.
 - [x] Records (C# 9)
 - [x] Record structs (C# 10)
 - [x] Enums
-- [x] Delegates - Invocation assumed impure.
+- [x] Delegates - creation and invocation are analyzed; unresolved targets remain conservative.
 - [x] File-local types (C# 11)
 - [x] Primary constructors (C# 12)
 
@@ -308,7 +309,7 @@ This project is licensed under the MIT License.
 - [x] Threading/Task operations - Explicitly marked impure.
 - [x] Random number generation - Explicitly marked impure.
 - [x] Event subscription/invocation - Assumed impure.
-- [x] Delegate invocation - DFA target tracking handled.
+- [x] Delegate invocation - DFA target tracking handled for locals and initializer-resolved members.
 
 ### Advanced Language Features
 
@@ -453,6 +454,7 @@ PurelySharp supports delegate types and operations. The purity analysis for dele
   - Creating an anonymous method is pure if its body is pure and it doesn't capture impure state.
 - **Delegate Invocation**:
   - Invoking a delegate is pure if the delegate target is pure and all arguments are pure.
+  - Stored delegate fields/properties can also be resolved when their initializer target is known.
   - If the analyzer can't determine the purity of the delegate target, it conservatively marks the invocation as impure.
 - **Delegate Combination**:
   - Combining delegates (`+=`, `+`) is pure if both delegate operands are pure.

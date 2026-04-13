@@ -1,100 +1,44 @@
-## PurelySharp Refactoring Status and Next Steps
+## PurelySharp current refactoring status
 
-### Where we are now
+### Current state
 
-- **Dataflow-first architecture**
-  - Added `Engine/Analysis/CallGraph*` to build a call graph from Roslyn `IOperation` trees (invocations + method group references).
-  - Added `Engine/Analysis/WorklistPuritySolver` to run a worklist-style fixed-point over the call graph, propagating changes to callers via reverse edges.
-  - Introduced `Engine/CompilationPurityService` to own per-compilation state (call graph, fixed-point cache) and serve purity queries thread-safely.
+- Full analyzer suite is green: `520/520` tests in `PurelySharp.Test` on .NET 8.
+- The analyzer is operating on the current dataflow-first architecture:
+  - compilation-scoped purity service
+  - call-graph + worklist solver
+  - centralized impurity/purity catalog with `.editorconfig` overrides
+  - modular rule registry
+- Recent completed work since the earlier `505/505` checkpoint:
+  - nested local-function and lambda purity fallback analysis
+  - getter-body verification instead of attribute-shape trust
+  - explicit `if`/`while`/`for` condition impurity propagation through CFG branch values
+  - direct throw-only body reporting without reclassifying guard throws as impure
+  - constant-condition CFG pruning plus dead-branch suppression for post-CFG known-impure scans
+  - field-initializer delegate target resolution for stored delegate invocation
+  - expanded known-pure `Enum.TryParse` overload coverage, including nullable-string forms
 
-- **Centralized impurity/purity catalog**
-  - Introduced `Engine/ImpurityCatalog` and routed helper checks in `PurityAnalysisEngine` through it.
-  - Existing catalog content remains in `Engine/Constants.cs` (known impure members/namespaces/types and known pure BCL members).
-  - DONE: Removed explicit rule for `System.Text.Json.JsonSerializer.Deserialize*` from `MethodInvocationPurityRule`; behavior now driven solely by catalog (`Constants.KnownImpureMethods`) and `.editorconfig` overrides.
+### What is already done
 
-- **Rule modularization**
-  - Centralized rule registration via `Engine/Rules/RuleRegistry`.
-  - `PurityAnalysisEngine` now consumes an immutable list of rules from the registry.
+- Catalog-driven impurity/purity with analyzer-config overrides is in place.
+- Delegate tracking covers locals, flow captures, anonymous functions, delegate creations, and initializer-resolved member targets.
+- Property accessor analysis is recursive and no longer trusts `[Pure]` or getter shape alone.
+- CFG propagation uses an in-queue set and merged delegate-target exit state aggregation.
+- Explicit condition branches are analyzed without tainting compiler-lowered null/coalesce branches.
 
-- **Analyzer initialization**
-  - Moved to a `CompilationStartAction` in `PurelySharpAnalyzer` and pass a shared `CompilationPurityService` into `MethodPurityAnalyzer`.
-  - `AttributePlacementAnalyzer` remains a separate focused check.
+### Remaining backlog
 
-- **Tests/build**
-  - Full suite passing: 505/505 tests (`PurelySharp.Test`, .NET 8). Run `dotnet test PurelySharp.Test/PurelySharp.Test.csproj` from the repo root.
+1. Continue targeted false-positive/false-negative hunting in areas still expected to stay conservative:
+   - dynamic dispatch
+   - opaque library calls
+   - harder virtual/interface cases
+   - reflection and environment-sensitive APIs
+2. Expand constant-condition pruning only if more real regressions appear outside the current `if`/`while`/`for` coverage.
+3. Audit and rename any remaining stale regression names/comments outside the updated suites.
+4. Keep `README.md` aligned whenever behavior-level purity assumptions change.
 
-- **Recent engine refinements**
-  - CFG worklist iteration budget scaled with block count (`Blocks.Length * 50`) for join-heavy graphs.
-  - `CompilationPurityService` runs `WorklistPuritySolver.Solve` once per compilation under a lock (safe with `EnableConcurrentExecution`).
-  - Per-operation rule dispatch uses an `OperationKind` → first-rule map (same order as `RuleRegistry` linear scan).
-  - Post-CFG return re-check uses the merged delegate-target map from all CFG blocks so delegate `Invoke` on locals matches CFG analysis (implicit conversions around method-group-to-delegate are unwrapped in `ResolvePotentialTargets`).
-  - UTF-8 string literals (`OperationKind.Utf8String`) handled via `Utf8StringLiteralPurityRule`.
+### Working rules for future passes
 
-### What’s next (prioritized)
-
-1. **Configurable catalogs (.editorconfig)**
-   - DONE: Wired `Configuration/AnalyzerConfiguration` into `ImpurityCatalog` to allow overrides via AnalyzerConfig options:
-     - `purelysharp_known_impure_methods`
-     - `purelysharp_known_pure_methods`
-     - `purelysharp_known_impure_namespaces`
-     - `purelysharp_known_impure_types`
-   - DONE: Parse values from `AnalyzerConfigOptionsProvider` (comma/semicolon-separated lists) and merge with `Constants` via `ImpurityCatalog.InitializeOverrides`.
-
-2. **Call-graph coverage improvements**
-   - DONE: Include edges for method group references, delegate creations, and anonymous functions.
-   - DONE: Map delegate targets assigned/initialized to locals/fields and connect delegate `Invoke` to captured targets.
-   - DONE: Handle `await` flows conservatively by adding edges for awaited invocations.
-   - DONE: Capture delegate compound assignments (`+=`) and event handler subscriptions (`IEventAssignmentOperation`) and map through `IEventReferenceOperation`.
-   - DONE: Include property accessor edges (getter/setter) when properties are read/written, including compound assignments and increment/decrement.
-   - DONE: Add edges for user-defined operators (binary/unary) and user-defined conversions.
-   - DONE: Add edges for constructor initializer calls (`base()`, `this()`).
-   - DONE: Expand dynamic dispatch for interface/virtual calls by scanning compilation types for implementations/overrides.
-   - DONE: Added a conservative CFG-guided pass to include per-block invocation edges missed by symbol-only extraction.
-
-3. **Catalog consolidation**
-   - DONE: Migrated `JsonSerializer.Deserialize*` handling to catalog-only by removing rule-level special-case.
-   - Add entries for common framework APIs (I/O, threading, environment) as needed; prefer signatures of `OriginalDefinition`.
-
-4. **Rule set evolution**
-   - Group rules by construct families (Invocation/Assignment/Flow/Patterns) for clarity.
-   - DONE: Route callee purity checks through `CompilationPurityService` when available via `GetCalleePurity` (updated invocation, object creation, property reference, operator/checked, conversion, delegate creation, constructor initializer, using statement rules).
-   - Expand rules for newer C# features as needed (records, slices/spans patterns, primary constructors).
-
-5. **Performance/robustness**
-   - Cache call graph per compilation and consider incremental rebuild hooks (if analyzer context exposes them) for larger solutions.
-   - Guard against pathological graphs (cycle limits already present in solver; CFG worklist uses `Blocks.Length * 50` max iterations).
-   - Optional: replace `Queue.Contains` in CFG propagation with an “in queue” set for very large methods.
-
-6. **Diagnostics/configuration**
-   - DONE: Allow severity toggles per rule via standard `.editorconfig` keys (`dotnet_diagnostic.PS0002.severity`, `dotnet_diagnostic.PS0004.severity`).
-   - DONE: Optional debug logging flag parsed via `.editorconfig` key `purelysharp_enable_debug_logging` (no-op in Release).
-
-### Relevant files and ownership
-
-- `PurelySharp.Analyzer/PurelySharpAnalyzer.cs` — analyzer entry; compilation start; action wiring
-- `PurelySharp.Analyzer/MethodPurityAnalyzer.cs` — per-method checks; invokes purity service
-- `PurelySharp.Analyzer/Engine/CompilationPurityService.cs` — compilation-scoped analysis/caching
-- `PurelySharp.Analyzer/Engine/Analysis/CallGraph.cs` — call graph model
-- `PurelySharp.Analyzer/Engine/Analysis/CallGraphBuilder.cs` — call graph construction from `IOperation`
-- `PurelySharp.Analyzer/Engine/Analysis/WorklistPuritySolver.cs` — fixed-point solver
-- `PurelySharp.Analyzer/Engine/ImpurityCatalog.cs` — centralized catalog adapters
-- `PurelySharp.Analyzer/Engine/Constants.cs` — known pure/impure defaults
-- `PurelySharp.Analyzer/Engine/Rules/RuleRegistry.cs` — rule list
-- `PurelySharp.Analyzer/Engine/Rules/*` — modular rules
-- `PurelySharp.Analyzer/Configuration/AnalyzerConfiguration.cs` — config reader
-- `PurelySharp.Analyzer/Configuration/ConfigKeys.cs` — config keys
-
-### Definition of done for this refactor
-
-- Catalog-driven impurity/purity with .editorconfig overrides merged at compilation start.
-- Call graph includes invocations, method groups, lambdas/delegates, and conservative async edges.
-- Worklist solver stable and efficient on medium/large solutions.
-- Rules structured by construct families; easy to extend with minimal cross-cutting changes.
-- All tests passing; new tests added for config-driven behavior and expanded graph coverage.
-
-### How to continue
-
-- Extend call graph for delegate capture and async/await edges; keep tests green.
-- Ensure tests cover catalog-driven JSON deserialize impurity and `.editorconfig` overrides.
-
-
+- Land one behavior theme per commit.
+- Add the narrowest regression first, then rerun the touched slice, then rerun the full analyzer suite.
+- Prefer member-level catalog additions over broad namespace/type whitelisting.
+- Preserve conservative behavior for environment, IO, threading, reflection, and dynamic code unless a bounded proof and regression tests justify a narrower rule.

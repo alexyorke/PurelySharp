@@ -55,7 +55,7 @@ public class TestClass
     private List<string> _log = new List<string>();
 
     [EnforcePure]
-    // NOTE: Analyzer currently misses impurity due to lambda modifying captured field _log
+    // Captured field mutation inside the selector is impure and should be reported.
     public IEnumerable<int> TestMethod(int[] numbers)
     {
         // The closure captures _log field and modifies it
@@ -143,7 +143,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task ConditionallyNeverCalledIoMethod_ShouldBePure_Test1()
+        public async Task ConstantFalseBranch_IgnoresDeadIo()
         {
             var test = @"
 using System;
@@ -175,7 +175,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task ConstantIoPath_ShouldBePure_Test1()
+        public async Task EnvironmentPathLookup_ReportsPS0002()
         {
 
             var test = @"
@@ -190,7 +190,7 @@ public class TestClass
     [EnforcePure]
     public string TestMethod()
     {
-        // Define paths but never use them for IO
+        // Path.GetTempPath depends on environment state even though no file IO happens here.
         const string LogPath = ""C:\\logs\\app.log"";
         var tempPath = Path.GetTempPath();
         
@@ -629,7 +629,7 @@ public class TestClass
         [Test]
 
 
-        public async Task IoClassPureMethod_ShouldBePure_Test2()
+        public async Task IoWrapperPureCombinePaths_ReportsPS0004OnHelper()
         {
 
             var test = @"
@@ -663,7 +663,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task StreamThatIsNeverUsed_ShouldBePure()
+        public async Task UnusedMemoryStreamCreation_ReportsPS0002()
         {
 
 
@@ -730,7 +730,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task MockIoInterface_ShouldBePure()
+        public async Task MockIoInterface_PureMembersReportPS0004()
         {
 
             var test = @"

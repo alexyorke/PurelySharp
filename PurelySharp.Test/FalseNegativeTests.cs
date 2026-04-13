@@ -32,7 +32,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task DelegateInvocationOfImpureAction_NoDiagnostic_Bug()
+        public async Task DelegateInvocationOfImpureAction_ReportsPS0002()
         {
 
 
@@ -57,7 +57,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task LazyValueWithImpureFactory_NoDiagnostic_Bug()
+        public async Task LazyValueWithImpureFactory_ReportsPS0002()
         {
 
 
@@ -86,7 +86,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task ConcurrentDictGetOrAddImpureFactory_NoDiagnostic_Bug()
+        public async Task ConcurrentDictGetOrAddImpureFactory_ReportsPS0002()
         {
 
 
@@ -116,7 +116,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task ReturnRefToMutableField_NoDiagnostic_Bug()
+        public async Task ReturnRefToMutableField_ReportsPS0002()
         {
 
 
@@ -145,7 +145,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task VolatileRead_NoDiagnostic_Bug()
+        public async Task VolatileRead_ReportsPS0002()
         {
 
 
@@ -170,7 +170,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task EventSubscription_NoDiagnostic_Bug()
+        public async Task EventSubscription_ReportsPS0002()
         {
             var test = @"
 using System;
@@ -207,7 +207,7 @@ public class TestForm
         }
 
         [Test]
-        public async Task ImpureStaticConstructorTrigger_NoDiagnostic_Bug()
+        public async Task ImpureStaticConstructorTrigger_ReportsPS0002()
         {
             var test = @"
 using System;
@@ -242,7 +242,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task SuppressFinalizeCall_NoDiagnostic_Bug()
+        public async Task SuppressFinalizeCall_ReportsExpectedDiagnostics()
         {
             var test = @"
 using System;
@@ -273,7 +273,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task ImpureImplicitConversion_NoDiagnostic_Bug()
+        public async Task ImpureImplicitConversion_ReportsExpectedDiagnostics()
         {
             var test = @"
 using System;
@@ -319,7 +319,7 @@ public class TestClass
 
         [Test]
 
-        public async Task ImpureDelegateViaParameter_NoDiagnostic_Bug()
+        public async Task ImpureDelegateViaParameter_ReportsPS0002()
         {
             var test = @"
 using System;
@@ -383,7 +383,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task ImpureImplicitConversionViaMethodArg_NoDiagnostic_Bug()
+        public async Task ImpureImplicitConversionViaMethodArg_ReportsExpectedDiagnostics()
         {
             var test = @"
 using System;
