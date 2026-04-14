@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `851/851` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `852/852` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -37,6 +37,7 @@
   - `System.Xml.Linq.XAttribute.Value.get` is now treated as an impure XML attribute state read
   - `System.Xml.Linq.XElement.Attribute(System.Xml.Linq.XName)` is now treated as an impure XML attribute query over mutable element state
   - `System.Xml.Linq.XContainer.Elements()` is now treated as an impure XML child enumeration over mutable container state
+  - `System.Xml.Linq.XContainer.Descendants()` is now treated as an impure XML descendant enumeration over mutable container state
   - `System.Net.Http.HttpClient.HttpClient()` now has direct regression coverage, and its stale known-pure catalog entry has been removed
   - `System.Net.Sockets.SocketAsyncEventArgs.AcceptSocket.get` is now treated as an impure socket-state source
   - `System.Type.IsByRef.get` is now treated as an impure reflection/runtime-state source

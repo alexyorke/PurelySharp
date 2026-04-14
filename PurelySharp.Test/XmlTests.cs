@@ -165,5 +165,25 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task XElementDescendants_Diagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using System.Xml.Linq;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public IEnumerable<XElement> {|PS0002:TestMethod|}(XElement element)
+    {
+        return element.Descendants();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
