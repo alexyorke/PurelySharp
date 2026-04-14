@@ -80,6 +80,7 @@ public static class Constants
         "System.OperatingSystem.IsLinux()",
         "System.OperatingSystem.IsMacCatalyst()",
         "System.OperatingSystem.IsMacOS()",
+        "System.OperatingSystem.IsOSPlatform(string)",
         "System.OperatingSystem.IsTvOS()",
         "System.OperatingSystem.IsWasi()",
         "System.OperatingSystem.IsWatchOS()",
