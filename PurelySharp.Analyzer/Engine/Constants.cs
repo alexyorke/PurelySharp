@@ -448,6 +448,7 @@ public static class Constants
         "ulong.ToString(string?)",
         "ulong.ToString()",
         "ulong.TryParse(string, out ulong)",
+        "ulong.TryParse(System.ReadOnlySpan<char>, out ulong)",
         "System.Half.Parse(string)",
         "System.Half.ToString(string?)",
         "System.Half.ToString()",

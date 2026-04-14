@@ -1701,6 +1701,27 @@ public class TestClass
         }
 
         [Test]
+        public async Task ULongTryParse_Span_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(string numStr)
+    {
+        ReadOnlySpan<char> span = numStr.AsSpan();
+        return ulong.TryParse(span, out _);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task SByteParse_CurrentCulture_Diagnostic()
         {
             var test = @"
