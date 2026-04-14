@@ -1834,6 +1834,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task EventInfoIsDefined_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System;
+using System.Reflection;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(EventInfo eventInfo, Type attributeType)
+    {
+        return eventInfo.IsDefined(attributeType, false);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task EventInfoAddEventHandler_Diagnostic()
         {
             var test = @"
