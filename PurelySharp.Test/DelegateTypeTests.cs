@@ -66,7 +66,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task PassingDelegateAsArgument_NoDiagnostic()
+        public async Task PassingDelegateAsArgument_Diagnostic()
         {
             var testCode = @"
 using System;
