@@ -77,7 +77,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task PureMethodWithSwitchAndImpureOperation_Diagnostic()
+        public async Task MethodWithSwitchAndImpureOperation_Diagnostic()
         {
             var test = @"
 using System;
