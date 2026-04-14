@@ -995,6 +995,28 @@ namespace TestNamespace
         }
 
         [Test]
+        public async Task Module_ResolveSignature_Diagnostic()
+        {
+            var test = @"
+using System.Reflection;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public byte[] {|PS0002:TestMethod|}(Module module)
+        {
+            return module.ResolveSignature(0);
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task Assembly_LoadFile_NoDiagnostic()
         {
             var test = @"
