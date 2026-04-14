@@ -59,7 +59,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task PureMethodWithNullComparisonAndImpureOperation_Diagnostic()
+        public async Task MethodWithNullComparisonAndImpureOperation_Diagnostic()
         {
             var test = @"
 using System;
