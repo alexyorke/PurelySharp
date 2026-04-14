@@ -148,7 +148,7 @@ class ImpureImplementation : IPureInterface
         }
 
         [Test]
-        public async Task StaticInterfaceMethod_VirtualWithDefault_PureImplementation_NoDiagnostic()
+        public async Task StaticInterfaceMethod_VirtualWithDefault_PureImplementation_MissingAttributeDiagnostics()
         {
             var test = @"
 // Requires LangVersion 11+
