@@ -15,7 +15,7 @@ namespace PurelySharp.Test
     public class GenericsInteractionTests
     {
         [Test]
-        public async Task GenericClassWithPureOperations_NoDiagnostic()
+        public async Task GenericClassWithPureOperations_UnknownPurityDiagnostics()
         {
 
             var test = @"
