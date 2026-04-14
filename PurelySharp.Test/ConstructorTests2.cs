@@ -272,13 +272,13 @@ using PurelySharp.Attributes;
 
 public class BaseClass
 {
-    protected BaseClass(int value) // PS0002 expected for BaseClass..ctor by test, but not marked
+    protected BaseClass(int value) // Unannotated constructor; the suite intentionally expects no diagnostic here.
     {
         Console.WriteLine($""Base initialized with: {value}"");
     }
 }
 
-public class DerivedClass : BaseClass // PS0002 expected for DerivedClass..ctor by test, but not marked
+public class DerivedClass : BaseClass // The derived constructor is also unannotated, so this regression stays diagnostic-free.
 {
     public DerivedClass(int value) : base(value) { }
 }";
