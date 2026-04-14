@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `846/846` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `847/847` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -32,6 +32,7 @@
   - `System.Xml.XmlDocument.LoadXml(string)` is now treated as an impure XML DOM mutation API
   - `System.Xml.XmlNode.SelectSingleNode(string)` is now treated as an impure XML DOM query over mutable node/document state
   - `System.Xml.Schema.XmlSchemaSet.Compile()` is now treated as an impure XML schema mutation/compilation API
+  - `System.Xml.Linq.XDocument.Parse(string)` is now treated as an impure XML document construction API
   - `System.Net.Http.HttpClient.HttpClient()` now has direct regression coverage, and its stale known-pure catalog entry has been removed
   - `System.Net.Sockets.SocketAsyncEventArgs.AcceptSocket.get` is now treated as an impure socket-state source
   - `System.Type.IsByRef.get` is now treated as an impure reflection/runtime-state source

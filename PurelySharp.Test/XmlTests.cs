@@ -68,5 +68,24 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task XDocumentParse_Diagnostic()
+        {
+            var test = @"
+using System.Xml.Linq;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public XDocument {|PS0002:TestMethod|}()
+    {
+        return XDocument.Parse(""<root />"");
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

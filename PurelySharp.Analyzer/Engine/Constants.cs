@@ -542,6 +542,7 @@ public static class Constants
         "System.Xml.XmlDocument.LoadXml(string)",
         "System.Xml.XmlNode.SelectSingleNode(string)",
         "System.Xml.Schema.XmlSchemaSet.Compile()",
+        "System.Xml.Linq.XDocument.Parse(string)",
         "System.AppContext.SetSwitch(string, bool)",
         "System.Collections.Generic.PriorityQueue<TElement, TPriority>.Enqueue(TElement, TPriority)",
         "System.Collections.Generic.PriorityQueue<TElement, TPriority>.Dequeue()",
@@ -1311,8 +1312,6 @@ public static class Constants
         "string.IsNullOrWhiteSpace(System.ReadOnlySpan<char>)",
         "System.TimeSpan.Zero.get",
 
-
-        "System.Xml.Linq.XDocument.Parse(string)",
         "System.Xml.Linq.XElement.Attribute(System.Xml.Linq.XName)",
         "System.Xml.Linq.XElement.Descendants()",
         "System.Xml.Linq.XElement.Elements()",
