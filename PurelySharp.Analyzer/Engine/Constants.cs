@@ -1209,7 +1209,6 @@ public static class Constants
         "System.Array.FindIndex<T>(T[], System.Predicate<T>)",
         "bool.CompareTo(bool)",
         "bool.TryParse(string, out bool)",
-        "byte.TryParse(string, out byte)",
         "char.GetNumericValue(char)",
         "char.IsControl(char)",
         "char.IsLower(char)",
