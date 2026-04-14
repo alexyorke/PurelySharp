@@ -122,6 +122,7 @@ public static class Constants
         "System.Type.IsGenericTypeDefinition.get",
         "System.Type.IsGenericParameter.get",
         "System.Type.IsInterface.get",
+        "System.Type.IsNested.get",
         "System.Type.IsPointer.get",
         "System.Type.IsPrimitive.get",
         "System.Type.IsSealed.get",

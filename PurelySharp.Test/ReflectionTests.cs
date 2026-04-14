@@ -744,6 +744,24 @@ public class TestClass
         }
 
         [Test]
+        public async Task TypeIsNested_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(System.Type type)
+    {
+        return type.IsNested;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeInfoGetFields_Diagnostic()
         {
             var test = @"
