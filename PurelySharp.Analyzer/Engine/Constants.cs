@@ -463,6 +463,7 @@ public static class Constants
         "System.TimeSpan.Parse(string)",
         "System.TimeSpan.ToString()",
         "System.TimeSpan.TryParse(string, out System.TimeSpan)",
+        "System.TimeSpan.TryParse(System.ReadOnlySpan<char>, out System.TimeSpan)",
 
         "System.Text.Json.JsonSerializer.Deserialize",
         "JsonSerializer.Deserialize",
