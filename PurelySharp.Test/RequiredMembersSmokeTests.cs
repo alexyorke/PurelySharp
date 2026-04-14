@@ -57,5 +57,30 @@ public class Counter
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task RequiredFields_PureMethod_NoDiagnostic()
+        {
+            var test = @"
+#nullable enable
+using PurelySharp.Attributes;
+
+namespace TestNamespace;
+
+public class Configuration
+{
+    public required string ApiKey;
+    public required string ApiEndpoint;
+
+    [EnforcePure]
+    public string GetConfigSummary()
+    {
+        return $""API Key: {ApiKey.Substring(0, 3)}***, Endpoint: {ApiEndpoint}"";
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
