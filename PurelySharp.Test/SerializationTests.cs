@@ -27,7 +27,7 @@ public class SimplePoco
 ";
 
         [Test]
-        public async Task PureMethodWithJsonSerializePoco_NoDiagnostic()
+        public async Task PureMethodWithJsonSerializePoco_MissingAttributeDiagnostics()
         {
             var test = TestSetup + @"
 
