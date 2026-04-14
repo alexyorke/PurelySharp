@@ -1916,6 +1916,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task ParameterInfoGetCustomAttributes_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System;
+using System.Reflection;
+
+public class TestClass
+{
+    [EnforcePure]
+    public object[] {|PS0002:TestMethod|}(ParameterInfo parameter, Type attributeType)
+    {
+        return parameter.GetCustomAttributes(attributeType, false);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeInfoGetFields_Diagnostic()
         {
             var test = @"
