@@ -138,6 +138,7 @@ public static class Constants
         "System.Reflection.Assembly.SecurityRuleSet.get",
         "System.Reflection.Module.Assembly.get",
         "System.Reflection.Module.FullyQualifiedName.get",
+        "System.Reflection.Module.ModuleVersionId.get",
         "System.Reflection.Module.Name.get",
         "System.Reflection.Module.ScopeName.get",
         "System.Diagnostics.Stopwatch.Elapsed.get",

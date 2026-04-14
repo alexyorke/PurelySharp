@@ -881,6 +881,29 @@ namespace TestNamespace
         }
 
         [Test]
+        public async Task Module_ModuleVersionId_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Reflection;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public Guid {|PS0002:TestMethod|}(Module module)
+        {
+            return module.ModuleVersionId;
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task Module_GetTypes_Diagnostic()
         {
             var test = @"
