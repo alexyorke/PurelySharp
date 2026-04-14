@@ -355,6 +355,7 @@ public static class Constants
         "double.Parse(string)",
         "int.Parse(string)",
         "long.Parse(string)",
+        "System.Half.Parse(string)",
         "System.Numerics.BigInteger.Parse(string)",
         "System.Text.Encoding.GetEncoding(string)",
 
@@ -1101,7 +1102,6 @@ public static class Constants
         "System.FlagsAttribute.FlagsAttribute()",
         "System.FormatException.FormatException(string)",
         "System.Globalization.CompareInfo.Compare(string, string)",
-        "System.Half.Parse(string)",
         "System.HashCode.Combine<T1, T2>(T1, T2)",
         "System.Index.Index(int, bool)",
         "System.IO.EndOfStreamException.EndOfStreamException()",

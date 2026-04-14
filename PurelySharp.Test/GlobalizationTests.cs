@@ -235,6 +235,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task HalfParse_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public Half {|PS0002:TestMethod|}(string numStr)
+    {
+        return Half.Parse(numStr);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DecimalParse_CurrentCulture_Diagnostic()
         {
             var test = @"
