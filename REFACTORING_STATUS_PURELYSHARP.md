@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `821/821` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `822/822` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -23,6 +23,7 @@
   - immutable queue/stack and cryptographic-randomness regression coverage has been expanded
   - `TimeProvider.System` and `TimeZoneInfo.Local` are now treated as impure environment-sensitive sources
   - `TimeProvider.System` now has direct regression coverage for its existing environment-sensitive impurity catalog entry
+  - `System.ComponentModel.TypeDescriptor.GetConverter(System.Type)` is now treated as an impure ambient metadata/source lookup
   - `System.Type.IsByRef.get` is now treated as an impure reflection/runtime-state source
   - `System.Type.IsPointer.get` is now treated as an impure reflection/runtime-state source
   - `System.Type.IsSealed.get` is now treated as an impure reflection/runtime-state source
