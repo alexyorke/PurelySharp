@@ -695,6 +695,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task IntTryParse_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(string numStr)
+    {
+        return int.TryParse(numStr, out _);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task LongParse_CurrentCulture_Diagnostic()
         {
             var test = @"

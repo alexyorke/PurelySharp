@@ -415,6 +415,7 @@ public static class Constants
         "float.ToString()",
         "float.TryParse(string, out float)",
         "int.Parse(string)",
+        "int.TryParse(string, out int)",
         "int.ToString(string?)",
         "int.ToString()",
         "long.Parse(string)",
