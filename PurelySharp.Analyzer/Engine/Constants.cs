@@ -162,6 +162,7 @@ public static class Constants
         "System.Runtime.InteropServices.Marshal.FreeHGlobal(System.IntPtr)",
         "System.Runtime.InteropServices.Marshal.StructureToPtr(object, System.IntPtr, bool)",
 
+        "System.Random.Shared.get",
         "System.Security.Cryptography.RandomNumberGenerator.GetBytes(byte[])",
 
         "System.Text.Json.JsonSerializer.Deserialize",
