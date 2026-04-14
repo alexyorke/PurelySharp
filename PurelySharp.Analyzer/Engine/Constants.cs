@@ -102,6 +102,7 @@ public static class Constants
         "System.Type.GetMembers()",
         "System.Type.GetMethods()",
         "System.Type.GetNestedTypes()",
+        "System.Type.GetProperty(string)",
         "System.Type.GetProperties()",
         "System.Reflection.Assembly.GetTypes()",
         "System.Reflection.Assembly.GetExecutingAssembly()",
