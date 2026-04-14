@@ -1467,6 +1467,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task MethodBaseIsStatic_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System.Reflection;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(MethodBase method)
+    {
+        return method.IsStatic;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task MethodInfoGetBaseDefinition_Diagnostic()
         {
             var test = @"
