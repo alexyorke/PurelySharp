@@ -80,6 +80,7 @@ public static class Constants
         "System.OperatingSystem.IsLinux()",
         "System.OperatingSystem.IsMacOS()",
         "System.OperatingSystem.IsTvOS()",
+        "System.OperatingSystem.IsWatchOS()",
         "System.OperatingSystem.IsWindows()",
         "System.Type.GetMethods()",
         "System.Type.GetProperties()",
