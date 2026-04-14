@@ -77,6 +77,7 @@ public static class Constants
         "System.OperatingSystem.IsAndroidVersionAtLeast(int, int, int, int)",
         "System.OperatingSystem.IsBrowser()",
         "System.OperatingSystem.IsFreeBSD()",
+        "System.OperatingSystem.IsFreeBSDVersionAtLeast(int, int, int, int)",
         "System.OperatingSystem.IsIOS()",
         "System.OperatingSystem.IsLinux()",
         "System.OperatingSystem.IsMacCatalyst()",
