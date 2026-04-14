@@ -92,6 +92,25 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        [Test]
+        public async Task CookieConstructor_Diagnostic()
+        {
+            var test = @"
+using System.Net;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public Cookie {|PS0002:TestMethod|}()
+    {
+        return new Cookie(""name"", ""value"");
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
 
 
 

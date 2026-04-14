@@ -1111,7 +1111,6 @@ public static class Constants
         "System.Linq.ParallelEnumerable.AsParallel<TSource>(System.Collections.Generic.IEnumerable<TSource>)",
         "System.MemoryExtensions.AsSpan<T>(T[])",
         "System.MemoryExtensions.BinarySearch<T>(System.ReadOnlySpan<T>, T)",
-        "System.Net.Cookie.Cookie(string, string)",
         "System.Net.HttpVersion.Version11.get",
         "System.NotImplementedException.NotImplementedException()",
         "System.Nullable<T>.GetValueOrDefault()",
