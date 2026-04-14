@@ -116,6 +116,7 @@ public static class Constants
         "System.Type.IsAbstract.get",
         "System.Type.IsAnsiClass.get",
         "System.Type.IsArray.get",
+        "System.Type.IsAutoClass.get",
         "System.Type.IsAutoLayout.get",
         "System.Type.IsByRef.get",
         "System.Type.IsClass.get",
