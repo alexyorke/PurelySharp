@@ -695,7 +695,9 @@ namespace PurelySharp.Analyzer.Engine
                                 continue;
                             }
 
-                            if (invocationOp.TargetMethod != null && IsKnownImpure(invocationOp.TargetMethod.OriginalDefinition))
+                            if (invocationOp.TargetMethod != null &&
+                                IsKnownImpure(invocationOp.TargetMethod.OriginalDefinition) &&
+                                !IsTransientCharArrayConsumedByStringConstructor(invocationOp, semanticModel))
                             {
                                 LogDebug($"{indent}    Post-CFG: Found Known Impure Invocation IMPURE: {invocationOp.Syntax} calling {invocationOp.TargetMethod.ToDisplayString()}");
                                 result = PurityAnalysisResult.Impure(invocationOp.Syntax);
@@ -1172,8 +1174,8 @@ namespace PurelySharp.Analyzer.Engine
             return false;
         }
 
-        private static bool IsInStaticallyUnreachableBranch(SyntaxNode syntaxNode, SemanticModel semanticModel)
-        {
+    private static bool IsInStaticallyUnreachableBranch(SyntaxNode syntaxNode, SemanticModel semanticModel)
+    {
             foreach (var ancestor in syntaxNode.Ancestors())
             {
                 if (ancestor is Microsoft.CodeAnalysis.CSharp.Syntax.IfStatementSyntax ifStatementSyntax)
@@ -1942,6 +1944,41 @@ namespace PurelySharp.Analyzer.Engine
                 IEventReferenceOperation eventRef => eventRef.Event,
                 _ => null
             };
+        }
+
+        private static bool IsTransientCharArrayConsumedByStringConstructor(IInvocationOperation invocationOperation, SemanticModel semanticModel)
+        {
+            var targetMethod = invocationOperation.TargetMethod?.OriginalDefinition;
+            if (targetMethod == null ||
+                !targetMethod.IsExtensionMethod ||
+                targetMethod.Name != "ToArray" ||
+                invocationOperation.Type is not IArrayTypeSymbol arrayType ||
+                arrayType.ElementType.SpecialType != SpecialType.System_Char)
+            {
+                return false;
+            }
+
+            var enumerableType = semanticModel.Compilation.GetTypeByMetadataName("System.Linq.Enumerable");
+            if (enumerableType == null ||
+                !SymbolEqualityComparer.Default.Equals(targetMethod.ContainingType?.OriginalDefinition, enumerableType))
+            {
+                return false;
+            }
+
+            IOperation? parent = invocationOperation.Parent;
+            if (parent is IArgumentOperation argumentOperation)
+            {
+                parent = argumentOperation.Parent;
+            }
+
+            if (parent is not IObjectCreationOperation objectCreationOperation)
+            {
+                return false;
+            }
+
+            var constructorSymbol = objectCreationOperation.Constructor;
+            return constructorSymbol?.ContainingType?.SpecialType == SpecialType.System_String &&
+                   objectCreationOperation.Arguments.Length == 1;
         }
     }
 }

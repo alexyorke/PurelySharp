@@ -29,6 +29,13 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     {
                         return PurityAnalysisResult.Impure(objectCreationOperation.Syntax);
                     }
+
+                    if (IsPureTransientCharArrayForStringConstructor(objectCreationOperation, argument, context, currentState))
+                    {
+                        PurityAnalysisEngine.LogDebug($"      [ObjCreateRule.Args] Treating transient char[] materialization as PURE for string construction.");
+                        continue;
+                    }
+
                     var argumentResult = PurityAnalysisEngine.CheckSingleOperation(argument.Value, context, currentState);
                     if (!argumentResult.IsPure)
                     {
@@ -121,6 +128,46 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             PurityAnalysisEngine.LogDebug($"    [ObjCreateRule] Object creation '{objectCreationOperation.Syntax}' determined to be Pure (Arguments & Constructor pure, Type not known impure).");
             return PurityAnalysisResult.Pure;
+        }
+
+        private static bool IsPureTransientCharArrayForStringConstructor(
+            IObjectCreationOperation objectCreationOperation,
+            IArgumentOperation argument,
+            PurityAnalysisContext context,
+            PurityAnalysisEngine.PurityAnalysisState currentState)
+        {
+            var constructorSymbol = objectCreationOperation.Constructor;
+            if (constructorSymbol?.ContainingType?.SpecialType != SpecialType.System_String ||
+                objectCreationOperation.Arguments.Length != 1)
+            {
+                return false;
+            }
+
+            if (argument.Value is not IInvocationOperation invocationOperation ||
+                invocationOperation.TargetMethod == null ||
+                invocationOperation.Type is not IArrayTypeSymbol arrayType ||
+                arrayType.ElementType.SpecialType != SpecialType.System_Char)
+            {
+                return false;
+            }
+
+            var enumerableType = context.SemanticModel.Compilation.GetTypeByMetadataName("System.Linq.Enumerable");
+            var targetMethod = invocationOperation.TargetMethod.OriginalDefinition;
+            if (enumerableType == null ||
+                !targetMethod.IsExtensionMethod ||
+                targetMethod.Name != "ToArray" ||
+                !SymbolEqualityComparer.Default.Equals(targetMethod.ContainingType?.OriginalDefinition, enumerableType))
+            {
+                return false;
+            }
+
+            if (invocationOperation.Arguments.Length == 0 || invocationOperation.Arguments[0].Value == null)
+            {
+                return false;
+            }
+
+            var sourceResult = PurityAnalysisEngine.CheckSingleOperation(invocationOperation.Arguments[0].Value, context, currentState);
+            return sourceResult.IsPure;
         }
     }
 }

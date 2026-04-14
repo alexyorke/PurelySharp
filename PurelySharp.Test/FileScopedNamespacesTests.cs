@@ -106,7 +106,7 @@ public static class GeometryUtils
         }
 
         [Test]
-        public async Task FileScopedNamespace_WithMultipleClasses_PureMethod_ExpectsDiagnostic()
+        public async Task FileScopedNamespace_WithMultipleClasses_MixedPurity_Diagnostic()
         {
             var test = @"
 using System;
@@ -125,7 +125,7 @@ public class StringUtils
     [EnforcePure]
     public string ReverseString(string input)
     {
-        // Still impure because Reverse().ToArray() remains conservatively modeled as impure.
+        // Pure: transient char[] materialization is consumed immediately by the string constructor.
         return new string(input.Reverse().ToArray());
     }
 }
@@ -155,7 +155,6 @@ public static class Extensions
 
 
             var expected = new[] {
-                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(16, 19, 16, 32).WithArguments("ReverseString"),
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(27, 16, 27, 25).WithArguments("Factorial")
             };
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
