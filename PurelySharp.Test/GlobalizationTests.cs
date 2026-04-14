@@ -355,6 +355,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task ULongToString_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public string {|PS0002:TestMethod|}(ulong value)
+    {
+        return value.ToString();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DecimalToString_CurrentCulture_Diagnostic()
         {
             var test = @"
