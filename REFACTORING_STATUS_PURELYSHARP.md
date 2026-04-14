@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `648/648` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `649/649` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -99,6 +99,7 @@
   - `System.Type.GetMethod(string)` is now treated as an impure reflection source
   - `System.Type.GetMethods(System.Reflection.BindingFlags)` is now treated as an impure reflection source
   - `System.Type.GetNestedTypes()` is now treated as an impure reflection source
+  - `System.Type.GetNestedTypes(System.Reflection.BindingFlags)` is now treated as an impure reflection source
   - `System.Type.GetProperty(string)` is now treated as an impure reflection source
   - `System.Type.GetProperties(System.Reflection.BindingFlags)` is now treated as an impure reflection source
   - `Console.Out` is now treated as an impure IO source
