@@ -204,5 +204,41 @@ public class UserProfile
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task RequiredMembers_WithImpureMethods_ReportCurrentDiagnostics()
+        {
+            var test = @"
+#nullable enable
+using System;
+using System.IO;
+using PurelySharp.Attributes;
+
+namespace TestNamespace;
+
+public class UserProfile
+{
+    private static int _lastId = 0;
+
+    public required string {|PS0004:Username|} { get; init; }
+    public required string {|PS0004:Email|} { get; init; }
+
+    [EnforcePure]
+    public int {|PS0002:GenerateUniqueId|}()
+    {
+        return Guid.NewGuid().GetHashCode();
+    }
+
+    [EnforcePure]
+    public void {|PS0002:SaveProfile|}()
+    {
+        _lastId++;
+        File.WriteAllText($""{_lastId}.json"", $""{Username} - {Email}"");
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
