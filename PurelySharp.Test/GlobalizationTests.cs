@@ -42,7 +42,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task DateTimeParse_InvariantCulture_ReportsPS0002()
+        public async Task DateTimeParse_InvariantCulture_Diagnostic()
         {
             var test = @"
 #nullable enable
@@ -57,7 +57,7 @@ public class TestClass
     [EnforcePure]
     public DateTime {|PS0002:TestMethod|}(string dateStr)
     {
-        // Pure: Explicitly uses InvariantCulture
+        // DateTime.Parse remains impure even with an explicit culture provider.
         return DateTime.Parse(dateStr, CultureInfo.InvariantCulture);
     }
 }";
