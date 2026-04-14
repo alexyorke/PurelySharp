@@ -32,6 +32,13 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] Operand is Pure.");
 
+            if (unaryOperation.Operand.Type?.TypeKind == TypeKind.Dynamic ||
+                unaryOperation.Type?.TypeKind == TypeKind.Dynamic)
+            {
+                PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] Dynamic unary operation detected. Conservatively treating as Impure.");
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(unaryOperation.Syntax);
+            }
+
 
             if (unaryOperation.OperatorMethod != null)
             {
