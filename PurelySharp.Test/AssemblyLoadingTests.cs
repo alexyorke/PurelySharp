@@ -860,6 +860,30 @@ namespace TestNamespace
         }
 
         [Test]
+        public async Task Module_GetType_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using System.Reflection;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public Type? {|PS0002:TestMethod|}(Module module)
+        {
+            return module.GetType(""TestNamespace.TestClass"");
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task Assembly_LoadFile_NoDiagnostic()
         {
             var test = @"
