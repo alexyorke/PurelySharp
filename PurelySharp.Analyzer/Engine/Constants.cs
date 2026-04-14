@@ -443,6 +443,7 @@ public static class Constants
         "uint.ToString(string?)",
         "uint.ToString()",
         "uint.TryParse(string, out uint)",
+        "uint.TryParse(System.ReadOnlySpan<char>, out uint)",
         "ulong.Parse(string)",
         "ulong.ToString(string?)",
         "ulong.ToString()",
