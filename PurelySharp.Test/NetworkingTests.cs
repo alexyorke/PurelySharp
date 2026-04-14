@@ -130,6 +130,26 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        [Test]
+        public async Task SocketAsyncEventArgsAcceptSocket_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System.Net.Sockets;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public Socket? {|PS0002:TestMethod|}(SocketAsyncEventArgs args)
+    {
+        return args.AcceptSocket;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
 
 
 

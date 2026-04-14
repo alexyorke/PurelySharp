@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `841/841` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `842/842` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -26,6 +26,7 @@
   - `System.ComponentModel.TypeDescriptor.GetConverter(System.Type)` is now treated as an impure ambient metadata/source lookup
   - `System.Threading.ThreadLocal<T>.ThreadLocal(System.Func<T>)` is now treated as an impure thread-local state constructor
   - `System.Net.Http.HttpClient.HttpClient()` now has direct regression coverage, and its stale known-pure catalog entry has been removed
+  - `System.Net.Sockets.SocketAsyncEventArgs.AcceptSocket.get` is now treated as an impure socket-state source
   - `System.Type.IsByRef.get` is now treated as an impure reflection/runtime-state source
   - `System.Type.IsPointer.get` is now treated as an impure reflection/runtime-state source
   - `System.Type.IsSealed.get` is now treated as an impure reflection/runtime-state source
