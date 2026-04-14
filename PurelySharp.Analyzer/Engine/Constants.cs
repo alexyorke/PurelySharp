@@ -119,6 +119,7 @@ public static class Constants
         "System.Type.GetProperty(string, System.Reflection.BindingFlags)",
         "System.Type.GetProperties(System.Reflection.BindingFlags)",
         "System.Type.GetProperties()",
+        "System.Reflection.Assembly.DefinedTypes.get",
         "System.Reflection.Assembly.GetTypes()",
         "System.Reflection.Assembly.GetExecutingAssembly()",
         "System.Diagnostics.Stopwatch.Elapsed.get",
