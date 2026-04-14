@@ -400,6 +400,7 @@ public static class Constants
         "short.ToString()",
         "short.TryParse(string, out short)",
         "sbyte.Parse(string)",
+        "sbyte.ToString(string?)",
         "sbyte.ToString()",
         "sbyte.TryParse(string, out sbyte)",
         "ushort.Parse(string)",
