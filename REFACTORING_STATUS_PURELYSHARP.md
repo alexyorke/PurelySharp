@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `861/861` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `862/862` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -47,6 +47,7 @@
   - `System.IO.StringWriter.StringWriter()` now has direct regression coverage, and its stale known-pure catalog entry has been removed
   - `System.IO.MemoryStream.ToArray()` is now treated as an impure mutable stream-state read
   - `System.ComponentModel.TypeDescriptor.GetProperties(object)` is now treated as an impure ambient metadata/source lookup
+  - `System.Enum.GetValues(System.Type)` is now treated as an impure runtime enum-metadata lookup
   - `System.Net.Http.HttpClient.HttpClient()` now has direct regression coverage, and its stale known-pure catalog entry has been removed
   - `System.Net.Sockets.SocketAsyncEventArgs.AcceptSocket.get` is now treated as an impure socket-state source
   - `System.Type.IsByRef.get` is now treated as an impure reflection/runtime-state source
