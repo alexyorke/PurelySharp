@@ -17,7 +17,7 @@ namespace PurelySharp.Test
     public class IOOperationsTests
     {
         [Test]
-        public async Task AsyncAwaitImpurity_NoDiagnostic()
+        public async Task AsyncAwait_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -375,7 +375,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task MemoryAllocationImpurity_NoDiagnostic()
+        public async Task MemoryAllocationImpurity_Diagnostic()
         {
             var test = @"
 using System;
