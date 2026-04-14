@@ -46,6 +46,7 @@ public static class Constants
         "System.Collections.Generic.List<T>.ForEach(System.Action<T>)",
         "System.Collections.Generic.List<T>.Insert(int, T)",
         "System.Collections.Generic.List<T>.Remove(T)",
+        "System.Collections.Generic.List<T>.ToArray()",
         "System.Collections.Generic.Queue<T>.Dequeue()",
         "System.Collections.Generic.Queue<T>.Enqueue(T)",
         "System.Collections.Generic.Stack<T>.Pop()",
@@ -1224,8 +1225,6 @@ public static class Constants
         "System.Collections.Generic.List<T>.FindLast(System.Predicate<T>)",
         "System.Collections.Generic.List<T>.IndexOf(T)",
         "System.Collections.Generic.List<T>.LastIndexOf(T)",
-        "System.Collections.Generic.List<T>.ToArray()",
-
         "System.Collections.Generic.Queue<T>.Contains(T)",
         "System.Collections.Generic.Queue<T>.ToArray()",
         "System.Collections.Generic.Stack<T>.Contains(T)",
