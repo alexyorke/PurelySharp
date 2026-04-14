@@ -199,7 +199,7 @@ public class FileManager
         }
 
         [Test]
-        public async Task FileScopedNamespace_InterfaceImplementation_NoDiagnostic()
+        public async Task FileScopedNamespace_InterfaceImplementation_MissingAttributeDiagnostic()
         {
             var test = @"
 using System;
