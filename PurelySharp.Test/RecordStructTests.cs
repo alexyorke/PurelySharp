@@ -181,30 +181,30 @@ using System.Collections.Immutable;
 
 public record struct CacheEntry(int Id, ImmutableList<string> Tags)
 {{
-    // Method modifying Tags property (should be pure now)
+    // Method modifying Tags property is impure because it assigns to instance state.
     [EnforcePure]
     public CacheEntry AddTag(string tag)
     {{
-        // This assignment makes it pure now due to record struct rule -> NO, now correctly impure
+        // Assigning back to the property mutates instance state and is correctly impure.
         Tags = Tags.Add(tag);
         return this;
     }}
 
-    // Method returning Tags count (should be pure)
+    // Method returning Tags count is pure.
     [EnforcePure]
     public int GetItemsCount()
     {{
         return Tags.Count;
     }}
 
-    // Method checking Tags containment (should be pure)
+    // Method checking Tags containment is pure.
     [EnforcePure]
     public bool HasTag(string tag)
     {{
         return Tags.Contains(tag);
     }}
 
-    // With expression - creates new record, assignment happens internally (should be impure)
+    // With expression remains impure under the current record-struct mutation rules.
     // -> Correction: 'with' on record struct is PURE
     [EnforcePure]
     public CacheEntry WithTag(string tag)

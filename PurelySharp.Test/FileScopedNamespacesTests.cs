@@ -136,7 +136,7 @@ public class MathUtils
     [EnforcePure]
     public int Factorial(int n)
     {
-        // Impure: Analyzer doesn't handle recursion correctly -> Actually flagged PS0002
+        // Recursive self-calls remain conservatively flagged here.
         if (n <= 1) return 1;
         return n * Factorial(n - 1);
     }
