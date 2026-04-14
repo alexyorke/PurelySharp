@@ -252,6 +252,7 @@ public static class Constants
         "System.IO.MemoryStream.ToArray()",
         "System.IO.StringReader.StringReader(string)",
         "System.Environment.CurrentDirectory.get",
+        "object.GetType()",
         "System.Environment.CurrentDirectory.set",
         "System.Environment.CurrentManagedThreadId.get",
         "System.Environment.ExitCode.get",
@@ -936,7 +937,6 @@ public static class Constants
 
         "object.Equals(object, object)",
         "object.GetHashCode()",
-        "object.GetType()",
         "object.ReferenceEquals(object, object)",
         "object.ToString()",
 
@@ -1343,7 +1343,6 @@ public static class Constants
 
         "object.Equals(object)",
         "object.GetHashCode()",
-        "object.GetType()",
         "object.ReferenceEquals(object, object)",
         "object.ToString()",
 
