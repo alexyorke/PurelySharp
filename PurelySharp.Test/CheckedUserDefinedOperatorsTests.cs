@@ -410,7 +410,7 @@ namespace TestNamespace
         }
 
         [Test]
-        public async Task CheckedUserDefinedOperator_ImpureMethod_NoDiagnostic()
+        public async Task CheckedUserDefinedOperator_ImpureMethod_ReportsMissingAttributeDiagnostics()
         {
             var test = @"
 using System;
