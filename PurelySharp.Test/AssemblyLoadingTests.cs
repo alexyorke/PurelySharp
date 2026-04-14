@@ -338,6 +338,29 @@ namespace TestNamespace
         }
 
         [Test]
+        public async Task Assembly_CustomAttributes_Diagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using System.Reflection;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public IEnumerable<CustomAttributeData> {|PS0002:TestMethod|}(Assembly assembly)
+        {
+            return assembly.CustomAttributes;
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task Assembly_LoadFile_NoDiagnostic()
         {
             var test = @"
