@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `879/879` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `885/885` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -61,7 +61,9 @@
   - `System.Collections.Generic.List<T>.List()` now has direct regression coverage, and its stale known-pure catalog entry has been removed
   - `System.Collections.Generic.Dictionary<TKey, TValue>.Keys.get` is now treated as an impure mutable-view collection read
   - `System.Collections.Generic.Dictionary<TKey, TValue>.Values.get` is now treated as an impure mutable-view collection read
+  - `System.Collections.Generic.Comparer<T>.Default.get` is now treated as an impure shared-comparer lookup
   - `System.Collections.Generic.EqualityComparer<T>.Default.get` is now treated as an impure shared-comparer lookup
+  - `object.Equals(object)` is now treated as an impure virtual runtime-dispatch call
   - `object.GetType()` is now treated as an impure runtime-type lookup
   - `object.ToString()` is now treated as an impure virtual runtime-dispatch call
   - `object.GetHashCode()` is now treated as an impure virtual runtime-dispatch call
@@ -175,6 +177,9 @@
   - `Environment.WorkingSet` is now treated as an impure environment-sensitive source
   - `Environment.ProcessPath` is now treated as an impure environment-sensitive source
   - `Environment.Version` is now treated as an impure environment-sensitive source
+  - `System.Text.Encoding.GetEncoding(string)` is now treated as an impure shared-encoding lookup
+  - `double.Parse(string)` is now treated as an impure current-culture numeric parse
+  - `int.Parse(string)` is now treated as an impure current-culture numeric parse
   - `Environment.CommandLine` now has direct regression coverage for its existing environment-sensitive impurity catalog entry
   - `Environment.CurrentDirectory` now has direct regression coverage for its existing environment-sensitive impurity catalog entry
   - `Environment.MachineName` now has direct regression coverage for its existing environment-sensitive impurity catalog entry
