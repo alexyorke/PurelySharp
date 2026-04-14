@@ -427,6 +427,7 @@ public static class Constants
         "short.ToString(string?)",
         "short.ToString()",
         "short.TryParse(string, out short)",
+        "short.TryParse(System.ReadOnlySpan<char>, out short)",
         "sbyte.Parse(string)",
         "sbyte.ToString(string?)",
         "sbyte.ToString()",
