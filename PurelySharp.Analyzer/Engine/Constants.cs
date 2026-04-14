@@ -348,6 +348,7 @@ public static class Constants
 
         "System.Random.Shared.get",
         "System.Security.Cryptography.RandomNumberGenerator.GetBytes(byte[])",
+        "byte.Parse(string)",
         "System.DateTime.Parse(string)",
         "System.DateTimeOffset.Parse(string)",
         "decimal.Parse(string)",
@@ -1208,7 +1209,6 @@ public static class Constants
         "System.Array.FindIndex<T>(T[], System.Predicate<T>)",
         "bool.CompareTo(bool)",
         "bool.TryParse(string, out bool)",
-        "byte.Parse(string)",
         "byte.TryParse(string, out byte)",
         "char.GetNumericValue(char)",
         "char.IsControl(char)",

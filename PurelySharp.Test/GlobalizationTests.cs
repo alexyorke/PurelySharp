@@ -195,6 +195,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task ByteParse_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public byte {|PS0002:TestMethod|}(string numStr)
+    {
+        return byte.Parse(numStr);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DecimalParse_CurrentCulture_Diagnostic()
         {
             var test = @"
