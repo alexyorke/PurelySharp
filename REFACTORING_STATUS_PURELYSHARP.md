@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `553/553` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `554/554` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -31,6 +31,7 @@
   - `Environment.Is64BitOperatingSystem` is now treated as an impure environment-sensitive source
   - `Environment.Is64BitProcess` is now treated as an impure environment-sensitive source
   - `Environment.UserInteractive` is now treated as an impure environment-sensitive source
+  - `Environment.SystemPageSize` is now treated as an impure environment-sensitive source
 
 ### What is already done
 
