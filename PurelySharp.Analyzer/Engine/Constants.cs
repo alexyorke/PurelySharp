@@ -411,6 +411,7 @@ public static class Constants
         "decimal.ToString()",
         "double.Parse(string)",
         "double.TryParse(string, out double)",
+        "double.TryParse(System.ReadOnlySpan<char>, out double)",
         "double.ToString(string?)",
         "double.ToString()",
         "float.Parse(string)",
