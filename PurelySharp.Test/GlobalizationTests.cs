@@ -215,6 +215,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task FloatToString_FormatString_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public string {|PS0002:TestMethod|}(float value)
+    {
+        return value.ToString(""N"");
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task IntToString_CurrentCulture_Diagnostic()
         {
             var test = @"

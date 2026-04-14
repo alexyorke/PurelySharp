@@ -386,6 +386,7 @@ public static class Constants
         "double.Parse(string)",
         "double.ToString()",
         "float.Parse(string)",
+        "float.ToString(string?)",
         "float.ToString()",
         "float.TryParse(string, out float)",
         "int.Parse(string)",
