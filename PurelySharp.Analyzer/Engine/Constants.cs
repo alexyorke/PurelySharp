@@ -1092,7 +1092,6 @@ public static class Constants
         "System.ComponentModel.BrowsableAttribute.BrowsableAttribute(bool)",
         "System.ComponentModel.DataAnnotations.RangeAttribute.RangeAttribute(double, double)",
         "System.ComponentModel.DescriptionAttribute.DescriptionAttribute(string)",
-        "System.Data.DataColumn.DataColumn(string)",
         "System.Data.DataRelation.DataRelation(string, System.Data.DataColumn, System.Data.DataColumn)",
         "System.Diagnostics.ConditionalAttribute.ConditionalAttribute(string)",
         "System.DivideByZeroException.DivideByZeroException()",
