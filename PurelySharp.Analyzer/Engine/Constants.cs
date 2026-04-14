@@ -147,6 +147,7 @@ public static class Constants
         "System.Type.IsSerializable.get",
         "System.Type.IsSZArray.get",
         "System.Type.IsSpecialName.get",
+        "System.Type.IsTypeDefinition.get",
         "System.Type.IsUnicodeClass.get",
         "System.Type.IsValueType.get",
         "System.Type.IsVariableBoundArray.get",
