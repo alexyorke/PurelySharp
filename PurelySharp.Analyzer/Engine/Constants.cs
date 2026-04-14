@@ -348,6 +348,7 @@ public static class Constants
 
         "System.Random.Shared.get",
         "System.Security.Cryptography.RandomNumberGenerator.GetBytes(byte[])",
+        "double.Parse(string)",
         "System.Text.Encoding.GetEncoding(string)",
 
         "System.Text.Json.JsonSerializer.Deserialize",
@@ -865,7 +866,6 @@ public static class Constants
 
         "System.Diagnostics.Contracts.Contract.Ensures(bool)",
         "System.Diagnostics.Contracts.Contract.Requires(bool)",
-        "double.Parse(string)",
         "double.ToString()",
 
 
