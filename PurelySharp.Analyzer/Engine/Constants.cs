@@ -385,6 +385,7 @@ public static class Constants
         "System.Numerics.BigInteger.Parse(string)",
         "System.Numerics.BigInteger.TryParse(string, out System.Numerics.BigInteger)",
         "System.Text.Encoding.GetEncoding(string)",
+        "System.TimeOnly.Parse(string)",
         "System.TimeSpan.Parse(string)",
         "System.TimeSpan.TryParse(string, out System.TimeSpan)",
 
