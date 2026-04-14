@@ -1356,6 +1356,24 @@ public class TestClass
         }
 
         [Test]
+        public async Task TypeDefaultBinder_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public System.Reflection.Binder {|PS0002:TestMethod|}()
+    {
+        return System.Type.DefaultBinder;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeInfoGetFields_Diagnostic()
         {
             var test = @"
