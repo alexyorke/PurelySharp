@@ -121,6 +121,7 @@ public static class Constants
         "System.Type.IsAutoClass.get",
         "System.Type.IsAutoLayout.get",
         "System.Type.IsByRef.get",
+        "System.Type.IsByRefLike.get",
         "System.Type.IsClass.get",
         "System.Type.IsEnum.get",
         "System.Type.IsExplicitLayout.get",
