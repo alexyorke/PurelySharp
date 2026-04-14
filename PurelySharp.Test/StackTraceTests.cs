@@ -29,5 +29,24 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task StackTraceConstructor_Diagnostic()
+        {
+            var test = @"
+using System.Diagnostics;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public StackTrace {|PS0002:TestMethod|}()
+    {
+        return new StackTrace();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
