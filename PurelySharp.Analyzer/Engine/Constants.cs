@@ -98,6 +98,7 @@ public static class Constants
         "System.GC.GetTotalMemory(bool)",
         "System.Globalization.CultureInfo.CurrentCulture.get",
         "System.Globalization.CultureInfo.CurrentUICulture.get",
+        "System.Globalization.CultureInfo.DefaultThreadCurrentCulture.get",
         "System.Globalization.CultureInfo.InstalledUICulture.get",
         "System.Globalization.RegionInfo.CurrentRegion.get",
         "System.Guid.NewGuid()",

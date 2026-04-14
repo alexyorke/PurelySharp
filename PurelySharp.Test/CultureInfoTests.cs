@@ -46,5 +46,25 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task CultureInfoDefaultThreadCurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System.Globalization;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public CultureInfo? {|PS0002:TestMethod|}()
+    {
+        return CultureInfo.DefaultThreadCurrentCulture;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
