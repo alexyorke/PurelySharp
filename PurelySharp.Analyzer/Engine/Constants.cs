@@ -353,6 +353,7 @@ public static class Constants
         "decimal.Parse(string)",
         "double.Parse(string)",
         "int.Parse(string)",
+        "long.Parse(string)",
         "System.Text.Encoding.GetEncoding(string)",
 
         "System.Text.Json.JsonSerializer.Deserialize",
@@ -1283,7 +1284,6 @@ public static class Constants
         "System.HashCode.ToHashCode()",
         "System.Index.End.get",
         "System.Index.Start.get",
-        "long.Parse(string)",
         "long.TryParse(string, out long)",
         "System.InvalidOperationException.InvalidOperationException(string)",
         "System.IO.DirectoryInfo.Name.get",
