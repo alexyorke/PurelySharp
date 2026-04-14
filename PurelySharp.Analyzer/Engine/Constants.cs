@@ -123,6 +123,7 @@ public static class Constants
         "System.Reflection.Assembly.ExportedTypes.get",
         "System.Reflection.Assembly.GetTypes()",
         "System.Reflection.Assembly.GetExecutingAssembly()",
+        "System.Reflection.Assembly.Modules.get",
         "System.Diagnostics.Stopwatch.Elapsed.get",
         "System.Diagnostics.Stopwatch.GetTimestamp()",
         "System.Diagnostics.Stopwatch.Start()",

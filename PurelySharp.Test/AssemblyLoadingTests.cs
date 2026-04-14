@@ -270,6 +270,29 @@ namespace TestNamespace
         }
 
         [Test]
+        public async Task Assembly_Modules_Diagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using System.Reflection;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public IEnumerable<Module> {|PS0002:TestMethod|}(Assembly assembly)
+        {
+            return assembly.Modules;
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task Assembly_LoadFile_NoDiagnostic()
         {
             var test = @"
