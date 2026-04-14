@@ -34,7 +34,7 @@ public class TestClass
     [EnforcePure]
     public void TestMethod()
     {
-        _field = 42; // Removed inline diagnostic
+        _field = 42;
     }
 }";
 
@@ -57,15 +57,14 @@ class TestClass
     static int staticField = 0;
 
     [EnforcePure]
-    // Added PS0002 markup (static field assignment/increment)
     public int TestMethod()
     {
-        return ++staticField; // Static field modification - Removed inline diagnostic
+        return ++staticField;
     }
 }";
 
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                 .WithSpan(11, 16, 11, 26)
+                                 .WithSpan(10, 16, 10, 26)
                                  .WithArguments("TestMethod");
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
@@ -84,7 +83,7 @@ public class TestClass
     [EnforcePure]
     public void TestMethod(List<int> list)
     {
-        list.Add(42); // Modifying input parameter is impure - Removed inline diagnostic
+        list.Add(42);
     }
 }";
 
@@ -114,7 +113,7 @@ public class TestClass
     [EnforcePure]
     public void TestMethod(MutableStruct str)
     {
-        str.Value = 42; // Modifying struct field assignment - Removed inline diagnostic
+        str.Value = 42;
     }
 }";
 
@@ -136,7 +135,7 @@ public class TestClass
     [EnforcePure]
     public void TestMethod(ref int value)
     {
-        value = 42; // Removed inline diagnostic
+        value = 42;
     }
 }";
 
@@ -159,7 +158,7 @@ public class TestClass
     [EnforcePure]
     public void TestMethod(List<int> list)
     {
-        list.Remove(42); // Modifying input parameter is impure - Removed inline diagnostic
+        list.Remove(42);
     }
 }";
 
@@ -182,7 +181,7 @@ public class TestClass
     [EnforcePure]
     public void TestMethod(List<int> list)
     {
-        list.Clear(); // Modifying input parameter is impure - Removed inline diagnostic
+        list.Clear();
     }
 }";
 
@@ -206,7 +205,7 @@ public class TestClass
     public void TestMethod(List<int> list)
     {
         if (list.Count > 0)
-            list[0] = 100; // Modifying via indexer is impure - Removed inline diagnostic
+            list[0] = 100;
     }
 }";
 
@@ -291,7 +290,7 @@ public class TestClass
     [EnforcePure]
     public void TestMethod(Dictionary<string, int> dict)
     {
-        dict.Add(""newKey"", 100); // Removed inline diagnostic
+        dict.Add(""newKey"", 100);
     }
 }";
 
@@ -314,7 +313,7 @@ public class TestClass
     [EnforcePure]
     public void TestMethod(Dictionary<string, int> dict)
     {
-        dict.Remove(""someKey""); // Removed inline diagnostic
+        dict.Remove(""someKey"");
     }
 }";
 
@@ -337,7 +336,7 @@ public class TestClass
     [EnforcePure]
     public void TestMethod(Dictionary<string, int> dict)
     {
-        dict.Clear(); // Removed inline diagnostic
+        dict.Clear();
     }
 }";
 
@@ -360,7 +359,7 @@ public class TestClass
     [EnforcePure]
     public void TestMethod(Dictionary<string, int> dict)
     {
-        dict[""existingKey""] = 200; // Removed inline diagnostic
+        dict[""existingKey""] = 200;
     }
 }";
 
