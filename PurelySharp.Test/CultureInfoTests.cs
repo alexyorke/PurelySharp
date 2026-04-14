@@ -86,5 +86,24 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task CultureInfoGetCultureInfo_Diagnostic()
+        {
+            var test = @"
+using System.Globalization;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public CultureInfo {|PS0002:TestMethod|}()
+    {
+        return CultureInfo.GetCultureInfo(""en-US"");
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

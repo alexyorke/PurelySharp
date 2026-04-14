@@ -236,6 +236,7 @@ public static class Constants
         "System.Diagnostics.Stopwatch.Start()",
         "System.Diagnostics.Stopwatch.Stop()",
         "System.Diagnostics.Trace.WriteLine(string)",
+        "System.Globalization.CultureInfo.GetCultureInfo(string)",
         "System.Enum.GetName(System.Type, object)",
         "System.Enum.IsDefined(System.Type, object)",
         "System.Enum.GetValues(System.Type)",
@@ -860,7 +861,6 @@ public static class Constants
         "double.ToString()",
 
 
-        "System.Globalization.CultureInfo.GetCultureInfo(string)",
         "System.Globalization.CultureInfo.InvariantCulture.get",
 
 
