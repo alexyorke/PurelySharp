@@ -141,6 +141,7 @@ public static class Constants
         "System.Type.IsLayoutSequential.get",
         "System.Type.IsMarshalByRef.get",
         "System.Type.IsSealed.get",
+        "System.Type.IsSerializable.get",
         "System.Type.IsUnicodeClass.get",
         "System.Type.IsValueType.get",
         "System.Type.IsVisible.get",
