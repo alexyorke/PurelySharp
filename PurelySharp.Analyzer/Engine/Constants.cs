@@ -397,6 +397,7 @@ public static class Constants
         "System.TimeOnly.Parse(string)",
         "System.TimeOnly.TryParse(string, out System.TimeOnly)",
         "System.TimeSpan.Parse(string)",
+        "System.TimeSpan.ToString()",
         "System.TimeSpan.TryParse(string, out System.TimeSpan)",
 
         "System.Text.Json.JsonSerializer.Deserialize",
@@ -1060,7 +1061,6 @@ public static class Constants
 
         "System.TimeSpan.TimeSpan(long)",
         "System.TimeSpan.Add(System.TimeSpan)",
-        "System.TimeSpan.ToString()",
 
 
         "System.TimeZoneInfo.ConvertTime(System.DateTimeOffset, System.TimeZoneInfo)",
