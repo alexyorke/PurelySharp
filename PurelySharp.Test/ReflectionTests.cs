@@ -511,5 +511,24 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task TypeInfoGetMemberWithMemberTypesAndBindingFlags_Diagnostic()
+        {
+            var test = @"
+using System.Reflection;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public MemberInfo[] {|PS0002:TestMethod|}(TypeInfo typeInfo)
+    {
+        return typeInfo.GetMember(""ToString"", MemberTypes.Method, BindingFlags.Public);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
