@@ -453,6 +453,7 @@ public static class Constants
         "System.Half.ToString(string?)",
         "System.Half.ToString()",
         "System.Half.TryParse(string, out System.Half)",
+        "System.Half.TryParse(System.ReadOnlySpan<char>, out System.Half)",
         "System.Numerics.BigInteger.Parse(string)",
         "System.Numerics.BigInteger.TryParse(string, out System.Numerics.BigInteger)",
         "System.Text.Encoding.GetEncoding(string)",
