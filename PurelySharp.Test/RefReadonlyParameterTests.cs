@@ -71,7 +71,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task PureMethodWithRefReadonlyParameter_AssigningLocally_NoDiagnostic()
+        public async Task PureMethodWithRefReadonlyParameter_AssigningLocally_Diagnostic()
         {
 
 
