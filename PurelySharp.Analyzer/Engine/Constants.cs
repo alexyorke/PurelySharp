@@ -355,6 +355,7 @@ public static class Constants
         "double.Parse(string)",
         "double.ToString()",
         "int.Parse(string)",
+        "int.ToString()",
         "long.Parse(string)",
         "System.Half.Parse(string)",
         "System.Numerics.BigInteger.Parse(string)",
@@ -886,7 +887,6 @@ public static class Constants
         "System.Guid.ToString()",
 
 
-        "int.ToString()",
 
 
         "System.IO.Path.Combine(string, string)",

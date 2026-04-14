@@ -177,9 +177,11 @@ public class TestUsage
 
             var expected = new[]
             {
+                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(13, 27, 13, 33).WithArguments("Format"),
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(23, 17, 23, 26).WithArguments("LogStatus"),
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(49, 25, 49, 32).WithArguments("Process"),
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(57, 28, 57, 34).WithArguments("Format"),
+                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(67, 17, 67, 35).WithArguments("UseProcessorPurely"),
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(75, 18, 75, 38).WithArguments("UseProcessorImpurely"),
             };
 
