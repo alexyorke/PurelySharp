@@ -21,7 +21,7 @@ Currently, the analyzer provides the following checks:
     - Purity of invoked methods (recursive check with cycle detection).
     - Purity of expressions (constants, parameters, `static readonly` fields, basic operators, etc.).
     - Purity of basic statements (local declarations, return, simple expression statements).
-6.  **Regression status:** The in-repo analyzer suite currently passes `826/826` tests on .NET 8.
+6.  **Regression status:** The in-repo analyzer suite currently passes `827/827` tests on .NET 8.
 
 **Inherent limitations (not “missing features”):**
 
