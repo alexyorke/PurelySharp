@@ -120,6 +120,7 @@ public static class Constants
         "System.Type.Assembly.get",
         "System.Type.Module.get",
         "System.Type.GetNestedType(string)",
+        "System.Type.GetNestedType(string, System.Reflection.BindingFlags)",
         "System.Type.GetNestedTypes()",
         "System.Type.GetNestedTypes(System.Reflection.BindingFlags)",
         "System.Type.GetProperty(string)",
