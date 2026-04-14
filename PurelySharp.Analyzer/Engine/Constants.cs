@@ -139,6 +139,7 @@ public static class Constants
         "System.Reflection.Module.Assembly.get",
         "System.Reflection.Module.FullyQualifiedName.get",
         "System.Reflection.Module.Name.get",
+        "System.Reflection.Module.ScopeName.get",
         "System.Diagnostics.Stopwatch.Elapsed.get",
         "System.Diagnostics.Stopwatch.GetTimestamp()",
         "System.Diagnostics.Stopwatch.Start()",
