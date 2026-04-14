@@ -84,6 +84,7 @@ public static class Constants
         "System.OperatingSystem.IsMacCatalyst()",
         "System.OperatingSystem.IsMacCatalystVersionAtLeast(int, int, int)",
         "System.OperatingSystem.IsMacOS()",
+        "System.OperatingSystem.IsMacOSVersionAtLeast(int, int, int)",
         "System.OperatingSystem.IsOSPlatform(string)",
         "System.OperatingSystem.IsTvOS()",
         "System.OperatingSystem.IsWasi()",
