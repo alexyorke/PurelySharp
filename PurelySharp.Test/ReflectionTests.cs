@@ -124,6 +124,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task TypeInfoGetEvent_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System.Reflection;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public EventInfo? {|PS0002:TestMethod|}(TypeInfo typeInfo)
+    {
+        return typeInfo.GetEvent(""Changed"");
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeInfoGetProperties_Diagnostic()
         {
             var test = @"
