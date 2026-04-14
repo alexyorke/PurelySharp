@@ -1283,7 +1283,6 @@ public static class Constants
         "System.HashCode.ToHashCode()",
         "System.Index.End.get",
         "System.Index.Start.get",
-        "long.TryParse(string, out long)",
         "System.InvalidOperationException.InvalidOperationException(string)",
         "System.IO.DirectoryInfo.Name.get",
         "System.IO.DirectoryInfo.Parent.get",
