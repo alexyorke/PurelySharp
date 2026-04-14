@@ -102,7 +102,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task RecursivePureMethod_NoDiagnostic()
+        public async Task RecursivePureMethod_Diagnostic()
         {
             var test = @"
 using System;
