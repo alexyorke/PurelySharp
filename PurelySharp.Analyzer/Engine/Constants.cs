@@ -378,6 +378,7 @@ public static class Constants
         "byte.ToString()",
         "System.DateOnly.Parse(string)",
         "System.DateOnly.ParseExact(string, string)",
+        "System.DateOnly.ParseExact(string, string[])",
         "System.DateOnly.ToLongDateString()",
         "System.DateOnly.ToShortDateString()",
         "System.DateOnly.TryParse(string, out System.DateOnly)",
