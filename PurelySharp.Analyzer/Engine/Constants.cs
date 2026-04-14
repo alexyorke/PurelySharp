@@ -120,6 +120,7 @@ public static class Constants
         "System.Type.IsEnum.get",
         "System.Type.IsGenericType.get",
         "System.Type.IsGenericTypeDefinition.get",
+        "System.Type.IsGenericParameter.get",
         "System.Type.IsInterface.get",
         "System.Type.IsPointer.get",
         "System.Type.IsPrimitive.get",
