@@ -353,6 +353,7 @@ public static class Constants
         "System.DateTimeOffset.Parse(string)",
         "decimal.Parse(string)",
         "double.Parse(string)",
+        "double.ToString()",
         "int.Parse(string)",
         "long.Parse(string)",
         "System.Half.Parse(string)",
@@ -875,7 +876,6 @@ public static class Constants
 
         "System.Diagnostics.Contracts.Contract.Ensures(bool)",
         "System.Diagnostics.Contracts.Contract.Requires(bool)",
-        "double.ToString()",
 
 
         "System.Globalization.CultureInfo.InvariantCulture.get",
