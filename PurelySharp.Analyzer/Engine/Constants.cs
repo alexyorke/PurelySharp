@@ -381,6 +381,7 @@ public static class Constants
         "System.ComponentModel.LicenseManager.Validate(System.Type, object)",
         "System.Configuration.ConfigurationManager.AppSettings.get",
         "System.Console.Beep()",
+        "System.Console.BackgroundColor.get",
         "System.Console.BufferHeight.get",
         "System.Console.BufferHeight.set",
         "System.Console.Title.get",
