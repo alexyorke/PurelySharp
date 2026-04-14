@@ -11,7 +11,7 @@ namespace PurelySharp.Test
     public class DelegateTests
     {
         [Test]
-        public async Task PureMethodWithDelegate_NoDiagnostic()
+        public async Task PureMethodWithDelegate_Diagnostic()
         {
             var test = @"
 using System;
