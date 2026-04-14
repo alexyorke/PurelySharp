@@ -86,6 +86,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task TypeModule_Diagnostic()
+        {
+            var test = @"
+using System.Reflection;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public Module {|PS0002:TestMethod|}(System.Type type)
+    {
+        return type.Module;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeInfoGetMethods_Diagnostic()
         {
             var test = @"

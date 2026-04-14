@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `706/706` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `707/707` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -64,6 +64,7 @@
   - `System.Reflection.FieldInfo.GetValue(object)` now has direct regression coverage
   - `System.Reflection.PropertyInfo.GetValue(object)` now has direct regression coverage
   - `System.Type.Assembly.get` is now treated as an impure reflection/runtime-state source
+  - `System.Type.Module.get` is now treated as an impure reflection/runtime-state source
   - `System.Type.GetMethods()` is now treated as an impure reflection/runtime-state source
   - `System.Type.GetProperties()` is now treated as an impure reflection/runtime-state source
   - `System.OperatingSystem.IsWindows()` is now treated as an impure environment-sensitive source
