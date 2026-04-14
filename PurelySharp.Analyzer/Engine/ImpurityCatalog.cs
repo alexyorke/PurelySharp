@@ -24,6 +24,12 @@ namespace PurelySharp.Analyzer.Engine
 		{
 			if (symbol == null) return false;
 
+			if (IsMutableImmutableBuilderMember(symbol))
+			{
+				PurityAnalysisEngine.LogDebug($"Helper IsKnownPureBCLMember: Skipping mutable immutable-builder member: {symbol.ToDisplayString()}");
+				return false;
+			}
+
 			if (symbol.ContainingType?.ContainingNamespace?.ToString().StartsWith("System.Collections.Immutable", StringComparison.Ordinal) == true)
 			{
 				if (symbol.Name.Contains("Create") || symbol.Name.Contains("Add") || symbol.Name.Contains("Set") || symbol.Name.Contains("Remove"))
@@ -92,6 +98,12 @@ namespace PurelySharp.Analyzer.Engine
 		public static bool IsKnownImpure(ISymbol symbol)
 		{
 			if (symbol == null) return false;
+
+			if (IsMutableImmutableBuilderMember(symbol))
+			{
+				PurityAnalysisEngine.LogDebug($"Helper IsKnownImpure: Mutable immutable-builder member detected: {symbol.ToDisplayString()}");
+				return true;
+			}
 
 			string signature = symbol.OriginalDefinition.ToDisplayString();
 			if (symbol.Kind == SymbolKind.Property)
@@ -189,6 +201,57 @@ namespace PurelySharp.Analyzer.Engine
 
 			PurityAnalysisEngine.LogDebug($"    [INOT] No impure type or namespace match found for: {symbol.ToDisplayString()}");
 			return false;
+		}
+
+		private static bool IsMutableImmutableBuilderMember(ISymbol symbol)
+		{
+			if (!IsImmutableBuilderType(symbol.ContainingType))
+			{
+				return false;
+			}
+
+			if (symbol is IMethodSymbol methodSymbol)
+			{
+				if (methodSymbol.MethodKind == MethodKind.PropertySet ||
+					methodSymbol.MethodKind == MethodKind.EventAdd ||
+					methodSymbol.MethodKind == MethodKind.EventRemove)
+				{
+					return true;
+				}
+
+				return methodSymbol.Name is "Add"
+					or "AddRange"
+					or "Clear"
+					or "Insert"
+					or "InsertRange"
+					or "Remove"
+					or "RemoveAll"
+					or "RemoveAt"
+					or "RemoveRange"
+					or "Reverse"
+					or "Sort"
+					or "UnionWith"
+					or "IntersectWith"
+					or "ExceptWith"
+					or "SymmetricExceptWith";
+			}
+
+			if (symbol is IPropertySymbol propertySymbol)
+			{
+				return propertySymbol.SetMethod != null;
+			}
+
+			return false;
+		}
+
+		private static bool IsImmutableBuilderType(INamedTypeSymbol? typeSymbol)
+		{
+			if (typeSymbol == null || !string.Equals(typeSymbol.Name, "Builder", StringComparison.Ordinal))
+			{
+				return false;
+			}
+
+			return typeSymbol.ContainingNamespace?.ToString().StartsWith("System.Collections.Immutable", StringComparison.Ordinal) == true;
 		}
 	}
 }
