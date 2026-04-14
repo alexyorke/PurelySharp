@@ -368,6 +368,7 @@ public static class Constants
         "System.DateOnly.ToString()",
         "System.DateTime.Parse(string)",
         "System.DateTime.ToLongDateString()",
+        "System.DateTime.ToLongTimeString()",
         "System.DateTime.TryParse(string, out System.DateTime)",
         "System.DateTime.ToString()",
         "System.DateTimeOffset.Parse(string)",
@@ -1288,7 +1289,6 @@ public static class Constants
         "System.DateTime.Second.get",
         "System.DateTime.Ticks.get",
         "System.DateTime.TimeOfDay.get",
-        "System.DateTime.ToLongTimeString()",
 
 
         "System.Array.GetLength(int)",
