@@ -475,6 +475,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task ConvertToUInt16_Object_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public ushort {|PS0002:TestMethod|}(object value)
+    {
+        return Convert.ToUInt16(value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task FloatParse_CurrentCulture_Diagnostic()
         {
             var test = @"
