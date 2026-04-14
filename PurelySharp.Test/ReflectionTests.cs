@@ -67,6 +67,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task TypeAssembly_Diagnostic()
+        {
+            var test = @"
+using System.Reflection;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public Assembly {|PS0002:TestMethod|}(System.Type type)
+    {
+        return type.Assembly;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeInfoGetMethods_Diagnostic()
         {
             var test = @"
