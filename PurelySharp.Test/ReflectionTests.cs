@@ -1603,6 +1603,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task MethodInfoCreateDelegate_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System;
+using System.Reflection;
+
+public class TestClass
+{
+    [EnforcePure]
+    public Delegate {|PS0002:TestMethod|}(MethodInfo method, Type delegateType)
+    {
+        return method.CreateDelegate(delegateType);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeInfoGetFields_Diagnostic()
         {
             var test = @"
