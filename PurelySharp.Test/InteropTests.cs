@@ -13,6 +13,24 @@ namespace PurelySharp.Test
     [TestFixture]
     public class InteropTests
     {
+        [Test]
+        public async Task SafeHandleIsInvalid_Diagnostic()
+        {
+            var test = @"
+using System.Runtime.InteropServices;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(SafeHandle handle)
+    {
+        return handle.IsInvalid;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
 
 
 
