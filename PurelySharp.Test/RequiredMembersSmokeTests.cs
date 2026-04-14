@@ -33,5 +33,29 @@ public class Person
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task MutableRequiredProperty_ReportsGetterSuggestionAndImpureMethod()
+        {
+            var test = @"
+#nullable enable
+using PurelySharp.Attributes;
+
+namespace TestNamespace;
+
+public class Counter
+{
+    public required int {|PS0004:Count|} { get; set; }
+
+    [EnforcePure]
+    public void {|PS0002:Increment|}()
+    {
+        Count++;
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
