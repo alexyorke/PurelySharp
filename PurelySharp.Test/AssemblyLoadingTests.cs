@@ -427,6 +427,28 @@ namespace TestNamespace
         }
 
         [Test]
+        public async Task Assembly_HostContext_Diagnostic()
+        {
+            var test = @"
+using System.Reflection;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public long {|PS0002:TestMethod|}(Assembly assembly)
+        {
+            return assembly.HostContext;
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task Assembly_LoadFile_NoDiagnostic()
         {
             var test = @"
