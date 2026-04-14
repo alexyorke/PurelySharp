@@ -81,6 +81,7 @@ public static class Constants
         "System.Environment.Exit(int)",
         "System.Environment.GetEnvironmentVariable(string)",
         "System.Environment.GetFolderPath(System.Environment.SpecialFolder)",
+        "System.Environment.Is64BitProcess.get",
         "System.Environment.Is64BitOperatingSystem.get",
         "System.Environment.MachineName.get",
         "System.Environment.ProcessorCount.get",
