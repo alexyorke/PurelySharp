@@ -97,6 +97,7 @@ public static class Constants
         "System.Type.GetConstructors()",
         "System.Type.GetEvents()",
         "System.Type.GetFields()",
+        "System.Type.GetInterfaces()",
         "System.Type.GetMembers()",
         "System.Type.GetMethods()",
         "System.Type.GetProperties()",
