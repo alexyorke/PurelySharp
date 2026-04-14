@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using PurelySharp.Attributes;
 using NUnit.Framework;
 using PurelySharp.Analyzer;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
@@ -101,6 +102,39 @@ public class Product(string name, decimal price)
     public string GetFormattedPrice()
     {
         return $""{Name}: {Price}"";
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task RequiredMembers_WithSetsRequiredMembersConstructor_ReportPureSuggestions()
+        {
+            var test = @"
+#nullable enable
+using System.Diagnostics.CodeAnalysis;
+using PurelySharp.Attributes;
+
+namespace TestNamespace;
+
+public record User
+{
+    public required string {|PS0004:Name|} { get; init; }
+    public required string {|PS0004:Email|} { get; init; }
+
+    [SetsRequiredMembers]
+    public {|PS0004:User|}(string name, string email)
+    {
+        Name = name;
+        Email = email;
+    }
+
+    [EnforcePure]
+    public string GetUserInfo()
+    {
+        return $""{Name} ({Email})"";
     }
 }
 ";
