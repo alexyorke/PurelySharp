@@ -1874,6 +1874,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task EventInfoGetCustomAttributesInherited_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System.Reflection;
+
+public class TestClass
+{
+    [EnforcePure]
+    public object[] {|PS0002:TestMethod|}(EventInfo eventInfo)
+    {
+        return eventInfo.GetCustomAttributes(false);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task EventInfoAddEventHandler_Diagnostic()
         {
             var test = @"
