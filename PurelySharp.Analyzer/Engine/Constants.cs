@@ -373,6 +373,7 @@ public static class Constants
         "System.DateTimeOffset.ToString()",
         "System.Exception.ToString()",
         "decimal.Parse(string)",
+        "decimal.ToString()",
         "double.Parse(string)",
         "double.ToString()",
         "float.Parse(string)",
