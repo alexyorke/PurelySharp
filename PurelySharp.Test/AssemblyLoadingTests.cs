@@ -678,6 +678,30 @@ namespace TestNamespace
         }
 
         [Test]
+        public async Task Assembly_GetManifestResourceStream_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System.IO;
+using System.Reflection;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public Stream? {|PS0002:TestMethod|}(Assembly assembly)
+        {
+            return assembly.GetManifestResourceStream(""asset.txt"");
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task Assembly_LoadFile_NoDiagnostic()
         {
             var test = @"
