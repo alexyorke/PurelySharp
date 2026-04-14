@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `719/719` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `720/720` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -71,6 +71,7 @@
   - `System.Type.AssemblyQualifiedName.get` is now treated as an impure reflection/runtime-state source
   - `System.Type.BaseType.get` is now treated as an impure reflection/runtime-state source
   - `System.Type.FullName.get` is now treated as an impure reflection/runtime-state source
+  - `System.Type.GUID.get` is now treated as an impure reflection/runtime-state source
   - `System.Type.GetInterface(string)` is now treated as an impure reflection source
   - `System.Type.GetInterface(string, bool)` is now treated as an impure reflection source
   - `System.Type.Namespace.get` is now treated as an impure reflection/runtime-state source

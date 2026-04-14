@@ -108,6 +108,7 @@ public static class Constants
         "System.Type.AssemblyQualifiedName.get",
         "System.Type.BaseType.get",
         "System.Type.FullName.get",
+        "System.Type.GUID.get",
         "System.Type.GetInterface(string)",
         "System.Type.GetInterface(string, bool)",
         "System.Type.GetInterfaces()",
