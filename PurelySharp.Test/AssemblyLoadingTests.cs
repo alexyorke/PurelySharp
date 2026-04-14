@@ -315,6 +315,29 @@ namespace TestNamespace
         }
 
         [Test]
+        public async Task Assembly_EntryPoint_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System.Reflection;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public MethodInfo? {|PS0002:TestMethod|}(Assembly assembly)
+        {
+            return assembly.EntryPoint;
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task Assembly_LoadFile_NoDiagnostic()
         {
             var test = @"
