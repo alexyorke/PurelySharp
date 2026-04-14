@@ -39,7 +39,7 @@ class Program
         }
 
         [Test]
-        public async Task AsyncMethodWithAwait_NoDiagnostic()
+        public async Task AsyncMethodWithAwait_Diagnostic()
         {
 
             var test = @"
