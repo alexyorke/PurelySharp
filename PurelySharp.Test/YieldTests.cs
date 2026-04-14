@@ -14,7 +14,7 @@ namespace PurelySharp.Test
     public class YieldTests
     {
         [Test]
-        public async Task PureMethodWithYield_Diagnostic()
+        public async Task PureMethodWithYield_NoDiagnostic()
         {
 
             var test = @"
