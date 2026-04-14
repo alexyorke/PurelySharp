@@ -146,7 +146,7 @@ namespace TestNamespace
         }
 
         [Test]
-        public async Task ExtendedNameofScopeWithRangeVariables_PureMethod_NoDiagnostic()
+        public async Task ExtendedNameofScopeWithRangeVariables_Diagnostic()
         {
             var test = @"
 using System;
