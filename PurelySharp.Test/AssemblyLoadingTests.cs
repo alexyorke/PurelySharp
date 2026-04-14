@@ -655,6 +655,29 @@ namespace TestNamespace
         }
 
         [Test]
+        public async Task Assembly_GetManifestResourceInfo_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System.Reflection;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public ManifestResourceInfo? {|PS0002:TestMethod|}(Assembly assembly)
+        {
+            return assembly.GetManifestResourceInfo(""asset.txt"");
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task Assembly_LoadFile_NoDiagnostic()
         {
             var test = @"
