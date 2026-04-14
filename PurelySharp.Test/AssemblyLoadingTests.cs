@@ -43,7 +43,7 @@ namespace TestNamespace
 
 
         [Test]
-        public async Task Assembly_GetTypes_NoDiagnostic()
+        public async Task Assembly_GetTypes_Diagnostic()
         {
             var test = @"
 using System;
@@ -55,17 +55,13 @@ namespace TestNamespace
     public class TestClass
     {
         [EnforcePure]
-        public Type[] TestMethod(Assembly assembly)
+        public Type[] {|PS0002:TestMethod|}(Assembly assembly)
         {
             // Assembly.GetTypes() might load dependent assemblies, potentially impure
             return assembly.GetTypes();
         }
     }
 }";
-
-
-
-
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 

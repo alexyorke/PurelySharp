@@ -60,6 +60,7 @@
   - `System.Guid.NewGuid()` now has direct regression coverage
   - `System.Diagnostics.Process.GetCurrentProcess()` now has direct regression coverage
   - `System.Reflection.Assembly.GetExecutingAssembly()` is now treated as an impure reflection/runtime-state source
+  - `System.Reflection.Assembly.GetTypes()` is now treated as an impure reflection/runtime-state source
   - `Console.Out` is now treated as an impure IO source
   - `Console.Error` is now treated as an impure IO source
   - `Console.In` is now treated as an impure IO source
