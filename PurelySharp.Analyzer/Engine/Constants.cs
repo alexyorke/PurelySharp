@@ -138,6 +138,7 @@ public static class Constants
         "System.Type.IsPublic.get",
         "System.Type.IsLayoutSequential.get",
         "System.Type.IsSealed.get",
+        "System.Type.IsUnicodeClass.get",
         "System.Type.IsValueType.get",
         "System.Type.IsVisible.get",
         "System.Type.GetInterface(string)",
