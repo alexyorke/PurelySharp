@@ -94,6 +94,7 @@ public static class Constants
         "System.Convert.ToUInt32(object?)",
         "System.Convert.ToUInt32(string?)",
         "System.Convert.ToUInt64(object?)",
+        "System.Convert.ToUInt64(string?)",
         "object.Equals(object)",
         "object.GetHashCode()",
         "System.DateTime.Now.get",
