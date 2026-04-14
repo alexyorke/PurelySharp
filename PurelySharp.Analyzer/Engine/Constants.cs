@@ -348,6 +348,7 @@ public static class Constants
 
         "System.Random.Shared.get",
         "System.Security.Cryptography.RandomNumberGenerator.GetBytes(byte[])",
+        "System.Text.Encoding.GetEncoding(string)",
 
         "System.Text.Json.JsonSerializer.Deserialize",
         "JsonSerializer.Deserialize",
@@ -995,7 +996,6 @@ public static class Constants
 
 
         "System.Text.Encoding.GetBytes(string)",
-        "System.Text.Encoding.GetEncoding(string)",
         "System.Text.Encoding.GetString(byte[])",
         "System.Text.Encoding.UTF8.get",
         "System.Text.Json.JsonSerializer.Serialize<TValue>(TValue, System.Text.Json.JsonSerializerOptions?)",
