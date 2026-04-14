@@ -195,6 +195,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task BigIntegerParse_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System.Numerics;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public BigInteger {|PS0002:TestMethod|}(string numStr)
+    {
+        return BigInteger.Parse(numStr);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ByteParse_CurrentCulture_Diagnostic()
         {
             var test = @"

@@ -355,6 +355,7 @@ public static class Constants
         "double.Parse(string)",
         "int.Parse(string)",
         "long.Parse(string)",
+        "System.Numerics.BigInteger.Parse(string)",
         "System.Text.Encoding.GetEncoding(string)",
 
         "System.Text.Json.JsonSerializer.Deserialize",
@@ -939,7 +940,6 @@ public static class Constants
 
 
         "System.Numerics.BigInteger.Add(System.Numerics.BigInteger, System.Numerics.BigInteger)",
-        "System.Numerics.BigInteger.Parse(string)",
         "System.Numerics.Complex.Complex(double, double)",
         "System.Numerics.Complex.Abs(System.Numerics.Complex)",
 
