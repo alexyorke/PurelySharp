@@ -141,5 +141,30 @@ public record User
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task RequiredMembers_WithNullCheck_ReportPureGetterSuggestions()
+        {
+            var test = @"
+#nullable enable
+using PurelySharp.Attributes;
+
+namespace TestNamespace;
+
+public class Document
+{
+    public required string {|PS0004:Title|} { get; init; }
+    public string? {|PS0004:Description|} { get; init; }
+
+    [EnforcePure]
+    public string GetSummary()
+    {
+        return $""Document: {Title}, {Description ?? ""No description provided""}""; 
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
