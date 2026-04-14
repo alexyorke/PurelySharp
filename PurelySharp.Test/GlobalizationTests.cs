@@ -355,6 +355,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task ByteToString_FormatString_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public string {|PS0002:TestMethod|}(byte value)
+    {
+        return value.ToString(""N"");
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task SByteToString_CurrentCulture_Diagnostic()
         {
             var test = @"
