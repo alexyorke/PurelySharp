@@ -585,6 +585,29 @@ namespace TestNamespace
         }
 
         [Test]
+        public async Task Assembly_GetFiles_Diagnostic()
+        {
+            var test = @"
+using System.IO;
+using System.Reflection;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public FileStream[] {|PS0002:TestMethod|}(Assembly assembly)
+        {
+            return assembly.GetFiles();
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task Assembly_LoadFile_NoDiagnostic()
         {
             var test = @"
