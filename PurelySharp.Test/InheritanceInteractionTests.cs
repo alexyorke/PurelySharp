@@ -15,7 +15,7 @@ namespace PurelySharp.Test
     public class InheritanceInteractionTests
     {
         [Test]
-        public async Task DeepInheritanceAndAbstractState_PureMethods_NoDiagnostic()
+        public async Task DeepInheritanceAndAbstractState_MissingAttributeDiagnostics()
         {
             var test = @"
 using PurelySharp.Attributes;
