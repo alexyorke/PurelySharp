@@ -391,6 +391,7 @@ public static class Constants
         "sbyte.ToString()",
         "sbyte.TryParse(string, out sbyte)",
         "ushort.Parse(string)",
+        "ushort.ToString()",
         "ushort.TryParse(string, out ushort)",
         "uint.Parse(string)",
         "uint.TryParse(string, out uint)",
