@@ -12,7 +12,7 @@ namespace PurelySharp.Test
     public class ComplexPureOperationsTests
     {
         [Test]
-        public async Task DeepRecursiveMethodWithComplexLogic_NoDiagnostic()
+        public async Task DeepRecursiveMethodWithComplexLogic_Diagnostic()
         {
             var test = @"
 using System;
@@ -48,7 +48,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task NestedTupleDeconstructionWithPatternMatching_NoDiagnostic()
+        public async Task NestedTupleDeconstructionWithPatternMatching_Diagnostic()
         {
             var test = @"
 using System;
@@ -84,7 +84,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task ComplexGenericConstraints_NoDiagnostic()
+        public async Task ComplexGenericConstraints_MissingAttributeDiagnostics()
         {
             var test = @"
 using System;
