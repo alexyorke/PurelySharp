@@ -149,6 +149,7 @@ public static class Constants
         "System.Type.IsSpecialName.get",
         "System.Type.IsUnicodeClass.get",
         "System.Type.IsValueType.get",
+        "System.Type.IsVariableBoundArray.get",
         "System.Type.IsVisible.get",
         "System.Type.GetInterface(string)",
         "System.Type.GetInterface(string, bool)",
