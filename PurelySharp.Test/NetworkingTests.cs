@@ -53,6 +53,25 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        [Test]
+        public async Task HttpRequestMessageConstructor_Diagnostic()
+        {
+            var test = @"
+using System.Net.Http;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public HttpRequestMessage {|PS0002:TestMethod|}()
+    {
+        return new HttpRequestMessage(HttpMethod.Get, ""https://example.com"");
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
 
 
 

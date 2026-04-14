@@ -1181,7 +1181,6 @@ public static class Constants
         "System.Linq.Enumerable.Zip",
         "System.Math.Sign(decimal)",
         "System.Math.Truncate(double)",
-        "System.Net.Http.HttpRequestMessage.HttpRequestMessage(System.Net.Http.HttpMethod, string)",
         "System.Net.Http.StringContent.StringContent(string, System.Text.Encoding, string)",
         "System.Net.IPEndPoint.IPEndPoint(System.Net.IPAddress, int)",
         "System.ObjectDisposedException.ObjectDisposedException(string)",
