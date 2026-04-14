@@ -438,6 +438,7 @@ public static class Constants
         "ushort.ToString(string?)",
         "ushort.ToString()",
         "ushort.TryParse(string, out ushort)",
+        "ushort.TryParse(System.ReadOnlySpan<char>, out ushort)",
         "uint.Parse(string)",
         "uint.ToString(string?)",
         "uint.ToString()",
