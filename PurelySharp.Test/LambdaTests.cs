@@ -64,7 +64,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task PureMethodWithLambdaCapture_Diagnostic()
+        public async Task MethodWithLambdaCapture_Diagnostic()
         {
             var test = @"
 using System;
