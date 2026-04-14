@@ -1083,7 +1083,6 @@ public static class Constants
         "System.Collections.Hashtable.ContainsKey(object)",
         "System.Collections.Queue.Synchronized(System.Collections.Queue)",
         "System.Collections.SortedList.GetKey(int)",
-        "System.ComponentModel.AttributeCollection.GetDefaultAttribute<T>()",
         "System.ComponentModel.BrowsableAttribute.BrowsableAttribute(bool)",
         "System.ComponentModel.DataAnnotations.RangeAttribute.RangeAttribute(double, double)",
         "System.ComponentModel.DescriptionAttribute.DescriptionAttribute(string)",
