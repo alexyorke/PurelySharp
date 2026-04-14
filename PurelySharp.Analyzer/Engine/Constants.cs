@@ -814,7 +814,6 @@ public static class Constants
         "System.Collections.Generic.Dictionary<TKey, TValue>.Values.get",
         "System.Collections.Generic.EqualityComparer<T>.Default.get",
         "System.Collections.Generic.HashSet<T>.IsSubsetOf(System.Collections.Generic.IEnumerable<T>)",
-        "System.Collections.Generic.List<T>()",
         "System.Collections.Generic.List<T>.Contains(T)",
         "System.Collections.Generic.List<T>.Count.get",
         "System.Collections.Generic.List<T>.Find(System.Predicate<T>)",
@@ -843,7 +842,6 @@ public static class Constants
         "System.Convert.ToBase64String(byte[])",
         "System.Convert.ToDouble(object)",
         "System.Convert.ToInt32(object)",
-        "System.Convert.ToString(object)",
 
 
         "System.DateTime.DateTime(long)",
@@ -1232,7 +1230,6 @@ public static class Constants
         "System.Convert.ToBase64String(byte[])",
         "System.Convert.ToDouble(object)",
         "System.Convert.ToInt32(object)",
-        "System.Convert.ToString(object)",
         "System.DateTime.Day.get",
         "System.DateTime.DayOfWeek.get",
         "System.DateTime.DayOfYear.get",
