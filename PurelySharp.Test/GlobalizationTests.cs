@@ -795,6 +795,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task DateOnlyTryParse_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(string dateStr)
+    {
+        return DateOnly.TryParse(dateStr, out _);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DateTimeOffsetTryParse_CurrentCulture_Diagnostic()
         {
             var test = @"
