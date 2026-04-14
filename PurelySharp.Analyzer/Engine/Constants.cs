@@ -107,6 +107,7 @@ public static class Constants
         "System.Type.GetFields(System.Reflection.BindingFlags)",
         "System.Type.AssemblyQualifiedName.get",
         "System.Type.BaseType.get",
+        "System.Type.ContainsGenericParameters.get",
         "System.Type.FullName.get",
         "System.Type.GenericTypeArguments.get",
         "System.Type.GUID.get",
