@@ -85,6 +85,7 @@ public static class Constants
         "System.OperatingSystem.IsWasi()",
         "System.OperatingSystem.IsWatchOS()",
         "System.OperatingSystem.IsWindows()",
+        "System.OperatingSystem.IsWindowsVersionAtLeast(int, int, int, int)",
         "System.Type.GetMethods()",
         "System.Type.GetProperties()",
         "System.Reflection.Assembly.GetTypes()",
