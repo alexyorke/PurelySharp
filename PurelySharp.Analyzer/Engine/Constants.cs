@@ -1320,7 +1320,6 @@ public static class Constants
         "System.Net.IPAddress.Parse(System.ReadOnlySpan<char>)",
         "System.NotSupportedException.NotSupportedException(string)",
         "object.MemberwiseClone()",
-        "System.Reflection.TypeInfo.IsValueType.get",
         "System.Runtime.InteropServices.MemoryMarshal.AsBytes<T>(System.Span<T>)",
         "string.IsNullOrWhiteSpace(System.ReadOnlySpan<char>)",
         "System.TimeSpan.Zero.get",

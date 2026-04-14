@@ -619,6 +619,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task TypeInfoIsValueType_Diagnostic()
+        {
+            var test = @"
+using System.Reflection;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(TypeInfo typeInfo)
+    {
+        return typeInfo.IsValueType;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeIsArray_Diagnostic()
         {
             var test = @"
