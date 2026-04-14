@@ -112,6 +112,7 @@ public static class Constants
         "System.Type.FullName.get",
         "System.Type.GenericTypeArguments.get",
         "System.Type.GUID.get",
+        "System.Type.IsAbstract.get",
         "System.Type.GetInterface(string)",
         "System.Type.GetInterface(string, bool)",
         "System.Type.GetInterfaces()",
