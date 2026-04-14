@@ -124,6 +124,7 @@ public static class Constants
         "System.Type.IsInterface.get",
         "System.Type.IsNestedAssembly.get",
         "System.Type.IsNestedFamANDAssem.get",
+        "System.Type.IsNestedFamORAssem.get",
         "System.Type.IsNestedFamily.get",
         "System.Type.IsNested.get",
         "System.Type.IsNestedPrivate.get",
