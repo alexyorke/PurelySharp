@@ -388,6 +388,7 @@ public static class Constants
         "System.Console.ForegroundColor.get",
         "System.Console.Title.get",
         "System.Console.Title.set",
+        "System.Console.WindowWidth.get",
         "System.Data.DataSet.Clear()",
         "System.Diagnostics.Debugger.IsAttached.get",
         "System.Diagnostics.Debugger.Launch()",
