@@ -18,7 +18,7 @@ namespace PurelySharp.Test
 
 
         [Test]
-        public async Task XDocument_Parse_Diagnostic()
+        public async Task XDocument_Parse_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -42,7 +42,7 @@ public class TestClass
 
 
         [Test]
-        public async Task LinqToXml_Add_Impure_NoDiagnostic()
+        public async Task LinqToXml_Add_Diagnostic()
         {
             var test = @"
 using System;
@@ -53,11 +53,11 @@ using System.Linq;
 public class TestClass
 {
     [EnforcePure]
-    public string TestMethod()
+    public string {|PS0002:TestMethod|}()
     {
         XElement root = new XElement(""Root"");
-        root.Add(new XElement(""Child1"", ""Value1"")); // Add is impure
-        root.Add(new XAttribute(""Attr1"", ""ValA""));  // Add is impure
+        root.Add(new XElement(""Child1"", ""Value1"")); // Add mutates the XML tree and is impure
+        root.Add(new XAttribute(""Attr1"", ""ValA""));  // Add mutates the XML tree and is impure
 
         return root.Elements(""Child1"").First().Value; // Elements/First/Value are pure
     }

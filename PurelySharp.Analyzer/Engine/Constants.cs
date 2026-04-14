@@ -196,6 +196,7 @@ public static class Constants
         "System.TimeZoneInfo.FindSystemTimeZoneById(string)",
         "System.Type.GetType(string)",
         "System.Xml.Linq.XElement.Add(object)",
+        "XElement.Add",
         "System.Xml.Linq.XElement.Load(System.IO.Stream)",
         "System.Xml.Linq.XElement.Save(System.IO.Stream)",
         "System.Xml.Linq.XNode.Remove()",
@@ -487,7 +488,9 @@ public static class Constants
 
 
         "System.Xml.Linq.XContainer.Add(object)",
+        "XContainer.Add",
         "System.Xml.Linq.XElement.Add(object)",
+        "XElement.Add",
 
 
         "System.Threading.Tasks.Task.Run(System.Action)",
