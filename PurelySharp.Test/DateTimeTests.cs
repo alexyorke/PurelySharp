@@ -67,6 +67,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task DateTimeToString_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public string {|PS0002:TestMethod|}(DateTime value)
+    {
+        return value.ToString();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DateTimeOffsetNow_Diagnostic()
         {
             var test = @"
