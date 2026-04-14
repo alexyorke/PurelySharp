@@ -125,5 +125,25 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task XElementAttribute_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System.Xml.Linq;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public XAttribute? {|PS0002:TestMethod|}(XElement element)
+    {
+        return element.Attribute(""id"");
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

@@ -545,6 +545,7 @@ public static class Constants
         "System.Xml.Linq.XDocument.Parse(string)",
         "System.Xml.Linq.XElement.Value.get",
         "System.Xml.Linq.XAttribute.Value.get",
+        "System.Xml.Linq.XElement.Attribute(System.Xml.Linq.XName)",
         "System.AppContext.SetSwitch(string, bool)",
         "System.Collections.Generic.PriorityQueue<TElement, TPriority>.Enqueue(TElement, TPriority)",
         "System.Collections.Generic.PriorityQueue<TElement, TPriority>.Dequeue()",
@@ -1313,8 +1314,6 @@ public static class Constants
         "System.Runtime.InteropServices.MemoryMarshal.AsBytes<T>(System.Span<T>)",
         "string.IsNullOrWhiteSpace(System.ReadOnlySpan<char>)",
         "System.TimeSpan.Zero.get",
-
-        "System.Xml.Linq.XElement.Attribute(System.Xml.Linq.XName)",
         "System.Xml.Linq.XElement.Descendants()",
         "System.Xml.Linq.XElement.Elements()",
 
