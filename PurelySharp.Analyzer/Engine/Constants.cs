@@ -74,6 +74,7 @@ public static class Constants
         "System.Diagnostics.Process.GetCurrentProcess()",
         "System.Diagnostics.Process.Start(string)",
         "System.Type.GetMethods()",
+        "System.Type.GetProperties()",
         "System.Reflection.Assembly.GetTypes()",
         "System.Reflection.Assembly.GetExecutingAssembly()",
         "System.Diagnostics.Stopwatch.Elapsed.get",
@@ -784,9 +785,6 @@ public static class Constants
 
         "System.Reflection.FieldInfo.GetValue(object)",
         "System.Reflection.PropertyInfo.GetValue(object)",
-        "System.Reflection.TypeInfo.GetProperties()",
-
-
         "System.Runtime.InteropServices.Marshal.PtrToStructure<T>(System.IntPtr)",
 
 

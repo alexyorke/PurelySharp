@@ -84,5 +84,24 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task TypeInfoGetProperties_Diagnostic()
+        {
+            var test = @"
+using System.Reflection;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public PropertyInfo[] {|PS0002:TestMethod|}(TypeInfo typeInfo)
+    {
+        return typeInfo.GetProperties();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
