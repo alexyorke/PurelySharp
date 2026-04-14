@@ -129,6 +129,7 @@ public static class Constants
         "System.Type.IsPublic.get",
         "System.Type.IsSealed.get",
         "System.Type.IsValueType.get",
+        "System.Type.IsVisible.get",
         "System.Type.GetInterface(string)",
         "System.Type.GetInterface(string, bool)",
         "System.Type.GetInterfaces()",
