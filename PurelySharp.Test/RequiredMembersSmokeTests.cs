@@ -321,5 +321,30 @@ public class ProductManager
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task RequiredMembers_OnStruct_ReportPureGetterSuggestions()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+namespace TestNamespace;
+
+public struct Point
+{
+    public required double {|PS0004:X|} { get; init; }
+    public required double {|PS0004:Y|} { get; init; }
+
+    [EnforcePure]
+    public double CalculateDistance()
+    {
+        return Math.Sqrt(X * X + Y * Y);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
