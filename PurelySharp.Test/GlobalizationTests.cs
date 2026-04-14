@@ -455,6 +455,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task ConvertToInt64_Object_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public long {|PS0002:TestMethod|}(object value)
+    {
+        return Convert.ToInt64(value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ConvertToInt16_Object_CurrentCulture_Diagnostic()
         {
             var test = @"
