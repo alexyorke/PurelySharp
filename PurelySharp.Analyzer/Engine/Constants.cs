@@ -75,6 +75,7 @@ public static class Constants
         "System.Diagnostics.Process.Start(string)",
         "System.OperatingSystem.IsAndroid()",
         "System.OperatingSystem.IsFreeBSD()",
+        "System.OperatingSystem.IsIOS()",
         "System.OperatingSystem.IsLinux()",
         "System.OperatingSystem.IsMacOS()",
         "System.OperatingSystem.IsWindows()",
