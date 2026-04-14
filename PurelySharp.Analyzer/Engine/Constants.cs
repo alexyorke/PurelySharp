@@ -423,6 +423,7 @@ public static class Constants
         "System.Numerics.BigInteger.TryParse(string, out System.Numerics.BigInteger)",
         "System.Text.Encoding.GetEncoding(string)",
         "System.TimeOnly.Parse(string)",
+        "System.TimeOnly.ToString(string?)",
         "System.TimeOnly.ToString()",
         "System.TimeOnly.TryParse(string, out System.TimeOnly)",
         "System.TimeSpan.Parse(string)",

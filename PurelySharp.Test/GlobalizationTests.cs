@@ -1655,6 +1655,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task TimeOnlyToString_FormatString_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public string {|PS0002:TestMethod|}(TimeOnly value)
+    {
+        return value.ToString(""t"");
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TimeOnlyTryParse_CurrentCulture_Diagnostic()
         {
             var test = @"
