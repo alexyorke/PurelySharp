@@ -146,6 +146,7 @@ public static class Constants
         "System.Type.IsMarshalByRef.get",
         "System.Type.IsSecurityCritical.get",
         "System.Type.IsSecuritySafeCritical.get",
+        "System.Type.IsSecurityTransparent.get",
         "System.Type.IsSealed.get",
         "System.Type.IsSerializable.get",
         "System.Type.IsSZArray.get",
