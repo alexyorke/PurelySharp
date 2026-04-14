@@ -91,6 +91,7 @@ public static class Constants
         "System.OperatingSystem.IsTvOSVersionAtLeast(int, int, int)",
         "System.OperatingSystem.IsWasi()",
         "System.OperatingSystem.IsWatchOS()",
+        "System.OperatingSystem.IsWatchOSVersionAtLeast(int, int, int)",
         "System.OperatingSystem.IsWindows()",
         "System.OperatingSystem.IsWindowsVersionAtLeast(int, int, int, int)",
         "System.Type.GetMethods()",
