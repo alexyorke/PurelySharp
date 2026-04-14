@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `608/608` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `609/609` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -61,6 +61,7 @@
   - `System.Diagnostics.Process.GetCurrentProcess()` now has direct regression coverage
   - `System.Reflection.Assembly.GetExecutingAssembly()` is now treated as an impure reflection/runtime-state source
   - `System.Reflection.Assembly.GetTypes()` is now treated as an impure reflection/runtime-state source
+  - `System.Reflection.FieldInfo.GetValue(object)` now has direct regression coverage
   - `Console.Out` is now treated as an impure IO source
   - `Console.Error` is now treated as an impure IO source
   - `Console.In` is now treated as an impure IO source
