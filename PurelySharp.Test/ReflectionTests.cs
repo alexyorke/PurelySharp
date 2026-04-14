@@ -284,6 +284,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task TypeFullName_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public string? {|PS0002:TestMethod|}(System.Type type)
+    {
+        return type.FullName;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeInfoGetFields_Diagnostic()
         {
             var test = @"
