@@ -47,5 +47,24 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task AddingNewEventArgsConstructor_Diagnostic()
+        {
+            var test = @"
+using System.ComponentModel;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public AddingNewEventArgs {|PS0002:TestMethod|}()
+    {
+        return new AddingNewEventArgs();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
