@@ -78,6 +78,7 @@ public static class Constants
         "System.OperatingSystem.IsFreeBSD()",
         "System.OperatingSystem.IsIOS()",
         "System.OperatingSystem.IsLinux()",
+        "System.OperatingSystem.IsMacCatalyst()",
         "System.OperatingSystem.IsMacOS()",
         "System.OperatingSystem.IsTvOS()",
         "System.OperatingSystem.IsWasi()",
