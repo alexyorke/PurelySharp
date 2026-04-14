@@ -1544,6 +1544,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task MethodBaseGetMethodFromHandle_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System;
+using System.Reflection;
+
+public class TestClass
+{
+    [EnforcePure]
+    public MethodBase {|PS0002:TestMethod|}(RuntimeMethodHandle handle)
+    {
+        return MethodBase.GetMethodFromHandle(handle);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeInfoGetFields_Diagnostic()
         {
             var test = @"
