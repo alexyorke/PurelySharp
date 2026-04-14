@@ -416,6 +416,7 @@ public static class Constants
         "float.ToString(string?)",
         "float.ToString()",
         "float.TryParse(string, out float)",
+        "float.TryParse(System.ReadOnlySpan<char>, out float)",
         "int.Parse(string)",
         "int.TryParse(string, out int)",
         "int.TryParse(System.ReadOnlySpan<char>, out int)",
