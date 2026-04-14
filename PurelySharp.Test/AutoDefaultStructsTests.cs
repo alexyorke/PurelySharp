@@ -12,7 +12,7 @@ namespace PurelySharp.Test
     public class AutoDefaultStructsTests
     {
         [Test]
-        public async Task AutoDefaultStruct_PureMethod_NoDiagnostic()
+        public async Task AutoDefaultStruct_PureMethod_Diagnostic()
         {
             var test = @"
 using System;
@@ -55,7 +55,7 @@ namespace TestNamespace
         }
 
         [Test]
-        public async Task AutoDefaultStruct_WithConstructor_PureMethod_NoDiagnostic()
+        public async Task AutoDefaultStruct_WithConstructor_Diagnostic()
         {
             var test = @"
 using System;
@@ -140,7 +140,7 @@ namespace TestNamespace
         }
 
         [Test]
-        public async Task AutoDefaultStruct_WithProperties_PureMethod_NoDiagnostic()
+        public async Task AutoDefaultStruct_WithProperties_MissingAttributeDiagnostics()
         {
             var test = @"
 using System;
@@ -224,7 +224,7 @@ namespace TestNamespace
         }
 
         [Test]
-        public async Task AutoDefaultStruct_WithNestedStructs_PureMethod_NoDiagnostic()
+        public async Task AutoDefaultStruct_WithNestedStructs_Diagnostic()
         {
             var test = @"
 using System;
