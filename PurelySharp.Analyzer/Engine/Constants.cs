@@ -357,6 +357,7 @@ public static class Constants
         "System.DateTime.TryParse(string, out System.DateTime)",
         "System.DateTime.ToString()",
         "System.DateTimeOffset.Parse(string)",
+        "System.DateTimeOffset.TryParse(string, out System.DateTimeOffset)",
         "System.DateTimeOffset.ToString()",
         "System.Exception.ToString()",
         "decimal.Parse(string)",
