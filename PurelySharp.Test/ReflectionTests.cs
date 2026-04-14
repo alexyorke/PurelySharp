@@ -1050,6 +1050,24 @@ public class TestClass
         }
 
         [Test]
+        public async Task TypeIsMarshalByRef_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(System.Type type)
+    {
+        return type.IsMarshalByRef;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeInfoGetFields_Diagnostic()
         {
             var test = @"
