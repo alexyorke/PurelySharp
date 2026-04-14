@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `834/834` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `835/835` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -212,6 +212,7 @@
   - `System.OperatingSystem.IsIOSVersionAtLeast(int, int, int)` is now treated as an impure environment-sensitive source
   - `System.OperatingSystem.IsMacCatalystVersionAtLeast(int, int, int)` is now treated as an impure environment-sensitive source
   - `System.OperatingSystem.IsMacOSVersionAtLeast(int, int, int)` is now treated as an impure environment-sensitive source
+  - `System.OperatingSystem.Platform.get` is now treated as an impure environment-sensitive source
   - `System.OperatingSystem.IsOSPlatformVersionAtLeast(string, int, int, int, int)` is now treated as an impure environment-sensitive source
   - `System.OperatingSystem.IsTvOSVersionAtLeast(int, int, int)` is now treated as an impure environment-sensitive source
   - `System.OperatingSystem.IsWatchOSVersionAtLeast(int, int, int)` is now treated as an impure environment-sensitive source
