@@ -92,6 +92,7 @@ public static class Constants
         "System.Convert.ToUInt16(object?)",
         "System.Convert.ToUInt16(string?)",
         "System.Convert.ToUInt32(object?)",
+        "System.Convert.ToUInt32(string?)",
         "System.Convert.ToUInt64(object?)",
         "object.Equals(object)",
         "object.GetHashCode()",
