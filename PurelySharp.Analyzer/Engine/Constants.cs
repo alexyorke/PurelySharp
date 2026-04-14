@@ -134,6 +134,7 @@ public static class Constants
         "System.Type.IsPointer.get",
         "System.Type.IsPrimitive.get",
         "System.Type.IsPublic.get",
+        "System.Type.IsLayoutSequential.get",
         "System.Type.IsSealed.get",
         "System.Type.IsValueType.get",
         "System.Type.IsVisible.get",
