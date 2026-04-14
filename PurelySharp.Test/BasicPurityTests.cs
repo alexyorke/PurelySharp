@@ -14,7 +14,7 @@ namespace PurelySharp.Test
     public class BasicPurityTests
     {
         [Test]
-        public async Task TestPureMethod_NoDiagnostics()
+        public async Task TestPotentiallyPureMethod_MissingAttributeDiagnostic()
         {
             var testCode = @"
 using PurelySharp.Attributes;
