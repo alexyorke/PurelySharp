@@ -83,7 +83,7 @@ public class TestClass
 
 
         [Test]
-        public async Task PureMethodWithNestedInParameter_NoDiagnostic()
+        public async Task PureMethodWithNestedInParameter_MissingAttributeDiagnostic()
         {
             var test = @"
 using PurelySharp.Attributes;
