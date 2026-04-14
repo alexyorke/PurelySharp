@@ -354,6 +354,7 @@ public static class Constants
         "System.Security.Cryptography.RandomNumberGenerator.GetBytes(byte[])",
         "byte.Parse(string)",
         "System.DateTime.Parse(string)",
+        "System.DateTime.TryParse(string, out System.DateTime)",
         "System.DateTime.ToString()",
         "System.DateTimeOffset.Parse(string)",
         "System.DateTimeOffset.ToString()",
