@@ -98,6 +98,7 @@ public static class Constants
         "System.Environment.UserDomainName.get",
         "System.Environment.UserInteractive.get",
         "System.Environment.UserName.get",
+        "System.Environment.Version.get",
         "System.Environment.WorkingSet.get",
         "System.GC.Collect()",
         "System.GC.GetTotalMemory(bool)",
