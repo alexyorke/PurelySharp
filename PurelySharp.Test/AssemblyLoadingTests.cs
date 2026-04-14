@@ -106,7 +106,30 @@ namespace TestNamespace
             return assembly.GetTypes();
         }
     }
+            }";
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task Assembly_GetExportedTypes_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Reflection;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public Type[] {|PS0002:TestMethod|}(Assembly assembly)
+        {
+            return assembly.GetExportedTypes();
+        }
+    }
 }";
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
