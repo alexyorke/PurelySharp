@@ -1836,6 +1836,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task ParameterInfoGetRequiredCustomModifiers_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System;
+using System.Reflection;
+
+public class TestClass
+{
+    [EnforcePure]
+    public Type[] {|PS0002:TestMethod|}(ParameterInfo parameter)
+    {
+        return parameter.GetRequiredCustomModifiers();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeInfoGetFields_Diagnostic()
         {
             var test = @"

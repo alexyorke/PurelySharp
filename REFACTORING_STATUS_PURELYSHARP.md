@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `798/798` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `799/799` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -88,6 +88,7 @@
   - `System.Reflection.EventInfo.RemoveEventHandler(object, Delegate)` now has direct regression coverage for its existing conservative reflection classification
   - `System.Reflection.FieldInfo.SetValue(object, object)` now has direct regression coverage for its existing conservative reflection classification
   - `System.Reflection.FieldInfo.GetRawConstantValue()` now has direct regression coverage for its existing conservative reflection classification
+  - `System.Reflection.ParameterInfo.GetRequiredCustomModifiers()` now has direct regression coverage for its existing conservative reflection classification
   - `DateTime.Today` is now treated as an impure environment-sensitive source
   - `DateTime.Now` now has direct regression coverage for its existing environment-sensitive impurity catalog entry
   - `DateTime.UtcNow` now has direct regression coverage for its existing environment-sensitive impurity catalog entry
