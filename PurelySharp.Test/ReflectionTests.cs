@@ -219,5 +219,25 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task TypeInfoGetField_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System.Reflection;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public FieldInfo? {|PS0002:TestMethod|}(TypeInfo typeInfo)
+    {
+        return typeInfo.GetField(""Value"");
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
