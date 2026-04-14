@@ -415,6 +415,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task DecimalToString_FormatString_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public string {|PS0002:TestMethod|}(decimal value)
+    {
+        return value.ToString(""N"");
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TimeSpanToString_CurrentCulture_Diagnostic()
         {
             var test = @"
