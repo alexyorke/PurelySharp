@@ -115,6 +115,7 @@ public static class Constants
         "System.Type.HasElementType.get",
         "System.Type.IsCOMObject.get",
         "System.Type.IsConstructedGenericType.get",
+        "System.Type.IsContextful.get",
         "System.Type.IsAbstract.get",
         "System.Type.IsAnsiClass.get",
         "System.Type.IsArray.get",
