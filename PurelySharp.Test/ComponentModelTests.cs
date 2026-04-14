@@ -30,6 +30,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task TypeDescriptorGetProperties_Diagnostic()
+        {
+            var test = @"
+using System.ComponentModel;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public PropertyDescriptorCollection {|PS0002:TestMethod|}(object value)
+    {
+        return TypeDescriptor.GetProperties(value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task CancelEventArgsCancel_Diagnostic()
         {
             var test = @"

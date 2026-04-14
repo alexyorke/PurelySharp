@@ -64,6 +64,7 @@ public static class Constants
         "System.Console.In.get",
         "System.Console.Out.get",
         "System.ComponentModel.TypeDescriptor.GetConverter(System.Type)",
+        "System.ComponentModel.TypeDescriptor.GetProperties(object)",
         "System.DateTime.Now.get",
         "System.DateTime.Today.get",
         "System.DateTime.UtcNow.get",
@@ -826,9 +827,6 @@ public static class Constants
         "System.Collections.Immutable.ImmutableArray.Create<T>(params T[])",
         "System.Collections.Immutable.ImmutableDictionary.Create<TKey, TValue>()",
         "System.Collections.Immutable.ImmutableHashSet.Create<T>()",
-
-
-        "System.ComponentModel.TypeDescriptor.GetProperties(object)",
 
 
         "System.Convert.FromBase64String(string)",
