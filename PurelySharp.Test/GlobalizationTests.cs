@@ -2055,6 +2055,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task TimeOnlyParseExact_MultipleFormats_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public TimeOnly {|PS0002:TestMethod|}(string value)
+    {
+        return TimeOnly.ParseExact(value, new[] { ""t"", ""HH:mm:ss"" });
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TimeOnlyToString_CurrentCulture_Diagnostic()
         {
             var test = @"

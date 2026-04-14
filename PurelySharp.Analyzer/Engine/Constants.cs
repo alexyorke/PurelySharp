@@ -444,6 +444,7 @@ public static class Constants
         "System.Text.Encoding.GetEncoding(string)",
         "System.TimeOnly.Parse(string)",
         "System.TimeOnly.ParseExact(string, string)",
+        "System.TimeOnly.ParseExact(string, string[])",
         "System.TimeOnly.ToLongTimeString()",
         "System.TimeOnly.ToShortTimeString()",
         "System.TimeOnly.ToString(string?)",
