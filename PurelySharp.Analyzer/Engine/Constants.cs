@@ -393,6 +393,7 @@ public static class Constants
         "System.Console.Title.set",
         "System.Console.WindowHeight.get",
         "System.Console.WindowLeft.get",
+        "System.Console.WindowTop.get",
         "System.Console.WindowWidth.get",
         "System.Data.DataSet.Clear()",
         "System.Diagnostics.Debugger.IsAttached.get",
