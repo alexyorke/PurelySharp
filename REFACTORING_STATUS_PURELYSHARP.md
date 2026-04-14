@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `548/548` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `549/549` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -26,6 +26,7 @@
   - `CultureInfo.CurrentUICulture` is now treated as an impure environment-sensitive source
   - `Environment.UserName` is now treated as an impure environment-sensitive source
   - `Environment.UserDomainName` is now treated as an impure environment-sensitive source
+  - `Environment.CurrentManagedThreadId` is now treated as an impure environment-sensitive source
 
 ### What is already done
 

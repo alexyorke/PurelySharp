@@ -77,6 +77,7 @@ public static class Constants
         "System.Diagnostics.Trace.WriteLine(string)",
         "System.Environment.CurrentDirectory.get",
         "System.Environment.CurrentDirectory.set",
+        "System.Environment.CurrentManagedThreadId.get",
         "System.Environment.Exit(int)",
         "System.Environment.GetEnvironmentVariable(string)",
         "System.Environment.GetFolderPath(System.Environment.SpecialFolder)",
