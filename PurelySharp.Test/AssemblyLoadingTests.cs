@@ -475,6 +475,7 @@ namespace TestNamespace
         {
             var test = @"
 using System.Reflection;
+using System.Security;
 using PurelySharp.Attributes;
 
 namespace TestNamespace
@@ -485,6 +486,29 @@ namespace TestNamespace
         public bool {|PS0002:TestMethod|}(Assembly assembly)
         {
             return assembly.ReflectionOnly;
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task Assembly_SecurityRuleSet_Diagnostic()
+        {
+            var test = @"
+using System.Reflection;
+using System.Security;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public SecurityRuleSet {|PS0002:TestMethod|}(Assembly assembly)
+        {
+            return assembly.SecurityRuleSet;
         }
     }
 }";
