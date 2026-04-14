@@ -396,6 +396,7 @@ public static class Constants
         "System.DateTime.ToShortTimeString()",
         "System.DateTime.ToString(string)",
         "System.DateTime.TryParse(string, out System.DateTime)",
+        "System.DateTime.TryParse(System.ReadOnlySpan<char>, out System.DateTime)",
         "System.DateTime.ToString()",
         "System.DateTimeOffset.Parse(string)",
         "System.DateTimeOffset.TryParse(string, out System.DateTimeOffset)",

@@ -1655,6 +1655,27 @@ public class TestClass
         }
 
         [Test]
+        public async Task DateTimeTryParse_Span_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(string dateStr)
+    {
+        ReadOnlySpan<char> span = dateStr.AsSpan();
+        return DateTime.TryParse(span, out _);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DateTimeToLongDateString_CurrentCulture_Diagnostic()
         {
             var test = @"
