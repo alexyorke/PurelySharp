@@ -411,5 +411,25 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task ConsoleOutputEncoding_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Text;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public Encoding {|PS0002:TestMethod|}()
+    {
+        return Console.OutputEncoding;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
