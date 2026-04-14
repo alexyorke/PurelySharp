@@ -59,7 +59,7 @@ namespace TestNamespace
         }
 
         [Test]
-        public async Task GenericAttributeWithTypeConstraint_PureMethod_NoDiagnostic()
+        public async Task GenericAttributeWithTypeConstraint_PureMethod_ReportsMissingAttributeDiagnostics()
         {
             var test = @"
 using System;
@@ -106,7 +106,7 @@ namespace TestNamespace
         }
 
         [Test]
-        public async Task GenericAttributeWithReferenceConstraint_PureMethod_NoDiagnostic()
+        public async Task GenericAttributeWithReferenceConstraint_PureMethod_ReportsMissingAttributeDiagnostics()
         {
             var test = @"
 using System;
@@ -141,7 +141,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task GenericAttributeWithMultipleTypeParameters_PureMethod_NoDiagnostic()
+        public async Task GenericAttributeWithMultipleTypeParameters_PureMethod_ReportsMissingAttributeDiagnostics()
         {
             var test = @"
 using System;
@@ -239,7 +239,7 @@ namespace TestNamespace
         }
 
         [Test]
-        public async Task GenericAttributeWithGenericMethodParameter_PureMethod_NoDiagnostic()
+        public async Task GenericAttributeWithGenericMethodParameter_PureMethod_ReportsMissingAttributeDiagnostics()
         {
             var test = @"
 using System;
