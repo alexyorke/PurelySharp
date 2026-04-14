@@ -1663,6 +1663,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task ConstructorInfoInvoke_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System.Reflection;
+
+public class TestClass
+{
+    [EnforcePure]
+    public object {|PS0002:TestMethod|}(ConstructorInfo constructor, object[] arguments)
+    {
+        return constructor.Invoke(arguments);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeInfoGetFields_Diagnostic()
         {
             var test = @"
