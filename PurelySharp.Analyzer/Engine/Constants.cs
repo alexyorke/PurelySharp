@@ -377,6 +377,7 @@ public static class Constants
         "ulong.Parse(string)",
         "ulong.TryParse(string, out ulong)",
         "System.Half.Parse(string)",
+        "System.Half.TryParse(string, out System.Half)",
         "System.Numerics.BigInteger.Parse(string)",
         "System.Text.Encoding.GetEncoding(string)",
         "System.TimeSpan.Parse(string)",
