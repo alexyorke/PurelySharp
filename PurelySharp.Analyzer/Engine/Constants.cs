@@ -395,6 +395,7 @@ public static class Constants
         "System.Console.IsInputRedirected.get",
         "System.Console.IsOutputRedirected.get",
         "System.Console.KeyAvailable.get",
+        "System.Console.NumberLock.get",
         "System.Console.Title.get",
         "System.Console.Title.set",
         "System.Console.WindowHeight.get",
