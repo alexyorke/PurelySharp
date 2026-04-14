@@ -61,6 +61,7 @@ public static class Constants
         "System.Console.Write()",
         "System.Console.WriteLine()",
         "System.DateTime.Now.get",
+        "System.DateTime.Today.get",
         "System.DateTime.UtcNow.get",
         "System.DateTimeOffset.Now.get",
         "System.DateTimeOffset.UtcNow.get",
