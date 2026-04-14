@@ -73,6 +73,7 @@ public static class Constants
         "System.Diagnostics.Debugger.Break()",
         "System.Diagnostics.Process.GetCurrentProcess()",
         "System.Diagnostics.Process.Start(string)",
+        "System.Reflection.Assembly.GetExecutingAssembly()",
         "System.Diagnostics.Stopwatch.Elapsed.get",
         "System.Diagnostics.Stopwatch.GetTimestamp()",
         "System.Diagnostics.Stopwatch.Start()",
@@ -779,7 +780,6 @@ public static class Constants
         "System.OperatingSystem.IsWindows()",
 
 
-        "System.Reflection.Assembly.GetExecutingAssembly()",
         "System.Reflection.Assembly.GetTypes()",
         "System.Reflection.FieldInfo.GetValue(object)",
         "System.Reflection.PropertyInfo.GetValue(object)",

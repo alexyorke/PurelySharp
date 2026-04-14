@@ -19,7 +19,7 @@ namespace PurelySharp.Test
 
 
         [Test]
-        public async Task Assembly_GetExecutingAssembly_NoDiagnostic()
+        public async Task Assembly_GetExecutingAssembly_Diagnostic()
         {
             var test = @"
 using System.Reflection;
@@ -30,16 +30,13 @@ namespace TestNamespace
     public class TestClass
     {
         [EnforcePure]
-        public Assembly TestMethod()
+        public Assembly {|PS0002:TestMethod|}()
         {
             // Assembly.GetExecutingAssembly() interacts with runtime state
             return Assembly.GetExecutingAssembly();
         }
     }
 }";
-
-
-
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
