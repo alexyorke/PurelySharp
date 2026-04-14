@@ -96,6 +96,7 @@ public static class Constants
         "System.OperatingSystem.IsWindowsVersionAtLeast(int, int, int, int)",
         "System.Type.GetConstructors()",
         "System.Type.GetFields()",
+        "System.Type.GetMembers()",
         "System.Type.GetMethods()",
         "System.Type.GetProperties()",
         "System.Reflection.Assembly.GetTypes()",
