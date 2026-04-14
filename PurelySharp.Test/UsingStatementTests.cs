@@ -67,7 +67,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task UsingDeclarationWithPureDisposable_NoDiagnostic()
+        public async Task UsingDeclarationWithPureDisposable_MissingAttributeDiagnostic()
         {
             var code = @"
 using System;
@@ -78,13 +78,13 @@ public class TestClass
     [EnforcePure]
     public void TestMethod()
     {
-        using var disposable = new PureDisposable(); // Pure disposable, Dispose is pure
+        using var disposable = new PureDisposable(); // Pure disposable body, but Dispose is still unannotated.
     }
 }
 
 public class PureDisposable : IDisposable
 {
-    // Dispose is implicitly pure (empty body)
+    // Dispose has an empty body, but this regression still expects PS0004 because it is unannotated.
     public void Dispose() { }
 }";
 
@@ -95,7 +95,7 @@ public class PureDisposable : IDisposable
         }
 
         [Test]
-        public async Task UsingStatementWithPureDisposable_Diagnostic()
+        public async Task UsingStatementWithPureDisposable_MissingAttributeDiagnostic()
         {
             var test = @"
 using System;
@@ -107,7 +107,7 @@ public class TestClass
     [EnforcePure]
     public void TestMethod()
     {
-        // Using a local pure disposable now
+        // Using a local disposable with an unannotated but empty Dispose.
         using (var disposable = new PureDisposable()) // Correct usage
         {
             // Some operation
@@ -117,7 +117,7 @@ public class TestClass
 
 public class PureDisposable : IDisposable
 {
-    // Dispose is implicitly pure (empty body)
+    // Dispose has an empty body, but this regression still expects PS0004 because it is unannotated.
     public void Dispose() { }
 }";
 
