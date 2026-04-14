@@ -420,6 +420,7 @@ public static class Constants
         "int.ToString(string?)",
         "int.ToString()",
         "long.Parse(string)",
+        "long.TryParse(System.ReadOnlySpan<char>, out long)",
         "long.ToString(string?)",
         "long.ToString()",
         "short.Parse(string)",
