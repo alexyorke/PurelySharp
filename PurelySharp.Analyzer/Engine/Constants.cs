@@ -1275,7 +1275,6 @@ public static class Constants
         "System.DateTime.ParseExact(string, string, System.IFormatProvider)",
         "System.DateTimeOffset.ParseExact(string, string, System.IFormatProvider)",
         "decimal.Negate(decimal)",
-        "decimal.TryParse(string, out decimal)",
         "double.PositiveInfinity.get",
         "System.FileNotFoundException.FileNotFoundException(string)",
         "System.FormattableString.Format.get",
