@@ -14,7 +14,7 @@ namespace PurelySharp.Test
 
 
         [Test]
-        public async Task Environment_ProcessorCount_NoDiagnostic()
+        public async Task Environment_ProcessorCount_Diagnostic()
         {
             var test = @"
 using System;
