@@ -88,6 +88,7 @@ public static class Constants
         "System.OperatingSystem.IsOSPlatform(string)",
         "System.OperatingSystem.IsOSPlatformVersionAtLeast(string, int, int, int, int)",
         "System.OperatingSystem.IsTvOS()",
+        "System.OperatingSystem.IsTvOSVersionAtLeast(int, int, int)",
         "System.OperatingSystem.IsWasi()",
         "System.OperatingSystem.IsWatchOS()",
         "System.OperatingSystem.IsWindows()",
