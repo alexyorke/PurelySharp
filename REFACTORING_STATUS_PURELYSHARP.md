@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `562/562` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `563/563` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -40,6 +40,7 @@
   - `Environment.ExitCode` is now treated as an impure environment-sensitive source
   - `Random.Shared` is now treated as an impure environment-sensitive source
   - `Console.Out` is now treated as an impure IO source
+  - `Console.Error` is now treated as an impure IO source
 
 ### What is already done
 

@@ -60,6 +60,7 @@ public static class Constants
         "System.Console.WriteLine(object)",
         "System.Console.Write()",
         "System.Console.WriteLine()",
+        "System.Console.Error.get",
         "System.Console.Out.get",
         "System.DateTime.Now.get",
         "System.DateTime.Today.get",
