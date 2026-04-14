@@ -144,6 +144,27 @@ public class TestClass
         }
 
         [Test]
+        public async Task TypeInfoGetConstructorWithTypes_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using System.Reflection;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public ConstructorInfo? {|PS0002:TestMethod|}(TypeInfo typeInfo)
+    {
+        return typeInfo.GetConstructor(Type.EmptyTypes);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeInfoGetProperties_Diagnostic()
         {
             var test = @"
