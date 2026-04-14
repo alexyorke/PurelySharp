@@ -2276,5 +2276,26 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task TimeOnlyTryParseExact_SpanMultipleFormats_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(string value)
+    {
+        ReadOnlySpan<char> span = value.AsSpan();
+        return TimeOnly.TryParseExact(span, new[] { ""t"", ""HH:mm:ss"" }, out _);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
