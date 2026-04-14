@@ -61,6 +61,25 @@ namespace PurelySharp.Test // Add namespace to match outer scope
             await VerifyCS.VerifyAnalyzerAsync(test, expected, expectedGetter);
         }
 
+        [Test]
+        public async Task ObjectToStringOnParameter_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public string {|PS0002:TestMethod|}(object value)
+    {
+        return value.ToString();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
 
 
     }

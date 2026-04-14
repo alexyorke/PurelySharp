@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `877/877` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `878/878` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -63,6 +63,7 @@
   - `System.Collections.Generic.Dictionary<TKey, TValue>.Values.get` is now treated as an impure mutable-view collection read
   - `System.Collections.Generic.EqualityComparer<T>.Default.get` is now treated as an impure shared-comparer lookup
   - `object.GetType()` is now treated as an impure runtime-type lookup
+  - `object.ToString()` is now treated as an impure virtual runtime-dispatch call
   - `System.Net.Http.HttpClient.HttpClient()` now has direct regression coverage, and its stale known-pure catalog entry has been removed
   - `System.Net.Sockets.SocketAsyncEventArgs.AcceptSocket.get` is now treated as an impure socket-state source
   - `System.Type.IsByRef.get` is now treated as an impure reflection/runtime-state source
