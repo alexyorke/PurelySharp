@@ -1294,7 +1294,6 @@ public static class Constants
         "decimal.Negate(decimal)",
         "decimal.Parse(string)",
         "decimal.TryParse(string, out decimal)",
-        "System.Diagnostics.ActivitySource.ActivitySource(string, string)",
         "System.Diagnostics.DiagnosticListener.DiagnosticListener(string)",
         "double.PositiveInfinity.get",
         "System.FileNotFoundException.FileNotFoundException(string)",

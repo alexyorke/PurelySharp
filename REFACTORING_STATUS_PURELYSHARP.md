@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `822/822` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `823/823` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -144,6 +144,7 @@
   - `System.Random.Next(int)` now has direct regression coverage through `Random.Shared.Next(10)`
   - `System.Guid.NewGuid()` now has direct regression coverage
   - `System.Diagnostics.FileVersionInfo.FileVersion.get` is now treated as an impure environment/runtime-state source
+  - `System.Diagnostics.ActivitySource.ActivitySource(string, string)` now has direct regression coverage, and its stale known-pure catalog entry has been removed
   - `System.Diagnostics.Process.GetCurrentProcess()` now has direct regression coverage
   - `System.Diagnostics.Process.Id.get` is now treated as an impure environment/runtime-state source
   - `System.Diagnostics.Process.StartInfo.get` is now treated as an impure environment/runtime-state source
