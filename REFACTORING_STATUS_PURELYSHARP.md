@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `902/902` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `971/971` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -67,6 +67,9 @@
   - `object.GetType()` is now treated as an impure runtime-type lookup
   - `object.ToString()` is now treated as an impure virtual runtime-dispatch call
   - `object.GetHashCode()` is now treated as an impure virtual runtime-dispatch call
+  - ambient-culture `Parse`, `TryParse`, and parameterless `ToString()` overload coverage has been extended across `DateOnly`, `TimeOnly`, `TimeSpan`, numeric primitives, `Half`, and `BigInteger`
+  - Roslyn-signature-specific `ToString(string?)` overload coverage has been added for `DateOnly`, `DateTimeOffset`, `TimeOnly`, `decimal`, `double`, `float`, `int`, `long`, `short`, `byte`, `sbyte`, `ushort`, `uint`, `ulong`, and `Half`
+  - `string.Format(string, object?)` and `string.Format(string, object?, object?, object?)` are now treated as impure current-culture formatting APIs
   - `System.Net.Http.HttpClient.HttpClient()` now has direct regression coverage, and its stale known-pure catalog entry has been removed
   - `System.Net.Sockets.SocketAsyncEventArgs.AcceptSocket.get` is now treated as an impure socket-state source
   - `System.Type.IsByRef.get` is now treated as an impure reflection/runtime-state source
