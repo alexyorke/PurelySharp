@@ -83,6 +83,7 @@ public static class Constants
         "System.Diagnostics.StackFrame.GetMethod()",
         "System.Diagnostics.Stopwatch.Stopwatch()",
         "System.Diagnostics.Stopwatch.IsRunning.get",
+        "IPAddress.Loopback",
         "System.OperatingSystem.IsAndroid()",
         "System.OperatingSystem.IsAndroidVersionAtLeast(int, int, int, int)",
         "System.OperatingSystem.IsBrowser()",
@@ -917,7 +918,6 @@ public static class Constants
         "System.MemoryExtensions.SequenceEqual<T>(System.ReadOnlySpan<T>, System.ReadOnlySpan<T>)",
         "System.MemoryExtensions.Trim<T>(System.ReadOnlySpan<T>)",
 
-        "System.Net.IPAddress.Loopback.get",
         "System.Net.IPAddress.Parse(string)",
         "System.Net.WebUtility.HtmlEncode(string)",
         "System.Net.WebUtility.UrlDecode(string)",

@@ -71,6 +71,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
                 if (fieldSymbol.IsReadOnly)
                 {
+                    if (PurityAnalysisEngine.IsKnownImpure(fieldSymbol))
+                    {
+                        PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Static readonly field '{fieldSymbol.Name}' is explicitly known impure.");
+                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(fieldReferenceOperation.Syntax);
+                    }
+
                     PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Static readonly field '{fieldSymbol.Name}' - Pure");
                     return PurityAnalysisEngine.PurityAnalysisResult.Pure;
                 }

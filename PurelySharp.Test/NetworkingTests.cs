@@ -150,6 +150,25 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        [Test]
+        public async Task IPAddressLoopback_Diagnostic()
+        {
+            var test = @"
+using System.Net;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public IPAddress {|PS0002:TestMethod|}()
+    {
+        return IPAddress.Loopback;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
 
 
 

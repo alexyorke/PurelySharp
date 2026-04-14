@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `866/866` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `867/867` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -52,6 +52,7 @@
   - `System.Enum.IsDefined(System.Type, object)` is now treated as an impure runtime enum-metadata lookup
   - `System.Lazy<T>.Lazy(System.Func<T>)` is now treated as an impure lazy-state constructor
   - `System.Globalization.CultureInfo.GetCultureInfo(string)` is now treated as an impure shared-culture lookup
+  - explicitly cataloged static readonly fields now override the default-pure field-read path, allowing `IPAddress.Loopback` to be treated as an impure shared-instance field
   - `System.Net.Http.HttpClient.HttpClient()` now has direct regression coverage, and its stale known-pure catalog entry has been removed
   - `System.Net.Sockets.SocketAsyncEventArgs.AcceptSocket.get` is now treated as an impure socket-state source
   - `System.Type.IsByRef.get` is now treated as an impure reflection/runtime-state source
