@@ -86,6 +86,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task DateTimeOffsetParse_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public DateTimeOffset {|PS0002:TestMethod|}(string dateStr)
+    {
+        return DateTimeOffset.Parse(dateStr);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DoubleParse_InvariantCulture_NoDiagnostic()
         {
             var test = @"
