@@ -21,7 +21,7 @@ namespace PurelySharp.Test
 
 
         [Test]
-        public async Task PureRecordStruct_NoDiagnostic()
+        public async Task PureRecordStruct_MissingAttributeDiagnostics()
         {
             var test = @"
 // Requires LangVersion 10+
