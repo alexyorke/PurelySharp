@@ -361,6 +361,7 @@ public static class Constants
         "decimal.Parse(string)",
         "double.Parse(string)",
         "double.ToString()",
+        "float.Parse(string)",
         "int.Parse(string)",
         "int.ToString()",
         "long.Parse(string)",

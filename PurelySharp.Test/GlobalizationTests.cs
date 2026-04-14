@@ -473,5 +473,25 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task FloatParse_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public float {|PS0002:TestMethod|}(string numStr)
+    {
+        return float.Parse(numStr);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
