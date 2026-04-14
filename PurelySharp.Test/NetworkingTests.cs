@@ -111,6 +111,25 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        [Test]
+        public async Task HttpClientConstructor_Diagnostic()
+        {
+            var test = @"
+using System.Net.Http;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public HttpClient {|PS0002:TestMethod|}()
+    {
+        return new HttpClient();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
 
 
 

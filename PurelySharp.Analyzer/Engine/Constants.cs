@@ -907,8 +907,6 @@ public static class Constants
         "System.MemoryExtensions.SequenceEqual<T>(System.ReadOnlySpan<T>, System.ReadOnlySpan<T>)",
         "System.MemoryExtensions.Trim<T>(System.ReadOnlySpan<T>)",
 
-
-        "System.Net.Http.HttpClient()",
         "System.Net.IPAddress.Loopback.get",
         "System.Net.IPAddress.Parse(string)",
         "System.Net.WebUtility.HtmlEncode(string)",
