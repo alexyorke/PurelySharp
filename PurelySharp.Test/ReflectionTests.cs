@@ -473,6 +473,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task TypeAttributes_Diagnostic()
+        {
+            var test = @"
+using System.Reflection;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public TypeAttributes {|PS0002:TestMethod|}(System.Type type)
+    {
+        return type.Attributes;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeInfoGetFields_Diagnostic()
         {
             var test = @"
