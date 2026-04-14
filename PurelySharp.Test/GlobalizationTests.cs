@@ -955,6 +955,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task ConvertToDateTime_String_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public DateTime {|PS0002:TestMethod|}(string value)
+    {
+        return Convert.ToDateTime(value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ConvertToString_Object_CurrentCulture_Diagnostic()
         {
             var test = @"
