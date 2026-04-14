@@ -112,6 +112,29 @@ public class TestClass
         }
 
         [Test]
+        public async Task StringFormatting_OneArgument_ImpureFormat_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public string TestMethod(int x)
+    {
+        return string.Format(""{0:D}"", x);
+    }
+}";
+
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                    .WithSpan(8, 19, 8, 29)
+                                    .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [Test]
         public async Task MethodWithStringBuilderAppend_Diagnostic()
         {
             var test = @"

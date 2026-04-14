@@ -557,6 +557,7 @@ public static class Constants
         "System.IO.BufferedStream.Flush()",
 
 
+        "string.Format(string, object?)",
         "string.Format(string, object?, object?)",
 
 
