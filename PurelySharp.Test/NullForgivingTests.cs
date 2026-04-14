@@ -60,7 +60,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task PureMethodWithNullForgivingAndImpureOperation_Diagnostic()
+        public async Task MethodWithNullForgivingAndImpureOperation_Diagnostic()
         {
             var test = @"
 using System;
