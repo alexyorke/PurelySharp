@@ -395,6 +395,7 @@ public static class Constants
         "long.ToString(string?)",
         "long.ToString()",
         "short.Parse(string)",
+        "short.ToString(string?)",
         "short.ToString()",
         "short.TryParse(string, out short)",
         "sbyte.Parse(string)",
