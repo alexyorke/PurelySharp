@@ -235,6 +235,7 @@ public static class Constants
         "System.Diagnostics.Stopwatch.Start()",
         "System.Diagnostics.Stopwatch.Stop()",
         "System.Diagnostics.Trace.WriteLine(string)",
+        "System.IO.StringReader.StringReader(string)",
         "System.Environment.CurrentDirectory.get",
         "System.Environment.CurrentDirectory.set",
         "System.Environment.CurrentManagedThreadId.get",
@@ -878,7 +879,6 @@ public static class Constants
         "System.IO.Path.Combine(string, string)",
         "System.IO.Path.GetDirectoryName(string)",
         "System.IO.Path.GetFileName(string)",
-        "System.IO.StringReader.StringReader(string)",
         "System.IO.StringWriter()",
 
 

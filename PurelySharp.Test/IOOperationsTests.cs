@@ -17,6 +17,25 @@ namespace PurelySharp.Test
     public class IOOperationsTests
     {
         [Test]
+        public async Task StringReaderConstructor_Diagnostic()
+        {
+            var test = @"
+using System.IO;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public StringReader {|PS0002:TestMethod|}()
+    {
+        return new StringReader(""text"");
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task AsyncAwait_NoDiagnostic()
         {
             var test = @"

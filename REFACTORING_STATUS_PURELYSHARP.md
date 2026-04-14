@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `857/857` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `858/858` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -43,6 +43,7 @@
   - `System.Data.DataColumn.DataColumn(string)` now has direct regression coverage, and its stale known-pure catalog entry has been removed
   - `System.Data.DataRelation.DataRelation(string, System.Data.DataColumn, System.Data.DataColumn)` now has direct regression coverage, and its stale known-pure catalog entry has been removed
   - `System.Runtime.Versioning.FrameworkName.FrameworkName(string)` is now treated as an impure runtime-versioning identity constructor
+  - `System.IO.StringReader.StringReader(string)` is now treated as an impure text-reader construction API
   - `System.Net.Http.HttpClient.HttpClient()` now has direct regression coverage, and its stale known-pure catalog entry has been removed
   - `System.Net.Sockets.SocketAsyncEventArgs.AcceptSocket.get` is now treated as an impure socket-state source
   - `System.Type.IsByRef.get` is now treated as an impure reflection/runtime-state source
