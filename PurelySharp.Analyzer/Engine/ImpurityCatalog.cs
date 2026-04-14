@@ -30,6 +30,12 @@ namespace PurelySharp.Analyzer.Engine
 				return false;
 			}
 
+			if (IsImmutableInterlockedMember(symbol))
+			{
+				PurityAnalysisEngine.LogDebug($"Helper IsKnownPureBCLMember: Skipping ImmutableInterlocked member: {symbol.ToDisplayString()}");
+				return false;
+			}
+
 			if (symbol.ContainingType?.ContainingNamespace?.ToString().StartsWith("System.Collections.Immutable", StringComparison.Ordinal) == true)
 			{
 				if (symbol.Name.Contains("Create") || symbol.Name.Contains("Add") || symbol.Name.Contains("Set") || symbol.Name.Contains("Remove"))
@@ -102,6 +108,12 @@ namespace PurelySharp.Analyzer.Engine
 			if (IsMutableImmutableBuilderMember(symbol))
 			{
 				PurityAnalysisEngine.LogDebug($"Helper IsKnownImpure: Mutable immutable-builder member detected: {symbol.ToDisplayString()}");
+				return true;
+			}
+
+			if (IsImmutableInterlockedMember(symbol))
+			{
+				PurityAnalysisEngine.LogDebug($"Helper IsKnownImpure: ImmutableInterlocked member detected: {symbol.ToDisplayString()}");
 				return true;
 			}
 
@@ -252,6 +264,11 @@ namespace PurelySharp.Analyzer.Engine
 			}
 
 			return typeSymbol.ContainingNamespace?.ToString().StartsWith("System.Collections.Immutable", StringComparison.Ordinal) == true;
+		}
+
+		private static bool IsImmutableInterlockedMember(ISymbol symbol)
+		{
+			return string.Equals(symbol.ContainingType?.ToDisplayString(), "System.Collections.Immutable.ImmutableInterlocked", StringComparison.Ordinal);
 		}
 	}
 }
