@@ -1798,6 +1798,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task FieldInfoSetValue_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System.Reflection;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}(FieldInfo field, object target, object value)
+    {
+        field.SetValue(target, value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeInfoGetFields_Diagnostic()
         {
             var test = @"
