@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `575/575` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `576/576` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -53,6 +53,7 @@
   - `Console.WindowLeft` is now treated as an impure console-state source
   - `Console.WindowTop` is now treated as an impure console-state source
   - `Console.CursorVisible` is now treated as an impure console-state source
+  - `Console.CursorSize` is now treated as an impure console-state source
 
 ### What is already done
 

@@ -386,6 +386,7 @@ public static class Constants
         "System.Console.BufferHeight.set",
         "System.Console.BufferWidth.get",
         "System.Console.CursorLeft.get",
+        "System.Console.CursorSize.get",
         "System.Console.CursorTop.get",
         "System.Console.CursorVisible.get",
         "System.Console.ForegroundColor.get",
