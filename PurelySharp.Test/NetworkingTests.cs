@@ -34,6 +34,25 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        [Test]
+        public async Task HttpResponseMessageIsSuccessStatusCode_Diagnostic()
+        {
+            var test = @"
+using System.Net.Http;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(HttpResponseMessage response)
+    {
+        return response.IsSuccessStatusCode;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
 
 
 
