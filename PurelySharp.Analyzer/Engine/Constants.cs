@@ -358,6 +358,7 @@ public static class Constants
         "System.Half.Parse(string)",
         "System.Numerics.BigInteger.Parse(string)",
         "System.Text.Encoding.GetEncoding(string)",
+        "System.TimeSpan.Parse(string)",
 
         "System.Text.Json.JsonSerializer.Deserialize",
         "JsonSerializer.Deserialize",
