@@ -9,7 +9,6 @@ using PurelySharp.Attributes; // Needed for EnforcePure
 namespace PurelySharp.Test
 {
     [TestFixture]
-    // [NUnit.Framework.Skip("Skipping for now")] // Removed skip attribute
     public class RequiredMembersTests
     {
         // Common attribute definitions needed for C# 11 required members feature in tests
