@@ -105,6 +105,7 @@ public static class Constants
         "System.Type.GetField(string, System.Reflection.BindingFlags)",
         "System.Type.GetFields()",
         "System.Type.GetFields(System.Reflection.BindingFlags)",
+        "System.Type.AssemblyQualifiedName.get",
         "System.Type.FullName.get",
         "System.Type.GetInterface(string)",
         "System.Type.GetInterface(string, bool)",
