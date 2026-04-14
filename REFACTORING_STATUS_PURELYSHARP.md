@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `741/741` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `742/742` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -31,6 +31,7 @@
   - `System.Type.IsGenericParameter.get` is now treated as an impure reflection/runtime-state source
   - `System.Type.IsNested.get` is now treated as an impure reflection/runtime-state source
   - `System.Type.IsPublic.get` is now treated as an impure reflection/runtime-state source
+  - `System.Type.IsNotPublic.get` is now treated as an impure reflection/runtime-state source
   - `DateTime.Today` is now treated as an impure environment-sensitive source
   - `DateTime.Now` now has direct regression coverage for its existing environment-sensitive impurity catalog entry
   - `DateTime.UtcNow` now has direct regression coverage for its existing environment-sensitive impurity catalog entry
