@@ -1936,6 +1936,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task ParameterInfoGetCustomAttributesInherited_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System.Reflection;
+
+public class TestClass
+{
+    [EnforcePure]
+    public object[] {|PS0002:TestMethod|}(ParameterInfo parameter)
+    {
+        return parameter.GetCustomAttributes(false);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeInfoGetFields_Diagnostic()
         {
             var test = @"
