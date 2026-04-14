@@ -14,6 +14,25 @@ namespace PurelySharp.Test
     [TestFixture]
     public class NetworkingTests
     {
+        [Test]
+        public async Task HttpContentHeadersContentLength_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System.Net.Http.Headers;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public long? {|PS0002:TestMethod|}(HttpContentHeaders headers)
+    {
+        return headers.ContentLength;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
 
 
 
