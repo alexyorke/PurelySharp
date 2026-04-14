@@ -817,7 +817,7 @@ public class TestClass
 
 
         [Test]
-        public async Task ReadonlyRecordStructWithPureConstructor_NoDiagnostic()
+        public async Task ReadonlyRecordStructWithPureConstructor_MissingAttributeDiagnostics()
         {
             var test = @"
 using PurelySharp.Attributes;
