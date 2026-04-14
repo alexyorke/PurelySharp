@@ -392,6 +392,7 @@ public static class Constants
         "int.Parse(string)",
         "int.ToString()",
         "long.Parse(string)",
+        "long.ToString(string?)",
         "long.ToString()",
         "short.Parse(string)",
         "short.ToString()",
