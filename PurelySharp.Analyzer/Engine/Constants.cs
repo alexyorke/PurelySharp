@@ -119,6 +119,7 @@ public static class Constants
         "System.Type.IsByRef.get",
         "System.Type.IsClass.get",
         "System.Type.IsEnum.get",
+        "System.Type.IsExplicitLayout.get",
         "System.Type.IsGenericType.get",
         "System.Type.IsGenericTypeDefinition.get",
         "System.Type.IsGenericParameter.get",
