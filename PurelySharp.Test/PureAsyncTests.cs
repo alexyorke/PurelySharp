@@ -90,16 +90,15 @@ class TestClass
     {
         await Task.Delay(1); // Impure
         _count++;            // Impure
-        // Expectation limitation: Analyzer incorrectly fails to detect
-        // impurity (Task.Delay, field modification) within an async void method.
     }
 }
 ";
 
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                   .WithSpan(15, 23, 15, 33)
+                                   .WithArguments("TestMethod");
 
-
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -123,16 +122,15 @@ class TestClass
     {
         _field = 1; // Impure assignment
         await Task.Yield(); // Yield is okay
-        // Expectation limitation: Analyzer incorrectly fails to detect
-        // impurity from field assignment '_field = 1' in this async method.
     }
 }
 ";
 
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                   .WithSpan(15, 23, 15, 33)
+                                   .WithArguments("TestMethod");
 
-
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
 
         [Test]
@@ -156,10 +154,6 @@ class TestClass
     {
         // Calling impure local function makes outer method impure
         await ImpureLocalAsync();
-        // Expectation limitation: Analyzer incorrectly fails to detect
-        // impurity propagated from the called async local function 'ImpureLocalAsync'.
-
-        // Add [EnforcePure] to local function to ensure it's analyzed
         [EnforcePure]
         async Task ImpureLocalAsync()
         {
@@ -170,15 +164,14 @@ class TestClass
 }
 ";
 
+            var expectedOuter = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                        .WithSpan(15, 23, 15, 34)
+                                        .WithArguments("OuterMethod");
+            var expectedLocal = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                        .WithSpan(20, 20, 20, 36)
+                                        .WithArguments("ImpureLocalAsync");
 
-
-
-
-
-
-
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedOuter, expectedLocal);
         }
     }
 }

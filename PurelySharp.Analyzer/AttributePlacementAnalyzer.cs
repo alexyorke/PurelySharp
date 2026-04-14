@@ -11,9 +11,9 @@ namespace PurelySharp.Analyzer
     {
         internal static void AnalyzeNonMethodDeclaration(SyntaxNodeAnalysisContext context)
         {
-            var enforcePureAttributeSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("PurelySharp.Attributes.EnforcePureAttribute");
-            var pureAttributeSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("PurelySharp.Attributes.PureAttribute");
-            var allowSynchronizationAttributeSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("PurelySharp.Attributes.AllowSynchronizationAttribute");
+            var enforcePureAttributeSymbol = ResolveAttributeSymbol(context.SemanticModel.Compilation, "PurelySharp.Attributes.EnforcePureAttribute", "EnforcePureAttribute");
+            var pureAttributeSymbol = ResolveAttributeSymbol(context.SemanticModel.Compilation, "PurelySharp.Attributes.PureAttribute", "PureAttribute");
+            var allowSynchronizationAttributeSymbol = ResolveAttributeSymbol(context.SemanticModel.Compilation, "PurelySharp.Attributes.AllowSynchronizationAttribute", "AllowSynchronizationAttribute");
 
             if (enforcePureAttributeSymbol == null && pureAttributeSymbol == null && allowSynchronizationAttributeSymbol == null)
             {
@@ -91,6 +91,33 @@ namespace PurelySharp.Analyzer
                     }
                 }
             }
+            return null;
+        }
+
+        private static INamedTypeSymbol? ResolveAttributeSymbol(Compilation compilation, string qualifiedMetadataName, string fallbackMetadataName)
+        {
+            return compilation.GetTypeByMetadataName(qualifiedMetadataName)
+                ?? compilation.GetTypeByMetadataName(fallbackMetadataName)
+                ?? FindTypeByName(compilation.Assembly.GlobalNamespace, fallbackMetadataName);
+        }
+
+        private static INamedTypeSymbol? FindTypeByName(INamespaceSymbol namespaceSymbol, string typeName)
+        {
+            var directMatch = namespaceSymbol.GetTypeMembers(typeName).FirstOrDefault();
+            if (directMatch != null)
+            {
+                return directMatch;
+            }
+
+            foreach (var nestedNamespace in namespaceSymbol.GetNamespaceMembers())
+            {
+                var nestedMatch = FindTypeByName(nestedNamespace, typeName);
+                if (nestedMatch != null)
+                {
+                    return nestedMatch;
+                }
+            }
+
             return null;
         }
     }

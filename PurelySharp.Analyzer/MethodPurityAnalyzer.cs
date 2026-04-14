@@ -30,8 +30,12 @@ namespace PurelySharp.Analyzer
             }
 
 
-            var enforcePureAttributeSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("PurelySharp.Attributes.EnforcePureAttribute");
-            var pureAttributeSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("PurelySharp.Attributes.PureAttribute");
+            var enforcePureAttributeSymbol =
+                ResolveAttributeSymbol(context.SemanticModel.Compilation, "PurelySharp.Attributes.EnforcePureAttribute", "EnforcePureAttribute")
+                ?? GetAppliedAttributeSymbol(methodSymbol, "EnforcePureAttribute");
+            var pureAttributeSymbol =
+                ResolveAttributeSymbol(context.SemanticModel.Compilation, "PurelySharp.Attributes.PureAttribute", "PureAttribute")
+                ?? GetAppliedAttributeSymbol(methodSymbol, "PureAttribute");
 
             if (enforcePureAttributeSymbol == null && pureAttributeSymbol == null)
             {
@@ -39,10 +43,14 @@ namespace PurelySharp.Analyzer
             }
 
 
-            var allowSynchronizationAttributeSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("PurelySharp.Attributes.AllowSynchronizationAttribute");
+            var allowSynchronizationAttributeSymbol =
+                ResolveAttributeSymbol(context.SemanticModel.Compilation, "PurelySharp.Attributes.AllowSynchronizationAttribute", "AllowSynchronizationAttribute")
+                ?? GetAppliedAttributeSymbol(methodSymbol, "AllowSynchronizationAttribute");
 
-            bool hasEnforcePureAttribute = enforcePureAttributeSymbol != null && HasAttribute(methodSymbol, enforcePureAttributeSymbol);
-            bool hasPureAttribute = pureAttributeSymbol != null && HasAttribute(methodSymbol, pureAttributeSymbol);
+            bool hasEnforcePureAttribute = (enforcePureAttributeSymbol != null && HasAttribute(methodSymbol, enforcePureAttributeSymbol))
+                || HasAttributeByName(methodSymbol, "EnforcePureAttribute");
+            bool hasPureAttribute = (pureAttributeSymbol != null && HasAttribute(methodSymbol, pureAttributeSymbol))
+                || HasAttributeByName(methodSymbol, "PureAttribute");
 
             if (hasEnforcePureAttribute && hasPureAttribute)
             {
@@ -58,7 +66,7 @@ namespace PurelySharp.Analyzer
             }
 
 
-            bool hasPurityEnforcementAttribute = HasPurityEnforcement(methodSymbol, enforcePureAttributeSymbol, pureAttributeSymbol);
+            bool hasPurityEnforcementAttribute = hasEnforcePureAttribute || hasPureAttribute || HasPurityEnforcement(methodSymbol, enforcePureAttributeSymbol, pureAttributeSymbol);
             bool hasAllowSynchronization =
                 (allowSynchronizationAttributeSymbol != null && HasAttribute(methodSymbol, allowSynchronizationAttributeSymbol))
                 || HasAttributeByName(methodSymbol, "AllowSynchronizationAttribute");
@@ -222,6 +230,20 @@ namespace PurelySharp.Analyzer
             return false;
         }
 
+        private static INamedTypeSymbol? GetAppliedAttributeSymbol(IMethodSymbol methodSymbol, string attributeTypeName)
+        {
+            foreach (var attributeData in methodSymbol.GetAttributes())
+            {
+                var attributeClass = attributeData.AttributeClass;
+                if (attributeClass != null && string.Equals(attributeClass.Name, attributeTypeName, StringComparison.Ordinal))
+                {
+                    return attributeClass;
+                }
+            }
+
+            return null;
+        }
+
         private static bool HasAttribute(IMethodSymbol methodSymbol, INamedTypeSymbol attributeType)
         {
             foreach (var attributeData in methodSymbol.GetAttributes())
@@ -251,6 +273,33 @@ namespace PurelySharp.Analyzer
         private static INamedTypeSymbol GetEffectivePurityAttributeSymbol(INamedTypeSymbol? enforcePureAttributeSymbol, INamedTypeSymbol? pureAttributeSymbol)
         {
             return enforcePureAttributeSymbol ?? pureAttributeSymbol!;
+        }
+
+        private static INamedTypeSymbol? ResolveAttributeSymbol(Compilation compilation, string qualifiedMetadataName, string fallbackMetadataName)
+        {
+            return compilation.GetTypeByMetadataName(qualifiedMetadataName)
+                ?? compilation.GetTypeByMetadataName(fallbackMetadataName)
+                ?? FindTypeByName(compilation.Assembly.GlobalNamespace, fallbackMetadataName);
+        }
+
+        private static INamedTypeSymbol? FindTypeByName(INamespaceSymbol namespaceSymbol, string typeName)
+        {
+            var directMatch = namespaceSymbol.GetTypeMembers(typeName).FirstOrDefault();
+            if (directMatch != null)
+            {
+                return directMatch;
+            }
+
+            foreach (var nestedNamespace in namespaceSymbol.GetNamespaceMembers())
+            {
+                var nestedMatch = FindTypeByName(nestedNamespace, typeName);
+                if (nestedMatch != null)
+                {
+                    return nestedMatch;
+                }
+            }
+
+            return null;
         }
 
 
