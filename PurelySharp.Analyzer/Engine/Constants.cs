@@ -115,6 +115,7 @@ public static class Constants
         "System.Type.IsConstructedGenericType.get",
         "System.Type.IsAbstract.get",
         "System.Type.IsArray.get",
+        "System.Type.IsAutoLayout.get",
         "System.Type.IsByRef.get",
         "System.Type.IsClass.get",
         "System.Type.IsEnum.get",
