@@ -300,6 +300,7 @@ public static class Constants
         "System.IO.StreamWriter.StreamWriter(System.IO.Stream)",
         "System.IO.StringReader.ReadToEnd()",
         "System.IO.StringWriter.Write(string)",
+        "System.Lazy<T>.Lazy(System.Func<T>)",
         "System.Lazy<T>.Value.get",
         "System.Linq.Enumerable.ToArray<TSource>(System.Collections.Generic.IEnumerable<TSource>)",
         "System.Linq.Enumerable.ToDictionary<TSource, TKey>(System.Collections.Generic.IEnumerable<TSource>, System.Func<TSource, TKey>)",
@@ -875,9 +876,6 @@ public static class Constants
         "System.IO.Path.Combine(string, string)",
         "System.IO.Path.GetDirectoryName(string)",
         "System.IO.Path.GetFileName(string)",
-
-
-        "System.Lazy<T>.Lazy(System.Func<T>)",
 
 
         "System.Linq.Enumerable.Aggregate",

@@ -187,6 +187,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task LazyConstructor_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public Lazy<int> {|PS0002:TestMethod|}()
+    {
+        return new Lazy<int>(() => 42);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ChannelCreateUnbounded_Diagnostic()
         {
             var test = @"
