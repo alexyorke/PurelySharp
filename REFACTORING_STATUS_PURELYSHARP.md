@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `807/807` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `808/808` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -83,6 +83,7 @@
   - `System.Reflection.EventInfo.GetAddMethod()` now has direct regression coverage for its existing conservative reflection classification
   - `System.Reflection.EventInfo.GetAddMethod(bool)` now has direct regression coverage for its existing conservative reflection classification
   - `System.Reflection.EventInfo.GetRemoveMethod()` now has direct regression coverage for its existing conservative reflection classification
+  - `System.Reflection.EventInfo.GetRemoveMethod(bool)` now has direct regression coverage for its existing conservative reflection classification
   - `System.Reflection.EventInfo.GetRaiseMethod()` now has direct regression coverage for its existing conservative reflection classification
   - `System.Reflection.EventInfo.GetRaiseMethod(bool)` now has direct regression coverage for its existing conservative reflection classification
   - `System.Reflection.EventInfo.GetOtherMethods()` now has direct regression coverage for its existing conservative reflection classification

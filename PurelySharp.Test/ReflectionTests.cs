@@ -1739,6 +1739,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task EventInfoGetRemoveMethodOverload_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System.Reflection;
+
+public class TestClass
+{
+    [EnforcePure]
+    public MethodInfo {|PS0002:TestMethod|}(EventInfo eventInfo)
+    {
+        return eventInfo.GetRemoveMethod(true);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task EventInfoGetRaiseMethod_Diagnostic()
         {
             var test = @"
