@@ -1758,6 +1758,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task EventInfoAddEventHandler_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System;
+using System.Reflection;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}(EventInfo eventInfo, object target, Delegate handler)
+    {
+        eventInfo.AddEventHandler(target, handler);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeInfoGetFields_Diagnostic()
         {
             var test = @"
