@@ -385,6 +385,7 @@ public static class Constants
         "System.DateOnly.TryParse(string, out System.DateOnly)",
         "System.DateOnly.TryParseExact(string, string, out System.DateOnly)",
         "System.DateOnly.TryParseExact(string, string[], out System.DateOnly)",
+        "System.DateOnly.TryParseExact(System.ReadOnlySpan<char>, string?[]?, out System.DateOnly)",
         "System.DateOnly.ToString(string?)",
         "System.DateOnly.ToString()",
         "System.DateTime.Parse(string)",
