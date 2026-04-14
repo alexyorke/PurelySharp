@@ -517,6 +517,29 @@ namespace TestNamespace
         }
 
         [Test]
+        public async Task Assembly_CodeBase_Diagnostic()
+        {
+            var test = @"
+#pragma warning disable SYSLIB0012
+using System.Reflection;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public string {|PS0002:TestMethod|}(Assembly assembly)
+        {
+            return assembly.CodeBase;
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task Assembly_LoadFile_NoDiagnostic()
         {
             var test = @"
