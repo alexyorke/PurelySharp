@@ -447,6 +447,7 @@ public static class Constants
         "System.TimeOnly.Parse(string)",
         "System.TimeOnly.ParseExact(string, string)",
         "System.TimeOnly.ParseExact(string, string[])",
+        "System.TimeOnly.ParseExact(System.ReadOnlySpan<char>, string[])",
         "System.TimeOnly.ToLongTimeString()",
         "System.TimeOnly.ToShortTimeString()",
         "System.TimeOnly.ToString(string?)",
