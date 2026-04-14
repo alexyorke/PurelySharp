@@ -73,6 +73,7 @@ public static class Constants
         "System.ComponentModel.TypeDescriptor.GetConverter(System.Type)",
         "System.ComponentModel.TypeDescriptor.GetProperties(object)",
         "System.Convert.FromBase64String(string)",
+        "System.Convert.ToDouble(object?)",
         "System.Convert.ToSingle(object?)",
         "object.Equals(object)",
         "object.GetHashCode()",
@@ -861,7 +862,6 @@ public static class Constants
 
 
         "System.Convert.ToBase64String(byte[])",
-        "System.Convert.ToDouble(object)",
         "System.Convert.ToInt32(object)",
 
 
@@ -1233,7 +1233,6 @@ public static class Constants
         "System.Collections.Generic.Queue<T>.Contains(T)",
         "System.Collections.Generic.Stack<T>.Contains(T)",
         "System.Convert.ToBase64String(byte[])",
-        "System.Convert.ToDouble(object)",
         "System.Convert.ToInt32(object)",
         "System.DateTime.Day.get",
         "System.DateTime.DayOfWeek.get",
