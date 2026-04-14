@@ -12,7 +12,7 @@ namespace PurelySharp.Test
     public class AsyncOperationsTests
     {
         [Test]
-        public async Task MethodWithAsyncOperation_Diagnostic()
+        public async Task MethodWithAsyncOperation_NoDiagnostic()
         {
 
 
