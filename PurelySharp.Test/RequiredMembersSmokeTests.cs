@@ -240,5 +240,41 @@ public class UserProfile
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task RequiredMembers_NestedTypes_ReportPureGetterSuggestions()
+        {
+            var test = @"
+#nullable enable
+using PurelySharp.Attributes;
+
+namespace TestNamespace;
+
+public record Settings
+{
+    public required int {|PS0004:TimeoutMs|} { get; init; }
+}
+
+public struct Coordinates
+{
+    public required double {|PS0004:Latitude|} { get; init; }
+    public required double {|PS0004:Longitude|} { get; init; }
+}
+
+public class AppConfiguration
+{
+    public required Settings {|PS0004:AppSettings|} { get; init; }
+    public required Coordinates {|PS0004:DefaultLocation|} { get; init; }
+
+    [EnforcePure]
+    public string GetSummary()
+    {
+        return $""Timeout: {AppSettings.TimeoutMs}ms, Location: ({DefaultLocation.Latitude}, {DefaultLocation.Longitude})"";
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
