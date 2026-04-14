@@ -14,7 +14,7 @@ namespace PurelySharp.Test
     public class ConcurrencyOperationsTests
     {
         [Test]
-        public async Task AsyncMethodWithAwait_NoDiagnostic()
+        public async Task MethodWithLockStatement_Diagnostic()
         {
 
             var test = @"
@@ -57,7 +57,7 @@ public class TestClass
     [EnforcePure]
     public void {|PS0002:TestMethod|}()
     {
-        MyEvent += (s, e) => { }; // Event subscription is impure, but analyzer doesn't detect it
+        MyEvent += (s, e) => { }; // Event subscription is impure
     }
 }";
 
@@ -79,8 +79,8 @@ public class TestClass
     [EnforcePure]
     public void TestMethod()
     {
-        // Invoking a delegate whose target might be impure
-        _impureAction(); // Should trigger PS0002 if target analysis fails or is conservative
+        // Invoking a delegate whose target is impure
+        _impureAction();
     }
 }
 ";
