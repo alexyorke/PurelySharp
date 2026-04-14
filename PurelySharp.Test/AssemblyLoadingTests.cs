@@ -1198,7 +1198,7 @@ namespace TestNamespace
         }
 
         [Test]
-        public async Task Assembly_LoadFile_NoDiagnostic()
+        public async Task Assembly_LoadFile_Diagnostic()
         {
             var test = @"
 using System.Reflection;
