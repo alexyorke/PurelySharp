@@ -114,6 +114,7 @@ public static class Constants
         "System.Type.GUID.get",
         "System.Type.IsAbstract.get",
         "System.Type.IsArray.get",
+        "System.Type.IsByRef.get",
         "System.Type.IsClass.get",
         "System.Type.IsEnum.get",
         "System.Type.IsGenericType.get",
