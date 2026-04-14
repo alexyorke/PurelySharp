@@ -31,6 +31,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
 				new ArrayInitializerPurityRule(),
 				new ArrayElementReferencePurityRule(),
 				new CollectionExpressionPurityRule(),
+				new SpreadOperationPurityRule(),
 				
 				// Expressions/Operators
 				new BinaryOperationPurityRule(),
