@@ -1682,6 +1682,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task EventInfoGetAddMethod_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System.Reflection;
+
+public class TestClass
+{
+    [EnforcePure]
+    public MethodInfo {|PS0002:TestMethod|}(EventInfo eventInfo)
+    {
+        return eventInfo.GetAddMethod();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeInfoGetFields_Diagnostic()
         {
             var test = @"
