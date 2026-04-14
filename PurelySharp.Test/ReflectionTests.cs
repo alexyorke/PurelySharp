@@ -1230,6 +1230,24 @@ public class TestClass
         }
 
         [Test]
+        public async Task TypeIsSecurityCritical_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(System.Type type)
+    {
+        return type.IsSecurityCritical;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeInfoGetFields_Diagnostic()
         {
             var test = @"
