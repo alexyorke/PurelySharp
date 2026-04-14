@@ -166,5 +166,43 @@ public class Document
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task RequiredMembers_ModifyingMutableProperty_ReportsCurrentDiagnostics()
+        {
+            var test = @"
+#nullable enable
+using System.Diagnostics.CodeAnalysis;
+using PurelySharp.Attributes;
+
+namespace TestNamespace;
+
+public class UserProfile
+{
+    public required string {|PS0004:Username|} { get; init; }
+    public int {|PS0004:Age|} { get; set; }
+
+    [SetsRequiredMembers]
+    public {|PS0004:UserProfile|}(string username)
+    {
+        Username = username;
+    }
+
+    [EnforcePure]
+    public void {|PS0002:UpdateAge|}(int newAge)
+    {
+        Age = newAge;
+    }
+
+    [EnforcePure]
+    public string GetProfileInfo()
+    {
+        return $""User: {Username}, Age: {Age}"";
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
