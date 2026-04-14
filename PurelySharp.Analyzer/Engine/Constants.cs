@@ -74,6 +74,7 @@ public static class Constants
         "System.ComponentModel.TypeDescriptor.GetProperties(object)",
         "System.Convert.FromBase64String(string)",
         "System.Convert.ToByte(object?)",
+        "System.Convert.ToDateTime(object?)",
         "System.Convert.ToDecimal(object?)",
         "System.Convert.ToDouble(object?)",
         "System.Convert.ToInt16(object?)",
