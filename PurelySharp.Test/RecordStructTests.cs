@@ -274,7 +274,7 @@ public record struct CacheEntry(int Id, ImmutableList<string> Tags)
         }
 
         [Test]
-        public async Task PureReadonlyRecordStructWithPureConstructor_NoDiagnostic()
+        public async Task PureReadonlyRecordStructWithPureConstructor_MissingAttributeDiagnostics()
         {
             var test = @"
 using System;
