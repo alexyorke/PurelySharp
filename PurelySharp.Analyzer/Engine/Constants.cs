@@ -176,6 +176,7 @@ public static class Constants
         "System.Type.GetMethods()",
         "System.Type.GetMethods(System.Reflection.BindingFlags)",
         "System.Type.Assembly.get",
+        "System.Type.MemberType.get",
         "System.Type.Module.get",
         "System.Type.Namespace.get",
         "System.Type.ReflectedType.get",

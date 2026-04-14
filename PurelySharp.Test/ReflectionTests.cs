@@ -1410,6 +1410,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task TypeMemberType_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System.Reflection;
+
+public class TestClass
+{
+    [EnforcePure]
+    public MemberTypes {|PS0002:TestMethod|}(System.Type type)
+    {
+        return type.MemberType;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeInfoGetFields_Diagnostic()
         {
             var test = @"
