@@ -89,6 +89,7 @@ public static class Constants
         "System.Environment.TickCount.get",
         "System.Environment.TickCount64.get",
         "System.Environment.UserDomainName.get",
+        "System.Environment.UserInteractive.get",
         "System.Environment.UserName.get",
         "System.GC.Collect()",
         "System.GC.GetTotalMemory(bool)",
