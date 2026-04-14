@@ -631,6 +631,30 @@ namespace TestNamespace
         }
 
         [Test]
+        public async Task Assembly_GetFile_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System.IO;
+using System.Reflection;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public FileStream? {|PS0002:TestMethod|}(Assembly assembly)
+        {
+            return assembly.GetFile(""data.bin"");
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task Assembly_LoadFile_NoDiagnostic()
         {
             var test = @"
