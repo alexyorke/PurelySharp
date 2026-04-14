@@ -115,6 +115,7 @@ public static class Constants
         "System.Type.IsAbstract.get",
         "System.Type.IsClass.get",
         "System.Type.IsEnum.get",
+        "System.Type.IsGenericType.get",
         "System.Type.IsInterface.get",
         "System.Type.GetInterface(string)",
         "System.Type.GetInterface(string, bool)",
