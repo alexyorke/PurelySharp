@@ -1893,6 +1893,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task AttributeIsDefinedOnMemberInfo_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System;
+using System.Reflection;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(MemberInfo member, Type attributeType)
+    {
+        return Attribute.IsDefined(member, attributeType);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task EventInfoGetCustomAttributesInherited_Diagnostic()
         {
             var test = @"

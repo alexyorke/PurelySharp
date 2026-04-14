@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `812/812` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `813/813` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -91,6 +91,7 @@
   - `System.Reflection.EventInfo.IsDefined(Type, bool)` now has direct regression coverage for its existing conservative reflection classification
   - `System.Reflection.EventInfo.GetCustomAttributesData()` now has direct regression coverage for its existing conservative reflection classification
   - `System.Reflection.PropertyInfo.PropertyType.get` is now treated as an impure reflection/runtime-state source
+  - `System.Attribute.IsDefined(System.Reflection.MemberInfo, System.Type)` is now treated as an impure reflection/runtime-state source
   - `System.Reflection.MemberInfo.GetCustomAttributes(bool)` is now treated as an impure reflection/runtime-state source
   - `System.Reflection.EventInfo.AddEventHandler(object, Delegate)` now has direct regression coverage for its existing conservative reflection classification
   - `System.Reflection.EventInfo.RemoveEventHandler(object, Delegate)` now has direct regression coverage for its existing conservative reflection classification
