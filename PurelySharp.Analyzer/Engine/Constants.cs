@@ -543,6 +543,7 @@ public static class Constants
         "System.Xml.XmlNode.SelectSingleNode(string)",
         "System.Xml.Schema.XmlSchemaSet.Compile()",
         "System.Xml.Linq.XDocument.Parse(string)",
+        "System.Xml.Linq.XElement.Value.get",
         "System.AppContext.SetSwitch(string, bool)",
         "System.Collections.Generic.PriorityQueue<TElement, TPriority>.Enqueue(TElement, TPriority)",
         "System.Collections.Generic.PriorityQueue<TElement, TPriority>.Dequeue()",
@@ -1315,7 +1316,6 @@ public static class Constants
         "System.Xml.Linq.XElement.Attribute(System.Xml.Linq.XName)",
         "System.Xml.Linq.XElement.Descendants()",
         "System.Xml.Linq.XElement.Elements()",
-        "System.Xml.Linq.XElement.Value.get",
         "System.Xml.Linq.XAttribute.Value.get",
 
 
