@@ -73,6 +73,7 @@ public static class Constants
         "System.Diagnostics.Debugger.Break()",
         "System.Diagnostics.Process.GetCurrentProcess()",
         "System.Diagnostics.Process.Start(string)",
+        "System.OperatingSystem.IsWindows()",
         "System.Type.GetMethods()",
         "System.Type.GetProperties()",
         "System.Reflection.Assembly.GetTypes()",
@@ -778,9 +779,6 @@ public static class Constants
         "object.GetType()",
         "object.ReferenceEquals(object, object)",
         "object.ToString()",
-
-
-        "System.OperatingSystem.IsWindows()",
 
 
         "System.Reflection.FieldInfo.GetValue(object)",
