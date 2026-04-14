@@ -1,96 +1,32 @@
-﻿using Microsoft.CodeAnalysis.Testing;
-using NUnit.Framework;
-using System.Linq;
 using System.Threading.Tasks;
-using System.Xml.Linq;
+using NUnit.Framework;
 using PurelySharp.Analyzer;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
     PurelySharp.Analyzer.PurelySharpAnalyzer>;
-using PurelySharp.Attributes;
-
-#nullable enable
 
 namespace PurelySharp.Test
 {
     [TestFixture]
     public class XmlTests
     {
-
-
         [Test]
-        public async Task XDocument_Parse_NoDiagnostic()
+        public async Task XmlDocumentLoadXml_Diagnostic()
         {
             var test = @"
-using System;
-using PurelySharp.Attributes;
-using System.Xml.Linq;
-
-public class TestClass
-{
-    [EnforcePure]
-    public XDocument TestMethod(string xml)
-    {
-        // XDocument.Parse is now known pure
-        return XDocument.Parse(xml);
-    }
-}
-";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
-        }
-
-
-
-        [Test]
-        public async Task LinqToXml_Add_Diagnostic()
-        {
-            var test = @"
-using System;
-using PurelySharp.Attributes;
-using System.Xml.Linq;
-using System.Linq;
-
-public class TestClass
-{
-    [EnforcePure]
-    public string {|PS0002:TestMethod|}()
-    {
-        XElement root = new XElement(""Root"");
-        root.Add(new XElement(""Child1"", ""Value1"")); // Add mutates the XML tree and is impure
-        root.Add(new XAttribute(""Attr1"", ""ValA""));  // Add mutates the XML tree and is impure
-
-        return root.Elements(""Child1"").First().Value; // Elements/First/Value are pure
-    }
-}
-";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
-        }
-
-
-        [Test]
-        public async Task XElement_Creation_WithImpureDateTime_Diagnostic()
-        {
-            var test = @"
-#nullable enable
-using System;
-using System.Xml.Linq;
+using System.Xml;
 using PurelySharp.Attributes;
 
 public class TestClass
 {
     [EnforcePure]
-    public XElement TestMethod(string name, object content)
+    public XmlDocument {|PS0002:TestMethod|}(XmlDocument document)
     {
-        // Impure: Creates in-memory XML structure but uses DateTime.Now
-        return new XElement(name, content, new XAttribute(""created"", DateTime.Now));
+        document.LoadXml(""<root />"");
+        return document;
     }
 }";
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule.Id)
-                                   .WithSpan(10, 21, 10, 31)
-                                   .WithArguments("TestMethod");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expected });
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
     }
 }

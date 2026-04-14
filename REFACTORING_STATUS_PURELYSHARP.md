@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `846/846` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `844/844` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -29,6 +29,7 @@
   - `System.Threading.ThreadLocal<T>.ThreadLocal(System.Func<T>)` is now treated as an impure thread-local state constructor
   - `System.Threading.Channels.Channel.CreateUnbounded<T>()` is now treated as an impure channel-allocation factory
   - `System.Reflection.AssemblyName.AssemblyName(string)` is now treated as an impure assembly-loading/identity constructor
+  - `System.Xml.XmlDocument.LoadXml(string)` is now treated as an impure XML DOM mutation API
   - `System.Net.Http.HttpClient.HttpClient()` now has direct regression coverage, and its stale known-pure catalog entry has been removed
   - `System.Net.Sockets.SocketAsyncEventArgs.AcceptSocket.get` is now treated as an impure socket-state source
   - `System.Type.IsByRef.get` is now treated as an impure reflection/runtime-state source
