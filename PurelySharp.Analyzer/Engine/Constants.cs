@@ -123,6 +123,7 @@ public static class Constants
         "System.Reflection.Assembly.CustomAttributes.get",
         "System.Reflection.Assembly.DefinedTypes.get",
         "System.Reflection.Assembly.EntryPoint.get",
+        "System.Reflection.Assembly.EscapedCodeBase.get",
         "System.Reflection.Assembly.ExportedTypes.get",
         "System.Reflection.Assembly.GetTypes()",
         "System.Reflection.Assembly.GetExecutingAssembly()",
