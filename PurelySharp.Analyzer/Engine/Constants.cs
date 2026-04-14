@@ -86,6 +86,7 @@ public static class Constants
         "System.OperatingSystem.IsMacOS()",
         "System.OperatingSystem.IsMacOSVersionAtLeast(int, int, int)",
         "System.OperatingSystem.IsOSPlatform(string)",
+        "System.OperatingSystem.IsOSPlatformVersionAtLeast(string, int, int, int, int)",
         "System.OperatingSystem.IsTvOS()",
         "System.OperatingSystem.IsWasi()",
         "System.OperatingSystem.IsWatchOS()",
