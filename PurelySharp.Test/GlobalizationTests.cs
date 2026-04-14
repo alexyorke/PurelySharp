@@ -875,6 +875,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task ConvertToSingle_String_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public float {|PS0002:TestMethod|}(string value)
+    {
+        return Convert.ToSingle(value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ConvertToDouble_Object_CurrentCulture_Diagnostic()
         {
             var test = @"
