@@ -384,6 +384,7 @@ public static class Constants
         "long.Parse(string)",
         "long.ToString()",
         "short.Parse(string)",
+        "short.ToString()",
         "short.TryParse(string, out short)",
         "sbyte.Parse(string)",
         "sbyte.TryParse(string, out sbyte)",
