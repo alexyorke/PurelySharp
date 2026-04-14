@@ -100,6 +100,7 @@ public static class Constants
         "System.Type.GetFields()",
         "System.Type.GetInterfaces()",
         "System.Type.GetMembers()",
+        "System.Type.GetMethod(string)",
         "System.Type.GetMethods()",
         "System.Type.GetNestedTypes()",
         "System.Type.GetProperty(string)",
