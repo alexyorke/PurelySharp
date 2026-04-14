@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `885/885` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `886/886` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -178,6 +178,7 @@
   - `Environment.ProcessPath` is now treated as an impure environment-sensitive source
   - `Environment.Version` is now treated as an impure environment-sensitive source
   - `System.Text.Encoding.GetEncoding(string)` is now treated as an impure shared-encoding lookup
+  - `decimal.Parse(string)` is now treated as an impure current-culture numeric parse
   - `double.Parse(string)` is now treated as an impure current-culture numeric parse
   - `int.Parse(string)` is now treated as an impure current-culture numeric parse
   - `Environment.CommandLine` now has direct regression coverage for its existing environment-sensitive impurity catalog entry
