@@ -42,6 +42,7 @@ public static class Constants
         "System.Collections.Generic.Dictionary<TKey, TValue>.Add(TKey, TValue)",
         "System.Collections.Generic.Dictionary<TKey, TValue>.Keys.get",
         "System.Collections.Generic.Dictionary<TKey, TValue>.Values.get",
+        "System.Collections.Generic.Comparer<T>.Default.get",
         "System.Collections.Generic.EqualityComparer<T>.Default.get",
         "System.Collections.Generic.HashSet<T>.UnionWith(System.Collections.Generic.IEnumerable<T>)",
         "System.Collections.Generic.List<T>.Add(T)",
@@ -811,7 +812,6 @@ public static class Constants
         "char.ToString()",
 
 
-        "System.Collections.Generic.Comparer<T>.Default.get",
         "System.Collections.Generic.Dictionary<TKey, TValue>()",
         "System.Collections.Generic.Dictionary<TKey, TValue>.ContainsKey(TKey)",
         "System.Collections.Generic.Dictionary<TKey, TValue>.ContainsValue(TValue)",
