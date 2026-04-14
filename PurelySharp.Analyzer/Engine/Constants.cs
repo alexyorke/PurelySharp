@@ -384,6 +384,7 @@ public static class Constants
         "System.Console.BackgroundColor.get",
         "System.Console.BufferHeight.get",
         "System.Console.BufferHeight.set",
+        "System.Console.BufferWidth.get",
         "System.Console.ForegroundColor.get",
         "System.Console.Title.get",
         "System.Console.Title.set",

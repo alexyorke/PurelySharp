@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `566/566` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `567/567` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -44,6 +44,7 @@
   - `Console.In` is now treated as an impure IO source
   - `Console.BackgroundColor` is now treated as an impure console-state source
   - `Console.ForegroundColor` is now treated as an impure console-state source
+  - `Console.BufferWidth` is now treated as an impure console-state source
 
 ### What is already done
 
