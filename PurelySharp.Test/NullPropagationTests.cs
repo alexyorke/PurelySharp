@@ -14,7 +14,7 @@ namespace PurelySharp.Test
     public class NullPropagationTests
     {
         [Test]
-        public async Task PureMethodWithNullPropagation_NoDiagnostic_AnalyzerMismatch()
+        public async Task PureMethodWithNullPropagation_CurrentDiagnostics()
         {
 
             var test = """
