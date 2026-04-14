@@ -400,6 +400,7 @@ public static class Constants
         "System.Console.LargestWindowWidth.get",
         "System.Console.NumberLock.get",
         "System.Console.OutputEncoding.get",
+        "System.Console.TreatControlCAsInput.get",
         "System.Console.Title.get",
         "System.Console.Title.set",
         "System.Console.WindowHeight.get",
