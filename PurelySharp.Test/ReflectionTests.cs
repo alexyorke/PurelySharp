@@ -1896,6 +1896,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task ParameterInfoIsDefined_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System;
+using System.Reflection;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(ParameterInfo parameter, Type attributeType)
+    {
+        return parameter.IsDefined(attributeType, false);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeInfoGetFields_Diagnostic()
         {
             var test = @"
