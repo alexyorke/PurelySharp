@@ -135,6 +135,29 @@ public class TestClass
         }
 
         [Test]
+        public async Task StringFormatting_ThreeArgument_ImpureFormat_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public string TestMethod(int x, int y, int z)
+    {
+        return string.Format(""{0} {1} {2}"", x, y, z);
+    }
+}";
+
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                    .WithSpan(8, 19, 8, 29)
+                                    .WithArguments("TestMethod");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
+
+        [Test]
         public async Task MethodWithStringBuilderAppend_Diagnostic()
         {
             var test = @"

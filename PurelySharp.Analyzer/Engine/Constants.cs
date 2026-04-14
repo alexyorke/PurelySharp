@@ -559,6 +559,7 @@ public static class Constants
 
         "string.Format(string, object?)",
         "string.Format(string, object?, object?)",
+        "string.Format(string, object?, object?, object?)",
 
 
 
