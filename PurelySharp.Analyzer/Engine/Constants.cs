@@ -393,6 +393,7 @@ public static class Constants
         "System.Console.CapsLock.get",
         "System.Console.IsErrorRedirected.get",
         "System.Console.IsInputRedirected.get",
+        "System.Console.InputEncoding.get",
         "System.Console.IsOutputRedirected.get",
         "System.Console.KeyAvailable.get",
         "System.Console.NumberLock.get",
