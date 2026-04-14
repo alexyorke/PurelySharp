@@ -85,6 +85,7 @@ public static class Constants
         "System.Environment.Is64BitOperatingSystem.get",
         "System.Environment.MachineName.get",
         "System.Environment.ProcessorCount.get",
+        "System.Environment.ProcessPath.get",
         "System.Environment.SetEnvironmentVariable(string, string)",
         "System.Environment.SystemPageSize.get",
         "System.Environment.TickCount.get",
