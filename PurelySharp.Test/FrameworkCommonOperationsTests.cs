@@ -50,7 +50,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task GUI_GetTextBoxText_NoDiagnostic()
+        public async Task GUI_GetTextBoxText_ReportsMockMemberDiagnosticsOnly()
         {
             var test = @"
 #nullable enable
@@ -73,7 +73,7 @@ public class TestClass
     [EnforcePure]
     public string GetInput(TextBox textBox)
     {
-        return textBox.Text; // Pure: Reading UI state (Line 21)
+        return textBox.Text; // Intended as a pure read; the regression only expects PS0004 on the mock members.
     }
 }";
 
