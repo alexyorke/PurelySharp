@@ -22,7 +22,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int /*|PS0002:*/TestMethod/*|*/(int value)
+    public int TestMethod(int value)
     {
         switch (value)
         {
@@ -58,7 +58,7 @@ public class TestClass
         switch (value)
         {
             case 1:
-                _state++; // Removed inline diagnostic
+                _state++;
                 return 10;
             case 2:
                 return 20;
