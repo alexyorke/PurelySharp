@@ -15,7 +15,7 @@ namespace PurelySharp.Test
 
 
         [Test]
-        public async Task ImplicitConversion_PureImplementation_NoDiagnostic()
+        public async Task ImplicitConversion_PureImplementation_MissingAttributeDiagnostics()
         {
             var test = @"
 using System;
@@ -59,7 +59,7 @@ public struct Celsius
 
 
         [Test]
-        public async Task ExplicitConversion_PureImplementation_NoDiagnostic()
+        public async Task ExplicitConversion_PureImplementation_MissingAttributeDiagnostics()
         {
             var test = @"
 using System;
