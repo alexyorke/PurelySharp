@@ -1095,6 +1095,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task ConvertToSByte_String_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public sbyte {|PS0002:TestMethod|}(string value)
+    {
+        return Convert.ToSByte(value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ConvertToInt32_Object_CurrentCulture_Diagnostic()
         {
             var test = @"
