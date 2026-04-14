@@ -78,6 +78,7 @@ public static class Constants
         "System.Environment.CurrentDirectory.get",
         "System.Environment.CurrentDirectory.set",
         "System.Environment.CurrentManagedThreadId.get",
+        "System.Environment.ExitCode.get",
         "System.Environment.Exit(int)",
         "System.Environment.GetEnvironmentVariable(string)",
         "System.Environment.GetFolderPath(System.Environment.SpecialFolder)",
