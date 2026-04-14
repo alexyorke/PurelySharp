@@ -98,6 +98,7 @@ public static class Constants
         "System.Type.GetConstructors()",
         "System.Type.GetConstructors(System.Reflection.BindingFlags)",
         "System.Type.GetEvent(string)",
+        "System.Type.GetEvent(string, System.Reflection.BindingFlags)",
         "System.Type.GetEvents()",
         "System.Type.GetEvents(System.Reflection.BindingFlags)",
         "System.Type.GetField(string)",

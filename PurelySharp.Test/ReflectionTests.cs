@@ -264,6 +264,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task TypeInfoGetEventWithBindingFlags_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System.Reflection;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public EventInfo? {|PS0002:TestMethod|}(TypeInfo typeInfo)
+    {
+        return typeInfo.GetEvent(""Changed"", BindingFlags.Public);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeInfoGetFields_Diagnostic()
         {
             var test = @"
