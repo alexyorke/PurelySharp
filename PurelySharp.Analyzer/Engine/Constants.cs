@@ -90,6 +90,7 @@ public static class Constants
         "System.Convert.ToSingle(string?)",
         "System.Convert.ToString(object?)",
         "System.Convert.ToUInt16(object?)",
+        "System.Convert.ToUInt16(string?)",
         "System.Convert.ToUInt32(object?)",
         "System.Convert.ToUInt64(object?)",
         "object.Equals(object)",
