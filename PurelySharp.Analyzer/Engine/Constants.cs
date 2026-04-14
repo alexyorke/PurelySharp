@@ -89,6 +89,7 @@ public static class Constants
         "System.Globalization.CultureInfo.CurrentCulture.get",
         "System.Globalization.RegionInfo.CurrentRegion.get",
         "System.Guid.NewGuid()",
+        "System.TimeProvider.System.get",
         "System.IO.Directory.CreateDirectory(string)",
         "System.IO.Directory.Exists(string)",
         "System.IO.DriveInfo.TotalSize.get",
