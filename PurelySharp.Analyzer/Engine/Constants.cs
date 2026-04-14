@@ -133,6 +133,7 @@ public static class Constants
         "System.Type.GetProperty(string, System.Reflection.BindingFlags)",
         "System.Type.GetProperties(System.Reflection.BindingFlags)",
         "System.Type.GetProperties()",
+        "System.Type.TypeHandle.get",
         "System.Type.TypeInitializer.get",
         "System.Type.UnderlyingSystemType.get",
         "System.Reflection.Assembly.CodeBase.get",
