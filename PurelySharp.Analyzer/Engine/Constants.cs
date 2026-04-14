@@ -433,6 +433,7 @@ public static class Constants
         "sbyte.ToString(string?)",
         "sbyte.ToString()",
         "sbyte.TryParse(string, out sbyte)",
+        "sbyte.TryParse(System.ReadOnlySpan<char>, out sbyte)",
         "ushort.Parse(string)",
         "ushort.ToString(string?)",
         "ushort.ToString()",
