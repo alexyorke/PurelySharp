@@ -40,7 +40,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task PureMethodWithInParameterAccess_NoDiagnostic()
+        public async Task PureMethodWithInParameterAccess_MissingAttributeDiagnostics()
         {
 
             var test = @"
@@ -67,7 +67,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task PureMethodWithInParameterCall_NoDiagnostic()
+        public async Task PureMethodWithInParameterCall_MissingAttributeDiagnostics()
         {
 
             var test = @"
