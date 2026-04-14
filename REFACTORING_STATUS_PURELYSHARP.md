@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `646/646` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `647/647` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -88,6 +88,7 @@
   - `System.OperatingSystem.IsWatchOSVersionAtLeast(int, int, int)` is now treated as an impure environment-sensitive source
   - `System.Type.GetConstructors()` is now treated as an impure reflection source
   - `System.Type.GetEvents()` is now treated as an impure reflection source
+  - `System.Type.GetEvents(System.Reflection.BindingFlags)` is now treated as an impure reflection source
   - `System.Type.GetField(string)` is now treated as an impure reflection source
   - `System.Type.GetFields()` is now treated as an impure reflection source
   - `System.Type.GetFields(System.Reflection.BindingFlags)` is now treated as an impure reflection source

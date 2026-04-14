@@ -355,5 +355,24 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task TypeInfoGetEventsWithBindingFlags_Diagnostic()
+        {
+            var test = @"
+using System.Reflection;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public EventInfo[] {|PS0002:TestMethod|}(TypeInfo typeInfo)
+    {
+        return typeInfo.GetEvents(BindingFlags.Public);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
