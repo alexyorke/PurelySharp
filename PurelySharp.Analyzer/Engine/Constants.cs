@@ -379,6 +379,7 @@ public static class Constants
         "System.Half.Parse(string)",
         "System.Half.TryParse(string, out System.Half)",
         "System.Numerics.BigInteger.Parse(string)",
+        "System.Numerics.BigInteger.TryParse(string, out System.Numerics.BigInteger)",
         "System.Text.Encoding.GetEncoding(string)",
         "System.TimeSpan.Parse(string)",
 

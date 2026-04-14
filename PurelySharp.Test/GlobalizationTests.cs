@@ -733,5 +733,25 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task BigIntegerTryParse_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System.Numerics;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(string numStr)
+    {
+        return BigInteger.TryParse(numStr, out _);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
