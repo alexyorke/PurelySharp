@@ -62,7 +62,7 @@ namespace PurelySharp.Test
 
 
         [Test]
-        public async Task AttributeConstructors_NoDiagnostic()
+        public async Task AttributeConstructors_ReportsMissingAttributeAndPurityDiagnostics()
         {
             var test = @"
 #nullable enable
@@ -79,7 +79,7 @@ public class TestClass
     [EnforcePure]
     public ValidationAttribute[] TestMethod() // Line 13 in test string
     {
-        // Pure: Creating attribute instances
+        // This regression expects PS0004 on the custom attribute members and PS0002 on the wrapper method.
         return new ValidationAttribute[]
         {
             new RequiredAttribute(),
@@ -116,7 +116,7 @@ public class TestClass
 
 
         [Test]
-        public async Task Validator_TryValidateObject_PureAttributes_NoDiagnostic()
+        public async Task Validator_TryValidateObject_PureAttributes_Diagnostic()
         {
             var test = @"
 using System;
