@@ -121,6 +121,7 @@ public static class Constants
         "System.Type.GetMethods(System.Reflection.BindingFlags)",
         "System.Type.Assembly.get",
         "System.Type.Module.get",
+        "System.Type.Namespace.get",
         "System.Type.GetNestedType(string)",
         "System.Type.GetNestedType(string, System.Reflection.BindingFlags)",
         "System.Type.GetNestedTypes()",
