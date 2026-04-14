@@ -110,6 +110,7 @@ public static class Constants
         "System.Type.BaseType.get",
         "System.Type.ContainsGenericParameters.get",
         "System.Type.DefaultBinder.get",
+        "System.Type.DeclaringType.get",
         "System.Type.DeclaringMethod.get",
         "System.Type.FullName.get",
         "System.Type.GenericParameterAttributes.get",
