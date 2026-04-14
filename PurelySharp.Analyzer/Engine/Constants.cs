@@ -365,6 +365,7 @@ public static class Constants
         "byte.ToString()",
         "System.DateOnly.Parse(string)",
         "System.DateOnly.TryParse(string, out System.DateOnly)",
+        "System.DateOnly.ToString(string?)",
         "System.DateOnly.ToString()",
         "System.DateTime.Parse(string)",
         "System.DateTime.ToLongDateString()",

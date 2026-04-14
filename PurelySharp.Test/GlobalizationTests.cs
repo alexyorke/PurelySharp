@@ -1335,6 +1335,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task DateOnlyToString_FormatString_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public string {|PS0002:TestMethod|}(DateOnly value)
+    {
+        return value.ToString(""d"");
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DateTimeOffsetTryParse_CurrentCulture_Diagnostic()
         {
             var test = @"
