@@ -55,12 +55,42 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
             else
             {
+                if (IsFreshLocalArrayInitialization(arrayCreation))
+                {
+                    LogDebug($"    [ArrCreateRule] Array creation '{arrayCreation.Syntax}' assigned to a fresh local array. Treating as PURE.");
+                    return PurityAnalysisResult.Pure;
+                }
 
                 LogDebug($"    [ArrCreateRule] Array creation '{arrayCreation.Syntax}' is IMPURE (mutable allocation, not for params).");
                 return PurityAnalysisResult.Impure(arrayCreation.Syntax);
             }
         }
 
+        private static bool IsFreshLocalArrayInitialization(IArrayCreationOperation arrayCreation)
+        {
+            IOperation? current = arrayCreation.Parent;
+
+            if (current is IConversionOperation conversionOperation)
+            {
+                current = conversionOperation.Parent;
+            }
+
+            if (current is IVariableInitializerOperation variableInitializer &&
+                variableInitializer.Parent is IVariableDeclaratorOperation variableDeclarator &&
+                variableDeclarator.Symbol.Type is IArrayTypeSymbol)
+            {
+                return true;
+            }
+
+            if (current is IAssignmentOperation assignmentOperation &&
+                assignmentOperation.Target is ILocalReferenceOperation localReference &&
+                localReference.Type is IArrayTypeSymbol)
+            {
+                return true;
+            }
+
+            return false;
+        }
 
     }
 }

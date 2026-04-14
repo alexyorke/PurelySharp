@@ -35,15 +35,11 @@ public class TestClass
     }
 }";
 
-
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(10, 16, 10, 25)
-                                   .WithArguments("ReadArray");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
-        public async Task WritingToArray_IsImpure()
+        public async Task WritingToFreshLocalArray_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -54,20 +50,18 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public void {|PS0002:WriteToArray|}()
+    public void WriteToArray()
     {
         int[] buffer = new int[10];
-        // Writing to an array is impure
         buffer[5] = 42;
     }
 }";
-
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
-        public async Task ModifyingMultipleArrayElements_IsImpure()
+        public async Task InitializingFreshLocalArray_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -78,10 +72,9 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int[] {|PS0002:InitializeArray|}()
+    public int[] InitializeArray()
     {
         int[] buffer = new int[5];
-        // Initializing array elements is impure
         for (int i = 0; i < 5; i++)
         {
             buffer[i] = i * 2;
@@ -89,7 +82,6 @@ public class TestClass
         return buffer;
     }
 }";
-
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }

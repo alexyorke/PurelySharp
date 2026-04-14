@@ -68,7 +68,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task PureMethodWithParamsArrayCalledWithArrayArgument_Diagnostic()
+        public async Task PureMethodWithParamsArrayCalledWithFreshLocalArray_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -94,11 +94,7 @@ public class TestClass
         return Sum(myArray);
     }
 }";
-
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(19, 16, 19, 26)
-                                   .WithArguments("TestMethod");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
@@ -195,7 +191,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task PureMethodWithParamsArrayModifyingLocally_Diagnostic()
+        public async Task PureMethodWithParamsArrayCopyingIntoFreshLocalArray_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -211,19 +207,11 @@ public class TestClass
         {
             result[i] = numbers[i] * 2;
         }
-        // Expectation limitation: Analyzer incorrectly flags this method as impure.
-        // It only reads the input 'params' array and returns a new array.
         return result;
     }
 }";
 
-
-
-
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                           .WithSpan(8, 18, 8, 30)
-                           .WithArguments("ProcessArray");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]

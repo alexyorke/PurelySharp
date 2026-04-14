@@ -166,7 +166,7 @@ public class CollectionExpressionExample
         }
 
         [Test]
-        public async Task PureMethod_ModifyingExistingArray_Diagnostic()
+        public async Task PureMethod_ModifyingFreshLocalArray_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -180,19 +180,12 @@ public class CollectionExpressionExample
     public int[] GetModifiedArray()
     {
         int[] array = new int[5];
-        
-        // Modifying array element
         array[0] = 10;
-        
         return array;
     }
 }";
 
-
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(10, 18, 10, 34)
-                                   .WithArguments("GetModifiedArray");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]

@@ -135,7 +135,7 @@ public class CollectionExpressionExample
         }
 
         [Test]
-        public async Task PureMethod_ModifyingExistingArray_Diagnostic()
+        public async Task PureMethod_ModifyingFreshLocalArray_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -146,16 +146,13 @@ public class CollectionExpressionExample
     [EnforcePure]
     public static int[] GetModifiedArray()
     {
-        // Impure: Array creation results in a mutable object
-        int[] array = new int[5]; // Analyzer flags the 'new' expression
-        array[0] = 10; // This modification *within* the method is also impure
+        int[] array = new int[5];
+        array[0] = 10;
         return array;
     }
 }";
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(8, 25, 8, 41)
-                                   .WithArguments("GetModifiedArray");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]

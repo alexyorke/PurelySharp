@@ -119,7 +119,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
 
             var targetSymbol = TryResolveSymbol(targetOperation);
-            bool isPureAssignment = IsAssignmentTargetPure(targetOperation, context, targetSymbol);
+            bool isPureAssignment = IsAssignmentTargetPure(targetOperation, context, targetSymbol, currentState);
 
             if (!isPureAssignment)
             {
@@ -187,7 +187,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
         }
 
-        private bool IsAssignmentTargetPure(IOperation targetOperation, PurityAnalysisContext context, ISymbol? targetSymbol)
+        private bool IsAssignmentTargetPure(IOperation targetOperation, PurityAnalysisContext context, ISymbol? targetSymbol, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
             switch (targetOperation.Kind)
             {
@@ -272,6 +272,13 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     return false;
 
                 case OperationKind.ArrayElementReference:
+                    if (targetOperation is IArrayElementReferenceOperation arrayElementReference &&
+                        IsOwnedLocalArrayReference(arrayElementReference.ArrayReference, currentState))
+                    {
+                        PurityAnalysisEngine.LogDebug(" Assignment Target: ArrayElementReference on fresh local array - Pure Target");
+                        return true;
+                    }
+
                     PurityAnalysisEngine.LogDebug(" Assignment Target: ArrayElementReference - Impure Target");
                     return false;
 
@@ -279,6 +286,17 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     PurityAnalysisEngine.LogDebug($" Assignment Target: Unhandled Kind {targetOperation.Kind} - Assuming Impure Target");
                     return false;
             }
+        }
+
+        private static bool IsOwnedLocalArrayReference(IOperation operation, PurityAnalysisEngine.PurityAnalysisState currentState)
+        {
+            if (operation is IConversionOperation conversionOperation && conversionOperation.Operand != null)
+            {
+                return IsOwnedLocalArrayReference(conversionOperation.Operand, currentState);
+            }
+
+            return operation is ILocalReferenceOperation localReference &&
+                   currentState.IsOwnedLocalArraySymbol(localReference.Local);
         }
 
 
