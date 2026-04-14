@@ -12,7 +12,7 @@ namespace PurelySharp.Test
     public class CheckedUserDefinedOperatorsTests
     {
         [Test]
-        public async Task CheckedUserDefinedOperator_BasicArithmetic_PureMethod_NoDiagnostic()
+        public async Task CheckedUserDefinedOperator_BasicArithmetic_MissingAttributeAndUnknownPurityDiagnostics()
         {
             var test = @"
 using System;
