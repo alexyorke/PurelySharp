@@ -204,6 +204,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task TypeInfoGetInterface_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System.Reflection;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public System.Type? {|PS0002:TestMethod|}(TypeInfo typeInfo)
+    {
+        return typeInfo.GetInterface(""IDisposable"");
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeInfoGetFields_Diagnostic()
         {
             var test = @"
