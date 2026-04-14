@@ -175,6 +175,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task DoubleTryParse_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(string numStr)
+    {
+        return double.TryParse(numStr, out _);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DoubleToString_CurrentCulture_Diagnostic()
         {
             var test = @"
