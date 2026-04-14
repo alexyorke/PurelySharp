@@ -55,6 +55,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task MemoryStreamToArray_Diagnostic()
+        {
+            var test = @"
+using System.IO;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public byte[] {|PS0002:TestMethod|}(MemoryStream stream)
+    {
+        return stream.ToArray();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task AsyncAwait_NoDiagnostic()
         {
             var test = @"
