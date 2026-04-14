@@ -94,6 +94,7 @@ public static class Constants
         "System.OperatingSystem.IsWatchOSVersionAtLeast(int, int, int)",
         "System.OperatingSystem.IsWindows()",
         "System.OperatingSystem.IsWindowsVersionAtLeast(int, int, int, int)",
+        "System.Type.GetConstructors()",
         "System.Type.GetFields()",
         "System.Type.GetMethods()",
         "System.Type.GetProperties()",
