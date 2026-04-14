@@ -14,7 +14,7 @@ namespace PurelySharp.Test
     public class UsingTests
     {
         [Test]
-        public async Task PureMethodWithUsing_NoDiagnostic()
+        public async Task PureMethodWithUsing_MissingAttributeDiagnostic()
         {
             var code = @"
 using System;
