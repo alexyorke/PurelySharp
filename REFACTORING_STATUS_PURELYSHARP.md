@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `614/614` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `615/615` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -67,6 +67,7 @@
   - `System.Type.GetProperties()` is now treated as an impure reflection/runtime-state source
   - `System.OperatingSystem.IsWindows()` is now treated as an impure environment-sensitive source
   - `System.OperatingSystem.IsLinux()` is now treated as an impure environment-sensitive source
+  - `System.OperatingSystem.IsMacOS()` is now treated as an impure environment-sensitive source
   - `Console.Out` is now treated as an impure IO source
   - `Console.Error` is now treated as an impure IO source
   - `Console.In` is now treated as an impure IO source

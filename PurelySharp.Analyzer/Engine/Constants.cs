@@ -74,6 +74,7 @@ public static class Constants
         "System.Diagnostics.Process.GetCurrentProcess()",
         "System.Diagnostics.Process.Start(string)",
         "System.OperatingSystem.IsLinux()",
+        "System.OperatingSystem.IsMacOS()",
         "System.OperatingSystem.IsWindows()",
         "System.Type.GetMethods()",
         "System.Type.GetProperties()",
