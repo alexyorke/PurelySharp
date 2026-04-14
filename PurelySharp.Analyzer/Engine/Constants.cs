@@ -390,6 +390,7 @@ public static class Constants
         "System.Console.CursorTop.get",
         "System.Console.CursorVisible.get",
         "System.Console.ForegroundColor.get",
+        "System.Console.IsOutputRedirected.get",
         "System.Console.KeyAvailable.get",
         "System.Console.Title.get",
         "System.Console.Title.set",
