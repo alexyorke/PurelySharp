@@ -33,10 +33,10 @@ public class TestClass
     [EnforcePure]
     public byte[] {|PS0002:TestMethod|}(string data)
     {
-        using (var sha256 = SHA256.Create()) // Pure: Creates a hashing object
+        using (var sha256 = SHA256.Create()) // Analyzer cannot currently prove the factory or instance pure.
         {
-            byte[] bytes = Encoding.UTF8.GetBytes(data); // Pure: Encoding
-            return sha256.ComputeHash(bytes); // Pure: Computes hash based on input
+            byte[] bytes = Encoding.UTF8.GetBytes(data); // Encoding remains allowed here.
+            return sha256.ComputeHash(bytes); // The hash computation is still treated as unverified.
         }
     }
 }";
@@ -68,7 +68,7 @@ public class TestClass
     [EnforcePure]
     public Aes {|PS0002:TestMethod|}()
     {
-        return Aes.Create(); // Pure: Factory method
+        return Aes.Create(); // Factory creation is still treated as unverified.
     }
 }";
 
@@ -91,7 +91,7 @@ public class TestClass
     [EnforcePure]
     public RSA {|PS0002:TestMethod|}()
     {
-        return RSA.Create(); // Pure: Factory method
+        return RSA.Create(); // Factory creation is still treated as unverified.
     }
 }";
 
