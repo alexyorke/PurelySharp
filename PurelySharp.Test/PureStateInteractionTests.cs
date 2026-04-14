@@ -15,7 +15,7 @@ namespace PurelySharp.Test
     public class PureStateInteractionTests
     {
         [Test]
-        public async Task PureInteractionsWithState_NoDiagnostic()
+        public async Task PureInteractionsWithState_MissingAttributeDiagnostics()
         {
             var test = @"
 using PurelySharp.Attributes;
