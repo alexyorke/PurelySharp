@@ -121,6 +121,7 @@ public static class Constants
         "System.Type.IsInterface.get",
         "System.Type.IsPointer.get",
         "System.Type.IsPrimitive.get",
+        "System.Type.IsSealed.get",
         "System.Type.IsValueType.get",
         "System.Type.GetInterface(string)",
         "System.Type.GetInterface(string, bool)",
