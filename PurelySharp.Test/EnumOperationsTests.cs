@@ -219,6 +219,32 @@ public class TestClass
         }
 
         [Test]
+        public async Task EnumIsDefined_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public enum Color
+{
+    Red,
+    Green,
+    Blue
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(object value)
+    {
+        return Enum.IsDefined(typeof(Color), value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task EnumWithAttributes_ReflectionBody_ReportsPS0002()
         {
             var test = @"
