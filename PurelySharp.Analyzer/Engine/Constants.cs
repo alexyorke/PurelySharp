@@ -353,6 +353,7 @@ public static class Constants
         "System.Random.Shared.get",
         "System.Security.Cryptography.RandomNumberGenerator.GetBytes(byte[])",
         "byte.Parse(string)",
+        "System.DateOnly.Parse(string)",
         "System.DateTime.Parse(string)",
         "System.DateTime.TryParse(string, out System.DateTime)",
         "System.DateTime.ToString()",
