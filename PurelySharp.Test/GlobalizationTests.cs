@@ -455,6 +455,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task ConvertToByte_Object_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public byte {|PS0002:TestMethod|}(object value)
+    {
+        return Convert.ToByte(value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ConvertToInt32_Object_CurrentCulture_Diagnostic()
         {
             var test = @"
