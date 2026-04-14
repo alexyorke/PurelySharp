@@ -449,6 +449,28 @@ namespace TestNamespace
         }
 
         [Test]
+        public async Task Assembly_GlobalAssemblyCache_Diagnostic()
+        {
+            var test = @"
+using System.Reflection;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public bool {|PS0002:TestMethod|}(Assembly assembly)
+        {
+            return assembly.GlobalAssemblyCache;
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task Assembly_LoadFile_NoDiagnostic()
         {
             var test = @"

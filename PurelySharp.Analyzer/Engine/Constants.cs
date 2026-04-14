@@ -125,6 +125,7 @@ public static class Constants
         "System.Reflection.Assembly.ExportedTypes.get",
         "System.Reflection.Assembly.GetTypes()",
         "System.Reflection.Assembly.GetExecutingAssembly()",
+        "System.Reflection.Assembly.GlobalAssemblyCache.get",
         "System.Reflection.Assembly.HostContext.get",
         "System.Reflection.Assembly.IsDynamic.get",
         "System.Reflection.Assembly.IsFullyTrusted.get",
