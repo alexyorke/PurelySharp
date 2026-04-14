@@ -124,7 +124,7 @@ public class TestClass
     [EnforcePure]
     public void TestMethod(StringBuilder sb)
     {
-        sb.Append(""hello""); // Removed inline diagnostic
+        sb.Append(""hello"");
     }
 }";
 
