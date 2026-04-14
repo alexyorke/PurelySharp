@@ -101,6 +101,7 @@ public static class Constants
         "System.Type.GetFields(System.Reflection.BindingFlags)",
         "System.Type.GetInterfaces()",
         "System.Type.GetMembers()",
+        "System.Type.GetMembers(System.Reflection.BindingFlags)",
         "System.Type.GetMethod(string)",
         "System.Type.GetMethods()",
         "System.Type.GetMethods(System.Reflection.BindingFlags)",
