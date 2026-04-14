@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `596/596` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `597/597` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -38,6 +38,7 @@
   - `Environment.CommandLine` now has direct regression coverage for its existing environment-sensitive impurity catalog entry
   - `Environment.CurrentDirectory` now has direct regression coverage for its existing environment-sensitive impurity catalog entry
   - `Environment.MachineName` now has direct regression coverage for its existing environment-sensitive impurity catalog entry
+  - `Environment.NewLine` is now treated as an impure environment-sensitive source
   - `Environment.OSVersion` now has direct regression coverage for its existing environment-sensitive impurity catalog entry
   - `Environment.TickCount` now has direct regression coverage for its existing environment-sensitive impurity catalog entry
   - `Environment.SystemDirectory` now has direct regression coverage for its existing environment-sensitive impurity catalog entry

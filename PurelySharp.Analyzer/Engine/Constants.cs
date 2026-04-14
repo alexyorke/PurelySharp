@@ -99,6 +99,7 @@ public static class Constants
         "System.Environment.UserInteractive.get",
         "System.Environment.UserName.get",
         "System.Environment.Version.get",
+        "System.Environment.NewLine.get",
         "System.Environment.WorkingSet.get",
         "System.GC.Collect()",
         "System.GC.GetTotalMemory(bool)",
@@ -1025,11 +1026,6 @@ public static class Constants
         "System.Enum.TryParse<TEnum>(string, bool, out TEnum)",
         "System.Enum.TryParse<TEnum>(string?, out TEnum)",
         "System.Enum.TryParse<TEnum>(string?, bool, out TEnum)",
-        "System.Environment.NewLine.get",
-
-
-
-
         "System.IEquatable<T>.Equals(T)",
 
         "System.Linq.Enumerable.Average",
