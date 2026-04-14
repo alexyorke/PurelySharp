@@ -40,7 +40,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task ClosureOverFieldImpurity_MayMissDiagnostic()
+        public async Task ClosureOverFieldImpurity_Diagnostic()
         {
             var test = @"
 using System;
@@ -77,7 +77,7 @@ public class TestClass
 
 
         [Test]
-        public async Task ComplexMemberAccess_MayMissDiagnostic()
+        public async Task ComplexMemberAccess_Diagnostic()
         {
             var test = @"
 using System;
@@ -109,7 +109,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task ConditionalImpurity_MayMissDiagnostic()
+        public async Task ConditionalImpurity_Diagnostic()
         {
             var test = @"
 using System;
@@ -206,7 +206,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task DynamicDispatchImpurity_MayMissDiagnostic()
+        public async Task DynamicDispatchImpurity_Diagnostic()
         {
 
             var test = @"
@@ -227,7 +227,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task ExtensionMethodImpurity_MayMissDiagnostic()
+        public async Task ExtensionMethodImpurity_Diagnostic()
         {
 
             var test = @"
@@ -317,7 +317,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task IndirectImpurity_MayMissDiagnostic()
+        public async Task IndirectImpurity_Diagnostic()
         {
             var test = @"
 using System;
@@ -346,7 +346,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task StaticFieldAccess_MayMissDiagnostic()
+        public async Task StaticFieldAccess_Diagnostic()
         {
 
             var test = @"
@@ -404,7 +404,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task ReflectionImpurity_MayMissDiagnostic()
+        public async Task ReflectionImpurity_Diagnostic()
         {
             var test = @"
 #nullable enable
@@ -430,7 +430,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task UnsafeCodeImpurity_MayMissDiagnostic()
+        public async Task UnsafeCodeImpurity_Diagnostic()
         {
             var test = @"
 using System;
@@ -456,7 +456,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task LocalFunctionImpurity_MayMissDiagnostic()
+        public async Task LocalFunctionImpurity_Diagnostic()
         {
             var test = @"
 using System;
@@ -486,7 +486,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task LambdaCapturing_MayMissDiagnostic()
+        public async Task LambdaCapturing_Diagnostic()
         {
             var test = @"
 using System;
@@ -556,7 +556,7 @@ public class TestClass
         [Test]
 
 
-        public async Task ThreadStaticFieldImpurity_MayMissDiagnostic()
+        public async Task ThreadStaticFieldImpurity_Diagnostic()
         {
 
             var test = @"
@@ -588,7 +588,7 @@ public class TestClass
         [Test]
 
 
-        public async Task LazyInitializationImpurity_MayMissDiagnostic()
+        public async Task LazyInitializationImpurity_Diagnostic()
         {
 
             var test = @"
