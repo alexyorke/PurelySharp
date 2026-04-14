@@ -72,6 +72,7 @@ public static class Constants
         "System.ComponentModel.TypeDescriptor.GetConverter(System.Type)",
         "System.ComponentModel.TypeDescriptor.GetProperties(object)",
         "System.Convert.FromBase64String(string)",
+        "object.Equals(object)",
         "object.GetHashCode()",
         "System.DateTime.Now.get",
         "System.DateTime.Today.get",
@@ -1341,7 +1342,6 @@ public static class Constants
 
 
 
-        "object.Equals(object)",
         "object.ReferenceEquals(object, object)",
 
 

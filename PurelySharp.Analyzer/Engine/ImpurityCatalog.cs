@@ -117,6 +117,15 @@ namespace PurelySharp.Analyzer.Engine
 				return true;
 			}
 
+			if (symbol is IMethodSymbol objectEqualsMethodSymbol &&
+				objectEqualsMethodSymbol.ContainingType?.SpecialType == SpecialType.System_Object &&
+				objectEqualsMethodSymbol.Name == nameof(object.Equals) &&
+				objectEqualsMethodSymbol.Parameters.Length == 1)
+			{
+				PurityAnalysisEngine.LogDebug($"Helper IsKnownImpure: Virtual System.Object.Equals dispatch is considered impure: {symbol.ToDisplayString()}");
+				return true;
+			}
+
 			string signature = symbol.OriginalDefinition.ToDisplayString();
 			if (symbol.Kind == SymbolKind.Property)
 			{
