@@ -13,7 +13,7 @@ namespace PurelySharp.Test
     public class NullConditionalTests
     {
         [Test]
-        public async Task PureMethodWithNullConditional_NoDiagnostic()
+        public async Task PureMethodWithNullConditional_MissingAttributeAndUnknownPurityDiagnostics()
         {
 
             var test = """
