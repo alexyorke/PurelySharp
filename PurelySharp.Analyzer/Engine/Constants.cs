@@ -371,6 +371,7 @@ public static class Constants
         "ushort.Parse(string)",
         "ushort.TryParse(string, out ushort)",
         "uint.Parse(string)",
+        "uint.TryParse(string, out uint)",
         "System.Half.Parse(string)",
         "System.Numerics.BigInteger.Parse(string)",
         "System.Text.Encoding.GetEncoding(string)",
