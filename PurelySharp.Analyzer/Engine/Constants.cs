@@ -80,6 +80,7 @@ public static class Constants
         "System.Diagnostics.Process.StartInfo.get",
         "System.Diagnostics.Process.Start(string)",
         "System.Diagnostics.StackFrame.GetMethod()",
+        "System.Diagnostics.Stopwatch.Stopwatch()",
         "System.Diagnostics.Stopwatch.IsRunning.get",
         "System.OperatingSystem.IsAndroid()",
         "System.OperatingSystem.IsAndroidVersionAtLeast(int, int, int, int)",
@@ -829,11 +830,6 @@ public static class Constants
 
         "System.Diagnostics.Contracts.Contract.Ensures(bool)",
         "System.Diagnostics.Contracts.Contract.Requires(bool)",
-
-
-        "System.Diagnostics.Stopwatch.Stopwatch()",
-
-
         "double.Parse(string)",
         "double.ToString()",
 
