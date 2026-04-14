@@ -193,6 +193,32 @@ public class TestClass
         }
 
         [Test]
+        public async Task EnumGetName_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public enum Color
+{
+    Red,
+    Green,
+    Blue
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public string {|PS0002:TestMethod|}(Color color)
+    {
+        return Enum.GetName(typeof(Color), color) ?? string.Empty;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task EnumWithAttributes_ReflectionBody_ReportsPS0002()
         {
             var test = @"
