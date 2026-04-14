@@ -352,6 +352,7 @@ public static class Constants
         "System.DateTime.Parse(string)",
         "System.DateTime.ToString()",
         "System.DateTimeOffset.Parse(string)",
+        "System.DateTimeOffset.ToString()",
         "decimal.Parse(string)",
         "double.Parse(string)",
         "double.ToString()",
@@ -869,7 +870,6 @@ public static class Constants
         "System.DateTimeOffset.DateTimeOffset(long, System.TimeSpan)",
         "System.DateTimeOffset.FromUnixTimeMilliseconds(long)",
         "System.DateTimeOffset.ToUnixTimeSeconds()",
-        "System.DateTimeOffset.ToString()",
 
 
         "System.DBNull.Value.get",
