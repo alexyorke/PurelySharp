@@ -443,6 +443,7 @@ public static class Constants
         "System.TimeOnly.ToString(string?)",
         "System.TimeOnly.ToString()",
         "System.TimeOnly.TryParse(string, out System.TimeOnly)",
+        "System.TimeOnly.TryParseExact(string, string, out System.TimeOnly)",
         "System.TimeSpan.Parse(string)",
         "System.TimeSpan.ToString()",
         "System.TimeSpan.TryParse(string, out System.TimeSpan)",
