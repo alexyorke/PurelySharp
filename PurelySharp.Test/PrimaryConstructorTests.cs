@@ -111,7 +111,7 @@ public record GreetingRecord(string Message)
         }
 
         [Test]
-        public async Task StructWithPrimaryConstructor_NoDiagnostic()
+        public async Task StructWithPrimaryConstructor_MissingAttributeDiagnostics()
         {
             var testCode = @"
 // Requires C# 10+
