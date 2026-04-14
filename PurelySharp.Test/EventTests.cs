@@ -66,7 +66,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task PureMethodWithEventSubscription_Diagnostic()
+        public async Task MethodWithEventSubscription_Diagnostic()
         {
             var test = @"
 using System;
