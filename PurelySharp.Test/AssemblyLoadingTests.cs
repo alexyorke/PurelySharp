@@ -63,6 +63,29 @@ namespace TestNamespace
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        [Test]
+        public async Task Assembly_GetEntryAssembly_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System.Reflection;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public Assembly? {|PS0002:TestMethod|}()
+        {
+            return Assembly.GetEntryAssembly();
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
 
         [Test]
         public async Task Assembly_GetTypes_Diagnostic()
