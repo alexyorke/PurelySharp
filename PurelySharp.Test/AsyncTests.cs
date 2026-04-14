@@ -62,7 +62,7 @@ namespace TestNamespace
         }
 
         [Test]
-        public async Task PureAsyncMethodWithAwait_Diagnostic()
+        public async Task AsyncMethodAwaitingUnknownPurityMethod_Diagnostic()
         {
             var test = @"
 using System.Threading.Tasks;
