@@ -36,6 +36,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task StringWriterConstructor_Diagnostic()
+        {
+            var test = @"
+using System.IO;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public StringWriter {|PS0002:TestMethod|}()
+    {
+        return new StringWriter();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task AsyncAwait_NoDiagnostic()
         {
             var test = @"

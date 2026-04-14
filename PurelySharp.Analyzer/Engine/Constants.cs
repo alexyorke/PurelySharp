@@ -879,7 +879,6 @@ public static class Constants
         "System.IO.Path.Combine(string, string)",
         "System.IO.Path.GetDirectoryName(string)",
         "System.IO.Path.GetFileName(string)",
-        "System.IO.StringWriter()",
 
 
         "System.Lazy<T>.Lazy(System.Func<T>)",
