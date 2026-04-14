@@ -186,6 +186,25 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        [Test]
+        public async Task ChannelCreateUnbounded_Diagnostic()
+        {
+            var test = @"
+using System.Threading.Channels;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public Channel<int> {|PS0002:TestMethod|}()
+    {
+        return Channel.CreateUnbounded<int>();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
 
 
 
