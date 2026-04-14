@@ -1017,6 +1017,29 @@ namespace TestNamespace
         }
 
         [Test]
+        public async Task Module_ResolveMethod_Overload_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Reflection;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public MethodBase {|PS0002:TestMethod|}(Module module)
+        {
+            return module.ResolveMethod(0, Array.Empty<Type>(), Array.Empty<Type>());
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task Assembly_LoadFile_NoDiagnostic()
         {
             var test = @"
