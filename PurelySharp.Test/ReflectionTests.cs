@@ -67,6 +67,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task PropertyInfoPropertyType_Diagnostic()
+        {
+            var test = @"
+using System.Reflection;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public System.Type {|PS0002:TestMethod|}(PropertyInfo property)
+    {
+        return property.PropertyType;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeAssembly_Diagnostic()
         {
             var test = @"
