@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `545/545` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `546/546` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -23,6 +23,7 @@
   - immutable queue/stack and cryptographic-randomness regression coverage has been expanded
   - `TimeProvider.System` and `TimeZoneInfo.Local` are now treated as impure environment-sensitive sources
   - `DateTime.Today` is now treated as an impure environment-sensitive source
+  - `CultureInfo.CurrentUICulture` is now treated as an impure environment-sensitive source
 
 ### What is already done
 
