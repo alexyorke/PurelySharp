@@ -111,6 +111,7 @@ public static class Constants
         "System.Type.ContainsGenericParameters.get",
         "System.Type.FullName.get",
         "System.Type.GenericTypeArguments.get",
+        "System.Type.GenericParameterPosition.get",
         "System.Type.GUID.get",
         "System.Type.HasElementType.get",
         "System.Type.IsCOMObject.get",

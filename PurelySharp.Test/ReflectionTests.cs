@@ -1284,6 +1284,24 @@ public class TestClass
         }
 
         [Test]
+        public async Task TypeGenericParameterPosition_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:TestMethod|}(System.Type type)
+    {
+        return type.GenericParameterPosition;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeInfoGetFields_Diagnostic()
         {
             var test = @"
