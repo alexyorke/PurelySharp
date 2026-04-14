@@ -73,6 +73,7 @@ public static class Constants
         "System.Diagnostics.Debugger.Break()",
         "System.Diagnostics.Process.GetCurrentProcess()",
         "System.Diagnostics.Process.Start(string)",
+        "System.OperatingSystem.IsLinux()",
         "System.OperatingSystem.IsWindows()",
         "System.Type.GetMethods()",
         "System.Type.GetProperties()",
