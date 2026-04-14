@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `602/602` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `603/603` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -22,6 +22,7 @@
   - the previously disabled required-members suite is being reintroduced as active smoke coverage in small green slices
   - immutable queue/stack and cryptographic-randomness regression coverage has been expanded
   - `TimeProvider.System` and `TimeZoneInfo.Local` are now treated as impure environment-sensitive sources
+  - `TimeProvider.System` now has direct regression coverage for its existing environment-sensitive impurity catalog entry
   - `DateTime.Today` is now treated as an impure environment-sensitive source
   - `DateTime.Now` now has direct regression coverage for its existing environment-sensitive impurity catalog entry
   - `DateTime.UtcNow` now has direct regression coverage for its existing environment-sensitive impurity catalog entry
