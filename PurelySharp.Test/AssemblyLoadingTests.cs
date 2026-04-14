@@ -225,6 +225,7 @@ namespace TestNamespace
         public async Task Assembly_DefinedTypes_Diagnostic()
         {
             var test = @"
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using PurelySharp.Attributes;
@@ -237,6 +238,30 @@ namespace TestNamespace
         public IEnumerable<TypeInfo> {|PS0002:TestMethod|}(Assembly assembly)
         {
             return assembly.DefinedTypes;
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task Assembly_ExportedTypes_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using System.Reflection;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public IEnumerable<Type> {|PS0002:TestMethod|}(Assembly assembly)
+        {
+            return assembly.ExportedTypes;
         }
     }
 }";
