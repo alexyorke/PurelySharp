@@ -1071,7 +1071,6 @@ public static class Constants
         "System.Threading.Tasks.ValueTask<TResult>.ValueTask(TResult)",
         "System.Threading.Tasks.ValueTask.AsTask()",
         "System.Buffers.ReadOnlySequence<T>.Slice(long)",
-        "System.Diagnostics.Metrics.Meter.CreateCounter<T>(string, string, string)",
         "System.IO.Hashing.Crc32.Hash(System.ReadOnlySpan<byte>)",
         "System.Linq.Enumerable.Chunk<TSource>(System.Collections.Generic.IEnumerable<TSource>, int)",
         "System.Runtime.InteropServices.MemoryMarshal.Read<T>(System.ReadOnlySpan<byte>)",
