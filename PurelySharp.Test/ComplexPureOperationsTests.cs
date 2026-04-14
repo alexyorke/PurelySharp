@@ -117,7 +117,8 @@ public class TestClass
 }";
             var expected = new DiagnosticResult[] {
                 VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(7, 32, 7, 37).WithArguments("get_Value"),
-                VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(8, 64, 8, 71).WithArguments("Convert")
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(8, 64, 8, 71).WithArguments("Convert"),
+                VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(13, 20, 13, 30).WithArguments("TestMethod")
             };
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
