@@ -159,6 +159,7 @@ public static class Constants
         "System.Type.IsValueType.get",
         "System.Type.IsVariableBoundArray.get",
         "System.Type.IsVisible.get",
+        "System.Type.StructLayoutAttribute.get",
         "System.Type.GetInterface(string)",
         "System.Type.GetInterface(string, bool)",
         "System.Type.GetInterfaces()",
