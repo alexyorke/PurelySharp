@@ -406,6 +406,7 @@ public static class Constants
         "System.DateTimeOffset.ToString()",
         "System.Exception.ToString()",
         "decimal.Parse(string)",
+        "decimal.TryParse(System.ReadOnlySpan<char>, out decimal)",
         "decimal.ToString(string?)",
         "decimal.ToString()",
         "double.Parse(string)",
