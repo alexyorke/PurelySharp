@@ -27,5 +27,24 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task DataRelationConstructor_Diagnostic()
+        {
+            var test = @"
+using System.Data;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public DataRelation {|PS0002:TestMethod|}(DataColumn parentColumn, DataColumn childColumn)
+    {
+        return new DataRelation(""Rel"", parentColumn, childColumn);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
