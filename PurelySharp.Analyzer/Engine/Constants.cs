@@ -348,6 +348,7 @@ public static class Constants
 
         "System.Random.Shared.get",
         "System.Security.Cryptography.RandomNumberGenerator.GetBytes(byte[])",
+        "decimal.Parse(string)",
         "double.Parse(string)",
         "int.Parse(string)",
         "System.Text.Encoding.GetEncoding(string)",
@@ -1273,7 +1274,6 @@ public static class Constants
         "System.DateTimeOffset.Parse(string)",
         "System.DateTimeOffset.ParseExact(string, string, System.IFormatProvider)",
         "decimal.Negate(decimal)",
-        "decimal.Parse(string)",
         "decimal.TryParse(string, out decimal)",
         "double.PositiveInfinity.get",
         "System.FileNotFoundException.FileNotFoundException(string)",
