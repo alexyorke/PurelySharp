@@ -638,6 +638,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task TypeGetTypeInfo_Diagnostic()
+        {
+            var test = @"
+using System.Reflection;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public TypeInfo {|PS0002:TestMethod|}(System.Type type)
+    {
+        return type.GetTypeInfo();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeIsArray_Diagnostic()
         {
             var test = @"
