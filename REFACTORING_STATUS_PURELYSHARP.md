@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `831/831` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `832/832` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -152,6 +152,7 @@
   - `System.Diagnostics.StackTrace.StackTrace()` now has direct regression coverage for its existing stack-introspection classification
   - `System.Diagnostics.StackFrame.GetMethod()` is now treated as an impure stack-introspection source
   - `System.Diagnostics.Stopwatch.Stopwatch()` is now treated as an impure environment/runtime-state source
+  - `System.Diagnostics.Stopwatch.Elapsed.get` now has direct regression coverage for its existing environment/runtime-state classification
   - `System.Diagnostics.Stopwatch.IsRunning.get` is now treated as an impure environment/runtime-state source
   - `System.Diagnostics.Process.GetCurrentProcess()` now has direct regression coverage
   - `System.Diagnostics.Process.Id.get` is now treated as an impure environment/runtime-state source
