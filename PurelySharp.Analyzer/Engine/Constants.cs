@@ -546,6 +546,7 @@ public static class Constants
         "System.Xml.Linq.XElement.Value.get",
         "System.Xml.Linq.XAttribute.Value.get",
         "System.Xml.Linq.XElement.Attribute(System.Xml.Linq.XName)",
+        "System.Xml.Linq.XContainer.Elements()",
         "System.AppContext.SetSwitch(string, bool)",
         "System.Collections.Generic.PriorityQueue<TElement, TPriority>.Enqueue(TElement, TPriority)",
         "System.Collections.Generic.PriorityQueue<TElement, TPriority>.Dequeue()",
@@ -1315,9 +1316,6 @@ public static class Constants
         "string.IsNullOrWhiteSpace(System.ReadOnlySpan<char>)",
         "System.TimeSpan.Zero.get",
         "System.Xml.Linq.XElement.Descendants()",
-        "System.Xml.Linq.XElement.Elements()",
-
-
         "System.Text.RegularExpressions.Regex.IsMatch(string, string)",
         "System.Linq.Enumerable.ToHashSet<TSource>(System.Collections.Generic.IEnumerable<TSource>)",
         "System.Collections.Generic.List<T>.Find(System.Predicate<T>)",
