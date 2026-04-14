@@ -82,5 +82,30 @@ public class Configuration
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task RequiredMembers_WithPrimaryConstructor_ReportPureGetterSuggestions()
+        {
+            var test = @"
+#nullable enable
+using PurelySharp.Attributes;
+
+namespace TestNamespace;
+
+public class Product(string name, decimal price)
+{
+    public required string {|PS0004:Name|} { get; init; } = name;
+    public required decimal {|PS0004:Price|} { get; init; } = price;
+
+    [EnforcePure]
+    public string GetFormattedPrice()
+    {
+        return $""{Name}: {Price}"";
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
