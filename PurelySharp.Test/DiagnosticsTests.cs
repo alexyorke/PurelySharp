@@ -48,5 +48,24 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task DiagnosticListenerConstructor_Diagnostic()
+        {
+            var test = @"
+using System.Diagnostics;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public DiagnosticListener {|PS0002:TestMethod|}()
+    {
+        return new DiagnosticListener(""test"");
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
