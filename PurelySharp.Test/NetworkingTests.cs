@@ -169,6 +169,25 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        [Test]
+        public async Task IPAddressParse_Diagnostic()
+        {
+            var test = @"
+using System.Net;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public IPAddress {|PS0002:TestMethod|}(string value)
+    {
+        return IPAddress.Parse(value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
 
 
 
