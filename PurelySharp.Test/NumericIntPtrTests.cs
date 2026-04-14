@@ -37,7 +37,7 @@ namespace TestNamespace
 
 
         [Test]
-        public async Task NativeInt_PureMethod_NoDiagnostic()
+        public async Task NativeInt_PureMethod_ReportsMissingAttributeDiagnostics()
         {
             var testCode = @"
 using PurelySharp.Attributes; // Assuming AttributeSource is prepended elsewhere or implicitly
@@ -64,7 +64,7 @@ using PurelySharp.Attributes; // Assuming AttributeSource is prepended elsewhere
 
 
         [Test]
-        public async Task UnsignedNativeInt_PureMethod_NoDiagnostic()
+        public async Task UnsignedNativeInt_PureMethod_ReportsMissingAttributeDiagnostics()
         {
             var testCode = @"
 using PurelySharp.Attributes;
@@ -91,7 +91,7 @@ using PurelySharp.Attributes;
 
 
         [Test]
-        public async Task NativeIntWithConversions_PureMethod_NoDiagnostic()
+        public async Task NativeIntWithConversions_PureMethod_ReportsMissingAttributeDiagnostics()
         {
             var testCode = @"
     public class NativeIntConversions
@@ -130,7 +130,7 @@ using PurelySharp.Attributes;
 
 
         [Test]
-        public async Task NativeIntWithComparisons_PureMethod_NoDiagnostic()
+        public async Task NativeIntWithComparisons_PureMethod_ReportsMissingAttributeDiagnostics()
         {
             var testCode = @"
 using PurelySharp.Attributes;
@@ -171,7 +171,7 @@ using PurelySharp.Attributes;
 
 
         [Test]
-        public async Task NativeIntWithConstants_PureMethod_NoDiagnostic()
+        public async Task NativeIntWithConstants_PureMethod_ReportsMissingAttributeDiagnostics()
         {
             var testCode = @"
 using PurelySharp.Attributes;
@@ -212,7 +212,7 @@ using PurelySharp.Attributes;
 
 
         [Test]
-        public async Task NativeIntWithBitwiseOperations_PureMethod_NoDiagnostic()
+        public async Task NativeIntWithBitwiseOperations_PureMethod_ReportsMissingAttributeDiagnostics()
         {
             var testCode = @"
 using PurelySharp.Attributes;
