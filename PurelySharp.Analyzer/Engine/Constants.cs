@@ -145,6 +145,7 @@ public static class Constants
         "System.Type.IsLayoutSequential.get",
         "System.Type.IsMarshalByRef.get",
         "System.Type.IsSecurityCritical.get",
+        "System.Type.IsSecuritySafeCritical.get",
         "System.Type.IsSealed.get",
         "System.Type.IsSerializable.get",
         "System.Type.IsSZArray.get",
