@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `537/537` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `541/541` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -20,6 +20,7 @@
   - `System.Collections.Immutable.ImmutableInterlocked` APIs are treated as impure synchronization/mutation helpers
   - collection-expression spread operands are analyzed instead of defaulting to conservative impurity
   - the previously disabled required-members suite is being reintroduced as active smoke coverage in small green slices
+  - immutable queue/stack and cryptographic-randomness regression coverage has been expanded
 
 ### What is already done
 
