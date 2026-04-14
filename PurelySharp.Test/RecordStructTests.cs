@@ -204,8 +204,7 @@ public record struct CacheEntry(int Id, ImmutableList<string> Tags)
         return Tags.Contains(tag);
     }}
 
-    // With expression remains impure under the current record-struct mutation rules.
-    // -> Correction: 'with' on record struct is PURE
+    // This with-expression is currently flagged as impure by the analyzer.
     [EnforcePure]
     public CacheEntry WithTag(string tag)
     {{
@@ -216,7 +215,7 @@ public record struct CacheEntry(int Id, ImmutableList<string> Tags)
             var expectedAddTag = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
                                        .WithSpan(9, 23, 9, 29).WithArguments("AddTag");
             var expectedWithTag = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                       .WithSpan(33, 23, 33, 30).WithArguments("WithTag");
+                                       .WithSpan(32, 23, 32, 30).WithArguments("WithTag");
 
             await VerifyCS.VerifyAnalyzerAsync(code, expectedAddTag, expectedWithTag);
         }

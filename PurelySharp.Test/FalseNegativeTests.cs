@@ -48,7 +48,7 @@ public class TestClass
     [EnforcePure]
     public void {|PS0002:CallImpureDelegate|}()
     {
-        // Invoking the delegate causes side-effects, but the analyzer misses it.
+        // Invoking the delegate causes side-effects and is correctly flagged.
         ImpureAction();
     }
 }";
