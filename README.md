@@ -21,7 +21,7 @@ Currently, the analyzer provides the following checks:
     - Purity of invoked methods (recursive check with cycle detection).
     - Purity of expressions (constants, parameters, `static readonly` fields, basic operators, etc.).
     - Purity of basic statements (local declarations, return, simple expression statements).
-6.  **Regression status:** The in-repo analyzer suite currently passes `520/520` tests on .NET 8.
+6.  **Regression status:** The in-repo analyzer suite currently passes `527/527` tests on .NET 8.
 
 **Inherent limitations (not “missing features”):**
 
@@ -235,7 +235,7 @@ This project is licensed under the MIT License.
 - [x] Read-only collections (IReadOnly\* interfaces) - Creation assumed impure.
 - [x] Arrays (when used in a read-only manner)
 - [x] Tuples (creation)
-- [x] Collection expressions (C# 12) — `System.Collections.Immutable.*`, `Span<T>` / `ReadOnlySpan<T>`; each element is analyzed; arrays and mutable collection targets remain impure
+- [x] Collection expressions (C# 12) — `System.Collections.Immutable.*`, `Span<T>` / `ReadOnlySpan<T>`; direct and spread elements are analyzed; arrays and mutable collection targets remain impure
 - [x] Mutable collections (List, Dictionary, etc.) - Creation/modification assumed impure.
 - [x] Modifying collection elements - Assumed impure.
 - [x] Inline arrays (C# 12)

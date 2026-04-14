@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `520/520` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `527/527` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -16,6 +16,9 @@
   - constant-condition CFG pruning plus dead-branch suppression for post-CFG known-impure scans
   - field-initializer delegate target resolution for stored delegate invocation
   - expanded known-pure `Enum.TryParse` overload coverage, including nullable-string forms
+  - mutable `System.Collections.Immutable` builder members are no longer treated as pure
+  - `System.Collections.Immutable.ImmutableInterlocked` APIs are treated as impure synchronization/mutation helpers
+  - collection-expression spread operands are analyzed instead of defaulting to conservative impurity
 
 ### What is already done
 
