@@ -87,7 +87,7 @@ public class TestClass
 
 
         [Test]
-        public async Task PureMethod_ReadConfiguration_UnknownPurityDiagnostic()
+        public async Task PureMethod_ReadConfiguration_ReportsMissingAttributeDiagnostics()
         {
             var test = @"
 #nullable enable
@@ -115,13 +115,13 @@ public class TestClass
     [EnforcePure]
     public string? ReadConfigIndexer(IConfiguration config)
     {
-        return config[""MyKey:MyValue""]; // Pure read
+        return config[""MyKey:MyValue""]; // Intended pure read; this regression expects PS0004 on the mock indexer.
     }
 
     [EnforcePure]
     public string? ReadConfigGetSection(IConfiguration config)
     {
-        return config.GetSection(""MyKey"").Value; // Marked as impure/unknown
+        return config.GetSection(""MyKey"").Value; // This regression expects PS0004 on GetSection/get_Value, not PS0002 on the wrapper method.
     }
 }";
 
