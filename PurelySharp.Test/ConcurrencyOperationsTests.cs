@@ -166,6 +166,26 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        [Test]
+        public async Task ThreadLocalConstructor_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Threading;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public ThreadLocal<int> {|PS0002:TestMethod|}()
+    {
+        return new ThreadLocal<int>(() => 42);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
 
 
 

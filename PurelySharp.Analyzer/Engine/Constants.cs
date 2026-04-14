@@ -595,6 +595,7 @@ public static class Constants
         "System.Net.ServicePointManager.SecurityProtocol.set",
         "System.Runtime.InteropServices.Marshal.GetLastWin32Error()",
         "System.Runtime.Serialization.FormatterServices.GetUninitializedObject(System.Type)",
+        "System.Threading.ThreadLocal<T>.ThreadLocal(System.Func<T>)",
         "System.Threading.ThreadLocal<T>.Value.get",
 
 
@@ -1130,8 +1131,6 @@ public static class Constants
         "System.Security.AllowPartiallyTrustedCallersAttribute.AllowPartiallyTrustedCallersAttribute()",
 
         "System.SerializableAttribute.SerializableAttribute()",
-
-        "System.Threading.ThreadLocal<T>.ThreadLocal(System.Func<T>)",
         "System.UIntPtr.UIntPtr(uint)",
 
 
