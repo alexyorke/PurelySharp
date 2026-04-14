@@ -276,5 +276,50 @@ public class AppConfiguration
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task RequiredMembers_InitOnlyProduct_WithImpureUpdater_ReportCurrentDiagnostics()
+        {
+            var test = @"
+#nullable enable
+using System;
+using System.Diagnostics.CodeAnalysis;
+using PurelySharp.Attributes;
+
+namespace TestNamespace;
+
+public class Product
+{
+    public required int {|PS0004:Id|} { get; init; }
+    public required string {|PS0004:Name|} { get; init; }
+    public required decimal {|PS0004:Price|} { get; init; }
+
+    [SetsRequiredMembers]
+    public {|PS0004:Product|}(int id, string name, decimal price)
+    {
+        Id = id;
+        Name = name;
+        Price = price;
+    }
+
+    [EnforcePure]
+    public string GetProductSummary()
+    {
+        return $""{Name} (ID: {Id}) - {Price:C}"";
+    }
+}
+
+public class ProductManager
+{
+    [EnforcePure]
+    public void {|PS0002:UpdateProductName|}(Product product, string newName)
+    {
+        Console.WriteLine($""Updating name to {newName}"");
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
