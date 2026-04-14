@@ -98,6 +98,25 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        [Test]
+        public async Task RandomNumberGenerator_GetInt32_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System.Security.Cryptography;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:TestMethod|}(int maxExclusive)
+    {
+        return RandomNumberGenerator.GetInt32(maxExclusive);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
 
 
 
