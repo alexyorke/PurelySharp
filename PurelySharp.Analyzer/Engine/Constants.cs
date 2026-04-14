@@ -98,6 +98,7 @@ public static class Constants
         "System.Type.GetEvents()",
         "System.Type.GetField(string)",
         "System.Type.GetFields()",
+        "System.Type.GetFields(System.Reflection.BindingFlags)",
         "System.Type.GetInterfaces()",
         "System.Type.GetMembers()",
         "System.Type.GetMethod(string)",
