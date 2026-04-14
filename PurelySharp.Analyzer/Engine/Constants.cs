@@ -90,6 +90,7 @@ public static class Constants
         "System.Globalization.RegionInfo.CurrentRegion.get",
         "System.Guid.NewGuid()",
         "System.TimeProvider.System.get",
+        "System.TimeZoneInfo.Local.get",
         "System.IO.Directory.CreateDirectory(string)",
         "System.IO.Directory.Exists(string)",
         "System.IO.DriveInfo.TotalSize.get",
