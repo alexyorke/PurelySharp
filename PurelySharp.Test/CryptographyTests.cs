@@ -1,7 +1,10 @@
-﻿using Microsoft.CodeAnalysis.Testing;
-using NUnit.Framework;
+using System;
+using System.IO;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Testing;
+using NUnit.Framework;
 using PurelySharp.Analyzer;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
     PurelySharp.Analyzer.PurelySharpAnalyzer>;
@@ -13,20 +16,15 @@ namespace PurelySharp.Test
     [TestFixture]
     public class CryptographyTests
     {
-
-
         [Test]
         public async Task HashAlgorithm_ComputeHash_UnknownPurityDiagnostic()
         {
-
             var test = @"
 #nullable enable
 using System;
 using System.Security.Cryptography;
 using System.Text;
 using PurelySharp.Attributes;
-
-
 
 public class TestClass
 {
@@ -44,14 +42,6 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
-
-
-
-
-
-
-
-
         [Test]
         public async Task Aes_Create_UnknownPurityDiagnostic()
         {
@@ -60,8 +50,6 @@ public class TestClass
 using System;
 using System.Security.Cryptography;
 using PurelySharp.Attributes;
-
-
 
 public class TestClass
 {
@@ -83,8 +71,6 @@ public class TestClass
 using System;
 using System.Security.Cryptography;
 using PurelySharp.Attributes;
-
-
 
 public class TestClass
 {
@@ -118,7 +104,34 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        [Test]
+        public async Task SignedCms_Decode_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System.Security.Cryptography.Pkcs;
+using PurelySharp.Attributes;
 
+public class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}(SignedCms cms, byte[] data)
+    {
+        cms.Decode(data);
+    }
+}";
 
+            var pkcsAssemblyPath = Path.Combine(AppContext.BaseDirectory, "System.Security.Cryptography.Pkcs.dll");
+            var verifier = new VerifyCS.Test
+            {
+                TestCode = test,
+            };
+
+            verifier.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(PurelySharp.Attributes.EnforcePureAttribute).Assembly.Location));
+            verifier.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(PurelySharp.Attributes.PureAttribute).Assembly.Location));
+            verifier.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(pkcsAssemblyPath));
+
+            await verifier.RunAsync();
+        }
     }
 }

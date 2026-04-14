@@ -1070,7 +1070,6 @@ public static class Constants
         "System.Runtime.CompilerServices.Unsafe.SizeOf<T>()",
         "System.Runtime.Intrinsics.X86.Sse.Add(System.Runtime.Intrinsics.Vector128<float>, System.Runtime.Intrinsics.Vector128<float>)",
         "System.Runtime.Intrinsics.X86.Avx2.Multiply(System.Runtime.Intrinsics.Vector256<double>, System.Runtime.Intrinsics.Vector256<double>)",
-        "System.Security.Cryptography.Pkcs.SignedCms.Decode(byte[])",
         "System.Diagnostics.CounterSample.Calculate(System.Diagnostics.CounterSample, System.Diagnostics.CounterSample)",
         "System.Numerics.Plane.Normalize(System.Numerics.Plane)",
         "System.Reflection.Emit.Label.Equals(object)",
