@@ -348,6 +348,7 @@ public static class Constants
 
         "System.Random.Shared.get",
         "System.Security.Cryptography.RandomNumberGenerator.GetBytes(byte[])",
+        "System.DateTime.Parse(string)",
         "decimal.Parse(string)",
         "double.Parse(string)",
         "int.Parse(string)",
@@ -1269,7 +1270,6 @@ public static class Constants
         "System.Convert.ToHexString(byte[])",
         "System.Convert.ToInt16(object)",
         "System.Convert.ToSingle(object)",
-        "System.DateTime.Parse(string)",
         "System.DateTime.ParseExact(string, string, System.IFormatProvider)",
         "System.DateTimeOffset.Parse(string)",
         "System.DateTimeOffset.ParseExact(string, string, System.IFormatProvider)",
