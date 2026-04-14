@@ -48,5 +48,25 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task XmlSchemaSetCompile_Diagnostic()
+        {
+            var test = @"
+using System.Xml.Schema;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public XmlSchemaSet {|PS0002:TestMethod|}(XmlSchemaSet schemas)
+    {
+        schemas.Compile();
+        return schemas;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
