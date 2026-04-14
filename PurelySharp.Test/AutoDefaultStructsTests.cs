@@ -12,7 +12,7 @@ namespace PurelySharp.Test
     public class AutoDefaultStructsTests
     {
         [Test]
-        public async Task AutoDefaultStruct_PureMethod_Diagnostic()
+        public async Task AutoDefaultStruct_MissingAttributeAndUnknownPurityDiagnostics()
         {
             var test = @"
 using System;
