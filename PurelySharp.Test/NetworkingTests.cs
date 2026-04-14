@@ -72,6 +72,26 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        [Test]
+        public async Task StringContentConstructor_Diagnostic()
+        {
+            var test = @"
+using System.Net.Http;
+using System.Text;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public StringContent {|PS0002:TestMethod|}()
+    {
+        return new StringContent(""payload"", Encoding.UTF8, ""text/plain"");
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
 
 
 

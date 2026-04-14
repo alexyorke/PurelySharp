@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `837/837` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `838/838` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -100,6 +100,7 @@
   - `System.Net.Http.Headers.HttpContentHeaders.ContentLength.get` is now treated as an impure mutable-header state source
   - `System.Net.Http.HttpRequestMessage.HttpRequestMessage(System.Net.Http.HttpMethod, string)` now has direct regression coverage, and its stale known-pure catalog entry has been removed
   - `System.Net.Http.HttpResponseMessage.IsSuccessStatusCode.get` is now treated as an impure response-state source
+  - `System.Net.Http.StringContent.StringContent(string, System.Text.Encoding, string)` now has direct regression coverage, and its stale known-pure catalog entry has been removed
   - `System.Runtime.InteropServices.SafeHandle.IsInvalid.get` is now treated as an impure runtime-handle state source
   - `System.Reflection.MemberInfo.GetCustomAttributes(bool)` is now treated as an impure reflection/runtime-state source
   - `System.Reflection.TypeInfo.IsValueType.get` now has direct regression coverage, and its stale known-pure catalog entry has been removed
