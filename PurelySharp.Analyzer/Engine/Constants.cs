@@ -74,6 +74,7 @@ public static class Constants
         "System.Diagnostics.Process.GetCurrentProcess()",
         "System.Diagnostics.Process.Start(string)",
         "System.OperatingSystem.IsAndroid()",
+        "System.OperatingSystem.IsAndroidVersionAtLeast(int, int, int, int)",
         "System.OperatingSystem.IsBrowser()",
         "System.OperatingSystem.IsFreeBSD()",
         "System.OperatingSystem.IsIOS()",
