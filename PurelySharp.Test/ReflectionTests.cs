@@ -1817,6 +1817,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task FieldInfoGetRawConstantValue_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System.Reflection;
+
+public class TestClass
+{
+    [EnforcePure]
+    public object {|PS0002:TestMethod|}(FieldInfo field)
+    {
+        return field.GetRawConstantValue();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeInfoGetFields_Diagnostic()
         {
             var test = @"
