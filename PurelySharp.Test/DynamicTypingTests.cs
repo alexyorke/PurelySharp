@@ -13,7 +13,7 @@ namespace PurelySharp.Test
     public class DynamicTypingTests
     {
         [Test]
-        public async Task DynamicParameter_NoModification_NoDiagnostic()
+        public async Task DynamicParameter_PropertyRead_Diagnostic()
         {
 
             var test = @"
@@ -27,7 +27,7 @@ public class TestClass
     [EnforcePure]
     public int {|PS0002:ProcessDynamic|}(dynamic value)
     {
-        // Just reading dynamic value properties is okay (but strategy flags member access)
+        // Reading through dynamic dispatch is conservatively impure
         int result = value.Count;
         return result + 1;
     }
@@ -108,7 +108,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task DynamicLocalVariable_ReadOnly_Diagnostic()
+        public async Task DynamicLocalBinaryOperation_Diagnostic()
         {
 
 
@@ -123,9 +123,9 @@ public class TestClass
     private static readonly dynamic StaticDynamic = 10;
 
     [EnforcePure]
-    public int UseDynamicLocally(int input)
+    public int {|PS0002:UseDynamicLocally|}(int input)
     {
-        // Using dynamic type locally is impure
+        // Dynamic binary operations are conservatively impure
         var result = StaticDynamic + input;
         return result;
     }
