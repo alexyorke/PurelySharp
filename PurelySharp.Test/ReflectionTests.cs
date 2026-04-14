@@ -1564,6 +1564,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task MethodBaseInvoke_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System.Reflection;
+
+public class TestClass
+{
+    [EnforcePure]
+    public object {|PS0002:TestMethod|}(MethodBase method, object target, object[] arguments)
+    {
+        return method.Invoke(target, arguments);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeInfoGetFields_Diagnostic()
         {
             var test = @"
