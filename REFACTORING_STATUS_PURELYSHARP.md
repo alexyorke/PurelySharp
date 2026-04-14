@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `873/873` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `874/874` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -59,6 +59,7 @@
   - `System.Collections.Generic.Queue<T>.ToArray()` is now treated as an impure mutable-array construction API
   - `System.Collections.Generic.Stack<T>.ToArray()` is now treated as an impure mutable-array construction API
   - `System.Collections.Generic.List<T>.List()` now has direct regression coverage, and its stale known-pure catalog entry has been removed
+  - `System.Collections.Generic.Dictionary<TKey, TValue>.Keys.get` is now treated as an impure mutable-view collection read
   - `System.Net.Http.HttpClient.HttpClient()` now has direct regression coverage, and its stale known-pure catalog entry has been removed
   - `System.Net.Sockets.SocketAsyncEventArgs.AcceptSocket.get` is now treated as an impure socket-state source
   - `System.Type.IsByRef.get` is now treated as an impure reflection/runtime-state source
