@@ -416,6 +416,7 @@ public static class Constants
         "ulong.ToString()",
         "ulong.TryParse(string, out ulong)",
         "System.Half.Parse(string)",
+        "System.Half.ToString(string?)",
         "System.Half.ToString()",
         "System.Half.TryParse(string, out System.Half)",
         "System.Numerics.BigInteger.Parse(string)",
