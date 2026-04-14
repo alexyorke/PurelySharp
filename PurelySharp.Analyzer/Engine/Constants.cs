@@ -77,6 +77,7 @@ public static class Constants
         "System.Convert.ToDateTime(object?)",
         "System.Convert.ToDateTime(string?)",
         "System.Convert.ToDecimal(object?)",
+        "System.Convert.ToDecimal(string?)",
         "System.Convert.ToDouble(object?)",
         "System.Convert.ToDouble(string?)",
         "System.Convert.ToInt16(object?)",

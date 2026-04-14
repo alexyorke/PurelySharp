@@ -955,6 +955,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task ConvertToDecimal_String_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public decimal {|PS0002:TestMethod|}(string value)
+    {
+        return Convert.ToDecimal(value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ConvertToByte_Object_CurrentCulture_Diagnostic()
         {
             var test = @"
