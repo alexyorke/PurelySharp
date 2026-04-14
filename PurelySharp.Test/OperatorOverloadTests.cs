@@ -15,7 +15,7 @@ namespace PurelySharp.Test
     {
 
         [Test]
-        public async Task PureOperatorOverload_NoDiagnostic()
+        public async Task PureOperatorOverload_MissingAttributeDiagnostics()
         {
             var test = @"
 using System;
@@ -91,7 +91,7 @@ public class Counter
 
 
         [Test]
-        public async Task ComparisonOperatorOverload_NoDiagnostic()
+        public async Task ComparisonOperatorOverload_MissingAttributeDiagnostics()
         {
             var test = @"
 using System;
@@ -138,7 +138,7 @@ public struct Temperature
 
 
         [Test]
-        public async Task ConversionOperatorOverload_NoDiagnostic()
+        public async Task ConversionOperatorOverload_MissingAttributeDiagnostics()
         {
             var test = @"
 using System;
