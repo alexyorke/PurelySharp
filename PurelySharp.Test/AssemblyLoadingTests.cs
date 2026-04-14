@@ -156,6 +156,28 @@ namespace TestNamespace
         }
 
         [Test]
+        public async Task AssemblyName_Constructor_Diagnostic()
+        {
+            var test = @"
+using System.Reflection;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public AssemblyName {|PS0002:TestMethod|}()
+        {
+            return new AssemblyName(""PurelySharp"");
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task Assembly_GetManifestResourceNames_Diagnostic()
         {
             var test = @"
