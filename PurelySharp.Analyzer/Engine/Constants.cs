@@ -365,6 +365,7 @@ public static class Constants
         "int.Parse(string)",
         "int.ToString()",
         "long.Parse(string)",
+        "short.Parse(string)",
         "System.Half.Parse(string)",
         "System.Numerics.BigInteger.Parse(string)",
         "System.Text.Encoding.GetEncoding(string)",
