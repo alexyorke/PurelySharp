@@ -79,6 +79,7 @@ public static class Constants
         "System.OperatingSystem.IsFreeBSD()",
         "System.OperatingSystem.IsFreeBSDVersionAtLeast(int, int, int, int)",
         "System.OperatingSystem.IsIOS()",
+        "System.OperatingSystem.IsIOSVersionAtLeast(int, int, int)",
         "System.OperatingSystem.IsLinux()",
         "System.OperatingSystem.IsMacCatalyst()",
         "System.OperatingSystem.IsMacOS()",
