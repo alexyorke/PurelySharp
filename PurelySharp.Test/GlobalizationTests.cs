@@ -1075,6 +1075,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task ConvertToInt32_String_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:TestMethod|}(string value)
+    {
+        return Convert.ToInt32(value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ConvertToInt64_Object_CurrentCulture_Diagnostic()
         {
             var test = @"

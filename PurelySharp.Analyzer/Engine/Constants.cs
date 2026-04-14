@@ -81,6 +81,7 @@ public static class Constants
         "System.Convert.ToDouble(string?)",
         "System.Convert.ToInt16(object?)",
         "System.Convert.ToInt32(object?)",
+        "System.Convert.ToInt32(string?)",
         "System.Convert.ToInt64(object?)",
         "System.Convert.ToSByte(object?)",
         "System.Convert.ToSingle(object?)",
