@@ -1933,6 +1933,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task CustomAttributeDataGetCustomAttributesOnMemberInfo_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System.Collections.Generic;
+using System.Reflection;
+
+public class TestClass
+{
+    [EnforcePure]
+    public IList<CustomAttributeData> {|PS0002:TestMethod|}(MemberInfo member)
+    {
+        return CustomAttributeData.GetCustomAttributes(member);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task EventInfoGetCustomAttributesInherited_Diagnostic()
         {
             var test = @"
