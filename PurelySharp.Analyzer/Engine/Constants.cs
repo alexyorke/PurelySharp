@@ -483,6 +483,7 @@ public static class Constants
         "System.TimeOnly.Parse(string)",
         "System.TimeOnly.ParseExact(string, string)",
         "System.TimeOnly.ParseExact(string, string[])",
+        "System.TimeOnly.ParseExact(System.ReadOnlySpan<char>, System.ReadOnlySpan<char>, System.IFormatProvider?, System.Globalization.DateTimeStyles)",
         "System.TimeOnly.ParseExact(System.ReadOnlySpan<char>, string[])",
         "System.TimeOnly.ToLongTimeString()",
         "System.TimeOnly.ToShortTimeString()",
