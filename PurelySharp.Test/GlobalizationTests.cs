@@ -3872,6 +3872,27 @@ public class TestClass
         }
 
         [Test]
+        public async Task TimeSpanParse_SpanCurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public TimeSpan {|PS0002:TestMethod|}(string value)
+    {
+        ReadOnlySpan<char> span = value.AsSpan();
+        return TimeSpan.Parse(span);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TimeOnlyParse_CurrentCulture_Diagnostic()
         {
             var test = @"
