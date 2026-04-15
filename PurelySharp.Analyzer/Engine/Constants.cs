@@ -1385,7 +1385,6 @@ public static class Constants
         "System.ComponentModel.DataAnnotations.RegularExpressionAttribute.RegularExpressionAttribute(string)",
         "System.Convert.FromHexString(string)",
         "System.Convert.ToHexString(byte[])",
-        "System.DateTime.ParseExact(string, string, System.IFormatProvider)",
         "decimal.Negate(decimal)",
         "double.PositiveInfinity.get",
         "System.FileNotFoundException.FileNotFoundException(string)",
