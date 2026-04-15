@@ -3075,6 +3075,27 @@ public class TestClass
         }
 
         [Test]
+        public async Task DateOnlyParse_SpanCurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public DateOnly {|PS0002:TestMethod|}(string dateStr)
+    {
+        ReadOnlySpan<char> span = dateStr.AsSpan();
+        return DateOnly.Parse(span);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DateOnlyParseExact_CurrentCulture_Diagnostic()
         {
             var test = @"
