@@ -320,6 +320,27 @@ public class TestClass
         }
 
         [Test]
+        public async Task DateTimeOffsetParse_SpanCurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public DateTimeOffset {|PS0002:TestMethod|}(string dateStr)
+    {
+        ReadOnlySpan<char> span = dateStr.AsSpan();
+        return DateTimeOffset.Parse(span);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DateTimeOffsetParseExact_InvariantCulture_Diagnostic()
         {
             var test = @"
