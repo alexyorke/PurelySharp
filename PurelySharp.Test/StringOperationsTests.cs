@@ -80,6 +80,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task StringInterpolation_WithAlignment_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public string {|PS0002:TestMethod|}(int value)
+    {
+        return $""Value: {value,10}"";
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task StringBuilderOperations_Diagnostic()
         {
 

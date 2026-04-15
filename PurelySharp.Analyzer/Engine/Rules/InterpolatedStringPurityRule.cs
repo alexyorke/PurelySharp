@@ -50,6 +50,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     {
                         PurityAnalysisEngine.LogDebug($"    [InterpStrRule] Checking Interpolation Alignment: {interpolation.Alignment.Syntax}");
                         partResult = PurityAnalysisEngine.CheckSingleOperation(interpolation.Alignment, context, currentState);
+                        if (partResult.IsPure)
+                        {
+                            PurityAnalysisEngine.LogDebug($"    [InterpStrRule] Non-null interpolation alignment implies formatting semantics. Marking impure.");
+                            partResult = PurityAnalysisEngine.PurityAnalysisResult.Impure(interpolation.Syntax);
+                        }
                     }
                     if (partResult.IsPure && interpolation.FormatString != null)
                     {
