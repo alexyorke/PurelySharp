@@ -359,6 +359,27 @@ public class TestClass
         }
 
         [Test]
+        public async Task TimeSpanParseExact_InvariantCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using System.Globalization;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public TimeSpan {|PS0002:TestMethod|}(string value)
+    {
+        return TimeSpan.ParseExact(value, ""c"", CultureInfo.InvariantCulture);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DoubleParse_InvariantCulture_NoDiagnostic()
         {
             var test = @"
