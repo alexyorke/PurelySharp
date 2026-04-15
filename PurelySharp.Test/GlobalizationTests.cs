@@ -3332,5 +3332,27 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task TimeOnlyTryParseExact_SpanMultipleFormatsInvariantCultureWithStyles_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using System.Globalization;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(string value)
+    {
+        ReadOnlySpan<char> span = value.AsSpan();
+        return TimeOnly.TryParseExact(span, new[] { ""t"", ""HH:mm:ss"" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
