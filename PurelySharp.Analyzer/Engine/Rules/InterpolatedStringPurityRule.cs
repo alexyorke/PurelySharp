@@ -55,6 +55,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     {
                         PurityAnalysisEngine.LogDebug($"    [InterpStrRule] Checking Interpolation FormatString: {interpolation.FormatString.Syntax}");
                         partResult = PurityAnalysisEngine.CheckSingleOperation(interpolation.FormatString, context, currentState);
+                        if (partResult.IsPure)
+                        {
+                            PurityAnalysisEngine.LogDebug($"    [InterpStrRule] Non-null interpolation format string implies formatting semantics. Marking impure.");
+                            partResult = PurityAnalysisEngine.PurityAnalysisResult.Impure(interpolation.Syntax);
+                        }
                     }
                 }
                 else

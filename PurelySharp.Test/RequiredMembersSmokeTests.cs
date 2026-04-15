@@ -328,7 +328,7 @@ public class Product
     }
 
     [EnforcePure]
-    public string GetProductSummary()
+    public string {|PS0002:GetProductSummary|}()
     {
         return $""{Name} (ID: {Id}) - {Price:C}"";
     }
