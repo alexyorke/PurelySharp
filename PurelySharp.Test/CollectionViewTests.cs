@@ -65,5 +65,24 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task ArrayListAdapter_Diagnostic()
+        {
+            var test = @"
+using System.Collections;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public ArrayList {|PS0002:TestMethod|}(IList values)
+    {
+        return ArrayList.Adapter(values);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
