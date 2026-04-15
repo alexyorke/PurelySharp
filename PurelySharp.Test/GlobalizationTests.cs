@@ -4125,6 +4125,27 @@ public class TestClass
         }
 
         [Test]
+        public async Task TimeOnlyParse_InvariantCultureWithStyles_String_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using System.Globalization;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public TimeOnly {|PS0002:TestMethod|}(string value)
+    {
+        return TimeOnly.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.None);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TimeOnlyParse_SpanInvariantCulture_Diagnostic()
         {
             var test = @"
