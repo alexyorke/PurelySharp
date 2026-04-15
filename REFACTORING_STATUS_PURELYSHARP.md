@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1070/1070` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1090/1090` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -69,7 +69,7 @@
   - `object.GetHashCode()` is now treated as an impure virtual runtime-dispatch call
   - ambient-culture `Parse`, `TryParse`, and parameterless `ToString()` overload coverage has been extended across `DateOnly`, `TimeOnly`, `TimeSpan`, numeric primitives, `Half`, and `BigInteger`
   - provider-free `ReadOnlySpan<char>` `TryParse`/`ParseExact` coverage has been extended across `DateOnly`, `TimeOnly`, `DateTime`, `DateTimeOffset`, `TimeSpan`, numeric primitives, `Half`, and `BigInteger`, including the single-format `ParseExact` and `TryParseExact` overloads for `DateOnly` and `TimeOnly`
-  - provider-sensitive parsing coverage has been expanded across `DateOnly`, `TimeOnly`, `TimeSpan`, and `DateTimeOffset`, including `Parse`, `ParseExact`, and provider/style overloads that previously slipped through the impure catalog
+  - provider-sensitive parsing coverage has been expanded across `DateOnly`, `TimeOnly`, `TimeSpan`, and `DateTimeOffset`, including `Parse`, `ParseExact`, `TryParse`, and `TryParseExact` provider/style overloads and the newer net8 span-based exact-parse overloads that previously slipped through the impure catalog
   - Roslyn-signature-specific `ToString(string?)` overload coverage has been added for `DateOnly`, `DateTimeOffset`, `TimeOnly`, `decimal`, `double`, `float`, `int`, `long`, `short`, `byte`, `sbyte`, `ushort`, `uint`, `ulong`, and `Half`
   - `string.Format(string, object?)`, `string.Format(string, object?, object?, object?)`, and `string.Format(string, params object?[])` are now treated as impure current-culture formatting APIs
   - `System.CodeDom.Compiler.CodeDomProvider.CreateProvider(string)` and `System.CodeDom.Compiler.CompilerResults.Errors.get` are now treated as impure code-generation/mutable-state APIs, with explicit `System.CodeDom` regression coverage
