@@ -46,5 +46,24 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task QueueSynchronized_Diagnostic()
+        {
+            var test = @"
+using System.Collections;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public Queue {|PS0002:TestMethod|}(Queue values)
+    {
+        return Queue.Synchronized(values);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
