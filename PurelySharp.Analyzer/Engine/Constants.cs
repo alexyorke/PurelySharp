@@ -386,6 +386,7 @@ public static class Constants
         "System.DateOnly.Parse(string)",
         "System.DateOnly.ParseExact(string, string)",
         "System.DateOnly.ParseExact(string, string[])",
+        "System.DateOnly.ParseExact(System.ReadOnlySpan<char>, System.ReadOnlySpan<char>, System.IFormatProvider?, System.Globalization.DateTimeStyles)",
         "System.DateOnly.ParseExact(System.ReadOnlySpan<char>, string[])",
         "System.DateOnly.ToLongDateString()",
         "System.DateOnly.ToShortDateString()",
