@@ -2611,6 +2611,28 @@ public class TestClass
         }
 
         [Test]
+        public async Task DateOnlyTryParseExact_SpanMultipleFormatsInvariantCultureWithStyles_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using System.Globalization;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(string dateStr)
+    {
+        ReadOnlySpan<char> span = dateStr.AsSpan();
+        return DateOnly.TryParseExact(span, new[] { ""d"", ""yyyy-MM-dd"" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DateOnlyParseExact_SpanMultipleFormatsInvariantCultureWithStyles_Diagnostic()
         {
             var test = @"
