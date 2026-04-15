@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1031/1031` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1035/1035` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -75,6 +75,8 @@
   - legacy mutable wrapper APIs `System.Collections.Queue.Synchronized(System.Collections.Queue)`, `System.Collections.ArrayList.Adapter(System.Collections.IList)`, `System.Collections.Generic.List<T>.AsReadOnly()`, and `System.Array.AsReadOnly<T>(T[])` are now treated as impure
   - the active required-members smoke suite now includes the record variant that previously only existed in the disabled legacy suite
   - interpolated strings with explicit format strings or alignment components are now treated as impure formatting operations, with direct regression coverage and updated required-members smoke expectations
+  - `System.DateTime.TryParseExact(string, string, System.IFormatProvider, System.Globalization.DateTimeStyles, out System.DateTime)` and `System.DateTimeOffset.TryParseExact(string, string, System.IFormatProvider, System.Globalization.DateTimeStyles, out System.DateTimeOffset)` are now treated as impure, with direct globalization regressions
+  - `System.DateTimeOffset.ParseExact(string, string, System.IFormatProvider?)` is now treated as impure with a corrected Roslyn-nullability signature, and the stale known-pure `System.DateTime.ParseExact(string, string, System.IFormatProvider)` catalog entry has been removed
   - `System.Net.Http.HttpClient.HttpClient()` now has direct regression coverage, and its stale known-pure catalog entry has been removed
   - `System.Net.Sockets.SocketAsyncEventArgs.AcceptSocket.get` is now treated as an impure socket-state source
   - `System.Type.IsByRef.get` is now treated as an impure reflection/runtime-state source
