@@ -506,6 +506,7 @@ public static class Constants
         "System.TimeSpan.Parse(string, System.IFormatProvider?)",
         "System.TimeSpan.ParseExact(string, string, System.IFormatProvider?)",
         "System.TimeSpan.ParseExact(string, string, System.IFormatProvider?, System.Globalization.TimeSpanStyles)",
+        "System.TimeSpan.ParseExact(System.ReadOnlySpan<char>, System.ReadOnlySpan<char>, System.IFormatProvider?, System.Globalization.TimeSpanStyles)",
         "System.TimeSpan.ToString()",
         "System.TimeSpan.TryParse(string, out System.TimeSpan)",
         "System.TimeSpan.TryParse(System.ReadOnlySpan<char>, out System.TimeSpan)",
