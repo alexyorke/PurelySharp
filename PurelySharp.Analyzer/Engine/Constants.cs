@@ -373,6 +373,7 @@ public static class Constants
 
         "System.Random.Shared.get",
         "System.Security.Cryptography.RandomNumberGenerator.GetBytes(byte[])",
+        "System.CodeDom.Compiler.CodeDomProvider.CreateProvider(string)",
         "byte.Parse(string)",
         "byte.TryParse(System.ReadOnlySpan<char>, out byte)",
         "byte.ToString(string?)",
@@ -1202,7 +1203,6 @@ public static class Constants
         "System.BadImageFormatException.BadImageFormatException(string)",
         "System.BitOperations.LeadingZeroCount(uint)",
         "System.BitOperations.PopCount(ulong)",
-        "System.CodeDom.Compiler.CodeDomProvider.CreateProvider(string)",
         "System.CodeDom.Compiler.CompilerResults.Errors.get",
         "System.Collections.ArrayList.Adapter(System.Collections.IList)",
         "System.Collections.Hashtable.ContainsKey(object)",
