@@ -490,6 +490,7 @@ public static class Constants
         "System.TimeOnly.Parse(string)",
         "System.TimeOnly.Parse(string, System.IFormatProvider?)",
         "System.TimeOnly.Parse(System.ReadOnlySpan<char>, System.IFormatProvider?)",
+        "System.TimeOnly.Parse(System.ReadOnlySpan<char>, System.IFormatProvider?, System.Globalization.DateTimeStyles)",
         "System.TimeOnly.ParseExact(string, string)",
         "System.TimeOnly.ParseExact(string, string, System.IFormatProvider?, System.Globalization.DateTimeStyles)",
         "System.TimeOnly.ParseExact(string, string[])",
