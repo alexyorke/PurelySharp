@@ -2528,6 +2528,27 @@ public class TestClass
         }
 
         [Test]
+        public async Task DateOnlyTryParseExact_MultipleFormatsInvariantCultureWithStyles_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using System.Globalization;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(string dateStr)
+    {
+        return DateOnly.TryParseExact(dateStr, new[] { ""d"", ""yyyy-MM-dd"" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DateOnlyTryParseExact_SpanSingleFormat_CurrentCulture_Diagnostic()
         {
             var test = @"
