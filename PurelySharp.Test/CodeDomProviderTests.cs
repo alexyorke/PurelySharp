@@ -41,5 +41,34 @@ public class TestClass
 
             await verifier.RunAsync();
         }
+
+        [Test]
+        public async Task CompilerResults_ErrorsGetter_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System.CodeDom.Compiler;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public CompilerErrorCollection {|PS0002:TestMethod|}(CompilerResults results)
+    {
+        return results.Errors;
+    }
+}";
+
+            var verifier = new VerifyCS.Test
+            {
+                TestCode = test,
+            };
+
+            verifier.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(PurelySharp.Attributes.EnforcePureAttribute).Assembly.Location));
+            verifier.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(PurelySharp.Attributes.PureAttribute).Assembly.Location));
+            verifier.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(CodeDomProvider).Assembly.Location));
+
+            await verifier.RunAsync();
+        }
     }
 }
