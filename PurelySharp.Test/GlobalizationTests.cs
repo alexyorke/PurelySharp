@@ -2342,6 +2342,27 @@ public class TestClass
         }
 
         [Test]
+        public async Task DateOnlyParseExact_InvariantCultureWithStyles_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using System.Globalization;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public DateOnly {|PS0002:TestMethod|}(string dateStr)
+    {
+        return DateOnly.ParseExact(dateStr, ""d"", CultureInfo.InvariantCulture, DateTimeStyles.None);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DateOnlyParseExact_MultipleFormats_CurrentCulture_Diagnostic()
         {
             var test = @"
