@@ -410,6 +410,7 @@ public static class Constants
         "System.DateTimeOffset.Parse(string)",
         "System.DateTimeOffset.ParseExact(string, string, System.IFormatProvider?)",
         "System.DateTimeOffset.ParseExact(string, string, System.IFormatProvider?, System.Globalization.DateTimeStyles)",
+        "System.DateTimeOffset.ParseExact(string, string[], System.IFormatProvider?, System.Globalization.DateTimeStyles)",
         "System.DateTimeOffset.TryParse(string, out System.DateTimeOffset)",
         "System.DateTimeOffset.TryParseExact(string, string, System.IFormatProvider, System.Globalization.DateTimeStyles, out System.DateTimeOffset)",
         "System.DateTimeOffset.TryParse(System.ReadOnlySpan<char>, out System.DateTimeOffset)",

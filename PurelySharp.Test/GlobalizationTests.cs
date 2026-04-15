@@ -169,6 +169,27 @@ public class TestClass
         }
 
         [Test]
+        public async Task DateTimeOffsetParseExact_MultipleFormats_InvariantCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using System.Globalization;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public DateTimeOffset {|PS0002:TestMethod|}(string dateStr)
+    {
+        return DateTimeOffset.ParseExact(dateStr, new[] { ""O"", ""yyyy-MM-ddTHH:mm:sszzz"" }, CultureInfo.InvariantCulture, DateTimeStyles.None);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TimeSpanParse_CurrentCulture_Diagnostic()
         {
             var test = @"
