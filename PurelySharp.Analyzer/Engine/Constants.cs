@@ -384,6 +384,7 @@ public static class Constants
         "byte.ToString(string?)",
         "byte.ToString()",
         "System.DateOnly.Parse(string)",
+        "System.DateOnly.Parse(string, System.IFormatProvider?)",
         "System.DateOnly.ParseExact(string, string)",
         "System.DateOnly.ParseExact(string, string, System.IFormatProvider?, System.Globalization.DateTimeStyles)",
         "System.DateOnly.ParseExact(string, string[])",
