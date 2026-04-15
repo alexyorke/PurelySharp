@@ -484,6 +484,7 @@ public static class Constants
         "System.Numerics.BigInteger.TryParse(System.ReadOnlySpan<char>, out System.Numerics.BigInteger)",
         "System.Text.Encoding.GetEncoding(string)",
         "System.TimeOnly.Parse(string)",
+        "System.TimeOnly.Parse(string, System.IFormatProvider?)",
         "System.TimeOnly.ParseExact(string, string)",
         "System.TimeOnly.ParseExact(string, string, System.IFormatProvider?, System.Globalization.DateTimeStyles)",
         "System.TimeOnly.ParseExact(string, string[])",
