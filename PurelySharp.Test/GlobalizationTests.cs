@@ -2525,6 +2525,28 @@ public class TestClass
         }
 
         [Test]
+        public async Task DateTimeParseExact_SpanMultipleFormats_InvariantCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using System.Globalization;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public DateTime {|PS0002:TestMethod|}(string dateStr)
+    {
+        ReadOnlySpan<char> span = dateStr.AsSpan();
+        return DateTime.ParseExact(span, new[] { ""O"", ""yyyy-MM-ddTHH:mm:ss"" }, CultureInfo.InvariantCulture, DateTimeStyles.None);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DateTimeTryParse_CurrentCulture_Diagnostic()
         {
             var test = @"
