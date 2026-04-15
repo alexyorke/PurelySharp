@@ -3616,6 +3616,28 @@ public class TestClass
         }
 
         [Test]
+        public async Task DateTimeOffsetTryParse_SpanInvariantCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using System.Globalization;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(string dateStr)
+    {
+        ReadOnlySpan<char> span = dateStr.AsSpan();
+        return DateTimeOffset.TryParse(span, CultureInfo.InvariantCulture, out _);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DateTimeOffsetTryParseExact_InvariantCulture_Diagnostic()
         {
             var test = @"
