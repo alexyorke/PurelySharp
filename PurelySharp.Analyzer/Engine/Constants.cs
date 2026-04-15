@@ -460,6 +460,7 @@ public static class Constants
         "System.Half.TryParse(System.ReadOnlySpan<char>, out System.Half)",
         "System.Numerics.BigInteger.Parse(string)",
         "System.Numerics.BigInteger.TryParse(string, out System.Numerics.BigInteger)",
+        "System.Numerics.BigInteger.TryParse(System.ReadOnlySpan<char>, out System.Numerics.BigInteger)",
         "System.Text.Encoding.GetEncoding(string)",
         "System.TimeOnly.Parse(string)",
         "System.TimeOnly.ParseExact(string, string)",

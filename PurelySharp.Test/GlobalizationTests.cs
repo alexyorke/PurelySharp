@@ -1927,6 +1927,28 @@ public class TestClass
         }
 
         [Test]
+        public async Task BigIntegerTryParse_Span_CurrentCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using System.Numerics;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(string numStr)
+    {
+        ReadOnlySpan<char> span = numStr.AsSpan();
+        return BigInteger.TryParse(span, out _);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DateTimeTryParse_CurrentCulture_Diagnostic()
         {
             var test = @"
