@@ -233,7 +233,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task CombiningDelegates_CreationNoDiagnostic_InvocationReportsPS0002()
+        public async Task CombiningPureDelegates_InvocationReportsPS0002()
         {
             var test = @"
 using System;
