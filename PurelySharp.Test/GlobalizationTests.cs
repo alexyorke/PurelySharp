@@ -593,6 +593,28 @@ public class TestClass
         }
 
         [Test]
+        public async Task TimeSpanTryParseExact_SpanInvariantCulture_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using System.Globalization;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(string value)
+    {
+        ReadOnlySpan<char> span = value.AsSpan();
+        return TimeSpan.TryParseExact(span, ""c"", CultureInfo.InvariantCulture, out _);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TimeSpanTryParseExact_MultipleFormatsWithStyles_InvariantCulture_Diagnostic()
         {
             var test = @"
