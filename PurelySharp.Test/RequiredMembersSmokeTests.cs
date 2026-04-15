@@ -85,6 +85,31 @@ public class Configuration
         }
 
         [Test]
+        public async Task RequiredMembers_OnRecord_ReportPureGetterSuggestions()
+        {
+            var test = @"
+#nullable enable
+using PurelySharp.Attributes;
+
+namespace TestNamespace;
+
+public record Person
+{
+    public required string {|PS0004:FirstName|} { get; init; }
+    public required string {|PS0004:LastName|} { get; init; }
+
+    [EnforcePure]
+    public string GetFullName()
+    {
+        return $""{FirstName} {LastName}"";
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task RequiredMembers_WithPrimaryConstructor_ReportPureGetterSuggestions()
         {
             var test = @"
