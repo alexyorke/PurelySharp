@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1035/1035` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1044/1044` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -68,7 +68,7 @@
   - `object.ToString()` is now treated as an impure virtual runtime-dispatch call
   - `object.GetHashCode()` is now treated as an impure virtual runtime-dispatch call
   - ambient-culture `Parse`, `TryParse`, and parameterless `ToString()` overload coverage has been extended across `DateOnly`, `TimeOnly`, `TimeSpan`, numeric primitives, `Half`, and `BigInteger`
-  - provider-free `ReadOnlySpan<char>` `TryParse`/`ParseExact` coverage has been extended across `DateOnly`, `TimeOnly`, `DateTime`, `DateTimeOffset`, `TimeSpan`, numeric primitives, `Half`, and `BigInteger`, including the single-format `TryParseExact` overloads for `DateOnly` and `TimeOnly`
+  - provider-free `ReadOnlySpan<char>` `TryParse`/`ParseExact` coverage has been extended across `DateOnly`, `TimeOnly`, `DateTime`, `DateTimeOffset`, `TimeSpan`, numeric primitives, `Half`, and `BigInteger`, including the single-format `ParseExact` and `TryParseExact` overloads for `DateOnly` and `TimeOnly`
   - Roslyn-signature-specific `ToString(string?)` overload coverage has been added for `DateOnly`, `DateTimeOffset`, `TimeOnly`, `decimal`, `double`, `float`, `int`, `long`, `short`, `byte`, `sbyte`, `ushort`, `uint`, `ulong`, and `Half`
   - `string.Format(string, object?)`, `string.Format(string, object?, object?, object?)`, and `string.Format(string, params object?[])` are now treated as impure current-culture formatting APIs
   - `System.CodeDom.Compiler.CodeDomProvider.CreateProvider(string)` and `System.CodeDom.Compiler.CompilerResults.Errors.get` are now treated as impure code-generation/mutable-state APIs, with explicit `System.CodeDom` regression coverage
@@ -76,7 +76,7 @@
   - the active required-members smoke suite now includes the record variant that previously only existed in the disabled legacy suite
   - interpolated strings with explicit format strings or alignment components are now treated as impure formatting operations, with direct regression coverage and updated required-members smoke expectations
   - `System.DateTime.TryParseExact(string, string, System.IFormatProvider, System.Globalization.DateTimeStyles, out System.DateTime)` and `System.DateTimeOffset.TryParseExact(string, string, System.IFormatProvider, System.Globalization.DateTimeStyles, out System.DateTimeOffset)` are now treated as impure, with direct globalization regressions
-  - `System.DateTimeOffset.ParseExact(string, string, System.IFormatProvider?)` is now treated as impure with a corrected Roslyn-nullability signature, and the stale known-pure `System.DateTime.ParseExact(string, string, System.IFormatProvider)` catalog entry has been removed
+  - `System.DateTimeOffset.ParseExact` and `TryParseExact` are now treated as impure across their string and `ReadOnlySpan<char>` single-format and array-format overloads, including the `DateTimeStyles` forms with corrected Roslyn-nullability signatures, and the stale known-pure `System.DateTime.ParseExact(string, string, System.IFormatProvider)` catalog entry has been removed
   - `System.Net.Http.HttpClient.HttpClient()` now has direct regression coverage, and its stale known-pure catalog entry has been removed
   - `System.Net.Sockets.SocketAsyncEventArgs.AcceptSocket.get` is now treated as an impure socket-state source
   - `System.Type.IsByRef.get` is now treated as an impure reflection/runtime-state source
