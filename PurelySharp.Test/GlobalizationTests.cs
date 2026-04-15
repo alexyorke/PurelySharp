@@ -66,6 +66,27 @@ public class TestClass
         }
 
         [Test]
+        public async Task DateTimeParse_InvariantCultureWithStyles_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using System.Globalization;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public DateTime {|PS0002:TestMethod|}(string dateStr)
+    {
+        return DateTime.Parse(dateStr, CultureInfo.InvariantCulture, DateTimeStyles.None);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DateTimeParse_CurrentCulture_Diagnostic()
         {
             var test = @"
