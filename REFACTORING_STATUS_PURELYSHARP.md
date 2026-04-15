@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1027/1027` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1028/1028` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -72,7 +72,7 @@
   - Roslyn-signature-specific `ToString(string?)` overload coverage has been added for `DateOnly`, `DateTimeOffset`, `TimeOnly`, `decimal`, `double`, `float`, `int`, `long`, `short`, `byte`, `sbyte`, `ushort`, `uint`, `ulong`, and `Half`
   - `string.Format(string, object?)`, `string.Format(string, object?, object?, object?)`, and `string.Format(string, params object?[])` are now treated as impure current-culture formatting APIs
   - `System.CodeDom.Compiler.CodeDomProvider.CreateProvider(string)` and `System.CodeDom.Compiler.CompilerResults.Errors.get` are now treated as impure code-generation/mutable-state APIs, with explicit `System.CodeDom` regression coverage
-  - legacy mutable wrapper APIs `System.Collections.Queue.Synchronized(System.Collections.Queue)`, `System.Collections.ArrayList.Adapter(System.Collections.IList)`, and `System.Collections.Generic.List<T>.AsReadOnly()` are now treated as impure
+  - legacy mutable wrapper APIs `System.Collections.Queue.Synchronized(System.Collections.Queue)`, `System.Collections.ArrayList.Adapter(System.Collections.IList)`, `System.Collections.Generic.List<T>.AsReadOnly()`, and `System.Array.AsReadOnly<T>(T[])` are now treated as impure
   - `System.Net.Http.HttpClient.HttpClient()` now has direct regression coverage, and its stale known-pure catalog entry has been removed
   - `System.Net.Sockets.SocketAsyncEventArgs.AcceptSocket.get` is now treated as an impure socket-state source
   - `System.Type.IsByRef.get` is now treated as an impure reflection/runtime-state source
