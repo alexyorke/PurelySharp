@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -150,6 +150,14 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     }
 
 
+
+
+                    var receiverResult = PurityAnalysisEngine.CheckSingleOperation(instanceOperation, context, currentState);
+                    if (!receiverResult.IsPure)
+                    {
+                        PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Instance operation is impure ({instanceOperation.Kind}). Read is impure.");
+                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(receiverResult.ImpureSyntaxNode ?? instanceOperation.Syntax);
+                    }
 
 
                     string fieldPureSig = fieldSymbol.OriginalDefinition.ToDisplayString();
