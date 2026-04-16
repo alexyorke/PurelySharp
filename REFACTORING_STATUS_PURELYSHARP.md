@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1134/1134` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1135/1135` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -55,6 +55,7 @@
   - explicitly cataloged static readonly fields now override the default-pure field-read path, allowing `IPAddress.Loopback` to be treated as an impure shared-instance field
   - `System.Net.IPAddress.Parse(string)` is now treated as an impure network-address construction API
   - `System.Convert.FromBase64String(string)` is now treated as an impure mutable-array construction API
+  - `System.Array.ConvertAll<TInput, TOutput>(TInput[], System.Converter<TInput, TOutput>)` is now treated as an impure mutable-array materialization API, with direct regression coverage
   - `System.Collections.Generic.List<T>.ToArray()` is now treated as an impure mutable-array construction API
   - `System.Linq.Enumerable.ToHashSet<TSource>(System.Collections.Generic.IEnumerable<TSource>)` is now treated as an impure mutable-set materialization API, with direct regression coverage
   - `System.Collections.Generic.List<T>.ConvertAll<TOutput>(System.Converter<T, TOutput>)` is now treated as an impure mutable-list materialization API, with direct regression coverage
