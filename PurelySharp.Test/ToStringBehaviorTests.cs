@@ -36,7 +36,7 @@ namespace PurelySharp.Test // Add namespace to match outer scope
     public class TestClass
     {
         [EnforcePure]
-        public string CallDefaultToString() // Line 16 - REMOVED inline diagnostic markup
+        public string CallDefaultToString()
         {
             var instance = new MySimpleClass { Value = 42 };
             // Calling the default object.ToString() implementation
