@@ -83,15 +83,13 @@ public class Service
         }
 
         [Test]
-        public async Task UnknownInterfaceImplementation_DefaultConservativeImpure()
+        public async Task UnknownInterfaceImplementation_DefaultAssumedPure()
         {
             var test = @"
 using PurelySharp.Attributes;
 using System;
 
-
-
-public interface IWorker
+internal interface IWorker
 {
     int Compute(int value);
 }
@@ -99,7 +97,31 @@ public interface IWorker
 public class WorkerHost
 {
     [EnforcePure]
-    public int {|PS0002:ComputeWithUnknownImplementation|}(IWorker worker, int value)
+    public int ComputeWithUnknownImplementation(IWorker worker, int value)
+    {
+        return worker.Compute(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task PublicInterfaceWithoutKnownImplementation_DefaultConservativeImpure()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public interface IPublicWorker
+{
+    int Compute(int value);
+}
+
+public class WorkerHost
+{
+    [EnforcePure]
+    public int {|PS0002:ComputeWithUnknownPublicImplementation|}(IPublicWorker worker, int value)
     {
         return worker.Compute(value);
     }

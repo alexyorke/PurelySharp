@@ -305,8 +305,8 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             if (candidateMethods.Count == 0)
             {
-                PurityAnalysisEngine.LogDebug($"  [MIR] No concrete dispatch candidates found for {invokedMethodSymbol.Name}; treating as impure conservatively.");
-                return PurityAnalysisEngine.PurityAnalysisResult.Impure(invocationOperation.Syntax);
+                PurityAnalysisEngine.LogDebug($"  [MIR] No concrete dispatch candidates found for {invokedMethodSymbol.Name}; assuming pure when external dispatch is impossible.");
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
 
             foreach (var candidateMethod in candidateMethods)
