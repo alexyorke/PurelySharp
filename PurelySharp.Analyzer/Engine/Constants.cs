@@ -37,6 +37,7 @@ public static class Constants
         "System.Activator.CreateInstance(System.Type, params object[])",
         "System.AppContext.GetData(string)",
         "System.Array.AsReadOnly<T>(T[])",
+        "System.Array.ConvertAll<TInput, TOutput>(TInput[], System.Converter<TInput, TOutput>)",
         "System.Array.Reverse(System.Array)",
         "System.Array.Sort(System.Array)",
         "System.Buffer.BlockCopy(System.Array, int, System.Array, int, int)",
@@ -964,7 +965,6 @@ public static class Constants
     public static readonly HashSet<string> KnownPureBCLMembers = new HashSet<string>(StringComparer.Ordinal)
     {
 
-        "System.Array.ConvertAll<TInput, TOutput>(TInput[], System.Converter<TInput, TOutput>)",
         "System.Array.Empty<T>()",
         "System.Array.Exists<T>(T[], System.Predicate<T>)",
         "System.Array.IndexOf(System.Array, object)",
