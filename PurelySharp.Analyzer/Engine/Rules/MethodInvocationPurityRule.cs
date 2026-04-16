@@ -167,10 +167,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
 
-            if (!invokedMethodSymbol.IsStatic
-                && IsPotentiallyDispatchedMethod(invokedMethodSymbol)
-                && invocationOperation.Instance != null
-                && invocationOperation.Instance.Kind != OperationKind.BaseReference)
+            if (IsPotentiallyDispatchedMethod(invokedMethodSymbol)
+                && (invokedMethodSymbol.IsStatic
+                    ? invocationOperation.Instance == null
+                    : invocationOperation.Instance != null
+                        && invocationOperation.Instance.Kind != OperationKind.BaseReference))
             {
                 PurityAnalysisEngine.LogDebug($"  [MIR] Checking potential dispatch candidates for {invokedMethodSymbol.Name}.");
                 var dispatchResult = CheckDispatchedInvocationPurity(invocationOperation, context);
@@ -293,7 +294,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return PurityAnalysisEngine.PurityAnalysisResult.Impure(invocationOperation.Syntax);
             }
 
-            if (CanHaveExternalDispatchTargets(invokedMethodSymbol))
+            if (CanHaveExternalDispatchTargets(invokedMethodSymbol, invocationOperation))
             {
                 PurityAnalysisEngine.LogDebug($"  [MIR] Method {invokedMethodSymbol.ContainingType?.Name}.{invokedMethodSymbol.Name} can be overridden in external assemblies; treating as impure conservatively.");
                 return PurityAnalysisEngine.PurityAnalysisResult.Impure(invocationOperation.Syntax);
@@ -351,19 +352,82 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return IsTypeEffectivelyExternallyAccessible(methodSymbol.ContainingType);
         }
 
-        private static bool CanHaveExternalDispatchTargets(IMethodSymbol methodSymbol)
+        private static bool CanHaveExternalDispatchTargets(IMethodSymbol methodSymbol, IInvocationOperation invocationOperation)
         {
             if (methodSymbol.ContainingType?.TypeKind == TypeKind.Interface)
             {
-                return CanHaveExternalInterfaceImplementations(methodSymbol.ContainingType);
+                return CanHaveExternalInterfaceImplementations(methodSymbol.ContainingType, invocationOperation.Instance);
             }
 
             return CanHaveExternalOverrides(methodSymbol);
         }
 
-        private static bool CanHaveExternalInterfaceImplementations(INamedTypeSymbol interfaceSymbol)
+        private static bool CanHaveExternalInterfaceImplementations(
+            INamedTypeSymbol interfaceSymbol,
+            IOperation? invocationInstance)
         {
-            return IsTypeEffectivelyExternallyAccessible(interfaceSymbol);
+            if (!IsTypeEffectivelyExternallyAccessible(interfaceSymbol))
+            {
+                return false;
+            }
+
+            var concreteReceiverType = GetKnownReceiverType(invocationInstance);
+            if (concreteReceiverType == null)
+            {
+                return true;
+            }
+
+            if (concreteReceiverType.TypeKind == TypeKind.Struct)
+            {
+                return false;
+            }
+
+            if (concreteReceiverType.TypeKind == TypeKind.Class && concreteReceiverType.IsSealed)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private static INamedTypeSymbol? GetKnownReceiverType(IOperation? invocationInstance)
+        {
+            var current = invocationInstance;
+
+            while (true)
+            {
+                if (current is IConversionOperation conversion)
+                {
+                    current = conversion.Operand;
+                    continue;
+                }
+
+                if (current is IParenthesizedOperation parenthesized)
+                {
+                    current = parenthesized.Operand;
+                    continue;
+                }
+
+                if (current is IAsOperation asOperation)
+                {
+                    var operandType = asOperation.Operand?.Type as INamedTypeSymbol;
+                    var targetInterfaceType = asOperation.Type as INamedTypeSymbol;
+                    if (operandType != null &&
+                        targetInterfaceType != null &&
+                        operandType.TypeKind != TypeKind.Interface &&
+                        ImplementsInterface(operandType, targetInterfaceType))
+                    {
+                        current = asOperation.Operand;
+                        continue;
+                    }
+
+                    return asOperation.Type as INamedTypeSymbol;
+                }
+
+                break;
+            }
+
+            return current?.Type as INamedTypeSymbol;
         }
 
         private static bool IsTypeEffectivelyExternallyAccessible(INamedTypeSymbol typeSymbol)

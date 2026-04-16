@@ -608,6 +608,70 @@ public class WorkerHost
     {
         return worker.Compute(value);
     }
+        }
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task InterfaceMethod_OnSealedImplementation_ThroughCast_NoConservativeDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public interface ICastCounter
+{
+    int Increment(int value);
+}
+
+public sealed class SealedCastCounter : ICastCounter
+{
+    public int Increment(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Process(int value)
+    {
+        return ((ICastCounter)new SealedCastCounter()).Increment(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task InterfaceMethod_OnSealedImplementation_ThroughAsCast_NoConservativeDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public interface IAsCounter
+{
+    int Increment(int value);
+}
+
+public sealed class AsCastCounter : IAsCounter
+{
+    public int Increment(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Process(AsCastCounter counter, int value)
+    {
+        return (counter as IAsCounter)!.Increment(value);
+    }
 }
 ";
 

@@ -142,8 +142,55 @@ class ImpureImplementation : IPureInterface
                 SolutionTransforms = {
                     (solution, projectId) =>
                         solution.AddMetadataReference(projectId, MetadataReference.CreateFromFile(typeof(EnforcePureAttribute).Assembly.Location))
-                 },
+                },
 
+            }.RunAsync();
+        }
+
+        [Test]
+        public async Task StaticInterfaceMethod_GenericDispatch_IsConservative()
+        {
+            var test = @"
+// Requires LangVersion 11+
+#nullable enable
+using PurelySharp.Attributes;
+
+public interface IAddable<T> where T : IAddable<T>
+{
+    static abstract T Add(T left, T right);
+}
+
+public readonly struct Number : IAddable<Number>
+{
+    public int Value { get; }
+
+    public Number(int value)
+    {
+        Value = value;
+    }
+
+    public static Number Add(Number left, Number right) => new Number(left.Value + right.Value);
+}
+
+public class Calculator
+{
+    [EnforcePure]
+    public T {|PS0002:AddGeneric|}<T>(T left, T right) where T : IAddable<T>
+    {
+        return T.Add(left, right);
+    }
+}
+";
+
+            await new VerifyCS.Test
+            {
+                TestCode = test,
+                ReferenceAssemblies = ReferenceAssemblies.Net.Net80,
+                SolutionTransforms =
+                {
+                    (solution, projectId) =>
+                        solution.AddMetadataReference(projectId, Microsoft.CodeAnalysis.MetadataReference.CreateFromFile(typeof(EnforcePureAttribute).Assembly.Location))
+                },
             }.RunAsync();
         }
 
