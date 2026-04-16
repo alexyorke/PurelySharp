@@ -460,5 +460,51 @@ public class PureHost
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task SealedOverride_ConcreteReceiverCanBePure()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System;
+
+public class BaseWorker
+{
+    public virtual int Compute(int value)
+    {
+        Console.WriteLine(value);
+        return value;
+    }
+}
+
+public class PureWorker : BaseWorker
+{
+    public sealed override int Compute(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class BadWorker : BaseWorker
+{
+    public override int Compute(int value)
+    {
+        Console.WriteLine(value);
+        return value + 2;
+    }
+}
+
+public class WorkerHost
+{
+    [EnforcePure]
+    public int Process(PureWorker worker, int value)
+    {
+        return worker.Compute(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

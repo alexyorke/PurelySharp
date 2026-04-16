@@ -307,5 +307,32 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task StringContains_Overloads_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool ContainsChar(string value, char needle)
+    {
+        return value.Contains(needle);
+    }
+
+    [EnforcePure]
+    public bool ContainsStringWithComparison(string value, string search)
+    {
+        return value.Contains(search, StringComparison.Ordinal);
+    }
+}"
+
+            ;
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

@@ -105,6 +105,30 @@ public class TestClass
         }
 
         [Test]
+        public async Task DynamicExtensionMethodCall_Diagnostic()
+        {
+
+            var test = @"
+using PurelySharp.Attributes;
+
+public static class IntExtensions
+{
+    public static int Increment(this int value) => value + 1;
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:ApplyIncrement|}(dynamic value)
+    {
+        return value.Increment();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DynamicMethodCall_WithExplicitCastToConcreteType_Diagnostic()
         {
 

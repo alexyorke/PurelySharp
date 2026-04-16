@@ -90,6 +90,14 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
 
             if (invokedMethodSymbol.IsExtensionMethod &&
+                invocationOperation.Arguments.Length > 0 &&
+                IsDynamicInvocationReceiver(invocationOperation.Arguments[0].Value))
+            {
+                PurityAnalysisEngine.LogDebug("  [MIR] Extension invocation on dynamic receiver is treated as conservative impure.");
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(invocationOperation.Syntax);
+            }
+
+            if (invokedMethodSymbol.IsExtensionMethod &&
                 SymbolEqualityComparer.Default.Equals(invokedMethodSymbol.ContainingType?.OriginalDefinition, context.SemanticModel.Compilation.GetTypeByMetadataName("System.Linq.Enumerable")))
             {
                 PurityAnalysisEngine.LogDebug($"  [MIR] Detected LINQ Enumerable extension method: {invokedMethodSymbol.Name}. Checking source and delegate arguments.");
@@ -346,7 +354,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
         private static bool CanHaveExternalOverrides(IMethodSymbol methodSymbol, INamedTypeSymbol? knownReceiverType)
         {
-            if (!methodSymbol.IsVirtual || methodSymbol.IsSealed)
+            if (methodSymbol.IsSealed)
+            {
+                return false;
+            }
+
+            if (!methodSymbol.IsVirtual)
             {
                 return false;
             }

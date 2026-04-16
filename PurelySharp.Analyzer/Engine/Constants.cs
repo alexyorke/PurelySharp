@@ -1487,7 +1487,10 @@ public static class Constants
 
         "string.Clone()",
         "string.CompareTo(string)",
+        "string.Contains(char)",
+        "string.Contains(char, System.StringComparison)",
         "string.Contains(string)",
+        "string.Contains(string, System.StringComparison)",
         "string.EndsWith(string)",
         "string.Equals(string)",
         "string.Equals(string, string)",
