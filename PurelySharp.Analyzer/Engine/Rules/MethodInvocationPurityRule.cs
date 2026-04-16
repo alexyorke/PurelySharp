@@ -242,7 +242,10 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
 
-            bool isExplicitlyPure = PurityAnalysisEngine.IsPureEnforced(invokedMethodSymbol, context.EnforcePureAttributeSymbol);
+            bool isExplicitlyPure = PurityAnalysisEngine.IsPureEnforced(
+                invokedMethodSymbol,
+                context.EnforcePureAttributeSymbol,
+                context.PureAttributeSymbol);
             if (PurityAnalysisEngine.IsInImpureNamespaceOrType(originalDefinitionSymbol) && !isExplicitlyPure)
             {
                 PurityAnalysisEngine.LogDebug($"  [MIR] --> IMPURE (In Impure NS/Type and not explicitly Pure)");

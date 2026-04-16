@@ -256,7 +256,10 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
                         if (context.ContainingMethodSymbol.ContainingType.IsRecord &&
                             context.ContainingMethodSymbol.ContainingType.IsValueType &&
-                            PurityAnalysisEngine.IsPureEnforced(context.ContainingMethodSymbol, context.EnforcePureAttributeSymbol))
+                            PurityAnalysisEngine.IsPureEnforced(
+                                context.ContainingMethodSymbol,
+                                context.EnforcePureAttributeSymbol,
+                                context.PureAttributeSymbol))
                         {
                             PurityAnalysisEngine.LogDebug(" Assignment Target: Instance PropertyReference 'this.Prop' (non-init) within [EnforcePure] Record Struct Method - Target is Impure for this method context");
                             return false;

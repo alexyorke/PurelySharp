@@ -456,6 +456,77 @@ public class Calculator
         }
 
         [Test]
+        public async Task CheckedUserDefinedOperator_WithExceptionHandling_AllMembersPure_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public readonly struct SafeIntegerPure
+{
+    public int Value
+    {
+        [Pure]
+        get;
+    }
+
+    [Pure]
+    public SafeIntegerPure(int value)
+    {
+        Value = value;
+    }
+
+    [Pure]
+    public static SafeIntegerPure operator +(SafeIntegerPure left, SafeIntegerPure right)
+    {
+        return new SafeIntegerPure(left.Value + right.Value);
+    }
+
+    [Pure]
+    public static SafeIntegerPure operator checked +(SafeIntegerPure left, SafeIntegerPure right)
+    {
+        return new SafeIntegerPure(checked(left.Value + right.Value));
+    }
+
+    [Pure]
+    public static SafeIntegerPure operator *(SafeIntegerPure left, SafeIntegerPure right)
+    {
+        return new SafeIntegerPure(left.Value * right.Value);
+    }
+
+    [Pure]
+    public static SafeIntegerPure operator checked *(SafeIntegerPure left, SafeIntegerPure right)
+    {
+        return new SafeIntegerPure(checked(left.Value * right.Value));
+    }
+}
+
+public class CheckedFlowTest
+{
+    [EnforcePure]
+    public SafeIntegerPure ComputeNoTry(SafeIntegerPure a, SafeIntegerPure b)
+    {
+        return checked(a + b);
+    }
+
+    [EnforcePure]
+        public SafeIntegerPure TryCompute(SafeIntegerPure a, SafeIntegerPure b, bool useMultiply)
+        {
+            try
+            {
+                return useMultiply ? checked(a * b) : checked(a + b);
+            }
+            catch (OverflowException)
+            {
+                return new SafeIntegerPure(0);
+            }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task CheckedUserDefinedOperator_WithMutableState_ImpureMethod_Diagnostic()
         {
             var test = @"

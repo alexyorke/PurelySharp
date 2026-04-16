@@ -1336,19 +1336,33 @@ namespace PurelySharp.Analyzer.Engine
                     LogDebug($"    [CSO] Checked operator method '{operatorMethod.Name}' is Pure.");
                 }
 
-
                 if (context.ContainingMethodSymbol != null &&
-                    IsPureEnforced(context.ContainingMethodSymbol, context.EnforcePureAttributeSymbol))
+                    operatorMethod != null &&
+                    IsPureEnforced(
+                        context.ContainingMethodSymbol,
+                        context.EnforcePureAttributeSymbol,
+                        context.PureAttributeSymbol))
                 {
-                    LogDebug($"    [CSO] Checked operation is part of a method marked with [EnforcePure]. Checking purity of containing method.");
+                    var checkedOperatorIsPure = operatorMethod != null &&
+                        IsPureEnforced(
+                            operatorMethod,
+                            context.EnforcePureAttributeSymbol,
+                            context.PureAttributeSymbol);
 
-
-                    var containingMethodPurity = GetCalleePurity(context.ContainingMethodSymbol, context);
-
-                    if (!containingMethodPurity.IsPure)
+                    if (!checkedOperatorIsPure)
                     {
-                        LogDebug($"    [CSO] Containing method is IMPURE. Operation is Impure.");
-                        return PurityAnalysisResult.Impure(operation.Syntax);
+                        LogDebug($"    [CSO] Checked operation is part of a method marked with [EnforcePure] and no [Pure]-enforced checked operator was found. Checking containing method purity.");
+
+                        var containingMethodPurity = GetCalleePurity(context.ContainingMethodSymbol, context);
+                        if (!containingMethodPurity.IsPure)
+                        {
+                            LogDebug($"    [CSO] Containing method is IMPURE. Operation is Impure.");
+                            return PurityAnalysisResult.Impure(operation.Syntax);
+                        }
+                    }
+                    else
+                    {
+                        LogDebug($"    [CSO] Checked operation uses a checked operator explicitly marked [Pure]; skipping containing method purity re-check.");
                     }
                 }
 
@@ -1434,17 +1448,25 @@ namespace PurelySharp.Analyzer.Engine
 
 
 
-        internal static bool IsPureEnforced(ISymbol symbol, INamedTypeSymbol enforcePureAttributeSymbol)
+        internal static bool IsPureEnforced(
+            ISymbol symbol,
+            INamedTypeSymbol enforcePureAttributeSymbol,
+            INamedTypeSymbol? pureAttributeSymbol)
         {
             if (symbol == null || enforcePureAttributeSymbol == null)
             {
                 return false;
             }
 
-            var pureAttributeSymbol = symbol.ContainingAssembly.GetTypeByMetadataName("PurelySharp.Attributes.PureAttribute");
+            var pureAttributeFullyQualifiedName = "global::PurelySharp.Attributes.PureAttribute";
             return symbol.GetAttributes().Any(ad =>
                 SymbolEqualityComparer.Default.Equals(ad.AttributeClass?.OriginalDefinition, enforcePureAttributeSymbol) ||
-                (pureAttributeSymbol != null && SymbolEqualityComparer.Default.Equals(ad.AttributeClass?.OriginalDefinition, pureAttributeSymbol))
+                (pureAttributeSymbol != null &&
+                    SymbolEqualityComparer.Default.Equals(ad.AttributeClass?.OriginalDefinition, pureAttributeSymbol)) ||
+                string.Equals(
+                    ad.AttributeClass?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                    pureAttributeFullyQualifiedName,
+                    StringComparison.Ordinal)
             );
         }
 

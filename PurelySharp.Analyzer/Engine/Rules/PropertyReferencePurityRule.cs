@@ -30,7 +30,10 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
 
-            if (PurityAnalysisEngine.IsPureEnforced(propertySymbol, context.EnforcePureAttributeSymbol))
+            if (PurityAnalysisEngine.IsPureEnforced(
+                propertySymbol,
+                context.EnforcePureAttributeSymbol,
+                context.PureAttributeSymbol))
             {
                 PurityAnalysisEngine.LogDebug($"    [PropRefRule] Property {propertySymbol.Name} has [EnforcePure]. Assuming Pure.");
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
