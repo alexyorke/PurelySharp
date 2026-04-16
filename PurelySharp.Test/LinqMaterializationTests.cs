@@ -54,5 +54,28 @@ namespace TestNamespace
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task EnumerableToHashSet_Diagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public HashSet<int> {|PS0002:TestMethod|}(IEnumerable<int> numbers)
+        {
+            return numbers.Where(x => x > 0).ToHashSet();
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
