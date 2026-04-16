@@ -1,4 +1,4 @@
-﻿#if false // Legacy snapshot: active required-members cases are maintained in RequiredMembersSmokeTests.
+﻿#if false // Archived snapshot: active required-members cases are maintained in RequiredMembersSmokeTests.
 using NUnit.Framework;
 using Microsoft.CodeAnalysis.Testing;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
@@ -9,7 +9,7 @@ using PurelySharp.Attributes; // Needed for EnforcePure
 namespace PurelySharp.Test
 {
     [TestFixture]
-    public class LegacyRequiredMembersTests
+    public class ArchivedRequiredMembersTests
     {
         // Common attribute definitions needed for C# 11 required members feature in tests
         private const string AttributeDefinitions = @"
@@ -621,5 +621,5 @@ namespace TestNamespace
         }
     }
 }
-#endif // Temporarily disable this class
+#endif // Kept as archived baseline for historical regression context.
 

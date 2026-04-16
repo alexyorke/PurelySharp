@@ -313,6 +313,70 @@ public class TestClass
         }
 
         [Test]
+        public async Task GenericInterfaceConstraint_WithSealedStructImplementation_AndInterfaceCast_NoConservativeDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public interface ICounter
+{
+    int Increment(int value);
+}
+
+public struct PureStructCounter : ICounter
+{
+    public int Increment(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Process<T>(T counter, int value) where T : PureStructCounter, ICounter
+    {
+        return ((ICounter)counter).Increment(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task GenericInterfaceConstraint_WithSealedStructImplementation_AndAsCast_NoConservativeDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public interface ICounter
+{
+    int Increment(int value);
+}
+
+public struct PureStructCounter : ICounter
+{
+    public int Increment(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Process<T>(T counter, int value) where T : PureStructCounter, ICounter
+    {
+        return (counter as ICounter)!.Increment(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ExplicitInterfaceImplementation_Pure_NoDiagnostic()
         {
             var test = @"
