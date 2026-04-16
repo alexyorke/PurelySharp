@@ -45,7 +45,7 @@ public class TestClass
 {
     private int _counter;
 
-    public TestClass(int startValue) // Unannotated constructor; the current regression intentionally expects no diagnostic here.
+    public TestClass(int startValue)
     {
         _counter = startValue;
         Console.WriteLine($""Initialized with: {startValue}"");
