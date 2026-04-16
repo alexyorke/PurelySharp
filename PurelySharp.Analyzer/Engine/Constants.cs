@@ -56,6 +56,7 @@ public static class Constants
         "System.Collections.Generic.List<T>.Add(T)",
         "System.Collections.Generic.List<T>.Clear()",
         "System.Collections.Generic.List<T>.ForEach(System.Action<T>)",
+        "System.Collections.Generic.List<T>.FindAll(System.Predicate<T>)",
         "System.Collections.Generic.List<T>.Insert(int, T)",
         "System.Collections.Generic.List<T>.Remove(T)",
         "System.Collections.Generic.List<T>.ToArray()",
@@ -1372,7 +1373,6 @@ public static class Constants
         "System.Collections.Generic.List<T>.Capacity.get",
         "System.Collections.Generic.List<T>.ConvertAll<TOutput>(System.Converter<T, TOutput>)",
 
-        "System.Collections.Generic.List<T>.FindAll(System.Predicate<T>)",
         "System.Collections.Generic.List<T>.FindIndex(System.Predicate<T>)",
         "System.Collections.Generic.List<T>.FindLast(System.Predicate<T>)",
         "System.Collections.Generic.List<T>.IndexOf(T)",
