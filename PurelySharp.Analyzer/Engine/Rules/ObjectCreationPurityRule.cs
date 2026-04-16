@@ -92,9 +92,13 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
             else
             {
-                PurityAnalysisEngine.LogDebug($"    [ObjCreateRule] Constructor symbol not resolved (e.g., anonymous type). Assuming pure for now.");
+                PurityAnalysisEngine.LogDebug($"    [ObjCreateRule] Constructor symbol not resolved (e.g., implicit struct/default or generic construction). Falling back to conservative analysis.");
 
-
+                if (objectCreationOperation.Type?.TypeKind == TypeKind.TypeParameter)
+                {
+                    PurityAnalysisEngine.LogDebug("    [ObjCreateRule] Generic type construction cannot be verified; treating as impure.");
+                    return PurityAnalysisResult.Impure(objectCreationOperation.Syntax);
+                }
             }
 
 
