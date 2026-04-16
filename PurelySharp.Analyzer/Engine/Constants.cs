@@ -70,6 +70,7 @@ public static class Constants
         "System.Collections.Generic.Stack<T>.ToArray()",
         "System.Collections.Generic.Stack<T>.Pop()",
         "System.Collections.Generic.Stack<T>.Push(T)",
+        "System.Text.RegularExpressions.Regex.Split(string)",
         "System.Console.Clear()",
         "System.Console.ReadKey()",
         "System.Console.ReadLine()",
@@ -1179,7 +1180,6 @@ public static class Constants
         "System.Text.RegularExpressions.Regex.IsMatch(string)",
         "System.Text.RegularExpressions.Regex.Match(string)",
         "System.Text.RegularExpressions.Regex.Replace(string, string)",
-        "System.Text.RegularExpressions.Regex.Split(string)",
         "System.Text.StringBuilder.ToString()",
 
 

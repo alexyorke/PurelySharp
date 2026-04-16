@@ -91,5 +91,25 @@ public class TestClass
 ";
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task Regex_Split_Instance_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+using System.Text.RegularExpressions;
+
+public class TestClass
+{
+    [EnforcePure]
+    public string[] {|PS0002:TestMethod|}(Regex regex, string input)
+    {
+        return regex.Split(input);
+    }
+}
+";
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
