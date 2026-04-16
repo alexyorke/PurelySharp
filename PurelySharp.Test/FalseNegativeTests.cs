@@ -489,5 +489,48 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task GenericType_DefaultConstructorIsImpure_Expected()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestFactory<T> where T : new()
+{
+    [EnforcePure]
+    public T {|PS0002:Create|}() 
+    {
+        return new T();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ExternMethodWithoutBody_ReportsExpectedImpurity()
+        {
+            var test = @"
+using System;
+using System.Runtime.InteropServices;
+using PurelySharp.Attributes;
+
+public static class NativeInterop
+{
+    [EnforcePure]
+    [DllImport(""kernel32.dll"")]
+    public static extern int {|PS0002:NativeMethod|}();
+
+    [EnforcePure]
+    public static int {|PS0002:UsesNativeMethod|}(int input)
+    {
+        return NativeMethod() + input;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
