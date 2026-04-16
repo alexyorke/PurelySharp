@@ -102,7 +102,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
 
                 if (instanceOperation is IParameterReferenceOperation paramRef &&
-                    (paramRef.Parameter.RefKind == RefKind.In || paramRef.Parameter.RefKind == (RefKind)4))
+                    (paramRef.Parameter.RefKind == RefKind.In ||
+                     paramRef.Parameter.RefKind == RefKind.RefReadOnly ||
+                     paramRef.Parameter.RefKind == (RefKind)4))
                 {
                     bool isValueStruct = paramRef.Parameter.Type.IsValueType && !paramRef.Parameter.Type.IsReferenceType;
                     PurityAnalysisEngine.LogDebug($"    [PropRefRule] Instance is ParameterReference '{paramRef.Parameter.Name}', RefKind={paramRef.Parameter.RefKind}, IsValueStruct={isValueStruct}");

@@ -99,6 +99,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
 
                     bool isReadOnlyRef = paramRef.Parameter.RefKind == RefKind.In ||
+                                         paramRef.Parameter.RefKind == RefKind.RefReadOnly ||
                                          paramRef.Parameter.RefKind == (RefKind)4;
                     bool isValueStruct = paramRef.Parameter.RefKind == RefKind.None && paramRef.Parameter.Type.IsValueType;
 
