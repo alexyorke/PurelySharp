@@ -26,5 +26,24 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task EncodingGetBytes_Diagnostic()
+        {
+            var test = @"
+using System.Text;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public byte[] {|PS0002:TestMethod|}(string value)
+    {
+        return Encoding.UTF8.GetBytes(value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

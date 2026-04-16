@@ -70,6 +70,7 @@ public static class Constants
         "System.Collections.Generic.Stack<T>.ToArray()",
         "System.Collections.Generic.Stack<T>.Pop()",
         "System.Collections.Generic.Stack<T>.Push(T)",
+        "System.Text.Encoding.GetBytes(string)",
         "System.Text.RegularExpressions.Regex.Split(string, string)",
         "System.Text.RegularExpressions.Regex.Split(string)",
         "System.Console.Clear()",
@@ -1169,7 +1170,6 @@ public static class Constants
         "System.StringComparer.Ordinal.Equals(string, string)",
 
 
-        "System.Text.Encoding.GetBytes(string)",
         "System.Text.Encoding.GetString(byte[])",
         "System.Text.Encoding.UTF8.get",
         "System.Text.Json.JsonSerializer.Serialize<TValue>(TValue, System.Text.Json.JsonSerializerOptions?)",

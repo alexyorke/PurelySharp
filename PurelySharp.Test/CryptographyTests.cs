@@ -33,7 +33,7 @@ public class TestClass
     {
         using (var sha256 = SHA256.Create()) // Analyzer cannot currently prove the factory or instance pure.
         {
-            byte[] bytes = Encoding.UTF8.GetBytes(data); // Encoding remains allowed here.
+            byte[] bytes = Encoding.UTF8.GetBytes(data); // UTF-8 encoding materialization is now treated as impure.
             return sha256.ComputeHash(bytes); // The hash computation is still treated as unverified.
         }
     }
