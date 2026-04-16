@@ -1007,7 +1007,7 @@ The following examples demonstrate cases where the analyzer may fail to correctl
 
 #### Indirect Method Impurity
 
-The analyzer does not fully trace opaque/library calls. For virtual and interface dispatch, it expands concrete candidates within the current compilation; when no concrete target can be proved, it falls back to conservative impurity.
+The analyzer does not fully trace opaque/library calls. For virtual and interface dispatch, it expands concrete candidates within the current compilation; when no concrete target can be proven and no external implementations are possible, it assumes purity.
 
 ## Constructor Analysis
 
