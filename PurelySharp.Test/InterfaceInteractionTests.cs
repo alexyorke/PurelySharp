@@ -480,6 +480,38 @@ public class WorkerHost
         }
 
         [Test]
+        public async Task PrivateProtectedVirtualMethod_NoExternalOverrides_NoDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public class BaseWorker
+{
+    private protected virtual int Compute(int value)
+    {
+        return value;
+    }
+
+    [EnforcePure]
+    public int ComputeFromBase(int value)
+    {
+        return Compute(value);
+    }
+}
+
+internal class InternalWorker : BaseWorker
+{
+    private protected override int Compute(int value)
+    {
+        return value + 1;
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ProtectedOrInternalVirtualMethod_DefaultConservativeImpure()
         {
             var test = @"
