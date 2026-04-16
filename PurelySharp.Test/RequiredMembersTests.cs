@@ -451,7 +451,7 @@ namespace TestNamespace
         }
     }
 }";
-            // Expect diagnostics PS0002 for GenerateUniqueId and SaveProfile (Current Analyzer Behavior)
+            // Expect diagnostics PS0002 for GenerateUniqueId and SaveProfile.
             var diag1 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule) // Expect PS0002
                 .WithLocation(42, 20) // Adjusted line number from error output
                 .WithArguments("GenerateUniqueId"); // Argument is just the method name for PS0002
@@ -497,7 +497,7 @@ namespace TestNamespace
         }
     }
 }";
-            // Expect diagnostic PS0002 for Increment (Current Analyzer Behavior)
+            // Expect diagnostic PS0002 for Increment.
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule) // Expect PS0002
                 .WithLocation(40, 21) // Adjusted line number from error output
                 .WithArguments("Increment"); // Argument is just the method name for PS0002
@@ -562,7 +562,7 @@ namespace TestNamespace
     }
 }
 ";
-            // Expect diagnostic PS0002 for UpdateProductName (Current Analyzer Behavior)
+            // Expect diagnostic PS0002 for UpdateProductName.
             var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule) // Expect PS0002
                 .WithLocation(60, 21) // Adjusted line number from error output
                 .WithArguments("UpdateProductName"); // Argument is just the method name for PS0002
@@ -612,7 +612,7 @@ namespace TestNamespace
         }
     }
 }";
-            // Expect diagnostic PS0002 for UpdateAge (Current Analyzer Behavior)
+            // Expect diagnostic PS0002 for UpdateAge.
             var expectedPS0002 = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule) // Expect PS0002
                 .WithLocation(48, 21) // Span of 'UpdateAge' identifier
                 .WithArguments("UpdateAge");
