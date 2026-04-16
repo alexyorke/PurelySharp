@@ -316,7 +316,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return PurityAnalysisEngine.PurityAnalysisResult.Impure(invocationOperation.Syntax);
             }
 
-            var candidateMethods = ResolvePotentialDispatchTargets(invokedMethodSymbol, context.SemanticModel, knownReceiverType)
+            var candidateMethods = ResolvePotentialDispatchTargets(
+                invokedMethodSymbol,
+                context.SemanticModel,
+                knownReceiverType,
+                invocationOperation.Instance)
                 .Where(method => method != null && !method.IsAbstract && !method.IsExtern)
                 .ToImmutableHashSet(SymbolEqualityComparer.Default);
 
@@ -406,6 +410,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
             if (concreteReceiverType == null)
             {
                 return true;
+            }
+
+            if (IsAllocationOnlyInterfaceReceiver(invocationInstance))
+            {
+                return false;
             }
 
             if (!IsTypeEffectivelyExternallyAccessible(concreteReceiverType))
@@ -664,7 +673,8 @@ namespace PurelySharp.Analyzer.Engine.Rules
         private static IEnumerable<IMethodSymbol> ResolvePotentialDispatchTargets(
             IMethodSymbol invokedMethodSymbol,
             SemanticModel semanticModel,
-            INamedTypeSymbol? knownReceiverType)
+            INamedTypeSymbol? knownReceiverType,
+            IOperation? invocationInstance)
         {
             var compilation = semanticModel.Compilation;
             var target = invokedMethodSymbol.OriginalDefinition;
@@ -674,6 +684,21 @@ namespace PurelySharp.Analyzer.Engine.Rules
             {
                 if (knownReceiverType != null && ImplementsInterface(knownReceiverType, target.ContainingType))
                 {
+                    if (IsAllocationOnlyInterfaceReceiver(invocationInstance))
+                    {
+                        var implementation = knownReceiverType.FindImplementationForInterfaceMember(target) as IMethodSymbol;
+                        if (implementation != null)
+                        {
+                            targets.Add(implementation.OriginalDefinition);
+                        }
+                        else if (!target.IsAbstract || HasMethodBody(target))
+                        {
+                            targets.Add(target.OriginalDefinition);
+                        }
+
+                        return targets;
+                    }
+
                     if (knownReceiverType.TypeKind == TypeKind.Struct ||
                         (knownReceiverType.TypeKind == TypeKind.Class && knownReceiverType.IsSealed))
                     {
@@ -857,6 +882,36 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 i => SymbolEqualityComparer.Default.Equals(
                     i.OriginalDefinition,
                     interfaceSymbol.OriginalDefinition));
+        }
+
+        private static bool IsAllocationOnlyInterfaceReceiver(IOperation? invocationInstance)
+        {
+            var current = invocationInstance;
+
+            while (current != null)
+            {
+                if (current is IConversionOperation conversion)
+                {
+                    current = conversion.Operand;
+                    continue;
+                }
+
+                if (current is IParenthesizedOperation parenthesized)
+                {
+                    current = parenthesized.Operand;
+                    continue;
+                }
+
+                if (current is IAsOperation asOperation)
+                {
+                    current = asOperation.Operand;
+                    continue;
+                }
+
+                return current is IObjectCreationOperation;
+            }
+
+            return false;
         }
 
         private static bool HasMethodBody(IMethodSymbol methodSymbol)

@@ -313,6 +313,70 @@ public class TestClass
         }
 
         [Test]
+        public async Task ExplicitInterfaceImplementation_ThroughCast_NoConservativeDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public interface IExplicitCounter
+{
+    int Increment(int value);
+}
+
+public sealed class ExplicitCounter : IExplicitCounter
+{
+    int IExplicitCounter.Increment(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Process(int value)
+    {
+        return ((IExplicitCounter)new ExplicitCounter()).Increment(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ExplicitInterfaceImplementation_ThroughAsCast_NoConservativeDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public interface IExplicitCounter
+{
+    int Increment(int value);
+}
+
+public sealed class AsExplicitCounter : IExplicitCounter
+{
+    int IExplicitCounter.Increment(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Process(int value)
+    {
+        return (new AsExplicitCounter() as IExplicitCounter)!.Increment(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task StructInterfaceImplementation_Pure_NoDiagnostic()
         {
             var test = @"
