@@ -647,6 +647,48 @@ public class TestClass
         }
 
         [Test]
+        public async Task InterfaceMethod_OnSealedImplementation_ThroughCast_WithMixedCandidates_NoConservativeDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System;
+
+public interface ICastCounter
+{
+    int Increment(int value);
+}
+
+public sealed class SealedCastCounter : ICastCounter
+{
+    public int Increment(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class BadCastCounter : ICastCounter
+{
+    public int Increment(int value)
+    {
+        Console.WriteLine(value);
+        return value + 1;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Process(int value)
+    {
+        return ((ICastCounter)new SealedCastCounter()).Increment(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task InterfaceMethod_OnSealedImplementation_ThroughAsCast_NoConservativeDiagnostic()
         {
             var test = @"
@@ -671,6 +713,82 @@ public class TestClass
     public int Process(AsCastCounter counter, int value)
     {
         return (counter as IAsCounter)!.Increment(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task InternalInterfaceBaseCast_ToPublicInterface_NoConservativeDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public interface IPublicCounter
+{
+    int Increment(int value);
+}
+
+internal interface IInternalCounter : IPublicCounter
+{
+    int Increment(int value) => value + 1;
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Process(IInternalCounter counter, int value)
+    {
+        return (counter as IPublicCounter)!.Increment(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task PublicBaseInterfaceCast_FromDerivedInterface_KeepsDispatchNarrowed_NoConservativeDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System;
+
+public interface IBaseCounter
+{
+    int Increment(int value);
+}
+
+public interface IDerivedCounter : IBaseCounter
+{
+    int Increment(int value);
+}
+
+public class PureDerivedCounter : IDerivedCounter
+{
+    public int Increment(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class ImpureBaseCounter : IBaseCounter
+{
+    public int Increment(int value)
+    {
+        Console.WriteLine(value);
+        return value + 1;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Process(IDerivedCounter counter, int value)
+    {
+        return (counter as IBaseCounter)!.Increment(value);
     }
 }
 ";

@@ -300,7 +300,8 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return PurityAnalysisEngine.PurityAnalysisResult.Impure(invocationOperation.Syntax);
             }
 
-            var candidateMethods = ResolvePotentialDispatchTargets(invokedMethodSymbol, context.SemanticModel)
+            var knownReceiverType = GetKnownReceiverType(invocationOperation.Instance);
+            var candidateMethods = ResolvePotentialDispatchTargets(invokedMethodSymbol, context.SemanticModel, knownReceiverType)
                 .Where(method => method != null && !method.IsAbstract && !method.IsExtern)
                 .ToImmutableHashSet(SymbolEqualityComparer.Default);
 
@@ -377,6 +378,19 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return true;
             }
 
+            if (!IsTypeEffectivelyExternallyAccessible(concreteReceiverType))
+            {
+                return false;
+            }
+
+            if (concreteReceiverType.TypeKind == TypeKind.Interface &&
+                SymbolEqualityComparer.Default.Equals(
+                    concreteReceiverType.OriginalDefinition,
+                    interfaceSymbol.OriginalDefinition))
+            {
+                return true;
+            }
+
             if (concreteReceiverType.TypeKind == TypeKind.Struct)
             {
                 return false;
@@ -414,7 +428,6 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     var targetInterfaceType = asOperation.Type as INamedTypeSymbol;
                     if (operandType != null &&
                         targetInterfaceType != null &&
-                        operandType.TypeKind != TypeKind.Interface &&
                         ImplementsInterface(operandType, targetInterfaceType))
                     {
                         current = asOperation.Operand;
@@ -446,7 +459,8 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
         private static IEnumerable<IMethodSymbol> ResolvePotentialDispatchTargets(
             IMethodSymbol invokedMethodSymbol,
-            SemanticModel semanticModel)
+            SemanticModel semanticModel,
+            INamedTypeSymbol? knownReceiverType)
         {
             var compilation = semanticModel.Compilation;
             var target = invokedMethodSymbol.OriginalDefinition;
@@ -454,6 +468,65 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             if (target.ContainingType?.TypeKind == TypeKind.Interface)
             {
+                if (knownReceiverType != null && ImplementsInterface(knownReceiverType, target.ContainingType))
+                {
+                    if (knownReceiverType.TypeKind == TypeKind.Struct ||
+                        (knownReceiverType.TypeKind == TypeKind.Class && knownReceiverType.IsSealed))
+                    {
+                        var implementation = knownReceiverType.FindImplementationForInterfaceMember(target) as IMethodSymbol;
+                        if (implementation != null)
+                        {
+                            targets.Add(implementation.OriginalDefinition);
+                        }
+
+                        return targets;
+                    }
+                    var requiresInterfaceReceiverConstraint = knownReceiverType.TypeKind == TypeKind.Interface;
+
+                    foreach (var type in EnumerateAllNamedTypes(compilation.Assembly.GlobalNamespace))
+                    {
+                        if (requiresInterfaceReceiverConstraint)
+                        {
+                            if (!ImplementsInterface(type, knownReceiverType))
+                            {
+                                continue;
+                            }
+                        }
+                        else
+                        {
+                            if (!SymbolEqualityComparer.Default.Equals(type.OriginalDefinition, knownReceiverType.OriginalDefinition) &&
+                                !DerivesFrom(type, knownReceiverType))
+                            {
+                                continue;
+                            }
+                        }
+
+                        if (!ImplementsInterface(type, target.ContainingType))
+                        {
+                            continue;
+                        }
+
+                        if (type.Kind == SymbolKind.NamedType &&
+                            (type.TypeKind == TypeKind.Interface ||
+                             type.TypeKind == TypeKind.Struct ||
+                             type.TypeKind == TypeKind.Class))
+                        {
+                            var implementation = type.FindImplementationForInterfaceMember(target) as IMethodSymbol;
+                            if (implementation != null)
+                            {
+                                targets.Add(implementation.OriginalDefinition);
+                            }
+                        }
+                    }
+
+                    if (!target.IsAbstract || HasMethodBody(target))
+                    {
+                        targets.Add(target);
+                    }
+
+                    return targets;
+                }
+
                 foreach (var type in EnumerateAllNamedTypes(compilation.Assembly.GlobalNamespace))
                 {
                     if (!ImplementsInterface(type, target.ContainingType))
