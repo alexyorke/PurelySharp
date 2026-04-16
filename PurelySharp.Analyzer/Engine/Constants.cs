@@ -65,6 +65,7 @@ public static class Constants
         "System.Collections.Generic.Queue<T>.ToArray()",
         "System.Collections.Generic.Queue<T>.Dequeue()",
         "System.Collections.Generic.Queue<T>.Enqueue(T)",
+        "System.ReadOnlySpan<T>.ToArray()",
         "System.Collections.Generic.Stack<T>.ToArray()",
         "System.Collections.Generic.Stack<T>.Pop()",
         "System.Collections.Generic.Stack<T>.Push(T)",
@@ -1484,7 +1485,6 @@ public static class Constants
 
         "System.ReadOnlySpan<T>.Length.get",
         "System.ReadOnlySpan<T>.IsEmpty.get",
-        "System.ReadOnlySpan<T>.ToArray()",
         "System.ReadOnlySpan<T>.Slice(int, int)",
         "System.Span<T>.Length.get",
         "System.Span<T>.IsEmpty.get",
