@@ -986,7 +986,6 @@ public static class Constants
         "char.ToString()",
 
 
-        "System.Collections.Generic.Dictionary<TKey, TValue>()",
         "System.Collections.Generic.Dictionary<TKey, TValue>.ContainsKey(TKey)",
         "System.Collections.Generic.Dictionary<TKey, TValue>.ContainsValue(TValue)",
         "System.Collections.Generic.Dictionary<TKey, TValue>.TryGetValue(TKey, out TValue)",
