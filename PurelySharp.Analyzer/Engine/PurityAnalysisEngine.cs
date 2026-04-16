@@ -529,11 +529,19 @@ namespace PurelySharp.Analyzer.Engine
 
 
 
-                if (methodSymbol.IsAbstract || methodSymbol.IsExtern || bodySyntaxNode == null)
+                if (methodSymbol.IsExtern)
                 {
-                    LogDebug($"{indent}Method {methodSymbol.ToDisplayString()} is abstract, extern, or has no body AND not known impure/pure. Assuming pure.");
+                    LogDebug($"{indent}Method {methodSymbol.ToDisplayString()} is extern. Assuming impure due unknown implementation.");
+                    purityCache[methodSymbol] = PurityAnalysisResult.ImpureUnknownLocation;
+                    LogDebug($"{indent}<< Exit DeterminePurity (Extern): {methodSymbol.ToDisplayString()}");
+                    return PurityAnalysisResult.ImpureUnknownLocation;
+                }
+
+                if (methodSymbol.IsAbstract || bodySyntaxNode == null)
+                {
+                    LogDebug($"{indent}Method {methodSymbol.ToDisplayString()} is abstract or has no body AND not known impure/pure. Assuming pure.");
                     purityCache[methodSymbol] = PurityAnalysisResult.Pure;
-                    LogDebug($"{indent}<< Exit DeterminePurity (Abstract/Extern/NoBody): {methodSymbol.ToDisplayString()}");
+                    LogDebug($"{indent}<< Exit DeterminePurity (Abstract/NoBody): {methodSymbol.ToDisplayString()}");
                     return PurityAnalysisResult.Pure;
                 }
 
