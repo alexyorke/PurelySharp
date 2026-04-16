@@ -33,18 +33,18 @@ namespace MockFramework
 
 
 public class TestClass
-{
-    [EnforcePure]
-    public void UpdateUI(Button button)
     {
-        button.Content = ""Clicked""; // Impure: UI Side Effect (Line 22 in this string)
-    }
+        [EnforcePure]
+        public void UpdateUI(Button button)
+        {
+            button.Content = ""Clicked""; // Impure: UI Side Effect.
+        }
 }";
 
             var expectedGetContent = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(10, 41, 10, 48).WithArguments("get_Content");
             var expectedGetText = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 42, 11, 46).WithArguments("get_Text");
             var expectedShow = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(12, 50, 12, 54).WithArguments("Show");
-            var expectedUpdateUI = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(20, 17, 20, 25).WithArguments("UpdateUI");
+            var expectedUpdateUI = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(20, 21, 20, 29).WithArguments("UpdateUI");
 
             await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetContent, expectedGetText, expectedShow, expectedUpdateUI });
         }
