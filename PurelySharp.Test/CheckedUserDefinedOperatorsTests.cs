@@ -367,7 +367,7 @@ namespace TestNamespace
         [EnforcePure]
         public SafeInteger TryOperation(SafeInteger a, SafeInteger b, bool multiply)
         {
-            // This regression currently reports diagnostics through the checked operators in the try/catch flow.
+            // Try/catch flow uses checked operators with unannotated members, so this remains impure.
             try
             {
                 return multiply ? checked(a * b) : checked(a + b);
@@ -381,7 +381,7 @@ namespace TestNamespace
         [EnforcePure]
         public (bool Success, SafeInteger Result) SafeAdd(SafeInteger a, SafeInteger b)
         {
-             // This regression currently reports diagnostics through the checked operators in the try/catch flow.
+            // Try/catch flow uses checked operators with unannotated members, so this remains impure.
            try
             {
                 return (true, checked(a + b));
