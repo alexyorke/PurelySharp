@@ -48,6 +48,82 @@ public class TestClass
         }
 
         [Test]
+        public async Task SortedDictionaryKeys_Diagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public SortedDictionary<int, string>.KeyCollection {|PS0002:TestMethod|}(SortedDictionary<int, string> values)
+    {
+        return values.Keys;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task SortedDictionaryValues_Diagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public SortedDictionary<int, string>.ValueCollection {|PS0002:TestMethod|}(SortedDictionary<int, string> values)
+    {
+        return values.Values;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task IDictionaryKeys_Diagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public ICollection<int> {|PS0002:TestMethod|}(IDictionary<int, string> values)
+    {
+        return values.Keys;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task IDictionaryValues_Diagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public ICollection<string> {|PS0002:TestMethod|}(IDictionary<int, string> values)
+    {
+        return values.Values;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task QueueSynchronized_Diagnostic()
         {
             var test = @"

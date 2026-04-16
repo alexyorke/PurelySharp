@@ -44,6 +44,10 @@ public static class Constants
         "System.Collections.Generic.Dictionary<TKey, TValue>.Add(TKey, TValue)",
         "System.Collections.Generic.Dictionary<TKey, TValue>.Keys.get",
         "System.Collections.Generic.Dictionary<TKey, TValue>.Values.get",
+        "System.Collections.Generic.SortedDictionary<TKey, TValue>.Keys.get",
+        "System.Collections.Generic.SortedDictionary<TKey, TValue>.Values.get",
+        "System.Collections.Generic.IDictionary<TKey, TValue>.Keys.get",
+        "System.Collections.Generic.IDictionary<TKey, TValue>.Values.get",
         "System.Collections.Generic.List<T>.AsReadOnly()",
         "System.Collections.Queue.Synchronized(System.Collections.Queue)",
         "System.Collections.Generic.Comparer<T>.Default.get",
@@ -1207,8 +1211,6 @@ public static class Constants
         "System.Collections.Generic.SortedDictionary<TKey, TValue>.ContainsValue(TValue)",
         "System.Collections.Generic.SortedDictionary<TKey, TValue>.TryGetValue(TKey, out TValue)",
         "System.Collections.Generic.SortedDictionary<TKey, TValue>.Count.get",
-        "System.Collections.Generic.SortedDictionary<TKey, TValue>.Keys.get",
-        "System.Collections.Generic.SortedDictionary<TKey, TValue>.Values.get",
         "System.Collections.Generic.KeyedCollection<TKey, TItem>.Contains(TKey)",
         "System.Drawing.Color.FromArgb(int, int, int, int)",
         "System.Drawing.Point.Point(int, int)",
@@ -1286,8 +1288,6 @@ public static class Constants
 
 
         "System.Collections.Generic.ICollection<T>.Count.get",
-        "System.Collections.Generic.IDictionary<TKey, TValue>.Keys.get",
-        "System.Collections.Generic.IDictionary<TKey, TValue>.Values.get",
         "System.Collections.Generic.IEnumerable<T>.GetEnumerator()",
         "System.Collections.Generic.IEnumerator<T>.Current.get",
         "System.Collections.Generic.KeyValuePair<TKey, TValue>.KeyValuePair(TKey, TValue)",
