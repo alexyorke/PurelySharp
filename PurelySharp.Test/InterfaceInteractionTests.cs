@@ -994,6 +994,38 @@ public class TestClass
         }
 
         [Test]
+        public async Task InterfaceMethod_OnAllocationCast_ThroughConditionalAccess_NoConservativeDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public interface ICastCounter
+{
+    int Increment(int value);
+}
+
+public sealed class SealedCastCounter : ICastCounter
+{
+    public int Increment(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Process(int value)
+    {
+        return (new SealedCastCounter() as ICastCounter)?.Increment(value) ?? 0;
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task InternalInterfaceBaseCast_ToPublicInterface_NoConservativeDiagnostic()
         {
             var test = @"

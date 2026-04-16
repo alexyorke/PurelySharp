@@ -890,6 +890,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             while (current != null)
             {
+                if (current is IConditionalAccessOperation conditionalAccess)
+                {
+                    current = conditionalAccess.Operation;
+                    continue;
+                }
+
                 if (current is IConversionOperation conversion)
                 {
                     current = conversion.Operand;
