@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1131/1131` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1132/1132` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -56,6 +56,7 @@
   - `System.Net.IPAddress.Parse(string)` is now treated as an impure network-address construction API
   - `System.Convert.FromBase64String(string)` is now treated as an impure mutable-array construction API
   - `System.Collections.Generic.List<T>.ToArray()` is now treated as an impure mutable-array construction API
+  - `System.Collections.Generic.List<T>.FindAll(System.Predicate<T>)` is now treated as an impure mutable-list materialization API, with direct regression coverage
   - `System.Collections.Generic.Queue<T>.ToArray()` is now treated as an impure mutable-array construction API
   - `System.Collections.Generic.Stack<T>.ToArray()` is now treated as an impure mutable-array construction API
   - `System.Collections.Generic.List<T>.List()` now has direct regression coverage, and its stale known-pure catalog entry has been removed
