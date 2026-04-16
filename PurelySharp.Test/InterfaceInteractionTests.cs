@@ -213,6 +213,34 @@ public class TestClass
         }
 
         [Test]
+        public async Task DefaultInterfaceImplementation_AllocationToSealedCast_NoConservativeDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public interface ICounter
+{
+    int Increment(int value) => value + 1;
+}
+
+public sealed class SealedCounter : ICounter
+{
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Process(int value)
+    {
+        return ((ICounter)new SealedCounter()).Increment(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task PublicInterfaceExtendingInternalBase_NoConservativeDiagnostic()
         {
             var test = @"
