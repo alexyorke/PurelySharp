@@ -200,5 +200,26 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task CollectionsMarshalAsSpan_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public Span<int> {|PS0002:TestMethod|}(List<int> values)
+    {
+        return CollectionsMarshal.AsSpan(values);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

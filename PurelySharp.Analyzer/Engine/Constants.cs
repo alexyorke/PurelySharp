@@ -66,6 +66,7 @@ public static class Constants
         "System.Collections.Generic.Queue<T>.Dequeue()",
         "System.Collections.Generic.Queue<T>.Enqueue(T)",
         "System.ReadOnlySpan<T>.ToArray()",
+        "System.Runtime.InteropServices.CollectionsMarshal.AsSpan<T>(System.Collections.Generic.List<T>)",
         "System.Collections.Generic.Stack<T>.ToArray()",
         "System.Collections.Generic.Stack<T>.Pop()",
         "System.Collections.Generic.Stack<T>.Push(T)",
@@ -1283,7 +1284,6 @@ public static class Constants
         "System.Runtime.CompilerServices.CallerArgumentExpressionAttribute.CallerArgumentExpressionAttribute(string)",
         "System.Runtime.CompilerServices.IsExternalInit",
         "System.Runtime.CompilerServices.MethodImplAttribute.MethodImplAttribute(System.Runtime.CompilerServices.MethodImplOptions)",
-        "System.Runtime.InteropServices.CollectionsMarshal.AsSpan<T>(System.Collections.Generic.List<T>)",
         "System.Runtime.Serialization.DataContractAttribute.DataContractAttribute()",
         "System.Security.AllowPartiallyTrustedCallersAttribute.AllowPartiallyTrustedCallersAttribute()",
 
