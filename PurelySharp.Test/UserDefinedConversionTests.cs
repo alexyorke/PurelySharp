@@ -32,13 +32,11 @@ public struct Celsius
         Value = value;
     }
 
-    // REMOVED [EnforcePure]
     public static implicit operator double(Celsius celsius)
     {
         return celsius.Value;
     }
 
-    // REMOVED [EnforcePure]
     public static implicit operator Celsius(double value)
     {
         return new Celsius(value);
@@ -78,13 +76,11 @@ public class Money
         Currency = currency;
     }
 
-    // REMOVED [EnforcePure]
     public static explicit operator decimal(Money money)
     {
         return money.Amount;
     }
 
-    // REMOVED [EnforcePure]
     public static explicit operator Money(decimal amount)
     {
         return new Money(amount, ""USD"");
@@ -125,7 +121,6 @@ public class Counter
         Value = value;
     }
 
-    // REMOVED [EnforcePure] and ADDED Roslyn markup
     public static explicit operator int(Counter counter)
     {
         _conversionCount++; // Impure operation - modifies static field
@@ -166,13 +161,11 @@ public class DateOnly
         Day = day;
     }
 
-    // REMOVED [EnforcePure]
     public static explicit operator string(DateOnly date)
     {
         return $""{date.Year}-{date.Month}-{date.Day}"";
     }
 
-    // REMOVED [EnforcePure] and ADDED Roslyn markup
     public static explicit operator DateOnly(string dateString)
     {
         // Simple parsing without exception handling for test simplicity
