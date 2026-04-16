@@ -83,6 +83,86 @@ public class TestClass
         }
 
         [Test]
+        public async Task DynamicMethodCall_ToKnownPureMemberName_Diagnostic()
+        {
+
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:GetDynamicToString|}(dynamic value)
+    {
+        return value.ToString().Length;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task DynamicMethodCall_WithExplicitCastToConcreteType_Diagnostic()
+        {
+
+            var test = @"
+using PurelySharp.Attributes;
+
+
+
+public class Counter
+{
+    public int Increment(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:GetDynamicViaCast|}(dynamic value)
+    {
+        return ((Counter)value).Increment(1);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task DynamicMethodCall_WithExplicitAsCast_Diagnostic()
+        {
+
+            var test = @"
+using PurelySharp.Attributes;
+
+
+
+public class Counter
+{
+    public int Increment(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:GetDynamicViaAsCast|}(dynamic value)
+    {
+        return (value as Counter)!.Increment(1);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DynamicCreation_Diagnostic()
         {
 
@@ -130,6 +210,28 @@ public class TestClass
         return result;
     }
 }";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task DynamicConditionalAccess_MethodInvocation_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:CallDynamicMethodViaNullConditional|}(dynamic value)
+    {
+        return value?.ToString()?.Length ?? 0;
+    }
+}
+";
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }

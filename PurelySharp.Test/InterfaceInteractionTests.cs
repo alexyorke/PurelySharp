@@ -180,6 +180,107 @@ public class TestClass
         }
 
         [Test]
+        public async Task DefaultInterfaceImplementation_SealedImplementation_ConsidersDefaultMethod()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public interface ICounter
+{
+    int Increment(int value)
+    {
+        Console.WriteLine(value);
+        return value + 1;
+    }
+}
+
+public sealed class PureCounter : ICounter
+{
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:Process|}(PureCounter counter, int value)
+    {
+        return counter.Increment(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task PublicInterfaceExtendingInternalBase_NoConservativeDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+internal interface IInternalCounter
+{
+    int Increment(int value);
+}
+
+public interface IPublicCounter : IInternalCounter
+{
+}
+
+public class PureCounter : IPublicCounter
+{
+    public int Increment(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Process(IPublicCounter counter, int value)
+    {
+        return counter.Increment(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task GenericInterfaceConstraint_WithSealedImplementation_NoConservativeDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public interface ICounter
+{
+    int Increment(int value);
+}
+
+public sealed class PureCounter : ICounter
+{
+    public int Increment(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Process<T>(T counter, int value) where T : PureCounter, ICounter
+    {
+        return counter.Increment(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ExplicitInterfaceImplementation_Pure_NoDiagnostic()
         {
             var test = @"
@@ -274,6 +375,79 @@ public class TestClass
 {
     [EnforcePure]
     public int Process(ICounter counter, int value)
+    {
+        return counter.Increment(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task GenericExplicitInterfaceConstraint_WithSealedImplementation_NoConservativeDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public interface ICounter
+{
+    int Increment(int value);
+}
+
+public sealed class PureCounter : ICounter
+{
+    int ICounter.Increment(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Process<T>(T counter, int value) where T : PureCounter, ICounter
+    {
+        return counter.Increment(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task GenericInterfaceConstraint_DefaultConservativeImpure()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public interface IMixedCounter
+{
+    int Increment(int value);
+}
+
+public class PublicMixedCounter : IMixedCounter
+{
+    public int Increment(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class BadCounter : IMixedCounter
+{
+    public int Increment(int value)
+    {
+        // Any implementation could be externally provided, so this call must stay conservative.
+        return value + 2;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:ProcessGeneric|}<T>(T counter, int value) where T : IMixedCounter
     {
         return counter.Increment(value);
     }
@@ -551,6 +725,41 @@ public class WorkerHost
 {
     [EnforcePure]
     public int {|PS0002:ComputeWithProtectedOrInternalVirtual|}(BaseWorker worker, int value)
+    {
+        return worker.Compute(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ProtectedOrInternalVirtualMethod_SealedImplementation_NoConservativeDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public class BaseWorker
+{
+    protected internal virtual int Compute(int value)
+    {
+        return value;
+    }
+}
+
+public sealed class DerivedWorker : BaseWorker
+{
+    protected internal override int Compute(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class WorkerHost
+{
+    [EnforcePure]
+    public int ComputeWithProtectedOrInternalVirtual(DerivedWorker worker, int value)
     {
         return worker.Compute(value);
     }

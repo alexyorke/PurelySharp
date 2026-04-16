@@ -236,6 +236,33 @@ public class Consumer
         }
 
         [Test]
+        public async Task ProtectedVirtualDispatch_DefaultConservativeImpure()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public class BaseWorker
+{
+    protected virtual int Compute(int value)
+    {
+        return value;
+    }
+}
+
+public class WorkerHost : BaseWorker
+{
+    [EnforcePure]
+    public int {|PS0002:ComputeWithProtectedVirtual|}(int value)
+    {
+        return Compute(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task PublicBasePrivateProtectedVirtualDispatch_ResolvesWithinCompilationAndCanBePure()
         {
             var test = @"
@@ -271,6 +298,162 @@ public class Consumer
     public int ReadValue(BaseComponent component, int value)
     {
         return component.Snapshot(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task GenericSealedTypeConstraint_PureOverrideCanBeConsideredPure()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System;
+
+public class BaseCounter
+{
+    public virtual int Compute(int value)
+    {
+        Console.WriteLine(value);
+        return value + 1;
+    }
+}
+
+public sealed class PureCounter : BaseCounter
+{
+    public override int Compute(int value)
+    {
+        return value * 2;
+    }
+}
+
+public class PureHost
+{
+    [EnforcePure]
+    public int Process<T>(T counter, int value) where T : PureCounter
+    {
+        return counter.Compute(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task GenericSealedTypeConstraint_TransitiveConstraint_PureOverrideCanBeConsideredPure()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System;
+
+public class BaseCounter
+{
+    public virtual int Compute(int value)
+    {
+        Console.WriteLine(value);
+        return value + 1;
+    }
+}
+
+public sealed class PureCounter : BaseCounter
+{
+    public override int Compute(int value)
+    {
+        return value * 2;
+    }
+}
+
+public class PureHost
+{
+    [EnforcePure]
+    public int Process<T, U>(T counter, int value)
+        where T : U
+        where U : PureCounter
+    {
+        return counter.Compute(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task GenericSealedTypeConstraint_TripleTransitiveConstraint_PureOverrideCanBeConsideredPure()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System;
+
+public class BaseCounter
+{
+    public virtual int Compute(int value)
+    {
+        Console.WriteLine(value);
+        return value + 1;
+    }
+}
+
+public sealed class PureCounter : BaseCounter
+{
+    public override int Compute(int value)
+    {
+        return value * 2;
+    }
+}
+
+public class PureHost
+{
+    [EnforcePure]
+    public int Process<T, U, V>(T counter, int value)
+        where T : U
+        where U : V
+        where V : PureCounter
+    {
+        return counter.Compute(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task GenericSealedTypeConstraint_WithAsCastToInterface_NoConservativeDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public interface ICounter
+{
+    int Compute(int value);
+}
+
+public class BaseCounter
+{
+    public virtual int Compute(int value)
+    {
+        return value + 1;
+    }
+}
+
+public sealed class PureCounter : BaseCounter, ICounter
+{
+    public override int Compute(int value)
+    {
+        return value * 2;
+    }
+}
+
+public class PureHost
+{
+    [EnforcePure]
+    public int Process<T>(T counter, int value) where T : PureCounter
+    {
+        return (counter as ICounter)!.Compute(value);
     }
 }
 ";

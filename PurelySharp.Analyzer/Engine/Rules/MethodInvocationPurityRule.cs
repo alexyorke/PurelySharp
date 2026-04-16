@@ -27,6 +27,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return PurityAnalysisEngine.PurityAnalysisResult.Impure(invocationOperation.Syntax);
             }
 
+            if (invocationOperation.Instance != null && IsDynamicInvocationReceiver(invocationOperation.Instance))
+            {
+                PurityAnalysisEngine.LogDebug("  [MIR] Invocation on dynamic instance is treated as conservative impure.");
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(invocationOperation.Syntax);
+            }
+
 
             if (invokedMethodSymbol.Name == "Invoke" && invokedMethodSymbol.ContainingType?.TypeKind == TypeKind.Delegate)
             {
@@ -173,8 +179,17 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     : invocationOperation.Instance != null
                         && invocationOperation.Instance.Kind != OperationKind.BaseReference))
             {
+                var knownReceiverType = GetKnownReceiverType(invocationOperation.Instance);
+                if (knownReceiverType == null)
+                {
+                    knownReceiverType = GetKnownStaticInterfaceReceiverType(invokedMethodSymbol);
+                }
+
                 PurityAnalysisEngine.LogDebug($"  [MIR] Checking potential dispatch candidates for {invokedMethodSymbol.Name}.");
-                var dispatchResult = CheckDispatchedInvocationPurity(invocationOperation, context);
+                var dispatchResult = CheckDispatchedInvocationPurity(
+                    invocationOperation,
+                    context,
+                    knownReceiverType);
                 if (!dispatchResult.IsPure)
                 {
                     return dispatchResult;
@@ -286,7 +301,8 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
         private static PurityAnalysisEngine.PurityAnalysisResult CheckDispatchedInvocationPurity(
             IInvocationOperation invocationOperation,
-            PurityAnalysisContext context)
+            PurityAnalysisContext context,
+            INamedTypeSymbol? knownReceiverType)
         {
             var invokedMethodSymbol = invocationOperation.TargetMethod;
             if (invokedMethodSymbol == null)
@@ -294,13 +310,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return PurityAnalysisEngine.PurityAnalysisResult.Impure(invocationOperation.Syntax);
             }
 
-            if (CanHaveExternalDispatchTargets(invokedMethodSymbol, invocationOperation))
+            if (CanHaveExternalDispatchTargets(invokedMethodSymbol, invocationOperation, knownReceiverType))
             {
                 PurityAnalysisEngine.LogDebug($"  [MIR] Method {invokedMethodSymbol.ContainingType?.Name}.{invokedMethodSymbol.Name} can be overridden in external assemblies; treating as impure conservatively.");
                 return PurityAnalysisEngine.PurityAnalysisResult.Impure(invocationOperation.Syntax);
             }
 
-            var knownReceiverType = GetKnownReceiverType(invocationOperation.Instance);
             var candidateMethods = ResolvePotentialDispatchTargets(invokedMethodSymbol, context.SemanticModel, knownReceiverType)
                 .Where(method => method != null && !method.IsAbstract && !method.IsExtern)
                 .ToImmutableHashSet(SymbolEqualityComparer.Default);
@@ -325,7 +340,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
         }
 
-        private static bool CanHaveExternalOverrides(IMethodSymbol methodSymbol)
+        private static bool CanHaveExternalOverrides(IMethodSymbol methodSymbol, INamedTypeSymbol? knownReceiverType)
         {
             if (!methodSymbol.IsVirtual || methodSymbol.IsSealed)
             {
@@ -350,29 +365,44 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return false;
             }
 
-            return IsTypeEffectivelyExternallyAccessible(methodSymbol.ContainingType);
-        }
-
-        private static bool CanHaveExternalDispatchTargets(IMethodSymbol methodSymbol, IInvocationOperation invocationOperation)
-        {
-            if (methodSymbol.ContainingType?.TypeKind == TypeKind.Interface)
-            {
-                return CanHaveExternalInterfaceImplementations(methodSymbol.ContainingType, invocationOperation.Instance);
-            }
-
-            return CanHaveExternalOverrides(methodSymbol);
-        }
-
-        private static bool CanHaveExternalInterfaceImplementations(
-            INamedTypeSymbol interfaceSymbol,
-            IOperation? invocationInstance)
-        {
-            if (!IsTypeEffectivelyExternallyAccessible(interfaceSymbol))
+            if (knownReceiverType != null &&
+                knownReceiverType.IsSealed &&
+                (SymbolEqualityComparer.Default.Equals(knownReceiverType.OriginalDefinition, methodSymbol.ContainingType.OriginalDefinition) ||
+                 DerivesFrom(knownReceiverType, methodSymbol.ContainingType)))
             {
                 return false;
             }
 
-            var concreteReceiverType = GetKnownReceiverType(invocationInstance);
+            return IsTypeEffectivelyExternallyAccessible(methodSymbol.ContainingType);
+        }
+
+        private static bool CanHaveExternalDispatchTargets(
+            IMethodSymbol methodSymbol,
+            IInvocationOperation invocationOperation,
+            INamedTypeSymbol? knownReceiverType)
+        {
+            if (methodSymbol.ContainingType?.TypeKind == TypeKind.Interface)
+            {
+                return CanHaveExternalInterfaceImplementations(
+                    methodSymbol.ContainingType,
+                    invocationOperation.Instance,
+                    knownReceiverType);
+            }
+
+            return CanHaveExternalOverrides(methodSymbol, knownReceiverType);
+        }
+
+        private static bool CanHaveExternalInterfaceImplementations(
+            INamedTypeSymbol interfaceSymbol,
+            IOperation? invocationInstance,
+            INamedTypeSymbol? knownReceiverType)
+        {
+            if (!CanInterfaceHaveExternalImplementations(interfaceSymbol))
+            {
+                return false;
+            }
+
+            var concreteReceiverType = GetKnownReceiverType(invocationInstance) ?? knownReceiverType;
             if (concreteReceiverType == null)
             {
                 return true;
@@ -404,6 +434,70 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return true;
         }
 
+        private static bool CanInterfaceHaveExternalImplementations(INamedTypeSymbol interfaceSymbol)
+        {
+            if (!IsTypeEffectivelyExternallyAccessible(interfaceSymbol))
+            {
+                return false;
+            }
+
+            foreach (var baseInterface in interfaceSymbol.AllInterfaces)
+            {
+                if (!IsTypeEffectivelyExternallyAccessible(baseInterface))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool IsDynamicInvocationReceiver(IOperation? operation)
+        {
+            var current = operation;
+
+            while (current != null)
+            {
+                if (current.Type?.TypeKind == TypeKind.Dynamic)
+                {
+                    return true;
+                }
+
+                if (current is IConditionalAccessOperation conditionalAccess)
+                {
+                    current = conditionalAccess.Operation;
+                    continue;
+                }
+
+                if (current is IConversionOperation conversion)
+                {
+                    current = conversion.Operand;
+                    continue;
+                }
+
+                if (current is IAsOperation asOperation)
+                {
+                    if (asOperation.Operand?.Type?.TypeKind == TypeKind.Dynamic)
+                    {
+                        return true;
+                    }
+
+                    current = asOperation.Operand;
+                    continue;
+                }
+
+                if (current is IParenthesizedOperation parenthesized)
+                {
+                    current = parenthesized.Operand;
+                    continue;
+                }
+
+                break;
+            }
+
+            return false;
+        }
+
         private static INamedTypeSymbol? GetKnownReceiverType(IOperation? invocationInstance)
         {
             var current = invocationInstance;
@@ -424,23 +518,133 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
                 if (current is IAsOperation asOperation)
                 {
-                    var operandType = asOperation.Operand?.Type as INamedTypeSymbol;
                     var targetInterfaceType = asOperation.Type as INamedTypeSymbol;
-                    if (operandType != null &&
-                        targetInterfaceType != null &&
-                        ImplementsInterface(operandType, targetInterfaceType))
+
+                    if (targetInterfaceType != null)
                     {
-                        current = asOperation.Operand;
-                        continue;
+                        var operandType = asOperation.Operand?.Type as INamedTypeSymbol;
+                        if (operandType != null &&
+                            ImplementsInterface(operandType, targetInterfaceType))
+                        {
+                            current = asOperation.Operand;
+                            continue;
+                        }
+
+                        if (asOperation.Operand?.Type is ITypeParameterSymbol typeParameter)
+                        {
+                            var constrainedType = ResolveConstrainedSealedType(typeParameter);
+                            if (constrainedType != null &&
+                                ImplementsInterface(constrainedType, targetInterfaceType))
+                            {
+                                current = asOperation.Operand;
+                                continue;
+                            }
+                        }
                     }
 
                     return asOperation.Type as INamedTypeSymbol;
+                }
+
+                if (current.Type is ITypeParameterSymbol typeParameterSymbol)
+                {
+                    var constrainedSealedType = ResolveConstrainedSealedType(typeParameterSymbol);
+                    if (constrainedSealedType != null)
+                    {
+                        return constrainedSealedType;
+                    }
+
+                    return null;
                 }
 
                 break;
             }
 
             return current?.Type as INamedTypeSymbol;
+        }
+
+        private static INamedTypeSymbol? GetKnownStaticInterfaceReceiverType(IMethodSymbol invokedMethodSymbol)
+        {
+            if (!invokedMethodSymbol.IsStatic ||
+                invokedMethodSymbol.ContainingType?.TypeKind != TypeKind.Interface ||
+                invokedMethodSymbol.ContainingType is not INamedTypeSymbol interfaceType ||
+                interfaceType.TypeArguments.IsEmpty)
+            {
+                return null;
+            }
+
+            var interfaceArg = interfaceType.TypeArguments[0];
+
+            if (interfaceArg is INamedTypeSymbol namedType)
+            {
+                return namedType.TypeKind is TypeKind.Class or TypeKind.Struct
+                    ? namedType
+                    : null;
+            }
+
+            if (interfaceArg is ITypeParameterSymbol typeParameter)
+            {
+                return ResolveConstrainedSealedType(typeParameter);
+            }
+
+            return null;
+        }
+
+        private static INamedTypeSymbol? ResolveConstrainedSealedType(ITypeParameterSymbol typeParameter)
+        {
+            return ResolveConstrainedSealedType(typeParameter, new HashSet<ITypeParameterSymbol>(SymbolEqualityComparer.Default));
+        }
+
+        private static INamedTypeSymbol? ResolveConstrainedSealedType(
+            ITypeParameterSymbol typeParameter,
+            HashSet<ITypeParameterSymbol> visitedTypeParameters)
+        {
+            if (!visitedTypeParameters.Add(typeParameter))
+            {
+                return null;
+            }
+
+            INamedTypeSymbol? constrainedType = null;
+
+            foreach (var constraintType in typeParameter.ConstraintTypes)
+            {
+                INamedTypeSymbol? resolvedConstraintType = null;
+
+                if (constraintType is ITypeParameterSymbol nestedTypeParameter)
+                {
+                    resolvedConstraintType = ResolveConstrainedSealedType(nestedTypeParameter, visitedTypeParameters);
+                }
+                else if (constraintType is INamedTypeSymbol namedType)
+                {
+                    if (namedType.TypeKind == TypeKind.Interface)
+                    {
+                        continue;
+                    }
+
+                    if (namedType.TypeKind != TypeKind.Class &&
+                        constraintType.TypeKind != TypeKind.Struct ||
+                        !namedType.IsSealed)
+                    {
+                        return null;
+                    }
+
+                    resolvedConstraintType = namedType;
+                }
+
+                if (resolvedConstraintType == null)
+                {
+                    continue;
+                }
+
+                if (constrainedType != null &&
+                    !SymbolEqualityComparer.Default.Equals(constrainedType, resolvedConstraintType))
+                {
+                    return null;
+                }
+
+                constrainedType = resolvedConstraintType;
+            }
+
+            return constrainedType;
         }
 
         private static bool IsTypeEffectivelyExternallyAccessible(INamedTypeSymbol typeSymbol)
@@ -477,6 +681,10 @@ namespace PurelySharp.Analyzer.Engine.Rules
                         if (implementation != null)
                         {
                             targets.Add(implementation.OriginalDefinition);
+                        }
+                        else if (!target.IsAbstract || HasMethodBody(target))
+                        {
+                            targets.Add(target.OriginalDefinition);
                         }
 
                         return targets;
@@ -557,6 +765,20 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 var baseType = target.ContainingType;
                 if (baseType != null)
                 {
+                    if (knownReceiverType != null &&
+                        knownReceiverType.IsSealed &&
+                        (SymbolEqualityComparer.Default.Equals(knownReceiverType.OriginalDefinition, baseType.OriginalDefinition) ||
+                         DerivesFrom(knownReceiverType, baseType)))
+                    {
+                        var sealedReceiverTarget = ResolveDispatchTargetForSealedReceiver(target, knownReceiverType);
+                        if (sealedReceiverTarget != null)
+                        {
+                            targets.Add(sealedReceiverTarget.OriginalDefinition);
+                        }
+
+                        return targets;
+                    }
+
                     foreach (var type in EnumerateAllNamedTypes(compilation.Assembly.GlobalNamespace))
                     {
                         if (!DerivesFrom(type, baseType))
@@ -585,6 +807,43 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             targets.Add(target);
             return targets;
+        }
+
+        private static IMethodSymbol? ResolveDispatchTargetForSealedReceiver(IMethodSymbol targetMethod, INamedTypeSymbol sealedReceiverType)
+        {
+            for (var type = sealedReceiverType; type != null; type = type.BaseType)
+            {
+                foreach (var member in type.GetMembers())
+                {
+                    if (member is IMethodSymbol method &&
+                        (SymbolEqualityComparer.Default.Equals(method.OriginalDefinition, targetMethod.OriginalDefinition) ||
+                         OverridesTargetMethod(method, targetMethod) ||
+                         ExplicitlyImplements(method, targetMethod)))
+                    {
+                        return method;
+                    }
+                }
+            }
+
+            if (!targetMethod.IsAbstract)
+            {
+                return targetMethod;
+            }
+
+            return null;
+        }
+
+        private static bool ExplicitlyImplements(IMethodSymbol methodSymbol, IMethodSymbol interfaceMethod)
+        {
+            foreach (var implemented in methodSymbol.ExplicitInterfaceImplementations)
+            {
+                if (SymbolEqualityComparer.Default.Equals(implemented.OriginalDefinition, interfaceMethod.OriginalDefinition))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static bool ImplementsInterface(INamedTypeSymbol type, INamedTypeSymbol interfaceSymbol)
