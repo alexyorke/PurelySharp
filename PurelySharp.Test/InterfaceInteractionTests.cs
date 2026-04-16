@@ -81,5 +81,483 @@ public class Service
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task UnknownInterfaceImplementation_DefaultConservativeImpure()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System;
+
+
+
+public interface IWorker
+{
+    int Compute(int value);
+}
+
+public class WorkerHost
+{
+    [EnforcePure]
+    public int {|PS0002:ComputeWithUnknownImplementation|}(IWorker worker, int value)
+    {
+        return worker.Compute(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task DefaultInterfaceImplementation_Pure_NoDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public interface ICounter
+{
+    int Increment(int value) => value + 1;
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Process(ICounter counter, int value)
+    {
+        return counter.Increment(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task PublicDefaultInterfaceImplementation_DefaultConservativeImpure()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public interface IPublicCounter
+{
+    int Increment(int value) => value + 1;
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:Process|}(IPublicCounter counter, int value)
+    {
+        return counter.Increment(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ExplicitInterfaceImplementation_Pure_NoDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public interface IExplicitCounter
+{
+    int Increment(int value);
+}
+
+public class ExplicitCounter : IExplicitCounter
+{
+    int IExplicitCounter.Increment(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Process(IExplicitCounter counter, int value)
+    {
+        return counter.Increment(value);
+    }
+        }
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task StructInterfaceImplementation_Pure_NoDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public interface IStructCounter
+{
+    int Increment(int value);
+}
+
+public struct StructCounter : IStructCounter
+{
+    public int Increment(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Process(IStructCounter counter, int value)
+    {
+        return counter.Increment(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task InternalInterface_MultiplePureImplementations_NoDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+internal interface ICounter
+{
+    int Increment(int value);
+}
+
+internal class FastCounter : ICounter
+{
+    public int Increment(int value)
+    {
+        return value + 1;
+    }
+}
+
+internal class SlowCounter : ICounter
+{
+    public int Increment(int value)
+    {
+        return value + 2;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Process(ICounter counter, int value)
+    {
+        return counter.Increment(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task InterfaceImplementation_MixedPurity_DefaultConservativeImpure()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System;
+
+public interface IMixedCounter
+{
+    int Increment(int value) => value + 1;
+}
+
+public class BadCounter : IMixedCounter
+{
+    public int Increment(int value)
+    {
+        Console.WriteLine(value);
+        return value + 1;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:ProcessMixedDispatch|}(IMixedCounter counter, int value)
+    {
+        return counter.Increment(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task BaseReference_UsesBaseDispatchOnly()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System;
+
+public abstract class BaseWorker
+{
+    public virtual int Compute(int value)
+    {
+        return value;
+    }
+}
+
+public class ImpureOverride : BaseWorker
+{
+    public override int Compute(int value)
+    {
+        Console.WriteLine(value);
+        return value + 1;
+    }
+}
+
+public class PureWorkerHost : BaseWorker
+{
+    [EnforcePure]
+    public int ComputeWithBaseCall(int value)
+    {
+        return base.Compute(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task BaseReferenceInOverride_UsesBaseTargetOnly()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System;
+
+public abstract class BaseWorker
+{
+    public virtual int Compute(int value)
+    {
+        return value;
+    }
+}
+
+public class PureHost : BaseWorker
+{
+    public override int Compute(int value)
+    {
+        return base.Compute(value);
+    }
+
+    [EnforcePure]
+    public int PureBaseCall(int value)
+    {
+        return base.Compute(value);
+    }
+}
+
+public class BadWorker : BaseWorker
+{
+    public override int Compute(int value)
+    {
+        Console.WriteLine(value);
+        return value + 1;
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task TransitiveVirtualOverride_DefaultConservativeImpure()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System;
+
+public abstract class BaseWorker
+{
+    public virtual int Compute(int value)
+    {
+        return value;
+    }
+}
+
+public class MidWorker : BaseWorker
+{
+    public override int Compute(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class BadWorker : MidWorker
+{
+    public override int Compute(int value)
+    {
+        Console.WriteLine(value);
+        return value + 2;
+    }
+}
+
+public class WorkerHost
+{
+    [EnforcePure]
+    public int {|PS0002:ComputeWithVirtualDispatch|}(BaseWorker worker, int value)
+    {
+        return worker.Compute(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task PublicVirtualMethod_DefaultConservativeImpure()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public class BaseWorker
+{
+    [EnforcePure]
+    public virtual int Compute(int value) => value;
+}
+
+public class WorkerHost
+{
+    [EnforcePure]
+    public int {|PS0002:ComputeWithVirtualDispatch|}(BaseWorker worker, int value)
+    {
+        return worker.Compute(value);
+    }
+        }
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task InternalVirtualMethod_NoExternalOverrides_NoDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public class BaseWorker
+{
+    internal virtual int Compute(int value)
+    {
+        return value;
+    }
+}
+
+internal class InternalWorker : BaseWorker
+{
+    internal override int Compute(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class WorkerHost
+{
+    [EnforcePure]
+    public int ComputeWithInternalVirtualDispatch(BaseWorker worker, int value)
+    {
+        return worker.Compute(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ProtectedOrInternalVirtualMethod_DefaultConservativeImpure()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public class BaseWorker
+{
+    protected internal virtual int Compute(int value)
+    {
+        return value;
+    }
+}
+
+public class WorkerHost
+{
+    [EnforcePure]
+    public int {|PS0002:ComputeWithProtectedOrInternalVirtual|}(BaseWorker worker, int value)
+    {
+        return worker.Compute(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task NestedInterfaceInInternalContainer_WithInternalDefaultImplementation_IsNotConservative()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+internal class HostContainer
+{
+    public interface INestedCounter
+    {
+        int Increment(int value) => value + 1;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Process(HostContainer.INestedCounter counter, int value)
+    {
+        return counter.Increment(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task PublicSealedClass_VirtualCall_NoConservativeDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public sealed class SealedWorker
+{
+    public virtual int Compute(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class WorkerHost
+{
+    [EnforcePure]
+    public int ComputeWithSealedVirtual(SealedWorker worker, int value)
+    {
+        return worker.Compute(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

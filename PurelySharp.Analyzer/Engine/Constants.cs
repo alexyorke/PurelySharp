@@ -375,6 +375,9 @@ public static class Constants
         "System.Random.Next()",
         "System.Random.Next(int)",
         "System.Random.NextDouble()",
+        "System.Random.NextInt64()",
+        "System.Random.NextInt64(long)",
+        "System.Random.NextInt64(long, long)",
         "System.Reflection.Assembly.Load(string)",
         "System.Reflection.Assembly.LoadFrom(string)",
         "System.Reflection.FieldInfo.SetValue(object, object)",
@@ -880,11 +883,7 @@ public static class Constants
 
 
         "System.Activator.CreateInstanceFrom(string, string)",
-        "System.Array.Clear(System.Array, int, int)",
-        "System.Array.ConstrainedCopy(System.Array, int, System.Array, int, int)",
-        "System.Array.Copy(System.Array, System.Array, int)",
         "System.Array.Sort<T>(T[], System.Comparison<T>)",
-        "System.Array.Resize<T>(ref T[], int)",
         "System.Collections.Concurrent.ConcurrentBag<T>.Add(T)",
         "System.Collections.Concurrent.ConcurrentBag<T>.TryTake(out T)",
         "System.Collections.Generic.Dictionary<TKey, TValue>.TryAdd(TKey, TValue)",
@@ -922,24 +921,16 @@ public static class Constants
 
         "System.Xml.Linq.XContainer.Add(object)",
         "XContainer.Add",
-        "System.Xml.Linq.XElement.Add(object)",
-        "XElement.Add",
 
 
-        "System.Threading.Tasks.Task.Run(System.Action)",
         "System.IO.MemoryStream.MemoryStream()",
 
-        "System.Text.Json.JsonSerializer.Deserialize",
         "System.Text.Json.JsonSerializer.Serialize",
 
-        "System.Text.Json.JsonSerializer.DeserializeAsync",
-        "System.Text.Json.JsonSerializer.SerializeAsync",
-        "System.Text.StringBuilder.Append(string?)",
         "System.Security.Cryptography.RandomNumberGenerator.Fill(byte[])",
 
 
 
-        "System.Text.StringBuilder.Append(string?)",
 
 
 

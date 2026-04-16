@@ -73,7 +73,7 @@ public class TestClass
     [EnforcePure]
     public string GetInput(TextBox textBox)
     {
-        return textBox.Text; // Intended as a pure read; the regression only expects PS0004 on the mock members.
+        return textBox.Text; // Intended as a pure read; the expected diagnostic case only expects PS0004 on the mock members.
     }
 }";
 
@@ -115,13 +115,13 @@ public class TestClass
     [EnforcePure]
     public string? ReadConfigIndexer(IConfiguration config)
     {
-        return config[""MyKey:MyValue""]; // Intended pure read; this regression expects PS0004 on the mock indexer.
+        return config[""MyKey:MyValue""]; // Intended pure read; this expected diagnostic case expects PS0004 on the mock indexer.
     }
 
     [EnforcePure]
     public string? ReadConfigGetSection(IConfiguration config)
     {
-        return config.GetSection(""MyKey"").Value; // This regression expects PS0004 on GetSection/get_Value, not PS0002 on the wrapper method.
+        return config.GetSection(""MyKey"").Value; // This expected diagnostic case expects PS0004 on GetSection/get_Value, not PS0002 on the wrapper method.
     }
 }";
 

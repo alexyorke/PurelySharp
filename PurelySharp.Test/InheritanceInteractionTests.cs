@@ -190,5 +190,92 @@ public class TestUsage
             var expectedGetName = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(7, 28, 7, 32).WithArguments("get_Name");
             await VerifyCS.VerifyAnalyzerAsync(testCode, expected.Append(expectedGetName).ToArray());
         }
+
+        [Test]
+        public async Task PrivateProtectedVirtualDispatch_ResolvesWithinCompilationAndCanBePure()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public class BaseComponent
+{
+    [EnforcePure]
+    private protected virtual int Compute(int value)
+    {
+        return value + 1;
+    }
+
+    [EnforcePure]
+    public int ReadValue(int value)
+    {
+        return Compute(value) * 2;
+    }
+}
+
+public class DerivedComponent : BaseComponent
+{
+    [EnforcePure]
+    private protected override int Compute(int value)
+    {
+        return value * 3;
+    }
+}
+
+public class Consumer
+{
+    [EnforcePure]
+    public int Snapshot(int input)
+    {
+        var component = new DerivedComponent();
+        return component.ReadValue(input);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task PublicBasePrivateProtectedVirtualDispatch_ResolvesWithinCompilationAndCanBePure()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public class BaseComponent
+{
+    [EnforcePure]
+    private protected virtual int Compute(int value)
+    {
+        return value + 1;
+    }
+
+    [EnforcePure]
+    public int Snapshot(int value)
+    {
+        return Compute(value) * 2;
+    }
+}
+
+public class DerivedComponent : BaseComponent
+{
+    [EnforcePure]
+    private protected override int Compute(int value)
+    {
+        return value * 3;
+    }
+}
+
+public class Consumer
+{
+    [EnforcePure]
+    public int ReadValue(BaseComponent component, int value)
+    {
+        return component.Snapshot(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

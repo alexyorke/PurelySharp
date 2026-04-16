@@ -84,11 +84,11 @@ public class Repository<T>
 {
     private readonly List<T> _items = new List<T>();
 
-    [EnforcePure] // Assumed pure previously
-    public IEnumerable<T> GetAll() => _items; // Previously flagged, assume still flagged
+    [EnforcePure]
+    public IEnumerable<T> GetAll() => _items; // Returns collection state from a mutable backing field.
 
-    [EnforcePure] // Assumed pure previously
-    public bool ContainsItem(T item) => _items.Contains(item); // Previously flagged, assume still flagged
+    [EnforcePure]
+    public bool ContainsItem(T item) => _items.Contains(item); // List<T>.Contains is tracked as environment/collection-state sensitive.
 
     [EnforcePure] // New method with impurity
     public void AddAndLog(T item)

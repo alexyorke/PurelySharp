@@ -30,10 +30,16 @@ namespace PurelySharp.Analyzer.Engine.Analysis
 							var target = inv.TargetMethod.OriginalDefinition;
 							callees.Add(target);
 
-							// Expand potential dynamic targets for interface/virtual dispatch within the current compilation
-							foreach (var impl in ResolvePotentialTargetsForVirtualOrInterfaceCall(target, compilation))
+							// Expand potential dynamic targets for interface/virtual dispatch within the current compilation,
+							// except when the call is explicitly to base, where dispatch is constrained to the immediate base target.
+							var isBaseReference = inv.Instance != null &&
+								inv.Instance.Kind == OperationKind.BaseReference;
+							if (!isBaseReference)
 							{
-								callees.Add(impl);
+								foreach (var impl in ResolvePotentialTargetsForVirtualOrInterfaceCall(target, compilation))
+								{
+									callees.Add(impl);
+								}
 							}
 						}
 					}
@@ -332,9 +338,15 @@ namespace PurelySharp.Analyzer.Engine.Analysis
 							{
 								var target = inv.TargetMethod.OriginalDefinition;
 								callerSetBuilder.Add(target);
-								foreach (var impl in ResolvePotentialTargetsForVirtualOrInterfaceCall(target, compilation))
+
+								var isBaseReference = inv.Instance != null &&
+									inv.Instance.Kind == OperationKind.BaseReference;
+								if (!isBaseReference)
 								{
-									callerSetBuilder.Add(impl);
+									foreach (var impl in ResolvePotentialTargetsForVirtualOrInterfaceCall(target, compilation))
+									{
+										callerSetBuilder.Add(impl);
+									}
 								}
 							}
 						}
@@ -365,12 +377,16 @@ namespace PurelySharp.Analyzer.Engine.Analysis
 			{
 				foreach (var type in EnumerateAllNamedTypes(compilation.Assembly.GlobalNamespace))
 				{
-					if (!type.AllInterfaces.Contains(target.ContainingType, SymbolEqualityComparer.Default)) continue;
+					if (!ImplementsInterface(type, target.ContainingType)) continue;
 					var impl = type.FindImplementationForInterfaceMember(target) as IMethodSymbol;
 					if (impl != null)
 					{
 						yield return impl.OriginalDefinition;
 					}
+				}
+				if (!target.IsAbstract || HasMethodBody(target))
+				{
+					yield return target;
 				}
 				yield break;
 			}
@@ -386,7 +402,8 @@ namespace PurelySharp.Analyzer.Engine.Analysis
 						if (!DerivesFrom(type, baseType)) continue;
 						foreach (var member in type.GetMembers())
 						{
-							if (member is IMethodSymbol m && m.OverriddenMethod != null && SymbolEqualityComparer.Default.Equals(m.OverriddenMethod.OriginalDefinition, target))
+							if (member is IMethodSymbol m &&
+								OverridesTargetMethod(m, target))
 							{
 								yield return m.OriginalDefinition;
 							}
@@ -394,6 +411,19 @@ namespace PurelySharp.Analyzer.Engine.Analysis
 					}
 				}
 			}
+		}
+
+		private static bool ImplementsInterface(INamedTypeSymbol type, INamedTypeSymbol interfaceSymbol)
+		{
+			if (interfaceSymbol == null)
+			{
+				return false;
+			}
+
+			return type.AllInterfaces.Any(
+				i => SymbolEqualityComparer.Default.Equals(
+					i.OriginalDefinition,
+					interfaceSymbol.OriginalDefinition));
 		}
 
 		private static IEnumerable<INamedTypeSymbol> EnumerateAllNamedTypes(INamespaceSymbol root)
@@ -439,6 +469,42 @@ namespace PurelySharp.Analyzer.Engine.Analysis
 					return true;
 				}
 			}
+			return false;
+		}
+
+		private static bool OverridesTargetMethod(IMethodSymbol method, IMethodSymbol target)
+		{
+			var current = method.OverriddenMethod;
+			while (current != null)
+			{
+				if (SymbolEqualityComparer.Default.Equals(current.OriginalDefinition, target.OriginalDefinition))
+				{
+					return true;
+				}
+
+				current = current.OverriddenMethod;
+			}
+
+			return false;
+		}
+
+		private static bool HasMethodBody(IMethodSymbol methodSymbol)
+		{
+			if (methodSymbol.DeclaringSyntaxReferences.Length == 0)
+			{
+				return false;
+			}
+
+			foreach (var syntaxReference in methodSymbol.DeclaringSyntaxReferences)
+			{
+				var methodSyntax = syntaxReference.GetSyntax();
+				if (methodSyntax is Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax methodDeclaration &&
+					(methodDeclaration.Body != null || methodDeclaration.ExpressionBody != null))
+				{
+					return true;
+				}
+			}
+
 			return false;
 		}
 	}

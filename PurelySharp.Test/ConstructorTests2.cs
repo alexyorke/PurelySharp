@@ -21,7 +21,7 @@ public class TestClass
 {
     private readonly int _value;
 
-    public TestClass(int value) // Unannotated pure constructor; this regression expects PS0004.
+    public TestClass(int value) // Unannotated pure constructor; this expected diagnostic case expects PS0004.
     {
         _value = value;
     }
@@ -71,7 +71,7 @@ public class TestClass
 {
     private int _counter; // Mutable, but OK in constructor
 
-    public TestClass(int startValue) // Unannotated constructor; this regression expects PS0004 rather than PS0002.
+    public TestClass(int startValue) // Unannotated constructor; this expected diagnostic case expects PS0004 rather than PS0002.
     {
         _counter = startValue;
     }
@@ -99,7 +99,7 @@ public class TestClass
 {
     private static int _instanceCount = 0;
 
-    public TestClass() // Unannotated constructor; the current regression intentionally expects no diagnostic here.
+    public TestClass() // Unannotated constructor; the current diagnostic expectation intentionally expects no diagnostic here.
     {
         _instanceCount++;
     }
@@ -125,7 +125,7 @@ public class TestClass
 {
     private readonly List<int> _items;
 
-    public TestClass() // Unannotated constructor; the current regression intentionally expects no diagnostic here.
+    public TestClass() // Unannotated constructor; the current diagnostic expectation intentionally expects no diagnostic here.
     {
         _items = new List<int> { 1, 2, 3 };
     }
@@ -150,13 +150,13 @@ public class TestClass
 {
     private readonly int _value;
 
-    public TestClass(int value) // Unannotated constructor; the current regression intentionally expects no diagnostic here.
+    public TestClass(int value) // Unannotated constructor; the current diagnostic expectation intentionally expects no diagnostic here.
     {
         _value = value;
         LogInitialization(value);
     }
 
-    private void LogInitialization(int value) // Unannotated helper; the current regression intentionally expects no diagnostic here.
+    private void LogInitialization(int value) // Unannotated helper; the current diagnostic expectation intentionally expects no diagnostic here.
     {
         Console.WriteLine($""Initialized with: {value}"");
     }
@@ -184,12 +184,12 @@ public class TestClass
 {
     private readonly int _value;
 
-    public TestClass(int value) // Unannotated constructor; this regression expects PS0004 for .ctor.
+    public TestClass(int value) // Unannotated constructor; this expected diagnostic case expects PS0004 for .ctor.
     {
         _value = ProcessValue(value);
     }
 
-    private int ProcessValue(int value) // Unannotated helper; this regression expects PS0004 for ProcessValue.
+    private int ProcessValue(int value) // Unannotated helper; this expected diagnostic case expects PS0004 for ProcessValue.
     {
         return value * 2;
     }
@@ -278,7 +278,7 @@ public class BaseClass
     }
 }
 
-public class DerivedClass : BaseClass // The derived constructor is also unannotated, so this regression stays diagnostic-free.
+public class DerivedClass : BaseClass // The derived constructor is also unannotated, so this case stays diagnostic-free.
 {
     public DerivedClass(int value) : base(value) { }
 }";
@@ -305,13 +305,13 @@ public class BaseClass
 {
     private readonly int _value;
 
-    protected BaseClass(int value) // Unannotated base constructor; this regression expects PS0004.
+    protected BaseClass(int value) // Unannotated base constructor; this expected diagnostic case expects PS0004.
     {
         _value = value;
     }
 }
 
-public class DerivedClass : BaseClass // The derived constructor is also unannotated, so this regression expects PS0004.
+public class DerivedClass : BaseClass // The derived constructor is also unannotated, so this case expects PS0004.
 {
     public DerivedClass(int value) : base(value) { }
 }";

@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using PurelySharp.Analyzer.Engine;
 using System.Collections.Generic;
@@ -31,12 +31,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
             if (invokedMethodSymbol.Name == "Invoke" && invokedMethodSymbol.ContainingType?.TypeKind == TypeKind.Delegate)
             {
 
-                PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] === Simplified Delegate Invocation Check Start ===");
+                PurityAnalysisEngine.LogDebug("  [MIR-DEL-S] === Simplified Delegate Invocation Check Start ===");
                 PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Invoked Symbol: {invokedMethodSymbol.ContainingType.Name}.Invoke()");
 
                 if (invocationOperation.Instance == null)
                 {
-                    PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Instance is NULL (static delegate?). Assuming impure.");
+                    PurityAnalysisEngine.LogDebug("  [MIR-DEL-S] Instance is NULL (static delegate?). Assuming impure.");
                     return PurityAnalysisEngine.ImpureResult(invocationOperation.Syntax);
                 }
 
@@ -50,7 +50,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Resolved {potentialTargets.Value.MethodSymbols.Count} target(s) for delegate invocation.");
                     if (potentialTargets.Value.MethodSymbols.IsEmpty)
                     {
-                        PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] --> Resolved target set is empty. Assuming PURE.");
+                        PurityAnalysisEngine.LogDebug("  [MIR-DEL-S] --> Resolved target set is empty. Assuming PURE.");
                         result = PurityAnalysisEngine.PurityAnalysisResult.Pure;
                     }
                     else
@@ -63,7 +63,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                             PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Potential Target Purity Result: IsPure={targetPurity.IsPure}");
                             if (!targetPurity.IsPure)
                             {
-                                PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] --> IMPURE target found. Invocation is impure.");
+                                PurityAnalysisEngine.LogDebug("  [MIR-DEL-S] --> IMPURE target found. Invocation is impure.");
                                 result = targetPurity;
                                 break;
                             }
@@ -77,7 +77,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 }
 
                 PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Final Result for Delegate Invocation: IsPure={result.IsPure}");
-                PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] === Simplified Delegate Invocation Check End ===");
+                PurityAnalysisEngine.LogDebug("  [MIR-DEL-S] === Simplified Delegate Invocation Check End ===");
                 return result;
             }
 
@@ -111,7 +111,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 }
 
 
-                PurityAnalysisEngine.LogDebug($"  [MIR]   LINQ source was pure. Checking delegate arguments...");
+                PurityAnalysisEngine.LogDebug("  [MIR]   LINQ source was pure. Checking delegate arguments...");
                 bool allDelegatesPure = true;
                 PurityAnalysisEngine.PurityAnalysisResult firstImpureDelegateResult = PurityAnalysisEngine.PurityAnalysisResult.Pure;
 
@@ -155,19 +155,30 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
                 if (allDelegatesPure)
                 {
-                    PurityAnalysisEngine.LogDebug($"  [MIR] LINQ method source and all relevant delegate arguments determined to be pure.");
+                    PurityAnalysisEngine.LogDebug("  [MIR] LINQ source and all relevant delegate arguments determined to be pure.");
                     return PurityAnalysisEngine.PurityAnalysisResult.Pure;
                 }
                 else
                 {
-                    PurityAnalysisEngine.LogDebug($"  [MIR] --> IMPURE (LINQ method, impure delegate argument detected)");
+                    PurityAnalysisEngine.LogDebug("  [MIR] --> IMPURE (LINQ method, impure delegate argument detected)");
 
                     return PurityAnalysisEngine.PurityAnalysisResult.Impure(firstImpureDelegateResult.ImpureSyntaxNode ?? invocationOperation.Syntax);
                 }
             }
 
 
-
+            if (!invokedMethodSymbol.IsStatic
+                && IsPotentiallyDispatchedMethod(invokedMethodSymbol)
+                && invocationOperation.Instance != null
+                && invocationOperation.Instance.Kind != OperationKind.BaseReference)
+            {
+                PurityAnalysisEngine.LogDebug($"  [MIR] Checking potential dispatch candidates for {invokedMethodSymbol.Name}.");
+                var dispatchResult = CheckDispatchedInvocationPurity(invocationOperation, context);
+                if (!dispatchResult.IsPure)
+                {
+                    return dispatchResult;
+                }
+            }
 
 
             if (invokedMethodSymbol.IsStatic && invokedMethodSymbol.ContainingType != null)
@@ -182,14 +193,15 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
 
-            if (invocationOperation.Instance != null)
+            if (invocationOperation.Instance != null
+                && invocationOperation.Instance.Kind != OperationKind.BaseReference)
             {
                 PurityAnalysisEngine.LogDebug($"  [MIR] Checking instance purity for {invocationOperation.Instance.Kind}: {invocationOperation.Instance.Syntax.ToString().Trim()}");
                 var instanceResult = PurityAnalysisEngine.CheckSingleOperation(invocationOperation.Instance, context, currentState);
                 PurityAnalysisEngine.LogDebug($"  [MIR] Instance check result: IsPure={instanceResult.IsPure}, Node Type={instanceResult.ImpureSyntaxNode?.GetType().Name ?? "NULL"}");
                 if (!instanceResult.IsPure)
                 {
-                    PurityAnalysisEngine.LogDebug($"  [MIR] --> IMPURE (Instance is impure)");
+                    PurityAnalysisEngine.LogDebug("  [MIR] --> IMPURE (Instance is impure)");
                     return PurityAnalysisEngine.PurityAnalysisResult.Impure(instanceResult.ImpureSyntaxNode ?? invocationOperation.Instance.Syntax);
                 }
             }
@@ -212,7 +224,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 PurityAnalysisEngine.LogDebug($"  [MIR]   Argument check result: IsPure={argumentResult.IsPure}");
                 if (!argumentResult.IsPure)
                 {
-                    PurityAnalysisEngine.LogDebug($"  [MIR] --> IMPURE (Argument is impure)");
+                    PurityAnalysisEngine.LogDebug("  [MIR] --> IMPURE (Argument is impure)");
 
                     return PurityAnalysisEngine.PurityAnalysisResult.Impure(argumentResult.ImpureSyntaxNode ?? argument.Value.Syntax);
                 }
@@ -225,11 +237,10 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
 
 
-
             PurityAnalysisEngine.LogDebug($"  [MIR] Checking IsKnownImpure with signature: '{originalDefinitionSymbol.ToDisplayString()}'");
             if (PurityAnalysisEngine.IsKnownImpure(originalDefinitionSymbol))
             {
-                PurityAnalysisEngine.LogDebug($"  [MIR] --> IMPURE (Known Impure)");
+                PurityAnalysisEngine.LogDebug("  [MIR] --> IMPURE (Known Impure)");
                 return PurityAnalysisEngine.PurityAnalysisResult.Impure(invocationOperation.Syntax);
             }
 
@@ -237,7 +248,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             PurityAnalysisEngine.LogDebug($"  [MIR] Checking IsKnownPureBCLMember with signature: '{originalDefinitionSymbol.ToDisplayString()}'");
             if (PurityAnalysisEngine.IsKnownPureBCLMember(originalDefinitionSymbol))
             {
-                PurityAnalysisEngine.LogDebug($"  [MIR] --> PURE (Known Pure BCL)");
+                PurityAnalysisEngine.LogDebug("  [MIR] --> PURE (Known Pure BCL)");
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
 
@@ -248,7 +259,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 context.PureAttributeSymbol);
             if (PurityAnalysisEngine.IsInImpureNamespaceOrType(originalDefinitionSymbol) && !isExplicitlyPure)
             {
-                PurityAnalysisEngine.LogDebug($"  [MIR] --> IMPURE (In Impure NS/Type and not explicitly Pure)");
+                PurityAnalysisEngine.LogDebug("  [MIR] --> IMPURE (In Impure NS/Type and not explicitly Pure)");
                 return PurityAnalysisEngine.PurityAnalysisResult.Impure(invocationOperation.Syntax);
             }
 
@@ -262,6 +273,277 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return calleePurity.IsPure
                 ? PurityAnalysisEngine.PurityAnalysisResult.Pure
                 : PurityAnalysisEngine.PurityAnalysisResult.Impure(calleePurity.ImpureSyntaxNode ?? invocationOperation.Syntax);
+        }
+
+        private static bool IsPotentiallyDispatchedMethod(IMethodSymbol methodSymbol)
+        {
+            return methodSymbol.ContainingType?.TypeKind == TypeKind.Interface
+                || methodSymbol.IsVirtual
+                || methodSymbol.IsAbstract
+                || methodSymbol.IsOverride;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckDispatchedInvocationPurity(
+            IInvocationOperation invocationOperation,
+            PurityAnalysisContext context)
+        {
+            var invokedMethodSymbol = invocationOperation.TargetMethod;
+            if (invokedMethodSymbol == null)
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(invocationOperation.Syntax);
+            }
+
+            if (CanHaveExternalDispatchTargets(invokedMethodSymbol))
+            {
+                PurityAnalysisEngine.LogDebug($"  [MIR] Method {invokedMethodSymbol.ContainingType?.Name}.{invokedMethodSymbol.Name} can be overridden in external assemblies; treating as impure conservatively.");
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(invocationOperation.Syntax);
+            }
+
+            var candidateMethods = ResolvePotentialDispatchTargets(invokedMethodSymbol, context.SemanticModel)
+                .Where(method => method != null && !method.IsAbstract && !method.IsExtern)
+                .ToImmutableHashSet(SymbolEqualityComparer.Default);
+
+            if (candidateMethods.Count == 0)
+            {
+                PurityAnalysisEngine.LogDebug($"  [MIR] No concrete dispatch candidates found for {invokedMethodSymbol.Name}; treating as impure conservatively.");
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(invocationOperation.Syntax);
+            }
+
+            foreach (var candidateMethod in candidateMethods)
+            {
+                PurityAnalysisEngine.LogDebug($"  [MIR]   Evaluating dispatch candidate: {candidateMethod.ToDisplayString()}");
+                var candidatePurity = PurityAnalysisEngine.GetCalleePurity(candidateMethod, context);
+                if (!candidatePurity.IsPure)
+                {
+                    PurityAnalysisEngine.LogDebug($"  [MIR] --> IMPURE dispatch candidate found: {candidateMethod.ToDisplayString()}");
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(candidatePurity.ImpureSyntaxNode ?? invocationOperation.Syntax);
+                }
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static bool CanHaveExternalOverrides(IMethodSymbol methodSymbol)
+        {
+            if (!methodSymbol.IsVirtual || methodSymbol.IsSealed)
+            {
+                return false;
+            }
+
+            if (methodSymbol.DeclaredAccessibility == Accessibility.Private ||
+                methodSymbol.DeclaredAccessibility == Accessibility.PrivateProtected ||
+                methodSymbol.DeclaredAccessibility == Accessibility.Internal ||
+                methodSymbol.DeclaredAccessibility == Accessibility.ProtectedAndInternal)
+            {
+                return false;
+            }
+
+            if (methodSymbol.ContainingType == null || methodSymbol.ContainingType.TypeKind != TypeKind.Class)
+            {
+                return false;
+            }
+
+            if (methodSymbol.ContainingType.IsSealed)
+            {
+                return false;
+            }
+
+            return IsTypeEffectivelyExternallyAccessible(methodSymbol.ContainingType);
+        }
+
+        private static bool CanHaveExternalDispatchTargets(IMethodSymbol methodSymbol)
+        {
+            if (methodSymbol.ContainingType?.TypeKind == TypeKind.Interface)
+            {
+                return CanHaveExternalInterfaceImplementations(methodSymbol.ContainingType);
+            }
+
+            return CanHaveExternalOverrides(methodSymbol);
+        }
+
+        private static bool CanHaveExternalInterfaceImplementations(INamedTypeSymbol interfaceSymbol)
+        {
+            return IsTypeEffectivelyExternallyAccessible(interfaceSymbol);
+        }
+
+        private static bool IsTypeEffectivelyExternallyAccessible(INamedTypeSymbol typeSymbol)
+        {
+            for (var current = typeSymbol; current != null; current = current.ContainingType)
+            {
+                if (current.DeclaredAccessibility == Accessibility.Private ||
+                    current.DeclaredAccessibility == Accessibility.Internal)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static IEnumerable<IMethodSymbol> ResolvePotentialDispatchTargets(
+            IMethodSymbol invokedMethodSymbol,
+            SemanticModel semanticModel)
+        {
+            var compilation = semanticModel.Compilation;
+            var target = invokedMethodSymbol.OriginalDefinition;
+            var targets = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+
+            if (target.ContainingType?.TypeKind == TypeKind.Interface)
+            {
+                foreach (var type in EnumerateAllNamedTypes(compilation.Assembly.GlobalNamespace))
+                {
+                    if (!ImplementsInterface(type, target.ContainingType))
+                    {
+                        continue;
+                    }
+
+                    if (type.Kind == SymbolKind.NamedType && (type.TypeKind == TypeKind.Interface || type.TypeKind == TypeKind.Struct || type.TypeKind == TypeKind.Class))
+                    {
+                        var implementation = type.FindImplementationForInterfaceMember(target) as IMethodSymbol;
+                        if (implementation != null)
+                        {
+                            targets.Add(implementation.OriginalDefinition);
+                        }
+                    }
+                }
+
+                if (!target.IsAbstract || HasMethodBody(target))
+                {
+                    targets.Add(target);
+                }
+
+                return targets;
+            }
+
+            if (target.IsVirtual || target.IsAbstract || target.IsOverride)
+            {
+                var baseType = target.ContainingType;
+                if (baseType != null)
+                {
+                    foreach (var type in EnumerateAllNamedTypes(compilation.Assembly.GlobalNamespace))
+                    {
+                        if (!DerivesFrom(type, baseType))
+                        {
+                            continue;
+                        }
+
+                        foreach (var member in type.GetMembers())
+                        {
+                            if (member is IMethodSymbol method &&
+                                OverridesTargetMethod(method, target))
+                            {
+                                targets.Add(method.OriginalDefinition);
+                            }
+                        }
+                    }
+                }
+
+                if (!target.IsAbstract)
+                {
+                    targets.Add(target);
+                }
+
+                return targets;
+            }
+
+            targets.Add(target);
+            return targets;
+        }
+
+        private static bool ImplementsInterface(INamedTypeSymbol type, INamedTypeSymbol interfaceSymbol)
+        {
+            if (interfaceSymbol == null)
+            {
+                return false;
+            }
+
+            return type.AllInterfaces.Any(
+                i => SymbolEqualityComparer.Default.Equals(
+                    i.OriginalDefinition,
+                    interfaceSymbol.OriginalDefinition));
+        }
+
+        private static bool HasMethodBody(IMethodSymbol methodSymbol)
+        {
+            if (methodSymbol.DeclaringSyntaxReferences.Length == 0)
+            {
+                return false;
+            }
+
+            foreach (var syntaxReference in methodSymbol.DeclaringSyntaxReferences)
+            {
+                var methodSyntax = syntaxReference.GetSyntax();
+                if (methodSyntax is Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax methodDeclaration &&
+                    (methodDeclaration.Body != null || methodDeclaration.ExpressionBody != null))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static IEnumerable<INamedTypeSymbol> EnumerateAllNamedTypes(INamespaceSymbol root)
+        {
+            foreach (var member in root.GetMembers())
+            {
+                if (member is INamespaceSymbol ns)
+                {
+                    foreach (var inner in EnumerateAllNamedTypes(ns))
+                    {
+                        yield return inner;
+                    }
+                }
+                else if (member is INamedTypeSymbol type)
+                {
+                    yield return type;
+                    foreach (var nested in EnumerateNestedTypes(type))
+                    {
+                        yield return nested;
+                    }
+                }
+            }
+        }
+
+        private static IEnumerable<INamedTypeSymbol> EnumerateNestedTypes(INamedTypeSymbol type)
+        {
+            foreach (var member in type.GetTypeMembers())
+            {
+                yield return member;
+                foreach (var nested in EnumerateNestedTypes(member))
+                {
+                    yield return nested;
+                }
+            }
+        }
+
+        private static bool DerivesFrom(INamedTypeSymbol type, INamedTypeSymbol potentialBase)
+        {
+            for (var t = type.BaseType; t != null; t = t.BaseType)
+            {
+                if (SymbolEqualityComparer.Default.Equals(t.OriginalDefinition, potentialBase.OriginalDefinition))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool OverridesTargetMethod(IMethodSymbol method, IMethodSymbol target)
+        {
+            var current = method.OverriddenMethod;
+            while (current != null)
+            {
+                if (SymbolEqualityComparer.Default.Equals(current.OriginalDefinition, target.OriginalDefinition))
+                {
+                    return true;
+                }
+
+                current = current.OverriddenMethod;
+            }
+
+            return false;
         }
 
     }

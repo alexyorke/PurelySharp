@@ -79,7 +79,7 @@ public class TestClass
     [EnforcePure]
     public ValidationAttribute[] TestMethod() // Line 13 in test string
     {
-        // This regression expects PS0004 on the custom attribute members and PS0002 on the wrapper method.
+        // This expected diagnostic case expects PS0004 on the custom attribute members and PS0002 on the wrapper method.
         return new ValidationAttribute[]
         {
             new RequiredAttribute(),
