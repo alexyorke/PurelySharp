@@ -163,7 +163,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int GetDefaultInt() => default; // REMOVED inline diagnostic markup
+    public int GetDefaultInt() => default;
 }";
 
 
