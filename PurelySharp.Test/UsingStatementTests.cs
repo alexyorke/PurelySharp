@@ -134,6 +134,33 @@ public class PureDisposable : IDisposable
 
             await VerifyCS.VerifyAnalyzerAsync(test, expectedPS0004);
         }
+
+        [Test]
+        public async Task UsingDeclarationLocalReference_DoesNotFlagResourceAsImpure()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void TestMethod()
+    {
+        var disposable = new PureDisposable();
+        using (disposable)
+        {
+        }
+    }
+}
+
+public class PureDisposable : IDisposable
+{
+    public void {|PS0004:Dispose|}() { }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
 
