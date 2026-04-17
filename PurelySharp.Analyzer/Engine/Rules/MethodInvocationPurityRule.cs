@@ -603,6 +603,21 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     continue;
                 }
 
+                if (current is IConditionalOperation conditional)
+                {
+                    var whenTrueType = GetKnownReceiverType(conditional.WhenTrue);
+                    var whenFalseType = GetKnownReceiverType(conditional.WhenFalse);
+
+                    if (whenTrueType != null &&
+                        whenFalseType != null &&
+                        SymbolEqualityComparer.Default.Equals(whenTrueType, whenFalseType))
+                    {
+                        return whenTrueType;
+                    }
+
+                    return current.Type as INamedTypeSymbol;
+                }
+
                 if (TryGetAsConversion(current, out var asOperand, out var asTargetType))
                 {
                     if (asTargetType != null)

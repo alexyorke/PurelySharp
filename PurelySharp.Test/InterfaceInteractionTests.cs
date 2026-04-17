@@ -1011,6 +1011,50 @@ public class TestClass
         }
 
         [Test]
+        public async Task InterfaceMethod_OnConditionalReceiverBranchesWithSameSealedImplementation_NoConservativeDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System;
+
+public interface IConditionalCounter
+{
+    int Increment(int value);
+}
+
+public sealed class SealedConditionalCounter : IConditionalCounter
+{
+    public int Increment(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class ImpureConditionalCounter : IConditionalCounter
+{
+    public int Increment(int value)
+    {
+        Console.WriteLine(value);
+        return value + 1;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Process(bool useLeft, int value)
+    {
+        return (useLeft
+            ? (IConditionalCounter)new SealedConditionalCounter()
+            : (IConditionalCounter)new SealedConditionalCounter()).Increment(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task InternalInterfaceBaseCast_ToPublicInterface_NoConservativeDiagnostic()
         {
             var test = @"
