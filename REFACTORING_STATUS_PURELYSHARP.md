@@ -406,8 +406,7 @@
    - harder virtual/interface cases
    - reflection and environment-sensitive APIs
 2. Expand constant-condition pruning only if more real regressions appear outside the current `if`/`while`/`for` coverage.
-3. Audit and rename any remaining stale regression names/comments outside the updated suites.
-4. Keep `README.md` aligned whenever behavior-level purity assumptions change.
+3. Keep `README.md` aligned whenever behavior-level purity assumptions change.
 
 ### Working rules for future passes
 

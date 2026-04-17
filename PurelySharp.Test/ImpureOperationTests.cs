@@ -8,7 +8,7 @@ using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<PurelySharp.Analyzer.Pu
 namespace PurelySharp.Test
 {
     [TestFixture]
-    public class ImpurityRegressionTests
+    public class ImpureOperationTests
     {
         [Test]
         public async Task ThrowOnlyMethod_ReportsPS0002()

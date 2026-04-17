@@ -193,7 +193,7 @@ public class Document
         }
 
         [Test]
-        public async Task RequiredMembers_ModifyingMutableProperty_ReportsCurrentDiagnostics()
+        public async Task RequiredMembers_ModifyingMutableProperty_ReportsExpectedDiagnostics()
         {
             var test = @"
 #nullable enable
@@ -231,7 +231,7 @@ public class UserProfile
         }
 
         [Test]
-        public async Task RequiredMembers_WithImpureMethods_ReportCurrentDiagnostics()
+        public async Task RequiredMembers_WithImpureMethods_ReportExpectedDiagnostics()
         {
             var test = @"
 #nullable enable
@@ -303,7 +303,7 @@ public class AppConfiguration
         }
 
         [Test]
-        public async Task RequiredMembers_InitOnlyProduct_WithImpureUpdater_ReportCurrentDiagnostics()
+        public async Task RequiredMembers_InitOnlyProduct_WithImpureUpdater_ReportsExpectedDiagnostics()
         {
             var test = @"
 #nullable enable

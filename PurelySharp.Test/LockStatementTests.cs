@@ -115,7 +115,7 @@ public class TestClass
 
 
         [Test]
-        public async Task LockStatement_WithPureOperations_CurrentBehavior()
+        public async Task LockStatement_WithPureReads_RemainsConservativelyImpure()
         {
             var test = @"
 using System;
