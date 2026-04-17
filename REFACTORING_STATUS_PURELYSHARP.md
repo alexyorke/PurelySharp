@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1248/1248` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1255/1255` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -413,7 +413,7 @@
   - `System.AppContext.TargetFrameworkName.get` is now treated as an impure application-context state read, with direct regression coverage
   - `System.AppDomain.CurrentDomain.get` is now treated as an impure application-domain/runtime-state source, with direct regression coverage
   - `System.AppDomain.BaseDirectory.get`, `System.AppDomain.FriendlyName.get`, and `System.AppDomain.Id.get` are now treated as impure application-domain/runtime-state sources, with direct regression coverage
-  - `System.Runtime.Loader.AssemblyLoadContext.All.get`, `System.Runtime.Loader.AssemblyLoadContext.Default.get`, and `System.Runtime.Loader.AssemblyLoadContext.LoadFromAssemblyPath(string)` now have direct regression coverage for their existing assembly-load-context impurity classifications
+  - `System.Runtime.Loader.AssemblyLoadContext.All.get`, `System.Runtime.Loader.AssemblyLoadContext.Default.get`, `System.Runtime.Loader.AssemblyLoadContext.GetLoadContext(System.Reflection.Assembly)`, and `System.Runtime.Loader.AssemblyLoadContext.LoadFromAssemblyPath(string)` now have direct regression coverage for their existing assembly-load-context impurity classifications
   - `System.Globalization.RegionInfo.CurrentRegion.get`, `System.Globalization.NumberFormatInfo.CurrentInfo.get`, and `System.Globalization.DateTimeFormatInfo.CurrentInfo.get` now have direct regression coverage for their existing ambient globalization-state classifications
   - `System.Configuration.ConfigurationManager.AppSettings.get` now has direct regression coverage for its existing configuration-state impurity catalog entry
   - `System.Configuration.ConfigurationManager.ConnectionStrings.get` is now treated as an impure configuration-state source, with direct regression coverage

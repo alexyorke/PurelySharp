@@ -640,6 +640,7 @@ public static class Constants
         "System.Runtime.Caching.MemoryCache.Get(string)",
         "System.Runtime.Loader.AssemblyLoadContext.All.get",
         "System.Runtime.Loader.AssemblyLoadContext.Default.get",
+        "System.Runtime.Loader.AssemblyLoadContext.GetLoadContext(System.Reflection.Assembly)",
         "System.Runtime.Loader.AssemblyLoadContext.LoadFromAssemblyPath(string)",
         "System.Runtime.Serialization.Json.DataContractJsonSerializer.ReadObject(System.IO.Stream)",
         "System.Runtime.Serialization.Json.DataContractJsonSerializer.WriteObject(System.IO.Stream, object)",

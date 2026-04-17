@@ -268,6 +268,30 @@ namespace TestNamespace
         }
 
         [Test]
+        public async Task AssemblyLoadContext_GetLoadContext_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System.Reflection;
+using System.Runtime.Loader;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public AssemblyLoadContext? {|PS0002:TestMethod|}(Assembly assembly)
+        {
+            return AssemblyLoadContext.GetLoadContext(assembly);
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task Assembly_GetManifestResourceNames_Diagnostic()
         {
             var test = @"
