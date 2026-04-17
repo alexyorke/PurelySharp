@@ -336,6 +336,76 @@ namespace TestNamespace
         }
 
         [Test]
+        public async Task AssemblyLoadContext_LoadFromStreamWithSymbols_Diagnostic()
+        {
+            var test = @"
+using System.IO;
+using System.Reflection;
+using System.Runtime.Loader;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public Assembly {|PS0002:TestMethod|}(AssemblyLoadContext context, Stream assemblyStream, Stream symbolsStream)
+        {
+            return context.LoadFromStream(assemblyStream, symbolsStream);
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task AssemblyLoadContext_LoadFromAssemblyName_Diagnostic()
+        {
+            var test = @"
+using System.Reflection;
+using System.Runtime.Loader;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public Assembly {|PS0002:TestMethod|}(AssemblyLoadContext context, AssemblyName assemblyName)
+        {
+            return context.LoadFromAssemblyName(assemblyName);
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task AssemblyLoadContext_LoadFromNativeImagePath_Diagnostic()
+        {
+            var test = @"
+using System.Reflection;
+using System.Runtime.Loader;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public Assembly {|PS0002:TestMethod|}(AssemblyLoadContext context, string nativeImagePath, string assemblyPath)
+        {
+            return context.LoadFromNativeImagePath(nativeImagePath, assemblyPath);
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task AssemblyLoadContext_GetLoadContext_Diagnostic()
         {
             var test = @"
@@ -352,6 +422,74 @@ namespace TestNamespace
         public AssemblyLoadContext? {|PS0002:TestMethod|}(Assembly assembly)
         {
             return AssemblyLoadContext.GetLoadContext(assembly);
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task AssemblyLoadContext_CurrentContextualReflectionContext_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System.Runtime.Loader;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public AssemblyLoadContext? {|PS0002:TestMethod|}()
+        {
+            return AssemblyLoadContext.CurrentContextualReflectionContext;
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task AssemblyLoadContext_EnterContextualReflection_Diagnostic()
+        {
+            var test = @"
+using System.Runtime.Loader;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public AssemblyLoadContext.ContextualReflectionScope {|PS0002:TestMethod|}(AssemblyLoadContext context)
+        {
+            return context.EnterContextualReflection();
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task AssemblyLoadContext_EnterContextualReflectionForAssembly_Diagnostic()
+        {
+            var test = @"
+using System.Reflection;
+using System.Runtime.Loader;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public AssemblyLoadContext.ContextualReflectionScope {|PS0002:TestMethod|}(Assembly assembly)
+        {
+            return AssemblyLoadContext.EnterContextualReflection(assembly);
         }
     }
 }";
