@@ -96,7 +96,7 @@ public class Service
         }
 
         [Test]
-        public async Task UnknownInterfaceImplementation_DefaultAssumedPure()
+        public async Task InternalInterfaceWithoutKnownImplementation_NoDiagnostic()
         {
             var test = @"
 using PurelySharp.Attributes;
@@ -121,7 +121,7 @@ public class WorkerHost
         }
 
         [Test]
-        public async Task PublicInterfaceWithoutKnownImplementation_DefaultConservativeImpure()
+        public async Task PublicInterfaceWithoutKnownImplementation_ConservativeImpure()
         {
             var test = @"
 using PurelySharp.Attributes;
@@ -169,7 +169,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task PublicDefaultInterfaceImplementation_DefaultConservativeImpure()
+        public async Task PublicDefaultInterfaceImplementation_ConservativeImpure()
         {
             var test = @"
 using PurelySharp.Attributes;
@@ -450,7 +450,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task GenericInterfaceConstraint_DefaultConservativeImpure()
+        public async Task GenericInterfaceConstraint_ConservativeImpure()
         {
             var test = @"
 using PurelySharp.Attributes;
@@ -474,7 +474,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task InterfaceImplementation_MixedPurity_DefaultConservativeImpure()
+        public async Task InterfaceImplementation_MixedPurity_ConservativeImpure()
         {
             var test = @"
 using PurelySharp.Attributes;
@@ -587,7 +587,7 @@ public class BadWorker : BaseWorker
         }
 
         [Test]
-        public async Task TransitiveVirtualOverride_DefaultConservativeImpure()
+        public async Task TransitiveVirtualOverride_ConservativeImpure()
         {
             var test = @"
 using PurelySharp.Attributes;
@@ -632,7 +632,7 @@ public class WorkerHost
         }
 
         [Test]
-        public async Task PublicVirtualMethod_DefaultConservativeImpure()
+        public async Task PublicVirtualDispatch_ConservativeImpure()
         {
             var test = @"
 using PurelySharp.Attributes;
@@ -724,7 +724,7 @@ internal class InternalWorker : BaseWorker
         }
 
         [Test]
-        public async Task ProtectedOrInternalVirtualMethod_DefaultConservativeImpure()
+        public async Task ProtectedOrInternalVirtualDispatch_ConservativeImpure()
         {
             var test = @"
 using PurelySharp.Attributes;
@@ -751,7 +751,7 @@ public class WorkerHost
         }
 
         [Test]
-        public async Task ProtectedOrInternalVirtualMethod_SealedImplementation_NoConservativeDiagnostic()
+        public async Task ProtectedOrInternalVirtualDispatch_OnSealedReceiver_NoDiagnostic()
         {
             var test = @"
 using PurelySharp.Attributes;
@@ -786,7 +786,7 @@ public class WorkerHost
         }
 
         [Test]
-        public async Task NestedInterfaceInInternalContainer_WithInternalDefaultImplementation_IsNotConservative()
+        public async Task NestedInterfaceInInternalContainer_WithInternalDefaultImplementation_NoDiagnostic()
         {
             var test = @"
 using PurelySharp.Attributes;
@@ -813,7 +813,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task PublicSealedClass_VirtualCall_NoConservativeDiagnostic()
+        public async Task PublicSealedClass_NonVirtualCall_NoDiagnostic()
         {
             var test = @"
 using PurelySharp.Attributes;
