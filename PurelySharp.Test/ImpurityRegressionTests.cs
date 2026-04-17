@@ -8,7 +8,7 @@ using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<PurelySharp.Analyzer.Pu
 namespace PurelySharp.Test
 {
     [TestFixture]
-    public class FalseNegativeTests
+    public class ImpurityRegressionTests
     {
         [Test]
         public async Task ThrowOnlyMethod_ReportsPS0002()
@@ -186,10 +186,10 @@ public class TestForm
 {
     private Button _button = new Button();
 
-    [EnforcePure] // Should be impure due to subscription
+    [EnforcePure]
     public void SetupForm()
     {
-        _button.Clicked += Button_Clicked; // Event subscription (impure?)
+        _button.Clicked += Button_Clicked;
     }
 
     private void Button_Clicked(object sender, EventArgs e)
@@ -242,7 +242,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task SuppressFinalizeCall_ReportsExpectedDiagnostics()
+        public async Task SuppressFinalizeCall_ReportsMissingAttributeAndImpurityDiagnostics()
         {
             var test = @"
 using System;
@@ -250,30 +250,28 @@ using PurelySharp.Attributes;
 
 public class DisposableResource : IDisposable
 {
-    [EnforcePure] // Marked pure, but calls impure GC method
-    public void Dispose() { GC.SuppressFinalize(this); } // Impure call - Line 8
+    [EnforcePure]
+    public void Dispose() { GC.SuppressFinalize(this); }
 }
 
 public class TestClass
 {
-    // [EnforcePure] // Removed attribute
-    public void UseResource() // Expect PS0004 here - Line 14
+    public void UseResource()
     {
         using (var res = new DisposableResource()) 
         { 
-            // ... 
         }
     }
 }";
 
-            var expectedUseResource = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(14, 17, 14, 28).WithArguments("UseResource");
+            var expectedUseResource = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(13, 17, 13, 28).WithArguments("UseResource");
             var expectedDispose = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(8, 17, 8, 24).WithArguments("Dispose");
 
             await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedUseResource, expectedDispose });
         }
 
         [Test]
-        public async Task ImpureImplicitConversion_ReportsExpectedDiagnostics()
+        public async Task ImpureImplicitConversion_ReportsMissingAttributeAndImpurityDiagnostics()
         {
             var test = @"
 using System;
@@ -383,7 +381,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task ImpureImplicitConversionViaMethodArg_ReportsExpectedDiagnostics()
+        public async Task ImpureImplicitConversionViaMethodArg_ReportsMissingAttributeAndImpurityDiagnostics()
         {
             var test = @"
 using System;
@@ -491,7 +489,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task GenericType_DefaultConstructorIsImpure_Expected()
+        public async Task GenericType_DefaultConstructor_ReportsPS0002()
         {
             var test = @"
 using System;
@@ -510,7 +508,7 @@ public class TestFactory<T> where T : new()
         }
 
         [Test]
-        public async Task ExternMethodWithoutBody_ReportsExpectedImpurity()
+        public async Task ExternMethodWithoutBody_ReportsPS0002()
         {
             var test = @"
 using System;
