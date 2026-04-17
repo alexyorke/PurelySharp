@@ -37,6 +37,7 @@ public static class Constants
         "System.Activator.CreateInstance(System.Type, params object[])",
         "System.AppContext.BaseDirectory.get",
         "System.AppContext.GetData(string)",
+        "System.AppContext.SetData(string, object?)",
         "System.AppContext.TargetFrameworkName.get",
         "System.AppContext.TryGetSwitch(string, out bool)",
         "System.Array.AsReadOnly<T>(T[])",

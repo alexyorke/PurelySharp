@@ -32,6 +32,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task AppContextSetData_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}()
+    {
+        AppContext.SetData(""TestKey"", ""value"");
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task AppContextTryGetSwitch_Diagnostic()
         {
             var test = @"
