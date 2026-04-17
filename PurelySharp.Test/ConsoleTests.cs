@@ -605,6 +605,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task ConsoleOpenStandardInputWithBufferSize_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.IO;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public Stream {|PS0002:TestMethod|}()
+    {
+        return Console.OpenStandardInput(256);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ConsoleOpenStandardOutput_Diagnostic()
         {
             var test = @"
@@ -625,6 +645,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task ConsoleOpenStandardOutputWithBufferSize_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.IO;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public Stream {|PS0002:TestMethod|}()
+    {
+        return Console.OpenStandardOutput(256);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ConsoleOpenStandardError_Diagnostic()
         {
             var test = @"
@@ -638,6 +678,26 @@ public class TestClass
     public Stream {|PS0002:TestMethod|}()
     {
         return Console.OpenStandardError();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ConsoleOpenStandardErrorWithBufferSize_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.IO;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public Stream {|PS0002:TestMethod|}()
+    {
+        return Console.OpenStandardError(256);
     }
 }";
 
