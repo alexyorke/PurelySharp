@@ -526,5 +526,105 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task ConsoleOpenStandardInput_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.IO;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public Stream {|PS0002:TestMethod|}()
+    {
+        return Console.OpenStandardInput();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ConsoleOpenStandardOutput_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.IO;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public Stream {|PS0002:TestMethod|}()
+    {
+        return Console.OpenStandardOutput();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ConsoleOpenStandardError_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.IO;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public Stream {|PS0002:TestMethod|}()
+    {
+        return Console.OpenStandardError();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ConsoleSetIn_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.IO;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}(TextReader reader)
+    {
+        Console.SetIn(reader);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ConsoleSetOut_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.IO;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}(TextWriter writer)
+    {
+        Console.SetOut(writer);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

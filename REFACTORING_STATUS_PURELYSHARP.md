@@ -382,6 +382,7 @@
   - `Console.TreatControlCAsInput` is now treated as an impure console-state source
   - `Console.BufferHeight` now has direct regression coverage for its existing console-state impurity catalog entry
   - `Console.Title` now has direct regression coverage for its existing console-state impurity catalog entry
+  - `Console.OpenStandardInput()`, `Console.OpenStandardOutput()`, `Console.OpenStandardError()`, `Console.SetIn(System.IO.TextReader)`, and `Console.SetOut(System.IO.TextWriter)` now have direct regression coverage for their existing console-state impurity catalog entries
   - `Console.WindowWidth` is now treated as an impure console-state source
   - `Console.WindowHeight` is now treated as an impure console-state source
   - `Console.CursorLeft` is now treated as an impure console-state source
