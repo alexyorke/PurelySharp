@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1203/1203` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1205/1205` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -25,7 +25,7 @@
   - `TimeProvider.System` now has direct regression coverage for its existing environment-sensitive impurity catalog entry
   - `System.ComponentModel.TypeDescriptor.GetConverter(System.Type)` is now treated as an impure ambient metadata/source lookup
   - `System.ComponentModel.AddingNewEventArgs.AddingNewEventArgs()` is now treated as an impure mutable event-args constructor
-  - `System.ComponentModel.CancelEventArgs.Cancel.get` is now treated as an impure mutable event-args state source
+  - `System.ComponentModel.CancelEventArgs.Cancel.get` and `.set` now have direct regression coverage for their existing impure mutable event-args state classification
   - `System.Threading.ThreadLocal<T>.ThreadLocal(System.Func<T>)` is now treated as an impure thread-local state constructor
   - `System.Threading.Channels.Channel.CreateUnbounded<T>()` is now treated as an impure channel-allocation factory
   - `System.Reflection.AssemblyName.AssemblyName(string)` is now treated as an impure assembly-loading/identity constructor

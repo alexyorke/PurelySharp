@@ -68,6 +68,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task CancelEventArgsCancelSetter_Diagnostic()
+        {
+            var test = @"
+using System.ComponentModel;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}(CancelEventArgs args)
+    {
+        args.Cancel = true;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task AddingNewEventArgsConstructor_Diagnostic()
         {
             var test = @"
