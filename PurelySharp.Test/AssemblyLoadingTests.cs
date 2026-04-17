@@ -222,6 +222,29 @@ namespace TestNamespace
         }
 
         [Test]
+        public async Task AssemblyLoadContext_All_Diagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using System.Runtime.Loader;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public IEnumerable<AssemblyLoadContext> {|PS0002:TestMethod|}()
+        {
+            return AssemblyLoadContext.All;
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task Assembly_GetManifestResourceNames_Diagnostic()
         {
             var test = @"

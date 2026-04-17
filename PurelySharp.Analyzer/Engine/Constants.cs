@@ -638,6 +638,7 @@ public static class Constants
         "System.Runtime.Caching.MemoryCache.Default.get",
         "System.Runtime.Caching.MemoryCache.Add(string, object, System.DateTimeOffset)",
         "System.Runtime.Caching.MemoryCache.Get(string)",
+        "System.Runtime.Loader.AssemblyLoadContext.All.get",
         "System.Runtime.Loader.AssemblyLoadContext.Default.get",
         "System.Runtime.Loader.AssemblyLoadContext.LoadFromAssemblyPath(string)",
         "System.Runtime.Serialization.Json.DataContractJsonSerializer.ReadObject(System.IO.Stream)",
