@@ -35,6 +35,7 @@ public static class Constants
         "System.Activator.CreateInstance<T>()",
         "System.Activator.CreateInstance(System.Type)",
         "System.Activator.CreateInstance(System.Type, params object[])",
+        "System.AppDomain.CurrentDomain.get",
         "System.AppContext.BaseDirectory.get",
         "System.AppContext.GetData(string)",
         "System.AppContext.SetData(string, object?)",
