@@ -87,7 +87,7 @@ public class TestClass
 
 
         [Test]
-        public async Task PureMethod_ReadConfiguration_NoDispatchContractDiagnostics()
+        public async Task PureMethod_ReadConfiguration_PureContractReadsRemainPure()
         {
             var test = @"
 #nullable enable
@@ -115,13 +115,13 @@ public class TestClass
     [EnforcePure]
     public string? ReadConfigIndexer(IConfiguration config)
     {
-        return config[""MyKey:MyValue""]; // Pure contract read should not force PS0002 on the wrapper.
+        return config[""MyKey:MyValue""]; // Pure contract read should keep the wrapper pure.
     }
 
     [EnforcePure]
     public string? ReadConfigGetSection(IConfiguration config)
     {
-        return config.GetSection(""MyKey"").Value; // Dispatch-contract suggestions are suppressed; wrapper should still analyze as pure.
+        return config.GetSection(""MyKey"").Value; // Pure contract chaining should keep the wrapper pure.
     }
 }";
 
