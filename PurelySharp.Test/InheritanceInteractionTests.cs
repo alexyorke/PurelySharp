@@ -101,13 +101,13 @@ public abstract class DataProcessor
 {
     public abstract string Name { get; }
 
-    [EnforcePure] // Abstract method - assumed pure if not overridden impurely
+    [EnforcePure] // Abstract declaration itself is not diagnosed; callers still stay conservative when overrides can vary.
     public abstract int Process(int data);
 
-    [EnforcePure] // Virtual method with pure base implementation
+    [EnforcePure] // The base implementation is currently impure because int.ToString() is culture-sensitive.
     public virtual string Format(int data) => data.ToString();
 
-    [EnforcePure] // Concrete method calling abstract Process
+    [EnforcePure] // Calls through the abstract slot, so downstream dispatch remains conservative.
     public int ProcessAndDouble(int data)
     {
         return Process(data) * 2;
@@ -234,7 +234,7 @@ public class Consumer
         }
 
         [Test]
-        public async Task ProtectedVirtualDispatch_DefaultConservativeImpure()
+        public async Task ProtectedVirtualDispatch_OnOpenReceiver_ConservativeImpure()
         {
             var test = @"
 using PurelySharp.Attributes;
@@ -261,7 +261,7 @@ public class WorkerHost : BaseWorker
         }
 
         [Test]
-        public async Task PublicBasePrivateProtectedVirtualDispatch_ResolvesWithinCompilationAndCanBePure()
+        public async Task PublicMethodCallingPrivateProtectedVirtualDispatch_CanBePure()
         {
             var test = @"
 using PurelySharp.Attributes;
