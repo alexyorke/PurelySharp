@@ -10,6 +10,25 @@ namespace PurelySharp.Test
     public class CultureInfoTests
     {
         [Test]
+        public async Task CultureInfoCurrentCulture_Diagnostic()
+        {
+            var test = @"
+using System.Globalization;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public CultureInfo {|PS0002:TestMethod|}()
+    {
+        return CultureInfo.CurrentCulture;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task CultureInfoCurrentUICulture_Diagnostic()
         {
             var test = @"
