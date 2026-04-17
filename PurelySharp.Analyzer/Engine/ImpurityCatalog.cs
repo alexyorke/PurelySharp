@@ -126,6 +126,27 @@ namespace PurelySharp.Analyzer.Engine
 				return true;
 			}
 
+			if (symbol is IMethodSymbol staticObjectEqualsSymbol &&
+				staticObjectEqualsSymbol.ContainingType?.SpecialType == SpecialType.System_Object &&
+				staticObjectEqualsSymbol.Name == nameof(object.Equals) &&
+				staticObjectEqualsSymbol.IsStatic &&
+				staticObjectEqualsSymbol.Parameters.Length == 2)
+			{
+				PurityAnalysisEngine.LogDebug($"Helper IsKnownImpure: Static System.Object.Equals is considered impure due dispatch to virtual instance Equals: {symbol.ToDisplayString()}");
+				return true;
+			}
+
+			if (symbol is IMethodSymbol staticTypeGetTypeSymbol &&
+				staticTypeGetTypeSymbol.IsStatic &&
+				staticTypeGetTypeSymbol.ContainingType?.ToDisplayString().Equals("System.Type", StringComparison.Ordinal) == true &&
+				staticTypeGetTypeSymbol.Name == nameof(Type.GetType) &&
+				staticTypeGetTypeSymbol.Parameters.Length >= 1 &&
+				staticTypeGetTypeSymbol.Parameters[0].Type.SpecialType == SpecialType.System_String)
+			{
+				PurityAnalysisEngine.LogDebug($"Helper IsKnownImpure: Static Type.GetType overload detected as impure: {symbol.ToDisplayString()}");
+				return true;
+			}
+
 			string signature = symbol.OriginalDefinition.ToDisplayString();
 			if (symbol.Kind == SymbolKind.Property)
 			{

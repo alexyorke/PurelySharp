@@ -38,10 +38,7 @@ public class PureDisposable : IDisposable
     public void Dispose() { }
 }";
 
-            var expectedPS0004 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                    .WithSpan(20, 17, 20, 24)
-                                    .WithArguments("Dispose");
-            await VerifyCS.VerifyAnalyzerAsync(code, expectedPS0004);
+            await VerifyCS.VerifyAnalyzerAsync(code);
         }
 
         [Test]
@@ -101,12 +98,7 @@ public class TestClass
                                    .WithSpan(14, 17, 14, 27)
                                    .WithArguments("TestMethod");
 
-
-            var expectedPS0004 = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
-                                    .WithSpan(8, 17, 8, 24)
-                                    .WithArguments("Dispose");
-
-            await VerifyCS.VerifyAnalyzerAsync(test, expected, expectedPS0004);
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
     }
 }

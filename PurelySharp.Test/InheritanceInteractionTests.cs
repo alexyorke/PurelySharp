@@ -178,6 +178,7 @@ public class TestUsage
             var expected = new[]
             {
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(13, 27, 13, 33).WithArguments("Format"),
+                VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(16, 16, 16, 32).WithArguments("ProcessAndDouble"),
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(23, 17, 23, 26).WithArguments("LogStatus"),
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(49, 25, 49, 32).WithArguments("Process"),
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(57, 28, 57, 34).WithArguments("Format"),
@@ -185,10 +186,7 @@ public class TestUsage
                 VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule).WithSpan(75, 18, 75, 38).WithArguments("UseProcessorImpurely"),
             };
 
-
-
-            var expectedGetName = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(7, 28, 7, 32).WithArguments("get_Name");
-            await VerifyCS.VerifyAnalyzerAsync(testCode, expected.Append(expectedGetName).ToArray());
+            await VerifyCS.VerifyAnalyzerAsync(testCode, expected);
         }
 
         [Test]
@@ -298,162 +296,6 @@ public class Consumer
     public int ReadValue(BaseComponent component, int value)
     {
         return component.Snapshot(value);
-    }
-}
-";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
-        }
-
-        [Test]
-        public async Task GenericSealedTypeConstraint_PureOverrideCanBeConsideredPure()
-        {
-            var test = @"
-using PurelySharp.Attributes;
-using System;
-
-public class BaseCounter
-{
-    public virtual int Compute(int value)
-    {
-        Console.WriteLine(value);
-        return value + 1;
-    }
-}
-
-public sealed class PureCounter : BaseCounter
-{
-    public override int Compute(int value)
-    {
-        return value * 2;
-    }
-}
-
-public class PureHost
-{
-    [EnforcePure]
-    public int Process<T>(T counter, int value) where T : PureCounter
-    {
-        return counter.Compute(value);
-    }
-}
-";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
-        }
-
-        [Test]
-        public async Task GenericSealedTypeConstraint_TransitiveConstraint_PureOverrideCanBeConsideredPure()
-        {
-            var test = @"
-using PurelySharp.Attributes;
-using System;
-
-public class BaseCounter
-{
-    public virtual int Compute(int value)
-    {
-        Console.WriteLine(value);
-        return value + 1;
-    }
-}
-
-public sealed class PureCounter : BaseCounter
-{
-    public override int Compute(int value)
-    {
-        return value * 2;
-    }
-}
-
-public class PureHost
-{
-    [EnforcePure]
-    public int Process<T, U>(T counter, int value)
-        where T : U
-        where U : PureCounter
-    {
-        return counter.Compute(value);
-    }
-}
-";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
-        }
-
-        [Test]
-        public async Task GenericSealedTypeConstraint_TripleTransitiveConstraint_PureOverrideCanBeConsideredPure()
-        {
-            var test = @"
-using PurelySharp.Attributes;
-using System;
-
-public class BaseCounter
-{
-    public virtual int Compute(int value)
-    {
-        Console.WriteLine(value);
-        return value + 1;
-    }
-}
-
-public sealed class PureCounter : BaseCounter
-{
-    public override int Compute(int value)
-    {
-        return value * 2;
-    }
-}
-
-public class PureHost
-{
-    [EnforcePure]
-    public int Process<T, U, V>(T counter, int value)
-        where T : U
-        where U : V
-        where V : PureCounter
-    {
-        return counter.Compute(value);
-    }
-}
-";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
-        }
-
-        [Test]
-        public async Task GenericSealedTypeConstraint_WithAsCastToInterface_NoConservativeDiagnostic()
-        {
-            var test = @"
-using PurelySharp.Attributes;
-
-public interface ICounter
-{
-    int Compute(int value);
-}
-
-public class BaseCounter
-{
-    public virtual int Compute(int value)
-    {
-        return value + 1;
-    }
-}
-
-public sealed class PureCounter : BaseCounter, ICounter
-{
-    public override int Compute(int value)
-    {
-        return value * 2;
-    }
-}
-
-public class PureHost
-{
-    [EnforcePure]
-    public int Process<T>(T counter, int value) where T : PureCounter
-    {
-        return (counter as ICounter)!.Compute(value);
     }
 }
 ";

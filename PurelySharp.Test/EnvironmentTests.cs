@@ -425,6 +425,7 @@ public class TestClass
         public async Task Environment_GetEnvironmentVariable_Diagnostic()
         {
             var test = @"
+#nullable enable
 using System;
 using PurelySharp.Attributes;
 
@@ -444,6 +445,7 @@ public class TestClass
         public async Task Environment_GetEnvironmentVariableWithTarget_Diagnostic()
         {
             var test = @"
+#nullable enable
 using System;
 using PurelySharp.Attributes;
 

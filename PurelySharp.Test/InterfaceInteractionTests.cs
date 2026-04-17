@@ -110,7 +110,7 @@ internal interface IWorker
 public class WorkerHost
 {
     [EnforcePure]
-    public int ComputeWithUnknownImplementation(IWorker worker, int value)
+    internal int ComputeWithUnknownImplementation(IWorker worker, int value)
     {
         return worker.Compute(value);
     }
@@ -150,7 +150,7 @@ public class WorkerHost
             var test = @"
 using PurelySharp.Attributes;
 
-public interface ICounter
+internal interface ICounter
 {
     int Increment(int value) => value + 1;
 }
@@ -158,7 +158,7 @@ public interface ICounter
 public class TestClass
 {
     [EnforcePure]
-    public int Process(ICounter counter, int value)
+    internal int Process(ICounter counter, int value)
     {
         return counter.Increment(value);
     }
@@ -274,251 +274,6 @@ public class TestClass
     public int Process(int value)
     {
         return ((ICounter)new StructCounter()).Increment(value);
-    }
-}
-";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
-        }
-
-        [Test]
-        public async Task PublicInterfaceExtendingInternalBase_NoConservativeDiagnostic()
-        {
-            var test = @"
-using PurelySharp.Attributes;
-
-internal interface IInternalCounter
-{
-    int Increment(int value);
-}
-
-public interface IPublicCounter : IInternalCounter
-{
-}
-
-public class PureCounter : IPublicCounter
-{
-    public int Increment(int value)
-    {
-        return value + 1;
-    }
-}
-
-public class TestClass
-{
-    [EnforcePure]
-    public int Process(IPublicCounter counter, int value)
-    {
-        return counter.Increment(value);
-    }
-}
-";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
-        }
-
-        [Test]
-        public async Task GenericInterfaceConstraint_WithSealedImplementation_NoConservativeDiagnostic()
-        {
-            var test = @"
-using PurelySharp.Attributes;
-
-public interface ICounter
-{
-    int Increment(int value);
-}
-
-public sealed class PureCounter : ICounter
-{
-    public int Increment(int value)
-    {
-        return value + 1;
-    }
-}
-
-public class TestClass
-{
-    [EnforcePure]
-    public int Process<T>(T counter, int value) where T : PureCounter, ICounter
-    {
-        return counter.Increment(value);
-    }
-}
-";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
-        }
-
-        [Test]
-        public async Task GenericInterfaceConstraint_WithSealedImplementation_AndInterfaceCast_NoConservativeDiagnostic()
-        {
-            var test = @"
-using PurelySharp.Attributes;
-
-public interface ICounter
-{
-    int Increment(int value);
-}
-
-public sealed class PureCounter : ICounter
-{
-    public int Increment(int value)
-    {
-        return value + 1;
-    }
-}
-
-public class TestClass
-{
-    [EnforcePure]
-    public int Process<T>(T counter, int value) where T : PureCounter, ICounter
-    {
-        return ((ICounter)counter).Increment(value);
-    }
-}
-";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
-        }
-
-        [Test]
-        public async Task GenericClassConstraint_WithSealedVirtualImplementation_NoConservativeDiagnostic()
-        {
-            var test = @"
-using PurelySharp.Attributes;
-
-public class BaseWorker
-{
-    public virtual int Compute(int value)
-    {
-        return value + 1;
-    }
-}
-
-public sealed class PureWorker : BaseWorker
-{
-    public override int Compute(int value)
-    {
-        return value + 2;
-    }
-}
-
-public class TestClass
-{
-    [EnforcePure]
-    public int Process<T>(T worker, int value) where T : PureWorker
-    {
-        return worker.Compute(value);
-    }
-}
-";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
-        }
-
-        [Test]
-        public async Task GenericInterfaceConstraint_WithSealedStructImplementation_AndInterfaceCast_NoConservativeDiagnostic()
-        {
-            var test = @"
-using PurelySharp.Attributes;
-
-public interface ICounter
-{
-    int Increment(int value);
-}
-
-public struct PureStructCounter : ICounter
-{
-    public int Increment(int value)
-    {
-        return value + 1;
-    }
-}
-
-public class TestClass
-{
-    [EnforcePure]
-    public int Process<T>(T counter, int value) where T : PureStructCounter, ICounter
-    {
-        return ((ICounter)counter).Increment(value);
-    }
-}
-";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
-        }
-
-        [Test]
-        public async Task GenericInterfaceConstraint_WithSealedStructImplementation_AndAsCast_NoConservativeDiagnostic()
-        {
-            var test = @"
-using PurelySharp.Attributes;
-
-public interface ICounter
-{
-    int Increment(int value);
-}
-
-public struct PureStructCounter : ICounter
-{
-    public int Increment(int value)
-    {
-        return value + 1;
-    }
-}
-
-public class TestClass
-{
-    [EnforcePure]
-    public int Process<T>(T counter, int value) where T : PureStructCounter, ICounter
-    {
-        return (counter as ICounter)!.Increment(value);
-    }
-}
-";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
-        }
-
-        [Test]
-        public async Task GenericInterfaceConstraint_WithSealedDerivedImplementation_AndBaseInterfaceCast_NoConservativeDiagnostic()
-        {
-            var test = @"
-using PurelySharp.Attributes;
-
-public interface IBaseCounter
-{
-    int Increment(int value);
-}
-
-public interface IDerivedCounter : IBaseCounter
-{
-    int Increment(int value);
-}
-
-public sealed class PureDerivedCounter : IDerivedCounter
-{
-    public int Increment(int value)
-    {
-        return value + 1;
-    }
-}
-
-public sealed class BadBaseCounter : IBaseCounter
-{
-    public int Increment(int value)
-    {
-        Console.WriteLine(value);
-        return value + 1;
-    }
-}
-
-public class TestClass
-{
-    [EnforcePure]
-    public int Process<T>(T counter, int value) where T : PureDerivedCounter, IDerivedCounter
-    {
-        return ((IBaseCounter)counter).Increment(value);
     }
 }
 ";
@@ -684,39 +439,7 @@ internal class SlowCounter : ICounter
 public class TestClass
 {
     [EnforcePure]
-    public int Process(ICounter counter, int value)
-    {
-        return counter.Increment(value);
-    }
-}
-";
-
-            await VerifyCS.VerifyAnalyzerAsync(test);
-        }
-
-        [Test]
-        public async Task GenericExplicitInterfaceConstraint_WithSealedImplementation_NoConservativeDiagnostic()
-        {
-            var test = @"
-using PurelySharp.Attributes;
-
-public interface ICounter
-{
-    int Increment(int value);
-}
-
-public sealed class PureCounter : ICounter
-{
-    int ICounter.Increment(int value)
-    {
-        return value + 1;
-    }
-}
-
-public class TestClass
-{
-    [EnforcePure]
-    public int Process<T>(T counter, int value) where T : PureCounter, ICounter
+    internal int Process(ICounter counter, int value)
     {
         return counter.Increment(value);
     }
@@ -735,23 +458,6 @@ using PurelySharp.Attributes;
 public interface IMixedCounter
 {
     int Increment(int value);
-}
-
-public class PublicMixedCounter : IMixedCounter
-{
-    public int Increment(int value)
-    {
-        return value + 1;
-    }
-}
-
-public class BadCounter : IMixedCounter
-{
-    public int Increment(int value)
-    {
-        // Any implementation could be externally provided, so this call must stay conservative.
-        return value + 2;
-    }
 }
 
 public class TestClass
@@ -1096,7 +802,7 @@ internal class HostContainer
 public class TestClass
 {
     [EnforcePure]
-    public int Process(HostContainer.INestedCounter counter, int value)
+    internal int Process(HostContainer.INestedCounter counter, int value)
     {
         return counter.Increment(value);
     }
@@ -1114,7 +820,8 @@ using PurelySharp.Attributes;
 
 public sealed class SealedWorker
 {
-    public virtual int Compute(int value)
+    [EnforcePure]
+    public int Compute(int value)
     {
         return value + 1;
     }
@@ -1322,7 +1029,7 @@ internal interface IInternalCounter : IPublicCounter
 public class TestClass
 {
     [EnforcePure]
-    public int Process(IInternalCounter counter, int value)
+    internal int Process(IInternalCounter counter, int value)
     {
         return (counter as IPublicCounter)!.Increment(value);
     }

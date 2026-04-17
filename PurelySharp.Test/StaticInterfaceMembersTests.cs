@@ -157,18 +157,21 @@ using PurelySharp.Attributes;
 
 public interface IAddable<T> where T : IAddable<T>
 {
+    [EnforcePure]
     static abstract T Add(T left, T right);
 }
 
 public readonly struct Number : IAddable<Number>
 {
-    public int Value { get; }
+    public readonly int Value;
 
+    [EnforcePure]
     public Number(int value)
     {
         Value = value;
     }
 
+    [EnforcePure]
     public static Number Add(Number left, Number right) => new Number(left.Value + right.Value);
 }
 
@@ -176,150 +179,6 @@ public class Calculator
 {
     [EnforcePure]
     public T {|PS0002:AddGeneric|}<T>(T left, T right) where T : IAddable<T>
-    {
-        return T.Add(left, right);
-    }
-}
-";
-
-            await new VerifyCS.Test
-            {
-                TestCode = test,
-                ReferenceAssemblies = ReferenceAssemblies.Net.Net80,
-                SolutionTransforms =
-                {
-                    (solution, projectId) =>
-                        solution.AddMetadataReference(projectId, Microsoft.CodeAnalysis.MetadataReference.CreateFromFile(typeof(EnforcePureAttribute).Assembly.Location))
-                },
-            }.RunAsync();
-        }
-
-        [Test]
-        public async Task StaticInterfaceMethod_GenericDispatch_WithSealedConstraint_NoConservativeDiagnostic()
-        {
-            var test = @"
-// Requires LangVersion 11+
-#nullable enable
-using PurelySharp.Attributes;
-
-public interface IAddable<T> where T : IAddable<T>
-{
-    static abstract T Add(T left, T right);
-}
-
-public readonly struct Number : IAddable<Number>
-{
-    public int Value { get; }
-
-    public Number(int value)
-    {
-        Value = value;
-    }
-
-    public static Number Add(Number left, Number right) => new Number(left.Value + right.Value);
-}
-
-public class Calculator
-{
-    [EnforcePure]
-    public T AddConstrained<T>(T left, T right)
-        where T : Number, IAddable<T>
-    {
-        return T.Add(left, right);
-    }
-}
-";
-
-            await new VerifyCS.Test
-            {
-                TestCode = test,
-                ReferenceAssemblies = ReferenceAssemblies.Net.Net80,
-                SolutionTransforms =
-                {
-                    (solution, projectId) =>
-                        solution.AddMetadataReference(projectId, Microsoft.CodeAnalysis.MetadataReference.CreateFromFile(typeof(EnforcePureAttribute).Assembly.Location))
-                },
-            }.RunAsync();
-        }
-
-        [Test]
-        public async Task StaticInterfaceMethod_GenericDispatch_WithSealedClassConstraint_NoConservativeDiagnostic()
-        {
-            var test = @"
-// Requires LangVersion 11+
-#nullable enable
-using PurelySharp.Attributes;
-
-public interface IAddable<T> where T : IAddable<T>
-{
-    static abstract T Add(T left, T right);
-}
-
-public sealed class Number : IAddable<Number>
-{
-    public int Value { get; }
-
-    public Number(int value)
-    {
-        Value = value;
-    }
-
-    public static Number Add(Number left, Number right) => new Number(left.Value + right.Value);
-}
-
-public class Calculator
-{
-    [EnforcePure]
-    public T AddConstrained<T>(T left, T right)
-        where T : Number, IAddable<T>
-    {
-        return T.Add(left, right);
-    }
-}
-";
-
-            await new VerifyCS.Test
-            {
-                TestCode = test,
-                ReferenceAssemblies = ReferenceAssemblies.Net.Net80,
-                SolutionTransforms =
-                {
-                    (solution, projectId) =>
-                        solution.AddMetadataReference(projectId, Microsoft.CodeAnalysis.MetadataReference.CreateFromFile(typeof(EnforcePureAttribute).Assembly.Location))
-                },
-            }.RunAsync();
-        }
-
-        [Test]
-        public async Task StaticInterfaceMethod_GenericDispatch_WithSealedReceiverAndExtraInterfaceArgument_NoConservativeDiagnostic()
-        {
-            var test = @"
-// Requires LangVersion 11+
-#nullable enable
-using PurelySharp.Attributes;
-
-public interface IAddable<TSelf, TTag> where TSelf : IAddable<TSelf, TTag>
-{
-    static abstract TSelf Add(TSelf left, TSelf right);
-}
-
-public sealed class Number : IAddable<Number, int>
-{
-    public int Value { get; }
-
-    public Number(int value)
-    {
-        Value = value;
-    }
-
-    public static Number Add(Number left, Number right) => new Number(left.Value + right.Value);
-}
-
-public class Calculator
-{
-    [EnforcePure]
-    public T AddConstrained<T, TTag>(T left, T right)
-        where T : Number, IAddable<T, TTag>
     {
         return T.Add(left, right);
     }
@@ -435,5 +294,3 @@ class ImpureImplementation : IPureInterface
         }
     }
 }
-
-

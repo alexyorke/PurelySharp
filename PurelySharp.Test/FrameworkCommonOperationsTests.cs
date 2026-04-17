@@ -87,7 +87,7 @@ public class TestClass
 
 
         [Test]
-        public async Task PureMethod_ReadConfiguration_ReportsMissingAttributeDiagnostics()
+        public async Task PureMethod_ReadConfiguration_NoDispatchContractDiagnostics()
         {
             var test = @"
 #nullable enable
@@ -115,22 +115,17 @@ public class TestClass
     [EnforcePure]
     public string? ReadConfigIndexer(IConfiguration config)
     {
-        return config[""MyKey:MyValue""]; // Intended pure read; this expected diagnostic case expects PS0004 on the mock indexer.
+        return config[""MyKey:MyValue""]; // Pure contract read should not force PS0002 on the wrapper.
     }
 
     [EnforcePure]
     public string? ReadConfigGetSection(IConfiguration config)
     {
-        return config.GetSection(""MyKey"").Value; // This expected diagnostic case expects PS0004 on GetSection/get_Value, not PS0002 on the wrapper method.
+        return config.GetSection(""MyKey"").Value; // Dispatch-contract suggestions are suppressed; wrapper should still analyze as pure.
     }
 }";
 
-            var expectedGetItem = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(10, 47, 10, 51).WithArguments("get_Item");
-            var expectedGetSection1 = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(10, 95, 10, 105).WithArguments("GetSection");
-            var expectedGetValue = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(11, 54, 11, 59).WithArguments("get_Value");
-            var expectedGetSection2 = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(16, 38, 16, 48).WithArguments("GetSection");
-
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetItem, expectedGetSection1, expectedGetValue, expectedGetSection2);
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
 

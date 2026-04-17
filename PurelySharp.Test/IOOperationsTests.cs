@@ -829,10 +829,8 @@ public class TestClass
     }
 }";
 
-            var expectedInterfaceRead = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(10, 12, 10, 23).WithArguments("ReadAllText");
-            var expectedConcreteRead = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(17, 19, 17, 30).WithArguments("ReadAllText");
             var expectedCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(27, 12, 27, 21).WithArguments(".ctor");
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedInterfaceRead, expectedConcreteRead, expectedCtor);
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedCtor);
         }
 
         [Test]

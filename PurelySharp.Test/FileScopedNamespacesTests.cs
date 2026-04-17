@@ -221,10 +221,7 @@ public class Calculator : ICalculator
         return a + b;
     }
 }";
-
-
-            var expectedAdd = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(10, 9, 10, 12).WithArguments("Add");
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedAdd);
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]

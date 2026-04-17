@@ -125,7 +125,11 @@ public class TestClass
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expectedIncrement = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                .WithSpan(6, 23, 6, 32)
+                .WithArguments("Increment");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedIncrement);
         }
 
         [Test]
@@ -154,7 +158,11 @@ public class TestClass
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expectedIncrement = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                .WithSpan(8, 16, 8, 25)
+                .WithArguments("Increment");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedIncrement);
         }
 
         [Test]
@@ -183,7 +191,11 @@ public class TestClass
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expectedIncrement = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                .WithSpan(8, 16, 8, 25)
+                .WithArguments("Increment");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedIncrement);
         }
 
         [Test]

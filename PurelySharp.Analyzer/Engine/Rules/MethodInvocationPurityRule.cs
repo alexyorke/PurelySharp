@@ -1,4 +1,6 @@
+using System;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Operations;
 using PurelySharp.Analyzer.Engine;
 using System.Collections.Generic;
@@ -25,6 +27,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
             {
                 PurityAnalysisEngine.LogDebug("  [MIR] Cannot resolve target method. Assuming impure.");
                 return PurityAnalysisEngine.PurityAnalysisResult.Impure(invocationOperation.Syntax);
+            }
+
+            if (IsCompilerGeneratedArrayForeachInvocation(invocationOperation, context))
+            {
+                PurityAnalysisEngine.LogDebug("  [MIR] Compiler-generated array foreach member is treated as pure.");
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
 
             if (invocationOperation.Instance != null && IsDynamicInvocationReceiver(invocationOperation.Instance))
@@ -185,7 +193,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 && (invokedMethodSymbol.IsStatic
                     ? invocationOperation.Instance == null
                     : invocationOperation.Instance != null
-                        && invocationOperation.Instance.Kind != OperationKind.BaseReference))
+                        && !IsBaseReference(invocationOperation.Instance)))
             {
                 var knownReceiverType = GetKnownReceiverType(invocationOperation.Instance);
                 if (knownReceiverType == null)
@@ -218,7 +226,8 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
 
             if (invocationOperation.Instance != null
-                && invocationOperation.Instance.Kind != OperationKind.BaseReference)
+                && !IsBaseReference(invocationOperation.Instance)
+                && invocationOperation.Instance is not IConditionalAccessInstanceOperation)
             {
                 PurityAnalysisEngine.LogDebug($"  [MIR] Checking instance purity for {invocationOperation.Instance.Kind}: {invocationOperation.Instance.Syntax.ToString().Trim()}");
                 var instanceResult = PurityAnalysisEngine.CheckSingleOperation(invocationOperation.Instance, context, currentState);
@@ -307,6 +316,49 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 || methodSymbol.IsOverride;
         }
 
+        private static bool IsCompilerGeneratedArrayForeachInvocation(
+            IInvocationOperation invocationOperation,
+            PurityAnalysisContext context)
+        {
+            if (invocationOperation.TargetMethod.Parameters.Length != 0 ||
+                !IsArrayForeachSyntax(invocationOperation.Syntax, context))
+            {
+                return false;
+            }
+
+            return invocationOperation.TargetMethod.Name switch
+            {
+                nameof(IDisposable.Dispose) => invocationOperation.TargetMethod.ContainingType?.SpecialType == SpecialType.System_IDisposable,
+                "GetEnumerator" => invocationOperation.TargetMethod.ContainingType?.ToDisplayString() == "System.Collections.IEnumerable",
+                "MoveNext" => invocationOperation.TargetMethod.ContainingType?.ToDisplayString() == "System.Collections.IEnumerator",
+                _ => false,
+            };
+        }
+
+        private static bool IsArrayForeachSyntax(SyntaxNode syntax, PurityAnalysisContext context)
+        {
+            if (!syntax.IsKind(SyntaxKind.IdentifierName) &&
+                !syntax.IsKind(SyntaxKind.SimpleMemberAccessExpression) &&
+                !syntax.IsKind(SyntaxKind.ElementAccessExpression))
+            {
+                return false;
+            }
+
+            return TryGetForeachCollectionType(syntax.Parent, context.SemanticModel) is IArrayTypeSymbol;
+        }
+
+        private static ITypeSymbol? TryGetForeachCollectionType(SyntaxNode? syntaxNode, SemanticModel semanticModel)
+        {
+            return syntaxNode switch
+            {
+                Microsoft.CodeAnalysis.CSharp.Syntax.ForEachStatementSyntax forEachStatement =>
+                    semanticModel.GetTypeInfo(forEachStatement.Expression).Type,
+                Microsoft.CodeAnalysis.CSharp.Syntax.ForEachVariableStatementSyntax forEachVariableStatement =>
+                    semanticModel.GetTypeInfo(forEachVariableStatement.Expression).Type,
+                _ => null,
+            };
+        }
+
         private static PurityAnalysisEngine.PurityAnalysisResult CheckDispatchedInvocationPurity(
             IInvocationOperation invocationOperation,
             PurityAnalysisContext context,
@@ -372,7 +424,6 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             if (methodSymbol.DeclaredAccessibility == Accessibility.Private ||
-                methodSymbol.DeclaredAccessibility == Accessibility.PrivateProtected ||
                 methodSymbol.DeclaredAccessibility == Accessibility.Internal ||
                 methodSymbol.DeclaredAccessibility == Accessibility.ProtectedAndInternal)
             {
@@ -487,6 +538,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             while (current != null)
             {
+                current = NormalizeReceiverOperation(current);
+                if (current == null)
+                {
+                    return false;
+                }
+
                 if (current.Type?.TypeKind == TypeKind.Dynamic)
                 {
                     return true;
@@ -498,20 +555,20 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     continue;
                 }
 
-                if (current is IConversionOperation conversion)
+                if (TryGetAsConversion(current, out var asOperand, out _))
                 {
-                    current = conversion.Operand;
-                    continue;
-                }
-
-                if (current is IAsOperation asOperation)
-                {
-                    if (asOperation.Operand?.Type?.TypeKind == TypeKind.Dynamic)
+                    if (asOperand?.Type?.TypeKind == TypeKind.Dynamic)
                     {
                         return true;
                     }
 
-                    current = asOperation.Operand;
+                    current = asOperand;
+                    continue;
+                }
+
+                if (current is IConversionOperation conversion)
+                {
+                    current = conversion.Operand;
                     continue;
                 }
 
@@ -533,6 +590,46 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             while (true)
             {
+                current = NormalizeReceiverOperation(current);
+
+                if (current == null)
+                {
+                    return null;
+                }
+
+                if (current is IConditionalAccessOperation conditionalAccess)
+                {
+                    current = conditionalAccess.Operation;
+                    continue;
+                }
+
+                if (TryGetAsConversion(current, out var asOperand, out var asTargetType))
+                {
+                    if (asTargetType != null)
+                    {
+                        var operandType = asOperand?.Type as INamedTypeSymbol;
+                        if (operandType != null &&
+                            ImplementsInterface(operandType, asTargetType))
+                        {
+                            current = asOperand;
+                            continue;
+                        }
+
+                        if (asOperand?.Type is ITypeParameterSymbol typeParameter)
+                        {
+                            var constrainedType = ResolveConstrainedSealedType(typeParameter);
+                            if (constrainedType != null &&
+                                ImplementsInterface(constrainedType, asTargetType))
+                            {
+                                current = asOperand;
+                                continue;
+                            }
+                        }
+                    }
+
+                    return asTargetType;
+                }
+
                 if (current is IConversionOperation conversion)
                 {
                     current = conversion.Operand;
@@ -543,35 +640,6 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 {
                     current = parenthesized.Operand;
                     continue;
-                }
-
-                if (current is IAsOperation asOperation)
-                {
-                    var targetInterfaceType = asOperation.Type as INamedTypeSymbol;
-
-                    if (targetInterfaceType != null)
-                    {
-                        var operandType = asOperation.Operand?.Type as INamedTypeSymbol;
-                        if (operandType != null &&
-                            ImplementsInterface(operandType, targetInterfaceType))
-                        {
-                            current = asOperation.Operand;
-                            continue;
-                        }
-
-                        if (asOperation.Operand?.Type is ITypeParameterSymbol typeParameter)
-                        {
-                            var constrainedType = ResolveConstrainedSealedType(typeParameter);
-                            if (constrainedType != null &&
-                                ImplementsInterface(constrainedType, targetInterfaceType))
-                            {
-                                current = asOperation.Operand;
-                                continue;
-                            }
-                        }
-                    }
-
-                    return asOperation.Type as INamedTypeSymbol;
                 }
 
                 if (current.Type is ITypeParameterSymbol typeParameterSymbol)
@@ -910,6 +978,8 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             while (current != null)
             {
+                current = NormalizeReceiverOperation(current);
+
                 if (current is IConditionalAccessOperation conditionalAccess)
                 {
                     current = conditionalAccess.Operation;
@@ -928,9 +998,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     continue;
                 }
 
-                if (current is IAsOperation asOperation)
+                if (TryGetAsConversion(current, out var asOperand, out _))
                 {
-                    current = asOperation.Operand;
+                    current = asOperand;
                     continue;
                 }
 
@@ -938,6 +1008,24 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             return false;
+        }
+
+        private static IOperation? NormalizeReceiverOperation(IOperation? operation)
+        {
+            if (operation is not IConditionalAccessInstanceOperation)
+            {
+                return operation;
+            }
+
+            for (var current = operation.Parent; current != null; current = current.Parent)
+            {
+                if (current is IConditionalAccessOperation conditionalAccess)
+                {
+                    return conditionalAccess.Operation;
+                }
+            }
+
+            return operation;
         }
 
         private static bool HasMethodBody(IMethodSymbol methodSymbol)
@@ -957,6 +1045,31 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 }
             }
 
+            return false;
+        }
+
+        private static bool IsBaseReference(IOperation? operation)
+        {
+            return operation is IInstanceReferenceOperation instanceReference &&
+                instanceReference.ReferenceKind == InstanceReferenceKind.ContainingTypeInstance &&
+                operation.Syntax.IsKind(SyntaxKind.BaseExpression);
+        }
+
+        private static bool TryGetAsConversion(
+            IOperation? operation,
+            out IOperation? operand,
+            out INamedTypeSymbol? targetType)
+        {
+            if (operation is IConversionOperation conversion &&
+                conversion.Syntax.IsKind(SyntaxKind.AsExpression))
+            {
+                operand = conversion.Operand;
+                targetType = conversion.Type as INamedTypeSymbol;
+                return true;
+            }
+
+            operand = null;
+            targetType = null;
             return false;
         }
 

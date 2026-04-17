@@ -676,6 +676,101 @@ public class TestClass
         }
 
         [Test]
+        public async Task TypeGetType_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public System.Type {|PS0002:TestMethod|}(string typeName)
+    {
+        return Type.GetType(typeName);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task TypeGetTypeWithThrowOnError_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public System.Type {|PS0002:TestMethod|}(string typeName)
+    {
+        return Type.GetType(typeName, true);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task TypeGetTypeWithThrowOnErrorAndIgnoreCase_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public System.Type {|PS0002:TestMethod|}(string typeName)
+    {
+        return Type.GetType(typeName, true, true);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task TypeGetTypeWithAssemblyAndTypeResolvers_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public System.Type {|PS0002:TestMethod|}(string typeName)
+    {
+        return Type.GetType(typeName, _ => typeof(object).Assembly, (_, _, _) => typeof(object), false);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task TypeGetTypeWithAssemblyAndTypeResolversIgnoreCase_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public System.Type {|PS0002:TestMethod|}(string typeName)
+    {
+        return Type.GetType(typeName, _ => typeof(object).Assembly, (_, _, _) => typeof(object), false, false);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeIsArray_Diagnostic()
         {
             var test = @"

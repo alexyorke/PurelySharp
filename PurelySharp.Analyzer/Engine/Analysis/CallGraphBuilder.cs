@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Operations;
 
 namespace PurelySharp.Analyzer.Engine.Analysis
@@ -32,8 +33,7 @@ namespace PurelySharp.Analyzer.Engine.Analysis
 
 							// Expand potential dynamic targets for interface/virtual dispatch within the current compilation,
 							// except when the call is explicitly to base, where dispatch is constrained to the immediate base target.
-							var isBaseReference = inv.Instance != null &&
-								inv.Instance.Kind == OperationKind.BaseReference;
+							var isBaseReference = IsBaseReference(inv.Instance);
 							if (!isBaseReference)
 							{
 								foreach (var impl in ResolvePotentialTargetsForVirtualOrInterfaceCall(target, compilation))
@@ -339,8 +339,7 @@ namespace PurelySharp.Analyzer.Engine.Analysis
 								var target = inv.TargetMethod.OriginalDefinition;
 								callerSetBuilder.Add(target);
 
-								var isBaseReference = inv.Instance != null &&
-									inv.Instance.Kind == OperationKind.BaseReference;
+								var isBaseReference = IsBaseReference(inv.Instance);
 								if (!isBaseReference)
 								{
 									foreach (var impl in ResolvePotentialTargetsForVirtualOrInterfaceCall(target, compilation))
@@ -506,6 +505,13 @@ namespace PurelySharp.Analyzer.Engine.Analysis
 			}
 
 			return false;
+		}
+
+		private static bool IsBaseReference(IOperation? operation)
+		{
+			return operation is IInstanceReferenceOperation instanceReference &&
+				instanceReference.ReferenceKind == InstanceReferenceKind.ContainingTypeInstance &&
+				operation.Syntax.IsKind(SyntaxKind.BaseExpression);
 		}
 	}
 }

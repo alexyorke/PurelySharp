@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using System;
 using System.Collections.Generic;
@@ -21,6 +22,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             IPropertySymbol propertySymbol = propertyReferenceOperation.Property;
             PurityAnalysisEngine.LogDebug($"  [PropRefRule] Checking PropertyReference: {propertySymbol.Name} on Type: {propertySymbol.ContainingType?.ToDisplayString()}");
+
+            if (IsCompilerGeneratedArrayForeachCurrent(propertyReferenceOperation, context))
+            {
+                PurityAnalysisEngine.LogDebug("    [PropRefRule] Compiler-generated array foreach Current is treated as pure.");
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
 
 
             if (IsPartOfAssignmentTarget(propertyReferenceOperation))
@@ -254,6 +261,20 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return true;
             }
             return false;
+        }
+
+        private static bool IsCompilerGeneratedArrayForeachCurrent(
+            IPropertyReferenceOperation propertyReferenceOperation,
+            PurityAnalysisContext context)
+        {
+            if (propertyReferenceOperation.Property.Name != "Current" ||
+                propertyReferenceOperation.Property.ContainingType?.ToDisplayString() != "System.Collections.IEnumerator" ||
+                propertyReferenceOperation.Syntax.Parent is not ForEachStatementSyntax forEachStatement)
+            {
+                return false;
+            }
+
+            return context.SemanticModel.GetTypeInfo(forEachStatement.Expression).Type is IArrayTypeSymbol;
         }
 
 

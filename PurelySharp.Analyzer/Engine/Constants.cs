@@ -589,6 +589,8 @@ public static class Constants
         "System.Threading.Volatile.Write",
         "System.TimeZoneInfo.FindSystemTimeZoneById(string)",
         "System.Type.GetType(string)",
+        "System.Type.GetType(string, bool)",
+        "System.Type.GetType(string, bool, bool)",
         "System.Xml.Linq.XElement.Add(object)",
         "XElement.Add",
         "System.Xml.Linq.XElement.Load(System.IO.Stream)",
@@ -1108,8 +1110,6 @@ public static class Constants
         "System.Numerics.Complex.Complex(double, double)",
         "System.Numerics.Complex.Abs(System.Numerics.Complex)",
 
-
-        "object.Equals(object, object)",
         "object.ReferenceEquals(object, object)",
 
 
@@ -1287,6 +1287,7 @@ public static class Constants
 
 
         "System.Collections.Generic.ICollection<T>.Count.get",
+        "System.Array.GetEnumerator()",
         "System.Collections.Generic.IEnumerable<T>.GetEnumerator()",
         "System.Collections.Generic.IEnumerator<T>.Current.get",
         "System.Collections.Generic.KeyValuePair<TKey, TValue>.KeyValuePair(TKey, TValue)",
