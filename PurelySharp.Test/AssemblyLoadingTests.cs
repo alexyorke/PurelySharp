@@ -86,6 +86,50 @@ namespace TestNamespace
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        [Test]
+        public async Task Assembly_Load_Diagnostic()
+        {
+            var test = @"
+using System.Reflection;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public Assembly {|PS0002:TestMethod|}(string assemblyString)
+        {
+            return Assembly.Load(assemblyString);
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task Assembly_LoadFrom_Diagnostic()
+        {
+            var test = @"
+using System.Reflection;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public Assembly {|PS0002:TestMethod|}(string assemblyFile)
+        {
+            return Assembly.LoadFrom(assemblyFile);
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
 
         [Test]
         public async Task Assembly_GetTypes_Diagnostic()
