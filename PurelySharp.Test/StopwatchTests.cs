@@ -68,6 +68,44 @@ public class TestClass
         }
 
         [Test]
+        public async Task StopwatchElapsedMilliseconds_Diagnostic()
+        {
+            var test = @"
+using System.Diagnostics;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public long {|PS0002:TestMethod|}(Stopwatch stopwatch)
+    {
+        return stopwatch.ElapsedMilliseconds;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task StopwatchElapsedTicks_Diagnostic()
+        {
+            var test = @"
+using System.Diagnostics;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public long {|PS0002:TestMethod|}(Stopwatch stopwatch)
+    {
+        return stopwatch.ElapsedTicks;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task StopwatchGetTimestamp_Diagnostic()
         {
             var test = @"
@@ -80,6 +118,44 @@ public class TestClass
     public long {|PS0002:TestMethod|}()
     {
         return Stopwatch.GetTimestamp();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task StopwatchFrequency_Diagnostic()
+        {
+            var test = @"
+using System.Diagnostics;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public long {|PS0002:TestMethod|}()
+    {
+        return Stopwatch.Frequency;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task StopwatchIsHighResolution_Diagnostic()
+        {
+            var test = @"
+using System.Diagnostics;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}()
+    {
+        return Stopwatch.IsHighResolution;
     }
 }";
 
