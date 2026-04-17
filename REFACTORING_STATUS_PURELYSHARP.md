@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1237/1237` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1240/1240` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -405,6 +405,7 @@
   - `System.AppContext.GetData(string)` now has direct regression coverage for its existing application-context state classification
   - `System.AppContext.BaseDirectory.get` is now treated as an impure application-context state read, with direct regression coverage
   - `System.AppContext.TargetFrameworkName.get` is now treated as an impure application-context state read, with direct regression coverage
+  - `System.Globalization.RegionInfo.CurrentRegion.get`, `System.Globalization.NumberFormatInfo.CurrentInfo.get`, and `System.Globalization.DateTimeFormatInfo.CurrentInfo.get` now have direct regression coverage for their existing ambient globalization-state classifications
   - `System.Configuration.ConfigurationManager.AppSettings.get` now has direct regression coverage for its existing configuration-state impurity catalog entry
   - `System.Configuration.ConfigurationManager.ConnectionStrings.get` is now treated as an impure configuration-state source, with direct regression coverage
 

@@ -124,5 +124,62 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task RegionInfoCurrentRegion_Diagnostic()
+        {
+            var test = @"
+using System.Globalization;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public RegionInfo {|PS0002:TestMethod|}()
+    {
+        return RegionInfo.CurrentRegion;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task NumberFormatInfoCurrentInfo_Diagnostic()
+        {
+            var test = @"
+using System.Globalization;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public NumberFormatInfo {|PS0002:TestMethod|}()
+    {
+        return NumberFormatInfo.CurrentInfo;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task DateTimeFormatInfoCurrentInfo_Diagnostic()
+        {
+            var test = @"
+using System.Globalization;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public DateTimeFormatInfo {|PS0002:TestMethod|}()
+    {
+        return DateTimeFormatInfo.CurrentInfo;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
