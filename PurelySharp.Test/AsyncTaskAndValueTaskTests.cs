@@ -145,5 +145,26 @@ namespace TestNamespace
 }";
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task TaskResult_Diagnostic()
+        {
+            var test = @"
+using System.Threading.Tasks;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public int {|PS0002:ImpureMethod|}(Task<int> task)
+        {
+            return task.Result;
+        }
+    }
+}";
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

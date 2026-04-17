@@ -268,6 +268,7 @@
   - `System.Type.IsEnum.get` is now treated as an impure reflection/runtime-state source
   - `System.Type.IsGenericType.get` is now treated as an impure reflection/runtime-state source
   - `System.Type.IsInterface.get` is now treated as an impure reflection/runtime-state source
+  - `System.Threading.Tasks.Task<TResult>.Result.get` now has direct regression coverage for its existing blocking/runtime-state classification
   - `System.Type.IsPrimitive.get` is now treated as an impure reflection/runtime-state source
   - `System.Type.IsValueType.get` is now treated as an impure reflection/runtime-state source
   - `System.Type.GetInterface(string)` is now treated as an impure reflection source
