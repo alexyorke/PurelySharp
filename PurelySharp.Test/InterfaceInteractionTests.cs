@@ -204,7 +204,7 @@ public class TestClass
     [EnforcePure]
     public int {|PS0002:Process|}(PureCounter counter, int value)
     {
-        return counter.Increment(value);
+        return ((ICounter)counter).Increment(value);
     }
 }
 ";
