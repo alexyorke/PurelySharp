@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1204/1204` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1203/1203` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
