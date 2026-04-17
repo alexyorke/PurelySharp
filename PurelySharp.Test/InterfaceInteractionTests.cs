@@ -468,6 +468,52 @@ public class TestClass
         }
 
         [Test]
+        public async Task GenericInterfaceConstraint_WithSealedDerivedImplementation_AndBaseInterfaceCast_NoConservativeDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public interface IBaseCounter
+{
+    int Increment(int value);
+}
+
+public interface IDerivedCounter : IBaseCounter
+{
+    int Increment(int value);
+}
+
+public sealed class PureDerivedCounter : IDerivedCounter
+{
+    public int Increment(int value)
+    {
+        return value + 1;
+    }
+}
+
+public sealed class BadBaseCounter : IBaseCounter
+{
+    public int Increment(int value)
+    {
+        Console.WriteLine(value);
+        return value + 1;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Process<T>(T counter, int value) where T : PureDerivedCounter, IDerivedCounter
+    {
+        return ((IBaseCounter)counter).Increment(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ExplicitInterfaceImplementation_Pure_NoDiagnostic()
         {
             var test = @"
