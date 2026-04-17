@@ -137,6 +137,12 @@ namespace PurelySharp.Analyzer
                     return;
                 }
 
+                if (!ShouldSuggestMissingEnforcePure(methodSymbol))
+                {
+                    PurityAnalysisEngine.LogDebug($"[MPA] Method '{methodSymbol.Name}' participates in instance dispatch. Skipping PS0004 suggestion.");
+                    return;
+                }
+
                 bool isCompilerGeneratedSetter = false;
                 if (methodSymbol.MethodKind == MethodKind.PropertySet && context.Node is AccessorDeclarationSyntax setterNode)
                 {
@@ -169,6 +175,48 @@ namespace PurelySharp.Analyzer
                     }
                 }
             }
+        }
+
+        private static bool ShouldSuggestMissingEnforcePure(IMethodSymbol methodSymbol)
+        {
+            if (!methodSymbol.IsStatic &&
+                (methodSymbol.ContainingType?.TypeKind == TypeKind.Interface ||
+                 ImplementsInstanceInterfaceMember(methodSymbol) ||
+                 methodSymbol.IsVirtual ||
+                 methodSymbol.IsAbstract ||
+                 methodSymbol.IsOverride))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool ImplementsInstanceInterfaceMember(IMethodSymbol methodSymbol)
+        {
+            if (methodSymbol.IsStatic || methodSymbol.ContainingType == null)
+            {
+                return false;
+            }
+
+            if (methodSymbol.ExplicitInterfaceImplementations.Length > 0)
+            {
+                return true;
+            }
+
+            foreach (var interfaceType in methodSymbol.ContainingType.AllInterfaces)
+            {
+                foreach (var interfaceMember in interfaceType.GetMembers(methodSymbol.Name).OfType<IMethodSymbol>())
+                {
+                    if (methodSymbol.ContainingType.FindImplementationForInterfaceMember(interfaceMember) is IMethodSymbol implementationMethod &&
+                        SymbolEqualityComparer.Default.Equals(implementationMethod.OriginalDefinition, methodSymbol.OriginalDefinition))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         private static bool HasPurityEnforcement(IMethodSymbol methodSymbol, INamedTypeSymbol? enforcePureAttributeSymbol, INamedTypeSymbol? pureAttributeSymbol)
