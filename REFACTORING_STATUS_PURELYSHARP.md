@@ -209,12 +209,14 @@
   - `Environment.ProcessId` now has direct regression coverage for its existing environment-sensitive impurity catalog entry
   - `Environment.OSVersion` now has direct regression coverage for its existing environment-sensitive impurity catalog entry
   - `Environment.TickCount` now has direct regression coverage for its existing environment-sensitive impurity catalog entry
+  - `Environment.TickCount64` now has direct regression coverage for its existing environment-sensitive impurity catalog entry
   - `Environment.SystemDirectory` now has direct regression coverage for its existing environment-sensitive impurity catalog entry
   - `Environment.StackTrace` now has direct regression coverage for its existing environment-sensitive impurity catalog entry
   - `CultureInfo.DefaultThreadCurrentCulture` is now treated as an impure environment-sensitive source
   - `CultureInfo.DefaultThreadCurrentUICulture` is now treated as an impure environment-sensitive source
   - `Environment.HasShutdownStarted` is now treated as an impure environment-sensitive source
   - `Environment.ExitCode` is now treated as an impure environment-sensitive source
+  - `Environment.SetEnvironmentVariable(string, string)` now has direct regression coverage for its existing environment-sensitive impurity catalog entry
   - `Random.Shared` is now treated as an impure environment-sensitive source
   - `System.Random.Next()` now has direct regression coverage through `Random.Shared.Next()`
   - `System.Random.NextDouble()` now has direct regression coverage through `Random.Shared.NextDouble()`
