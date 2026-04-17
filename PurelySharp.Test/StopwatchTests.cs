@@ -66,5 +66,24 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task StopwatchGetTimestamp_Diagnostic()
+        {
+            var test = @"
+using System.Diagnostics;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public long {|PS0002:TestMethod|}()
+    {
+        return Stopwatch.GetTimestamp();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
