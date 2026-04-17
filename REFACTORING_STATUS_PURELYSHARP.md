@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1211/1211` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1212/1212` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -393,6 +393,7 @@
   - `Console.IsErrorRedirected` is now treated as an impure console-state source
   - `Console.IsInputRedirected` is now treated as an impure console-state source
   - `System.AppContext.SetSwitch(string, bool)` now has direct regression coverage for its existing application-switch impurity catalog entry
+  - `System.AppContext.TryGetSwitch(string, out bool)` is now treated as an impure application-switch state read, with direct regression coverage
   - `System.Configuration.ConfigurationManager.AppSettings.get` now has direct regression coverage for its existing configuration-state impurity catalog entry
   - `System.Configuration.ConfigurationManager.ConnectionStrings.get` is now treated as an impure configuration-state source, with direct regression coverage
 

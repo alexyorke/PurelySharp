@@ -36,6 +36,7 @@ public static class Constants
         "System.Activator.CreateInstance(System.Type)",
         "System.Activator.CreateInstance(System.Type, params object[])",
         "System.AppContext.GetData(string)",
+        "System.AppContext.TryGetSwitch(string, out bool)",
         "System.Array.AsReadOnly<T>(T[])",
         "System.Array.ConvertAll<TInput, TOutput>(TInput[], System.Converter<TInput, TOutput>)",
         "System.Array.Reverse(System.Array)",
