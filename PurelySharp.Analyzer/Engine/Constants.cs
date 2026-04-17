@@ -906,6 +906,7 @@ public static class Constants
         "System.Console.OpenStandardError()",
         "System.Console.OpenStandardInput()",
         "System.Console.OpenStandardOutput()",
+        "System.Console.SetError(System.IO.TextWriter)",
         "System.Console.SetIn(System.IO.TextReader)",
         "System.Console.SetOut(System.IO.TextWriter)",
         "System.Diagnostics.Process.ExitCode.get",

@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1216/1216` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1222/1222` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -382,7 +382,7 @@
   - `Console.TreatControlCAsInput` is now treated as an impure console-state source
   - `Console.BufferHeight` now has direct regression coverage for its existing console-state impurity catalog entry
   - `Console.Title` now has direct regression coverage for its existing console-state impurity catalog entry
-  - `Console.OpenStandardInput()`, `Console.OpenStandardOutput()`, `Console.OpenStandardError()`, `Console.SetIn(System.IO.TextReader)`, and `Console.SetOut(System.IO.TextWriter)` now have direct regression coverage for their existing console-state impurity catalog entries
+  - `Console.OpenStandardInput()`, `Console.OpenStandardOutput()`, `Console.OpenStandardError()`, `Console.SetIn(System.IO.TextReader)`, `Console.SetOut(System.IO.TextWriter)`, and `Console.SetError(System.IO.TextWriter)` now have direct regression coverage for their console-state impurity catalog entries
   - `Console.WindowWidth` is now treated as an impure console-state source
   - `Console.WindowHeight` is now treated as an impure console-state source
   - `Console.CursorLeft` is now treated as an impure console-state source

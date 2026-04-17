@@ -626,5 +626,25 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task ConsoleSetError_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.IO;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}(TextWriter writer)
+    {
+        Console.SetError(writer);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
