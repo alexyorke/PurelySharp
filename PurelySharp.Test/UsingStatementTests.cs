@@ -84,7 +84,7 @@ public class TestClass
 
 public class PureDisposable : IDisposable
 {
-    // Dispose has an empty body, but this expected diagnostic case still expects PS0004 because it is unannotated.
+    // Dispose has an empty body, but it still expects PS0004 because it is unannotated.
     public void Dispose() { }
 }";
 
@@ -114,7 +114,7 @@ public class TestClass
 
 public class PureDisposable : IDisposable
 {
-    // Dispose has an empty body, but this expected diagnostic case still expects PS0004 because it is unannotated.
+    // Dispose has an empty body, but it still expects PS0004 because it is unannotated.
     public void Dispose() { }
 }";
 

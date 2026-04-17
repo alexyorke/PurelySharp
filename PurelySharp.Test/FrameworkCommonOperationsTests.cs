@@ -73,7 +73,7 @@ public class TestClass
     [EnforcePure]
     public string GetInput(TextBox textBox)
     {
-        return textBox.Text; // Intended as a pure read; the expected diagnostic case only expects PS0004 on the mock members.
+        return textBox.Text; // Intended as a pure read; expect PS0004 only on the mock members.
     }
 }";
 
