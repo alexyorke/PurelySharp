@@ -777,6 +777,7 @@ public static class Constants
         "System.ComponentModel.Component.Dispose()",
         "System.ComponentModel.LicenseManager.Validate(System.Type, object)",
         "System.Configuration.ConfigurationManager.AppSettings.get",
+        "System.Configuration.ConfigurationManager.ConnectionStrings.get",
         "System.Console.Beep()",
         "System.Console.BackgroundColor.get",
         "System.Console.BufferHeight.get",

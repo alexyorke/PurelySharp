@@ -158,6 +158,35 @@ public class TestClass
             await verifier.RunAsync();
         }
 
+        [Test]
+        public async Task PureMethod_ReadConfigurationManagerConnectionStrings_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System.Configuration;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public ConnectionStringSettingsCollection {|PS0002:ReadConnectionStrings|}()
+    {
+        return ConfigurationManager.ConnectionStrings;
+    }
+}";
+
+            var verifier = new VerifyCS.Test
+            {
+                TestCode = test,
+            };
+
+            verifier.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(PurelySharp.Attributes.EnforcePureAttribute).Assembly.Location));
+            verifier.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(PurelySharp.Attributes.PureAttribute).Assembly.Location));
+            verifier.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(ConfigurationManager).Assembly.Location));
+
+            await verifier.RunAsync();
+        }
+
 
 
 
