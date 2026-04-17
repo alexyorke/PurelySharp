@@ -59,7 +59,7 @@ public interface ILogger
 
 public class ConsoleLogger : ILogger
 {
-    public void {|PS0002:Log|}(string message)
+    public void Log(string message)
     {
         Console.WriteLine(message); // Impure call
     }
@@ -68,7 +68,10 @@ public class ConsoleLogger : ILogger
 public class Service
 {
     private ILogger _logger;
-    public {|PS0004:Service|}(ILogger logger) { _logger = logger; }
+    public Service(ILogger logger)
+    {
+        _logger = logger;
+    }
 
     [EnforcePure]
     public void DoWork(string data)
@@ -79,7 +82,17 @@ public class Service
 }
 ";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expectedLog = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002)
+                .WithSpan(12, 17, 12, 20)
+                .WithArguments("Log");
+            var expectedCtor = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004)
+                .WithSpan(21, 12, 21, 19)
+                .WithArguments(".ctor");
+            var expectedDoWork = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002)
+                .WithSpan(27, 17, 27, 23)
+                .WithArguments("DoWork");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedLog, expectedCtor, expectedDoWork);
         }
 
         [Test]
