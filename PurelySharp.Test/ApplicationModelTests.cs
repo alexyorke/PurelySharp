@@ -49,5 +49,25 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task AppContextGetData_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public object? {|PS0002:TestMethod|}()
+    {
+        return AppContext.GetData(""APP_CONTEXT_BASE_DIRECTORY"");
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
