@@ -31,5 +31,36 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task DynamicInterfaceInvocation_ConservativeImpure()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public interface ICounter
+{
+    int Increment(int value);
+}
+
+public class Counter : ICounter
+{
+    public int Increment(int value) => value + 1;
+}
+
+public class TestClass
+{
+    private static readonly dynamic _counter = new Counter();
+
+    [EnforcePure]
+    public int {|PS0002:Process|}(int value)
+    {
+        return _counter.Increment(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
