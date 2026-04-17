@@ -369,6 +369,41 @@ public class TestClass
         }
 
         [Test]
+        public async Task GenericClassConstraint_WithSealedVirtualImplementation_NoConservativeDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public class BaseWorker
+{
+    public virtual int Compute(int value)
+    {
+        return value + 1;
+    }
+}
+
+public sealed class PureWorker : BaseWorker
+{
+    public override int Compute(int value)
+    {
+        return value + 2;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Process<T>(T worker, int value) where T : PureWorker
+    {
+        return worker.Compute(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task GenericInterfaceConstraint_WithSealedStructImplementation_AndInterfaceCast_NoConservativeDiagnostic()
         {
             var test = @"
