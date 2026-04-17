@@ -12,18 +12,23 @@ namespace PurelySharp.Test
     [TestFixture]
     public class ApplicationModelTests
     {
+        [Test]
+        public async Task AppContextSetSwitch_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
 
+public class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}()
+    {
+        AppContext.SetSwitch(""System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization"", true);
+    }
+}";
 
-
-
-
-
-
-
-
-
-
-
-
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

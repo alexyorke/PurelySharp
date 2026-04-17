@@ -391,6 +391,7 @@
   - `Console.IsOutputRedirected` is now treated as an impure console-state source
   - `Console.IsErrorRedirected` is now treated as an impure console-state source
   - `Console.IsInputRedirected` is now treated as an impure console-state source
+  - `System.AppContext.SetSwitch(string, bool)` now has direct regression coverage for its existing application-switch impurity catalog entry
   - `System.Configuration.ConfigurationManager.AppSettings.get` now has direct regression coverage for its existing configuration-state impurity catalog entry
   - `System.Configuration.ConfigurationManager.ConnectionStrings.get` is now treated as an impure configuration-state source, with direct regression coverage
 
