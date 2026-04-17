@@ -125,6 +125,46 @@ public class Configuration
         }
 
         [Test]
+        public async Task RequiredFields_ObjectInitializerInPureMethod_NoExtraDiagnostic()
+        {
+            var test = @"
+#nullable enable
+using PurelySharp.Attributes;
+
+namespace TestNamespace;
+
+public class Configuration
+{
+    public required string ApiKey;
+    public required string ApiEndpoint;
+
+    [EnforcePure]
+    public string GetConfigSummary()
+    {
+        return $""API Key: {ApiKey.Substring(0, 3)}***, Endpoint: {ApiEndpoint}"";
+    }
+}
+
+public class Client
+{
+    [EnforcePure]
+    public string BuildConfigSummary()
+    {
+        var config = new Configuration
+        {
+            ApiKey = ""abc123xyz456"",
+            ApiEndpoint = ""https://api.example.com"",
+        };
+
+        return config.GetConfigSummary();
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task RequiredMembers_OnRecord_ReportPureGetterSuggestions()
         {
             var test = @"

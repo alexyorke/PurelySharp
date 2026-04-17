@@ -219,6 +219,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
                         PurityAnalysisEngine.LogDebug($" Assignment Target: Static FieldReference '{fieldRefOp.Field.Name}' - Impure Target");
                         return false;
                     }
+                    if (IsFreshObjectInitializerFieldAssignment(fieldRefOp, context))
+                    {
+                        PurityAnalysisEngine.LogDebug($" Assignment Target: FieldReference '{fieldRefOp.Field.Name}' within fresh object initializer - Allowed (Target is Pure)");
+                        return true;
+                    }
                     if (fieldRefOp.Instance is IInstanceReferenceOperation instanceRef &&
                         instanceRef.ReferenceKind == InstanceReferenceKind.ContainingTypeInstance &&
                         context.ContainingMethodSymbol.MethodKind == MethodKind.Constructor)
@@ -300,6 +305,31 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             return operation is ILocalReferenceOperation localReference &&
                    currentState.IsOwnedLocalArraySymbol(localReference.Local);
+        }
+
+        private static bool IsFreshObjectInitializerFieldAssignment(
+            IFieldReferenceOperation fieldReferenceOperation,
+            PurityAnalysisContext context)
+        {
+            if (fieldReferenceOperation.Parent is not ISimpleAssignmentOperation assignment ||
+                assignment.Target != fieldReferenceOperation)
+            {
+                return false;
+            }
+
+            if (assignment.Parent is IObjectOrCollectionInitializerOperation initializer &&
+                initializer.Parent is IObjectCreationOperation)
+            {
+                return true;
+            }
+
+            if (fieldReferenceOperation.Instance is not Microsoft.CodeAnalysis.FlowAnalysis.IFlowCaptureReferenceOperation flowCaptureReference)
+            {
+                return false;
+            }
+
+            var capturedOperation = context.SemanticModel.GetOperation(flowCaptureReference.Syntax, context.CancellationToken);
+            return capturedOperation is IObjectCreationOperation;
         }
 
 

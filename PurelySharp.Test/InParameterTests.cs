@@ -52,7 +52,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task PureMethodWithInParameterStruct_NoDiagnostic()
+        public async Task PureMethodWithInParameterStruct_ReportsPureMainSuggestion()
         {
             var code = @"
 using PurelySharp.Attributes;
@@ -77,8 +77,11 @@ public class TestClass
 }
 ";
 
+            var expectedMain = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                .WithSpan(11, 24, 11, 28)
+                .WithArguments("Main");
 
-            await VerifyCS.VerifyAnalyzerAsync(code);
+            await VerifyCS.VerifyAnalyzerAsync(code, expectedMain);
         }
 
 
