@@ -490,6 +490,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task ConsoleBeep_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}()
+    {
+        Console.Beep();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ConsoleBufferHeight_Diagnostic()
         {
             var test = @"
@@ -509,6 +528,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task ConsoleBufferHeightSet_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}(int bufferHeight)
+    {
+        Console.BufferHeight = bufferHeight;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ConsoleTitle_Diagnostic()
         {
             var test = @"
@@ -521,6 +559,25 @@ public class TestClass
     public string {|PS0002:TestMethod|}()
     {
         return Console.Title;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ConsoleTitleSet_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}(string title)
+    {
+        Console.Title = title;
     }
 }";
 
