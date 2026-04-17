@@ -312,6 +312,30 @@ namespace TestNamespace
         }
 
         [Test]
+        public async Task AssemblyLoadContext_LoadFromStream_Diagnostic()
+        {
+            var test = @"
+using System.IO;
+using System.Reflection;
+using System.Runtime.Loader;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public Assembly {|PS0002:TestMethod|}(AssemblyLoadContext context, Stream stream)
+        {
+            return context.LoadFromStream(stream);
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task AssemblyLoadContext_GetLoadContext_Diagnostic()
         {
             var test = @"
