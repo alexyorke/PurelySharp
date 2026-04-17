@@ -389,6 +389,7 @@
   - `Console.IsOutputRedirected` is now treated as an impure console-state source
   - `Console.IsErrorRedirected` is now treated as an impure console-state source
   - `Console.IsInputRedirected` is now treated as an impure console-state source
+  - `System.Configuration.ConfigurationManager.AppSettings.get` now has direct regression coverage for its existing configuration-state impurity catalog entry
 
 ### What is already done
 

@@ -1,6 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
+using System.Configuration;
 using System.Threading.Tasks;
 using PurelySharp.Analyzer;
 using PurelySharp.Attributes;
@@ -126,6 +127,35 @@ public class TestClass
 }";
 
             await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task PureMethod_ReadConfigurationManagerAppSettings_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System.Configuration;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public string? {|PS0002:ReadAppSetting|}()
+    {
+        return ConfigurationManager.AppSettings[""MyKey""];
+    }
+}";
+
+            var verifier = new VerifyCS.Test
+            {
+                TestCode = test,
+            };
+
+            verifier.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(PurelySharp.Attributes.EnforcePureAttribute).Assembly.Location));
+            verifier.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(PurelySharp.Attributes.PureAttribute).Assembly.Location));
+            verifier.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(ConfigurationManager).Assembly.Location));
+
+            await verifier.RunAsync();
         }
 
 
