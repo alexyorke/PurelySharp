@@ -8,7 +8,7 @@ using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<PurelySharp.Analyzer.Pu
 namespace PurelySharp.Test
 {
     [TestFixture]
-    public class ConstructorTests2
+    public class ConstructorTests
     {
         [Test]
         public async Task PureConstructor_MissingAttributeDiagnostic()
@@ -21,7 +21,7 @@ public class TestClass
 {
     private readonly int _value;
 
-    public TestClass(int value) // Unannotated pure constructor; this expected diagnostic case expects PS0004.
+    public TestClass(int value) // Unannotated pure constructor; expect PS0004.
     {
         _value = value;
     }
@@ -71,7 +71,7 @@ public class TestClass
 {
     private int _counter; // Mutable, but OK in constructor
 
-    public TestClass(int startValue) // Unannotated constructor; this expected diagnostic case expects PS0004 rather than PS0002.
+    public TestClass(int startValue) // Unannotated constructor; expect PS0004 rather than PS0002.
     {
         _counter = startValue;
     }
@@ -99,7 +99,7 @@ public class TestClass
 {
     private static int _instanceCount = 0;
 
-    public TestClass() // Unannotated constructor; the current diagnostic expectation intentionally expects no diagnostic here.
+    public TestClass() // Unannotated constructor; no diagnostic expected.
     {
         _instanceCount++;
     }
@@ -125,7 +125,7 @@ public class TestClass
 {
     private readonly List<int> _items;
 
-    public TestClass() // Unannotated constructor; the current diagnostic expectation intentionally expects no diagnostic here.
+    public TestClass() // Unannotated constructor; no diagnostic expected.
     {
         _items = new List<int> { 1, 2, 3 };
     }
@@ -150,13 +150,13 @@ public class TestClass
 {
     private readonly int _value;
 
-    public TestClass(int value) // Unannotated constructor; the current diagnostic expectation intentionally expects no diagnostic here.
+    public TestClass(int value) // Unannotated constructor; no diagnostic expected.
     {
         _value = value;
         LogInitialization(value);
     }
 
-    private void LogInitialization(int value) // Unannotated helper; the current diagnostic expectation intentionally expects no diagnostic here.
+    private void LogInitialization(int value) // Unannotated helper; no diagnostic expected.
     {
         Console.WriteLine($""Initialized with: {value}"");
     }
@@ -184,12 +184,12 @@ public class TestClass
 {
     private readonly int _value;
 
-    public TestClass(int value) // Unannotated constructor; this expected diagnostic case expects PS0004 for .ctor.
+    public TestClass(int value) // Unannotated constructor; expect PS0004 for .ctor.
     {
         _value = ProcessValue(value);
     }
 
-    private int ProcessValue(int value) // Unannotated helper; this expected diagnostic case expects PS0004 for ProcessValue.
+    private int ProcessValue(int value) // Unannotated helper; expect PS0004 for ProcessValue.
     {
         return value * 2;
     }
@@ -272,7 +272,7 @@ using PurelySharp.Attributes;
 
 public class BaseClass
 {
-    protected BaseClass(int value) // Unannotated constructor; the suite intentionally expects no diagnostic here.
+    protected BaseClass(int value) // Unannotated constructor; no diagnostic expected.
     {
         Console.WriteLine($""Base initialized with: {value}"");
     }
@@ -305,7 +305,7 @@ public class BaseClass
 {
     private readonly int _value;
 
-    protected BaseClass(int value) // Unannotated base constructor; this expected diagnostic case expects PS0004.
+    protected BaseClass(int value) // Unannotated base constructor; expect PS0004.
     {
         _value = value;
     }
