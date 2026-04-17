@@ -36,6 +36,46 @@ public class Person
         }
 
         [Test]
+        public async Task RequiredMembers_ObjectInitializerInPureMethod_NoExtraDiagnostic()
+        {
+            var test = @"
+#nullable enable
+using PurelySharp.Attributes;
+
+namespace TestNamespace;
+
+public class Person
+{
+    public required string {|PS0004:FirstName|} { get; init; }
+    public required string {|PS0004:LastName|} { get; init; }
+
+    [EnforcePure]
+    public string GetFullName()
+    {
+        return $""{FirstName} {LastName}"";
+    }
+}
+
+public class Client
+{
+    [EnforcePure]
+    public string BuildDisplayName()
+    {
+        var person = new Person
+        {
+            FirstName = ""John"",
+            LastName = ""Doe"",
+        };
+
+        return person.GetFullName();
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task MutableRequiredProperty_ReportsGetterSuggestionAndImpureMethod()
         {
             var test = @"
