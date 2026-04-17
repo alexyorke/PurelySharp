@@ -401,6 +401,7 @@
   - `System.AppContext.SetSwitch(string, bool)` now has direct regression coverage for its existing application-switch impurity catalog entry
   - `System.AppContext.TryGetSwitch(string, out bool)` is now treated as an impure application-switch state read, with direct regression coverage
   - `System.AppContext.GetData(string)` now has direct regression coverage for its existing application-context state classification
+  - `System.AppContext.BaseDirectory.get` is now treated as an impure application-context state read, with direct regression coverage
   - `System.Configuration.ConfigurationManager.AppSettings.get` now has direct regression coverage for its existing configuration-state impurity catalog entry
   - `System.Configuration.ConfigurationManager.ConnectionStrings.get` is now treated as an impure configuration-state source, with direct regression coverage
 
