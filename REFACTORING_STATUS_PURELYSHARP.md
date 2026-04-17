@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1229/1229` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1231/1231` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -23,6 +23,7 @@
   - immutable queue/stack and cryptographic-randomness regression coverage has been expanded
   - `TimeProvider.System` and `TimeZoneInfo.Local` are now treated as impure environment-sensitive sources
   - `TimeProvider.System` now has direct regression coverage for its existing environment-sensitive impurity catalog entry
+  - `TimeProvider.LocalTimeZone` and `TimeProvider.TimestampFrequency` are now treated as impure time-provider state/environment sources, with direct regression coverage
   - `System.Diagnostics.Stopwatch.ElapsedMilliseconds.get`, `System.Diagnostics.Stopwatch.ElapsedTicks.get`, `System.Diagnostics.Stopwatch.Frequency`, and `System.Diagnostics.Stopwatch.IsHighResolution` are now treated as impure stopwatch-state/runtime sources, with direct regression coverage
   - `System.ComponentModel.TypeDescriptor.GetConverter(System.Type)` is now treated as an impure ambient metadata/source lookup
   - `System.ComponentModel.AddingNewEventArgs.AddingNewEventArgs()` is now treated as an impure mutable event-args constructor
