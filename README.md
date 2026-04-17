@@ -564,7 +564,7 @@ Note that delegate invocations are analyzed conservatively. If the analyzer cann
 - Using Interlocked operations
 - Calling methods with side effects
 - I/O operations (file, console, network)
-- Ambient environment, application-context, or configuration state reads
+- Ambient environment, application-context, application-domain, or configuration state reads
 - Async operations
 - Locking (thread synchronization)
 - Event subscription/raising
