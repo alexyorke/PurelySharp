@@ -308,6 +308,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task Environment_CurrentDirectorySet_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}(string path)
+    {
+        Environment.CurrentDirectory = path;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task Environment_MachineName_Diagnostic()
         {
             var test = @"
@@ -512,6 +531,25 @@ public class TestClass
     public string {|PS0002:TestMethod|}()
     {
         return Environment.GetFolderPath(Environment.SpecialFolder.UserProfile, Environment.SpecialFolderOption.None);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task Environment_Exit_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}()
+    {
+        Environment.Exit(1);
     }
 }";
 
