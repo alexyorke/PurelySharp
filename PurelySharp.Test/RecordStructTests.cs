@@ -274,6 +274,35 @@ public record struct CacheEntry(int Id, ImmutableList<string> Tags)
         }
 
         [Test]
+        public async Task RecordStructPropertyAssignment_Diagnostic()
+        {
+            var test = @"#nullable enable
+using PurelySharp.Attributes;
+
+public record struct Counter
+{
+    public int Value { get; set; }
+
+    [EnforcePure]
+    public Counter Increment()
+    {
+        Value += 1;
+        return this;
+    }
+}";
+
+            var expectedIncrement = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                           .WithSpan(9, 20, 9, 29)
+                                           .WithArguments("Increment");
+
+            var expectedGetter = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId)
+                                        .WithSpan(6, 16, 6, 21)
+                                        .WithArguments("get_Value");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedIncrement, expectedGetter);
+        }
+
+        [Test]
         public async Task PureReadonlyRecordStructWithPureConstructor_MissingAttributeDiagnostics()
         {
             var test = @"
