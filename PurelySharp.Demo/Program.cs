@@ -7,7 +7,7 @@ namespace PurelySharp.Demo
 	{
 		private int _counter = 0;
 
-		// Impure under [Pure] (mutates instance state) → PS0002
+		// Impure under [Pure] (mutates instance state) -> PS0002
 		[Pure]
 		public int AddImpure(int a, int b)
 		{
@@ -15,32 +15,23 @@ namespace PurelySharp.Demo
 			return a + b + _counter;
 		}
 
-		// Pure without [EnforcePure] → PS0004
+		// Pure without [EnforcePure] -> PS0004
 		public static int PureAdd(int a, int b) => a + b;
 
-		// Pure and correctly annotated (using [Pure]) → no diagnostic
+		// Pure and correctly annotated (using [Pure]) -> no diagnostic
 		[Pure]
 		public static int ProperPureAdd(int a, int b) => a + b;
 	}
 
-	// Demonstrate PS0003 (misplaced attribute on type)
-	[Pure]
-	public class MisplacedAttributeExample
-	{
-		// Demonstrate PS0003 (misplaced attribute on property)
-		[Pure]
-		public int Value { get; } = 42;
-	}
-
 	public static class ImpureScenarios
 	{
-		// I/O under [Pure] → PS0002
+		// I/O under [Pure] -> PS0002
 		[Pure]
 		public static void Log(string message) => Console.WriteLine(message);
 
 		private static int _global;
 
-		// Static state mutation under [Pure] → PS0002
+		// Static state mutation under [Pure] -> PS0002
 		[Pure]
 		public static int IncrementGlobal(int delta)
 		{
@@ -48,7 +39,7 @@ namespace PurelySharp.Demo
 			return _global;
 		}
 
-		// Using [Pure] as enforcement, still impure → PS0002
+		// Using [Pure] as enforcement, still impure -> PS0002
 		[Pure]
 		public static void MutateThroughPureAlias()
 		{
@@ -60,16 +51,16 @@ namespace PurelySharp.Demo
 	{
 		public int X { get; }
 
-		// Pure constructor without [EnforcePure] → PS0004
+		// Pure constructor without [EnforcePure] -> PS0004
 		public PureScenarios(int x) { X = x; }
 
-		// Pure method without [EnforcePure] → PS0004
+		// Pure method without [EnforcePure] -> PS0004
 		public static string Concat(string a, string b) => a + b;
 
-		// Pure property getter without [EnforcePure] → PS0004
+		// Pure property getter without [EnforcePure] -> PS0004
 		public int DoubleX => X * 2;
 
-		// Properly annotated pure method (using [Pure]) → no diagnostic
+		// Properly annotated pure method (using [Pure]) -> no diagnostic
 		[Pure]
 		public static bool IsEven(int v) => (v & 1) == 0;
 	}
