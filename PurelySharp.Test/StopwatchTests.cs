@@ -85,5 +85,43 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task StopwatchStart_Diagnostic()
+        {
+            var test = @"
+using System.Diagnostics;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}(Stopwatch stopwatch)
+    {
+        stopwatch.Start();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task StopwatchStop_Diagnostic()
+        {
+            var test = @"
+using System.Diagnostics;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}(Stopwatch stopwatch)
+    {
+        stopwatch.Stop();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
