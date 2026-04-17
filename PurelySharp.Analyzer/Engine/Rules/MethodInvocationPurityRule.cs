@@ -318,19 +318,26 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return PurityAnalysisEngine.PurityAnalysisResult.Impure(invocationOperation.Syntax);
             }
 
-            if (CanHaveExternalDispatchTargets(invokedMethodSymbol, invocationOperation, knownReceiverType))
-            {
-                PurityAnalysisEngine.LogDebug($"  [MIR] Method {invokedMethodSymbol.ContainingType?.Name}.{invokedMethodSymbol.Name} can be overridden in external assemblies; treating as impure conservatively.");
-                return PurityAnalysisEngine.PurityAnalysisResult.Impure(invocationOperation.Syntax);
-            }
-
             var candidateMethods = ResolvePotentialDispatchTargets(
                 invokedMethodSymbol,
                 context.SemanticModel,
                 knownReceiverType,
                 invocationOperation.Instance)
-                .Where(method => method != null && !method.IsAbstract && !method.IsExtern)
-                .ToImmutableHashSet(SymbolEqualityComparer.Default);
+                .Where(method => !method.IsAbstract && !method.IsExtern)
+                .ToImmutableHashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+
+            if (CanHaveExternalDispatchTargets(invokedMethodSymbol, invocationOperation, knownReceiverType))
+            {
+                var hasConcreteImplementationCandidate =
+                    invokedMethodSymbol.ContainingType?.TypeKind == TypeKind.Interface &&
+                    candidateMethods.Any(method => method.ContainingType?.TypeKind != TypeKind.Interface);
+
+                if (!hasConcreteImplementationCandidate)
+                {
+                    PurityAnalysisEngine.LogDebug($"  [MIR] Method {invokedMethodSymbol.ContainingType?.Name}.{invokedMethodSymbol.Name} can dispatch to unknown external targets; treating as impure conservatively.");
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(invocationOperation.Syntax);
+                }
+            }
 
             if (candidateMethods.Count == 0)
             {
