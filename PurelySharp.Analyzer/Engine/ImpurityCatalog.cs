@@ -227,7 +227,7 @@ namespace PurelySharp.Analyzer.Engine
 				return false;
 			}
 
-			return methodSymbol.Name is "HtmlEncode" or "UrlDecode";
+			return methodSymbol.Name is "HtmlEncode" or "HtmlDecode" or "UrlEncode" or "UrlDecode";
 		}
 
 		public static bool IsInImpureNamespaceOrType(ISymbol symbol)

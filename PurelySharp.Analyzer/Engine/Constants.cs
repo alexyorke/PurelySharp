@@ -1123,8 +1123,10 @@ public static class Constants
         "System.MemoryExtensions.SequenceEqual<T>(System.ReadOnlySpan<T>, System.ReadOnlySpan<T>)",
         "System.MemoryExtensions.Trim<T>(System.ReadOnlySpan<T>)",
 
+        "System.Net.WebUtility.HtmlDecode(string)",
         "System.Net.WebUtility.HtmlEncode(string)",
         "System.Net.WebUtility.UrlDecode(string)",
+        "System.Net.WebUtility.UrlEncode(string)",
 
 
         "System.Nullable.Compare<T>(T?, T?)",
