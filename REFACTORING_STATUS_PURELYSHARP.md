@@ -253,6 +253,7 @@
   - `System.Diagnostics.Process.Id.get` is now treated as an impure environment/runtime-state source
   - `System.Diagnostics.Process.StartInfo.get` is now treated as an impure environment/runtime-state source
   - `System.Diagnostics.Process.ExitCode.get` now has direct regression coverage for its existing impure catalog entry
+  - `System.GC.GetGeneration(object)` and `System.GC.KeepAlive(object?)` now have direct regression coverage for their existing runtime-state impurity catalog entries, including the corrected nullable-signature match for `KeepAlive`
   - `System.Reflection.Assembly.GetExecutingAssembly()` is now treated as an impure reflection/runtime-state source
   - `System.Reflection.Assembly.GetTypes()` is now treated as an impure reflection/runtime-state source
   - `System.Reflection.FieldInfo.GetValue(object)` now has direct regression coverage

@@ -839,6 +839,7 @@ public static class Constants
         "System.DirectoryServices.DirectoryEntry.DirectoryEntry(string)",
         "System.GC.GetGeneration(object)",
         "System.GC.KeepAlive(object)",
+        "System.GC.KeepAlive(object?)",
         "System.Globalization.DateTimeFormatInfo.CurrentInfo.get",
         "System.IO.BinaryReader.ReadBoolean()",
         "System.IO.BinaryWriter.Write(string)",
