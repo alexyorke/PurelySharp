@@ -78,6 +78,27 @@ public class TestClass
 
 
 
+        [Test]
+        public async Task MarshalPtrToStructure_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using System.Runtime.InteropServices;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:TestMethod|}(IntPtr ptr)
+    {
+        return Marshal.PtrToStructure<int>(ptr);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
         [StructLayout(LayoutKind.Sequential)]
         public struct MyStruct { public int Value; }
 
