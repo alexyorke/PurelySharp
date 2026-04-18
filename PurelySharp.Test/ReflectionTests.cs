@@ -2104,6 +2104,27 @@ public class TestClass
         }
 
         [Test]
+        public async Task AttributeGetCustomAttributeOnMemberInfo_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using PurelySharp.Attributes;
+using System;
+using System.Reflection;
+
+public class TestClass
+{
+    [EnforcePure]
+    public Attribute? {|PS0002:TestMethod|}(MemberInfo member, Type attributeType)
+    {
+        return Attribute.GetCustomAttribute(member, attributeType);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task CustomAttributeDataGetCustomAttributesOnMemberInfo_Diagnostic()
         {
             var test = @"

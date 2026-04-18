@@ -282,6 +282,7 @@ public static class Constants
         "System.Reflection.Assembly.Modules.get",
         "System.Reflection.Assembly.ReflectionOnly.get",
         "System.Reflection.Assembly.SecurityRuleSet.get",
+        "System.Attribute.GetCustomAttribute(System.Reflection.MemberInfo, System.Type)",
         "System.Attribute.GetCustomAttributes(System.Reflection.MemberInfo)",
         "System.Attribute.IsDefined(System.Reflection.MemberInfo, System.Type)",
         "System.Reflection.IntrospectionExtensions.GetTypeInfo(System.Type)",
@@ -998,9 +999,6 @@ public static class Constants
         "System.Array.IndexOf(System.Array, object)",
         "System.Array.TrueForAll<T>(T[], System.Predicate<T>)",
         "System.Array.Length.get",
-
-
-        "System.Attribute.GetCustomAttribute(System.Reflection.MemberInfo, System.Type)",
 
 
         "System.BitConverter.GetBytes(int)",
