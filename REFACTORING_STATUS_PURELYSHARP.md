@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1266/1266` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1267/1267` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -149,6 +149,7 @@
   - `System.Reflection.MethodInfo.CreateDelegate(Type, object)` now has direct regression coverage for its existing conservative reflection classification
   - `System.Attribute.GetCustomAttribute(System.Reflection.MemberInfo, System.Type)` is now treated as an impure reflection metadata lookup, and its stale known-pure catalog entry has been removed
   - `System.Type.ToString()` is now treated as an impure reflection/runtime-state read, and its stale known-pure catalog entry has been removed
+  - `System.Guid.Parse(string)` now has direct regression coverage for its existing known-pure classification
   - `System.Reflection.ConstructorInfo.Invoke(object[])` now has direct regression coverage for its existing conservative reflection classification
   - `System.Reflection.EventInfo.GetAddMethod()` now has direct regression coverage for its existing conservative reflection classification
   - `System.Reflection.EventInfo.GetAddMethod(bool)` now has direct regression coverage for its existing conservative reflection classification
