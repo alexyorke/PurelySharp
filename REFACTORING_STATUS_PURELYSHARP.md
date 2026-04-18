@@ -152,6 +152,7 @@
   - `System.Guid.Parse(string)` now has direct regression coverage for its existing known-pure classification
   - `System.Guid.ToString()` now has direct regression coverage for its existing known-pure classification
   - `System.Net.WebUtility.HtmlEncode(string)`, `System.Net.WebUtility.HtmlDecode(string)`, `System.Net.WebUtility.UrlEncode(string)`, `System.Net.WebUtility.UrlDecode(string)`, `System.Net.WebUtility.UrlEncodeToBytes(byte[], int, int)`, and `System.Net.WebUtility.UrlDecodeToBytes(byte[], int, int)` now have direct regression coverage for their existing known-pure classifications
+  - record-struct `with` expressions that update mutable members on the cloned value now stay pure, with direct regression coverage for immutable-member replacement scenarios
   - `System.Runtime.InteropServices.Marshal.PtrToStructure<T>(System.IntPtr)` now has direct regression coverage for current interop behavior
   - `System.Reflection.ConstructorInfo.Invoke(object[])` now has direct regression coverage for its existing conservative reflection classification
   - `System.Reflection.EventInfo.GetAddMethod()` now has direct regression coverage for its existing conservative reflection classification

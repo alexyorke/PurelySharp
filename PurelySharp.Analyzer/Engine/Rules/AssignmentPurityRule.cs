@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -224,6 +225,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
                         PurityAnalysisEngine.LogDebug($" Assignment Target: FieldReference '{fieldRefOp.Field.Name}' within fresh object initializer - Allowed (Target is Pure)");
                         return true;
                     }
+                    if (IsValueTypeWithInitializerAssignment(fieldRefOp, context))
+                    {
+                        PurityAnalysisEngine.LogDebug($" Assignment Target: FieldReference '{fieldRefOp.Field.Name}' within value-type 'with' initializer - Allowed (Target is Pure)");
+                        return true;
+                    }
                     if (fieldRefOp.Instance is IInstanceReferenceOperation instanceRef &&
                         instanceRef.ReferenceKind == InstanceReferenceKind.ContainingTypeInstance &&
                         context.ContainingMethodSymbol.MethodKind == MethodKind.Constructor)
@@ -246,6 +252,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     if (propRefOp.Property.SetMethod != null && propRefOp.Property.SetMethod.IsInitOnly)
                     {
                         PurityAnalysisEngine.LogDebug(" Assignment Target: Init-only PropertyReference - Allowed (Target is Pure by IsAssignmentTargetPure)");
+                        return true;
+                    }
+                    if (IsValueTypeWithInitializerAssignment(propRefOp, context))
+                    {
+                        PurityAnalysisEngine.LogDebug(" Assignment Target: PropertyReference within value-type 'with' initializer - Allowed (Target is Pure)");
                         return true;
                     }
 
@@ -330,6 +341,26 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             var capturedOperation = context.SemanticModel.GetOperation(flowCaptureReference.Syntax, context.CancellationToken);
             return capturedOperation is IObjectCreationOperation;
+        }
+
+        private static bool IsValueTypeWithInitializerAssignment(
+            IOperation targetOperation,
+            PurityAnalysisContext context)
+        {
+            if (targetOperation.Parent is not ISimpleAssignmentOperation assignment ||
+                assignment.Target != targetOperation)
+            {
+                return false;
+            }
+
+            var withSyntax = assignment.Syntax.AncestorsAndSelf().OfType<WithExpressionSyntax>().FirstOrDefault();
+            if (withSyntax == null)
+            {
+                return false;
+            }
+
+            return context.SemanticModel.GetOperation(withSyntax, context.CancellationToken) is IWithOperation withOperation &&
+                   withOperation.Type?.IsValueType == true;
         }
 
 

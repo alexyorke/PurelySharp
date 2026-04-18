@@ -170,7 +170,7 @@ public record struct Counter
         }
 
         [Test]
-        public async Task RecordStructWithImmutableList_UnknownPurityDiagnostics()
+        public async Task RecordStructWithImmutableList_WithExpression_NoDiagnostic()
         {
 
 
@@ -204,7 +204,7 @@ public record struct CacheEntry(int Id, ImmutableList<string> Tags)
         return Tags.Contains(tag);
     }}
 
-    // This with-expression is currently flagged as impure by the analyzer.
+    // Cloning a record struct with a mutated immutable member stays pure.
     [EnforcePure]
     public CacheEntry WithTag(string tag)
     {{
@@ -214,10 +214,8 @@ public record struct CacheEntry(int Id, ImmutableList<string> Tags)
 
             var expectedAddTag = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
                                        .WithSpan(9, 23, 9, 29).WithArguments("AddTag");
-            var expectedWithTag = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                       .WithSpan(32, 23, 32, 30).WithArguments("WithTag");
 
-            await VerifyCS.VerifyAnalyzerAsync(code, expectedAddTag, expectedWithTag);
+            await VerifyCS.VerifyAnalyzerAsync(code, expectedAddTag);
         }
 
         [Test]
