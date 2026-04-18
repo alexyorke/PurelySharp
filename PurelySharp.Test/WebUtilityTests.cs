@@ -84,5 +84,43 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task WebUtilityUrlEncodeToBytes_NoDiagnostic()
+        {
+            var test = @"
+using System.Net;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public byte[] TestMethod(byte[] value)
+    {
+        return WebUtility.UrlEncodeToBytes(value, 0, value.Length);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task WebUtilityUrlDecodeToBytes_NoDiagnostic()
+        {
+            var test = @"
+using System.Net;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public byte[] TestMethod(byte[] value)
+    {
+        return WebUtility.UrlDecodeToBytes(value, 0, value.Length);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

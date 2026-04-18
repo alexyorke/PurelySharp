@@ -214,10 +214,7 @@ namespace PurelySharp.Analyzer.Engine
 
 		private static bool IsKnownPureWebUtilityMethod(ISymbol symbol)
 		{
-			if (symbol is not IMethodSymbol methodSymbol ||
-				!methodSymbol.IsStatic ||
-				methodSymbol.Parameters.Length != 1 ||
-				methodSymbol.Parameters[0].Type.SpecialType != SpecialType.System_String)
+			if (symbol is not IMethodSymbol methodSymbol || !methodSymbol.IsStatic)
 			{
 				return false;
 			}
@@ -227,7 +224,22 @@ namespace PurelySharp.Analyzer.Engine
 				return false;
 			}
 
-			return methodSymbol.Name is "HtmlEncode" or "HtmlDecode" or "UrlEncode" or "UrlDecode";
+			if (methodSymbol.Parameters.Length == 1 &&
+				methodSymbol.Parameters[0].Type.SpecialType == SpecialType.System_String)
+			{
+				return methodSymbol.Name is "HtmlEncode" or "HtmlDecode" or "UrlEncode" or "UrlDecode";
+			}
+
+			if (methodSymbol.Parameters.Length == 3 &&
+				methodSymbol.Parameters[0].Type is IArrayTypeSymbol arrayType &&
+				arrayType.ElementType.SpecialType == SpecialType.System_Byte &&
+				methodSymbol.Parameters[1].Type.SpecialType == SpecialType.System_Int32 &&
+				methodSymbol.Parameters[2].Type.SpecialType == SpecialType.System_Int32)
+			{
+				return methodSymbol.Name is "UrlEncodeToBytes" or "UrlDecodeToBytes";
+			}
+
+			return false;
 		}
 
 		public static bool IsInImpureNamespaceOrType(ISymbol symbol)
