@@ -254,6 +254,7 @@ public static class Constants
         "System.Type.Module.get",
         "System.Type.Namespace.get",
         "System.Type.ReflectedType.get",
+        "System.Type.ToString()",
         "System.Type.GetNestedType(string)",
         "System.Type.GetNestedType(string, System.Reflection.BindingFlags)",
         "System.Type.GetNestedTypes()",
@@ -1223,7 +1224,6 @@ public static class Constants
         "System.Type.Equals(object)",
         "System.Type.Equals(System.Type)",
         "System.Type.GetHashCode()",
-        "System.Type.ToString()",
 
 
 

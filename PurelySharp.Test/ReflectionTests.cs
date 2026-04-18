@@ -341,6 +341,24 @@ public class TestClass
         }
 
         [Test]
+        public async Task TypeToString_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public string {|PS0002:TestMethod|}(System.Type type)
+    {
+        return type.ToString();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task TypeAssemblyQualifiedName_Diagnostic()
         {
             var test = @"
