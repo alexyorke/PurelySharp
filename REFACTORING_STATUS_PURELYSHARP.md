@@ -151,6 +151,7 @@
   - `System.Type.ToString()` is now treated as an impure reflection/runtime-state read, and its stale known-pure catalog entry has been removed
   - `System.Guid.Parse(string)` now has direct regression coverage for its existing known-pure classification
   - `System.Guid.ToString()` now has direct regression coverage for its existing known-pure classification
+  - `System.Net.WebUtility.HtmlEncode(string)` and `System.Net.WebUtility.UrlDecode(string)` now have direct regression coverage for their existing known-pure classifications
   - `System.Runtime.InteropServices.Marshal.PtrToStructure<T>(System.IntPtr)` now has direct regression coverage for current interop behavior
   - `System.Reflection.ConstructorInfo.Invoke(object[])` now has direct regression coverage for its existing conservative reflection classification
   - `System.Reflection.EventInfo.GetAddMethod()` now has direct regression coverage for its existing conservative reflection classification

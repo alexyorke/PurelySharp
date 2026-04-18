@@ -36,6 +36,11 @@ namespace PurelySharp.Analyzer.Engine
 				return false;
 			}
 
+			if (IsKnownPureWebUtilityMethod(symbol))
+			{
+				return true;
+			}
+
 			if (symbol.ContainingType?.ContainingNamespace?.ToString().StartsWith("System.Collections.Immutable", StringComparison.Ordinal) == true)
 			{
 				if (symbol.Name.Contains("Create") || symbol.Name.Contains("Add") || symbol.Name.Contains("Set") || symbol.Name.Contains("Remove"))
@@ -205,6 +210,24 @@ namespace PurelySharp.Analyzer.Engine
 			}
 
 			return false;
+		}
+
+		private static bool IsKnownPureWebUtilityMethod(ISymbol symbol)
+		{
+			if (symbol is not IMethodSymbol methodSymbol ||
+				!methodSymbol.IsStatic ||
+				methodSymbol.Parameters.Length != 1 ||
+				methodSymbol.Parameters[0].Type.SpecialType != SpecialType.System_String)
+			{
+				return false;
+			}
+
+			if (!string.Equals(methodSymbol.ContainingType?.ToDisplayString(), "System.Net.WebUtility", StringComparison.Ordinal))
+			{
+				return false;
+			}
+
+			return methodSymbol.Name is "HtmlEncode" or "UrlDecode";
 		}
 
 		public static bool IsInImpureNamespaceOrType(ISymbol symbol)
