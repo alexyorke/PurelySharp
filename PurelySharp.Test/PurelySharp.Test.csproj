@@ -27,7 +27,7 @@
     <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic.CodeFix.Testing.NUnit" Version="1.1.2" />
     <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic.CodeRefactoring.Testing.NUnit" Version="1.1.2" />
     <PackageReference Include="System.Collections.Immutable" Version="9.0.0" />
-    <PackageReference Include="System.CodeDom" Version="8.0.0" PrivateAssets="all" />
+    <PackageReference Include="System.CodeDom" Version="10.0.6" PrivateAssets="all" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="9.0.4" PrivateAssets="all" />
   </ItemGroup>
 
