@@ -12,15 +12,16 @@
     <PackageId>PurelySharp</PackageId>
     <PackageVersion>0.0.4</PackageVersion>
     <Authors>Alex Yorke</Authors>
-    <PackageLicenseUrl>http://LICENSE_URL_HERE_OR_DELETE_THIS_LINE</PackageLicenseUrl>
-    <PackageProjectUrl>http://PROJECT_URL_HERE_OR_DELETE_THIS_LINE</PackageProjectUrl>
-    <PackageIconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</PackageIconUrl>
-    <RepositoryUrl>http://REPOSITORY_URL_HERE_OR_DELETE_THIS_LINE</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/alexyorke/PurelySharp</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/alexyorke/PurelySharp</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <Description>PurelySharp</Description>
-    <PackageReleaseNotes>Summary of changes made in this release of the package.</PackageReleaseNotes>
-    <Copyright>Copyright</Copyright>
-    <PackageTags>PurelySharp, analyzers</PackageTags>
+    <Description>Roslyn analyzer and code fix package for enforcing and documenting method purity in C# projects.</Description>
+    <PackageReleaseNotes>Add explainable PS0002 diagnostics, corpus reporting, PS0004 controls, baseline suppression, purity boundary attributes, and targeted correctness fixes.</PackageReleaseNotes>
+    <Copyright>Copyright (c) Alex Yorke</Copyright>
+    <PackageTags>PurelySharp;Roslyn;Analyzer;CodeFix;Purity</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <DevelopmentDependency>true</DevelopmentDependency>
     <NoPackageAnalysis>true</NoPackageAnalysis>
 
@@ -34,6 +35,7 @@
 
   <ItemGroup>
     <None Update="tools\*.ps1" CopyToOutputDirectory="PreserveNewest" Pack="true" PackagePath="" />
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <Target Name="_AddAnalyzersToOutput">
