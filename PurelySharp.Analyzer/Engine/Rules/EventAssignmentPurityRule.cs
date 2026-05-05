@@ -20,7 +20,15 @@ namespace PurelySharp.Analyzer.Engine.Rules
 			PurityAnalysisEngine.LogDebug($"  [EventAssignRule] Checking event assignment: {eventAssignment.Syntax}");
 
 			// Subscribing or unsubscribing to an event mutates the event's invocation list (stateful) => impure.
-			return PurityAnalysisEngine.PurityAnalysisResult.Impure(eventAssignment.Syntax);
+			return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+				eventAssignment.Syntax,
+				PurityAnalysisEngine.PurityEvidence.Create(
+					"mutable_state_write",
+					ruleName: nameof(EventAssignmentPurityRule),
+					operation: eventAssignment,
+					syntaxNode: eventAssignment.Syntax,
+					symbol: (eventAssignment.EventReference as IEventReferenceOperation)?.Event,
+					catalogSource: "event_subscription"));
 		}
 	}
 }
