@@ -160,6 +160,13 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
                         return sourceResult;
                     }
+
+                    var sourceEnumeratorResult = CheckLinqSourceEnumeratorPurity(sourceArgument.Value, context);
+                    if (!sourceEnumeratorResult.IsPure)
+                    {
+                        PurityAnalysisEngine.LogDebug("  [MIR] --> IMPURE (LINQ source GetEnumerator was impure)");
+                        return sourceEnumeratorResult;
+                    }
                 }
                 else
                 {
@@ -1194,6 +1201,31 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             return "catalog_hit";
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckLinqSourceEnumeratorPurity(
+            IOperation sourceOperation,
+            PurityAnalysisContext context)
+        {
+            var unwrappedSource = PurityAnalysisEngine.SkipImplicitConversions(sourceOperation) ?? sourceOperation;
+            if (unwrappedSource.Type == null)
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            foreach (var getEnumerator in unwrappedSource.Type
+                         .GetMembers("GetEnumerator")
+                         .OfType<IMethodSymbol>()
+                         .Where(method => method.Parameters.Length == 0 && method.DeclaringSyntaxReferences.Length > 0))
+            {
+                var enumeratorPurity = PurityAnalysisEngine.GetCalleePurity(getEnumerator.OriginalDefinition, context);
+                if (!enumeratorPurity.IsPure)
+                {
+                    return enumeratorPurity.WithCallee(getEnumerator, unwrappedSource.Syntax);
+                }
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
         }
 
         private static IEnumerable<INamedTypeSymbol> EnumerateAllNamedTypes(INamespaceSymbol root)
