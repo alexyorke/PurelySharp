@@ -10,6 +10,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
 			return ImmutableList.Create<IPurityRule>(
 				// Invocation/Calls (keep primary method invocation rule first)
 				new MethodInvocationPurityRule(),
+				new DynamicOperationPurityRule(),
 				new ConstructorInitializerPurityRule(),
 				new DelegateCreationPurityRule(),
 				new AwaitPurityRule(),
