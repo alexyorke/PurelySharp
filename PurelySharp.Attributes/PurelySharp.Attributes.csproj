@@ -12,13 +12,16 @@
     <PackageId>PurelySharp.Attributes</PackageId>
     <Version>0.0.4</Version> 
     <Authors>Alex Yorke</Authors>
-    <Description>Contains the EnforcePureAttribute for use with the PurelySharp Roslyn analyzer. Must be installed when using the VSIX extension.</Description>
-    <PackageTags>PurelySharp;Attributes;Roslyn;Analyzer</PackageTags>
+    <Description>Contains PurelySharp purity attributes including EnforcePureAttribute, PureAttribute, PureExternalAttribute, ImpureAttribute, and AllowSynchronizationAttribute for analyzer-checked C# projects.</Description>
+    <PackageTags>PurelySharp;Attributes;Roslyn;Analyzer;Purity</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Title>PurelySharp.Attributes</Title>
+    <PackageProjectUrl>https://github.com/alexyorke/PurelySharp</PackageProjectUrl>
     <RepositoryUrl>https://github.com/alexyorke/PurelySharp</RepositoryUrl>
-    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <RepositoryType>git</RepositoryType>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>Add PureExternalAttribute and ImpureAttribute boundary markers alongside EnforcePureAttribute, PureAttribute, and AllowSynchronizationAttribute.</PackageReleaseNotes>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild> 
     
 

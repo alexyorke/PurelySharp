@@ -136,6 +136,27 @@ namespace TestNamespace {
                 "The attributes assembly must be packed as a library reference.");
         }
 
+        [Test]
+        public void AttributesPackage_ShouldUseReleaseReadyNuGetMetadata()
+        {
+            var projectPath = Path.Combine(FindRepositoryRoot(), "PurelySharp.Attributes", "PurelySharp.Attributes.csproj");
+            var document = XDocument.Load(projectPath);
+            var properties = document
+                .Descendants("PropertyGroup")
+                .Elements()
+                .GroupBy(element => element.Name.LocalName)
+                .ToDictionary(group => group.Key, group => group.Last().Value);
+
+            Assert.That(properties["PackageLicenseExpression"], Is.EqualTo("MIT"));
+            Assert.That(properties["PackageProjectUrl"], Is.EqualTo("https://github.com/alexyorke/PurelySharp"));
+            Assert.That(properties["RepositoryUrl"], Is.EqualTo("https://github.com/alexyorke/PurelySharp"));
+            Assert.That(properties["RepositoryType"], Is.EqualTo("git"));
+            Assert.That(properties["PackageRequireLicenseAcceptance"], Is.EqualTo("false"));
+            Assert.That(properties["PackageReadmeFile"], Is.EqualTo("README.md"));
+            Assert.That(properties["Description"], Does.Contain("PureExternal"));
+            Assert.That(properties["Description"], Does.Contain("Impure"));
+        }
+
         private static string FindRepositoryRoot()
         {
             var directory = new DirectoryInfo(TestContext.CurrentContext.TestDirectory);
