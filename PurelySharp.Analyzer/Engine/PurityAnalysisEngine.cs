@@ -444,6 +444,17 @@ namespace PurelySharp.Analyzer.Engine
                 return new PurityAnalysisState(this.HasPotentialImpurity, this.FirstImpureSyntaxNode, newMap, this.FlowCaptures, this.FlowCaptureTargets, this.OwnedLocalArraySymbols, this.FirstImpurityEvidence);
             }
 
+            public PurityAnalysisState WithoutDelegateTarget(ISymbol delegateSymbol)
+            {
+                if (!this.DelegateTargetMap.ContainsKey(delegateSymbol))
+                {
+                    return this;
+                }
+
+                var newMap = this.DelegateTargetMap.Remove(delegateSymbol);
+                return new PurityAnalysisState(this.HasPotentialImpurity, this.FirstImpureSyntaxNode, newMap, this.FlowCaptures, this.FlowCaptureTargets, this.OwnedLocalArraySymbols, this.FirstImpurityEvidence);
+            }
+
             public PurityAnalysisState WithFlowCaptureResult(CaptureId id, PurityAnalysisResult result)
             {
                 return new PurityAnalysisState(HasPotentialImpurity, FirstImpureSyntaxNode, DelegateTargetMap, FlowCaptures.SetItem(id, result), FlowCaptureTargets, OwnedLocalArraySymbols, FirstImpurityEvidence);
@@ -2074,11 +2085,14 @@ namespace PurelySharp.Analyzer.Engine
         {
             LogDebug($"  [UpdMap] Trying Update: OpKind={op.Kind}, CurrentImpure={currentState.HasPotentialImpurity}");
 
-            PurityAnalysisState nextState = currentState;
-
-
-                if (op is IAssignmentOperation assignmentOperation)
-                {
+              PurityAnalysisState nextState = currentState;
+              var operationToTrack = op is IExpressionStatementOperation expressionStatementOperation
+                  ? expressionStatementOperation.Operation
+                  : op;
+  
+  
+                  if (operationToTrack is IAssignmentOperation assignmentOperation)
+                  {
                     var targetOperation = assignmentOperation.Target;
                     var valueOperation = assignmentOperation.Value;
                     var targetSymbol = TryResolveSymbol(targetOperation);
@@ -2105,13 +2119,18 @@ namespace PurelySharp.Analyzer.Engine
                         PurityAnalysisEngine.PotentialTargets? valueTargets = ResolvePotentialTargets(valueOperation, currentState);
                         if (valueTargets != null)
                         {
-                            nextState = currentState.WithDelegateTarget(targetSymbol, valueTargets.Value);
+                            nextState = nextState.WithDelegateTarget(targetSymbol, valueTargets.Value);
                             LogDebug($"    [ATF-DEL-ASSIGN] Updated map for {targetSymbol.Name} with {valueTargets.Value.MethodSymbols.Count} targets. New Map Count: {nextState.DelegateTargetMap.Count}");
+                        }
+                        else
+                        {
+                            nextState = nextState.WithDelegateTarget(targetSymbol, PotentialTargets.Empty);
+                            LogDebug($"    [ATF-DEL-ASSIGN] Marked map for {targetSymbol.Name} unresolved because assigned value targets are unresolved. New Map Count: {nextState.DelegateTargetMap.Count}");
                         }
                     }
                 }
 
-                else if (op is IFlowCaptureOperation flowCaptureOperation)
+                  else if (operationToTrack is IFlowCaptureOperation flowCaptureOperation)
                 {
                     PurityAnalysisEngine.PotentialTargets? valueTargets = ResolvePotentialTargets(flowCaptureOperation.Value, currentState);
                     if (valueTargets != null)
@@ -2120,7 +2139,7 @@ namespace PurelySharp.Analyzer.Engine
                     }
                 }
 
-                else if (op is IVariableDeclarationGroupOperation groupOperation)
+                  else if (operationToTrack is IVariableDeclarationGroupOperation groupOperation)
                 {
                     foreach (var declaration in groupOperation.Declarations)
                     {
