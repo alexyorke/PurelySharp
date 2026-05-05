@@ -32,6 +32,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
 
 
+                var paramsDimensionsResult = CheckDimensionSizes(arrayCreation, context, currentState);
+                if (!paramsDimensionsResult.IsPure)
+                {
+                    return paramsDimensionsResult;
+                }
+
                 var paramsInitializerResult = CheckInitializerElements(arrayCreation, context, currentState, "'params' array");
                 if (!paramsInitializerResult.IsPure)
                 {
@@ -43,6 +49,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
             else
             {
+                var dimensionsResult = CheckDimensionSizes(arrayCreation, context, currentState);
+                if (!dimensionsResult.IsPure)
+                {
+                    return dimensionsResult;
+                }
+
                 var initializerResult = CheckInitializerElements(arrayCreation, context, currentState, "array");
                 if (!initializerResult.IsPure)
                 {
@@ -92,6 +104,24 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             return false;
+        }
+
+        private static PurityAnalysisResult CheckDimensionSizes(
+            IArrayCreationOperation arrayCreation,
+            PurityAnalysisContext context,
+            PurityAnalysisState currentState)
+        {
+            foreach (var dimensionSize in arrayCreation.DimensionSizes)
+            {
+                var dimensionResult = CheckSingleOperation(dimensionSize, context, currentState);
+                if (!dimensionResult.IsPure)
+                {
+                    LogDebug($"    [ArrCreateRule] Array dimension '{dimensionSize.Syntax}' is IMPURE. Operation is Impure.");
+                    return dimensionResult;
+                }
+            }
+
+            return PurityAnalysisResult.Pure;
         }
 
         private static PurityAnalysisResult CheckInitializerElements(
