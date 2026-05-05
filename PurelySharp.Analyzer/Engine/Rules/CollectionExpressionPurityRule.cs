@@ -29,7 +29,15 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 if (!IsPureCollectionExpressionTargetType(targetType))
                 {
                     PurityAnalysisEngine.LogDebug($" CollectionExpressionRule: Target type '{targetTypeName}' is not a known pure collection-expression target. Marking IMPURE.");
-                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(collectionExpression.Syntax);
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                        collectionExpression.Syntax,
+                        PurityAnalysisEngine.PurityEvidence.Create(
+                            targetType is IArrayTypeSymbol ? "mutable_state_write" : "unsupported_operation",
+                            ruleName: nameof(CollectionExpressionPurityRule),
+                            operation: collectionExpression,
+                            syntaxNode: collectionExpression.Syntax,
+                            symbol: targetType,
+                            catalogSource: "collection_expression_target"));
                 }
             }
             else
