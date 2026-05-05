@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1342/1342` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1344/1344` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -28,6 +28,7 @@
   - direct throw-only bodies now report `throw` evidence while guard throws remain allowed when their exception expression is pure
   - unsafe pointer fallbacks now report `unsafe_pointer` evidence, synchronization APIs/locks report `synchronization` evidence, and reflection/environment/time catalog hits report `reflection_environment_source` evidence
   - delegate target tracking now invalidates unresolved reassignment and preserves unresolved delegate targets across branch merges
+  - LINQ source analysis now checks in-compilation `GetEnumerator()` implementations so deferred queries over impure source enumerators are reported
   - corpus reports now separately aggregate unsupported/unknown operation kinds
   - boundary attribute coverage now includes methods, properties/accessors, and constructors
   - nested local-function and lambda purity fallback analysis
