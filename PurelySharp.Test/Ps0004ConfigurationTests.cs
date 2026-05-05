@@ -59,6 +59,20 @@ namespace Acme.Tests
         }
 
         [Test]
+        public async Task Ps0004_ExcludeGenerated_SuppressesGeneratedFilePaths()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+public class GeneratedType
+{
+    public int Pure() => 1;
+}",
+                ImmutableDictionary<string, string>.Empty.Add("purelysharp_suggest_missing_enforce_pure_exclude_generated", "true"),
+                Path.Combine("obj", "Generated.g.cs"));
+
+            Assert.That(DiagnosticMessages(diagnostics), Has.None.Contains("Pure"));
+        }
+
+        [Test]
         public async Task Ps0004_NamespaceFilters_ReportOnlyMatchingNamespaces()
         {
             var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
@@ -114,12 +128,13 @@ public class TestClass
 
         private static async Task<ImmutableArray<Diagnostic>> GetAnalyzerDiagnosticsAsync(
             string source,
-            ImmutableDictionary<string, string> globalOptions)
+            ImmutableDictionary<string, string> globalOptions,
+            string? filePath = null)
         {
             var syntaxTree = CSharpSyntaxTree.ParseText(
                 source,
                 new CSharpParseOptions(LanguageVersion.Preview),
-                path: Path.Combine("src", "ProductionCode.cs"));
+                path: filePath ?? Path.Combine("src", "ProductionCode.cs"));
             var references = GetTrustedPlatformReferences()
                 .Add(MetadataReference.CreateFromFile(typeof(PurelySharp.Attributes.EnforcePureAttribute).Assembly.Location));
 
