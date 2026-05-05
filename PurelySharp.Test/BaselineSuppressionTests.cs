@@ -1,0 +1,149 @@
+using System;
+using System.Collections.Immutable;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Text;
+using NUnit.Framework;
+using PurelySharp.Analyzer;
+
+namespace PurelySharp.Test
+{
+    [TestFixture]
+    public class BaselineSuppressionTests
+    {
+        [Test]
+        public async Task Baseline_SuppressesExactPs0002Match()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void Impure()
+    {
+        Console.WriteLine(""impure"");
+    }
+}", Baseline("PS0002", "M:TestClass.Impure", "src/ProductionCode.cs"));
+
+            Assert.That(diagnostics.Any(diagnostic => diagnostic.Id == PurelySharpDiagnostics.PurityNotVerifiedId), Is.False);
+        }
+
+        [Test]
+        public async Task Baseline_DoesNotSuppressWhenPathDiffers()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void Impure()
+    {
+        Console.WriteLine(""impure"");
+    }
+}", Baseline("PS0002", "M:TestClass.Impure", "other/ProductionCode.cs"));
+
+            Assert.That(diagnostics.Any(diagnostic => diagnostic.Id == PurelySharpDiagnostics.PurityNotVerifiedId), Is.True);
+        }
+
+        [Test]
+        public async Task Baseline_SuppressesExactPs0004Match()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+public class TestClass
+{
+    public int Pure() => 1;
+}", Baseline("PS0004", "M:TestClass.Pure", "src/ProductionCode.cs"));
+
+            Assert.That(diagnostics.Any(diagnostic => diagnostic.Id == PurelySharpDiagnostics.MissingEnforcePureAttributeId), Is.False);
+        }
+
+        private static string Baseline(string id, string symbol, string path)
+        {
+            return @"{
+  ""diagnostics"": [
+    {
+      ""id"": """ + id + @""",
+      ""symbol"": """ + symbol + @""",
+      ""path"": """ + path + @"""
+    }
+  ]
+}";
+        }
+
+        private static async Task<ImmutableArray<Diagnostic>> GetAnalyzerDiagnosticsAsync(
+            string source,
+            string baseline)
+        {
+            var syntaxTree = CSharpSyntaxTree.ParseText(
+                source,
+                new CSharpParseOptions(LanguageVersion.Preview),
+                path: Path.Combine("src", "ProductionCode.cs"));
+            var references = GetTrustedPlatformReferences()
+                .Add(MetadataReference.CreateFromFile(typeof(PurelySharp.Attributes.EnforcePureAttribute).Assembly.Location));
+
+            var compilation = CSharpCompilation.Create(
+                "BaselineSuppressionTests",
+                new[] { syntaxTree },
+                references,
+                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+            var analyzerOptions = new AnalyzerOptions(
+                ImmutableArray.Create<AdditionalText>(new InMemoryAdditionalText("PurelySharp.Baseline.json", baseline)));
+
+            var compilationWithAnalyzers = compilation.WithAnalyzers(
+                ImmutableArray.Create<DiagnosticAnalyzer>(new PurelySharpAnalyzer()),
+                new CompilationWithAnalyzersOptions(
+                    analyzerOptions,
+                    onAnalyzerException: null,
+                    concurrentAnalysis: false,
+                    logAnalyzerExecutionTime: false,
+                    reportSuppressedDiagnostics: false));
+
+            return await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
+        }
+
+        private static ImmutableArray<MetadataReference> GetTrustedPlatformReferences()
+        {
+            var trustedPlatformAssemblies = (string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES");
+            if (string.IsNullOrWhiteSpace(trustedPlatformAssemblies))
+            {
+                return ImmutableArray.Create<MetadataReference>(
+                    MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+                    MetadataReference.CreateFromFile(typeof(Console).Assembly.Location));
+            }
+
+            return trustedPlatformAssemblies
+                .Split(Path.PathSeparator)
+                .Select(path => MetadataReference.CreateFromFile(path))
+                .Cast<MetadataReference>()
+                .ToImmutableArray();
+        }
+
+        private sealed class InMemoryAdditionalText : AdditionalText
+        {
+            private readonly string _text;
+
+            public InMemoryAdditionalText(string path, string text)
+            {
+                Path = path;
+                _text = text;
+            }
+
+            public override string Path { get; }
+
+            public override SourceText GetText(CancellationToken cancellationToken = default)
+            {
+                return SourceText.From(_text);
+            }
+        }
+    }
+}

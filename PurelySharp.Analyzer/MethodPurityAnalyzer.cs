@@ -19,7 +19,8 @@ namespace PurelySharp.Analyzer
             SyntaxNodeAnalysisContext context,
             Engine.CompilationPurityService purityService,
             MissingPuritySuggestionOptions missingPuritySuggestions,
-            bool emitExplanations)
+            bool emitExplanations,
+            DiagnosticBaseline baseline)
         {
 
             ISymbol? declaredSymbol = context.SemanticModel.GetDeclaredSymbol(context.Node, context.CancellationToken);
@@ -122,6 +123,11 @@ namespace PurelySharp.Analyzer
 
                 if (diagnosticLocation != null)
                 {
+                    if (baseline.IsSuppressed(PurelySharpDiagnostics.PurityNotVerifiedId, methodSymbol, context.Node.SyntaxTree))
+                    {
+                        return;
+                    }
+
                     var properties = purityResult.Evidence.ToDiagnosticProperties();
                     var diagnostic = Diagnostic.Create(
                         PurelySharpDiagnostics.PurityNotVerifiedRule,
@@ -180,6 +186,11 @@ namespace PurelySharp.Analyzer
 
                     if (diagnosticLocation != null)
                     {
+                        if (baseline.IsSuppressed(PurelySharpDiagnostics.MissingEnforcePureAttributeId, methodSymbol, context.Node.SyntaxTree))
+                        {
+                            return;
+                        }
+
                         var diagnostic = Diagnostic.Create(
                             PurelySharpDiagnostics.MissingEnforcePureAttributeRule,
                             diagnosticLocation,

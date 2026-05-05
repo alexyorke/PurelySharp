@@ -39,8 +39,9 @@ namespace PurelySharp.Analyzer
                 Engine.ImpurityCatalog.InitializeOverrides(config);
                 var missingPuritySuggestions = config.MissingPuritySuggestions;
                 var emitExplanations = config.EmitExplanations;
+                var baseline = Configuration.DiagnosticBaseline.FromOptions(startContext.Options, startContext.CancellationToken);
 
-                startContext.RegisterSyntaxNodeAction(c => MethodPurityAnalyzer.AnalyzeSymbolForPurity(c, purityService, missingPuritySuggestions, emitExplanations),
+                startContext.RegisterSyntaxNodeAction(c => MethodPurityAnalyzer.AnalyzeSymbolForPurity(c, purityService, missingPuritySuggestions, emitExplanations, baseline),
                     SyntaxKind.MethodDeclaration,
                     SyntaxKind.GetAccessorDeclaration,
                     SyntaxKind.SetAccessorDeclaration,
