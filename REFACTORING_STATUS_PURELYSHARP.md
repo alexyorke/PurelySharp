@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1327/1327` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1329/1329` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -14,7 +14,7 @@
   - `Tools/PurelySharp.CorpusReport` can summarize SARIF/errorlog output into JSON with diagnostic counts, per-diagnostic evidence rows, impurity categories, top impure APIs, catalog-miss candidates, and false-positive candidates
   - `PS0004` suggestions now support scope, generated/test filtering, namespace filters, and minimum-complexity controls while preserving the default `all` behavior
   - `PurelySharp.Baseline.json` additional files can suppress method-level `PS0002` and `PS0004` diagnostics by diagnostic ID, symbol documentation ID, and relative path
-  - `[PureExternal]` and `[Impure]` boundary attributes are available for explicit trusted/impure method boundaries
+  - `[PureExternal]` and `[Impure]` boundary attributes are available for explicit trusted/impure method, property, constructor, and assembly boundaries
   - `using(existingLocal)` now analyzes the implicit `Dispose()` call, including post-CFG using-operation coverage
   - virtual and interface property getter dispatch now considers in-compilation getter implementations instead of trusting only the referenced getter
   - `PurelySharp.Package` metadata no longer contains placeholder URLs and now packs the root README
