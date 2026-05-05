@@ -668,9 +668,15 @@ namespace PurelySharp.Analyzer.Engine
             if (!visited.Add(methodSymbol))
             {
                 LogDebug($"{indent}  Recursion DETECTED for {methodSymbol.ToDisplayString()}. Assuming impure for this path.");
-                purityCache[methodSymbol] = PurityAnalysisResult.ImpureUnknownLocation;
+                var recursiveResult = PurityAnalysisResult.ImpureUnknownLocation.WithEvidence(
+                    PurityEvidence.Create(
+                        "unsupported_operation",
+                        ruleName: "RecursivePurityAnalysis",
+                        symbol: methodSymbol,
+                        catalogSource: "recursive_call"));
+                purityCache[methodSymbol] = recursiveResult;
                 LogDebug($"{indent}<< Exit DeterminePurity (Recursion): {methodSymbol.ToDisplayString()}");
-                return PurityAnalysisResult.ImpureUnknownLocation;
+                return recursiveResult;
             }
 
             try

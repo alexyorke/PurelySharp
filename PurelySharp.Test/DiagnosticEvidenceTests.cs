@@ -344,6 +344,34 @@ public class TestClass
         }
 
         [Test]
+        public async Task Ps0002_RecursivePurityConservativeDiagnostic_IncludesStructuredEvidence()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Fibonacci(int n)
+    {
+        if (n <= 1)
+        {
+            return n;
+        }
+
+        return Fibonacci(n - 1) + Fibonacci(n - 2);
+    }
+}");
+
+            var diagnostic = SingleDiagnostic(diagnostics, PurelySharpDiagnostics.PurityNotVerifiedId);
+
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCategoryProperty], Is.EqualTo("unsupported_operation"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityRuleProperty], Is.EqualTo("RecursivePurityAnalysis"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCatalogSourceProperty], Is.EqualTo("recursive_call"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpuritySymbolProperty], Does.Contain("TestClass.Fibonacci"));
+        }
+
+        [Test]
         public async Task Ps0002_EnvironmentProperty_IncludesReflectionEnvironmentCategory()
         {
             var diagnostics = await GetAnalyzerDiagnosticsAsync(@"

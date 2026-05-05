@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1346/1346` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1347/1347` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -25,7 +25,7 @@
   - assignment RHS, method argument, LINQ argument, and property getter impurities now preserve the original structured evidence instead of collapsing to generic unsupported-operation evidence
   - variable initializers, collection/spread expressions, direct array/object creation, user-defined conversions/operators, and using/Dispose checks now preserve or classify structured impurity evidence
   - constructor initializers, delegate creation, event assignment, and interpolated-string expressions now preserve or classify structured impurity evidence
-  - direct throw-only bodies now report `throw` evidence while guard throws remain allowed when their exception expression is pure
+  - direct throw-only bodies now report `throw` evidence while guard throws remain allowed when their exception expression is pure, and conservative recursive-call diagnostics now report structured `recursive_call` evidence
   - unsafe pointer fallbacks now report `unsafe_pointer` evidence, synchronization APIs/locks report `synchronization` evidence, and reflection/environment/time catalog hits report `reflection_environment_source` evidence
   - delegate target tracking now invalidates unresolved reassignment and preserves unresolved delegate targets across branch merges
   - LINQ source analysis now checks in-compilation `GetEnumerator()` implementations so deferred queries over impure source enumerators are reported
