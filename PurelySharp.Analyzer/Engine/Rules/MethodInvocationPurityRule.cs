@@ -181,7 +181,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     if (!argumentResult.IsPure)
                     {
                         PurityAnalysisEngine.LogDebug("  [MIR] --> IMPURE (LINQ method, impure argument detected)");
-                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(argumentResult.ImpureSyntaxNode ?? argument.Value.Syntax);
+                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                            argumentResult.ImpureSyntaxNode ?? argument.Value.Syntax,
+                            argumentResult.Evidence);
                     }
                 }
 
@@ -244,7 +246,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 {
                     PurityAnalysisEngine.LogDebug($"  [MIR] Static method call '{invokedMethodSymbol.Name}' IMPURE due to impure static constructor in {invokedMethodSymbol.ContainingType.Name}.");
 
-                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(invocationOperation.Syntax);
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                        cctorResult.ImpureSyntaxNode ?? invocationOperation.Syntax,
+                        cctorResult.Evidence);
                 }
             }
 
@@ -259,7 +263,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 if (!instanceResult.IsPure)
                 {
                     PurityAnalysisEngine.LogDebug("  [MIR] --> IMPURE (Instance is impure)");
-                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(instanceResult.ImpureSyntaxNode ?? invocationOperation.Instance.Syntax);
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                        instanceResult.ImpureSyntaxNode ?? invocationOperation.Instance.Syntax,
+                        instanceResult.Evidence);
                 }
             }
 
@@ -301,7 +307,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 {
                     PurityAnalysisEngine.LogDebug("  [MIR] --> IMPURE (Argument is impure)");
 
-                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(argumentResult.ImpureSyntaxNode ?? argument.Value.Syntax);
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                        argumentResult.ImpureSyntaxNode ?? argument.Value.Syntax,
+                        argumentResult.Evidence);
                 }
             }
 
