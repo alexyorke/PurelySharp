@@ -32,6 +32,25 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
             PurityAnalysisEngine.LogDebug($"    [CondRule] Condition is Pure.");
 
+            if (conditionalOperation.Condition.ConstantValue.HasValue &&
+                conditionalOperation.Condition.ConstantValue.Value is bool constantCondition)
+            {
+                var reachableBranch = constantCondition ? conditionalOperation.WhenTrue : conditionalOperation.WhenFalse;
+                var reachableBranchName = constantCondition ? "WhenTrue" : "WhenFalse";
+
+                if (reachableBranch != null)
+                {
+                    var reachableBranchResult = PurityAnalysisEngine.CheckSingleOperation(reachableBranch, context, currentState);
+                    if (!reachableBranchResult.IsPure)
+                    {
+                        PurityAnalysisEngine.LogDebug($"    [CondRule] Reachable {reachableBranchName} is Impure: {reachableBranch.Syntax}");
+                        return reachableBranchResult;
+                    }
+                }
+
+                PurityAnalysisEngine.LogDebug($"    [CondRule] Condition is constant. Dead branch ignored; reachable {reachableBranchName} is Pure.");
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
 
             if (conditionalOperation.WhenTrue != null)
             {

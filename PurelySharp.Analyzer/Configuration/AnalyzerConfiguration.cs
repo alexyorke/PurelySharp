@@ -14,6 +14,7 @@ namespace PurelySharp.Analyzer.Configuration
         public ImmutableHashSet<string> ExtraKnownImpureTypes { get; }
         public bool EnableDebugLogging { get; }
         public bool SuggestMissingEnforcePure { get; }
+        public bool EmitExplanations { get; }
 
         private AnalyzerConfiguration(
             ImmutableHashSet<string> extraImpureMethods,
@@ -21,7 +22,8 @@ namespace PurelySharp.Analyzer.Configuration
             ImmutableHashSet<string> extraImpureNamespaces,
             ImmutableHashSet<string> extraImpureTypes,
             bool enableDebugLogging,
-            bool suggestMissingEnforcePure)
+            bool suggestMissingEnforcePure,
+            bool emitExplanations)
         {
             ExtraKnownImpureMethods = extraImpureMethods;
             ExtraKnownPureMethods = extraPureMethods;
@@ -29,6 +31,7 @@ namespace PurelySharp.Analyzer.Configuration
             ExtraKnownImpureTypes = extraImpureTypes;
             EnableDebugLogging = enableDebugLogging;
             SuggestMissingEnforcePure = suggestMissingEnforcePure;
+            EmitExplanations = emitExplanations;
         }
 
         public static AnalyzerConfiguration FromOptions(AnalyzerOptions options)
@@ -39,7 +42,8 @@ namespace PurelySharp.Analyzer.Configuration
             var impureTypes = GetValues(options, ConfigKeys.KnownImpureTypes);
             bool debug = GetBool(options, "purelysharp_enable_debug_logging");
             bool suggestMissing = GetBoolOrDefaultTrue(options, ConfigKeys.SuggestMissingEnforcePure);
-            return new AnalyzerConfiguration(impureMethods, pureMethods, impureNamespaces, impureTypes, debug, suggestMissing);
+            bool emitExplanations = GetBool(options, ConfigKeys.EmitExplanations);
+            return new AnalyzerConfiguration(impureMethods, pureMethods, impureNamespaces, impureTypes, debug, suggestMissing, emitExplanations);
         }
 
         private static ImmutableHashSet<string> GetValues(AnalyzerOptions options, string key)

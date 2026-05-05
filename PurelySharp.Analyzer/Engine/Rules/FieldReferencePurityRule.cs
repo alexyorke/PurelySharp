@@ -133,7 +133,6 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     }
                     else
                     {
-
                         PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Instance is 'this' within a non-readonly type and field '{fieldSymbol.Name}' is not readonly. Read is Pure.");
                         return PurityAnalysisEngine.PurityAnalysisResult.Pure;
                     }

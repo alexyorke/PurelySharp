@@ -10,5 +10,6 @@ namespace PurelySharp.Analyzer.Configuration
 
         /// <summary>When false, PS0004 (missing [EnforcePure]) is not reported. Default: true.</summary>
         public const string SuggestMissingEnforcePure = "purelysharp_suggest_missing_enforce_pure";
+        public const string EmitExplanations = "purelysharp_emit_explanations";
     }
 }

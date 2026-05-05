@@ -22,6 +22,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             PurityAnalysisEngine.LogDebug($"    [LoopRule] Analyzing loop body for: {loopOperation.Syntax}");
 
+            if (HasStaticallyUnreachableBody(loopOperation))
+            {
+                PurityAnalysisEngine.LogDebug($"    [LoopRule] Skipping unreachable loop body for: {loopOperation.Syntax}");
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
 
 
             if (loopOperation.Body != null)
@@ -43,6 +48,29 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             PurityAnalysisEngine.LogDebug($"    [LoopRule] Loop body analyzed as pure for: {loopOperation.Syntax}");
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static bool HasStaticallyUnreachableBody(ILoopOperation loopOperation)
+        {
+            return loopOperation switch
+            {
+                IWhileLoopOperation whileLoop => IsCompileTimeFalse(whileLoop.Condition),
+                IForLoopOperation forLoop => IsCompileTimeFalse(forLoop.Condition),
+                _ => false
+            };
+        }
+
+        private static bool IsCompileTimeFalse(IOperation? conditionOperation)
+        {
+            if (conditionOperation == null)
+            {
+                return false;
+            }
+
+            var constantValue = conditionOperation.ConstantValue;
+            return constantValue.HasValue &&
+                   constantValue.Value is bool boolValue &&
+                   !boolValue;
         }
     }
 }

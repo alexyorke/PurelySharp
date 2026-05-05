@@ -24,7 +24,8 @@ namespace PurelySharp.Analyzer
                                   PurelySharpDiagnostics.ConflictingPurityAttributesRule,
                                   PurelySharpDiagnostics.AllowSynchronizationWithoutPurityAttributeRule,
                                   PurelySharpDiagnostics.MisplacedAllowSynchronizationAttributeRule,
-                                  PurelySharpDiagnostics.RedundantAllowSynchronizationRule);
+                                  PurelySharpDiagnostics.RedundantAllowSynchronizationRule,
+                                  PurelySharpDiagnostics.PurityExplanationRule);
 
         public override void Initialize(AnalysisContext context)
         {
@@ -37,8 +38,9 @@ namespace PurelySharp.Analyzer
                 var config = Configuration.AnalyzerConfiguration.FromOptions(startContext.Options);
                 Engine.ImpurityCatalog.InitializeOverrides(config);
                 var suggestMissingEnforcePure = config.SuggestMissingEnforcePure;
+                var emitExplanations = config.EmitExplanations;
 
-                startContext.RegisterSyntaxNodeAction(c => MethodPurityAnalyzer.AnalyzeSymbolForPurity(c, purityService, suggestMissingEnforcePure),
+                startContext.RegisterSyntaxNodeAction(c => MethodPurityAnalyzer.AnalyzeSymbolForPurity(c, purityService, suggestMissingEnforcePure, emitExplanations),
                     SyntaxKind.MethodDeclaration,
                     SyntaxKind.GetAccessorDeclaration,
                     SyntaxKind.SetAccessorDeclaration,

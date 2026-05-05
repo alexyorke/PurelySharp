@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using PurelySharp.Analyzer.Engine;
 
 namespace PurelySharp.Analyzer
@@ -12,7 +13,11 @@ namespace PurelySharp.Analyzer
     internal static class MethodPurityAnalyzer
     {
 
-        internal static void AnalyzeSymbolForPurity(SyntaxNodeAnalysisContext context, Engine.CompilationPurityService purityService, bool suggestMissingEnforcePure)
+        internal static void AnalyzeSymbolForPurity(
+            SyntaxNodeAnalysisContext context,
+            Engine.CompilationPurityService purityService,
+            bool suggestMissingEnforcePure,
+            bool emitExplanations)
         {
 
             ISymbol? declaredSymbol = context.SemanticModel.GetDeclaredSymbol(context.Node, context.CancellationToken);
@@ -115,12 +120,25 @@ namespace PurelySharp.Analyzer
 
                 if (diagnosticLocation != null)
                 {
+                    var properties = purityResult.Evidence.ToDiagnosticProperties();
                     var diagnostic = Diagnostic.Create(
                         PurelySharpDiagnostics.PurityNotVerifiedRule,
                         diagnosticLocation,
-                        methodSymbol.Name
+                        additionalLocations: null,
+                        properties: properties,
+                        messageArgs: new object[] { methodSymbol.Name }
                     );
                     context.ReportDiagnostic(diagnostic);
+                    if (emitExplanations)
+                    {
+                        var explanation = Diagnostic.Create(
+                            PurelySharpDiagnostics.PurityExplanationRule,
+                            diagnosticLocation,
+                            additionalLocations: null,
+                            properties: properties,
+                            messageArgs: new object[] { methodSymbol.Name, purityResult.Evidence.ToSummary() });
+                        context.ReportDiagnostic(explanation);
+                    }
                     PurityAnalysisEngine.LogDebug($"[MPA] Reported diagnostic PS0002 for {methodSymbol.Name} at {diagnosticLocation}.");
                 }
                 else

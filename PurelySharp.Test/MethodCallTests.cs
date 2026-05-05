@@ -98,6 +98,27 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task LinqTakeWithImpureCountArgument_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Linq;
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public IEnumerable<int> {|PS0002:TestMethod|}(int[] values)
+    {
+        return values.Take(Console.Read());
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
 

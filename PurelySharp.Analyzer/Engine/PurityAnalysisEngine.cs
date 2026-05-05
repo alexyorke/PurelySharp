@@ -82,15 +82,17 @@ namespace PurelySharp.Analyzer.Engine
 
             public SyntaxNode? ImpureSyntaxNode { get; }
 
+            public PurityEvidence Evidence { get; }
 
-            private PurityAnalysisResult(bool isPure, SyntaxNode? impureSyntaxNode)
+            private PurityAnalysisResult(bool isPure, SyntaxNode? impureSyntaxNode, PurityEvidence evidence)
             {
                 IsPure = isPure;
                 ImpureSyntaxNode = impureSyntaxNode;
+                Evidence = evidence;
             }
 
 
-            public static PurityAnalysisResult Pure => new PurityAnalysisResult(true, null);
+            public static PurityAnalysisResult Pure => new PurityAnalysisResult(true, null, PurityEvidence.None);
 
 
             public static PurityAnalysisResult Impure(SyntaxNode impureSyntaxNode)
@@ -100,11 +102,152 @@ namespace PurelySharp.Analyzer.Engine
                 {
                     throw new ArgumentNullException(nameof(impureSyntaxNode), "Use ImpureUnknownLocation for impurity without a specific node.");
                 }
-                return new PurityAnalysisResult(false, impureSyntaxNode);
+                return new PurityAnalysisResult(false, impureSyntaxNode, PurityEvidence.Create("unsupported_operation", syntaxNode: impureSyntaxNode));
+            }
+
+            public static PurityAnalysisResult Impure(SyntaxNode impureSyntaxNode, PurityEvidence evidence)
+            {
+                if (impureSyntaxNode == null)
+                {
+                    throw new ArgumentNullException(nameof(impureSyntaxNode), "Use ImpureUnknownLocation for impurity without a specific node.");
+                }
+
+                if (evidence.IsEmpty)
+                {
+                    evidence = PurityEvidence.Create("unsupported_operation", syntaxNode: impureSyntaxNode);
+                }
+
+                return new PurityAnalysisResult(false, impureSyntaxNode, evidence.WithSyntax(impureSyntaxNode));
             }
 
 
-            public static PurityAnalysisResult ImpureUnknownLocation => new PurityAnalysisResult(false, null);
+            public static PurityAnalysisResult ImpureUnknownLocation => new PurityAnalysisResult(false, null, PurityEvidence.Create("unknown"));
+
+            public PurityAnalysisResult WithEvidence(PurityEvidence evidence)
+            {
+                return IsPure ? this : new PurityAnalysisResult(false, ImpureSyntaxNode, evidence);
+            }
+
+            public PurityAnalysisResult WithCallee(IMethodSymbol calleeSymbol, SyntaxNode? callSite)
+            {
+                if (IsPure)
+                {
+                    return this;
+                }
+
+                var evidence = Evidence.IsEmpty
+                    ? PurityEvidence.Create("impure_callee", symbol: calleeSymbol, syntaxNode: callSite)
+                    : Evidence.WithCallee(calleeSymbol.ToDisplayString(_signatureFormat), callSite);
+                return new PurityAnalysisResult(false, ImpureSyntaxNode ?? callSite, evidence);
+            }
+        }
+
+        public readonly struct PurityEvidence
+        {
+            public string Category { get; }
+            public string RuleName { get; }
+            public string OperationKind { get; }
+            public string Symbol { get; }
+            public string CatalogSource { get; }
+            public string CalleeChain { get; }
+
+            private PurityEvidence(
+                string category,
+                string ruleName,
+                string operationKind,
+                string symbol,
+                string catalogSource,
+                string calleeChain)
+            {
+                Category = category;
+                RuleName = ruleName;
+                OperationKind = operationKind;
+                Symbol = symbol;
+                CatalogSource = catalogSource;
+                CalleeChain = calleeChain;
+            }
+
+            public static PurityEvidence None => default;
+
+            public bool IsEmpty => string.IsNullOrEmpty(Category);
+
+            public static PurityEvidence Create(
+                string category,
+                string? ruleName = null,
+                IOperation? operation = null,
+                SyntaxNode? syntaxNode = null,
+                ISymbol? symbol = null,
+                string? catalogSource = null,
+                string? calleeChain = null)
+            {
+                var operationKind = operation?.Kind.ToString() ?? syntaxNode?.Kind().ToString() ?? string.Empty;
+                return new PurityEvidence(
+                    category,
+                    ruleName ?? string.Empty,
+                    operationKind,
+                    symbol?.ToDisplayString(_signatureFormat) ?? string.Empty,
+                    catalogSource ?? string.Empty,
+                    calleeChain ?? string.Empty);
+            }
+
+            public PurityEvidence WithSyntax(SyntaxNode syntaxNode)
+            {
+                if (!string.IsNullOrEmpty(OperationKind))
+                {
+                    return this;
+                }
+
+                return new PurityEvidence(Category, RuleName, syntaxNode.Kind().ToString(), Symbol, CatalogSource, CalleeChain);
+            }
+
+            public PurityEvidence WithCallee(string calleeSymbol, SyntaxNode? callSite)
+            {
+                var chain = string.IsNullOrEmpty(CalleeChain)
+                    ? calleeSymbol
+                    : calleeSymbol + " -> " + CalleeChain;
+                var operationKind = !string.IsNullOrEmpty(OperationKind)
+                    ? OperationKind
+                    : callSite?.Kind().ToString() ?? string.Empty;
+
+                return new PurityEvidence(
+                    string.IsNullOrEmpty(Category) ? "impure_callee" : Category,
+                    RuleName,
+                    operationKind,
+                    string.IsNullOrEmpty(Symbol) ? calleeSymbol : Symbol,
+                    CatalogSource,
+                    chain);
+            }
+
+            public ImmutableDictionary<string, string?> ToDiagnosticProperties()
+            {
+                var builder = ImmutableDictionary.CreateBuilder<string, string?>(StringComparer.Ordinal);
+                AddIfPresent(builder, PurelySharpDiagnostics.ImpurityCategoryProperty, Category);
+                AddIfPresent(builder, PurelySharpDiagnostics.ImpurityRuleProperty, RuleName);
+                AddIfPresent(builder, PurelySharpDiagnostics.ImpurityOperationKindProperty, OperationKind);
+                AddIfPresent(builder, PurelySharpDiagnostics.ImpuritySymbolProperty, Symbol);
+                AddIfPresent(builder, PurelySharpDiagnostics.ImpurityCatalogSourceProperty, CatalogSource);
+                AddIfPresent(builder, PurelySharpDiagnostics.ImpurityCalleeChainProperty, CalleeChain);
+                return builder.ToImmutable();
+            }
+
+            public string ToSummary()
+            {
+                var category = string.IsNullOrEmpty(Category) ? "unknown" : Category;
+                if (!string.IsNullOrEmpty(Symbol))
+                {
+                    return category + " at " + Symbol;
+                }
+
+                return category;
+            }
+
+            private static void AddIfPresent(ImmutableDictionary<string, string?>.Builder builder, string key, string value)
+            {
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    builder[key] = value;
+                }
+            }
         }
 
 
@@ -118,6 +261,7 @@ namespace PurelySharp.Analyzer.Engine
 
             public bool HasPotentialImpurity { get; }
             public SyntaxNode? FirstImpureSyntaxNode { get; }
+            public PurityEvidence FirstImpurityEvidence { get; }
 
 
 
@@ -135,10 +279,12 @@ namespace PurelySharp.Analyzer.Engine
                 ImmutableDictionary<ISymbol, PotentialTargets>? delegateTargetMap,
                 ImmutableDictionary<CaptureId, PurityAnalysisResult>? flowCaptures,
                 ImmutableDictionary<CaptureId, PotentialTargets>? flowCaptureTargets = null,
-                ImmutableHashSet<ISymbol>? ownedLocalArraySymbols = null)
+                ImmutableHashSet<ISymbol>? ownedLocalArraySymbols = null,
+                PurityEvidence firstImpurityEvidence = default)
             {
                 HasPotentialImpurity = hasPotentialImpurity;
                 FirstImpureSyntaxNode = firstImpureSyntaxNode;
+                FirstImpurityEvidence = firstImpurityEvidence;
 
                 DelegateTargetMap = delegateTargetMap ?? ImmutableDictionary.Create<ISymbol, PotentialTargets>(SymbolEqualityComparer.Default);
                 FlowCaptures = flowCaptures ?? ImmutableDictionary<CaptureId, PurityAnalysisResult>.Empty;
@@ -155,13 +301,18 @@ namespace PurelySharp.Analyzer.Engine
                 var stateList = states.ToList();
                 bool mergedImpurity = false;
                 SyntaxNode? firstImpureNode = null;
+                PurityEvidence firstEvidence = PurityEvidence.None;
                 foreach (var state in stateList)
                 {
 
                     if (state.HasPotentialImpurity)
                     {
                         mergedImpurity = true;
-                        if (firstImpureNode == null) { firstImpureNode = state.FirstImpureSyntaxNode; }
+                        if (firstImpureNode == null)
+                        {
+                            firstImpureNode = state.FirstImpureSyntaxNode;
+                            firstEvidence = state.FirstImpurityEvidence;
+                        }
                     }
 
 
@@ -171,7 +322,7 @@ namespace PurelySharp.Analyzer.Engine
                 var mergedCaptures = MergeFlowCaptureMaps(stateList.Select(s => s.FlowCaptures));
                 var mergedCaptureTargets = MergeFlowCaptureTargetMapsAcrossAll(stateList.Select(s => s.FlowCaptureTargets));
                 var mergedOwnedLocalArrays = IntersectOwnedLocalArraySymbolsAcrossAll(stateList.Select(s => s.OwnedLocalArraySymbols));
-                return new PurityAnalysisState(mergedImpurity, firstImpureNode, mergedTargets, mergedCaptures, mergedCaptureTargets, mergedOwnedLocalArrays);
+                return new PurityAnalysisState(mergedImpurity, firstImpureNode, mergedTargets, mergedCaptures, mergedCaptureTargets, mergedOwnedLocalArrays, firstEvidence);
             }
 
 
@@ -179,6 +330,7 @@ namespace PurelySharp.Analyzer.Engine
             {
                 if (this.HasPotentialImpurity != other.HasPotentialImpurity ||
                     !object.Equals(this.FirstImpureSyntaxNode, other.FirstImpureSyntaxNode) ||
+                    !this.FirstImpurityEvidence.Equals(other.FirstImpurityEvidence) ||
                     this.DelegateTargetMap.Count != other.DelegateTargetMap.Count ||
                     this.FlowCaptures.Count != other.FlowCaptures.Count ||
                     this.FlowCaptureTargets.Count != other.FlowCaptureTargets.Count ||
@@ -236,6 +388,7 @@ namespace PurelySharp.Analyzer.Engine
                 int hash = 17;
                 hash = hash * 23 + HasPotentialImpurity.GetHashCode();
                 hash = hash * 23 + (FirstImpureSyntaxNode?.GetHashCode() ?? 0);
+                hash = hash * 23 + FirstImpurityEvidence.GetHashCode();
 
                 foreach (var kvp in DelegateTargetMap.OrderBy(kv => kv.Key.Name))
                 {
@@ -271,29 +424,39 @@ namespace PurelySharp.Analyzer.Engine
             public PurityAnalysisState WithImpurity(SyntaxNode node)
             {
                 if (HasPotentialImpurity) return this;
-                return new PurityAnalysisState(true, node, this.DelegateTargetMap, this.FlowCaptures, this.FlowCaptureTargets, this.OwnedLocalArraySymbols);
+                return new PurityAnalysisState(true, node, this.DelegateTargetMap, this.FlowCaptures, this.FlowCaptureTargets, this.OwnedLocalArraySymbols, PurityEvidence.Create("unsupported_operation", syntaxNode: node));
+            }
+
+            public PurityAnalysisState WithImpurity(PurityAnalysisResult result, SyntaxNode fallbackNode)
+            {
+                if (HasPotentialImpurity) return this;
+                var node = result.ImpureSyntaxNode ?? fallbackNode;
+                var evidence = result.Evidence.IsEmpty
+                    ? PurityEvidence.Create("unsupported_operation", syntaxNode: node)
+                    : result.Evidence.WithSyntax(node);
+                return new PurityAnalysisState(true, node, this.DelegateTargetMap, this.FlowCaptures, this.FlowCaptureTargets, this.OwnedLocalArraySymbols, evidence);
             }
 
             public PurityAnalysisState WithDelegateTarget(ISymbol delegateSymbol, PotentialTargets targets)
             {
 
                 var newMap = this.DelegateTargetMap.SetItem(delegateSymbol, targets);
-                return new PurityAnalysisState(this.HasPotentialImpurity, this.FirstImpureSyntaxNode, newMap, this.FlowCaptures, this.FlowCaptureTargets, this.OwnedLocalArraySymbols);
+                return new PurityAnalysisState(this.HasPotentialImpurity, this.FirstImpureSyntaxNode, newMap, this.FlowCaptures, this.FlowCaptureTargets, this.OwnedLocalArraySymbols, this.FirstImpurityEvidence);
             }
 
             public PurityAnalysisState WithFlowCaptureResult(CaptureId id, PurityAnalysisResult result)
             {
-                return new PurityAnalysisState(HasPotentialImpurity, FirstImpureSyntaxNode, DelegateTargetMap, FlowCaptures.SetItem(id, result), FlowCaptureTargets, OwnedLocalArraySymbols);
+                return new PurityAnalysisState(HasPotentialImpurity, FirstImpureSyntaxNode, DelegateTargetMap, FlowCaptures.SetItem(id, result), FlowCaptureTargets, OwnedLocalArraySymbols, FirstImpurityEvidence);
             }
 
             public PurityAnalysisState WithFlowCaptureTarget(CaptureId id, PotentialTargets targets)
             {
-                return new PurityAnalysisState(HasPotentialImpurity, FirstImpureSyntaxNode, DelegateTargetMap, FlowCaptures, FlowCaptureTargets.SetItem(id, targets), OwnedLocalArraySymbols);
+                return new PurityAnalysisState(HasPotentialImpurity, FirstImpureSyntaxNode, DelegateTargetMap, FlowCaptures, FlowCaptureTargets.SetItem(id, targets), OwnedLocalArraySymbols, FirstImpurityEvidence);
             }
 
             public PurityAnalysisState WithOwnedLocalArray(ISymbol localSymbol)
             {
-                return new PurityAnalysisState(HasPotentialImpurity, FirstImpureSyntaxNode, DelegateTargetMap, FlowCaptures, FlowCaptureTargets, OwnedLocalArraySymbols.Add(localSymbol));
+                return new PurityAnalysisState(HasPotentialImpurity, FirstImpureSyntaxNode, DelegateTargetMap, FlowCaptures, FlowCaptureTargets, OwnedLocalArraySymbols.Add(localSymbol), FirstImpurityEvidence);
             }
 
             public PurityAnalysisState WithoutOwnedLocalArray(ISymbol localSymbol)
@@ -303,7 +466,7 @@ namespace PurelySharp.Analyzer.Engine
                     return this;
                 }
 
-                return new PurityAnalysisState(HasPotentialImpurity, FirstImpureSyntaxNode, DelegateTargetMap, FlowCaptures, FlowCaptureTargets, OwnedLocalArraySymbols.Remove(localSymbol));
+                return new PurityAnalysisState(HasPotentialImpurity, FirstImpureSyntaxNode, DelegateTargetMap, FlowCaptures, FlowCaptureTargets, OwnedLocalArraySymbols.Remove(localSymbol), FirstImpurityEvidence);
             }
 
             public bool IsOwnedLocalArraySymbol(ISymbol localSymbol)
@@ -932,8 +1095,8 @@ namespace PurelySharp.Analyzer.Engine
                 if (exitState.HasPotentialImpurity)
                 {
                     finalResult = exitState.FirstImpureSyntaxNode != null
-                        ? PurityAnalysisResult.Impure(exitState.FirstImpureSyntaxNode)
-                        : PurityAnalysisResult.ImpureUnknownLocation;
+                        ? PurityAnalysisResult.Impure(exitState.FirstImpureSyntaxNode, exitState.FirstImpurityEvidence)
+                        : PurityAnalysisResult.ImpureUnknownLocation.WithEvidence(exitState.FirstImpurityEvidence);
                     LogDebug($"  [CFG] Final Result: IMPURE. Node={finalResult.ImpureSyntaxNode?.Kind()}");
                     return finalResult;
                 }
@@ -991,7 +1154,7 @@ namespace PurelySharp.Analyzer.Engine
                     if (!valResult.IsPure)
                     {
                         LogDebug($"ApplyTransferFunction IMPURE FlowCapture value in Block #{block.Ordinal}");
-                        currentStateInBlock = currentStateInBlock.WithImpurity(valResult.ImpureSyntaxNode ?? flowCap.Syntax);
+                        currentStateInBlock = currentStateInBlock.WithImpurity(valResult, flowCap.Syntax);
                         break;
                     }
 
@@ -1005,7 +1168,7 @@ namespace PurelySharp.Analyzer.Engine
                 {
                     LogDebug($"ApplyTransferFunction IMPURE DETECTED in Block #{block.Ordinal} by Op: {op.Kind} ({op.Syntax})");
 
-                    currentStateInBlock = currentStateInBlock.WithImpurity(opResult.ImpureSyntaxNode ?? op.Syntax);
+                    currentStateInBlock = currentStateInBlock.WithImpurity(opResult, op.Syntax);
                     break;
                 }
 
@@ -1026,7 +1189,7 @@ namespace PurelySharp.Analyzer.Engine
                 if (!branchValueResult.IsPure)
                 {
                     LogDebug($"ApplyTransferFunction IMPURE DETECTED in Block #{block.Ordinal} by Branch Value: {block.BranchValue.Kind} ({block.BranchValue.Syntax})");
-                    currentStateInBlock = currentStateInBlock.WithImpurity(branchValueResult.ImpureSyntaxNode ?? block.BranchValue.Syntax);
+                    currentStateInBlock = currentStateInBlock.WithImpurity(branchValueResult, block.BranchValue.Syntax);
                 }
                 else
                 {
@@ -1092,7 +1255,7 @@ namespace PurelySharp.Analyzer.Engine
             }
 
             return currentState.HasPotentialImpurity
-                ? ImpureResult(currentState.FirstImpureSyntaxNode)
+                ? ImpureResult(currentState.FirstImpureSyntaxNode, currentState.FirstImpurityEvidence)
                 : PurityAnalysisResult.Pure;
         }
 
@@ -1194,6 +1357,19 @@ namespace PurelySharp.Analyzer.Engine
                         bool inThenBranch = ifStatementSyntax.Statement.Span.Contains(syntaxNode.Span);
                         bool inElseBranch = ifStatementSyntax.Else?.Statement.Span.Contains(syntaxNode.Span) == true;
                         if ((ifCondition && inElseBranch) || (!ifCondition && inThenBranch))
+                        {
+                            return true;
+                        }
+                    }
+                }
+                else if (ancestor is Microsoft.CodeAnalysis.CSharp.Syntax.ConditionalExpressionSyntax conditionalExpressionSyntax)
+                {
+                    var conditionValue = semanticModel.GetConstantValue(conditionalExpressionSyntax.Condition);
+                    if (conditionValue.HasValue && conditionValue.Value is bool conditionalResult)
+                    {
+                        bool inTrueBranch = conditionalExpressionSyntax.WhenTrue.Span.Contains(syntaxNode.Span);
+                        bool inFalseBranch = conditionalExpressionSyntax.WhenFalse.Span.Contains(syntaxNode.Span);
+                        if ((conditionalResult && inFalseBranch) || (!conditionalResult && inTrueBranch))
                         {
                             return true;
                         }
@@ -1471,9 +1647,18 @@ namespace PurelySharp.Analyzer.Engine
         }
 
 
-        internal static PurityAnalysisResult ImpureResult(SyntaxNode? syntaxNode)
+        internal static PurityAnalysisResult ImpureResult(SyntaxNode? syntaxNode, PurityEvidence evidence = default)
         {
-            return syntaxNode != null ? PurityAnalysisResult.Impure(syntaxNode) : PurityAnalysisResult.ImpureUnknownLocation;
+            if (syntaxNode != null)
+            {
+                return evidence.IsEmpty
+                    ? PurityAnalysisResult.Impure(syntaxNode)
+                    : PurityAnalysisResult.Impure(syntaxNode, evidence);
+            }
+
+            return evidence.IsEmpty
+                ? PurityAnalysisResult.ImpureUnknownLocation
+                : PurityAnalysisResult.ImpureUnknownLocation.WithEvidence(evidence);
         }
 
 
@@ -1597,17 +1782,20 @@ namespace PurelySharp.Analyzer.Engine
             LogDebug($"  [Merge] Merging States: S1(Impure={state1.HasPotentialImpurity}, MapCount={state1.DelegateTargetMap.Count}) + S2(Impure={state2.HasPotentialImpurity}, MapCount={state2.DelegateTargetMap.Count})");
             bool mergedImpurity = state1.HasPotentialImpurity || state2.HasPotentialImpurity;
             SyntaxNode? firstImpureNode = state1.FirstImpureSyntaxNode;
+            PurityEvidence firstImpurityEvidence = state1.FirstImpurityEvidence;
             if (state1.HasPotentialImpurity && state2.HasPotentialImpurity && state1.FirstImpureSyntaxNode != null && state2.FirstImpureSyntaxNode != null)
             {
 
                 if (state2.FirstImpureSyntaxNode.SpanStart < state1.FirstImpureSyntaxNode.SpanStart)
                 {
                     firstImpureNode = state2.FirstImpureSyntaxNode;
+                    firstImpurityEvidence = state2.FirstImpurityEvidence;
                 }
             }
             else if (state2.HasPotentialImpurity)
             {
                 firstImpureNode = state2.FirstImpureSyntaxNode;
+                firstImpurityEvidence = state2.FirstImpurityEvidence;
             }
 
 
@@ -1617,7 +1805,7 @@ namespace PurelySharp.Analyzer.Engine
             var mergedCaptureTargets = IntersectFlowCaptureTargetMaps(state1.FlowCaptureTargets, state2.FlowCaptureTargets);
             var mergedOwnedLocalArrays = IntersectOwnedLocalArraySymbols(state1.OwnedLocalArraySymbols, state2.OwnedLocalArraySymbols);
 
-            return new PurityAnalysisState(mergedImpurity, firstImpureNode, finalMap, mergedCaptures, mergedCaptureTargets, mergedOwnedLocalArrays);
+            return new PurityAnalysisState(mergedImpurity, firstImpureNode, finalMap, mergedCaptures, mergedCaptureTargets, mergedOwnedLocalArrays, firstImpurityEvidence);
         }
 
         private static ImmutableDictionary<ISymbol, PotentialTargets> MergeDelegateTargetMapsAcrossAll(

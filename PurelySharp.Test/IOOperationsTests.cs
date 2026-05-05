@@ -232,6 +232,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task ConstantFalseConditionalExpression_IgnoresDeadImpureInvocation()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int TestMethod()
+    {
+        return false ? Console.Read() : 42;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task EnvironmentPathLookup_ReportsPS0002()
         {
 

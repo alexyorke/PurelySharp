@@ -25,6 +25,12 @@ namespace PurelySharp.Analyzer
 
 
         public const string PurityNotVerifiedId = "PS0002";
+        public const string ImpurityCategoryProperty = "purelysharp.impurity.category";
+        public const string ImpurityRuleProperty = "purelysharp.impurity.rule";
+        public const string ImpurityOperationKindProperty = "purelysharp.impurity.operation_kind";
+        public const string ImpuritySymbolProperty = "purelysharp.impurity.symbol";
+        public const string ImpurityCatalogSourceProperty = "purelysharp.impurity.catalog_source";
+        public const string ImpurityCalleeChainProperty = "purelysharp.impurity.callee_chain";
         private static readonly LocalizableString PurityNotVerifiedTitle = "Purity Not Verified";
         private static readonly LocalizableString PurityNotVerifiedMessageFormat = "Method '{0}' is marked [EnforcePure]/[Pure], but its body contains operations the analyzer cannot prove pure";
         private static readonly LocalizableString PurityNotVerifiedDescription = "Methods marked with [EnforcePure] require analysis. This diagnostic indicates the analysis rules did not determine the method's purity status.";
@@ -37,6 +43,20 @@ namespace PurelySharp.Analyzer
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true,
             description: PurityNotVerifiedDescription);
+
+        public const string PurityExplanationId = "PS0009";
+        private static readonly LocalizableString PurityExplanationTitle = "Purity Diagnostic Explanation";
+        private static readonly LocalizableString PurityExplanationMessageFormat = "Purity analysis for '{0}': {1}";
+        private static readonly LocalizableString PurityExplanationDescription = "Provides structured explanation data for a purity diagnostic.";
+
+        public static readonly DiagnosticDescriptor PurityExplanationRule = new DiagnosticDescriptor(
+            id: PurityExplanationId,
+            title: PurityExplanationTitle,
+            messageFormat: PurityExplanationMessageFormat,
+            category: "Purity",
+            defaultSeverity: DiagnosticSeverity.Info,
+            isEnabledByDefault: true,
+            description: PurityExplanationDescription);
 
 
         public const string MisplacedAttributeId = "PS0003";
