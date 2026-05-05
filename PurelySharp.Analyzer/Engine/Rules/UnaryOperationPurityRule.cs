@@ -48,7 +48,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     if (!cachedResult.IsPure)
                     {
                         PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] User-defined operator method '{unaryOperation.OperatorMethod.Name}' is IMPURE (cached). Unary operation is Impure.");
-                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(unaryOperation.Syntax);
+                        return cachedResult.WithCallee(unaryOperation.OperatorMethod, unaryOperation.Syntax);
                     }
                     PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] User-defined operator method '{unaryOperation.OperatorMethod.Name}' is Pure (cached).");
                     return PurityAnalysisEngine.PurityAnalysisResult.Pure;
@@ -73,7 +73,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 if (!operatorPurity.IsPure)
                 {
                     PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] User-defined operator method '{unaryOperation.OperatorMethod.Name}' is IMPURE. Unary operation is Impure.");
-                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(unaryOperation.Syntax);
+                    return operatorPurity.WithCallee(unaryOperation.OperatorMethod, unaryOperation.Syntax);
                 }
 
                 PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] User-defined operator method '{unaryOperation.OperatorMethod.Name}' is Pure.");
@@ -93,7 +93,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                         if (!cachedResult.IsPure)
                         {
                             PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] Checked operator method '{unaryOperation.OperatorMethod.Name}' is IMPURE (cached). Unary operation is Impure.");
-                            return PurityAnalysisEngine.PurityAnalysisResult.Impure(unaryOperation.Syntax);
+                            return cachedResult.WithCallee(unaryOperation.OperatorMethod, unaryOperation.Syntax);
                         }
                         PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] Checked operator method '{unaryOperation.OperatorMethod.Name}' is Pure (cached).");
                         return PurityAnalysisEngine.PurityAnalysisResult.Pure;
@@ -118,7 +118,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     if (!operatorPurity.IsPure)
                     {
                         PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] Checked operator method '{unaryOperation.OperatorMethod.Name}' is IMPURE. Unary operation is Impure.");
-                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(unaryOperation.Syntax);
+                        return operatorPurity.WithCallee(unaryOperation.OperatorMethod, unaryOperation.Syntax);
                     }
 
                     PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] Checked operator method '{unaryOperation.OperatorMethod.Name}' is Pure.");
