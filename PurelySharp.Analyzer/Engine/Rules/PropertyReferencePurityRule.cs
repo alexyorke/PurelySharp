@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.Operations;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using PurelySharp.Analyzer.Engine;
 
 namespace PurelySharp.Analyzer.Engine.Rules
@@ -36,7 +37,6 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
 
-
             if (PurityAnalysisEngine.IsPureEnforced(
                 propertySymbol,
                 context.EnforcePureAttributeSymbol,
@@ -54,6 +54,18 @@ namespace PurelySharp.Analyzer.Engine.Rules
             {
                 PurityAnalysisEngine.LogDebug($"    [PropRefRule] Property {propertySymbol.Name} is known impure. Impure.");
                 return PurityAnalysisEngine.PurityAnalysisResult.Impure(propertyReferenceOperation.Syntax);
+            }
+
+            if (propertySymbol.GetMethod != null &&
+                IsPotentiallyDispatchedGetter(propertySymbol.GetMethod) &&
+                !PurityAnalysisEngine.IsKnownPureBCLMember(propertySymbol))
+            {
+                PurityAnalysisEngine.LogDebug($"    [PropRefRule] Property {propertySymbol.Name} may dispatch. Checking getter candidates.");
+                var dispatchResult = CheckDispatchedGetterPurity(propertyReferenceOperation, context);
+                if (!dispatchResult.IsPure)
+                {
+                    return dispatchResult;
+                }
             }
 
 
@@ -261,6 +273,245 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return true;
             }
             return false;
+        }
+
+        private static bool IsPotentiallyDispatchedGetter(IMethodSymbol getterSymbol)
+        {
+            return getterSymbol.ContainingType?.TypeKind == TypeKind.Interface ||
+                   getterSymbol.IsVirtual ||
+                   getterSymbol.IsAbstract ||
+                   getterSymbol.IsOverride;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckDispatchedGetterPurity(
+            IPropertyReferenceOperation propertyReferenceOperation,
+            PurityAnalysisContext context)
+        {
+            var candidates = ResolvePotentialGetterTargets(
+                propertyReferenceOperation.Property,
+                context.SemanticModel,
+                GetKnownReceiverType(propertyReferenceOperation.Instance));
+
+            if (candidates.IsDefaultOrEmpty)
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                    propertyReferenceOperation.Syntax,
+                    PurityAnalysisEngine.PurityEvidence.Create(
+                        "dynamic_dispatch",
+                        nameof(PropertyReferencePurityRule),
+                        propertyReferenceOperation,
+                        symbol: propertyReferenceOperation.Property.GetMethod));
+            }
+
+            foreach (var getter in candidates)
+            {
+                var getterResult = PurityAnalysisEngine.GetCalleePurity(getter, context);
+                if (!getterResult.IsPure)
+                {
+                    return getterResult.WithCallee(getter, propertyReferenceOperation.Syntax);
+                }
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static ImmutableArray<IMethodSymbol> ResolvePotentialGetterTargets(
+            IPropertySymbol propertySymbol,
+            SemanticModel semanticModel,
+            INamedTypeSymbol? knownReceiverType)
+        {
+            var targets = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+            var targetProperty = propertySymbol.OriginalDefinition;
+
+            if (knownReceiverType != null &&
+                (knownReceiverType.TypeKind == TypeKind.Struct || knownReceiverType.IsSealed))
+            {
+                AddGetterForReceiverType(knownReceiverType, targetProperty, targets);
+                return targets.ToImmutableArray();
+            }
+
+            if (targetProperty.ContainingType?.TypeKind == TypeKind.Interface)
+            {
+                foreach (var type in EnumerateAllNamedTypes(semanticModel.Compilation.Assembly.GlobalNamespace))
+                {
+                    if (type.TypeKind != TypeKind.Class && type.TypeKind != TypeKind.Struct)
+                    {
+                        continue;
+                    }
+
+                    if (!ImplementsInterface(type, targetProperty.ContainingType))
+                    {
+                        continue;
+                    }
+
+                    AddGetterForReceiverType(type, targetProperty, targets);
+                }
+
+                if (targetProperty.GetMethod != null && !targetProperty.GetMethod.IsAbstract)
+                {
+                    targets.Add(targetProperty.GetMethod.OriginalDefinition);
+                }
+
+                return targets.ToImmutableArray();
+            }
+
+            var baseProperty = GetRootOverriddenProperty(targetProperty);
+            var baseType = baseProperty.ContainingType;
+            if (baseType != null)
+            {
+                foreach (var type in EnumerateAllNamedTypes(semanticModel.Compilation.Assembly.GlobalNamespace))
+                {
+                    if (!DerivesFrom(type, baseType))
+                    {
+                        continue;
+                    }
+
+                    foreach (var property in type.GetMembers(baseProperty.Name).OfType<IPropertySymbol>())
+                    {
+                        if (OverridesProperty(property, baseProperty) && property.GetMethod != null)
+                        {
+                            targets.Add(property.GetMethod.OriginalDefinition);
+                        }
+                    }
+                }
+            }
+
+            if (baseProperty.GetMethod != null && !baseProperty.GetMethod.IsAbstract)
+            {
+                targets.Add(baseProperty.GetMethod.OriginalDefinition);
+            }
+
+            return targets.ToImmutableArray();
+        }
+
+        private static INamedTypeSymbol? GetKnownReceiverType(IOperation? instanceOperation)
+        {
+            var unwrapped = PurityAnalysisEngine.SkipImplicitConversions(instanceOperation);
+            if (unwrapped is IObjectCreationOperation objectCreationOperation)
+            {
+                return objectCreationOperation.Type as INamedTypeSymbol;
+            }
+
+            return unwrapped?.Type as INamedTypeSymbol;
+        }
+
+        private static void AddGetterForReceiverType(
+            INamedTypeSymbol receiverType,
+            IPropertySymbol targetProperty,
+            HashSet<IMethodSymbol> targets)
+        {
+            ISymbol? implementation = null;
+            if (targetProperty.ContainingType?.TypeKind == TypeKind.Interface)
+            {
+                implementation = receiverType.FindImplementationForInterfaceMember(targetProperty);
+            }
+            else
+            {
+                for (INamedTypeSymbol? current = receiverType; current != null; current = current.BaseType)
+                {
+                    implementation = current
+                        .GetMembers(targetProperty.Name)
+                        .OfType<IPropertySymbol>()
+                        .FirstOrDefault(property =>
+                            SymbolEqualityComparer.Default.Equals(property.OriginalDefinition, targetProperty) ||
+                            OverridesProperty(property, targetProperty));
+                    if (implementation != null)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            if (implementation is IPropertySymbol propertySymbol && propertySymbol.GetMethod != null)
+            {
+                targets.Add(propertySymbol.GetMethod.OriginalDefinition);
+            }
+            else if (implementation is IMethodSymbol methodSymbol)
+            {
+                targets.Add(methodSymbol.OriginalDefinition);
+            }
+        }
+
+        private static IPropertySymbol GetRootOverriddenProperty(IPropertySymbol propertySymbol)
+        {
+            var current = propertySymbol;
+            while (current.OverriddenProperty != null)
+            {
+                current = current.OverriddenProperty;
+            }
+
+            return current.OriginalDefinition;
+        }
+
+        private static bool OverridesProperty(IPropertySymbol property, IPropertySymbol target)
+        {
+            var current = property;
+            while (current != null)
+            {
+                if (SymbolEqualityComparer.Default.Equals(current.OriginalDefinition, target.OriginalDefinition))
+                {
+                    return true;
+                }
+
+                current = current.OverriddenProperty;
+            }
+
+            return false;
+        }
+
+        private static bool ImplementsInterface(INamedTypeSymbol type, INamedTypeSymbol interfaceSymbol)
+        {
+            return type.AllInterfaces.Any(
+                candidate => SymbolEqualityComparer.Default.Equals(
+                    candidate.OriginalDefinition,
+                    interfaceSymbol.OriginalDefinition));
+        }
+
+        private static bool DerivesFrom(INamedTypeSymbol type, INamedTypeSymbol potentialBase)
+        {
+            for (var current = type.BaseType; current != null; current = current.BaseType)
+            {
+                if (SymbolEqualityComparer.Default.Equals(current.OriginalDefinition, potentialBase.OriginalDefinition))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static IEnumerable<INamedTypeSymbol> EnumerateAllNamedTypes(INamespaceSymbol root)
+        {
+            foreach (var member in root.GetMembers())
+            {
+                if (member is INamespaceSymbol namespaceSymbol)
+                {
+                    foreach (var nested in EnumerateAllNamedTypes(namespaceSymbol))
+                    {
+                        yield return nested;
+                    }
+                }
+                else if (member is INamedTypeSymbol typeSymbol)
+                {
+                    yield return typeSymbol;
+                    foreach (var nested in EnumerateNestedTypes(typeSymbol))
+                    {
+                        yield return nested;
+                    }
+                }
+            }
+        }
+
+        private static IEnumerable<INamedTypeSymbol> EnumerateNestedTypes(INamedTypeSymbol typeSymbol)
+        {
+            foreach (var member in typeSymbol.GetTypeMembers())
+            {
+                yield return member;
+                foreach (var nested in EnumerateNestedTypes(member))
+                {
+                    yield return nested;
+                }
+            }
         }
 
         private static bool IsCompilerGeneratedArrayForeachCurrent(
