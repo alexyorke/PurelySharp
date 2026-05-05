@@ -2,13 +2,22 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1269/1269` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1301/1301` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
   - centralized impurity/purity catalog with `.editorconfig` overrides
   - modular rule registry
 - Recent completed work since the earlier `505/505` checkpoint:
+  - `PS0002` diagnostics now carry structured impurity evidence through diagnostic properties, including category, rule, operation kind, symbol, catalog/config source, and callee chain
+  - optional `PS0009` explanation diagnostics can be emitted with `purelysharp_emit_explanations = true`
+  - `Tools/PurelySharp.CorpusReport` can summarize SARIF/errorlog output into JSON with diagnostic counts, impurity categories, top impure APIs, catalog-miss candidates, and false-positive candidates
+  - `PS0004` suggestions now support scope, generated/test filtering, namespace filters, and minimum-complexity controls while preserving the default `all` behavior
+  - `PurelySharp.Baseline.json` additional files can suppress method-level `PS0002` and `PS0004` diagnostics by diagnostic ID, symbol documentation ID, and relative path
+  - `[PureExternal]` and `[Impure]` boundary attributes are available for explicit trusted/impure method boundaries
+  - `using(existingLocal)` now analyzes the implicit `Dispose()` call, including post-CFG using-operation coverage
+  - virtual and interface property getter dispatch now considers in-compilation getter implementations instead of trusting only the referenced getter
+  - `PurelySharp.Package` metadata no longer contains placeholder URLs and now packs the root README
   - nested local-function and lambda purity fallback analysis
   - getter-body verification instead of attribute-shape trust
   - explicit `if`/`while`/`for` condition impurity propagation through CFG branch values
@@ -441,10 +450,13 @@
 1. Continue targeted false-positive/false-negative hunting in areas still expected to stay conservative:
    - dynamic dispatch
    - opaque library calls
-   - harder virtual/interface cases
+   - remaining virtual/interface method cases not covered by current method/property dispatch narrowing
+   - LINQ deferred enumeration and source-enumerator behavior
+   - fresh object/array ownership and escape precision
    - reflection and environment-sensitive APIs
-2. Expand constant-condition pruning only if more real regressions appear outside the current `if`/`while`/`for` coverage.
-3. Keep `README.md` aligned whenever behavior-level purity assumptions change.
+2. Expand catalog tooling with signature-resolution smoke tests where it can stay deterministic across supported target frameworks.
+3. Add non-flaky performance/caching coverage for large call graphs and repeated semantic queries.
+4. Keep `README.md` aligned whenever behavior-level purity assumptions change.
 
 ### Working rules for future passes
 
