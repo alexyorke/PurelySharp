@@ -6,8 +6,11 @@ namespace PurelySharp.Tools.CorpusReport;
 public static class SarifCorpusReport
 {
     private const string CategoryProperty = "purelysharp.impurity.category";
+    private const string RuleNameProperty = "purelysharp.impurity.rule";
     private const string OperationKindProperty = "purelysharp.impurity.operation_kind";
     private const string SymbolProperty = "purelysharp.impurity.symbol";
+    private const string CatalogSourceProperty = "purelysharp.impurity.catalog_source";
+    private const string CalleeChainProperty = "purelysharp.impurity.callee_chain";
 
     private static readonly ImmutableHashSet<string> CatalogMissCategories =
         ImmutableHashSet.Create(StringComparer.Ordinal, "unknown_external_call", "unsupported_operation");
@@ -42,6 +45,7 @@ public static class SarifCorpusReport
         private readonly Dictionary<string, int> _symbols = new(StringComparer.Ordinal);
         private readonly Dictionary<string, int> _catalogMisses = new(StringComparer.Ordinal);
         private readonly Dictionary<string, (string Category, int Count)> _falsePositiveCandidates = new(StringComparer.Ordinal);
+        private readonly ImmutableArray<DiagnosticEvidenceItem>.Builder _diagnostics = ImmutableArray.CreateBuilder<DiagnosticEvidenceItem>();
 
         private int _ps0002Count;
         private int _ps0004Count;
@@ -68,7 +72,7 @@ public static class SarifCorpusReport
 
                 foreach (var result in results.EnumerateArray())
                 {
-                    AddResult(result);
+                    AddResult(inputName, result);
                 }
             }
         }
@@ -81,6 +85,7 @@ public static class SarifCorpusReport
                 _ps0004Count,
                 _ps0009Count,
                 _totalPurelySharpDiagnostics,
+                _diagnostics.ToImmutable(),
                 ToImmutableSortedDictionary(_categories),
                 ToImmutableSortedDictionary(_operationKinds),
                 ToImmutableSortedDictionary(_unknownOperationKinds),
@@ -89,7 +94,7 @@ public static class SarifCorpusReport
                 ToFalsePositiveRankedItems(_falsePositiveCandidates));
         }
 
-        private void AddResult(JsonElement result)
+        private void AddResult(string inputName, JsonElement result)
         {
             var ruleId = GetStringProperty(result, "ruleId");
             if (ruleId is null || !ruleId.StartsWith("PS", StringComparison.Ordinal))
@@ -98,6 +103,7 @@ public static class SarifCorpusReport
             }
 
             _totalPurelySharpDiagnostics++;
+            var message = GetMessageText(result);
             if (ruleId == "PS0002")
             {
                 _ps0002Count++;
@@ -114,12 +120,27 @@ public static class SarifCorpusReport
             if (!result.TryGetProperty("properties", out var properties) ||
                 properties.ValueKind != JsonValueKind.Object)
             {
+                _diagnostics.Add(new DiagnosticEvidenceItem(inputName, ruleId, message, null, null, null, null, null, null));
                 return;
             }
 
             var category = GetStringProperty(properties, CategoryProperty);
+            var ruleName = GetStringProperty(properties, RuleNameProperty);
             var operationKind = GetStringProperty(properties, OperationKindProperty);
             var symbol = GetStringProperty(properties, SymbolProperty);
+            var catalogSource = GetStringProperty(properties, CatalogSourceProperty);
+            var calleeChain = GetStringProperty(properties, CalleeChainProperty);
+
+            _diagnostics.Add(new DiagnosticEvidenceItem(
+                inputName,
+                ruleId,
+                message,
+                category,
+                ruleName,
+                operationKind,
+                symbol,
+                catalogSource,
+                calleeChain));
 
             IncrementIfPresent(_categories, category);
             IncrementIfPresent(_operationKinds, operationKind);
@@ -148,6 +169,14 @@ public static class SarifCorpusReport
         {
             return element.TryGetProperty(propertyName, out var value) && value.ValueKind == JsonValueKind.String
                 ? value.GetString()
+                : null;
+        }
+
+        private static string? GetMessageText(JsonElement result)
+        {
+            return result.TryGetProperty("message", out var message) &&
+                   message.ValueKind == JsonValueKind.Object
+                ? GetStringProperty(message, "text")
                 : null;
         }
 

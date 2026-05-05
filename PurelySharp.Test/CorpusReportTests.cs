@@ -20,9 +20,11 @@ namespace PurelySharp.Test
           "message": { "text": "impure" },
           "properties": {
             "purelysharp.impurity.category": "catalog_hit",
+            "purelysharp.impurity.rule": "MethodInvocationPurityRule",
             "purelysharp.impurity.operation_kind": "Invocation",
             "purelysharp.impurity.symbol": "System.Console.WriteLine(string)",
-            "purelysharp.impurity.catalog_source": "known_impure_namespace_or_type"
+            "purelysharp.impurity.catalog_source": "known_impure_namespace_or_type",
+            "purelysharp.impurity.callee_chain": "TestClass.Callee()"
           }
         },
         {
@@ -56,6 +58,17 @@ namespace PurelySharp.Test
             Assert.That(report.ImpurityCategories["unknown_external_call"], Is.EqualTo(1));
             Assert.That(report.OperationKinds["Invocation"], Is.EqualTo(2));
             Assert.That(report.TopImpureApis[0].Value, Is.EqualTo("ITest.Run()"));
+            Assert.That(report.Diagnostics, Has.Length.EqualTo(3));
+            Assert.That(report.Diagnostics[0].Input, Is.EqualTo("sample.sarif"));
+            Assert.That(report.Diagnostics[0].RuleId, Is.EqualTo("PS0002"));
+            Assert.That(report.Diagnostics[0].Message, Is.EqualTo("impure"));
+            Assert.That(report.Diagnostics[0].Category, Is.EqualTo("catalog_hit"));
+            Assert.That(report.Diagnostics[0].RuleName, Is.EqualTo("MethodInvocationPurityRule"));
+            Assert.That(report.Diagnostics[0].OperationKind, Is.EqualTo("Invocation"));
+            Assert.That(report.Diagnostics[0].Symbol, Is.EqualTo("System.Console.WriteLine(string)"));
+            Assert.That(report.Diagnostics[0].CatalogSource, Is.EqualTo("known_impure_namespace_or_type"));
+            Assert.That(report.Diagnostics[0].CalleeChain, Is.EqualTo("TestClass.Callee()"));
+            Assert.That(report.Diagnostics[2].RuleId, Is.EqualTo("PS0004"));
         }
 
         [Test]

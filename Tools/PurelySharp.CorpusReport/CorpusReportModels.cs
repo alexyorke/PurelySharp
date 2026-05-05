@@ -9,6 +9,7 @@ public sealed record CorpusReportSummary(
     int Ps0004Count,
     int Ps0009Count,
     int TotalPurelySharpDiagnostics,
+    ImmutableArray<DiagnosticEvidenceItem> Diagnostics,
     ImmutableDictionary<string, int> ImpurityCategories,
     ImmutableDictionary<string, int> OperationKinds,
     ImmutableDictionary<string, int> UnknownOperationKinds,
@@ -22,6 +23,7 @@ public sealed record CorpusReportSummary(
         0,
         0,
         0,
+        ImmutableArray<DiagnosticEvidenceItem>.Empty,
         ImmutableDictionary<string, int>.Empty,
         ImmutableDictionary<string, int>.Empty,
         ImmutableDictionary<string, int>.Empty,
@@ -34,3 +36,14 @@ public sealed record RankedItem(
     string Value,
     int Count,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Category = null);
+
+public sealed record DiagnosticEvidenceItem(
+    string Input,
+    string RuleId,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Message,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Category,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? RuleName,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? OperationKind,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Symbol,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? CatalogSource,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? CalleeChain);
