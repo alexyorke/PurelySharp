@@ -180,6 +180,20 @@ dotnet test PurelySharp.sln
 dotnet build PurelySharp.Smoke.Net472/PurelySharp.Smoke.Net472.csproj
 ```
 
+## Corpus Reporting
+
+`Tools/PurelySharp.CorpusReport` summarizes PurelySharp diagnostics from SARIF/errorlog output, or it can build projects and solutions with `ErrorLog` enabled and summarize the generated SARIF.
+
+```powershell
+# Summarize an existing SARIF file
+dotnet run --project Tools/PurelySharp.CorpusReport -- artifacts/purelysharp.sarif
+
+# Build a project/solution and write a JSON report
+dotnet run --project Tools/PurelySharp.CorpusReport -- --output artifacts/purelysharp-report.json PurelySharp.sln
+```
+
+The JSON report includes `PS0002`, `PS0004`, and `PS0009` counts, impurity categories, operation kinds, top impure APIs, catalog-miss candidates, and false-positive candidates based on the structured diagnostic properties emitted by `PS0002`.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to open issues or submit pull requests, especially regarding the implementation of specific purity-checking rules which is the main focus for future development.
