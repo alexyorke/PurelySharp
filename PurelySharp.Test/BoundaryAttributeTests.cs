@@ -61,5 +61,48 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task PureExternal_Property_IsTrustedAtCallSite()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class Boundary
+{
+    [PureExternal]
+    public int Value => DateTime.Now.Millisecond;
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Read(Boundary boundary) => boundary.Value;
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task Impure_Property_IsImpureAtCallSiteEvenWithPureBody()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public class Boundary
+{
+    [Impure]
+    public int Value => 1;
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:Read|}(Boundary boundary) => boundary.Value;
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

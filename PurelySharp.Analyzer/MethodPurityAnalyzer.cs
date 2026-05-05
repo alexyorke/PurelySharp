@@ -515,7 +515,7 @@ namespace PurelySharp.Analyzer
 
         private static bool HasAttribute(IMethodSymbol methodSymbol, INamedTypeSymbol attributeType)
         {
-            foreach (var attributeData in methodSymbol.GetAttributes())
+            foreach (var attributeData in GetMethodAndAssociatedAttributes(methodSymbol))
             {
                 var attributeClass = attributeData.AttributeClass?.OriginalDefinition;
                 if (SymbolEqualityComparer.Default.Equals(attributeClass, attributeType))
@@ -528,7 +528,7 @@ namespace PurelySharp.Analyzer
 
         private static bool HasAttributeByName(IMethodSymbol methodSymbol, string attributeTypeName)
         {
-            foreach (var attributeData in methodSymbol.GetAttributes())
+            foreach (var attributeData in GetMethodAndAssociatedAttributes(methodSymbol))
             {
                 var attributeClass = attributeData.AttributeClass;
                 if (attributeClass != null && string.Equals(attributeClass.Name, attributeTypeName, StringComparison.Ordinal))
@@ -537,6 +537,22 @@ namespace PurelySharp.Analyzer
                 }
             }
             return false;
+        }
+
+        private static IEnumerable<AttributeData> GetMethodAndAssociatedAttributes(IMethodSymbol methodSymbol)
+        {
+            foreach (var attribute in methodSymbol.GetAttributes())
+            {
+                yield return attribute;
+            }
+
+            if (methodSymbol.AssociatedSymbol != null)
+            {
+                foreach (var attribute in methodSymbol.AssociatedSymbol.GetAttributes())
+                {
+                    yield return attribute;
+                }
+            }
         }
 
         private static INamedTypeSymbol GetEffectivePurityAttributeSymbol(INamedTypeSymbol? enforcePureAttributeSymbol, INamedTypeSymbol? pureAttributeSymbol)

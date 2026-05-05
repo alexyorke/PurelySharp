@@ -1692,7 +1692,7 @@ namespace PurelySharp.Analyzer.Engine
             }
 
             var pureAttributeFullyQualifiedName = "global::PurelySharp.Attributes.PureAttribute";
-            return symbol.GetAttributes().Any(ad =>
+            return GetAttributesIncludingAssociatedSymbol(symbol).Any(ad =>
                 SymbolEqualityComparer.Default.Equals(ad.AttributeClass?.OriginalDefinition, enforcePureAttributeSymbol) ||
                 (pureAttributeSymbol != null &&
                     SymbolEqualityComparer.Default.Equals(ad.AttributeClass?.OriginalDefinition, pureAttributeSymbol)) ||
@@ -1713,10 +1713,26 @@ namespace PurelySharp.Analyzer.Engine
             }
 
             var fullyQualifiedName = "global::" + fullyQualifiedMetadataName;
-            return symbol.GetAttributes().Any(ad =>
+            return GetAttributesIncludingAssociatedSymbol(symbol).Any(ad =>
                 string.Equals(ad.AttributeClass?.Name, attributeName, StringComparison.Ordinal) ||
                 string.Equals(ad.AttributeClass?.ToDisplayString(), fullyQualifiedMetadataName, StringComparison.Ordinal) ||
                 string.Equals(ad.AttributeClass?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), fullyQualifiedName, StringComparison.Ordinal));
+        }
+
+        private static IEnumerable<AttributeData> GetAttributesIncludingAssociatedSymbol(ISymbol symbol)
+        {
+            foreach (var attribute in symbol.GetAttributes())
+            {
+                yield return attribute;
+            }
+
+            if (symbol is IMethodSymbol { AssociatedSymbol: { } associatedSymbol })
+            {
+                foreach (var attribute in associatedSymbol.GetAttributes())
+                {
+                    yield return attribute;
+                }
+            }
         }
 
 
@@ -1990,7 +2006,7 @@ namespace PurelySharp.Analyzer.Engine
         internal static bool HasAttribute(ISymbol symbol, INamedTypeSymbol attributeSymbol)
         {
             if (attributeSymbol == null) return false;
-            return symbol.GetAttributes().Any(ad => SymbolEqualityComparer.Default.Equals(ad.AttributeClass?.OriginalDefinition, attributeSymbol.OriginalDefinition));
+            return GetAttributesIncludingAssociatedSymbol(symbol).Any(ad => SymbolEqualityComparer.Default.Equals(ad.AttributeClass?.OriginalDefinition, attributeSymbol.OriginalDefinition));
         }
 
 
