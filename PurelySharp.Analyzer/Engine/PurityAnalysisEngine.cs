@@ -926,7 +926,12 @@ namespace PurelySharp.Analyzer.Engine
                         if (directThrowOnlySyntax != null)
                         {
                             LogDebug($"{indent}  Post-CFG: Found direct throw-only body IMPURE: {directThrowOnlySyntax}");
-                            result = PurityAnalysisResult.Impure(directThrowOnlySyntax);
+                            result = PurityAnalysisResult.Impure(
+                                directThrowOnlySyntax,
+                                PurityEvidence.Create(
+                                    "throw",
+                                    ruleName: "ThrowOperationPurityRule",
+                                    syntaxNode: directThrowOnlySyntax));
                             goto PostCfgChecksDone;
                         }
 
