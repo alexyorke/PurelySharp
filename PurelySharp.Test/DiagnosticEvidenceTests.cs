@@ -321,6 +321,29 @@ public class TestClass
         }
 
         [Test]
+        public async Task Ps0002_UnsafePointerOperation_IncludesUnsafePointerCategory()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public unsafe int TestMethod()
+    {
+        int value = 1;
+        int* pointer = &value;
+        return *pointer;
+    }
+}", allowUnsafe: true);
+
+            var diagnostic = SingleDiagnostic(diagnostics, PurelySharpDiagnostics.PurityNotVerifiedId);
+
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCategoryProperty], Is.EqualTo("unsafe_pointer"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityRuleProperty], Is.EqualTo("UnsupportedOperation"));
+        }
+
+        [Test]
         public async Task Ps0009_IsOnlyEmittedWhenExplanationsAreEnabled()
         {
             var source = @"
@@ -352,7 +375,8 @@ public class TestClass
 
         private static async Task<ImmutableArray<Diagnostic>> GetAnalyzerDiagnosticsAsync(
             string source,
-            ImmutableDictionary<string, string>? globalOptions = null)
+            ImmutableDictionary<string, string>? globalOptions = null,
+            bool allowUnsafe = false)
         {
             var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Preview));
             var references = GetTrustedPlatformReferences()
@@ -362,7 +386,7 @@ public class TestClass
                 "DiagnosticEvidenceTests",
                 new[] { syntaxTree },
                 references,
-                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, allowUnsafe: allowUnsafe));
 
             var analyzerOptions = new AnalyzerOptions(
                 ImmutableArray<AdditionalText>.Empty,

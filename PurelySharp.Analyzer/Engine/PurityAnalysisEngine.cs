@@ -1631,7 +1631,7 @@ namespace PurelySharp.Analyzer.Engine
 
                 LogDebug($"    [CSO] No rule found for operation kind {operation.Kind}. Defaulting to impure. Syntax: '{operation.Syntax.ToString().Trim()}'");
                 LogDebug($"    [CSO] Exit CheckSingleOperation (Impure default)");
-                return ImpureResult(operation.Syntax);
+                return ImpureResult(operation.Syntax, CreateUnsupportedOperationEvidence(operation));
             }
         }
 
@@ -1740,6 +1740,26 @@ namespace PurelySharp.Analyzer.Engine
             }
         }
 
+
+        private static PurityEvidence CreateUnsupportedOperationEvidence(IOperation operation)
+        {
+            return IsUnsafePointerOperation(operation)
+                ? PurityEvidence.Create("unsafe_pointer", ruleName: "UnsupportedOperation", operation: operation)
+                : PurityEvidence.Create("unsupported_operation", operation: operation);
+        }
+
+        private static bool IsUnsafePointerOperation(IOperation operation)
+        {
+            var operationKind = operation.Kind.ToString();
+            var typeKind = operation.Type?.TypeKind.ToString() ?? string.Empty;
+
+            return operationKind.IndexOf("Pointer", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   operationKind.Equals("AddressOf", StringComparison.Ordinal) ||
+                   operationKind.Equals("Fixed", StringComparison.Ordinal) ||
+                   operationKind.Equals("SizeOf", StringComparison.Ordinal) ||
+                   operationKind.Equals("StackAlloc", StringComparison.Ordinal) ||
+                   typeKind.IndexOf("Pointer", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
 
         internal static PurityAnalysisResult ImpureResult(SyntaxNode? syntaxNode, PurityEvidence evidence = default)
         {
