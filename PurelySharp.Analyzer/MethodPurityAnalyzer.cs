@@ -66,9 +66,11 @@ namespace PurelySharp.Analyzer
             bool hasPureAttribute = (pureAttributeSymbol != null && HasAttribute(methodSymbol, pureAttributeSymbol))
                 || HasAttributeByName(methodSymbol, "PureAttribute");
             bool hasPureExternalAttribute = (pureExternalAttributeSymbol != null && HasAttribute(methodSymbol, pureExternalAttributeSymbol))
-                || HasAttributeByName(methodSymbol, "PureExternalAttribute");
+                || HasAttributeByName(methodSymbol, "PureExternalAttribute")
+                || PurityAnalysisEngine.HasPureExternalAttribute(methodSymbol);
             bool hasImpureAttribute = (impureAttributeSymbol != null && HasAttribute(methodSymbol, impureAttributeSymbol))
-                || HasAttributeByName(methodSymbol, "ImpureAttribute");
+                || HasAttributeByName(methodSymbol, "ImpureAttribute")
+                || PurityAnalysisEngine.HasImpureAttribute(methodSymbol);
 
             if (hasEnforcePureAttribute && hasPureAttribute)
             {

@@ -1744,9 +1744,21 @@ namespace PurelySharp.Analyzer.Engine
 
             var fullyQualifiedName = "global::" + fullyQualifiedMetadataName;
             return GetAttributesIncludingAssociatedSymbol(symbol).Any(ad =>
-                string.Equals(ad.AttributeClass?.Name, attributeName, StringComparison.Ordinal) ||
-                string.Equals(ad.AttributeClass?.ToDisplayString(), fullyQualifiedMetadataName, StringComparison.Ordinal) ||
-                string.Equals(ad.AttributeClass?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), fullyQualifiedName, StringComparison.Ordinal));
+                    IsAttributeNamed(ad, attributeName, fullyQualifiedMetadataName, fullyQualifiedName)) ||
+                symbol.ContainingAssembly?.GetAttributes().Any(ad =>
+                    IsAttributeNamed(ad, attributeName, fullyQualifiedMetadataName, fullyQualifiedName)) == true;
+        }
+
+        private static bool IsAttributeNamed(
+            AttributeData attributeData,
+            string attributeName,
+            string fullyQualifiedMetadataName,
+            string fullyQualifiedName)
+        {
+            return
+                string.Equals(attributeData.AttributeClass?.Name, attributeName, StringComparison.Ordinal) ||
+                string.Equals(attributeData.AttributeClass?.ToDisplayString(), fullyQualifiedMetadataName, StringComparison.Ordinal) ||
+                string.Equals(attributeData.AttributeClass?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), fullyQualifiedName, StringComparison.Ordinal);
         }
 
         private static IEnumerable<AttributeData> GetAttributesIncludingAssociatedSymbol(ISymbol symbol)

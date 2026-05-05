@@ -152,5 +152,45 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task AssemblyPureExternal_TrustsMethodsByDefault()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+[assembly: PureExternal]
+
+public class Boundary
+{
+    public static int TrustedByAssemblyDefault() => DateTime.Now.Millisecond;
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Caller() => Boundary.TrustedByAssemblyDefault();
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task AssemblyImpure_MarksMethodsImpureByDefault()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+[assembly: Impure]
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:Caller|}() => 1;
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
