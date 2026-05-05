@@ -73,7 +73,7 @@ public class C
 
 
         [Test]
-        public async Task LockStatement_WithPureOperations_ShouldBePure()
+        public async Task LockStatement_WithPureOperations_RemainsConservativelyImpure()
         {
             var test = @"
 using System;
