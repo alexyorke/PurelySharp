@@ -66,12 +66,14 @@ static void RunBuild(string input, string sarifPath)
     startInfo.ArgumentList.Add("/p:ErrorLog=" + sarifPath);
 
     using var process = Process.Start(startInfo) ?? throw new InvalidOperationException("Failed to start dotnet build.");
+    var outputTask = process.StandardOutput.ReadToEndAsync();
+    var errorTask = process.StandardError.ReadToEndAsync();
     process.WaitForExit();
+    var output = outputTask.GetAwaiter().GetResult();
+    var error = errorTask.GetAwaiter().GetResult();
 
     if (!File.Exists(sarifPath))
     {
-        var output = process.StandardOutput.ReadToEnd();
-        var error = process.StandardError.ReadToEnd();
         throw new InvalidOperationException("dotnet build did not produce a SARIF error log." + Environment.NewLine + output + Environment.NewLine + error);
     }
 }
