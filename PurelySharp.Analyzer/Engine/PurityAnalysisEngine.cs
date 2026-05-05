@@ -651,6 +651,30 @@ namespace PurelySharp.Analyzer.Engine
             try
             {
 
+                if (HasImpureAttribute(methodSymbol))
+                {
+                    LogDebug($"{indent}Method {methodSymbol.ToDisplayString()} is marked [Impure].");
+                    var syntax = methodSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax();
+                    var explicitlyImpureResult = ImpureResult(
+                        syntax,
+                        PurityEvidence.Create(
+                            "impure_boundary_attribute",
+                            syntaxNode: syntax,
+                            symbol: methodSymbol,
+                            catalogSource: "attribute"));
+                    purityCache[methodSymbol] = explicitlyImpureResult;
+                    LogDebug($"{indent}<< Exit DeterminePurity ([Impure]): {methodSymbol.ToDisplayString()}");
+                    return explicitlyImpureResult;
+                }
+
+                if (HasPureExternalAttribute(methodSymbol))
+                {
+                    LogDebug($"{indent}Method {methodSymbol.ToDisplayString()} is marked [PureExternal].");
+                    purityCache[methodSymbol] = PurityAnalysisResult.Pure;
+                    LogDebug($"{indent}<< Exit DeterminePurity ([PureExternal]): {methodSymbol.ToDisplayString()}");
+                    return PurityAnalysisResult.Pure;
+                }
+
                 if (IsKnownImpure(methodSymbol))
                 {
                     LogDebug($"{indent}Method {methodSymbol.ToDisplayString()} is known impure.");
@@ -1596,6 +1620,18 @@ namespace PurelySharp.Analyzer.Engine
         internal static bool IsKnownImpure(ISymbol symbol) => ImpurityCatalog.IsKnownImpure(symbol);
 
 
+        internal static bool HasPureExternalAttribute(ISymbol symbol)
+        {
+            return HasAttributeNamed(symbol, "PureExternalAttribute", "PurelySharp.Attributes.PureExternalAttribute");
+        }
+
+
+        internal static bool HasImpureAttribute(ISymbol symbol)
+        {
+            return HasAttributeNamed(symbol, "ImpureAttribute", "PurelySharp.Attributes.ImpureAttribute");
+        }
+
+
         internal static PurityAnalysisResult GetCalleePurity(
             IMethodSymbol methodSymbol,
             Rules.PurityAnalysisContext context)
@@ -1642,8 +1678,24 @@ namespace PurelySharp.Analyzer.Engine
                 string.Equals(
                     ad.AttributeClass?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                     pureAttributeFullyQualifiedName,
-                    StringComparison.Ordinal)
+                    StringComparison.Ordinal) ||
+                HasPureExternalAttribute(symbol)
             );
+        }
+
+
+        private static bool HasAttributeNamed(ISymbol symbol, string attributeName, string fullyQualifiedMetadataName)
+        {
+            if (symbol == null)
+            {
+                return false;
+            }
+
+            var fullyQualifiedName = "global::" + fullyQualifiedMetadataName;
+            return symbol.GetAttributes().Any(ad =>
+                string.Equals(ad.AttributeClass?.Name, attributeName, StringComparison.Ordinal) ||
+                string.Equals(ad.AttributeClass?.ToDisplayString(), fullyQualifiedMetadataName, StringComparison.Ordinal) ||
+                string.Equals(ad.AttributeClass?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), fullyQualifiedName, StringComparison.Ordinal));
         }
 
 

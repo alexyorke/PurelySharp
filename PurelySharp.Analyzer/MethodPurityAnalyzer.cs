@@ -44,6 +44,12 @@ namespace PurelySharp.Analyzer
             var pureAttributeSymbol =
                 ResolveAttributeSymbol(context.SemanticModel.Compilation, "PurelySharp.Attributes.PureAttribute", "PureAttribute")
                 ?? GetAppliedAttributeSymbol(methodSymbol, "PureAttribute");
+            var pureExternalAttributeSymbol =
+                ResolveAttributeSymbol(context.SemanticModel.Compilation, "PurelySharp.Attributes.PureExternalAttribute", "PureExternalAttribute")
+                ?? GetAppliedAttributeSymbol(methodSymbol, "PureExternalAttribute");
+            var impureAttributeSymbol =
+                ResolveAttributeSymbol(context.SemanticModel.Compilation, "PurelySharp.Attributes.ImpureAttribute", "ImpureAttribute")
+                ?? GetAppliedAttributeSymbol(methodSymbol, "ImpureAttribute");
 
             if (enforcePureAttributeSymbol == null && pureAttributeSymbol == null)
             {
@@ -59,6 +65,10 @@ namespace PurelySharp.Analyzer
                 || HasAttributeByName(methodSymbol, "EnforcePureAttribute");
             bool hasPureAttribute = (pureAttributeSymbol != null && HasAttribute(methodSymbol, pureAttributeSymbol))
                 || HasAttributeByName(methodSymbol, "PureAttribute");
+            bool hasPureExternalAttribute = (pureExternalAttributeSymbol != null && HasAttribute(methodSymbol, pureExternalAttributeSymbol))
+                || HasAttributeByName(methodSymbol, "PureExternalAttribute");
+            bool hasImpureAttribute = (impureAttributeSymbol != null && HasAttribute(methodSymbol, impureAttributeSymbol))
+                || HasAttributeByName(methodSymbol, "ImpureAttribute");
 
             if (hasEnforcePureAttribute && hasPureAttribute)
             {
@@ -74,7 +84,7 @@ namespace PurelySharp.Analyzer
             }
 
 
-            bool hasPurityEnforcementAttribute = hasEnforcePureAttribute || hasPureAttribute || HasPurityEnforcement(methodSymbol, enforcePureAttributeSymbol, pureAttributeSymbol);
+            bool hasPurityEnforcementAttribute = hasEnforcePureAttribute || hasPureAttribute || hasPureExternalAttribute || HasPurityEnforcement(methodSymbol, enforcePureAttributeSymbol, pureAttributeSymbol);
             bool hasAllowSynchronization =
                 (allowSynchronizationAttributeSymbol != null && HasAttribute(methodSymbol, allowSynchronizationAttributeSymbol))
                 || HasAttributeByName(methodSymbol, "AllowSynchronizationAttribute");
@@ -156,7 +166,7 @@ namespace PurelySharp.Analyzer
                 }
             }
 
-            else if (missingPuritySuggestions.IsEnabled && isPure && !hasPurityEnforcementAttribute && !hasAllowSynchronization)
+            else if (missingPuritySuggestions.IsEnabled && isPure && !hasPurityEnforcementAttribute && !hasAllowSynchronization && !hasImpureAttribute)
             {
                 if (context.Node is LocalFunctionStatementSyntax)
                 {

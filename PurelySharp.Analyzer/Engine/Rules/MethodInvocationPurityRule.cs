@@ -216,6 +216,29 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             if (invokedMethodSymbol.IsStatic && invokedMethodSymbol.ContainingType != null)
             {
+                var staticOriginalDefinitionSymbol = invokedMethodSymbol.OriginalDefinition;
+                if (PurityAnalysisEngine.HasImpureAttribute(staticOriginalDefinitionSymbol))
+                {
+                    PurityAnalysisEngine.LogDebug("  [MIR] --> IMPURE ([Impure] boundary attribute)");
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                        invocationOperation.Syntax,
+                        PurityAnalysisEngine.PurityEvidence.Create(
+                            "impure_boundary_attribute",
+                            nameof(MethodInvocationPurityRule),
+                            invocationOperation,
+                            symbol: staticOriginalDefinitionSymbol,
+                            catalogSource: "attribute"));
+                }
+
+                if (PurityAnalysisEngine.HasPureExternalAttribute(staticOriginalDefinitionSymbol))
+                {
+                    PurityAnalysisEngine.LogDebug("  [MIR] --> PURE ([PureExternal] boundary attribute)");
+                    return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+                }
+            }
+
+            if (invokedMethodSymbol.IsStatic && invokedMethodSymbol.ContainingType != null)
+            {
                 var cctorResult = PurityAnalysisEngine.CheckStaticConstructorPurity(invokedMethodSymbol.ContainingType, context, currentState);
                 if (!cctorResult.IsPure)
                 {
@@ -242,6 +265,24 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
 
             var originalDefinitionSymbol = invokedMethodSymbol.OriginalDefinition;
+            if (PurityAnalysisEngine.HasImpureAttribute(originalDefinitionSymbol))
+            {
+                PurityAnalysisEngine.LogDebug("  [MIR] --> IMPURE ([Impure] boundary attribute)");
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                    invocationOperation.Syntax,
+                    PurityAnalysisEngine.PurityEvidence.Create(
+                        "impure_boundary_attribute",
+                        nameof(MethodInvocationPurityRule),
+                        invocationOperation,
+                        symbol: originalDefinitionSymbol,
+                        catalogSource: "attribute"));
+            }
+
+            if (PurityAnalysisEngine.HasPureExternalAttribute(originalDefinitionSymbol))
+            {
+                PurityAnalysisEngine.LogDebug("  [MIR] --> PURE ([PureExternal] boundary attribute)");
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
 
             PurityAnalysisEngine.LogDebug($"  [MIR] Checking purity of {invocationOperation.Arguments.Length} arguments for {originalDefinitionSymbol.Name}.");
             foreach (var argument in invocationOperation.Arguments)
