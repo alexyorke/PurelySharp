@@ -37,7 +37,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             if (fieldSymbol.IsVolatile)
             {
                 PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Field '{fieldSymbol.Name}' is volatile - Impure read.");
-                return PurityAnalysisEngine.PurityAnalysisResult.Impure(fieldReferenceOperation.Syntax);
+                return ImpureFieldRead(fieldReferenceOperation, "volatile");
             }
 
 
@@ -55,7 +55,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 if (!instanceResult.IsPure)
                 {
                     PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Instance expression is IMPURE. Field reference is Impure.");
-                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(fieldReferenceOperation.Syntax);
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                        instanceResult.ImpureSyntaxNode ?? fieldReferenceOperation.Syntax,
+                        instanceResult.Evidence);
                 }
             }
 
@@ -66,7 +68,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 if (!staticCtorResult.IsPure)
                 {
                     PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Static constructor trigger for field '{fieldSymbol.Name}' is IMPURE. Field reference is Impure.");
-                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(fieldReferenceOperation.Syntax);
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                        staticCtorResult.ImpureSyntaxNode ?? fieldReferenceOperation.Syntax,
+                        staticCtorResult.Evidence);
                 }
 
                 if (fieldSymbol.IsReadOnly)
@@ -74,7 +78,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     if (PurityAnalysisEngine.IsKnownImpure(fieldSymbol))
                     {
                         PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Static readonly field '{fieldSymbol.Name}' is explicitly known impure.");
-                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(fieldReferenceOperation.Syntax);
+                        return ImpureFieldRead(fieldReferenceOperation, "known_impure_member");
                     }
 
                     PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Static readonly field '{fieldSymbol.Name}' - Pure");
@@ -83,7 +87,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 else
                 {
                     PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Static non-readonly field '{fieldSymbol.Name}' - Impure");
-                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(fieldReferenceOperation.Syntax);
+                    return ImpureFieldRead(fieldReferenceOperation);
                 }
             }
 
@@ -111,7 +115,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     else
                     {
                         PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Instance '{paramRef.Parameter.Name}' is mutable ref/out. Read is Impure.");
-                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(fieldReferenceOperation.Syntax);
+                        return ImpureFieldRead(fieldReferenceOperation);
                     }
                 }
                 else if (instanceOperation is IInstanceReferenceOperation instanceRef && instanceRef.ReferenceKind == InstanceReferenceKind.ContainingTypeInstance)
@@ -156,7 +160,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     if (!receiverResult.IsPure)
                     {
                         PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Instance operation is impure ({instanceOperation.Kind}). Read is impure.");
-                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(receiverResult.ImpureSyntaxNode ?? instanceOperation.Syntax);
+                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                            receiverResult.ImpureSyntaxNode ?? instanceOperation.Syntax,
+                            receiverResult.Evidence);
                     }
 
 
@@ -173,7 +179,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     {
 
                         PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Instance is complex ({instanceOperation.Kind})/non-readonly-local and field '{fieldSymbol.Name}' not known pure BCL. Assuming read is Impure.");
-                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(fieldReferenceOperation.Syntax);
+                        return ImpureFieldRead(fieldReferenceOperation);
                     }
                 }
             }
@@ -181,6 +187,21 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Unhandled case for field '{fieldSymbol.Name}'. Assuming Impure.");
             return PurityAnalysisEngine.PurityAnalysisResult.Impure(fieldReferenceOperation.Syntax);
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult ImpureFieldRead(
+            IFieldReferenceOperation fieldReferenceOperation,
+            string? catalogSource = null)
+        {
+            return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                fieldReferenceOperation.Syntax,
+                PurityAnalysisEngine.PurityEvidence.Create(
+                    "mutable_state_read",
+                    ruleName: nameof(FieldReferencePurityRule),
+                    operation: fieldReferenceOperation,
+                    syntaxNode: fieldReferenceOperation.Syntax,
+                    symbol: fieldReferenceOperation.Field,
+                    catalogSource: catalogSource));
         }
 
 
