@@ -40,7 +40,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
                         if (!elementPurity.IsPure)
                         {
                             LogDebug($"    [ArrCreateRule] 'params' array initializer element '{elementValue.Syntax}' is IMPURE. Operation is Impure.");
-                            return PurityAnalysisResult.Impure(elementPurity.ImpureSyntaxNode ?? elementValue.Syntax);
+                            return PurityAnalysisResult.Impure(
+                                elementPurity.ImpureSyntaxNode ?? elementValue.Syntax,
+                                elementPurity.Evidence);
                         }
                     }
                     LogDebug($"    [ArrCreateRule] All 'params' array initializer elements are Pure.");
@@ -62,7 +64,15 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 }
 
                 LogDebug($"    [ArrCreateRule] Array creation '{arrayCreation.Syntax}' is IMPURE (mutable allocation, not for params).");
-                return PurityAnalysisResult.Impure(arrayCreation.Syntax);
+                return PurityAnalysisResult.Impure(
+                    arrayCreation.Syntax,
+                    PurityEvidence.Create(
+                        "mutable_state_write",
+                        ruleName: nameof(ArrayCreationPurityRule),
+                        operation: arrayCreation,
+                        syntaxNode: arrayCreation.Syntax,
+                        symbol: arrayCreation.Type,
+                        catalogSource: "array_creation"));
             }
         }
 
