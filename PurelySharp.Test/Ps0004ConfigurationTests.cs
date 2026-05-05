@@ -44,6 +44,23 @@ public class TestClass
         }
 
         [Test]
+        public async Task Ps0004_ScopeInternal_ReportsInternalMethodsOnly()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+public class TestClass
+{
+    public int PublicPure() => 1;
+    internal int InternalPure() => 2;
+    private int PrivatePure() => 3;
+}", ImmutableDictionary<string, string>.Empty.Add("purelysharp_suggest_missing_enforce_pure_scope", "internal"));
+
+            var messages = DiagnosticMessages(diagnostics);
+            Assert.That(messages, Has.None.Contains("PublicPure"));
+            Assert.That(messages, Has.Some.Contains("InternalPure"));
+            Assert.That(messages, Has.None.Contains("PrivatePure"));
+        }
+
+        [Test]
         public async Task Ps0004_ExcludeTests_SuppressesTestNamedCode()
         {
             var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
