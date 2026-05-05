@@ -194,6 +194,26 @@ dotnet run --project Tools/PurelySharp.CorpusReport -- --output artifacts/purely
 
 The JSON report includes `PS0002`, `PS0004`, and `PS0009` counts, impurity categories, operation kinds, top impure APIs, catalog-miss candidates, and false-positive candidates based on the structured diagnostic properties emitted by `PS0002`.
 
+## CI Usage
+
+For strict CI gates, fail builds on enforced purity violations and keep adoption suggestions advisory:
+
+```ini
+# .editorconfig
+dotnet_diagnostic.PS0002.severity = error
+dotnet_diagnostic.PS0004.severity = suggestion
+dotnet_diagnostic.PS0009.severity = none
+```
+
+For SARIF-producing builds, use MSBuild `ErrorLog` and then summarize the output with the corpus report tool:
+
+```powershell
+dotnet build MySolution.sln /p:ErrorLog=artifacts/purelysharp.sarif
+dotnet run --project Tools/PurelySharp.CorpusReport -- --output artifacts/purelysharp-report.json artifacts/purelysharp.sarif
+```
+
+`PS0002` diagnostics include stable properties for CI triage: impurity category, rule name, operation kind, symbol, catalog/config source, and callee chain. Use `PurelySharp.Baseline.json` as an additional file when adopting incrementally and suppressing known existing diagnostics by ID, symbol documentation ID, and relative path.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to open issues or submit pull requests, especially regarding the implementation of specific purity-checking rules which is the main focus for future development.
