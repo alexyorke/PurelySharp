@@ -105,7 +105,15 @@ namespace PurelySharp.Analyzer.Engine.Rules
             if (objectCreationOperation.Type is IArrayTypeSymbol)
             {
                 PurityAnalysisEngine.LogDebug($"    [ObjCreateRule] Object creation '{objectCreationOperation.Syntax}' is IMPURE because it creates an array.");
-                return PurityAnalysisResult.Impure(objectCreationOperation.Syntax);
+                return PurityAnalysisResult.Impure(
+                    objectCreationOperation.Syntax,
+                    PurityAnalysisEngine.PurityEvidence.Create(
+                        "mutable_state_write",
+                        ruleName: nameof(ObjectCreationPurityRule),
+                        operation: objectCreationOperation,
+                        syntaxNode: objectCreationOperation.Syntax,
+                        symbol: objectCreationOperation.Type,
+                        catalogSource: "array_creation"));
             }
 
 
@@ -119,14 +127,30 @@ namespace PurelySharp.Analyzer.Engine.Rules
             ))
             {
                 PurityAnalysisEngine.LogDebug($"    [ObjCreateRule] Object creation '{objectCreationOperation.Syntax}' is IMPURE because it creates a known mutable collection type '{typeName}'. StringBuilder is handled separately or by usage.");
-                return PurityAnalysisResult.Impure(objectCreationOperation.Syntax);
+                return PurityAnalysisResult.Impure(
+                    objectCreationOperation.Syntax,
+                    PurityAnalysisEngine.PurityEvidence.Create(
+                        "catalog_hit",
+                        ruleName: nameof(ObjectCreationPurityRule),
+                        operation: objectCreationOperation,
+                        syntaxNode: objectCreationOperation.Syntax,
+                        symbol: constructorSymbol ?? (ISymbol?)objectCreationOperation.Type,
+                        catalogSource: "known_mutable_collection"));
             }
 
 
             if (objectCreationOperation.Type != null && PurityAnalysisEngine.IsInImpureNamespaceOrType(objectCreationOperation.Type))
             {
                 PurityAnalysisEngine.LogDebug($"    [ObjCreateRule] Object creation '{objectCreationOperation.Syntax}' is IMPURE because type '{objectCreationOperation.Type.ToDisplayString()}' is in a known impure namespace/type.");
-                return PurityAnalysisResult.Impure(objectCreationOperation.Syntax);
+                return PurityAnalysisResult.Impure(
+                    objectCreationOperation.Syntax,
+                    PurityAnalysisEngine.PurityEvidence.Create(
+                        "catalog_hit",
+                        ruleName: nameof(ObjectCreationPurityRule),
+                        operation: objectCreationOperation,
+                        syntaxNode: objectCreationOperation.Syntax,
+                        symbol: constructorSymbol ?? (ISymbol)objectCreationOperation.Type,
+                        catalogSource: "known_impure_namespace_or_type"));
             }
 
 
