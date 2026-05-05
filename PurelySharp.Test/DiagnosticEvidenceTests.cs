@@ -540,6 +540,38 @@ public class TestClass
         }
 
         [Test]
+        public async Task Ps0002_UserDefinedConversionImpurity_PreservesOperatorEvidence()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+using PurelySharp.Attributes;
+
+public readonly struct Wrapped
+{
+    public static explicit operator int(Wrapped value)
+    {
+        Console.WriteLine(""side effect"");
+        return 1;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int TestMethod(Wrapped value)
+    {
+        return (int)value;
+    }
+}");
+
+            var diagnostic = SingleDiagnostic(diagnostics, PurelySharpDiagnostics.PurityNotVerifiedId);
+
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCategoryProperty], Is.EqualTo("catalog_hit"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityRuleProperty], Is.EqualTo("MethodInvocationPurityRule"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpuritySymbolProperty], Does.Contain("System.Console.WriteLine"));
+        }
+
+        [Test]
         public async Task Ps0009_IsOnlyEmittedWhenExplanationsAreEnabled()
         {
             var source = @"

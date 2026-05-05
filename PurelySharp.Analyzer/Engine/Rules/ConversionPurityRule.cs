@@ -59,7 +59,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 if (!operatorResult.IsPure)
                 {
 
-                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(operatorResult.ImpureSyntaxNode ?? conversionOperation.Syntax);
+                    return operatorResult.WithCallee(operatorMethod, conversionOperation.Syntax);
                 }
                 else
                 {
