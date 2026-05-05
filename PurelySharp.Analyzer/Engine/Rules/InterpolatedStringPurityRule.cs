@@ -53,7 +53,14 @@ namespace PurelySharp.Analyzer.Engine.Rules
                         if (partResult.IsPure)
                         {
                             PurityAnalysisEngine.LogDebug($"    [InterpStrRule] Non-null interpolation alignment implies formatting semantics. Marking impure.");
-                            partResult = PurityAnalysisEngine.PurityAnalysisResult.Impure(interpolation.Syntax);
+                            partResult = PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                                interpolation.Syntax,
+                                PurityAnalysisEngine.PurityEvidence.Create(
+                                    "reflection_environment_source",
+                                    ruleName: nameof(InterpolatedStringPurityRule),
+                                    operation: interpolation,
+                                    syntaxNode: interpolation.Syntax,
+                                    catalogSource: "interpolation_formatting"));
                         }
                     }
                     if (partResult.IsPure && interpolation.FormatString != null)
@@ -63,7 +70,14 @@ namespace PurelySharp.Analyzer.Engine.Rules
                         if (partResult.IsPure)
                         {
                             PurityAnalysisEngine.LogDebug($"    [InterpStrRule] Non-null interpolation format string implies formatting semantics. Marking impure.");
-                            partResult = PurityAnalysisEngine.PurityAnalysisResult.Impure(interpolation.Syntax);
+                            partResult = PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                                interpolation.Syntax,
+                                PurityAnalysisEngine.PurityEvidence.Create(
+                                    "reflection_environment_source",
+                                    ruleName: nameof(InterpolatedStringPurityRule),
+                                    operation: interpolation,
+                                    syntaxNode: interpolation.Syntax,
+                                    catalogSource: "interpolation_formatting"));
                         }
                     }
                 }
@@ -77,7 +91,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 if (!partResult.IsPure)
                 {
                     PurityAnalysisEngine.LogDebug($"    [InterpStrRule] Part is IMPURE. Interpolated string is Impure.");
-                    return PurityAnalysisEngine.ImpureResult(part.Syntax);
+                    return PurityAnalysisEngine.ImpureResult(
+                        partResult.ImpureSyntaxNode ?? part.Syntax,
+                        partResult.Evidence);
                 }
             }
 
