@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1350/1350` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1352/1352` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -19,7 +19,7 @@
   - virtual and interface property getter dispatch now considers in-compilation getter implementations instead of trusting only the referenced getter
   - `PurelySharp.Package` metadata no longer contains placeholder URLs and now packs the root README
   - representative catalog signatures now have Roslyn resolution smoke coverage against .NET 8 references
-  - dynamic operations now report `dynamic_dispatch` evidence instead of generic unsupported-operation evidence
+  - dynamic operations, including dynamic unary/binary operators, now report `dynamic_dispatch` evidence instead of generic unsupported-operation evidence
   - source `extern` calls now report `unknown_external_call` evidence with the extern symbol
   - mutable field reads and writes now report `mutable_state_read` / `mutable_state_write` evidence
   - assignment RHS, method argument, LINQ argument, and property getter impurities now preserve the original structured evidence instead of collapsing to generic unsupported-operation evidence

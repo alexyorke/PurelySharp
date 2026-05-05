@@ -46,7 +46,13 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 binaryOperation.Type?.TypeKind == TypeKind.Dynamic)
             {
                 PurityAnalysisEngine.LogDebug($"    [BinaryOpRule] Dynamic binary operation detected. Conservatively treating as Impure.");
-                return PurityAnalysisEngine.PurityAnalysisResult.Impure(binaryOperation.Syntax);
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                    binaryOperation.Syntax,
+                    PurityAnalysisEngine.PurityEvidence.Create(
+                        "dynamic_dispatch",
+                        nameof(BinaryOperationPurityRule),
+                        binaryOperation,
+                        syntaxNode: binaryOperation.Syntax));
             }
 
 
