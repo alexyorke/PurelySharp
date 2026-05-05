@@ -27,6 +27,18 @@ public class TestClass
         }
 
         [Test]
+        public async Task Ps0004_LegacyBooleanFalse_SuppressesMissingPuritySuggestions()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+public class TestClass
+{
+    public int Pure() => 1;
+}", ImmutableDictionary<string, string>.Empty.Add("purelysharp_suggest_missing_enforce_pure", "false"));
+
+            Assert.That(DiagnosticMessages(diagnostics), Has.None.Contains("Pure"));
+        }
+
+        [Test]
         public async Task Ps0004_ScopePublic_ReportsPublicMethodsOnly()
         {
             var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
