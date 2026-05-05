@@ -106,6 +106,36 @@ namespace TestNamespace {
             Assert.That(properties.Values, Has.None.Contains("HERE_OR_DELETE"));
         }
 
+        [Test]
+        public void PackageProject_ShouldPackAnalyzerCodeFixAndAttributesInExpectedLocations()
+        {
+            var projectPath = Path.Combine(FindRepositoryRoot(), "PurelySharp.Package", "PurelySharp.Package.csproj");
+            var document = XDocument.Load(projectPath);
+            var packageFiles = document
+                .Descendants("TfmSpecificPackageFile")
+                .Select(element => new
+                {
+                    Include = element.Attribute("Include")?.Value ?? string.Empty,
+                    PackagePath = element.Attribute("PackagePath")?.Value ?? string.Empty
+                })
+                .ToArray();
+
+            Assert.That(packageFiles.Any(file =>
+                file.Include.EndsWith("PurelySharp.Analyzer.dll", StringComparison.Ordinal) &&
+                file.PackagePath == "analyzers/dotnet/cs"), Is.True,
+                "The analyzer assembly must be packed under analyzers/dotnet/cs.");
+
+            Assert.That(packageFiles.Any(file =>
+                file.Include.EndsWith("PurelySharp.CodeFixes.dll", StringComparison.Ordinal) &&
+                file.PackagePath == "analyzers/dotnet/cs"), Is.True,
+                "The code fix assembly must be packed next to the analyzer.");
+
+            Assert.That(packageFiles.Any(file =>
+                file.Include.EndsWith("PurelySharp.Attributes.dll", StringComparison.Ordinal) &&
+                file.PackagePath == "lib/netstandard2.0"), Is.True,
+                "The attributes assembly must be packed as a library reference.");
+        }
+
         private static string FindRepositoryRoot()
         {
             var directory = new DirectoryInfo(TestContext.CurrentContext.TestDirectory);
