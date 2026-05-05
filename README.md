@@ -21,7 +21,7 @@ Currently, the analyzer provides the following checks:
     - Purity of invoked methods (recursive check with cycle detection).
     - Purity of expressions (constants, parameters, `static readonly` fields, basic operators, etc.).
     - Purity of basic statements (local declarations, return, simple expression statements).
-6.  **Regression status:** The in-repo analyzer suite currently passes `1320/1320` tests on .NET 8.
+6.  **Regression status:** The in-repo analyzer suite currently passes `1327/1327` tests on .NET 8.
 
 **Inherent limitations (not “missing features”):**
 
@@ -192,7 +192,7 @@ dotnet run --project Tools/PurelySharp.CorpusReport -- artifacts/purelysharp.sar
 dotnet run --project Tools/PurelySharp.CorpusReport -- --output artifacts/purelysharp-report.json PurelySharp.sln
 ```
 
-The JSON report includes `PS0002`, `PS0004`, and `PS0009` counts, impurity categories, operation kinds, unsupported/unknown operation kinds, top impure APIs, catalog-miss candidates, and false-positive candidates based on the structured diagnostic properties emitted by `PS0002`.
+The JSON report includes `PS0002`, `PS0004`, and `PS0009` counts, per-diagnostic evidence rows, impurity categories, operation kinds, unsupported/unknown operation kinds, top impure APIs, catalog-miss candidates, and false-positive candidates based on the structured diagnostic properties emitted by `PS0002`.
 
 ## CI Usage
 
@@ -212,7 +212,7 @@ dotnet build MySolution.sln /p:ErrorLog=artifacts/purelysharp.sarif
 dotnet run --project Tools/PurelySharp.CorpusReport -- --output artifacts/purelysharp-report.json artifacts/purelysharp.sarif
 ```
 
-`PS0002` diagnostics include stable properties for CI triage: impurity category, rule name, operation kind, symbol, catalog/config source, and callee chain. Evidence is preserved through common wrapper operations such as assignments, method arguments, LINQ arguments, property getters, mutable field reads/writes, dynamic dispatch, extern calls, and direct throw-only bodies. Use `PurelySharp.Baseline.json` as an additional file when adopting incrementally and suppressing known existing diagnostics by ID, symbol documentation ID, and relative path.
+`PS0002` diagnostics include stable properties for CI triage: impurity category, rule name, operation kind, symbol, catalog/config source, and callee chain. Evidence is preserved through common wrapper operations such as assignments, method arguments, LINQ arguments, property getters, mutable field reads/writes, dynamic dispatch, extern calls, synchronization, unsafe pointer operations, reflection/environment sources, unresolved delegate targets, and direct throw-only bodies. Use `PurelySharp.Baseline.json` as an additional file when adopting incrementally and suppressing known existing diagnostics by ID, symbol documentation ID, and relative path.
 
 ## Contributing
 
