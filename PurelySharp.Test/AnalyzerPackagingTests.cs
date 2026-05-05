@@ -9,6 +9,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
 using NUnit.Framework;
 using System.Collections.Immutable;
+using System.Xml.Linq;
 
 namespace PurelySharp.Test
 {
@@ -84,6 +85,41 @@ namespace TestNamespace {
             var diagnostics = await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
 
             Assert.That(diagnostics, Is.Not.Null);
+        }
+
+        [Test]
+        public void PackageProject_ShouldUseReleaseReadyNuGetMetadata()
+        {
+            var projectPath = Path.Combine(FindRepositoryRoot(), "PurelySharp.Package", "PurelySharp.Package.csproj");
+            var document = XDocument.Load(projectPath);
+            var properties = document
+                .Descendants("PropertyGroup")
+                .Elements()
+                .GroupBy(element => element.Name.LocalName)
+                .ToDictionary(group => group.Key, group => group.Last().Value);
+
+            Assert.That(properties["PackageLicenseExpression"], Is.EqualTo("MIT"));
+            Assert.That(properties["PackageProjectUrl"], Is.EqualTo("https://github.com/alexyorke/PurelySharp"));
+            Assert.That(properties["RepositoryUrl"], Is.EqualTo("https://github.com/alexyorke/PurelySharp"));
+            Assert.That(properties["RepositoryType"], Is.EqualTo("git"));
+            Assert.That(properties["PackageReadmeFile"], Is.EqualTo("README.md"));
+            Assert.That(properties.Values, Has.None.Contains("HERE_OR_DELETE"));
+        }
+
+        private static string FindRepositoryRoot()
+        {
+            var directory = new DirectoryInfo(TestContext.CurrentContext.TestDirectory);
+            while (directory != null)
+            {
+                if (Directory.Exists(Path.Combine(directory.FullName, "PurelySharp.Package")))
+                {
+                    return directory.FullName;
+                }
+
+                directory = directory.Parent;
+            }
+
+            throw new DirectoryNotFoundException("Could not locate repository root from test directory.");
         }
     }
 }
