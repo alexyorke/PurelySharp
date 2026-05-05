@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1304/1304` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1313/1313` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -21,6 +21,8 @@
   - representative catalog signatures now have Roslyn resolution smoke coverage against .NET 8 references
   - dynamic operations now report `dynamic_dispatch` evidence instead of generic unsupported-operation evidence
   - source `extern` calls now report `unknown_external_call` evidence with the extern symbol
+  - corpus reports now separately aggregate unsupported/unknown operation kinds
+  - boundary attribute coverage now includes methods, properties/accessors, and constructors
   - nested local-function and lambda purity fallback analysis
   - getter-body verification instead of attribute-shape trust
   - explicit `if`/`while`/`for` condition impurity propagation through CFG branch values
