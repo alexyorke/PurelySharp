@@ -98,7 +98,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 }
                 else if (resourceOperation is ILocalReferenceOperation localReferenceOperation)
                 {
-                    PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Resource is a reference to existing local '{localReferenceOperation.Local.Name}'. Skipping implicit Dispose check within this rule (might be handled elsewhere).");
+                    PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Resource is a reference to existing local '{localReferenceOperation.Local.Name}'. Resource acquisition is pure; implicit Dispose will be checked.");
                 }
                 else
                 {
@@ -192,6 +192,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
             else if (resourceOperation is IVariableDeclaratorOperation declaratorOperation)
             {
                 locals.Add(declaratorOperation.Symbol);
+            }
+
+            var unwrappedResourceOperation = PurityAnalysisEngine.SkipImplicitConversions(resourceOperation);
+            if (unwrappedResourceOperation is ILocalReferenceOperation localReferenceOperation)
+            {
+                locals.Add(localReferenceOperation.Local);
             }
             return locals;
         }

@@ -819,6 +819,19 @@ namespace PurelySharp.Analyzer.Engine
                         }
                         LogDebug($"{indent}  Post-CFG: ReturnOperations check complete (result still pure).");
 
+                        LogDebug($"{indent}  Post-CFG: Checking UsingOperations for implicit Dispose purity...");
+                        foreach (var usingOp in methodBodyIOperation.DescendantsAndSelf().Where(op => op.Kind == OperationKind.Using || op.Kind == OperationKind.UsingDeclaration))
+                        {
+                            var usingResult = CheckSingleOperation(usingOp, postCfgContext, postCfgReturnState);
+                            if (!usingResult.IsPure)
+                            {
+                                LogDebug($"{indent}    Post-CFG: Using operation is IMPURE: {usingOp.Syntax}");
+                                result = usingResult;
+                                goto PostCfgChecksDone;
+                            }
+                        }
+                        LogDebug($"{indent}  Post-CFG: UsingOperations check complete (result still pure).");
+
 
                         LogDebug($"{indent}  Post-CFG: Checking ThrowOperations (divergence without side effects allowed)...");
                         // Allow throw as a pure-diverging operation if its exception expression is pure.

@@ -242,7 +242,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task SuppressFinalizeCall_ReportsMissingAttributeAndImpurityDiagnostics()
+        public async Task SuppressFinalizeCall_ReportsDisposeImpurityDiagnostic()
         {
             var test = @"
 using System;
@@ -264,10 +264,9 @@ public class TestClass
     }
 }";
 
-            var expectedUseResource = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(13, 17, 13, 28).WithArguments("UseResource");
             var expectedDispose = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(8, 17, 8, 24).WithArguments("Dispose");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedUseResource, expectedDispose });
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedDispose);
         }
 
         [Test]
