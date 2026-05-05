@@ -58,7 +58,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     if (!cachedResult.IsPure)
                     {
                         PurityAnalysisEngine.LogDebug($"    [BinaryOpRule] User-defined operator method '{binaryOperation.OperatorMethod.Name}' is IMPURE (cached). Binary operation is Impure.");
-                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(binaryOperation.Syntax);
+                        return cachedResult.WithCallee(binaryOperation.OperatorMethod, binaryOperation.Syntax);
                     }
                     PurityAnalysisEngine.LogDebug($"    [BinaryOpRule] User-defined operator method '{binaryOperation.OperatorMethod.Name}' is Pure (cached).");
                     return PurityAnalysisEngine.PurityAnalysisResult.Pure;
@@ -83,7 +83,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 if (!operatorPurity.IsPure)
                 {
                     PurityAnalysisEngine.LogDebug($"    [BinaryOpRule] User-defined operator method '{binaryOperation.OperatorMethod.Name}' is IMPURE. Binary operation is Impure.");
-                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(binaryOperation.Syntax);
+                    return operatorPurity.WithCallee(binaryOperation.OperatorMethod, binaryOperation.Syntax);
                 }
 
                 PurityAnalysisEngine.LogDebug($"    [BinaryOpRule] User-defined operator method '{binaryOperation.OperatorMethod.Name}' is Pure.");
@@ -103,7 +103,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                         if (!cachedResult.IsPure)
                         {
                             PurityAnalysisEngine.LogDebug($"    [BinaryOpRule] Checked operator method '{binaryOperation.OperatorMethod.Name}' is IMPURE (cached). Binary operation is Impure.");
-                            return PurityAnalysisEngine.PurityAnalysisResult.Impure(binaryOperation.Syntax);
+                            return cachedResult.WithCallee(binaryOperation.OperatorMethod, binaryOperation.Syntax);
                         }
                         PurityAnalysisEngine.LogDebug($"    [BinaryOpRule] Checked operator method '{binaryOperation.OperatorMethod.Name}' is Pure (cached).");
                         return PurityAnalysisEngine.PurityAnalysisResult.Pure;
@@ -128,7 +128,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     if (!operatorPurity.IsPure)
                     {
                         PurityAnalysisEngine.LogDebug($"    [BinaryOpRule] Checked operator method '{binaryOperation.OperatorMethod.Name}' is IMPURE. Binary operation is Impure.");
-                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(binaryOperation.Syntax);
+                        return operatorPurity.WithCallee(binaryOperation.OperatorMethod, binaryOperation.Syntax);
                     }
 
                     PurityAnalysisEngine.LogDebug($"    [BinaryOpRule] Checked operator method '{binaryOperation.OperatorMethod.Name}' is Pure.");

@@ -572,6 +572,38 @@ public class TestClass
         }
 
         [Test]
+        public async Task Ps0002_UserDefinedBinaryOperatorImpurity_PreservesOperatorEvidence()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+using PurelySharp.Attributes;
+
+public readonly struct Wrapped
+{
+    public static Wrapped operator +(Wrapped left, Wrapped right)
+    {
+        Console.WriteLine(""side effect"");
+        return left;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public Wrapped TestMethod(Wrapped left, Wrapped right)
+    {
+        return left + right;
+    }
+}");
+
+            var diagnostic = SingleDiagnostic(diagnostics, PurelySharpDiagnostics.PurityNotVerifiedId);
+
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCategoryProperty], Is.EqualTo("catalog_hit"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityRuleProperty], Is.EqualTo("MethodInvocationPurityRule"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpuritySymbolProperty], Does.Contain("System.Console.WriteLine"));
+        }
+
+        [Test]
         public async Task Ps0009_IsOnlyEmittedWhenExplanationsAreEnabled()
         {
             var source = @"
