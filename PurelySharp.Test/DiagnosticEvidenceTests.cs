@@ -145,6 +145,30 @@ public class TestClass
         }
 
         [Test]
+        public async Task Ps0002_MutableStateWrite_IncludesDistinctCategory()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    private int _value;
+
+    [EnforcePure]
+    public void TestMethod()
+    {
+        _value = 1;
+    }
+}");
+
+            var diagnostic = SingleDiagnostic(diagnostics, PurelySharpDiagnostics.PurityNotVerifiedId);
+
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCategoryProperty], Is.EqualTo("mutable_state_write"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityRuleProperty], Is.EqualTo("AssignmentPurityRule"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpuritySymbolProperty], Does.Contain("TestClass._value"));
+        }
+
+        [Test]
         public async Task Ps0009_IsOnlyEmittedWhenExplanationsAreEnabled()
         {
             var source = @"
