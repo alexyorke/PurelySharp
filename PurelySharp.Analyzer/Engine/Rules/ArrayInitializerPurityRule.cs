@@ -33,7 +33,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 if (!elementResult.IsPure)
                 {
                     PurityAnalysisEngine.LogDebug($"    [ArrayInitRule] Element initializer is Impure: {elementValue.Syntax}");
-                    return PurityAnalysisEngine.ImpureResult(elementValue.Syntax);
+                    return elementResult;
                 }
             }
 

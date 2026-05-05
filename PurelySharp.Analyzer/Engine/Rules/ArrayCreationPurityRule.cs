@@ -32,24 +32,10 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
 
 
-                if (arrayCreation.Initializer != null)
+                var paramsInitializerResult = CheckInitializerElements(arrayCreation, context, currentState, "'params' array");
+                if (!paramsInitializerResult.IsPure)
                 {
-                    foreach (var elementValue in arrayCreation.Initializer.ElementValues)
-                    {
-                        var elementPurity = CheckSingleOperation(elementValue, context, currentState);
-                        if (!elementPurity.IsPure)
-                        {
-                            LogDebug($"    [ArrCreateRule] 'params' array initializer element '{elementValue.Syntax}' is IMPURE. Operation is Impure.");
-                            return PurityAnalysisResult.Impure(
-                                elementPurity.ImpureSyntaxNode ?? elementValue.Syntax,
-                                elementPurity.Evidence);
-                        }
-                    }
-                    LogDebug($"    [ArrCreateRule] All 'params' array initializer elements are Pure.");
-                }
-                else
-                {
-                    LogDebug($"    [ArrCreateRule] 'params' array has no initializer elements to check.");
+                    return paramsInitializerResult;
                 }
 
                 LogDebug($"    [ArrCreateRule] 'params' array creation itself treated as PURE.");
@@ -57,6 +43,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
             else
             {
+                var initializerResult = CheckInitializerElements(arrayCreation, context, currentState, "array");
+                if (!initializerResult.IsPure)
+                {
+                    return initializerResult;
+                }
+
                 if (IsFreshLocalArrayInitialization(arrayCreation))
                 {
                     LogDebug($"    [ArrCreateRule] Array creation '{arrayCreation.Syntax}' assigned to a fresh local array. Treating as PURE.");
@@ -100,6 +92,32 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             return false;
+        }
+
+        private static PurityAnalysisResult CheckInitializerElements(
+            IArrayCreationOperation arrayCreation,
+            PurityAnalysisContext context,
+            PurityAnalysisState currentState,
+            string description)
+        {
+            if (arrayCreation.Initializer == null)
+            {
+                LogDebug($"    [ArrCreateRule] {description} has no initializer elements to check.");
+                return PurityAnalysisResult.Pure;
+            }
+
+            foreach (var elementValue in arrayCreation.Initializer.ElementValues)
+            {
+                var elementPurity = CheckSingleOperation(elementValue, context, currentState);
+                if (!elementPurity.IsPure)
+                {
+                    LogDebug($"    [ArrCreateRule] {description} initializer element '{elementValue.Syntax}' is IMPURE. Operation is Impure.");
+                    return elementPurity;
+                }
+            }
+
+            LogDebug($"    [ArrCreateRule] All {description} initializer elements are Pure.");
+            return PurityAnalysisResult.Pure;
         }
 
     }
