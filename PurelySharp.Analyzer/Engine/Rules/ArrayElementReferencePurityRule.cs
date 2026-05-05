@@ -37,7 +37,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             if (!arrayRefResult.IsPure)
             {
                 PurityAnalysisEngine.LogDebug($"    [ArrayElemRefRule] Array reference is Impure. Element reference is Impure.");
-                return PurityAnalysisEngine.ImpureResult(arrayElementReference.ArrayReference.Syntax);
+                return arrayRefResult;
             }
 
 
@@ -48,7 +48,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 if (!indexResult.IsPure)
                 {
                     PurityAnalysisEngine.LogDebug($"    [ArrayElemRefRule] Index expression is Impure. Element reference is Impure.");
-                    return PurityAnalysisEngine.ImpureResult(indexOperation.Syntax);
+                    return indexResult;
                 }
             }
 

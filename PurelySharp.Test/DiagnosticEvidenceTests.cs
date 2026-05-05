@@ -568,6 +568,39 @@ public class TestClass
         }
 
         [Test]
+        public async Task Ps0002_ArrayElementImpureArrayReference_PreservesOriginalEvidence()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int TestMethod()
+    {
+        return GetValues()[0];
+    }
+
+    [EnforcePure]
+    private int[] GetValues()
+    {
+        Console.WriteLine(""impure"");
+        return new int[1];
+    }
+}");
+
+            var diagnostic = diagnostics
+                .Where(d => d.Id == PurelySharpDiagnostics.PurityNotVerifiedId)
+                .Single(d => d.GetMessage().Contains("'TestMethod'", StringComparison.Ordinal));
+
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCategoryProperty], Is.EqualTo("catalog_hit"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityRuleProperty], Is.EqualTo("MethodInvocationPurityRule"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpuritySymbolProperty], Does.Contain("System.Console.WriteLine"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCalleeChainProperty], Does.Contain("TestClass.GetValues"));
+        }
+
+        [Test]
         public async Task Ps0002_UserDefinedConversionImpurity_PreservesOperatorEvidence()
         {
             var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
