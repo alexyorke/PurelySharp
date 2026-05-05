@@ -56,6 +56,7 @@ namespace PurelySharp.Test
             Assert.That(report.TotalPurelySharpDiagnostics, Is.EqualTo(3));
             Assert.That(report.ImpurityCategories["catalog_hit"], Is.EqualTo(1));
             Assert.That(report.ImpurityCategories["unknown_external_call"], Is.EqualTo(1));
+            Assert.That(report.RuleNames["MethodInvocationPurityRule"], Is.EqualTo(1));
             Assert.That(report.OperationKinds["Invocation"], Is.EqualTo(2));
             Assert.That(report.TopImpureApis[0].Value, Is.EqualTo("ITest.Run()"));
             Assert.That(report.Diagnostics, Has.Length.EqualTo(3));

@@ -40,6 +40,7 @@ public static class SarifCorpusReport
     {
         private readonly ImmutableArray<string>.Builder _inputs = ImmutableArray.CreateBuilder<string>();
         private readonly Dictionary<string, int> _categories = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, int> _ruleNames = new(StringComparer.Ordinal);
         private readonly Dictionary<string, int> _operationKinds = new(StringComparer.Ordinal);
         private readonly Dictionary<string, int> _unknownOperationKinds = new(StringComparer.Ordinal);
         private readonly Dictionary<string, int> _symbols = new(StringComparer.Ordinal);
@@ -87,6 +88,7 @@ public static class SarifCorpusReport
                 _totalPurelySharpDiagnostics,
                 _diagnostics.ToImmutable(),
                 ToImmutableSortedDictionary(_categories),
+                ToImmutableSortedDictionary(_ruleNames),
                 ToImmutableSortedDictionary(_operationKinds),
                 ToImmutableSortedDictionary(_unknownOperationKinds),
                 ToRankedItems(_symbols),
@@ -143,6 +145,7 @@ public static class SarifCorpusReport
                 calleeChain));
 
             IncrementIfPresent(_categories, category);
+            IncrementIfPresent(_ruleNames, ruleName);
             IncrementIfPresent(_operationKinds, operationKind);
             IncrementIfPresent(_symbols, symbol);
 
