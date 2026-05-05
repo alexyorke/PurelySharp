@@ -52,7 +52,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 PurityAnalysisEngine.LogDebug($"    [CtorInitRule] Target constructor '{constructorSymbol.ToDisplayString()}' determined PURE by recursive check. Result: Pure.");
             }
 
-            return constructorPurity.IsPure ? PurityAnalysisEngine.PurityAnalysisResult.Pure : PurityAnalysisEngine.PurityAnalysisResult.Impure(operation.Syntax);
+            return constructorPurity.IsPure
+                ? PurityAnalysisEngine.PurityAnalysisResult.Pure
+                : constructorPurity.WithCallee(constructorSymbol, operation.Syntax);
         }
     }
 }

@@ -670,6 +670,38 @@ public class TestClass
         }
 
         [Test]
+        public async Task Ps0002_ConstructorInitializerImpurity_PreservesConstructorEvidence()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+using PurelySharp.Attributes;
+
+public class BaseType
+{
+    public BaseType()
+    {
+        Console.WriteLine(""side effect"");
+    }
+}
+
+public class DerivedType : BaseType
+{
+    [EnforcePure]
+    public DerivedType()
+        : base()
+    {
+    }
+}");
+
+            var diagnostic = SingleDiagnostic(diagnostics, PurelySharpDiagnostics.PurityNotVerifiedId);
+
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCategoryProperty], Is.EqualTo("catalog_hit"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityRuleProperty], Is.EqualTo("MethodInvocationPurityRule"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpuritySymbolProperty], Does.Contain("System.Console.WriteLine"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCalleeChainProperty], Does.Contain("BaseType.BaseType"));
+        }
+
+        [Test]
         public async Task Ps0009_IsOnlyEmittedWhenExplanationsAreEnabled()
         {
             var source = @"
