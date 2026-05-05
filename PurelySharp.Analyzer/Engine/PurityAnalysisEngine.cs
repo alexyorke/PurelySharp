@@ -1456,6 +1456,20 @@ namespace PurelySharp.Analyzer.Engine
                         }
                     }
                 }
+                else if (ancestor is Microsoft.CodeAnalysis.CSharp.Syntax.SwitchExpressionSyntax switchExpressionSyntax)
+                {
+                    if (IsInUnmatchedConstantSwitchExpressionArm(syntaxNode, switchExpressionSyntax, semanticModel))
+                    {
+                        return true;
+                    }
+                }
+                else if (ancestor is Microsoft.CodeAnalysis.CSharp.Syntax.SwitchStatementSyntax switchStatementSyntax)
+                {
+                    if (IsInUnmatchedConstantSwitchStatementSection(syntaxNode, switchStatementSyntax, semanticModel))
+                    {
+                        return true;
+                    }
+                }
                 else if (ancestor is Microsoft.CodeAnalysis.CSharp.Syntax.WhileStatementSyntax whileStatementSyntax)
                 {
                     var conditionValue = semanticModel.GetConstantValue(whileStatementSyntax.Condition);
@@ -1484,12 +1498,146 @@ namespace PurelySharp.Analyzer.Engine
             return false;
         }
 
+        private static bool IsInUnmatchedConstantSwitchExpressionArm(
+            SyntaxNode syntaxNode,
+            Microsoft.CodeAnalysis.CSharp.Syntax.SwitchExpressionSyntax switchExpressionSyntax,
+            SemanticModel semanticModel)
+        {
+            var governingValue = semanticModel.GetConstantValue(switchExpressionSyntax.GoverningExpression);
+            if (!governingValue.HasValue)
+            {
+                return false;
+            }
+
+            Microsoft.CodeAnalysis.CSharp.Syntax.SwitchExpressionArmSyntax? matchedArm = null;
+            foreach (var arm in switchExpressionSyntax.Arms)
+            {
+                if (MatchesConstantSwitchPattern(arm.Pattern, governingValue.Value, semanticModel) &&
+                    IsConstantTrueWhenClause(arm.WhenClause, semanticModel))
+                {
+                    matchedArm = arm;
+                    break;
+                }
+            }
+
+            if (matchedArm == null)
+            {
+                return false;
+            }
+
+            foreach (var arm in switchExpressionSyntax.Arms)
+            {
+                if (!ReferenceEquals(arm, matchedArm) && arm.Expression.Span.Contains(syntaxNode.Span))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsInUnmatchedConstantSwitchStatementSection(
+            SyntaxNode syntaxNode,
+            Microsoft.CodeAnalysis.CSharp.Syntax.SwitchStatementSyntax switchStatementSyntax,
+            SemanticModel semanticModel)
+        {
+            var governingValue = semanticModel.GetConstantValue(switchStatementSyntax.Expression);
+            if (!governingValue.HasValue)
+            {
+                return false;
+            }
+
+            Microsoft.CodeAnalysis.CSharp.Syntax.SwitchSectionSyntax? defaultSection = null;
+            Microsoft.CodeAnalysis.CSharp.Syntax.SwitchSectionSyntax? matchedSection = null;
+            foreach (var section in switchStatementSyntax.Sections)
+            {
+                foreach (var label in section.Labels)
+                {
+                    if (label is Microsoft.CodeAnalysis.CSharp.Syntax.DefaultSwitchLabelSyntax)
+                    {
+                        defaultSection ??= section;
+                    }
+                    else if (label is Microsoft.CodeAnalysis.CSharp.Syntax.CaseSwitchLabelSyntax caseLabel)
+                    {
+                        var labelValue = semanticModel.GetConstantValue(caseLabel.Value);
+                        if (labelValue.HasValue && ConstantValuesEqual(labelValue.Value, governingValue.Value))
+                        {
+                            matchedSection = section;
+                            break;
+                        }
+                    }
+                }
+
+                if (matchedSection != null)
+                {
+                    break;
+                }
+            }
+
+            matchedSection ??= defaultSection;
+            if (matchedSection == null)
+            {
+                return false;
+            }
+
+            foreach (var section in switchStatementSyntax.Sections)
+            {
+                if (!ReferenceEquals(section, matchedSection) && section.Span.Contains(syntaxNode.Span))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool MatchesConstantSwitchPattern(
+            Microsoft.CodeAnalysis.CSharp.Syntax.PatternSyntax pattern,
+            object? governingValue,
+            SemanticModel semanticModel)
+        {
+            if (pattern is Microsoft.CodeAnalysis.CSharp.Syntax.DiscardPatternSyntax)
+            {
+                return true;
+            }
+
+            if (pattern is Microsoft.CodeAnalysis.CSharp.Syntax.ConstantPatternSyntax constantPattern)
+            {
+                var patternValue = semanticModel.GetConstantValue(constantPattern.Expression);
+                return patternValue.HasValue && ConstantValuesEqual(patternValue.Value, governingValue);
+            }
+
+            return false;
+        }
+
+        private static bool IsConstantTrueWhenClause(
+            Microsoft.CodeAnalysis.CSharp.Syntax.WhenClauseSyntax? whenClause,
+            SemanticModel semanticModel)
+        {
+            if (whenClause == null)
+            {
+                return true;
+            }
+
+            var whenValue = semanticModel.GetConstantValue(whenClause.Condition);
+            return whenValue.HasValue && whenValue.Value is bool boolValue && boolValue;
+        }
+
+        private static bool ConstantValuesEqual(object? left, object? right)
+        {
+            return Equals(left, right);
+        }
+
         internal static PurityAnalysisResult CheckSingleOperation(IOperation operation, Rules.PurityAnalysisContext context, PurityAnalysisState currentState)
         {
             LogDebug($"    [CSO] Enter CheckSingleOperation for Kind: {operation.Kind}, Syntax: '{operation.Syntax.ToString().Trim()}'");
             LogDebug($"    [CSO] Current DFA State: Impure={currentState.HasPotentialImpurity}, MapCount={currentState.DelegateTargetMap.Count}");
 
-
+            if (IsInStaticallyUnreachableBranch(operation.Syntax, context.SemanticModel))
+            {
+                LogDebug($"    [CSO] Operation is in a statically unreachable branch. Treating as Pure: {operation.Syntax}");
+                return PurityAnalysisResult.Pure;
+            }
 
             if (operation is IFlowCaptureReferenceOperation flowRef)
             {

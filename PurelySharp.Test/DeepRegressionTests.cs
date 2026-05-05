@@ -56,5 +56,54 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task ConstantSwitchExpression_IgnoresUnmatchedImpureArm()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Run()
+    {
+        return 1 switch
+        {
+            1 => 42,
+            _ => Console.Read()
+        };
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ConstantSwitchStatement_IgnoresUnmatchedImpureSection()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Run()
+    {
+        switch (1)
+        {
+            case 1:
+                return 42;
+            default:
+                Console.WriteLine(""dead"");
+                return 0;
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
