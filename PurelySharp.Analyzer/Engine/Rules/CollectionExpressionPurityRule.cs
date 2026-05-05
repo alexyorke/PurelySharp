@@ -47,7 +47,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 {
                     var node = elementResult.ImpureSyntaxNode ?? collectionExpression.Syntax;
                     PurityAnalysisEngine.LogDebug($" CollectionExpressionRule: Impure element. Marking IMPURE at {node}.");
-                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(node);
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(node, elementResult.Evidence);
                 }
             }
 

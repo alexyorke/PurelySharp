@@ -28,7 +28,8 @@ namespace PurelySharp.Analyzer.Engine.Rules
             if (!operandResult.IsPure)
             {
                 return PurityAnalysisEngine.PurityAnalysisResult.Impure(
-                    operandResult.ImpureSyntaxNode ?? spreadOperation.Syntax);
+                    operandResult.ImpureSyntaxNode ?? spreadOperation.Syntax,
+                    operandResult.Evidence);
             }
 
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;

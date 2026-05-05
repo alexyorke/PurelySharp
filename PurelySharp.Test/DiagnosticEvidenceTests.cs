@@ -487,6 +487,37 @@ public class TestClass
         }
 
         [Test]
+        public async Task Ps0002_SpreadOperandImpurity_PreservesOriginalEvidence()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+using System.Collections.Immutable;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    private static ImmutableArray<int> GetValues()
+    {
+        Console.WriteLine(""side effect"");
+        return ImmutableArray<int>.Empty;
+    }
+
+    [EnforcePure]
+    public ImmutableArray<int> Extend()
+    {
+        return [.. GetValues(), 42];
+    }
+}");
+
+            var diagnostic = SingleDiagnostic(diagnostics, PurelySharpDiagnostics.PurityNotVerifiedId);
+
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCategoryProperty], Is.EqualTo("catalog_hit"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityRuleProperty], Is.EqualTo("MethodInvocationPurityRule"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpuritySymbolProperty], Does.Contain("System.Console.WriteLine"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCalleeChainProperty], Does.Contain("TestClass.GetValues"));
+        }
+
+        [Test]
         public async Task Ps0009_IsOnlyEmittedWhenExplanationsAreEnabled()
         {
             var source = @"
