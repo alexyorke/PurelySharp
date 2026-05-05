@@ -11,6 +11,7 @@ public sealed record CorpusReportSummary(
     int TotalPurelySharpDiagnostics,
     ImmutableDictionary<string, int> ImpurityCategories,
     ImmutableDictionary<string, int> OperationKinds,
+    ImmutableDictionary<string, int> UnknownOperationKinds,
     ImmutableArray<RankedItem> TopImpureApis,
     ImmutableArray<RankedItem> CatalogMisses,
     ImmutableArray<RankedItem> FalsePositiveCandidates)
@@ -21,6 +22,7 @@ public sealed record CorpusReportSummary(
         0,
         0,
         0,
+        ImmutableDictionary<string, int>.Empty,
         ImmutableDictionary<string, int>.Empty,
         ImmutableDictionary<string, int>.Empty,
         ImmutableArray<RankedItem>.Empty,

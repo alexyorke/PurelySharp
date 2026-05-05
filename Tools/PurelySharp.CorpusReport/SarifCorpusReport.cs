@@ -38,6 +38,7 @@ public static class SarifCorpusReport
         private readonly ImmutableArray<string>.Builder _inputs = ImmutableArray.CreateBuilder<string>();
         private readonly Dictionary<string, int> _categories = new(StringComparer.Ordinal);
         private readonly Dictionary<string, int> _operationKinds = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, int> _unknownOperationKinds = new(StringComparer.Ordinal);
         private readonly Dictionary<string, int> _symbols = new(StringComparer.Ordinal);
         private readonly Dictionary<string, int> _catalogMisses = new(StringComparer.Ordinal);
         private readonly Dictionary<string, (string Category, int Count)> _falsePositiveCandidates = new(StringComparer.Ordinal);
@@ -82,6 +83,7 @@ public static class SarifCorpusReport
                 _totalPurelySharpDiagnostics,
                 ToImmutableSortedDictionary(_categories),
                 ToImmutableSortedDictionary(_operationKinds),
+                ToImmutableSortedDictionary(_unknownOperationKinds),
                 ToRankedItems(_symbols),
                 ToRankedItems(_catalogMisses),
                 ToFalsePositiveRankedItems(_falsePositiveCandidates));
@@ -122,6 +124,11 @@ public static class SarifCorpusReport
             IncrementIfPresent(_categories, category);
             IncrementIfPresent(_operationKinds, operationKind);
             IncrementIfPresent(_symbols, symbol);
+
+            if (string.Equals(category, "unsupported_operation", StringComparison.Ordinal))
+            {
+                IncrementIfPresent(_unknownOperationKinds, operationKind);
+            }
 
             if (category != null && symbol != null && CatalogMissCategories.Contains(category))
             {

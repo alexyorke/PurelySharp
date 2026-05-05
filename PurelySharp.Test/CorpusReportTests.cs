@@ -95,5 +95,39 @@ namespace PurelySharp.Test
             Assert.That(report.FalsePositiveCandidates.Select(item => item.Category), Does.Contain("unknown_external_call"));
             Assert.That(report.FalsePositiveCandidates.Select(item => item.Category), Does.Contain("dynamic_dispatch"));
         }
+
+        [Test]
+        public void CreateFromSarifJson_AggregatesUnknownOperationKinds()
+        {
+            var report = SarifCorpusReport.CreateFromSarifJson("sample.sarif", """
+{
+  "version": "2.1.0",
+  "runs": [
+    {
+      "results": [
+        {
+          "ruleId": "PS0002",
+          "properties": {
+            "purelysharp.impurity.category": "unsupported_operation",
+            "purelysharp.impurity.operation_kind": "FunctionPointerInvocation",
+            "purelysharp.impurity.symbol": "delegate*<void>"
+          }
+        },
+        {
+          "ruleId": "PS0002",
+          "properties": {
+            "purelysharp.impurity.category": "unsupported_operation",
+            "purelysharp.impurity.operation_kind": "FunctionPointerInvocation",
+            "purelysharp.impurity.symbol": "delegate*<void>"
+          }
+        }
+      ]
+    }
+  ]
+}
+""");
+
+            Assert.That(report.UnknownOperationKinds["FunctionPointerInvocation"], Is.EqualTo(2));
+        }
     }
 }
