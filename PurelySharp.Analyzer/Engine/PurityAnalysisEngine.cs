@@ -719,9 +719,17 @@ namespace PurelySharp.Analyzer.Engine
                 if (methodSymbol.IsExtern)
                 {
                     LogDebug($"{indent}Method {methodSymbol.ToDisplayString()} is extern. Assuming impure due unknown implementation.");
-                    purityCache[methodSymbol] = PurityAnalysisResult.ImpureUnknownLocation;
+                    var syntax = methodSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax();
+                    var externResult = ImpureResult(
+                        syntax,
+                        PurityEvidence.Create(
+                            "unknown_external_call",
+                            syntaxNode: syntax,
+                            symbol: methodSymbol,
+                            catalogSource: "extern"));
+                    purityCache[methodSymbol] = externResult;
                     LogDebug($"{indent}<< Exit DeterminePurity (Extern): {methodSymbol.ToDisplayString()}");
-                    return PurityAnalysisResult.ImpureUnknownLocation;
+                    return externResult;
                 }
 
                 if (methodSymbol.IsAbstract || bodySyntaxNode == null)

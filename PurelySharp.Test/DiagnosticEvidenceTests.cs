@@ -114,6 +114,37 @@ public class TestClass
         }
 
         [Test]
+        public async Task Ps0002_SourceExternCall_IncludesUnknownExternalCallCategory()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System.Runtime.InteropServices;
+using PurelySharp.Attributes;
+
+public static class NativeMethods
+{
+    [DllImport(""native.dll"")]
+    public static extern int ReadValue();
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int TestMethod()
+    {
+        return NativeMethods.ReadValue();
+    }
+}");
+
+            var diagnostic = diagnostics
+                .Where(d => d.Id == PurelySharpDiagnostics.PurityNotVerifiedId)
+                .Single(d => d.GetMessage().Contains("'TestMethod'", StringComparison.Ordinal));
+
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCategoryProperty], Is.EqualTo("unknown_external_call"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpuritySymbolProperty], Does.Contain("NativeMethods.ReadValue"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCatalogSourceProperty], Is.EqualTo("extern"));
+        }
+
+        [Test]
         public async Task Ps0009_IsOnlyEmittedWhenExplanationsAreEnabled()
         {
             var source = @"
