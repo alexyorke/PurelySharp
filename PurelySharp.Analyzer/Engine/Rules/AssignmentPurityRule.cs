@@ -53,7 +53,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 if (!valueResult.IsPure)
                 {
                     PurityAnalysisEngine.LogDebug($"    [AssignRule] Assignment value (RHS) itself is IMPURE. Assignment is Impure.");
-                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(valueResult.ImpureSyntaxNode ?? valueOperation.Syntax);
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                        valueResult.ImpureSyntaxNode ?? valueOperation.Syntax,
+                        valueResult.Evidence);
                 }
 
 
@@ -101,7 +103,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
                         {
 
                             PurityAnalysisEngine.LogDebug("    [AssignRule] Implicit conversion operation reported IMPURE.");
-                            return PurityAnalysisEngine.PurityAnalysisResult.Impure(conversionResult.ImpureSyntaxNode ?? conversionOp.Operand?.Syntax ?? valueOperation.Syntax);
+                            return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                                conversionResult.ImpureSyntaxNode ?? conversionOp.Operand?.Syntax ?? valueOperation.Syntax,
+                                conversionResult.Evidence);
                         }
                     }
                 }
@@ -115,7 +119,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             {
 
                 PurityAnalysisEngine.LogDebug($"AssignmentPurityRule: Target check failed (Kind: {targetOperation.Kind}, RefKind: {(targetOperation as IParameterReferenceOperation)?.Parameter.RefKind}). Reporting impurity on the whole operation: {operation.Syntax}");
-                return PurityAnalysisEngine.PurityAnalysisResult.Impure(operation.Syntax);
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(operation.Syntax, targetResult.Evidence);
             }
 
 
