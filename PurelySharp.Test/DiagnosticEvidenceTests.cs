@@ -636,6 +636,40 @@ public class TestClass
         }
 
         [Test]
+        public async Task Ps0002_UsingDisposeImpurity_PreservesDisposeEvidence()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+using PurelySharp.Attributes;
+
+public sealed class Resource : IDisposable
+{
+    public void Dispose()
+    {
+        Console.WriteLine(""side effect"");
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public void TestMethod()
+    {
+        using (var resource = new Resource())
+        {
+        }
+    }
+}");
+
+            var diagnostic = SingleDiagnostic(diagnostics, PurelySharpDiagnostics.PurityNotVerifiedId);
+
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCategoryProperty], Is.EqualTo("catalog_hit"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityRuleProperty], Is.EqualTo("MethodInvocationPurityRule"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpuritySymbolProperty], Does.Contain("System.Console.WriteLine"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCalleeChainProperty], Does.Contain("Resource.Dispose"));
+        }
+
+        [Test]
         public async Task Ps0009_IsOnlyEmittedWhenExplanationsAreEnabled()
         {
             var source = @"

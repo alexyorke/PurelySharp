@@ -161,7 +161,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 {
                     PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Implicit Dispose() call on '{local.Name}' ({disposeMethod.Name}) is IMPURE.");
 
-                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(impureSyntaxNode ?? operation.Syntax);
+                    return disposeResult.WithCallee(disposeMethod, impureSyntaxNode ?? operation.Syntax);
                 }
                 else
                 {
