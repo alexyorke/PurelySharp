@@ -107,6 +107,37 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
+
+        [Test]
+        public async Task DelegateReassignedToUnknownTargetOnOneBranch_Diagnostic()
+        {
+            var testCode = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public static void PureTarget()
+    {
+    }
+
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}(bool flag, Action unknown)
+    {
+        Action action = PureTarget;
+        if (flag)
+        {
+            action = unknown;
+        }
+
+        action();
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
     }
 }
 

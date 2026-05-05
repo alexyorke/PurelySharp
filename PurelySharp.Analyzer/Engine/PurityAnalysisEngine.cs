@@ -542,15 +542,23 @@ namespace PurelySharp.Analyzer.Engine
 
 
             public ImmutableHashSet<IMethodSymbol> MethodSymbols { get; }
+            public bool IsUnresolved { get; }
 
 
 
             public PotentialTargets(ImmutableHashSet<IMethodSymbol>? methodSymbols)
+                : this(methodSymbols, isUnresolved: false)
+            {
+            }
+
+            private PotentialTargets(ImmutableHashSet<IMethodSymbol>? methodSymbols, bool isUnresolved)
             {
                 MethodSymbols = methodSymbols ?? ImmutableHashSet.Create<IMethodSymbol>(SymbolEqualityComparer.Default);
+                IsUnresolved = isUnresolved;
             }
 
             public static PotentialTargets Empty => new PotentialTargets(null);
+            public static PotentialTargets Unresolved => new PotentialTargets(null, isUnresolved: true);
 
             public static PotentialTargets FromSingle(IMethodSymbol methodSymbol)
             {
@@ -561,20 +569,26 @@ namespace PurelySharp.Analyzer.Engine
 
             public static PotentialTargets Merge(PotentialTargets first, PotentialTargets second)
             {
+                if (first.IsUnresolved || second.IsUnresolved)
+                {
+                    return Unresolved;
+                }
+
                 return new PotentialTargets(first.MethodSymbols.Union(second.MethodSymbols));
             }
 
             public bool Equals(PotentialTargets other)
             {
 
-                return this.MethodSymbols.SetEquals(other.MethodSymbols);
+                return this.IsUnresolved == other.IsUnresolved &&
+                       this.MethodSymbols.SetEquals(other.MethodSymbols);
             }
 
             public override bool Equals(object obj) => obj is PotentialTargets other && Equals(other);
 
             public override int GetHashCode()
             {
-                int hash = 17;
+                int hash = IsUnresolved ? 31 : 17;
                 foreach (var symbol in MethodSymbols.OrderBy(s => s.Name))
                 {
                     hash = hash * 23 + SymbolEqualityComparer.Default.GetHashCode(symbol);
@@ -2124,7 +2138,7 @@ namespace PurelySharp.Analyzer.Engine
                         }
                         else
                         {
-                            nextState = nextState.WithDelegateTarget(targetSymbol, PotentialTargets.Empty);
+                            nextState = nextState.WithDelegateTarget(targetSymbol, PotentialTargets.Unresolved);
                             LogDebug($"    [ATF-DEL-ASSIGN] Marked map for {targetSymbol.Name} unresolved because assigned value targets are unresolved. New Map Count: {nextState.DelegateTargetMap.Count}");
                         }
                     }

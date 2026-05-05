@@ -79,9 +79,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 if (potentialTargets != null)
                 {
                     PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Resolved {potentialTargets.Value.MethodSymbols.Count} target(s) for delegate invocation.");
-                    if (potentialTargets.Value.MethodSymbols.IsEmpty)
+                    if (potentialTargets.Value.IsUnresolved || potentialTargets.Value.MethodSymbols.IsEmpty)
                     {
-                        PurityAnalysisEngine.LogDebug("  [MIR-DEL-S] --> Resolved target set is empty. Treating as unresolved delegate target.");
+                        PurityAnalysisEngine.LogDebug("  [MIR-DEL-S] --> Resolved target set is empty or explicitly unresolved. Treating as unresolved delegate target.");
                         result = PurityAnalysisEngine.ImpureResult(
                             delegateInstanceOp.Syntax,
                             PurityAnalysisEngine.PurityEvidence.Create(
