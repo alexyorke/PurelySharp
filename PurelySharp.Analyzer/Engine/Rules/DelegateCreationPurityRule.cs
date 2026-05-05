@@ -37,7 +37,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     var bodyResult = PurityAnalysisEngine.GetCalleePurity(lambdaSymbol, context);
 
                     PurityAnalysisEngine.LogDebug($"    [DelegateCreationRule] Lambda body analysis result: IsPure={bodyResult.IsPure}");
-                    return bodyResult;
+                    return bodyResult.IsPure
+                        ? PurityAnalysisEngine.PurityAnalysisResult.Pure
+                        : bodyResult.WithCallee(lambdaSymbol, delegateCreation.Syntax);
                 }
                 else
                 {
@@ -57,7 +59,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     var bodyResult = PurityAnalysisEngine.GetCalleePurity(lambdaSymbol, context);
 
                     PurityAnalysisEngine.LogDebug($"    [DelegateCreationRule] Flow lambda body analysis result: IsPure={bodyResult.IsPure}");
-                    return bodyResult;
+                    return bodyResult.IsPure
+                        ? PurityAnalysisEngine.PurityAnalysisResult.Pure
+                        : bodyResult.WithCallee(lambdaSymbol, delegateCreation.Syntax);
                 }
                 else
                 {
@@ -75,7 +79,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 var methodResult = PurityAnalysisEngine.GetCalleePurity(targetMethodSymbol, context);
 
                 PurityAnalysisEngine.LogDebug($"    [DelegateCreationRule] Referenced method analysis result: IsPure={methodResult.IsPure}");
-                return methodResult;
+                return methodResult.IsPure
+                    ? PurityAnalysisEngine.PurityAnalysisResult.Pure
+                    : methodResult.WithCallee(targetMethodSymbol, delegateCreation.Syntax);
             }
             else
             {
