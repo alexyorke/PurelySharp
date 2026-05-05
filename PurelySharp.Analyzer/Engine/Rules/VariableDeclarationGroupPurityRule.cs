@@ -36,9 +36,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
                         {
                             PurityAnalysisEngine.LogDebug($"        [VarDeclGrpRule] --> IMPURE Initializer found: {declarator.Initializer.Syntax}");
 
-                            return initializerResult.ImpureSyntaxNode != null
-                                   ? PurityAnalysisEngine.PurityAnalysisResult.Impure(initializerResult.ImpureSyntaxNode)
-                                   : PurityAnalysisEngine.PurityAnalysisResult.Impure(declarator.Initializer.Syntax);
+                            return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                                initializerResult.ImpureSyntaxNode ?? declarator.Initializer.Syntax,
+                                initializerResult.Evidence);
                         }
 
 
