@@ -18,6 +18,10 @@ public sealed record CorpusReportSummary(
     ImmutableArray<RankedItem> CatalogMisses,
     ImmutableArray<RankedItem> FalsePositiveCandidates)
 {
+    public const string CurrentSchemaVersion = "1.0";
+
+    public string SchemaVersion { get; init; } = CurrentSchemaVersion;
+
     public static CorpusReportSummary Empty { get; } = new(
         ImmutableArray<string>.Empty,
         0,

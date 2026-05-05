@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using PurelySharp.Tools.CorpusReport;
+using System.Text.Json;
 
 namespace PurelySharp.Test
 {
@@ -51,6 +52,7 @@ namespace PurelySharp.Test
 """);
 
             Assert.That(report.Inputs, Is.EqualTo(new[] { "sample.sarif" }));
+            Assert.That(report.SchemaVersion, Is.EqualTo(CorpusReportSummary.CurrentSchemaVersion));
             Assert.That(report.Ps0002Count, Is.EqualTo(2));
             Assert.That(report.Ps0004Count, Is.EqualTo(1));
             Assert.That(report.TotalPurelySharpDiagnostics, Is.EqualTo(3));
@@ -70,6 +72,9 @@ namespace PurelySharp.Test
             Assert.That(report.Diagnostics[0].CatalogSource, Is.EqualTo("known_impure_namespace_or_type"));
             Assert.That(report.Diagnostics[0].CalleeChain, Is.EqualTo("TestClass.Callee()"));
             Assert.That(report.Diagnostics[2].RuleId, Is.EqualTo("PS0004"));
+
+            var json = JsonSerializer.Serialize(report);
+            Assert.That(json, Does.Contain(@"""SchemaVersion"":""1.0"""));
         }
 
         [Test]

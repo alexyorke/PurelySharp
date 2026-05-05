@@ -11,7 +11,7 @@
 - Recent completed work since the earlier `505/505` checkpoint:
   - `PS0002` diagnostics now carry structured impurity evidence through diagnostic properties, including category, rule, operation kind, symbol, catalog/config source, and callee chain
   - optional `PS0009` explanation diagnostics can be emitted with `purelysharp_emit_explanations = true`
-  - `Tools/PurelySharp.CorpusReport` can summarize SARIF/errorlog output into JSON with diagnostic counts, per-diagnostic evidence rows, impurity categories, rule-name counts, top impure APIs, catalog-miss candidates, and false-positive candidates
+  - `Tools/PurelySharp.CorpusReport` can summarize SARIF/errorlog output into JSON with a stable `SchemaVersion`, diagnostic counts, per-diagnostic evidence rows, impurity categories, rule-name counts, top impure APIs, catalog-miss candidates, and false-positive candidates
   - `PS0004` suggestions now support scope, generated/test filtering, namespace filters, and minimum-complexity controls while preserving the default `all` behavior
   - `PurelySharp.Baseline.json` additional files can suppress method-level `PS0002` and `PS0004` diagnostics by diagnostic ID, symbol documentation ID, and relative path
   - `[PureExternal]` and `[Impure]` boundary attributes are available for explicit trusted/impure method, property, constructor, and assembly boundaries
