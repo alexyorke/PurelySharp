@@ -390,6 +390,55 @@ public class TestClass
         }
 
         [Test]
+        public async Task Ps0002_LockStatement_IncludesSynchronizationCategory()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    private readonly object _gate = new object();
+
+    [EnforcePure]
+    public void TestMethod()
+    {
+        lock (_gate)
+        {
+        }
+    }
+}");
+
+            var diagnostic = SingleDiagnostic(diagnostics, PurelySharpDiagnostics.PurityNotVerifiedId);
+
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCategoryProperty], Is.EqualTo("synchronization"));
+        }
+
+        [Test]
+        public async Task Ps0002_MonitorCall_IncludesSynchronizationCategory()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System.Threading;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    private static readonly object Gate = new object();
+
+    [EnforcePure]
+    public void TestMethod()
+    {
+        Monitor.Enter(Gate);
+    }
+}");
+
+            var diagnostic = SingleDiagnostic(diagnostics, PurelySharpDiagnostics.PurityNotVerifiedId);
+
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCategoryProperty], Is.EqualTo("synchronization"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityRuleProperty], Is.EqualTo("MethodInvocationPurityRule"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpuritySymbolProperty], Does.Contain("System.Threading.Monitor.Enter"));
+        }
+
+        [Test]
         public async Task Ps0009_IsOnlyEmittedWhenExplanationsAreEnabled()
         {
             var source = @"

@@ -1163,6 +1163,16 @@ namespace PurelySharp.Analyzer.Engine.Rules
             var containingType = symbol.ContainingType?.ToDisplayString() ?? string.Empty;
             var containingNamespace = symbol.ContainingNamespace?.ToDisplayString() ?? string.Empty;
 
+            if (containingType == "System.Threading.Interlocked" ||
+                containingType == "System.Threading.Monitor" ||
+                containingType == "System.Threading.Mutex" ||
+                containingType == "System.Threading.Semaphore" ||
+                containingType == "System.Threading.SemaphoreSlim" ||
+                containingType == "System.Collections.Immutable.ImmutableInterlocked")
+            {
+                return "synchronization";
+            }
+
             if (containingNamespace.StartsWith("System.Reflection", StringComparison.Ordinal) ||
                 containingType.StartsWith("System.Reflection.", StringComparison.Ordinal) ||
                 containingType == "System.Type" ||

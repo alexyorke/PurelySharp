@@ -20,7 +20,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             if (!isSynchronizationAllowed)
             {
-                return PurityAnalysisEngine.ImpureResult(lockOp.Syntax);
+                return ImpureSynchronization(lockOp);
             }
 
             var lockedValue = lockOp.LockedValue;
@@ -40,7 +40,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             if (!isAllowableTarget)
             {
-                return PurityAnalysisEngine.ImpureResult(lockOp.Syntax); // Not a robust check (needs diagnostic for PS0025, but returning Impure correctly triggers it eventually or handled differently)
+                return ImpureSynchronization(lockOp); // Not a robust check (needs diagnostic for PS0025, but returning Impure correctly triggers it eventually or handled differently)
             }
 
             // The lock value expression itself must be pure
@@ -52,6 +52,17 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             // The body inside the lock must be pure
             return PurityAnalysisEngine.CheckSingleOperation(lockOp.Body, context, currentState);
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult ImpureSynchronization(ILockOperation lockOp)
+        {
+            return PurityAnalysisEngine.ImpureResult(
+                lockOp.Syntax,
+                PurityAnalysisEngine.PurityEvidence.Create(
+                    "synchronization",
+                    ruleName: nameof(LockStatementPurityRule),
+                    operation: lockOp,
+                    syntaxNode: lockOp.Syntax));
         }
     }
 }
