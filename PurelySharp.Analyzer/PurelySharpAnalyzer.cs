@@ -37,10 +37,10 @@ namespace PurelySharp.Analyzer
                 var purityService = new Engine.CompilationPurityService(startContext.Compilation);
                 var config = Configuration.AnalyzerConfiguration.FromOptions(startContext.Options);
                 Engine.ImpurityCatalog.InitializeOverrides(config);
-                var suggestMissingEnforcePure = config.SuggestMissingEnforcePure;
+                var missingPuritySuggestions = config.MissingPuritySuggestions;
                 var emitExplanations = config.EmitExplanations;
 
-                startContext.RegisterSyntaxNodeAction(c => MethodPurityAnalyzer.AnalyzeSymbolForPurity(c, purityService, suggestMissingEnforcePure, emitExplanations),
+                startContext.RegisterSyntaxNodeAction(c => MethodPurityAnalyzer.AnalyzeSymbolForPurity(c, purityService, missingPuritySuggestions, emitExplanations),
                     SyntaxKind.MethodDeclaration,
                     SyntaxKind.GetAccessorDeclaration,
                     SyntaxKind.SetAccessorDeclaration,

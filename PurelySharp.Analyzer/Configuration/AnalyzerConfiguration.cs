@@ -14,6 +14,7 @@ namespace PurelySharp.Analyzer.Configuration
         public ImmutableHashSet<string> ExtraKnownImpureTypes { get; }
         public bool EnableDebugLogging { get; }
         public bool SuggestMissingEnforcePure { get; }
+        public MissingPuritySuggestionOptions MissingPuritySuggestions { get; }
         public bool EmitExplanations { get; }
 
         private AnalyzerConfiguration(
@@ -23,6 +24,7 @@ namespace PurelySharp.Analyzer.Configuration
             ImmutableHashSet<string> extraImpureTypes,
             bool enableDebugLogging,
             bool suggestMissingEnforcePure,
+            MissingPuritySuggestionOptions missingPuritySuggestions,
             bool emitExplanations)
         {
             ExtraKnownImpureMethods = extraImpureMethods;
@@ -31,6 +33,7 @@ namespace PurelySharp.Analyzer.Configuration
             ExtraKnownImpureTypes = extraImpureTypes;
             EnableDebugLogging = enableDebugLogging;
             SuggestMissingEnforcePure = suggestMissingEnforcePure;
+            MissingPuritySuggestions = missingPuritySuggestions;
             EmitExplanations = emitExplanations;
         }
 
@@ -42,8 +45,15 @@ namespace PurelySharp.Analyzer.Configuration
             var impureTypes = GetValues(options, ConfigKeys.KnownImpureTypes);
             bool debug = GetBool(options, "purelysharp_enable_debug_logging");
             bool suggestMissing = GetBoolOrDefaultTrue(options, ConfigKeys.SuggestMissingEnforcePure);
+            var missingPuritySuggestions = new MissingPuritySuggestionOptions(
+                suggestMissing,
+                GetMissingPuritySuggestionScope(options),
+                GetBool(options, ConfigKeys.SuggestMissingEnforcePureExcludeGenerated),
+                GetBool(options, ConfigKeys.SuggestMissingEnforcePureExcludeTests),
+                GetNonNegativeInt(options, ConfigKeys.SuggestMissingEnforcePureMinComplexity),
+                GetValues(options, ConfigKeys.SuggestMissingEnforcePureNamespaceFilters));
             bool emitExplanations = GetBool(options, ConfigKeys.EmitExplanations);
-            return new AnalyzerConfiguration(impureMethods, pureMethods, impureNamespaces, impureTypes, debug, suggestMissing, emitExplanations);
+            return new AnalyzerConfiguration(impureMethods, pureMethods, impureNamespaces, impureTypes, debug, suggestMissing, missingPuritySuggestions, emitExplanations);
         }
 
         private static ImmutableHashSet<string> GetValues(AnalyzerOptions options, string key)
@@ -103,5 +113,87 @@ namespace PurelySharp.Analyzer.Configuration
             catch { }
             return true;
         }
+
+        private static MissingPuritySuggestionScope GetMissingPuritySuggestionScope(AnalyzerOptions options)
+        {
+            try
+            {
+                var global = options.AnalyzerConfigOptionsProvider.GlobalOptions;
+                if (global.TryGetValue(ConfigKeys.SuggestMissingEnforcePureScope, out var value) && !string.IsNullOrWhiteSpace(value))
+                {
+                    switch (value.Trim().ToLowerInvariant())
+                    {
+                        case "all":
+                            return MissingPuritySuggestionScope.All;
+                        case "public":
+                        case "public-only":
+                            return MissingPuritySuggestionScope.Public;
+                        case "internal":
+                        case "internal-only":
+                            return MissingPuritySuggestionScope.Internal;
+                        case "off":
+                        case "none":
+                        case "false":
+                            return MissingPuritySuggestionScope.Off;
+                    }
+                }
+            }
+            catch { }
+
+            return MissingPuritySuggestionScope.All;
+        }
+
+        private static int GetNonNegativeInt(AnalyzerOptions options, string key)
+        {
+            try
+            {
+                var global = options.AnalyzerConfigOptionsProvider.GlobalOptions;
+                if (global.TryGetValue(key, out var value) &&
+                    int.TryParse(value.Trim(), out var parsed) &&
+                    parsed > 0)
+                {
+                    return parsed;
+                }
+            }
+            catch { }
+
+            return 0;
+        }
+    }
+
+    internal enum MissingPuritySuggestionScope
+    {
+        All,
+        Public,
+        Internal,
+        Off
+    }
+
+    internal sealed class MissingPuritySuggestionOptions
+    {
+        public MissingPuritySuggestionOptions(
+            bool enabled,
+            MissingPuritySuggestionScope scope,
+            bool excludeGeneratedFiles,
+            bool excludeTestFiles,
+            int minimumComplexity,
+            ImmutableHashSet<string> namespaceFilters)
+        {
+            Enabled = enabled;
+            Scope = enabled ? scope : MissingPuritySuggestionScope.Off;
+            ExcludeGeneratedFiles = excludeGeneratedFiles;
+            ExcludeTestFiles = excludeTestFiles;
+            MinimumComplexity = minimumComplexity;
+            NamespaceFilters = namespaceFilters;
+        }
+
+        public bool Enabled { get; }
+        public MissingPuritySuggestionScope Scope { get; }
+        public bool ExcludeGeneratedFiles { get; }
+        public bool ExcludeTestFiles { get; }
+        public int MinimumComplexity { get; }
+        public ImmutableHashSet<string> NamespaceFilters { get; }
+
+        public bool IsEnabled => Enabled && Scope != MissingPuritySuggestionScope.Off;
     }
 }

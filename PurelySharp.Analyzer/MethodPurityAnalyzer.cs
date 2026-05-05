@@ -1,11 +1,13 @@
 using System;
 using System.Linq;
+using System.IO;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using PurelySharp.Analyzer.Configuration;
 using PurelySharp.Analyzer.Engine;
 
 namespace PurelySharp.Analyzer
@@ -16,7 +18,7 @@ namespace PurelySharp.Analyzer
         internal static void AnalyzeSymbolForPurity(
             SyntaxNodeAnalysisContext context,
             Engine.CompilationPurityService purityService,
-            bool suggestMissingEnforcePure,
+            MissingPuritySuggestionOptions missingPuritySuggestions,
             bool emitExplanations)
         {
 
@@ -148,16 +150,15 @@ namespace PurelySharp.Analyzer
                 }
             }
 
-            else if (suggestMissingEnforcePure && isPure && !hasPurityEnforcementAttribute && !hasAllowSynchronization)
+            else if (missingPuritySuggestions.IsEnabled && isPure && !hasPurityEnforcementAttribute && !hasAllowSynchronization)
             {
                 if (context.Node is LocalFunctionStatementSyntax)
                 {
                     return;
                 }
 
-                if (!ShouldSuggestMissingEnforcePure(methodSymbol))
+                if (!ShouldReportMissingEnforcePure(context, methodSymbol, missingPuritySuggestions))
                 {
-                    PurityAnalysisEngine.LogDebug($"[MPA] Method '{methodSymbol.Name}' participates in instance dispatch. Skipping PS0004 suggestion.");
                     return;
                 }
 
@@ -193,6 +194,187 @@ namespace PurelySharp.Analyzer
                     }
                 }
             }
+        }
+
+        private static bool ShouldReportMissingEnforcePure(
+            SyntaxNodeAnalysisContext context,
+            IMethodSymbol methodSymbol,
+            MissingPuritySuggestionOptions options)
+        {
+            if (!ShouldSuggestMissingEnforcePure(methodSymbol))
+            {
+                PurityAnalysisEngine.LogDebug($"[MPA] Method '{methodSymbol.Name}' participates in instance dispatch. Skipping PS0004 suggestion.");
+                return false;
+            }
+
+            if (!MatchesSuggestionScope(methodSymbol, options.Scope))
+            {
+                return false;
+            }
+
+            if (options.ExcludeGeneratedFiles && IsGeneratedCode(context.Node))
+            {
+                return false;
+            }
+
+            if (options.ExcludeTestFiles && IsTestCode(methodSymbol, context.Node.SyntaxTree.FilePath))
+            {
+                return false;
+            }
+
+            if (options.NamespaceFilters.Count > 0 && !MatchesNamespaceFilter(methodSymbol, options.NamespaceFilters))
+            {
+                return false;
+            }
+
+            if (options.MinimumComplexity > 0 && GetMethodComplexity(context.Node) < options.MinimumComplexity)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool MatchesSuggestionScope(IMethodSymbol methodSymbol, MissingPuritySuggestionScope scope)
+        {
+            switch (scope)
+            {
+                case MissingPuritySuggestionScope.All:
+                    return true;
+                case MissingPuritySuggestionScope.Public:
+                    return methodSymbol.DeclaredAccessibility == Accessibility.Public;
+                case MissingPuritySuggestionScope.Internal:
+                    return methodSymbol.DeclaredAccessibility == Accessibility.Internal ||
+                           methodSymbol.DeclaredAccessibility == Accessibility.ProtectedAndInternal ||
+                           methodSymbol.DeclaredAccessibility == Accessibility.ProtectedOrInternal;
+                default:
+                    return false;
+            }
+        }
+
+        private static bool IsGeneratedCode(SyntaxNode node)
+        {
+            var filePath = node.SyntaxTree.FilePath;
+            if (!string.IsNullOrWhiteSpace(filePath))
+            {
+                var fileName = Path.GetFileName(filePath);
+                if (fileName.EndsWith(".g.cs", StringComparison.OrdinalIgnoreCase) ||
+                    fileName.EndsWith(".generated.cs", StringComparison.OrdinalIgnoreCase) ||
+                    fileName.EndsWith(".designer.cs", StringComparison.OrdinalIgnoreCase) ||
+                    fileName.EndsWith(".AssemblyInfo.cs", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                var normalized = filePath.Replace('/', Path.DirectorySeparatorChar);
+                if (normalized.IndexOf(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return true;
+                }
+            }
+
+            var root = node.SyntaxTree.GetRoot();
+            return root.GetLeadingTrivia().ToString().IndexOf("<auto-generated", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static bool IsTestCode(IMethodSymbol methodSymbol, string filePath)
+        {
+            if (!string.IsNullOrWhiteSpace(filePath))
+            {
+                var normalized = filePath.Replace('/', Path.DirectorySeparatorChar);
+                var fileName = Path.GetFileNameWithoutExtension(filePath) ?? string.Empty;
+                if (normalized.IndexOf(Path.DirectorySeparatorChar + "test" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    normalized.IndexOf(Path.DirectorySeparatorChar + "tests" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    fileName.EndsWith("Test", StringComparison.OrdinalIgnoreCase) ||
+                    fileName.EndsWith("Tests", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            var containingTypeName = methodSymbol.ContainingType?.Name;
+            if (!string.IsNullOrWhiteSpace(containingTypeName))
+            {
+                var typeName = containingTypeName!;
+                if (typeName.EndsWith("Test", StringComparison.OrdinalIgnoreCase) ||
+                    typeName.EndsWith("Tests", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            var namespaceName = methodSymbol.ContainingNamespace?.ToDisplayString();
+            return IsTestLikeName(namespaceName);
+        }
+
+        private static bool IsTestLikeName(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            var name = value!;
+            return name.Equals("Test", StringComparison.OrdinalIgnoreCase) ||
+                   name.Equals("Tests", StringComparison.OrdinalIgnoreCase) ||
+                   name.EndsWith(".Test", StringComparison.OrdinalIgnoreCase) ||
+                   name.EndsWith(".Tests", StringComparison.OrdinalIgnoreCase) ||
+                   name.IndexOf(".Test.", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   name.IndexOf(".Tests.", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static bool MatchesNamespaceFilter(IMethodSymbol methodSymbol, ImmutableHashSet<string> namespaceFilters)
+        {
+            var namespaceName = methodSymbol.ContainingNamespace?.ToDisplayString() ?? string.Empty;
+            foreach (var filter in namespaceFilters)
+            {
+                if (filter.Length == 0)
+                {
+                    continue;
+                }
+
+                if (namespaceName.Equals(filter, StringComparison.Ordinal) ||
+                    namespaceName.StartsWith(filter + ".", StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static int GetMethodComplexity(SyntaxNode node)
+        {
+            SyntaxNode? body = node switch
+            {
+                MethodDeclarationSyntax m => (SyntaxNode?)m.Body ?? m.ExpressionBody?.Expression,
+                ConstructorDeclarationSyntax c => (SyntaxNode?)c.Body ?? c.ExpressionBody?.Expression,
+                OperatorDeclarationSyntax o => (SyntaxNode?)o.Body ?? o.ExpressionBody?.Expression,
+                AccessorDeclarationSyntax a => (SyntaxNode?)a.Body ?? a.ExpressionBody?.Expression,
+                LocalFunctionStatementSyntax l => (SyntaxNode?)l.Body ?? l.ExpressionBody?.Expression,
+                _ => node
+            };
+
+            if (body == null)
+            {
+                return 0;
+            }
+
+            int complexity = 0;
+            foreach (var descendant in body.DescendantNodesAndSelf())
+            {
+                if (descendant is StatementSyntax ||
+                    descendant is BinaryExpressionSyntax ||
+                    descendant is ConditionalExpressionSyntax ||
+                    descendant is SwitchExpressionSyntax ||
+                    descendant is InvocationExpressionSyntax ||
+                    descendant is ObjectCreationExpressionSyntax)
+                {
+                    complexity++;
+                }
+            }
+
+            return complexity;
         }
 
         private static bool ShouldSuggestMissingEnforcePure(IMethodSymbol methodSymbol)

@@ -10,6 +10,11 @@ namespace PurelySharp.Analyzer.Configuration
 
         /// <summary>When false, PS0004 (missing [EnforcePure]) is not reported. Default: true.</summary>
         public const string SuggestMissingEnforcePure = "purelysharp_suggest_missing_enforce_pure";
+        public const string SuggestMissingEnforcePureScope = "purelysharp_suggest_missing_enforce_pure_scope";
+        public const string SuggestMissingEnforcePureExcludeGenerated = "purelysharp_suggest_missing_enforce_pure_exclude_generated";
+        public const string SuggestMissingEnforcePureExcludeTests = "purelysharp_suggest_missing_enforce_pure_exclude_tests";
+        public const string SuggestMissingEnforcePureMinComplexity = "purelysharp_suggest_missing_enforce_pure_min_complexity";
+        public const string SuggestMissingEnforcePureNamespaceFilters = "purelysharp_suggest_missing_enforce_pure_namespace_filters";
         public const string EmitExplanations = "purelysharp_emit_explanations";
     }
 }

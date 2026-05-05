@@ -32,7 +32,7 @@ Currently, the analyzer provides the following checks:
 **Recently implemented (see codebase):**
 
 - **Code fixes** (`PurelySharp.CodeFixes`) for `PS0002`–`PS0008` (remove/add attributes, resolve conflicts). The demo and tests reference the code-fix project where applicable.
-- **Configuration** via `.editorconfig` / MSBuild `global analyzerconfig`: `purelysharp_known_impure_methods`, `purelysharp_known_pure_methods`, `purelysharp_known_impure_namespaces`, `purelysharp_known_impure_types`, `purelysharp_enable_debug_logging`, and `purelysharp_suggest_missing_enforce_pure` (`true`/`false`, default `true`) to toggle `PS0004` suggestions.
+- **Configuration** via `.editorconfig` / MSBuild `global analyzerconfig`: `purelysharp_known_impure_methods`, `purelysharp_known_pure_methods`, `purelysharp_known_impure_namespaces`, `purelysharp_known_impure_types`, `purelysharp_enable_debug_logging`, `purelysharp_suggest_missing_enforce_pure` (`true`/`false`, default `true`), and `purelysharp_suggest_missing_enforce_pure_scope` (`all`, `public`, `internal`, `off`, default `all`) to tune `PS0004` suggestions. Optional PS0004 filters include `purelysharp_suggest_missing_enforce_pure_exclude_generated`, `purelysharp_suggest_missing_enforce_pure_exclude_tests`, `purelysharp_suggest_missing_enforce_pure_min_complexity`, and `purelysharp_suggest_missing_enforce_pure_namespace_filters`.
 - **`[AllowSynchronization]`** is supported alongside `[EnforcePure]`/`[Pure]` (`PS0006`–`PS0008`).
 
 ## How It Works
