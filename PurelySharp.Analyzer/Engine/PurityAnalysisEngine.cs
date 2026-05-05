@@ -2257,7 +2257,9 @@ namespace PurelySharp.Analyzer.Engine
 
             return cctorResult.IsPure
                 ? PurityAnalysisResult.Pure
-                : PurityAnalysisResult.Impure(cctorResult.ImpureSyntaxNode ?? typeSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax() ?? ImpureResult(null).ImpureSyntaxNode ?? context.ContainingMethodSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax() ?? throw new InvalidOperationException("Cannot find syntax node for static constructor impurity"));
+                : PurityAnalysisResult.Impure(
+                    cctorResult.ImpureSyntaxNode ?? typeSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax() ?? ImpureResult(null).ImpureSyntaxNode ?? context.ContainingMethodSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax() ?? throw new InvalidOperationException("Cannot find syntax node for static constructor impurity"),
+                    cctorResult.Evidence);
         }
 
 

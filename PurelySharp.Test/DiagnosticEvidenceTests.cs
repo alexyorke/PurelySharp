@@ -295,6 +295,41 @@ public class TestClass
         }
 
         [Test]
+        public async Task Ps0002_StaticConstructorTrigger_PreservesConstructorEvidence()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+using PurelySharp.Attributes;
+
+public class Config
+{
+    static Config()
+    {
+        Console.WriteLine(""impure"");
+    }
+
+    public static int Value => 1;
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int TestMethod()
+    {
+        return Config.Value;
+    }
+}");
+
+            var diagnostic = diagnostics
+                .Where(d => d.Id == PurelySharpDiagnostics.PurityNotVerifiedId)
+                .Single(d => d.GetMessage().Contains("'TestMethod'", StringComparison.Ordinal));
+
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCategoryProperty], Is.EqualTo("catalog_hit"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityRuleProperty], Is.EqualTo("MethodInvocationPurityRule"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpuritySymbolProperty], Does.Contain("System.Console.WriteLine"));
+        }
+
+        [Test]
         public async Task Ps0002_MethodArgumentImpurity_PreservesOriginalEvidence()
         {
             var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
