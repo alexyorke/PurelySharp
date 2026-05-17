@@ -260,11 +260,6 @@ namespace PurelySharp.Analyzer.Engine.Rules
                             catalogSource: "attribute"));
                 }
 
-                if (PurityAnalysisEngine.HasPureExternalAttribute(staticOriginalDefinitionSymbol))
-                {
-                    PurityAnalysisEngine.LogDebug("  [MIR] --> PURE ([PureExternal] boundary attribute)");
-                    return PurityAnalysisEngine.PurityAnalysisResult.Pure;
-                }
             }
 
             if (invokedMethodSymbol.IsStatic && invokedMethodSymbol.ContainingType != null)
@@ -312,12 +307,6 @@ namespace PurelySharp.Analyzer.Engine.Rules
                         catalogSource: "attribute"));
             }
 
-            if (PurityAnalysisEngine.HasPureExternalAttribute(originalDefinitionSymbol))
-            {
-                PurityAnalysisEngine.LogDebug("  [MIR] --> PURE ([PureExternal] boundary attribute)");
-                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
-            }
-
             PurityAnalysisEngine.LogDebug($"  [MIR] Checking purity of {invocationOperation.Arguments.Length} arguments for {originalDefinitionSymbol.Name}.");
             foreach (var argument in invocationOperation.Arguments)
             {
@@ -339,6 +328,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
                         argumentResult.ImpureSyntaxNode ?? argument.Value.Syntax,
                         argumentResult.Evidence);
                 }
+            }
+
+            if (PurityAnalysisEngine.HasPureExternalAttribute(originalDefinitionSymbol))
+            {
+                PurityAnalysisEngine.LogDebug("  [MIR] --> PURE ([PureExternal] boundary attribute)");
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
 
 

@@ -29,6 +29,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task PureExternal_Method_DoesNotTrustImpureArguments()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [PureExternal]
+    public static int TrustedBoundary(int value) => value;
+
+    [EnforcePure]
+    public int {|PS0002:Caller|}() => TrustedBoundary(Console.Read());
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task Impure_Method_IsImpureAtCallSiteEvenWithPureBody()
         {
             var test = @"
