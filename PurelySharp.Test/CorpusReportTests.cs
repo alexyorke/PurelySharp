@@ -148,5 +148,51 @@ namespace PurelySharp.Test
 
             Assert.That(report.UnknownOperationKinds["FunctionPointerInvocation"], Is.EqualTo(2));
         }
+
+        [Test]
+        public void CreateFromSarifJson_DoesNotDoubleCountExplanationEvidence()
+        {
+            var report = SarifCorpusReport.CreateFromSarifJson("sample.sarif", """
+{
+  "version": "2.1.0",
+  "runs": [
+    {
+      "results": [
+        {
+          "ruleId": "PS0002",
+          "properties": {
+            "purelysharp.impurity.category": "unsupported_operation",
+            "purelysharp.impurity.rule": "MethodInvocationPurityRule",
+            "purelysharp.impurity.operation_kind": "Invocation",
+            "purelysharp.impurity.symbol": "ExternalLibrary.Hash(byte[])"
+          }
+        },
+        {
+          "ruleId": "PS0009",
+          "properties": {
+            "purelysharp.impurity.category": "unsupported_operation",
+            "purelysharp.impurity.rule": "MethodInvocationPurityRule",
+            "purelysharp.impurity.operation_kind": "Invocation",
+            "purelysharp.impurity.symbol": "ExternalLibrary.Hash(byte[])"
+          }
+        }
+      ]
+    }
+  ]
+}
+""");
+
+            Assert.That(report.Ps0002Count, Is.EqualTo(1));
+            Assert.That(report.Ps0009Count, Is.EqualTo(1));
+            Assert.That(report.TotalPurelySharpDiagnostics, Is.EqualTo(2));
+            Assert.That(report.Diagnostics, Has.Length.EqualTo(2));
+            Assert.That(report.ImpurityCategories["unsupported_operation"], Is.EqualTo(1));
+            Assert.That(report.RuleNames["MethodInvocationPurityRule"], Is.EqualTo(1));
+            Assert.That(report.OperationKinds["Invocation"], Is.EqualTo(1));
+            Assert.That(report.UnknownOperationKinds["Invocation"], Is.EqualTo(1));
+            Assert.That(report.TopImpureApis[0].Count, Is.EqualTo(1));
+            Assert.That(report.CatalogMisses[0].Count, Is.EqualTo(1));
+            Assert.That(report.FalsePositiveCandidates[0].Count, Is.EqualTo(1));
+        }
     }
 }

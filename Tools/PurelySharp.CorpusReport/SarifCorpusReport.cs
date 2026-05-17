@@ -144,6 +144,11 @@ public static class SarifCorpusReport
                 catalogSource,
                 calleeChain));
 
+            if (ruleId != "PS0002")
+            {
+                return;
+            }
+
             IncrementIfPresent(_categories, category);
             IncrementIfPresent(_ruleNames, ruleName);
             IncrementIfPresent(_operationKinds, operationKind);

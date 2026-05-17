@@ -21,7 +21,7 @@ Currently, the analyzer provides the following checks:
     - Purity of invoked methods (recursive check with cycle detection).
     - Purity of expressions (constants, parameters, `static readonly` fields, basic operators, etc.).
     - Purity of basic statements (local declarations, return, simple expression statements).
-6.  **Regression status:** The in-repo analyzer suite currently passes `1361/1361` tests on .NET 8.
+6.  **Regression status:** The in-repo analyzer suite currently passes `1362/1362` tests on .NET 8.
 
 **Inherent limitations (not “missing features”):**
 
@@ -192,7 +192,7 @@ dotnet run --project Tools/PurelySharp.CorpusReport -- artifacts/purelysharp.sar
 dotnet run --project Tools/PurelySharp.CorpusReport -- --output artifacts/purelysharp-report.json PurelySharp.sln
 ```
 
-The JSON report includes a stable `SchemaVersion`, `PS0002`, `PS0004`, and `PS0009` counts, per-diagnostic evidence rows, impurity categories, rule-name counts, operation kinds, unsupported/unknown operation kinds, top impure APIs, catalog/config-source details, catalog-miss candidates, and false-positive candidates based on the structured diagnostic properties emitted by `PS0002`.
+The JSON report includes a stable `SchemaVersion`, `PS0002`, `PS0004`, and `PS0009` counts, per-diagnostic evidence rows, impurity categories, rule-name counts, operation kinds, unsupported/unknown operation kinds, top impure APIs, catalog/config-source details, catalog-miss candidates, and false-positive candidates based on the structured diagnostic properties emitted by `PS0002`. Explanation diagnostics (`PS0009`) remain visible as diagnostic rows but do not double-count impurity aggregates.
 
 ## CI Usage
 
