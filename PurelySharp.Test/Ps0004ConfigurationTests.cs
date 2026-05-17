@@ -122,6 +122,23 @@ namespace Acme.Tests
         }
 
         [Test]
+        public async Task Ps0004_ExcludeTests_SuppressesRootLevelTestsDirectory()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+namespace Acme.Production
+{
+    public class Calculator
+    {
+        public int Pure() => 1;
+    }
+}",
+                ImmutableDictionary<string, string>.Empty.Add("purelysharp_suggest_missing_enforce_pure_exclude_tests", "true"),
+                Path.Combine("tests", "Calculator.cs"));
+
+            Assert.That(DiagnosticMessages(diagnostics), Has.None.Contains("Pure"));
+        }
+
+        [Test]
         public async Task Ps0004_ExcludeGenerated_SuppressesGeneratedFilePaths()
         {
             var diagnostics = await GetAnalyzerDiagnosticsAsync(@"

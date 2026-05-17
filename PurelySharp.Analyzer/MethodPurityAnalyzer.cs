@@ -337,7 +337,9 @@ namespace PurelySharp.Analyzer
             {
                 var normalized = filePath.Replace('/', Path.DirectorySeparatorChar);
                 var fileName = Path.GetFileNameWithoutExtension(filePath) ?? string.Empty;
-                if (normalized.IndexOf(Path.DirectorySeparatorChar + "test" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                if (normalized.StartsWith("test" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ||
+                    normalized.StartsWith("tests" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ||
+                    normalized.IndexOf(Path.DirectorySeparatorChar + "test" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) >= 0 ||
                     normalized.IndexOf(Path.DirectorySeparatorChar + "tests" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) >= 0 ||
                     fileName.EndsWith("Test", StringComparison.OrdinalIgnoreCase) ||
                     fileName.EndsWith("Tests", StringComparison.OrdinalIgnoreCase))
