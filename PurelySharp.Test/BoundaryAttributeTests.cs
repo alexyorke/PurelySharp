@@ -1,4 +1,9 @@
+using System;
+using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using NUnit.Framework;
 using PurelySharp.Analyzer;
 using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
@@ -217,6 +222,109 @@ public class TestClass
 }";
 
             await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task AssemblyImpure_DirectPureExternal_OverridesDefaultAtCallSite()
+        {
+            var boundaryReference = CreateBoundaryReference(
+                "ImpureDefaultWithDirectPureExternal",
+                @"
+using System;
+using PurelySharp.Attributes;
+
+[assembly: Impure]
+
+public static class Boundary
+{
+    [PureExternal]
+    public static int TrustedOverride() => DateTime.Now.Millisecond;
+}");
+
+            var verifier = CreateVerifier(@"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Caller() => Boundary.TrustedOverride();
+}");
+            verifier.TestState.AdditionalReferences.Add(boundaryReference);
+
+            await verifier.RunAsync();
+        }
+
+        [Test]
+        public async Task AssemblyPureExternal_DirectImpure_OverridesDefaultAtCallSite()
+        {
+            var boundaryReference = CreateBoundaryReference(
+                "PureExternalDefaultWithDirectImpure",
+                @"
+using PurelySharp.Attributes;
+
+[assembly: PureExternal]
+
+public static class Boundary
+{
+    [Impure]
+    public static int ExplicitlyImpure() => 1;
+}");
+
+            var verifier = CreateVerifier(@"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:Caller|}() => Boundary.ExplicitlyImpure();
+}");
+            verifier.TestState.AdditionalReferences.Add(boundaryReference);
+
+            await verifier.RunAsync();
+        }
+
+        private static VerifyCS.Test CreateVerifier(string source)
+        {
+            var verifier = new VerifyCS.Test
+            {
+                TestCode = source
+            };
+
+            verifier.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(PurelySharp.Attributes.EnforcePureAttribute).Assembly.Location));
+            return verifier;
+        }
+
+        private static MetadataReference CreateBoundaryReference(string assemblyName, string source)
+        {
+            var runtimeDirectory = Path.GetDirectoryName(typeof(object).Assembly.Location);
+            Assert.That(runtimeDirectory, Is.Not.Null.And.Not.Empty);
+
+            var dotnetRoot = Path.GetFullPath(Path.Combine(runtimeDirectory!, "..", "..", ".."));
+            var referencePackRoot = Path.Combine(dotnetRoot, "packs", "Microsoft.NETCore.App.Ref");
+            var net8ReferenceDirectory = Directory.GetDirectories(referencePackRoot)
+                .Select(path => Path.Combine(path, "ref", "net8.0"))
+                .Where(Directory.Exists)
+                .OrderByDescending(path => path, StringComparer.OrdinalIgnoreCase)
+                .FirstOrDefault();
+            Assert.That(net8ReferenceDirectory, Is.Not.Null.And.Not.Empty);
+
+            var references = Directory.GetFiles(net8ReferenceDirectory!, "*.dll")
+                .Select(path => MetadataReference.CreateFromFile(path))
+                .Cast<MetadataReference>()
+                .Append(MetadataReference.CreateFromFile(typeof(PurelySharp.Attributes.EnforcePureAttribute).Assembly.Location));
+
+            var compilation = CSharpCompilation.Create(
+                assemblyName,
+                new[] { CSharpSyntaxTree.ParseText(source, CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview)) },
+                references,
+                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+            using var stream = new MemoryStream();
+            var result = compilation.Emit(stream);
+            Assert.That(result.Success, Is.True, string.Join(Environment.NewLine, result.Diagnostics));
+
+            stream.Position = 0;
+            return MetadataReference.CreateFromImage(stream.ToArray());
         }
     }
 }
