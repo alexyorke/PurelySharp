@@ -37,10 +37,16 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
 
-            if (PurityAnalysisEngine.IsPureEnforced(
+            var isPureEnforcedProperty = PurityAnalysisEngine.IsPureEnforced(
                 propertySymbol,
                 context.EnforcePureAttributeSymbol,
-                context.PureAttributeSymbol))
+                context.PureAttributeSymbol);
+            var getterSymbol = propertySymbol.GetMethod;
+            var requiresDispatchCheck = getterSymbol != null &&
+                IsPotentiallyDispatchedGetter(getterSymbol) &&
+                !PurityAnalysisEngine.IsKnownPureBCLMember(propertySymbol);
+
+            if (isPureEnforcedProperty && !requiresDispatchCheck)
             {
                 PurityAnalysisEngine.LogDebug($"    [PropRefRule] Property {propertySymbol.Name} has [EnforcePure]. Assuming Pure.");
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
@@ -78,15 +84,22 @@ namespace PurelySharp.Analyzer.Engine.Rules
                         catalogSource: "known_impure_namespace_or_type"));
             }
 
-            if (propertySymbol.GetMethod != null &&
-                IsPotentiallyDispatchedGetter(propertySymbol.GetMethod) &&
-                !PurityAnalysisEngine.IsKnownPureBCLMember(propertySymbol))
+            if (requiresDispatchCheck)
             {
                 PurityAnalysisEngine.LogDebug($"    [PropRefRule] Property {propertySymbol.Name} may dispatch. Checking getter candidates.");
-                var dispatchResult = CheckDispatchedGetterPurity(propertyReferenceOperation, context);
+                var dispatchResult = CheckDispatchedGetterPurity(
+                    propertyReferenceOperation,
+                    context,
+                    isPureEnforcedProperty);
                 if (!dispatchResult.IsPure)
                 {
                     return dispatchResult;
+                }
+
+                if (isPureEnforcedProperty)
+                {
+                    PurityAnalysisEngine.LogDebug($"    [PropRefRule] Property {propertySymbol.Name} has [EnforcePure] and dispatched getter candidates were pure. Assuming Pure.");
+                    return PurityAnalysisEngine.PurityAnalysisResult.Pure;
                 }
             }
 
@@ -299,7 +312,8 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
         private static PurityAnalysisEngine.PurityAnalysisResult CheckDispatchedGetterPurity(
             IPropertyReferenceOperation propertyReferenceOperation,
-            PurityAnalysisContext context)
+            PurityAnalysisContext context,
+            bool trustContractWhenNoTargets)
         {
             var candidates = ResolvePotentialGetterTargets(
                 propertyReferenceOperation.Property,
@@ -308,6 +322,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             if (candidates.IsDefaultOrEmpty)
             {
+                if (trustContractWhenNoTargets)
+                {
+                    return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+                }
+
                 return PurityAnalysisEngine.PurityAnalysisResult.Impure(
                     propertyReferenceOperation.Syntax,
                     PurityAnalysisEngine.PurityEvidence.Create(
