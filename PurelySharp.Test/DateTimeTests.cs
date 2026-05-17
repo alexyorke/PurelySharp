@@ -131,6 +131,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task DateTimeStaticComparisonHelpers_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool TestMethod(DateTime left, DateTime right)
+    {
+        return DateTime.Compare(left, right) == 0 ||
+            DateTime.Equals(left, right);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DateTimeOffsetNow_Diagnostic()
         {
             var test = @"
