@@ -58,7 +58,7 @@ _This analyzer is not yet published._ Once released, installation will likely in
     dotnet add package PurelySharp.Attributes --version <version>
     ```
 2.  **Analyzer Package/VSIX:**
-    - Add the `PurelySharp.Analyzer` NuGet package to your project(s) for build-time analysis.
+    - Add the `PurelySharp` NuGet package to your project(s) for build-time analysis.
     - Install the `PurelySharp.Vsix` extension in Visual Studio for real-time feedback.
 
 ## Local build and install (VSIX + NuGet)
