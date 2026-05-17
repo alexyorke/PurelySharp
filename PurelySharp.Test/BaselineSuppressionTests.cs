@@ -74,6 +74,29 @@ public class TestClass
         }
 
         [Test]
+        public async Task Baseline_SuppressesRelativePathAgainstAbsoluteSourcePath()
+        {
+            var projectRoot = Path.Combine(Path.GetTempPath(), "PurelySharpBaselineTests", "Project");
+            var sourcePath = Path.Combine(projectRoot, "src", "ProductionCode.cs");
+            var baselinePath = Path.Combine(projectRoot, "PurelySharp.Baseline.json");
+
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void Impure()
+    {
+        Console.WriteLine(""impure"");
+    }
+}", Baseline("PS0002", "M:TestClass.Impure", "src/ProductionCode.cs"), sourcePath, baselinePath);
+
+            Assert.That(diagnostics.Any(diagnostic => diagnostic.Id == PurelySharpDiagnostics.PurityNotVerifiedId), Is.False);
+        }
+
+        [Test]
         public async Task Baseline_ParsesJsonEscapedValues()
         {
             var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
@@ -127,12 +150,14 @@ public class TestClass
 
         private static async Task<ImmutableArray<Diagnostic>> GetAnalyzerDiagnosticsAsync(
             string source,
-            string baseline)
+            string baseline,
+            string? sourcePath = null,
+            string? baselinePath = null)
         {
             var syntaxTree = CSharpSyntaxTree.ParseText(
                 source,
                 new CSharpParseOptions(LanguageVersion.Preview),
-                path: Path.Combine("src", "ProductionCode.cs"));
+                path: sourcePath ?? Path.Combine("src", "ProductionCode.cs"));
             var references = GetTrustedPlatformReferences()
                 .Add(MetadataReference.CreateFromFile(typeof(PurelySharp.Attributes.EnforcePureAttribute).Assembly.Location));
 
@@ -143,7 +168,7 @@ public class TestClass
                 new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
             var analyzerOptions = new AnalyzerOptions(
-                ImmutableArray.Create<AdditionalText>(new InMemoryAdditionalText("PurelySharp.Baseline.json", baseline)));
+                ImmutableArray.Create<AdditionalText>(new InMemoryAdditionalText(baselinePath ?? "PurelySharp.Baseline.json", baseline)));
 
             var compilationWithAnalyzers = compilation.WithAnalyzers(
                 ImmutableArray.Create<DiagnosticAnalyzer>(new PurelySharpAnalyzer()),
