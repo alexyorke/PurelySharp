@@ -19,9 +19,13 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
 			PurityAnalysisEngine.LogDebug($"  [EventRefRule] Checking EventReference: {eventReference.Event?.Name} on {eventReference.Event?.ContainingType?.ToDisplayString()}");
 
-			// Referencing an event value (e.g., `var e = MyEvent;`) is considered pure.
-			// Subscriptions/unsubscriptions are handled by EventAssignmentPurityRule via IEventAssignmentOperation.
-			return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+			return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+				eventReference.Syntax,
+				PurityAnalysisEngine.PurityEvidence.Create(
+					"mutable_state_read",
+					nameof(EventReferencePurityRule),
+					eventReference,
+					symbol: eventReference.Event));
 		}
 	}
 }

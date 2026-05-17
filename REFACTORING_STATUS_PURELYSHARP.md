@@ -34,6 +34,7 @@
   - `CompilationPurityService` now builds the call graph lazily, with a non-flaky caching test guarding constructor-time work
   - attribute placement analysis now runs on attribute lists instead of nearly every syntax kind, and covers misplaced parameter attributes
   - direct contradictory purity-boundary attributes now report `PS0005`; assembly-level defaults are not treated as direct conflicts, and the code fix removes conflicting boundary attributes
+  - event backing delegate reads now report `mutable_state_read` instead of being treated as pure snapshots
   - unsafe pointer fallbacks now report `unsafe_pointer` evidence, synchronization APIs/locks report `synchronization` evidence, and reflection/environment/time catalog hits report `reflection_environment_source` evidence
   - delegate target tracking now invalidates unresolved reassignment and preserves unresolved delegate targets across branch merges
   - delegate invocation now checks argument-expression purity after resolving pure delegate targets

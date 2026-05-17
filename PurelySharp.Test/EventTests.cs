@@ -11,7 +11,7 @@ namespace PurelySharp.Test
     public class EventTests
     {
         [Test]
-        public async Task PureMethodWithEvent_NoDiagnostic()
+        public async Task EventSnapshotRead_Diagnostic()
         {
 
             var test = @"
@@ -26,12 +26,10 @@ public class TestClass
     public event EventHandler TestEvent;
 
     [EnforcePure]
-    public void TestMethod()
+    public void {|PS0002:TestMethod|}()
     {
-        // Just referencing an event without subscribing is pure
+        // Reading the event backing delegate observes mutable subscriber state.
         var evt = TestEvent;
-        
-        // Method doesn't interact with the event, so it's still pure
     }
 }";
 
