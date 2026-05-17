@@ -34,11 +34,16 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
             else
             {
-                PurityAnalysisEngine.LogDebug($"  [ThrowRule] Found re-throw operation (exception is null). Assuming pure evaluation.");
+                PurityAnalysisEngine.LogDebug($"  [ThrowRule] Found re-throw operation (exception is null). Treating throw as impure.");
             }
 
-            PurityAnalysisEngine.LogDebug($"  [ThrowRule] Throw operation evaluation is pure. Returning Pure.");
-            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            PurityAnalysisEngine.LogDebug($"  [ThrowRule] Throw operation is IMPURE.");
+            return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                operation.Syntax,
+                PurityAnalysisEngine.PurityEvidence.Create(
+                    "throw",
+                    nameof(ThrowOperationPurityRule),
+                    operation));
         }
     }
 }

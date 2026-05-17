@@ -12,7 +12,7 @@ namespace PurelySharp.Test
     public class ThrowExpressionTests
     {
         [Test]
-        public async Task MethodWithThrowExpression_NoDiagnostic()
+        public async Task MethodWithThrowExpression_ReportsPS0002()
         {
             var test = @"
 using System;
@@ -23,7 +23,7 @@ namespace TestNamespace
     public class TestClass
     {
         [EnforcePure]
-        public int TestMethod(int value)
+        public int {|PS0002:TestMethod|}(int value)
         {
             return value >= 0 ? value : throw new ArgumentException(""Invalid value"");
         }
