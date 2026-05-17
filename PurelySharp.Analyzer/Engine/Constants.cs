@@ -1080,6 +1080,11 @@ public static class Constants
         "System.DateTimeOffset.FromUnixTimeSeconds(long)",
         "System.DateTimeOffset.ToUnixTimeMilliseconds()",
         "System.DateTimeOffset.ToUnixTimeSeconds()",
+        "System.DateTimeOffset.DateTime.get",
+        "System.DateTimeOffset.Offset.get",
+        "System.DateTimeOffset.Ticks.get",
+        "System.DateTimeOffset.UtcDateTime.get",
+        "System.DateTimeOffset.UtcTicks.get",
 
 
         "System.DBNull.Value.get",
