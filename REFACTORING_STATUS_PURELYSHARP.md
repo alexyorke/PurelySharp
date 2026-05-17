@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1367/1367` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1368/1368` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -41,6 +41,7 @@
   - delegate compound assignment now merges `+=` targets and keeps `-=`/incomplete compound updates conservative
   - `[PureExternal]` method calls now still evaluate argument-expression purity before trusting the boundary
   - object initializer assignments now check property setter purity instead of checking only assigned values
+  - nested object/member initializers now report mutable-state writes because they mutate existing member objects
   - LINQ source analysis now checks in-compilation `GetEnumerator()` implementations so deferred queries over impure source enumerators are reported
   - corpus reports now separately aggregate unsupported/unknown operation kinds
   - boundary attribute coverage now includes methods, properties/accessors, and constructors

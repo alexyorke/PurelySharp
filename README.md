@@ -21,7 +21,7 @@ Currently, the analyzer provides the following checks:
     - Purity of invoked methods (recursive check with cycle detection).
     - Purity of expressions (constants, parameters, `static readonly` fields, basic operators, etc.).
     - Purity of basic statements (local declarations, return, simple expression statements).
-6.  **Regression status:** The in-repo analyzer suite currently passes `1367/1367` tests on .NET 8.
+6.  **Regression status:** The in-repo analyzer suite currently passes `1368/1368` tests on .NET 8.
 
 **Inherent limitations (not “missing features”):**
 
@@ -213,7 +213,7 @@ dotnet build MySolution.sln /p:ErrorLog=artifacts/purelysharp.sarif
 dotnet run --project Tools/PurelySharp.CorpusReport -- --output artifacts/purelysharp-report.json artifacts/purelysharp.sarif
 ```
 
-`PS0002` diagnostics include stable properties for CI triage: impurity category, rule name, operation kind, symbol, catalog/config source, and callee chain. Evidence is preserved through common wrapper operations such as assignments, variable initializers, method arguments, LINQ arguments, property getters, static constructor triggers, collection/spread expressions, user-defined operators/conversions, using/Dispose checks, mutable field reads/writes, dynamic dispatch including dynamic unary/binary operations, extern calls, synchronization, unsafe pointer operations, reflection/environment sources, unresolved delegate targets, array/object creation, array dimension/element/initializer references, direct throw-only bodies, impure throw exception expressions, and conservative recursive-call diagnostics. Use `PurelySharp.Baseline.json` as an additional file when adopting incrementally and suppressing known existing diagnostics by ID, symbol documentation ID, and relative path.
+`PS0002` diagnostics include stable properties for CI triage: impurity category, rule name, operation kind, symbol, catalog/config source, and callee chain. Evidence is preserved through common wrapper operations such as assignments, variable initializers, method arguments, LINQ arguments, property getters, static constructor triggers, object and nested member initializers, collection/spread expressions, user-defined operators/conversions, using/Dispose checks, mutable field reads/writes, dynamic dispatch including dynamic unary/binary operations, extern calls, synchronization, unsafe pointer operations, reflection/environment sources, unresolved delegate targets, array/object creation, array dimension/element/initializer references, direct throw-only bodies, impure throw exception expressions, and conservative recursive-call diagnostics. Use `PurelySharp.Baseline.json` as an additional file when adopting incrementally and suppressing known existing diagnostics by ID, symbol documentation ID, and relative path.
 
 ## Contributing
 

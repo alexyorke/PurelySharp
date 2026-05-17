@@ -36,5 +36,36 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
+
+        [Test]
+        public async Task NestedObjectInitializerMutatingExistingMember_Diagnostic()
+        {
+            var testCode = @"
+using PurelySharp.Attributes;
+
+public class Shared
+{
+    public int X;
+}
+
+public class Holder
+{
+    public static readonly Shared SharedInstance = new Shared();
+
+    public Shared Field = SharedInstance;
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public Holder {|PS0002:Create|}()
+    {
+        return new Holder { Field = { X = 1 } };
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
     }
 }

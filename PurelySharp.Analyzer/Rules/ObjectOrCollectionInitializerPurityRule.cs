@@ -51,6 +51,17 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     PurityAnalysisEngine.LogDebug($"[ObjInitRule]  - Checking Collection Element Constructor: {valueToCheck?.Syntax}");
                 }
 
+                else if (initOp is IMemberInitializerOperation)
+                {
+                    PurityAnalysisEngine.LogDebug($"[ObjInitRule]  -> Nested member initializer mutates an existing member object: {initOp.Syntax}");
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                        initOp.Syntax,
+                        PurityAnalysisEngine.PurityEvidence.Create(
+                            "mutable_state_write",
+                            nameof(ObjectOrCollectionInitializerPurityRule),
+                            initOp));
+                }
+
                 else
                 {
 
