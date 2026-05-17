@@ -150,6 +150,65 @@ namespace PurelySharp.Test
         }
 
         [Test]
+        public void CreateFromSarifJson_NormalizesEvidencePropertiesBeforeAggregating()
+        {
+            var report = SarifCorpusReport.CreateFromSarifJson("sample.sarif", """
+{
+  "version": "2.1.0",
+  "runs": [
+    {
+      "results": [
+        {
+          "ruleId": "PS0002",
+          "properties": {
+            "purelysharp.impurity.category": " unsupported_operation ",
+            "purelysharp.impurity.rule": " UnsupportedRule ",
+            "purelysharp.impurity.operation_kind": " FunctionPointerInvocation ",
+            "purelysharp.impurity.symbol": " delegate*<void> ",
+            "purelysharp.impurity.catalog_source": " analyzer ",
+            "purelysharp.impurity.callee_chain": " Caller -> Callee "
+          }
+        },
+        {
+          "ruleId": "PS0002",
+          "properties": {
+            "purelysharp.impurity.category": "unsupported_operation",
+            "purelysharp.impurity.rule": "UnsupportedRule",
+            "purelysharp.impurity.operation_kind": "FunctionPointerInvocation",
+            "purelysharp.impurity.symbol": "delegate*<void>"
+          }
+        },
+        {
+          "ruleId": "PS0002",
+          "properties": {
+            "purelysharp.impurity.category": " unsupported_operation ",
+            "purelysharp.impurity.operation_kind": " ",
+            "purelysharp.impurity.symbol": " "
+          }
+        }
+      ]
+    }
+  ]
+}
+""");
+
+            Assert.That(report.ImpurityCategories["unsupported_operation"], Is.EqualTo(3));
+            Assert.That(report.RuleNames["UnsupportedRule"], Is.EqualTo(2));
+            Assert.That(report.UnknownOperationKinds["FunctionPointerInvocation"], Is.EqualTo(2));
+            Assert.That(report.TopImpureApis, Has.Length.EqualTo(1));
+            Assert.That(report.TopImpureApis[0], Is.EqualTo(new RankedItem("delegate*<void>", 2)));
+            Assert.That(report.CatalogMisses[0], Is.EqualTo(new RankedItem("delegate*<void>", 2)));
+            Assert.That(report.FalsePositiveCandidates[0], Is.EqualTo(new RankedItem("delegate*<void>", 2, "unsupported_operation")));
+            Assert.That(report.Diagnostics[0].Category, Is.EqualTo("unsupported_operation"));
+            Assert.That(report.Diagnostics[0].OperationKind, Is.EqualTo("FunctionPointerInvocation"));
+            Assert.That(report.Diagnostics[0].Symbol, Is.EqualTo("delegate*<void>"));
+            Assert.That(report.Diagnostics[0].CatalogSource, Is.EqualTo("analyzer"));
+            Assert.That(report.Diagnostics[0].CalleeChain, Is.EqualTo("Caller -> Callee"));
+            Assert.That(report.Diagnostics[2].OperationKind, Is.Null);
+            Assert.That(report.Diagnostics[2].Symbol, Is.Null);
+        }
+
+        [Test]
         public void CreateFromSarifJson_DoesNotDoubleCountExplanationEvidence()
         {
             var report = SarifCorpusReport.CreateFromSarifJson("sample.sarif", """

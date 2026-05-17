@@ -126,12 +126,12 @@ public static class SarifCorpusReport
                 return;
             }
 
-            var category = GetStringProperty(properties, CategoryProperty);
-            var ruleName = GetStringProperty(properties, RuleNameProperty);
-            var operationKind = GetStringProperty(properties, OperationKindProperty);
-            var symbol = GetStringProperty(properties, SymbolProperty);
-            var catalogSource = GetStringProperty(properties, CatalogSourceProperty);
-            var calleeChain = GetStringProperty(properties, CalleeChainProperty);
+            var category = GetEvidenceProperty(properties, CategoryProperty);
+            var ruleName = GetEvidenceProperty(properties, RuleNameProperty);
+            var operationKind = GetEvidenceProperty(properties, OperationKindProperty);
+            var symbol = GetEvidenceProperty(properties, SymbolProperty);
+            var catalogSource = GetEvidenceProperty(properties, CatalogSourceProperty);
+            var calleeChain = GetEvidenceProperty(properties, CalleeChainProperty);
 
             _diagnostics.Add(new DiagnosticEvidenceItem(
                 inputName,
@@ -178,6 +178,12 @@ public static class SarifCorpusReport
             return element.TryGetProperty(propertyName, out var value) && value.ValueKind == JsonValueKind.String
                 ? value.GetString()
                 : null;
+        }
+
+        private static string? GetEvidenceProperty(JsonElement element, string propertyName)
+        {
+            var value = GetStringProperty(element, propertyName);
+            return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         }
 
         private static string? GetMessageText(JsonElement result)
