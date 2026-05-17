@@ -50,16 +50,17 @@ The analyzer (`PurelySharp.Analyzer`) integrates with the C# compilation process
 
 ## Installation
 
-_This analyzer is not yet published._ Once released, installation will likely involve:
+For local development, build packages with `build-nuget.ps1` and add a local NuGet source that points at `artifacts\nuget`. When packages are published, use the same package IDs from your NuGet source.
 
-1.  **Attributes Package:** Add a reference to the `PurelySharp.Attributes` NuGet package.
+1.  **Analyzer package:** Add the `PurelySharp` NuGet package to projects that should run build-time analysis. The analyzer package also includes the attributes assembly for NuGet consumption.
     ```powershell
-    # Example command (package not yet available)
-    dotnet add package PurelySharp.Attributes --version <version>
+    dotnet add package PurelySharp --version 0.0.4
     ```
-2.  **Analyzer Package/VSIX:**
-    - Add the `PurelySharp` NuGet package to your project(s) for build-time analysis.
-    - Install the `PurelySharp.Vsix` extension in Visual Studio for real-time feedback.
+2.  **Attributes-only package:** Add `PurelySharp.Attributes` only when you need the attribute definitions without installing the analyzer package.
+    ```powershell
+    dotnet add package PurelySharp.Attributes --version 0.0.4
+    ```
+3.  **Visual Studio extension:** Install the generated `PurelySharp.Vsix` extension for real-time feedback in Visual Studio.
 
 ## Local build and install (VSIX + NuGet)
 

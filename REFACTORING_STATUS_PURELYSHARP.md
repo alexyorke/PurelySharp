@@ -30,6 +30,7 @@
 - PS0004 `exclude_tests` now recognizes root-relative `test/` and `tests/` paths even when namespaces and type names are not test-like
 - delegate target resolution now merges conditional delegate assignment arms and stays conservative when either arm is unresolved
 - `System.Uri.IsWellFormedUriString(string, UriKind)` is now covered as a precise known-pure member
+- README installation guidance now matches the actual `PurelySharp` and `PurelySharp.Attributes` package IDs and local package workflow
   - `PS0002` diagnostics now carry structured impurity evidence through diagnostic properties, including category, rule, operation kind, symbol, catalog/config source, and callee chain; configured known-impure method hits, including the target method under analysis, are identified as `config_known_impure`, and configured impure type/namespace property reads report `known_impure_namespace_or_type`
   - optional `PS0009` explanation diagnostics can be emitted with `purelysharp_emit_explanations = true`
   - `Tools/PurelySharp.CorpusReport` can summarize SARIF/errorlog output into JSON with a stable `SchemaVersion`, diagnostic counts, per-diagnostic evidence rows, impurity categories, rule-name counts, top impure APIs, catalog-miss candidates, and false-positive candidates without double-counting `PS0009` explanation evidence
