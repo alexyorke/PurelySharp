@@ -173,6 +173,42 @@ public class TestClass
         }
 
         [Test]
+        public async Task EmitExplanations_PerTreeTrue_EmitsExplanationDiagnostic()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using PurelySharp.Attributes;
+using System;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void Write() => Console.WriteLine(""x"");
+}",
+                ImmutableDictionary<string, string>.Empty,
+                treeOptions: ImmutableDictionary<string, string>.Empty.Add("purelysharp_emit_explanations", "true"));
+
+            Assert.That(diagnostics.Select(diagnostic => diagnostic.Id), Does.Contain(PurelySharpDiagnostics.PurityExplanationId));
+        }
+
+        [Test]
+        public async Task EmitExplanations_PerTreeFalse_OverridesGlobalTrue()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using PurelySharp.Attributes;
+using System;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void Write() => Console.WriteLine(""x"");
+}",
+                ImmutableDictionary<string, string>.Empty.Add("purelysharp_emit_explanations", "true"),
+                treeOptions: ImmutableDictionary<string, string>.Empty.Add("purelysharp_emit_explanations", "false"));
+
+            Assert.That(diagnostics.Select(diagnostic => diagnostic.Id), Has.None.EqualTo(PurelySharpDiagnostics.PurityExplanationId));
+        }
+
+        [Test]
         public async Task Ps0004_ExcludeGenerated_SuppressesGeneratedFilePaths()
         {
             var diagnostics = await GetAnalyzerDiagnosticsAsync(@"

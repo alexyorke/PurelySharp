@@ -136,6 +136,10 @@ namespace PurelySharp.Analyzer
                 context.Options,
                 context.Node.SyntaxTree,
                 missingPuritySuggestions);
+            var effectiveEmitExplanations = AnalyzerConfiguration.GetEmitExplanations(
+                context.Options,
+                context.Node.SyntaxTree,
+                emitExplanations);
 
             if (!isPure && hasPurityEnforcementAttribute)
             {
@@ -159,7 +163,7 @@ namespace PurelySharp.Analyzer
                         messageArgs: new object[] { methodSymbol.Name }
                     );
                     context.ReportDiagnostic(diagnostic);
-                    if (emitExplanations)
+                    if (effectiveEmitExplanations)
                     {
                         var explanation = Diagnostic.Create(
                             PurelySharpDiagnostics.PurityExplanationRule,

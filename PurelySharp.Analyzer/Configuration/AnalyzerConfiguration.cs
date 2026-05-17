@@ -82,6 +82,22 @@ namespace PurelySharp.Analyzer.Configuration
             }
         }
 
+        public static bool GetEmitExplanations(
+            AnalyzerOptions options,
+            SyntaxTree syntaxTree,
+            bool fallback)
+        {
+            try
+            {
+                var treeOptions = options.AnalyzerConfigOptionsProvider.GetOptions(syntaxTree);
+                return GetBoolOrDefault(treeOptions, ConfigKeys.EmitExplanations, fallback);
+            }
+            catch
+            {
+                return fallback;
+            }
+        }
+
         private static ImmutableHashSet<string> GetValues(AnalyzerOptions options, string key)
         {
             var builder = ImmutableHashSet.CreateBuilder<string>(StringComparer.Ordinal);
