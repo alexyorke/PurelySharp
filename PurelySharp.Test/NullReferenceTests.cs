@@ -57,7 +57,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task NullReferenceWithThrow_NoDiagnostic()
+        public async Task NullReferenceWithThrow_Diagnostic()
         {
             var test = @"
 #nullable enable
@@ -67,7 +67,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public void TestMethod(object? obj)
+    public void {|PS0002:TestMethod|}(object? obj)
     {
         if (obj == null)
             throw new ArgumentNullException(nameof(obj));

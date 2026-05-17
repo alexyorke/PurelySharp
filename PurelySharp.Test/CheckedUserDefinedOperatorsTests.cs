@@ -410,7 +410,7 @@ namespace TestNamespace
         }
 
         [Test]
-        public async Task CheckedUserDefinedOperator_ImpureMethod_ReportsMissingAttributeDiagnostics()
+        public async Task CheckedUserDefinedOperator_ImpureConstructor_ReportsPureGetterOnly()
         {
             var test = @"
 using System;
@@ -449,10 +449,8 @@ public class Calculator
 ";
 
             var expectedGetValue = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(8, 19, 8, 24).WithArguments("get_Value");
-            var expectedCtor = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(10, 12, 10, 22).WithArguments(".ctor");
-            var expectedOpMultiply = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(18, 39, 18, 40).WithArguments("op_Multiply");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetValue, expectedCtor, expectedOpMultiply });
+            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetValue });
         }
 
         [Test]

@@ -12,7 +12,7 @@ namespace PurelySharp.Test
     public class ExceptionHandlingTests
     {
         [Test]
-        public async Task PureMethodWithExceptionHandling_NoDiagnostic()
+        public async Task PureMethodWithExceptionHandling_Diagnostic()
         {
 
 
@@ -25,11 +25,11 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int TestMethod(int x)
+    public int {|PS0002:TestMethod|}(int x)
     {
         try
         {
-            // Exception handling itself is not impure
+            // Exception handling itself is not impure; the throw branch is.
             if (x < 0)
             {
                 throw new ArgumentException(""x cannot be negative"", nameof(x));
@@ -94,7 +94,7 @@ public class TestClass
         
 
         [Test]
-        public async Task ThrowIfNull_IsTreatedAsPure()
+        public async Task ThrowIfNull_Diagnostic()
         {
             var test = @"
 using System;
@@ -103,7 +103,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public void Check(object o)
+    public void {|PS0002:Check|}(object o)
     {
         if (o == null) throw new ArgumentNullException(nameof(o));
     }

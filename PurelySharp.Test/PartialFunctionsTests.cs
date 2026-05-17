@@ -14,7 +14,7 @@ namespace PurelySharp.Test
 
 
         [Test]
-        public async Task TestPartialFunction_ThrowsException_UseMethodNoDiagnostic()
+        public async Task TestPartialFunction_ThrowsException_ReportsDiagnostics()
         {
             var testCode = @"
 #nullable enable
@@ -25,7 +25,7 @@ public class TestClass
 {
     [EnforcePure]
     // Throwing an exception is an impure operation (side effect)
-    public int IdentityOrThrowIfNull(int? input)
+    public int {|PS0002:IdentityOrThrowIfNull|}(int? input)
     {
         if (input == null)
         {
@@ -34,9 +34,9 @@ public class TestClass
         return input.Value;
     }
 
-    // Example usage remains pure even though one path throws.
+    // Example usage propagates the throw impurity from the helper.
     [EnforcePure]
-    public void UseMethod()
+    public void {|PS0002:UseMethod|}()
     {
         try
         {

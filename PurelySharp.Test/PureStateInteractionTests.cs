@@ -48,7 +48,7 @@ public class Circle : Shape
     public override double CalculateArea() => PI * Radius * Radius;
 
     [EnforcePure]
-    public Circle CreateScaledCopy(double factor)
+    public Circle {|PS0002:CreateScaledCopy|}(double factor)
     {
         if (factor <= 0) throw new ArgumentOutOfRangeException(nameof(factor));
         return new Circle(this.Id, this.Radius * factor);
@@ -64,7 +64,7 @@ public class TestClass
     public double GetCircleArea(Circle c) => c.CalculateArea();
 
     [EnforcePure]
-    public double GetScaledArea(Circle c, double factor)
+    public double {|PS0002:GetScaledArea|}(Circle c, double factor)
     {
         Circle scaled = c.CreateScaledCopy(factor);
         return scaled.CalculateArea();
@@ -77,14 +77,12 @@ public class TestClass
 
             var expectedGetId = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(7, 16, 7, 18).WithArguments("get_Id");
             var expectedShapeCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(8, 15, 8, 20).WithArguments(".ctor");
-            var expectedCircleCtor = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(22, 12, 22, 18).WithArguments(".ctor");
             var expectedGetRadius = VerifyCS.Diagnostic(PurelySharpDiagnostics.MissingEnforcePureAttributeId).WithSpan(19, 19, 19, 25).WithArguments("get_Radius");
 
             await VerifyCS.VerifyAnalyzerAsync(test,
                                              expectedGetId,
                                              expectedShapeCtor,
-                                             expectedGetRadius,
-                                             expectedCircleCtor
+                                             expectedGetRadius
                                              );
         }
     }

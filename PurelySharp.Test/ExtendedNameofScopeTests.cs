@@ -12,7 +12,7 @@ namespace PurelySharp.Test
     public class ExtendedNameofScopeTests
     {
         [Test]
-        public async Task ExtendedNameofScope_PureMethod_GetterDiagnosticOnly()
+        public async Task ExtendedNameofScope_ThrowExpression_ReportsDiagnostics()
         {
             var test = @"
 #nullable enable
@@ -30,15 +30,15 @@ public class MyModel
 public class TestClass
 {
     [EnforcePure]
-    public string GetPropertyName<T>(Expression<Func<T>> propertyLambda)
+    public string {|PS0002:GetPropertyName|}<T>(Expression<Func<T>> propertyLambda)
     {
         MemberExpression member = propertyLambda.Body as MemberExpression ?? throw new ArgumentException();
         return member.Member.Name;
     }
 
-    // Example usage should now remain pure.
+    // Example usage propagates the throw impurity from GetPropertyName.
     [EnforcePure] 
-    public string GetNamePropertyName()
+    public string {|PS0002:GetNamePropertyName|}()
     {
         return GetPropertyName(() => new MyModel().Name);
     }

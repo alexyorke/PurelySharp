@@ -796,6 +796,7 @@ namespace PurelySharp.Analyzer.Engine
 
                 PurityAnalysisResult result = PurityAnalysisResult.Pure;
                 var mergedDelegateTargetsFromCfg = ImmutableDictionary.Create<ISymbol, PotentialTargets>(SymbolEqualityComparer.Default);
+                var mergedOwnedLocalArraysFromCfg = ImmutableHashSet.Create<ISymbol>(SymbolEqualityComparer.Default);
                 if (bodySyntaxNode != null)
                 {
                     bool requiresNestedBodyFallback = methodBodyIOperation?.Parent != null;
@@ -822,7 +823,8 @@ namespace PurelySharp.Analyzer.Engine
                             visited,
                             methodSymbol,
                             purityCache,
-                            out mergedDelegateTargetsFromCfg);
+                            out mergedDelegateTargetsFromCfg,
+                            out mergedOwnedLocalArraysFromCfg);
                     }
 
                     LogDebug($"{indent}  CFG Analysis Result for {methodSymbol.ToDisplayString()}: IsPure={result.IsPure}, ImpureNode={result.ImpureSyntaxNode?.Kind()}");
@@ -850,12 +852,17 @@ namespace PurelySharp.Analyzer.Engine
 
 
                         LogDebug($"{indent}  Post-CFG: Checking ReturnOperations (with merged delegate map from CFG)...");
-                        var postCfgReturnState = new PurityAnalysisState(false, null, mergedDelegateTargetsFromCfg, null);
+                        var postCfgReturnState = new PurityAnalysisState(
+                            false,
+                            null,
+                            mergedDelegateTargetsFromCfg,
+                            null,
+                            ownedLocalArraySymbols: mergedOwnedLocalArraysFromCfg);
                         foreach (var returnOp in methodBodyIOperation.DescendantsAndSelf().OfType<IReturnOperation>())
                         {
                             if (returnOp.ReturnedValue != null)
                             {
-                                var returnPurity = CheckSingleOperation(returnOp.ReturnedValue, postCfgContext, postCfgReturnState);
+                                var returnPurity = CheckSingleOperation(returnOp, postCfgContext, postCfgReturnState);
                                 if (!returnPurity.IsPure)
                                 {
                                     LogDebug($"{indent}    Post-CFG: Return value IMPURE: {returnOp.ReturnedValue.Syntax}");
@@ -880,8 +887,7 @@ namespace PurelySharp.Analyzer.Engine
                         LogDebug($"{indent}  Post-CFG: UsingOperations check complete (result still pure).");
 
 
-                        LogDebug($"{indent}  Post-CFG: Checking ThrowOperations (divergence without side effects allowed)...");
-                        // Allow throw as a pure-diverging operation if its exception expression is pure.
+                        LogDebug($"{indent}  Post-CFG: Checking ThrowOperations...");
                         var firstThrowOp = methodBodyIOperation.DescendantsAndSelf().OfType<IThrowOperation>().FirstOrDefault();
                         if (firstThrowOp != null)
                         {
@@ -897,9 +903,17 @@ namespace PurelySharp.Analyzer.Engine
                                     goto PostCfgChecksDone;
                                 }
                             }
-                            LogDebug($"{indent}    Post-CFG: Throw operation treated as pure-diverging (no side effects).");
+
+                            LogDebug($"{indent}    Post-CFG: Throw operation is IMPURE: {firstThrowOp.Syntax}");
+                            result = PurityAnalysisResult.Impure(
+                                firstThrowOp.Syntax,
+                                PurityEvidence.Create(
+                                    "throw",
+                                    ruleName: "ThrowOperationPurityRule",
+                                    operation: firstThrowOp));
+                            goto PostCfgChecksDone;
                         }
-                        LogDebug($"{indent}  Post-CFG: ThrowOperations check complete (divergence allowed).");
+                        LogDebug($"{indent}  Post-CFG: ThrowOperations check complete (result still pure).");
 
 
                         LogDebug($"{indent}  Post-CFG: Checking Unreachable Code (Try, Catch)...");
@@ -1065,6 +1079,21 @@ namespace PurelySharp.Analyzer.Engine
             return map;
         }
 
+        private static ImmutableHashSet<ISymbol> MergeOwnedLocalArraySymbolsFromBlockStates(
+            IEnumerable<PurityAnalysisState> states)
+        {
+            var builder = ImmutableHashSet.CreateBuilder<ISymbol>(SymbolEqualityComparer.Default);
+            foreach (var state in states)
+            {
+                foreach (var symbol in state.OwnedLocalArraySymbols)
+                {
+                    builder.Add(symbol);
+                }
+            }
+
+            return builder.ToImmutable();
+        }
+
         private static PurityAnalysisResult AnalyzePurityUsingCFGInternal(
             SyntaxNode bodyNode,
             SemanticModel semanticModel,
@@ -1073,9 +1102,11 @@ namespace PurelySharp.Analyzer.Engine
             HashSet<IMethodSymbol> visited,
             IMethodSymbol containingMethodSymbol,
             Dictionary<IMethodSymbol, PurityAnalysisResult> purityCache,
-            out ImmutableDictionary<ISymbol, PotentialTargets> mergedDelegateTargetsFromBlocks)
+            out ImmutableDictionary<ISymbol, PotentialTargets> mergedDelegateTargetsFromBlocks,
+            out ImmutableHashSet<ISymbol> mergedOwnedLocalArraysFromBlocks)
         {
             mergedDelegateTargetsFromBlocks = ImmutableDictionary.Create<ISymbol, PotentialTargets>(SymbolEqualityComparer.Default);
+            mergedOwnedLocalArraysFromBlocks = ImmutableHashSet.Create<ISymbol>(SymbolEqualityComparer.Default);
             // Roslyn 4.x: Create(BlockSyntax|ArrowClause, model) throws ("operation has a non-null parent").
             // Create(BaseMethodDeclarationSyntax|LocalFunctionStatement|ConstructorDeclaration|... , model) is the supported root.
             ControlFlowGraph? cfg = null;
@@ -1186,6 +1217,7 @@ namespace PurelySharp.Analyzer.Engine
             }
 
             mergedDelegateTargetsFromBlocks = MergeDelegateTargetMapsFromBlockStates(exitBlockStates.Values);
+            mergedOwnedLocalArraysFromBlocks = MergeOwnedLocalArraySymbolsFromBlockStates(exitBlockStates.Values);
 
             PurityAnalysisResult finalResult = PurityAnalysisResult.Pure;
             
@@ -1846,13 +1878,44 @@ namespace PurelySharp.Analyzer.Engine
 
         internal static bool HasPureExternalAttribute(ISymbol symbol)
         {
-            return HasAttributeNamed(symbol, "PureExternalAttribute", "PurelySharp.Attributes.PureExternalAttribute");
+            if (symbol == null)
+            {
+                return false;
+            }
+
+            if (HasDirectAttributeNamed(symbol, "PureExternalAttribute", "PurelySharp.Attributes.PureExternalAttribute"))
+            {
+                return true;
+            }
+
+            if (HasDirectAttributeNamed(symbol, "ImpureAttribute", "PurelySharp.Attributes.ImpureAttribute") ||
+                HasAssemblyAttributeNamed(symbol, "ImpureAttribute", "PurelySharp.Attributes.ImpureAttribute"))
+            {
+                return false;
+            }
+
+            return HasAssemblyAttributeNamed(symbol, "PureExternalAttribute", "PurelySharp.Attributes.PureExternalAttribute");
         }
 
 
         internal static bool HasImpureAttribute(ISymbol symbol)
         {
-            return HasAttributeNamed(symbol, "ImpureAttribute", "PurelySharp.Attributes.ImpureAttribute");
+            if (symbol == null)
+            {
+                return false;
+            }
+
+            if (HasDirectAttributeNamed(symbol, "ImpureAttribute", "PurelySharp.Attributes.ImpureAttribute"))
+            {
+                return true;
+            }
+
+            if (HasDirectAttributeNamed(symbol, "PureExternalAttribute", "PurelySharp.Attributes.PureExternalAttribute"))
+            {
+                return false;
+            }
+
+            return HasAssemblyAttributeNamed(symbol, "ImpureAttribute", "PurelySharp.Attributes.ImpureAttribute");
         }
 
 
@@ -1916,11 +1979,32 @@ namespace PurelySharp.Analyzer.Engine
                 return false;
             }
 
+            return HasDirectAttributeNamed(symbol, attributeName, fullyQualifiedMetadataName) ||
+                HasAssemblyAttributeNamed(symbol, attributeName, fullyQualifiedMetadataName);
+        }
+
+        private static bool HasDirectAttributeNamed(ISymbol symbol, string attributeName, string fullyQualifiedMetadataName)
+        {
+            if (symbol == null)
+            {
+                return false;
+            }
+
             var fullyQualifiedName = "global::" + fullyQualifiedMetadataName;
             return GetAttributesIncludingAssociatedSymbol(symbol).Any(ad =>
-                    IsAttributeNamed(ad, attributeName, fullyQualifiedMetadataName, fullyQualifiedName)) ||
-                symbol.ContainingAssembly?.GetAttributes().Any(ad =>
-                    IsAttributeNamed(ad, attributeName, fullyQualifiedMetadataName, fullyQualifiedName)) == true;
+                    IsAttributeNamed(ad, attributeName, fullyQualifiedMetadataName, fullyQualifiedName));
+        }
+
+        private static bool HasAssemblyAttributeNamed(ISymbol symbol, string attributeName, string fullyQualifiedMetadataName)
+        {
+            if (symbol == null)
+            {
+                return false;
+            }
+
+            var fullyQualifiedName = "global::" + fullyQualifiedMetadataName;
+            return symbol.ContainingAssembly?.GetAttributes().Any(ad =>
+                IsAttributeNamed(ad, attributeName, fullyQualifiedMetadataName, fullyQualifiedName)) == true;
         }
 
         private static bool IsAttributeNamed(
