@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1408/1408` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1409/1409` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -11,6 +11,7 @@
 - Recent completed work since the earlier `505/505` checkpoint:
 - constructor property/indexer assignments now check setter purity before allowing constructor-local writes
 - per-file PS0004 configuration can re-enable suggestions after a global disable without requiring a repeated scope setting
+- per-file PS0004 namespace-filter configuration can clear global namespace filters with an empty value
 - per-file explanation configuration can enable or suppress `PS0009` without requiring a compilation-wide setting
 - baseline suppression parsing now handles escaped JSON strings and exact normalized path matches without broad suffix suppression
 - throw expressions in conditional expression branches now report PS0002 instead of treating the throw itself as pure

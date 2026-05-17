@@ -129,9 +129,14 @@ namespace PurelySharp.Analyzer.Configuration
             ImmutableHashSet<string> fallback)
         {
             var builder = ImmutableHashSet.CreateBuilder<string>(StringComparer.Ordinal);
-            if (!options.TryGetValue(key, out var value) || string.IsNullOrWhiteSpace(value))
+            if (!options.TryGetValue(key, out var value))
             {
                 return fallback;
+            }
+
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return builder.ToImmutable();
             }
 
             foreach (var token in value.Split(new[] { ',', ';', '\n' }, StringSplitOptions.RemoveEmptyEntries))

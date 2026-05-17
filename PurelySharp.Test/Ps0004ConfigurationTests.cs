@@ -248,6 +248,33 @@ namespace Other.Feature
         }
 
         [Test]
+        public async Task Ps0004_PerTreeEmptyNamespaceFilters_ClearsGlobalNamespaceFilters()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+namespace Allowed.Feature
+{
+    public class Calculator
+    {
+        public int AllowedPure() => 1;
+    }
+}
+
+namespace Other.Feature
+{
+    public class Calculator
+    {
+        public int OtherPure() => 2;
+    }
+}",
+                ImmutableDictionary<string, string>.Empty.Add("purelysharp_suggest_missing_enforce_pure_namespace_filters", "Allowed"),
+                treeOptions: ImmutableDictionary<string, string>.Empty.Add("purelysharp_suggest_missing_enforce_pure_namespace_filters", ""));
+
+            var messages = DiagnosticMessages(diagnostics);
+            Assert.That(messages, Has.Some.Contains("AllowedPure"));
+            Assert.That(messages, Has.Some.Contains("OtherPure"));
+        }
+
+        [Test]
         public async Task Ps0004_MinComplexity_SuppressesTinyMethods()
         {
             var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
