@@ -32,10 +32,10 @@ dotnet build .\PurelySharp.CodeFixes\PurelySharp.CodeFixes.csproj -c $Configurat
 if ($LASTEXITCODE -ne 0) { throw "dotnet build CodeFixes failed with exit code $LASTEXITCODE" }
 
 $vsixDir = Join-Path $root "PurelySharp.Vsix\bin\$Configuration"
-$nupkgDir = Join-Path $root "PurelySharp.Attributes\bin\$Configuration"
+$nugetOutputDir = Join-Path $root "artifacts\nuget"
+New-Item -ItemType Directory -Force -Path $nugetOutputDir | Out-Null
 
 $vsix = Get-ChildItem -Path $vsixDir -Filter *.vsix -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-$nupkg = Get-ChildItem -Path $nupkgDir -Filter *.nupkg -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
 
 if (-not $vsix) {
     Write-Section "Building VSIX using MSBuild.exe"
@@ -76,17 +76,21 @@ if (-not $vsix) {
     $vsix = Get-ChildItem -Path $vsixDir -Filter *.vsix -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
 }
 
-if (-not $nupkg) {
-    Write-Section "NuGet package not found, packing Attributes project"
-    dotnet pack .\PurelySharp.Attributes\PurelySharp.Attributes.csproj -c $Configuration
-    if ($LASTEXITCODE -ne 0) { throw "dotnet pack failed with exit code $LASTEXITCODE" }
-    $nupkg = Get-ChildItem -Path $nupkgDir -Filter *.nupkg -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-}
+Write-Section "Packing NuGet packages"
+Get-ChildItem -Path $nugetOutputDir -Filter *.nupkg -File -ErrorAction SilentlyContinue | Remove-Item -Force
+
+dotnet pack .\PurelySharp.Package\PurelySharp.Package.csproj -c $Configuration -o $nugetOutputDir
+if ($LASTEXITCODE -ne 0) { throw "dotnet pack PurelySharp failed with exit code $LASTEXITCODE" }
+
+dotnet pack .\PurelySharp.Attributes\PurelySharp.Attributes.csproj -c $Configuration -o $nugetOutputDir
+if ($LASTEXITCODE -ne 0) { throw "dotnet pack PurelySharp.Attributes failed with exit code $LASTEXITCODE" }
+
+$nupkgs = Get-ChildItem -Path $nugetOutputDir -Filter *.nupkg -File -ErrorAction Stop | Sort-Object Name
 
 Write-Host ""
 Write-Section "Artifacts"
 if ($vsix) { Write-Host ("VSIX: " + $vsix.FullName) } else { Write-Host "VSIX: not found" }
-if ($nupkg) { Write-Host ("NuGet: " + $nupkg.FullName) } else { Write-Host "NuGet: not found" }
+if ($nupkgs) { $nupkgs | ForEach-Object { Write-Host ("NuGet: " + $_.FullName) } } else { Write-Host "NuGet: not found" }
 
 exit 0
 

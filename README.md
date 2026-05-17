@@ -63,7 +63,7 @@ _This analyzer is not yet published._ Once released, installation will likely in
 
 ## Local build and install (VSIX + NuGet)
 
-Use the provided script to produce a VSIX for Visual Studio and a local NuGet package for `PurelySharp.Attributes`.
+Use the provided script to produce a VSIX for Visual Studio plus local NuGet packages for `PurelySharp` and `PurelySharp.Attributes`.
 
 1. Prerequisites
    - Visual Studio 2022 with the "Visual Studio extension development" workload (VSSDK)
@@ -78,17 +78,18 @@ Use the provided script to produce a VSIX for Visual Studio and a local NuGet pa
    ```
    The script stops on any failure and prints where artifacts were written. Typical locations:
    - VSIX: `PurelySharp.Vsix\bin\Release\net472\PurelySharp.Vsix.vsix`
-   - NuGet: `PurelySharp.Attributes\bin\Release\PurelySharp.Attributes.<version>.nupkg`
+   - NuGet: `artifacts\nuget\PurelySharp.<version>.nupkg`
+   - NuGet: `artifacts\nuget\PurelySharp.Attributes.<version>.nupkg`
 
 3. Install the VSIX into Visual Studio
    - Close Visual Studio.
    - Double‑click the generated `.vsix` and complete the installer.
    - Reopen Visual Studio.
 
-4. Use the local NuGet package (`PurelySharp.Attributes`)
+4. Use the local NuGet packages
    - In Visual Studio: Tools → NuGet Package Manager → Package Manager Settings → Package Sources
-   - Add a new local source pointing to `PurelySharp.Attributes\bin\Release`
-   - In your test project: Manage NuGet Packages → select the local source → install `PurelySharp.Attributes`
+   - Add a new local source pointing to `artifacts\nuget`
+   - In your test project: Manage NuGet Packages → select the local source → install `PurelySharp` and `PurelySharp.Attributes` as needed
 
 5. Updating/uninstalling
    - Re-run the build script to produce a new VSIX/NuGet; reinstall the VSIX to update
