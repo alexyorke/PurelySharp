@@ -344,7 +344,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                         nameof(MethodInvocationPurityRule),
                         invocationOperation,
                         symbol: originalDefinitionSymbol,
-                        catalogSource: "known_impure"));
+                        catalogSource: PurityAnalysisEngine.GetKnownImpureMemberSource(originalDefinitionSymbol) ?? "known_impure"));
             }
 
 

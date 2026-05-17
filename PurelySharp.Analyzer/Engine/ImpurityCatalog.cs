@@ -110,16 +110,33 @@ namespace PurelySharp.Analyzer.Engine
 		{
 			if (symbol == null) return false;
 
+			if (GetKnownImpureMemberSource(symbol) != null)
+			{
+				return true;
+			}
+
+			if (symbol is IPropertySymbol property && IsInImpureNamespaceOrType(property.ContainingType))
+			{
+				PurityAnalysisEngine.LogDebug($"Helper IsKnownImpure: Property access {symbol.ToDisplayString()} on known impure type {property.ContainingType.ToDisplayString()}.");
+			}
+
+			return false;
+		}
+
+		public static string? GetKnownImpureMemberSource(ISymbol symbol)
+		{
+			if (symbol == null) return null;
+
 			if (IsMutableImmutableBuilderMember(symbol))
 			{
 				PurityAnalysisEngine.LogDebug($"Helper IsKnownImpure: Mutable immutable-builder member detected: {symbol.ToDisplayString()}");
-				return true;
+				return "known_impure";
 			}
 
 			if (IsImmutableInterlockedMember(symbol))
 			{
 				PurityAnalysisEngine.LogDebug($"Helper IsKnownImpure: ImmutableInterlocked member detected: {symbol.ToDisplayString()}");
-				return true;
+				return "known_impure";
 			}
 
 			if (symbol is IMethodSymbol objectEqualsMethodSymbol &&
@@ -128,7 +145,7 @@ namespace PurelySharp.Analyzer.Engine
 				objectEqualsMethodSymbol.Parameters.Length == 1)
 			{
 				PurityAnalysisEngine.LogDebug($"Helper IsKnownImpure: Virtual System.Object.Equals dispatch is considered impure: {symbol.ToDisplayString()}");
-				return true;
+				return "known_impure";
 			}
 
 			if (symbol is IMethodSymbol staticObjectEqualsSymbol &&
@@ -138,7 +155,7 @@ namespace PurelySharp.Analyzer.Engine
 				staticObjectEqualsSymbol.Parameters.Length == 2)
 			{
 				PurityAnalysisEngine.LogDebug($"Helper IsKnownImpure: Static System.Object.Equals is considered impure due dispatch to virtual instance Equals: {symbol.ToDisplayString()}");
-				return true;
+				return "known_impure";
 			}
 
 			if (symbol is IMethodSymbol staticTypeGetTypeSymbol &&
@@ -149,7 +166,7 @@ namespace PurelySharp.Analyzer.Engine
 				staticTypeGetTypeSymbol.Parameters[0].Type.SpecialType == SpecialType.System_String)
 			{
 				PurityAnalysisEngine.LogDebug($"Helper IsKnownImpure: Static Type.GetType overload detected as impure: {symbol.ToDisplayString()}");
-				return true;
+				return "known_impure";
 			}
 
 			string signature = symbol.OriginalDefinition.ToDisplayString();
@@ -163,10 +180,16 @@ namespace PurelySharp.Analyzer.Engine
 			}
 
 			PurityAnalysisEngine.LogDebug($"    [IsKnownImpure] Checking HashSet.Contains for signature: \"{signature}\"");
-			if (Constants.KnownImpureMethods.Contains(signature) || _extraImpureMethods.Contains(signature))
+			if (_extraImpureMethods.Contains(signature))
+			{
+				PurityAnalysisEngine.LogDebug($"Helper IsKnownImpure: Match found for {symbol.ToDisplayString()} using configured full signature '{signature}'");
+				return "config_known_impure";
+			}
+
+			if (Constants.KnownImpureMethods.Contains(signature))
 			{
 				PurityAnalysisEngine.LogDebug($"Helper IsKnownImpure: Match found for {symbol.ToDisplayString()} using full signature '{signature}'");
-				return true;
+				return "known_impure";
 			}
 
 
@@ -175,41 +198,48 @@ namespace PurelySharp.Analyzer.Engine
 			{
 				string simplifiedName = $"{symbol.ContainingType.Name}.{symbol.Name}";
 				PurityAnalysisEngine.LogDebug($"    [IsKnownImpure] Checking HashSet.Contains for simplified name: \"{simplifiedName}\"");
-				if (Constants.KnownImpureMethods.Contains(simplifiedName) || _extraImpureMethods.Contains(simplifiedName))
+				if (_extraImpureMethods.Contains(simplifiedName))
+				{
+					PurityAnalysisEngine.LogDebug($"Helper IsKnownImpure: Match found for {symbol.ToDisplayString()} using configured simplified name '{simplifiedName}'");
+					return "config_known_impure";
+				}
+
+				if (Constants.KnownImpureMethods.Contains(simplifiedName))
 				{
 					PurityAnalysisEngine.LogDebug($"Helper IsKnownImpure: Match found for {symbol.ToDisplayString()} using simplified name '{simplifiedName}'");
-					return true;
+					return "known_impure";
 				}
 			}
 
 			if (symbol is IMethodSymbol methodSymbol && methodSymbol.IsGenericMethod)
 			{
 				signature = methodSymbol.ConstructedFrom.ToDisplayString();
-				if (Constants.KnownImpureMethods.Contains(signature) || _extraImpureMethods.Contains(signature))
+				if (_extraImpureMethods.Contains(signature))
+				{
+					PurityAnalysisEngine.LogDebug($"Helper IsKnownImpure: Generic match found for {symbol.ToDisplayString()} using configured signature '{signature}'");
+					return "config_known_impure";
+				}
+
+				if (Constants.KnownImpureMethods.Contains(signature))
 				{
 					PurityAnalysisEngine.LogDebug($"Helper IsKnownImpure: Generic match found for {symbol.ToDisplayString()} using signature '{signature}'");
-					return true;
+					return "known_impure";
 				}
-			}
-
-			if (symbol is IPropertySymbol property && IsInImpureNamespaceOrType(property.ContainingType))
-			{
-				PurityAnalysisEngine.LogDebug($"Helper IsKnownImpure: Property access {symbol.ToDisplayString()} on known impure type {property.ContainingType.ToDisplayString()}.");
 			}
 
 			if (symbol.ContainingType?.ToString().Equals("System.Threading.Interlocked", StringComparison.Ordinal) ?? false)
 			{
 				PurityAnalysisEngine.LogDebug($"Helper IsKnownImpure: Member {symbol.ToDisplayString()} belongs to System.Threading.Interlocked.");
-				return true;
+				return "known_impure";
 			}
 
 			if (symbol.ContainingType?.ToString().Equals("System.Threading.Volatile", StringComparison.Ordinal) ?? false)
 			{
 				PurityAnalysisEngine.LogDebug($"Helper IsKnownImpure: Member {symbol.ToDisplayString()} belongs to System.Threading.Volatile and is considered impure.");
-				return true;
+				return "known_impure";
 			}
 
-			return false;
+			return null;
 		}
 
 		private static bool IsKnownPureWebUtilityMethod(ISymbol symbol)

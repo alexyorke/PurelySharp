@@ -1823,6 +1823,7 @@ namespace PurelySharp.Analyzer.Engine
 
 
         internal static bool IsKnownImpure(ISymbol symbol) => ImpurityCatalog.IsKnownImpure(symbol);
+        internal static string? GetKnownImpureMemberSource(ISymbol symbol) => ImpurityCatalog.GetKnownImpureMemberSource(symbol);
 
 
         internal static bool HasPureExternalAttribute(ISymbol symbol)
