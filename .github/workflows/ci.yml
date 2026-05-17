@@ -12,10 +12,10 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup .NET 8.0
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
 
@@ -41,6 +41,33 @@ jobs:
 
       - name: Package NuGet
         run: dotnet pack PurelySharp.Package/PurelySharp.Package.csproj --configuration Release --output nupkgs
+
+      - name: Validate NuGet package contents
+        shell: pwsh
+        run: |
+          $package = Get-ChildItem nupkgs -Filter PurelySharp.*.nupkg |
+            Where-Object { $_.Name -notlike "PurelySharp.Attributes.*" } |
+            Select-Object -First 1
+
+          if (-not $package) {
+            throw "PurelySharp analyzer package was not produced."
+          }
+
+          $entries = tar -tf $package.FullName
+          $requiredEntries = @(
+            "README.md",
+            "analyzers/dotnet/cs/PurelySharp.Analyzer.dll",
+            "analyzers/dotnet/cs/PurelySharp.CodeFixes.dll",
+            "lib/netstandard2.0/PurelySharp.Attributes.dll",
+            "tools/install.ps1",
+            "tools/uninstall.ps1"
+          )
+
+          foreach ($entry in $requiredEntries) {
+            if ($entries -notcontains $entry) {
+              throw "Package $($package.Name) is missing required entry: $entry"
+            }
+          }
 
       - name: Upload NuGet artifact
         uses: actions/upload-artifact@v4

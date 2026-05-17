@@ -30,6 +30,7 @@
   - `purelysharp_suggest_missing_enforce_pure_scope = public` now treats `protected` and `protected internal` members as externally visible public API for `PS0004`
   - local NuGet build scripts now explicitly pack both `PurelySharp` and `PurelySharp.Attributes` into `artifacts\nuget`
   - package content smoke checks now verify analyzer/codefix/attributes payloads and legacy scripts under `tools/`
+  - CI now validates the analyzer NuGet payload layout after packing and uses current checkout/setup-dotnet actions
   - unsafe pointer fallbacks now report `unsafe_pointer` evidence, synchronization APIs/locks report `synchronization` evidence, and reflection/environment/time catalog hits report `reflection_environment_source` evidence
   - delegate target tracking now invalidates unresolved reassignment and preserves unresolved delegate targets across branch merges
   - delegate invocation now checks argument-expression purity after resolving pure delegate targets
