@@ -191,7 +191,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task PureMethodWithParamsArrayCopyingIntoFreshLocalArray_NoDiagnostic()
+        public async Task PureMethodWithParamsArrayCopyingIntoFreshLocalArray_Diagnostic()
         {
             var test = @"
 using System;
@@ -200,7 +200,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int[] ProcessArray(params int[] numbers)
+    public int[] {|PS0002:ProcessArray|}(params int[] numbers)
     {
         int[] result = new int[numbers.Length];
         for (int i = 0; i < numbers.Length; i++)

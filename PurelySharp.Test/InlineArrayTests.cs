@@ -61,7 +61,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task InitializingFreshLocalArray_NoDiagnostic()
+        public async Task ReturningInitializedFreshLocalArray_Diagnostic()
         {
             var test = @"
 using System;
@@ -72,7 +72,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public int[] InitializeArray()
+    public int[] {|PS0002:InitializeArray|}()
     {
         int[] buffer = new int[5];
         for (int i = 0; i < 5; i++)

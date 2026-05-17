@@ -36,6 +36,19 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     PurityAnalysisEngine.LogDebug($"    [ReturnRule] Returned value is IMPURE. Return statement is Impure.");
                     return valueResult;
                 }
+                else if (IsOwnedLocalArrayReturn(returnOperation.ReturnedValue, currentState, out var localSymbol))
+                {
+                    PurityAnalysisEngine.LogDebug($"    [ReturnRule] Returned value escapes owned fresh local array '{localSymbol.Name}'. Return statement is Impure.");
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                        returnOperation.ReturnedValue.Syntax,
+                        PurityAnalysisEngine.PurityEvidence.Create(
+                            "mutable_state_escape",
+                            ruleName: nameof(ReturnStatementPurityRule),
+                            operation: returnOperation,
+                            syntaxNode: returnOperation.ReturnedValue.Syntax,
+                            symbol: localSymbol,
+                            catalogSource: "owned_local_array_return"));
+                }
                 else
                 {
                     PurityAnalysisEngine.LogDebug($"    [ReturnRule] Returned value is pure. Return statement is Pure.");
@@ -44,6 +57,24 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static bool IsOwnedLocalArrayReturn(
+            IOperation returnedValue,
+            PurityAnalysisEngine.PurityAnalysisState currentState,
+            out ILocalSymbol localSymbol)
+        {
+            var unwrappedReturnedValue = PurityAnalysisEngine.SkipImplicitConversions(returnedValue);
+            if (unwrappedReturnedValue is ILocalReferenceOperation localReference &&
+                localReference.Type is IArrayTypeSymbol &&
+                currentState.IsOwnedLocalArraySymbol(localReference.Local))
+            {
+                localSymbol = localReference.Local;
+                return true;
+            }
+
+            localSymbol = null!;
+            return false;
         }
     }
 }

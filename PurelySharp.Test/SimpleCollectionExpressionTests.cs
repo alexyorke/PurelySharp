@@ -135,7 +135,7 @@ public class CollectionExpressionExample
         }
 
         [Test]
-        public async Task PureMethod_ModifyingFreshLocalArray_NoDiagnostic()
+        public async Task PureMethod_ReturningModifiedFreshLocalArray_Diagnostic()
         {
             var test = @"
 using System;
@@ -144,7 +144,7 @@ using PurelySharp.Attributes;
 public class CollectionExpressionExample
 {
     [EnforcePure]
-    public static int[] GetModifiedArray()
+    public static int[] {|PS0002:GetModifiedArray|}()
     {
         int[] array = new int[5];
         array[0] = 10;

@@ -20,6 +20,7 @@
 - catalog tests now include symbol-resolved smoke coverage for representative pure and impure members
 - non-return throw statements now report PS0002 consistently instead of being treated as pure divergence
 - generic `new T()` construction now emits structured unsupported-operation evidence instead of fallback PS0002 metadata
+- returning an owned fresh local array now reports mutable-state escape while non-escaping local array mutation remains allowed
   - `PS0002` diagnostics now carry structured impurity evidence through diagnostic properties, including category, rule, operation kind, symbol, catalog/config source, and callee chain; configured known-impure method hits, including the target method under analysis, are identified as `config_known_impure`, and configured impure type/namespace property reads report `known_impure_namespace_or_type`
   - optional `PS0009` explanation diagnostics can be emitted with `purelysharp_emit_explanations = true`
   - `Tools/PurelySharp.CorpusReport` can summarize SARIF/errorlog output into JSON with a stable `SchemaVersion`, diagnostic counts, per-diagnostic evidence rows, impurity categories, rule-name counts, top impure APIs, catalog-miss candidates, and false-positive candidates without double-counting `PS0009` explanation evidence
