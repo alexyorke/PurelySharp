@@ -322,5 +322,25 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task DateTimeOffsetStaticComparisonHelpers_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool TestMethod(DateTimeOffset left, DateTimeOffset right)
+    {
+        return DateTimeOffset.Compare(left, right) == 0 ||
+            DateTimeOffset.Equals(left, right);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

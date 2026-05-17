@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1434/1434` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1435/1435` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -51,6 +51,7 @@
 - `System.DateTimeOffset.FromUnixTimeSeconds(long)` is cataloged alongside the existing millisecond Unix-time factory
 - deterministic `System.DateTimeOffset` value properties are cataloged without allowing ambient `Now` or `UtcNow`
 - deterministic `System.DateTimeOffset` calendar component getters are cataloged individually
+- deterministic static `System.DateTimeOffset` comparison helpers are cataloged individually
 - deterministic `System.Guid` value members are cataloged without weakening `Guid.NewGuid()` diagnostics
 - deterministic `System.Guid.TryParse(string?, out Guid)` is cataloged as pure
 - deterministic exact-format `System.Guid` parse/format members are cataloged as pure
