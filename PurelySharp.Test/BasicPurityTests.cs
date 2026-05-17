@@ -22,7 +22,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     // No [Pure] or [EnforcePure] attribute here, but returns constant
-    // Analyzer should now report PS0004.
+    // Analyzer reports PS0004.
     public int GetConstant()
     {
         return 42;
@@ -36,7 +36,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task TestEnforcePureMethod_ShouldBeFlaggedNow()
+        public async Task TestEnforcePureMethodReturningParameter_NoDiagnostics()
         {
             var testCode = @"
 using PurelySharp.Attributes;
@@ -46,7 +46,7 @@ public class TestClass
     [EnforcePure]
     public int GetParameter(int x)
     {
-        return x; // Analyzer considers parameter return pure
+        return x; // Parameter return is pure.
     }
 }";
 
@@ -64,7 +64,7 @@ public class TestClass
     [EnforcePure] // Mark it for analysis, even though it should pass
     public int GetTheAnswer()
     {
-        return 42; // Constant return, should be considered pure by future analysis
+        return 42; // Constant return is pure.
     }
 }";
 
@@ -79,7 +79,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public string GetString() => ""Hello""; // Escape inner quotes
+    public string GetString() => ""Hello""; // String literal is pure.
 }";
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
@@ -101,7 +101,7 @@ public class TestClass
         public async Task TestPureMethodReturningConstantNull_NoDiagnostics()
         {
             var testCode = @"
-#nullable enable // Add this line to enable nullable context
+#nullable enable // Enable nullable context for string?
 using PurelySharp.Attributes;
 public class TestClass
 {
@@ -112,7 +112,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task TestEnforcePureReturningConstField_ShouldBeFlagged()
+        public async Task TestEnforcePureReturningConstField_NoDiagnostics()
         {
             var testCode = @"
 using PurelySharp.Attributes;
@@ -142,7 +142,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task TestEnforcePureReturningSimpleCalculation_ShouldBeFlagged()
+        public async Task TestEnforcePureReturningSimpleCalculation_NoDiagnostics()
         {
             var testCode = @"
 using PurelySharp.Attributes;
@@ -156,7 +156,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task TestEnforcePureReturningDefault_ShouldBeFlagged()
+        public async Task TestEnforcePureReturningDefault_NoDiagnostics()
         {
             var testCode = @"
 using PurelySharp.Attributes;
@@ -194,7 +194,7 @@ public class ImpureTest
         }
 
         [Test]
-        public async Task TestEnforcePureReturningTypeof_ShouldBeFlagged()
+        public async Task TestEnforcePureReturningTypeof_NoDiagnostics()
         {
             var test = @"
 using System;
@@ -439,7 +439,7 @@ public class TestClass
     public int GetValFromPureCall()
     {
         var temp = PureHelper();
-        return temp; // Should now be considered pure
+        return temp; // Local assigned from a pure helper remains pure.
     }
 }";
 
@@ -793,7 +793,7 @@ public class TestClass
         public async Task TestEnforcePureWithMiscPureExpr_NoDiagnostics()
         {
             var testCode = @"
-#nullable enable // Needed for default(string?)
+#nullable enable // Enable nullable annotations used below
 using System;
 using PurelySharp.Attributes;
 
@@ -803,8 +803,8 @@ public class TestClass
     public int MiscPure(int p, bool c)
     {
         const int localConst = 5;
-        int x = sizeof(int); // Changed from Guid to int to avoid unsafe requirement
-        string? s = default(string?); // #nullable enable handles this
+        int x = sizeof(int); // sizeof(int) is a pure compile-time constant
+        string? s = default(string?); // Nullable default expression is pure
         int y = default; 
         var z = c ? p : localConst;
         int u = -p;

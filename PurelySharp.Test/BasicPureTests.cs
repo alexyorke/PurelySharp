@@ -85,7 +85,7 @@ public class C
         }
 
         [Test]
-        public async Task ReadonlyRecordStructConstructor_ShouldBePure()
+        public async Task ReadonlyRecordStruct_WithPureOnType_ReportsExpectedDiagnostics()
         {
             var test = @"
 using PurelySharp.Attributes;
@@ -93,7 +93,7 @@ using PurelySharp.Attributes;
 [Pure]
 public readonly record struct Zzz
 {
-    // Implicitly pure because it only assigns to fields/properties of a readonly struct
+    // Constructor body only assigns readonly record struct properties.
     public Zzz(int x, int y)
     {
         X = x;
@@ -109,7 +109,7 @@ public class TestUsage
     [EnforcePure]
     public Zzz CreateZzz()
     {
-        // This constructor call should be pure
+        // Object creation remains pure; diagnostics are on declarations above.
         return new Zzz(1, 2);
     }
 }
@@ -125,7 +125,7 @@ public class TestUsage
         }
 
         [Test]
-        public async Task ConstructorInitializer_CallingPureThis_ShouldBePure()
+        public async Task ConstructorInitializer_CallingPureThis_ReportsOnlyAccessorMissingAttributes()
         {
             var test = @"
 using PurelySharp.Attributes;
@@ -154,7 +154,7 @@ public class TestUsage
     [EnforcePure]
     public MyStruct CreateMyStruct()
     {
-        // Call to MyStruct(int, int) should be pure
+        // Constructor call is pure; only accessor declaration diagnostics are expected.
         return new MyStruct(1, 2);
     }
 }
@@ -171,7 +171,7 @@ public class TestUsage
         }
 
         [Test]
-        public async Task ConstructorInitializer_CallingNonPureThis_ShouldFlag()
+        public async Task ConstructorInitializer_CallingUnannotatedPureThis_ReportsMissingAttributeDiagnostics()
         {
             var test = @"
 using PurelySharp.Attributes;
@@ -181,7 +181,7 @@ public struct MyStruct
     public int X { get; }
     public int Y { get; }
 
-    // This constructor is NOT marked [Pure]
+    // This constructor is unannotated and expected to get PS0004.
     public MyStruct(int x)
     {
         X = x;
@@ -240,7 +240,7 @@ namespace TestNamespace // Wrap everything in a namespace
         }
 
         [Test]
-        public async Task PropertyAccessors_ShouldFlag()
+        public async Task PropertyAccessors_ReportMissingAttributeDiagnostics()
         {
             var test = @"
 using PurelySharp.Attributes;
