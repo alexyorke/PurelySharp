@@ -103,5 +103,27 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task GuidExactParseAndFormat_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public string TestMethod(string value)
+    {
+        var parsed = Guid.ParseExact(value, ""D"");
+        return Guid.TryParseExact(value, ""D"", out var other)
+            ? parsed.ToString(""D"") + other.ToString(""N"")
+            : parsed.ToString(""B"");
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
