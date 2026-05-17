@@ -26,6 +26,7 @@
   - variable initializers, collection/spread expressions, direct array/object creation, user-defined conversions/operators, and using/Dispose checks now preserve or classify structured impurity evidence
   - constructor initializers, delegate creation, event assignment, and interpolated-string expressions now preserve or classify structured impurity evidence
   - direct throw-only bodies now report `throw` evidence, impure throw exception expressions preserve their original evidence, guard throws remain allowed when their exception expression is pure, and conservative recursive-call diagnostics now report structured `recursive_call` evidence
+  - post-CFG known-impure invocation fallback now emits the same structured catalog-hit evidence as normal invocation analysis
   - unsafe pointer fallbacks now report `unsafe_pointer` evidence, synchronization APIs/locks report `synchronization` evidence, and reflection/environment/time catalog hits report `reflection_environment_source` evidence
   - delegate target tracking now invalidates unresolved reassignment and preserves unresolved delegate targets across branch merges
   - delegate invocation now checks argument-expression purity after resolving pure delegate targets

@@ -957,7 +957,15 @@ namespace PurelySharp.Analyzer.Engine
                                 !IsTransientCharArrayConsumedByStringConstructor(invocationOp, semanticModel))
                             {
                                 LogDebug($"{indent}    Post-CFG: Found Known Impure Invocation IMPURE: {invocationOp.Syntax} calling {invocationOp.TargetMethod.ToDisplayString()}");
-                                result = PurityAnalysisResult.Impure(invocationOp.Syntax);
+                                var targetMethod = invocationOp.TargetMethod.OriginalDefinition;
+                                result = PurityAnalysisResult.Impure(
+                                    invocationOp.Syntax,
+                                    PurityEvidence.Create(
+                                        "catalog_hit",
+                                        "MethodInvocationPurityRule",
+                                        invocationOp,
+                                        symbol: targetMethod,
+                                        catalogSource: GetKnownImpureMemberSource(targetMethod) ?? "known_impure"));
                                 goto PostCfgChecksDone;
                             }
                         }
