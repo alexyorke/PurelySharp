@@ -1111,6 +1111,7 @@ public static class Constants
         "System.Guid.Empty.get",
         "System.Guid.Equals(System.Guid)",
         "System.Guid.Parse(string)",
+        "System.Guid.TryParse(string?, out System.Guid)",
         "System.Guid.ToString()",
 
 

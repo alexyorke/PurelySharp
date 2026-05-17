@@ -84,5 +84,24 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task GuidTryParse_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool TestMethod(string value)
+    {
+        return Guid.TryParse(value, out _);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
