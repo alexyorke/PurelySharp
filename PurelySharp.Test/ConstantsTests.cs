@@ -96,6 +96,44 @@ public static class CatalogConflictSamples
             AssertCatalogMembership(GetPropertySignature(compilation, syntaxTree, "list.Count"), expectedPure: true, expectedImpure: false);
         }
 
+        [Test]
+        public void RecentGuidAndDateTimeOffsetCatalogEntriesResolveAgainstNet80References()
+        {
+            var source = @"
+using System;
+
+public static class RecentCatalogSignatureSamples
+{
+    public static long Sample(Guid guid, string text, DateTimeOffset value)
+    {
+        _ = Guid.ParseExact(text, ""D"");
+        _ = Guid.TryParse(text, out var parsed);
+        _ = Guid.TryParseExact(text, ""D"", out parsed);
+        _ = guid.ToString(""N"");
+        _ = guid.ToByteArray();
+        var fromSeconds = DateTimeOffset.FromUnixTimeSeconds(0);
+        var added = value.AddDays(1);
+        return added.ToUnixTimeMilliseconds() + value.Offset.Ticks;
+    }
+}";
+            var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Preview));
+            var compilation = CSharpCompilation.Create(
+                "RecentCatalogSignatureResolution",
+                new[] { syntaxTree },
+                GetTrustedPlatformReferences(),
+                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+            AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "Guid.ParseExact(text, \"D\")"), expectedPure: true, expectedImpure: false);
+            AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "Guid.TryParse(text, out var parsed)"), expectedPure: true, expectedImpure: false);
+            AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "Guid.TryParseExact(text, \"D\", out parsed)"), expectedPure: true, expectedImpure: false);
+            AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "guid.ToString(\"N\")"), expectedPure: true, expectedImpure: false);
+            AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "guid.ToByteArray()"), expectedPure: true, expectedImpure: false);
+            AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "DateTimeOffset.FromUnixTimeSeconds(0)"), expectedPure: true, expectedImpure: false);
+            AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "value.AddDays(1)"), expectedPure: true, expectedImpure: false);
+            AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "added.ToUnixTimeMilliseconds()"), expectedPure: true, expectedImpure: false);
+            AssertCatalogMembership(GetPropertySignature(compilation, syntaxTree, "value.Offset"), expectedPure: true, expectedImpure: false);
+        }
+
         private static void AssertCatalogMembership(string signature, bool expectedPure, bool expectedImpure)
         {
             Assert.That(Constants.KnownPureBCLMembers.Contains(signature), Is.EqualTo(expectedPure), signature);

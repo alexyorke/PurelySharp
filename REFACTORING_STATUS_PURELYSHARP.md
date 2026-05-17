@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1432/1432` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1433/1433` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -21,6 +21,7 @@
 - `using(existingLocal)` now resolves stable concrete disposable initializers so implicit `Dispose` purity is checked precisely
 - configured pure/impure catalog overrides now run in scoped analysis context to avoid cross-compilation leakage
 - catalog tests now include symbol-resolved smoke coverage for representative pure and impure members
+- catalog tests now resolve recent Guid and DateTimeOffset entries against net8 reference assemblies
 - non-return throw statements now report PS0002 consistently instead of being treated as pure divergence
 - generic `new T()` construction now emits structured unsupported-operation evidence instead of fallback PS0002 metadata
 - returning an owned fresh local array now reports mutable-state escape while non-escaping local array mutation remains allowed
