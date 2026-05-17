@@ -77,6 +77,46 @@ public class TestClass
         }
 
         [Test]
+        public async Task KnownPureEnumTryParseWithLocalOut_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool TestMethod(string input)
+    {
+        return Enum.TryParse<DayOfWeek>(input, out _);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task KnownPureEnumTryParseWithFieldOut_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    private DayOfWeek _result;
+
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(string input)
+    {
+        return Enum.TryParse<DayOfWeek>(input, out _result);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task PureMethodCallingMethodWithOutParameter_Diagnostic()
         {
             var test = @"

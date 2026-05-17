@@ -311,11 +311,26 @@ namespace PurelySharp.Analyzer.Engine.Rules
             PurityAnalysisEngine.LogDebug($"  [MIR] Checking purity of {invocationOperation.Arguments.Length} arguments for {originalDefinitionSymbol.Name}.");
             foreach (var argument in invocationOperation.Arguments)
             {
-                if (argument.Parameter?.RefKind == RefKind.Out &&
-                    PurityAnalysisEngine.IsKnownPureBCLMember(originalDefinitionSymbol))
+                if (argument.Parameter?.RefKind == RefKind.Out)
                 {
-                    PurityAnalysisEngine.LogDebug($"  [MIR]   Skipping purity check for out argument '{argument.Syntax}' on known pure member {originalDefinitionSymbol.ToDisplayString()}.");
-                    continue;
+                    if (!IsPureOutArgumentTarget(argument.Value))
+                    {
+                        PurityAnalysisEngine.LogDebug($"  [MIR]   Out argument '{argument.Syntax}' writes to non-local state.");
+                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                            argument.Syntax,
+                            PurityAnalysisEngine.PurityEvidence.Create(
+                                "mutable_state_write",
+                                nameof(MethodInvocationPurityRule),
+                                argument,
+                                syntaxNode: argument.Syntax,
+                                symbol: PurityAnalysisEngine.TryResolveSymbol(argument.Value) ?? originalDefinitionSymbol));
+                    }
+
+                    if (PurityAnalysisEngine.IsKnownPureBCLMember(originalDefinitionSymbol))
+                    {
+                        PurityAnalysisEngine.LogDebug($"  [MIR]   Skipping purity check for local/discard out argument '{argument.Syntax}' on known pure member {originalDefinitionSymbol.ToDisplayString()}.");
+                        continue;
+                    }
                 }
 
                 PurityAnalysisEngine.LogDebug($"  [MIR]   Checking argument: {argument.Value.Kind} | Syntax: {argument.Value.Syntax.ToString().Trim()}");
@@ -402,6 +417,20 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 || methodSymbol.IsVirtual
                 || methodSymbol.IsAbstract
                 || methodSymbol.IsOverride;
+        }
+
+        private static bool IsPureOutArgumentTarget(IOperation? operation)
+        {
+            operation = PurityAnalysisEngine.SkipImplicitConversions(operation);
+
+            if (operation is IConversionOperation conversionOperation)
+            {
+                return IsPureOutArgumentTarget(conversionOperation.Operand);
+            }
+
+            return operation is ILocalReferenceOperation ||
+                operation is IDeclarationExpressionOperation ||
+                operation is IDiscardOperation;
         }
 
         private static INamedTypeSymbol? GetTrackedLocalReceiverType(
