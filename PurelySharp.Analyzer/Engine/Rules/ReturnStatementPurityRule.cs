@@ -84,6 +84,13 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             if (unwrappedReturnedValue is IConditionalOperation conditionalOperation)
             {
+                if (TryGetConstantCondition(conditionalOperation, out var conditionValue))
+                {
+                    return IsKnownPureArrayFactoryReturn(
+                        conditionValue ? conditionalOperation.WhenTrue : conditionalOperation.WhenFalse,
+                        out factoryMethod);
+                }
+
                 return IsKnownPureArrayFactoryReturn(conditionalOperation.WhenTrue, out factoryMethod) ||
                     IsKnownPureArrayFactoryReturn(conditionalOperation.WhenFalse, out factoryMethod);
             }
@@ -108,11 +115,32 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             if (unwrappedReturnedValue is IConditionalOperation conditionalOperation)
             {
+                if (TryGetConstantCondition(conditionalOperation, out var conditionValue))
+                {
+                    return IsOwnedLocalArrayReturn(
+                        conditionValue ? conditionalOperation.WhenTrue : conditionalOperation.WhenFalse,
+                        currentState,
+                        out localSymbol);
+                }
+
                 return IsOwnedLocalArrayReturn(conditionalOperation.WhenTrue, currentState, out localSymbol) ||
                     IsOwnedLocalArrayReturn(conditionalOperation.WhenFalse, currentState, out localSymbol);
             }
 
             localSymbol = null!;
+            return false;
+        }
+
+        private static bool TryGetConstantCondition(IConditionalOperation conditionalOperation, out bool conditionValue)
+        {
+            if (conditionalOperation.Condition.ConstantValue.HasValue &&
+                conditionalOperation.Condition.ConstantValue.Value is bool constantBool)
+            {
+                conditionValue = constantBool;
+                return true;
+            }
+
+            conditionValue = false;
             return false;
         }
     }

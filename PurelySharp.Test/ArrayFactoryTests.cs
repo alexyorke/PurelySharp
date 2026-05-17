@@ -45,5 +45,24 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task ArrayEmptyConstantConditionalWithDeadArrayFactory_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public byte[] TestMethod()
+    {
+        return true ? Array.Empty<byte>() : BitConverter.GetBytes(1);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
