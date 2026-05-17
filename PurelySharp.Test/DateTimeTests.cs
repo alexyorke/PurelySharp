@@ -105,6 +105,32 @@ public class TestClass
         }
 
         [Test]
+        public async Task DateTimeDeterministicAddMethods_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public DateTime TestMethod(DateTime value, TimeSpan offset)
+    {
+        return value
+            .Add(offset)
+            .AddHours(1)
+            .AddMilliseconds(2)
+            .AddMinutes(3)
+            .AddMonths(4)
+            .AddSeconds(5)
+            .AddYears(6);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DateTimeOffsetNow_Diagnostic()
         {
             var test = @"
