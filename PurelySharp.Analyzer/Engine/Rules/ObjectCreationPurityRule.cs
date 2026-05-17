@@ -9,10 +9,35 @@ namespace PurelySharp.Analyzer.Engine.Rules
 {
     internal class ObjectCreationPurityRule : IPurityRule
     {
-        public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(OperationKind.ObjectCreation);
+        public IEnumerable<OperationKind> ApplicableOperationKinds => ImmutableArray.Create(
+            OperationKind.ObjectCreation,
+            OperationKind.TypeParameterObjectCreation);
 
         public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
+            if (operation is ITypeParameterObjectCreationOperation typeParameterObjectCreationOperation)
+            {
+                if (typeParameterObjectCreationOperation.Initializer != null)
+                {
+                    var initializerResult = PurityAnalysisEngine.CheckSingleOperation(typeParameterObjectCreationOperation.Initializer, context, currentState);
+                    if (!initializerResult.IsPure)
+                    {
+                        return initializerResult;
+                    }
+                }
+
+                PurityAnalysisEngine.LogDebug("    [ObjCreateRule] Type parameter object creation cannot be verified; treating as impure.");
+                return PurityAnalysisResult.Impure(
+                    typeParameterObjectCreationOperation.Syntax,
+                    PurityAnalysisEngine.PurityEvidence.Create(
+                        "unsupported_operation",
+                        ruleName: nameof(ObjectCreationPurityRule),
+                        operation: typeParameterObjectCreationOperation,
+                        syntaxNode: typeParameterObjectCreationOperation.Syntax,
+                        symbol: typeParameterObjectCreationOperation.Type,
+                        catalogSource: "generic_type_construction"));
+            }
+
             if (!(operation is IObjectCreationOperation objectCreationOperation))
             {
                 return PurityAnalysisResult.Pure;
@@ -97,7 +122,15 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 if (objectCreationOperation.Type?.TypeKind == TypeKind.TypeParameter)
                 {
                     PurityAnalysisEngine.LogDebug("    [ObjCreateRule] Generic type construction cannot be verified; treating as impure.");
-                    return PurityAnalysisResult.Impure(objectCreationOperation.Syntax);
+                    return PurityAnalysisResult.Impure(
+                        objectCreationOperation.Syntax,
+                        PurityAnalysisEngine.PurityEvidence.Create(
+                            "unsupported_operation",
+                            ruleName: nameof(ObjectCreationPurityRule),
+                            operation: objectCreationOperation,
+                            syntaxNode: objectCreationOperation.Syntax,
+                            symbol: objectCreationOperation.Type,
+                            catalogSource: "generic_type_construction"));
                 }
             }
 

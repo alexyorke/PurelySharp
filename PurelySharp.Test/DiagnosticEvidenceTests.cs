@@ -764,6 +764,30 @@ public class TestClass
         }
 
         [Test]
+        public async Task Ps0002_GenericTypeConstruction_IncludesObjectCreationEvidence()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using PurelySharp.Attributes;
+
+public class TestClass<T> where T : new()
+{
+    [EnforcePure]
+    public T TestMethod()
+    {
+        return new T();
+    }
+}");
+
+            var diagnostic = SingleDiagnostic(diagnostics, PurelySharpDiagnostics.PurityNotVerifiedId);
+
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCategoryProperty], Is.EqualTo("unsupported_operation"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityRuleProperty], Is.EqualTo("ObjectCreationPurityRule"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityOperationKindProperty], Is.EqualTo("TypeParameterObjectCreation"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCatalogSourceProperty], Is.EqualTo("generic_type_construction"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpuritySymbolProperty], Does.Contain("T"));
+        }
+
+        [Test]
         public async Task Ps0002_ArrayElementImpureArrayReference_PreservesOriginalEvidence()
         {
             var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
