@@ -82,6 +82,33 @@ public class TestClass
         }
 
         [Test]
+        public async Task DelegateInvocationWithImpureArgument_Diagnostic()
+        {
+            var testCode = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public static int PureTarget(int value)
+    {
+        return value;
+    }
+
+    [EnforcePure]
+    public int {|PS0002:TestMethod|}()
+    {
+        Func<int, int> projector = PureTarget;
+        return projector(Console.Read());
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
+
+        [Test]
         public async Task DelegateReassignedToUnknownTarget_Diagnostic()
         {
             var testCode = @"

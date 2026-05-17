@@ -121,6 +121,21 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
                 PurityAnalysisEngine.LogDebug($"  [MIR-DEL-S] Final Result for Delegate Invocation: IsPure={result.IsPure}");
                 PurityAnalysisEngine.LogDebug("  [MIR-DEL-S] === Simplified Delegate Invocation Check End ===");
+                if (result.IsPure)
+                {
+                    foreach (var argument in invocationOperation.Arguments)
+                    {
+                        var argumentResult = PurityAnalysisEngine.CheckSingleOperation(argument.Value, context, currentState);
+                        if (!argumentResult.IsPure)
+                        {
+                            PurityAnalysisEngine.LogDebug("  [MIR-DEL-S] --> IMPURE (Delegate invocation argument is impure)");
+                            return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                                argumentResult.ImpureSyntaxNode ?? argument.Value.Syntax,
+                                argumentResult.Evidence);
+                        }
+                    }
+                }
+
                 return result;
             }
 
