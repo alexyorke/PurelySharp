@@ -275,5 +275,32 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task DateTimeOffsetComponentProperties_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int TestMethod(DateTimeOffset value)
+    {
+        return value.Year +
+            value.Month +
+            value.Day +
+            value.DayOfYear +
+            (int)value.DayOfWeek +
+            value.Hour +
+            value.Minute +
+            value.Second +
+            value.Millisecond;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

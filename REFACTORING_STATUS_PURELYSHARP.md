@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1418/1418` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1419/1419` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -42,6 +42,7 @@
 - `System.DateTimeOffset.ToUnixTimeMilliseconds()` is cataloged alongside the existing pure Unix-time conversion members
 - `System.DateTimeOffset.FromUnixTimeSeconds(long)` is cataloged alongside the existing millisecond Unix-time factory
 - deterministic `System.DateTimeOffset` value properties are cataloged without allowing ambient `Now` or `UtcNow`
+- deterministic `System.DateTimeOffset` calendar component getters are cataloged individually
 - boundary attribute tests now cover direct attribute precedence over assembly-level purity defaults
 - caching coverage now verifies the lazy compilation call graph is reused across repeated purity requests
 - corpus SARIF parsing now trims diagnostic evidence properties and normalizes whitespace-only values before aggregation
