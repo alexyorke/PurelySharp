@@ -22,6 +22,9 @@ namespace PurelySharp.Analyzer.Engine
 		private static ImmutableHashSet<string> ExtraImpureTypes =>
 			_configuredOverrides.Value?.ExtraKnownImpureTypes ?? ImmutableHashSet<string>.Empty;
 
+		internal static bool IsStrictPurityProfile =>
+			string.Equals(_configuredOverrides.Value?.PurityProfile, "strict", StringComparison.OrdinalIgnoreCase);
+
 		internal static IDisposable UseConfiguredOverrides(AnalyzerConfiguration config)
 		{
 			var previous = _configuredOverrides.Value;

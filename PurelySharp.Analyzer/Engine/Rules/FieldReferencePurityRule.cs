@@ -135,6 +135,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
                         PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Instance is 'this', field '{fieldSymbol.Name}' is readonly. Read is Pure.");
                         return PurityAnalysisEngine.PurityAnalysisResult.Pure;
                     }
+                    else if (PurityAnalysisEngine.IsStrictPurityProfile)
+                    {
+                        PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Strict profile: mutable instance field '{fieldSymbol.Name}' read from 'this' is Impure.");
+                        return ImpureFieldRead(fieldReferenceOperation, "strict_profile");
+                    }
                     else
                     {
                         PurityAnalysisEngine.LogDebug($"    [FieldRefRule] Instance is 'this' within a non-readonly type and field '{fieldSymbol.Name}' is not readonly. Read is Pure.");

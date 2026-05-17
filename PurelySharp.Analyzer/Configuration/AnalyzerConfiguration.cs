@@ -16,6 +16,7 @@ namespace PurelySharp.Analyzer.Configuration
         public bool SuggestMissingEnforcePure { get; }
         public MissingPuritySuggestionOptions MissingPuritySuggestions { get; }
         public bool EmitExplanations { get; }
+        public string PurityProfile { get; }
 
         private AnalyzerConfiguration(
             ImmutableHashSet<string> extraImpureMethods,
@@ -25,7 +26,8 @@ namespace PurelySharp.Analyzer.Configuration
             bool enableDebugLogging,
             bool suggestMissingEnforcePure,
             MissingPuritySuggestionOptions missingPuritySuggestions,
-            bool emitExplanations)
+            bool emitExplanations,
+            string purityProfile)
         {
             ExtraKnownImpureMethods = extraImpureMethods;
             ExtraKnownPureMethods = extraPureMethods;
@@ -35,6 +37,7 @@ namespace PurelySharp.Analyzer.Configuration
             SuggestMissingEnforcePure = suggestMissingEnforcePure;
             MissingPuritySuggestions = missingPuritySuggestions;
             EmitExplanations = emitExplanations;
+            PurityProfile = purityProfile;
         }
 
         public static AnalyzerConfiguration FromOptions(AnalyzerOptions options)
@@ -53,7 +56,7 @@ namespace PurelySharp.Analyzer.Configuration
                 GetNonNegativeInt(options, ConfigKeys.SuggestMissingEnforcePureMinComplexity),
                 GetValues(options, ConfigKeys.SuggestMissingEnforcePureNamespaceFilters));
             bool emitExplanations = GetBool(options, ConfigKeys.EmitExplanations);
-            return new AnalyzerConfiguration(impureMethods, pureMethods, impureNamespaces, impureTypes, debug, suggestMissing, missingPuritySuggestions, emitExplanations);
+            return new AnalyzerConfiguration(impureMethods, pureMethods, impureNamespaces, impureTypes, debug, suggestMissing, missingPuritySuggestions, emitExplanations, GetPurityProfile(options));
         }
 
         public static MissingPuritySuggestionOptions GetMissingPuritySuggestionOptions(
@@ -213,6 +216,25 @@ namespace PurelySharp.Analyzer.Configuration
             catch { }
 
             return MissingPuritySuggestionScope.All;
+        }
+
+        private static string GetPurityProfile(AnalyzerOptions options)
+        {
+            try
+            {
+                var global = options.AnalyzerConfigOptionsProvider.GlobalOptions;
+                if (global.TryGetValue(ConfigKeys.PurityProfile, out var value) && !string.IsNullOrWhiteSpace(value))
+                {
+                    var normalized = value.Trim().ToLowerInvariant();
+                    if (normalized == "strict" || normalized == "balanced" || normalized == "pragmatic")
+                    {
+                        return normalized;
+                    }
+                }
+            }
+            catch { }
+
+            return "balanced";
         }
 
         private static MissingPuritySuggestionScope GetMissingPuritySuggestionScope(

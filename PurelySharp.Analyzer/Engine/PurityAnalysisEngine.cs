@@ -1952,6 +1952,7 @@ namespace PurelySharp.Analyzer.Engine
 
 
         internal static bool IsKnownPureBCLMember(ISymbol symbol) => ImpurityCatalog.IsKnownPureBCLMember(symbol);
+        internal static bool IsStrictPurityProfile => ImpurityCatalog.IsStrictPurityProfile;
 
         internal static bool IsKnownPureBCLArrayFactoryOperation(IOperation? operation, out IMethodSymbol factoryMethod)
         {

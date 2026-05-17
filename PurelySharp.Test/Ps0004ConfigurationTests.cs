@@ -139,6 +139,40 @@ namespace Acme.Production
         }
 
         [Test]
+        public async Task PurityProfile_DefaultBalanced_AllowsThisMutableFieldRead()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    private int _value = 1;
+
+    [EnforcePure]
+    public int Read() => _value;
+}", ImmutableDictionary<string, string>.Empty);
+
+            Assert.That(diagnostics.Select(diagnostic => diagnostic.Id), Has.None.EqualTo(PurelySharpDiagnostics.PurityNotVerifiedId));
+        }
+
+        [Test]
+        public async Task PurityProfile_Strict_DiagnosesThisMutableFieldRead()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    private int _value = 1;
+
+    [EnforcePure]
+    public int Read() => _value;
+}", ImmutableDictionary<string, string>.Empty.Add("purelysharp_purity_profile", "strict"));
+
+            Assert.That(diagnostics.Select(diagnostic => diagnostic.Id), Does.Contain(PurelySharpDiagnostics.PurityNotVerifiedId));
+        }
+
+        [Test]
         public async Task Ps0004_ExcludeGenerated_SuppressesGeneratedFilePaths()
         {
             var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
