@@ -123,6 +123,13 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
 
+            var setterResult = CheckPropertySetterPurity(targetOperation, context);
+            if (!setterResult.IsPure)
+            {
+                PurityAnalysisEngine.LogDebug($"    [AssignRule] Property/indexer setter is IMPURE for assignment target {targetOperation.Syntax}.");
+                return setterResult;
+            }
+
             var targetSymbol = TryResolveSymbol(targetOperation);
             bool isPureAssignment = IsAssignmentTargetPure(targetOperation, context, targetSymbol, currentState);
 
@@ -197,6 +204,22 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             PurityAnalysisEngine.LogDebug("AssignmentPurityRule: Both target and value (if applicable) are pure. Result: Pure");
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckPropertySetterPurity(
+            IOperation targetOperation,
+            PurityAnalysisContext context)
+        {
+            if (targetOperation is not IPropertyReferenceOperation propertyReference ||
+                propertyReference.Property.SetMethod is not { } setter)
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            var setterResult = PurityAnalysisEngine.GetCalleePurity(setter.OriginalDefinition, context);
+            return setterResult.IsPure
+                ? PurityAnalysisEngine.PurityAnalysisResult.Pure
+                : setterResult.WithCallee(setter.OriginalDefinition, targetOperation.Syntax);
         }
 
         private bool IsAssignmentTargetPure(IOperation targetOperation, PurityAnalysisContext context, ISymbol? targetSymbol, PurityAnalysisEngine.PurityAnalysisState currentState)

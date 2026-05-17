@@ -61,6 +61,30 @@ public class TestClass
         }
 
         [Test]
+        public async Task ConstructorPropertyAssignmentWithImpureSetter_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public {|PS0002:TestClass|}()
+    {
+        Value = 1;
+    }
+
+    public int Value
+    {
+        set { Console.WriteLine(value); }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ConstructorWithMutableField_MissingAttributeDiagnostic()
         {
             var test = @"
