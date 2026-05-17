@@ -47,12 +47,18 @@ public class TestClass
     public int PublicPure() => 1;
     internal int InternalPure() => 2;
     private int PrivatePure() => 3;
+    protected int ProtectedPure() => 4;
+    protected internal int ProtectedInternalPure() => 5;
+    private protected int PrivateProtectedPure() => 6;
 }", ImmutableDictionary<string, string>.Empty.Add("purelysharp_suggest_missing_enforce_pure_scope", "public"));
 
             var messages = DiagnosticMessages(diagnostics);
             Assert.That(messages, Has.Some.Contains("PublicPure"));
-            Assert.That(messages, Has.None.Contains("InternalPure"));
-            Assert.That(messages, Has.None.Contains("PrivatePure"));
+            Assert.That(messages, Has.Some.Contains("ProtectedPure"));
+            Assert.That(messages, Has.Some.Contains("ProtectedInternalPure"));
+            Assert.That(messages, Has.None.Contains("Method 'InternalPure'"));
+            Assert.That(messages, Has.None.Contains("Method 'PrivatePure'"));
+            Assert.That(messages, Has.None.Contains("PrivateProtectedPure"));
         }
 
         [Test]

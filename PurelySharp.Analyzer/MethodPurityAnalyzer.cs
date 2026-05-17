@@ -265,7 +265,9 @@ namespace PurelySharp.Analyzer
                 case MissingPuritySuggestionScope.All:
                     return true;
                 case MissingPuritySuggestionScope.Public:
-                    return methodSymbol.DeclaredAccessibility == Accessibility.Public;
+                    return methodSymbol.DeclaredAccessibility == Accessibility.Public ||
+                           methodSymbol.DeclaredAccessibility == Accessibility.Protected ||
+                           methodSymbol.DeclaredAccessibility == Accessibility.ProtectedOrInternal;
                 case MissingPuritySuggestionScope.Internal:
                     return methodSymbol.DeclaredAccessibility == Accessibility.Internal ||
                            methodSymbol.DeclaredAccessibility == Accessibility.ProtectedAndInternal ||
