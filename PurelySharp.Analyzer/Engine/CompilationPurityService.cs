@@ -11,8 +11,6 @@ namespace PurelySharp.Analyzer.Engine
 
         public CompilationPurityService(Compilation compilation)
         {
-            _ = compilation;
-            _callGraph = CallGraphBuilder.Build(compilation);
             _compilation = compilation;
         }
 
@@ -51,6 +49,7 @@ namespace PurelySharp.Analyzer.Engine
                     return;
                 }
 
+                _callGraph ??= CallGraphBuilder.Build(_compilation);
                 _fixedPoint = WorklistPuritySolver.Solve(
                     _callGraph,
                     _compilation,
@@ -59,7 +58,7 @@ namespace PurelySharp.Analyzer.Engine
             }
         }
 
-        private readonly CallGraph _callGraph;
+        private CallGraph? _callGraph;
         private readonly Compilation _compilation;
         private volatile System.Collections.Immutable.ImmutableDictionary<IMethodSymbol, PurityAnalysisEngine.PurityAnalysisResult>? _fixedPoint;
     }
