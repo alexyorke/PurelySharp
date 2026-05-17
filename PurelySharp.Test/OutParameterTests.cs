@@ -96,6 +96,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task KnownPureBoolTryParseNullableStringWithDiscardOut_NoDiagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool TestMethod(string? input)
+    {
+        return bool.TryParse(input, out _);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task KnownPureEnumTryParseWithFieldOut_Diagnostic()
         {
             var test = @"
