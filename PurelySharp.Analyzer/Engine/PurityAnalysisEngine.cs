@@ -1876,6 +1876,7 @@ namespace PurelySharp.Analyzer.Engine
             var unwrappedOperation = SkipImplicitConversions(operation);
             if (unwrappedOperation is IInvocationOperation invocation &&
                 invocation.Type is IArrayTypeSymbol &&
+                !IsArrayEmptyFactory(invocation.TargetMethod.OriginalDefinition) &&
                 IsKnownPureBCLMember(invocation.TargetMethod.OriginalDefinition))
             {
                 factoryMethod = invocation.TargetMethod;
@@ -1884,6 +1885,13 @@ namespace PurelySharp.Analyzer.Engine
 
             factoryMethod = null!;
             return false;
+        }
+
+        private static bool IsArrayEmptyFactory(IMethodSymbol methodSymbol)
+        {
+            return methodSymbol.Name == "Empty" &&
+                methodSymbol.Parameters.Length == 0 &&
+                methodSymbol.ContainingType?.SpecialType == SpecialType.System_Array;
         }
 
 
