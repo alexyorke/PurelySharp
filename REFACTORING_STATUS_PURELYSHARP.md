@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1435/1435` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1436/1436` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -46,6 +46,7 @@
 - deterministic `System.DateTime.AddTicks(long)` is now cataloged as pure without weakening ambient-time diagnostics
 - deterministic `System.DateTime` arithmetic members are cataloged individually instead of weakening type-level ambient-time conservatism
 - deterministic static `System.DateTime` comparison helpers are cataloged individually
+- deterministic `System.DateTime` binary round-trip helpers are cataloged individually
 - deterministic `System.DateTimeOffset` arithmetic members are cataloged individually while ambient time and parsing remain conservative
 - `System.DateTimeOffset.ToUnixTimeMilliseconds()` is cataloged alongside the existing pure Unix-time conversion members
 - `System.DateTimeOffset.FromUnixTimeSeconds(long)` is cataloged alongside the existing millisecond Unix-time factory

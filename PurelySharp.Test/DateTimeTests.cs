@@ -151,6 +151,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task DateTimeBinaryRoundTripHelpers_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public DateTime TestMethod(DateTime value)
+    {
+        return DateTime.FromBinary(value.ToBinary());
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DateTimeOffsetNow_Diagnostic()
         {
             var test = @"
