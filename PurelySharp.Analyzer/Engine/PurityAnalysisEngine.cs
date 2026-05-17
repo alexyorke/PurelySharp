@@ -2508,6 +2508,24 @@ namespace PurelySharp.Analyzer.Engine
             {
                 return capturedTargets;
             }
+
+            if (unwrapped is IConditionalOperation conditionalOperation)
+            {
+                if (conditionalOperation.WhenTrue == null || conditionalOperation.WhenFalse == null)
+                {
+                    return PurityAnalysisEngine.PotentialTargets.Unresolved;
+                }
+
+                var trueTargets = ResolvePotentialTargets(conditionalOperation.WhenTrue, currentState, semanticModel);
+                var falseTargets = ResolvePotentialTargets(conditionalOperation.WhenFalse, currentState, semanticModel);
+                if (trueTargets == null || falseTargets == null)
+                {
+                    return PurityAnalysisEngine.PotentialTargets.Unresolved;
+                }
+
+                return PurityAnalysisEngine.PotentialTargets.Merge(trueTargets.Value, falseTargets.Value);
+            }
+
             if (unwrapped is IMethodReferenceOperation methodRef)
             {
                 return PurityAnalysisEngine.PotentialTargets.FromSingle(methodRef.Method.OriginalDefinition);

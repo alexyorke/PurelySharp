@@ -488,6 +488,56 @@ public class TestClass
         }
 
         [Test]
+        public async Task DelegateInvocation_ConditionalPureDelegateAssignment_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int First() => 1;
+
+    [EnforcePure]
+    public int Second() => 2;
+
+    [EnforcePure]
+    public int TestMethod(bool useFirst)
+    {
+        Func<int> operation = useFirst ? new Func<int>(First) : new Func<int>(Second);
+        return operation();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task DelegateInvocation_RemovedDelegateTarget_RemainsConservativeDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int First() => 1;
+
+    [EnforcePure]
+    public int {|PS0002:TestMethod|}()
+    {
+        Func<int> operation = First;
+        operation -= First;
+        return operation();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task GenericType_DefaultConstructor_ReportsPS0002()
         {
             var test = @"
