@@ -69,6 +69,22 @@ public class C { }
         }
 
         [Test]
+        public async Task Misplaced_Pure_OnParameter_ReportsPS0003()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class C
+{
+    [Impure]
+    public int M([{|PS0003:Pure|}] int value) => value;
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ReadonlyRecordStructConstructor_ShouldBePure()
         {
             var test = @"

@@ -20,34 +20,38 @@ namespace PurelySharp.Analyzer
                 return;
             }
 
+            if (context.Node is not AttributeListSyntax attributeList)
+            {
+                return;
+            }
+
+            if (IsAllowedPurityTarget(attributeList.Parent))
+            {
+                return;
+            }
+
             Location? attributeLocation = null;
 
-
-            if (context.Node is MemberDeclarationSyntax memberDecl)
+            if (enforcePureAttributeSymbol != null)
             {
+                attributeLocation = FindAttributeLocation(attributeList, enforcePureAttributeSymbol, context.SemanticModel);
+            }
 
-                if (enforcePureAttributeSymbol != null)
+            if (attributeLocation == null && pureAttributeSymbol != null)
+            {
+                attributeLocation = FindAttributeLocation(attributeList, pureAttributeSymbol, context.SemanticModel);
+            }
+
+            if (attributeLocation == null && allowSynchronizationAttributeSymbol != null)
+            {
+                attributeLocation = FindAttributeLocation(attributeList, allowSynchronizationAttributeSymbol, context.SemanticModel);
+                if (attributeLocation != null)
                 {
-                    attributeLocation = FindAttributeLocation(memberDecl.AttributeLists, enforcePureAttributeSymbol, context.SemanticModel);
-                }
-
-
-                if (attributeLocation == null && pureAttributeSymbol != null)
-                {
-                    attributeLocation = FindAttributeLocation(memberDecl.AttributeLists, pureAttributeSymbol, context.SemanticModel);
-                }
-
-                if (attributeLocation == null && allowSynchronizationAttributeSymbol != null)
-                {
-                    attributeLocation = FindAttributeLocation(memberDecl.AttributeLists, allowSynchronizationAttributeSymbol, context.SemanticModel);
-                    if (attributeLocation != null)
-                    {
-                        var diag = Diagnostic.Create(
-                            PurelySharpDiagnostics.MisplacedAllowSynchronizationAttributeRule,
-                            attributeLocation);
-                        context.ReportDiagnostic(diag);
-                        return;
-                    }
+                    var diag = Diagnostic.Create(
+                        PurelySharpDiagnostics.MisplacedAllowSynchronizationAttributeRule,
+                        attributeLocation);
+                    context.ReportDiagnostic(diag);
+                    return;
                 }
             }
 
@@ -68,30 +72,46 @@ namespace PurelySharp.Analyzer
         {
             foreach (var attributeList in attributeLists)
             {
-                foreach (var attribute in attributeList.Attributes)
+                var location = FindAttributeLocation(attributeList, targetAttributeSymbol, semanticModel);
+                if (location != null) return location;
+            }
+            return null;
+        }
+
+        private static Location? FindAttributeLocation(AttributeListSyntax attributeList, INamedTypeSymbol targetAttributeSymbol, SemanticModel semanticModel)
+        {
+            foreach (var attribute in attributeList.Attributes)
+            {
+                var symbolInfo = semanticModel.GetSymbolInfo(attribute);
+
+                if (symbolInfo.Symbol is IMethodSymbol attributeConstructorSymbol &&
+                    SymbolEqualityComparer.Default.Equals(attributeConstructorSymbol.ContainingType, targetAttributeSymbol))
                 {
-                    var symbolInfo = semanticModel.GetSymbolInfo(attribute);
+                    return attribute.GetLocation();
+                }
 
-                    if (symbolInfo.Symbol is IMethodSymbol attributeConstructorSymbol &&
-                        SymbolEqualityComparer.Default.Equals(attributeConstructorSymbol.ContainingType, targetAttributeSymbol))
-                    {
-                        return attribute.GetLocation();
-                    }
+                else if (symbolInfo.Symbol is INamedTypeSymbol directAttributeSymbol &&
+                         SymbolEqualityComparer.Default.Equals(directAttributeSymbol, targetAttributeSymbol))
+                {
+                    return attribute.GetLocation();
+                }
 
-                    else if (symbolInfo.Symbol is INamedTypeSymbol directAttributeSymbol &&
-                             SymbolEqualityComparer.Default.Equals(directAttributeSymbol, targetAttributeSymbol))
-                    {
-                        return attribute.GetLocation();
-                    }
-
-                    else if (semanticModel.GetTypeInfo(attribute).Type is INamedTypeSymbol attributeType &&
-                           SymbolEqualityComparer.Default.Equals(attributeType, targetAttributeSymbol))
-                    {
-                        return attribute.GetLocation();
-                    }
+                else if (semanticModel.GetTypeInfo(attribute).Type is INamedTypeSymbol attributeType &&
+                       SymbolEqualityComparer.Default.Equals(attributeType, targetAttributeSymbol))
+                {
+                    return attribute.GetLocation();
                 }
             }
             return null;
+        }
+
+        private static bool IsAllowedPurityTarget(SyntaxNode? node)
+        {
+            return node is MethodDeclarationSyntax ||
+                   node is AccessorDeclarationSyntax ||
+                   node is ConstructorDeclarationSyntax ||
+                   node is OperatorDeclarationSyntax ||
+                   node is LocalFunctionStatementSyntax;
         }
 
         private static INamedTypeSymbol? ResolveAttributeSymbol(Compilation compilation, string qualifiedMetadataName, string fallbackMetadataName)

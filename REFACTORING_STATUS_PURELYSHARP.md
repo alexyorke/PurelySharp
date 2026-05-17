@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1366/1366` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1367/1367` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -32,6 +32,7 @@
   - package content smoke checks now verify analyzer/codefix/attributes payloads and legacy scripts under `tools/`
   - CI now validates the analyzer NuGet payload layout after packing and uses current checkout/setup-dotnet actions
   - `CompilationPurityService` now builds the call graph lazily, with a non-flaky caching test guarding constructor-time work
+  - attribute placement analysis now runs on attribute lists instead of nearly every syntax kind, and covers misplaced parameter attributes
   - unsafe pointer fallbacks now report `unsafe_pointer` evidence, synchronization APIs/locks report `synchronization` evidence, and reflection/environment/time catalog hits report `reflection_environment_source` evidence
   - delegate target tracking now invalidates unresolved reassignment and preserves unresolved delegate targets across branch merges
   - delegate invocation now checks argument-expression purity after resolving pure delegate targets

@@ -50,19 +50,7 @@ namespace PurelySharp.Analyzer
                     SyntaxKind.LocalFunctionStatement);
             });
 
-            var analyzedKinds = ImmutableHashSet.Create(SyntaxKind.MethodDeclaration,
-                                                        SyntaxKind.GetAccessorDeclaration,
-                                                        SyntaxKind.SetAccessorDeclaration,
-                                                        SyntaxKind.ConstructorDeclaration,
-                                                        SyntaxKind.OperatorDeclaration,
-                                                        SyntaxKind.LocalFunctionStatement);
-
-            var allKindsExceptAnalyzed = Enum.GetValues(typeof(SyntaxKind))
-                                           .Cast<SyntaxKind>()
-                                           .Where(k => !analyzedKinds.Contains(k))
-                                           .ToImmutableArray();
-
-            context.RegisterSyntaxNodeAction(AttributePlacementAnalyzer.AnalyzeNonMethodDeclaration, allKindsExceptAnalyzed);
+            context.RegisterSyntaxNodeAction(AttributePlacementAnalyzer.AnalyzeNonMethodDeclaration, SyntaxKind.AttributeList);
         }
     }
 }
