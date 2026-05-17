@@ -65,6 +65,44 @@ public static class CatalogSignatureSamples
             Assert.That(Constants.KnownPureBCLMembers, Does.Contain(GetPropertySignature(compilation, syntaxTree, "list.Count")));
         }
 
+        [Test]
+        public void SymbolResolvedCatalogSamples_DoNotConflictBetweenPureAndImpureCatalogs()
+        {
+            var source = @"
+using System;
+using System.Collections.Generic;
+
+public static class CatalogConflictSamples
+{
+    public static void Sample()
+    {
+        var list = new List<int>();
+        list.Add(1);
+        _ = list.Count;
+        _ = Array.Empty<int>();
+        _ = DateTime.Now;
+    }
+}";
+            var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Preview));
+            var compilation = CSharpCompilation.Create(
+                "CatalogConflictResolution",
+                new[] { syntaxTree },
+                GetTrustedPlatformReferences(),
+                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+            AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "list.Add(1)"), expectedPure: false, expectedImpure: true);
+            AssertCatalogMembership(GetPropertySignature(compilation, syntaxTree, "DateTime.Now"), expectedPure: false, expectedImpure: true);
+            AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "Array.Empty<int>()"), expectedPure: true, expectedImpure: false);
+            AssertCatalogMembership(GetPropertySignature(compilation, syntaxTree, "list.Count"), expectedPure: true, expectedImpure: false);
+        }
+
+        private static void AssertCatalogMembership(string signature, bool expectedPure, bool expectedImpure)
+        {
+            Assert.That(Constants.KnownPureBCLMembers.Contains(signature), Is.EqualTo(expectedPure), signature);
+            Assert.That(Constants.KnownImpureMethods.Contains(signature), Is.EqualTo(expectedImpure), signature);
+            Assert.That(expectedPure && expectedImpure, Is.False, "Test sample should not intentionally expect a catalog conflict: " + signature);
+        }
+
         private static string GetInvocationSignature(Compilation compilation, SyntaxTree syntaxTree, string expressionText)
         {
             var invocation = syntaxTree.GetRoot()
