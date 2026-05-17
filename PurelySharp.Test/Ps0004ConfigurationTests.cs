@@ -53,6 +53,20 @@ public class TestClass
         }
 
         [Test]
+        public async Task Ps0004_PerTreeBooleanTrue_ReenablesGlobalBooleanFalse()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+public class TestClass
+{
+    public int Pure() => 1;
+}",
+                ImmutableDictionary<string, string>.Empty.Add("purelysharp_suggest_missing_enforce_pure", "false"),
+                treeOptions: ImmutableDictionary<string, string>.Empty.Add("purelysharp_suggest_missing_enforce_pure", "true"));
+
+            Assert.That(DiagnosticMessages(diagnostics), Has.Some.Contains("Pure"));
+        }
+
+        [Test]
         public async Task Ps0004_ScopePublic_ReportsPublicMethodsOnly()
         {
             var diagnostics = await GetAnalyzerDiagnosticsAsync(@"

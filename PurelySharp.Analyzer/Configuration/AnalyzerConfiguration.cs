@@ -288,7 +288,7 @@ namespace PurelySharp.Analyzer.Configuration
             ImmutableHashSet<string> namespaceFilters)
         {
             Enabled = enabled;
-            Scope = enabled ? scope : MissingPuritySuggestionScope.Off;
+            Scope = scope;
             ExcludeGeneratedFiles = excludeGeneratedFiles;
             ExcludeTestFiles = excludeTestFiles;
             MinimumComplexity = minimumComplexity;
