@@ -132,6 +132,49 @@ public class TestClass
         }
 
         [Test]
+        public async Task InterfacePropertyGetter_OnLocalInitializedFromPreviousDeclarator_NoDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public interface IAliasCounter
+{
+    int Count { get; }
+}
+
+public sealed class SealedAliasCounter : IAliasCounter
+{
+    public int Count => 1;
+}
+
+public sealed class ImpureAliasCounter : IAliasCounter
+{
+    private int _reads;
+
+    public int Count
+    {
+        get
+        {
+            _reads++;
+            return _reads;
+        }
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Read()
+    {
+        IAliasCounter first = new SealedAliasCounter(), second = first;
+        return second.Count;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task InterfacePropertyGetter_OnLocalReassignedFromUnknownImplementation_Diagnostic()
         {
             var test = @"

@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1425/1425` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1426/1426` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -32,6 +32,7 @@
 - interface/virtual dispatch now narrows through locals initialized from known concrete receiver types and forgets that narrowing after unknown reassignment
 - interface/virtual dispatch through same-declaration concrete receiver aliases has direct regression coverage
 - interface/virtual property getter dispatch now uses the same concrete-local receiver narrowing and includes reassignment guard coverage
+- interface property getter dispatch through same-declaration concrete receiver aliases has direct regression coverage
 - conditional return expressions now preserve mutable-array escape diagnostics when any reachable arm returns a known-pure array factory result or owned local array
 - constant conditional return expressions now ignore dead mutable-array escape arms
 - constant short-circuit `&&`/`||` expressions now skip unreachable impure right operands
