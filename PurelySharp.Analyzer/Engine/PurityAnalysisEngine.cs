@@ -709,7 +709,15 @@ namespace PurelySharp.Analyzer.Engine
                 if (IsKnownImpure(methodSymbol))
                 {
                     LogDebug($"{indent}Method {methodSymbol.ToDisplayString()} is known impure.");
-                    var knownImpureResult = ImpureResult(null);
+                    var syntax = methodSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax();
+                    var knownImpureResult = ImpureResult(
+                        syntax,
+                        PurityEvidence.Create(
+                            "catalog_hit",
+                            "KnownImpureMethod",
+                            syntaxNode: syntax,
+                            symbol: methodSymbol,
+                            catalogSource: GetKnownImpureMemberSource(methodSymbol) ?? "known_impure"));
                     purityCache[methodSymbol] = knownImpureResult;
                     LogDebug($"{indent}<< Exit DeterminePurity (Known Impure): {methodSymbol.ToDisplayString()}");
                     return knownImpureResult;

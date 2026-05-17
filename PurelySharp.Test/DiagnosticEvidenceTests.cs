@@ -73,6 +73,34 @@ public class TestClass
         }
 
         [Test]
+        public async Task Ps0002_ConfiguredKnownImpureTargetMethod_IncludesConfigCatalogSource()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int TestMethod()
+    {
+        return 42;
+    }
+}",
+                ImmutableDictionary<string, string>.Empty.Add(
+                    "purelysharp_known_impure_methods",
+                    "TestClass.TestMethod()"));
+
+            var diagnostic = diagnostics
+                .Where(d => d.Id == PurelySharpDiagnostics.PurityNotVerifiedId)
+                .Single(d => d.GetMessage().Contains("'TestMethod'", StringComparison.Ordinal));
+
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCategoryProperty], Is.EqualTo("catalog_hit"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityRuleProperty], Is.EqualTo("KnownImpureMethod"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCatalogSourceProperty], Is.EqualTo("config_known_impure"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpuritySymbolProperty], Does.Contain("TestClass.TestMethod"));
+        }
+
+        [Test]
         public async Task Ps0002_ConfiguredKnownImpureTypeProperty_IncludesNamespaceOrTypeCatalogSource()
         {
             var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
