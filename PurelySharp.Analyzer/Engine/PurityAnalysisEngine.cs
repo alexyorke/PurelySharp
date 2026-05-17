@@ -2275,7 +2275,39 @@ namespace PurelySharp.Analyzer.Engine
                   : op;
   
   
-                  if (operationToTrack is IAssignmentOperation assignmentOperation)
+                  if (operationToTrack is ICompoundAssignmentOperation compoundAssignmentOperation)
+                  {
+                    var targetOperation = compoundAssignmentOperation.Target;
+                    var valueOperation = compoundAssignmentOperation.Value;
+                    var targetSymbol = TryResolveSymbol(targetOperation);
+
+                    if (targetSymbol != null && targetOperation.Type?.TypeKind == TypeKind.Delegate)
+                    {
+                        if (compoundAssignmentOperation.OperatorKind == BinaryOperatorKind.Add)
+                        {
+                            PurityAnalysisEngine.PotentialTargets? valueTargets = ResolvePotentialTargets(valueOperation, currentState);
+                            if (valueTargets != null &&
+                                currentState.DelegateTargetMap.TryGetValue(targetSymbol, out var currentTargets))
+                            {
+                                var mergedTargets = PotentialTargets.Merge(currentTargets, valueTargets.Value);
+                                nextState = nextState.WithDelegateTarget(targetSymbol, mergedTargets);
+                                LogDebug($"    [ATF-DEL-COMPOUND] Merged delegate targets for {targetSymbol.Name}. New Map Count: {nextState.DelegateTargetMap.Count}");
+                            }
+                            else
+                            {
+                                nextState = nextState.WithDelegateTarget(targetSymbol, PotentialTargets.Unresolved);
+                                LogDebug($"    [ATF-DEL-COMPOUND] Marked map for {targetSymbol.Name} unresolved because compound add target state is incomplete.");
+                            }
+                        }
+                        else
+                        {
+                            nextState = nextState.WithDelegateTarget(targetSymbol, PotentialTargets.Unresolved);
+                            LogDebug($"    [ATF-DEL-COMPOUND] Marked map for {targetSymbol.Name} unresolved after delegate compound assignment.");
+                        }
+                    }
+                }
+
+                  else if (operationToTrack is IAssignmentOperation assignmentOperation)
                   {
                     var targetOperation = assignmentOperation.Target;
                     var valueOperation = assignmentOperation.Value;
