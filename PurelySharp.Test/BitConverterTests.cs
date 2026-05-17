@@ -46,5 +46,26 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task BitConverterGetBytesInt_ConditionalReturnedArray_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public byte[] {|PS0002:TestMethod|}(bool useLeft, int value)
+    {
+        return useLeft
+            ? BitConverter.GetBytes(value)
+            : BitConverter.GetBytes(value + 1);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

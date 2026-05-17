@@ -36,7 +36,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     PurityAnalysisEngine.LogDebug($"    [ReturnRule] Returned value is IMPURE. Return statement is Impure.");
                     return valueResult;
                 }
-                else if (PurityAnalysisEngine.IsKnownPureBCLArrayFactoryOperation(returnOperation.ReturnedValue, out var factoryMethod))
+                else if (IsKnownPureArrayFactoryReturn(returnOperation.ReturnedValue, out var factoryMethod))
                 {
                     PurityAnalysisEngine.LogDebug($"    [ReturnRule] Returned value escapes mutable array from known-pure factory '{factoryMethod.ToDisplayString()}'. Return statement is Impure.");
                     return PurityAnalysisEngine.PurityAnalysisResult.Impure(
@@ -72,8 +72,28 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
         }
 
+        private static bool IsKnownPureArrayFactoryReturn(
+            IOperation? returnedValue,
+            out IMethodSymbol factoryMethod)
+        {
+            var unwrappedReturnedValue = PurityAnalysisEngine.SkipImplicitConversions(returnedValue);
+            if (PurityAnalysisEngine.IsKnownPureBCLArrayFactoryOperation(unwrappedReturnedValue, out factoryMethod))
+            {
+                return true;
+            }
+
+            if (unwrappedReturnedValue is IConditionalOperation conditionalOperation)
+            {
+                return IsKnownPureArrayFactoryReturn(conditionalOperation.WhenTrue, out factoryMethod) ||
+                    IsKnownPureArrayFactoryReturn(conditionalOperation.WhenFalse, out factoryMethod);
+            }
+
+            factoryMethod = null!;
+            return false;
+        }
+
         private static bool IsOwnedLocalArrayReturn(
-            IOperation returnedValue,
+            IOperation? returnedValue,
             PurityAnalysisEngine.PurityAnalysisState currentState,
             out ILocalSymbol localSymbol)
         {
@@ -84,6 +104,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
             {
                 localSymbol = localReference.Local;
                 return true;
+            }
+
+            if (unwrappedReturnedValue is IConditionalOperation conditionalOperation)
+            {
+                return IsOwnedLocalArrayReturn(conditionalOperation.WhenTrue, currentState, out localSymbol) ||
+                    IsOwnedLocalArrayReturn(conditionalOperation.WhenFalse, currentState, out localSymbol);
             }
 
             localSymbol = null!;
