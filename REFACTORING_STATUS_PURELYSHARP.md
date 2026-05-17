@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1409/1409` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1411/1411` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -30,6 +30,7 @@
 - interface/virtual property getter dispatch now uses the same concrete-local receiver narrowing and includes reassignment guard coverage
 - conditional return expressions now preserve mutable-array escape diagnostics when any reachable arm returns a known-pure array factory result or owned local array
 - constant conditional return expressions now ignore dead mutable-array escape arms
+- constant short-circuit `&&`/`||` expressions now skip unreachable impure right operands
 - dynamic indexer access now has direct regression coverage for conservative `dynamic_dispatch` handling
 - `out` arguments on otherwise pure calls now reject non-local targets such as fields while still allowing local/discard `out` targets for cataloged pure calls
 - `bool.TryParse(string?, out bool)` is now cataloged as pure for nullable-enabled target frameworks

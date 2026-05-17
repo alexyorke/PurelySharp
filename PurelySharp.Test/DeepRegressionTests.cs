@@ -105,5 +105,57 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task ShortCircuitFalseAnd_IgnoresUnreachableImpureRightOperand()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    private static bool ImpureCondition() => DateTime.Now.Ticks > 0;
+
+    [EnforcePure]
+    public int Run()
+    {
+        if (false && ImpureCondition())
+        {
+            return 0;
+        }
+
+        return 1;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ShortCircuitTrueOr_IgnoresUnreachableImpureRightOperand()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    private static bool ImpureCondition() => DateTime.Now.Ticks > 0;
+
+    [EnforcePure]
+    public int Run()
+    {
+        if (true || ImpureCondition())
+        {
+            return 1;
+        }
+
+        return 0;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

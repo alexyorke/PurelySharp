@@ -1588,6 +1588,20 @@ namespace PurelySharp.Analyzer.Engine
                         }
                     }
                 }
+                else if (ancestor is Microsoft.CodeAnalysis.CSharp.Syntax.BinaryExpressionSyntax binaryExpressionSyntax)
+                {
+                    var leftValue = semanticModel.GetConstantValue(binaryExpressionSyntax.Left);
+                    if (leftValue.HasValue &&
+                        leftValue.Value is bool leftBool &&
+                        binaryExpressionSyntax.Right.Span.Contains(syntaxNode.Span))
+                    {
+                        if ((binaryExpressionSyntax.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.LogicalAndExpression) && !leftBool) ||
+                            (binaryExpressionSyntax.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.LogicalOrExpression) && leftBool))
+                        {
+                            return true;
+                        }
+                    }
+                }
                 else if (ancestor is Microsoft.CodeAnalysis.CSharp.Syntax.SwitchExpressionSyntax switchExpressionSyntax)
                 {
                     if (IsInUnmatchedConstantSwitchExpressionArm(syntaxNode, switchExpressionSyntax, semanticModel))

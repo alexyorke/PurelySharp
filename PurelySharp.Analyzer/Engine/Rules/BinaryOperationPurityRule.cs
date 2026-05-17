@@ -31,6 +31,24 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             PurityAnalysisEngine.LogDebug($"    [BinaryOpRule] Left Operand is Pure.");
 
+            if (binaryOperation.OperatorKind == BinaryOperatorKind.ConditionalAnd &&
+                binaryOperation.LeftOperand.ConstantValue.HasValue &&
+                binaryOperation.LeftOperand.ConstantValue.Value is bool leftAnd &&
+                !leftAnd)
+            {
+                PurityAnalysisEngine.LogDebug("    [BinaryOpRule] Constant false && skips right operand. Binary operation is Pure.");
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            if (binaryOperation.OperatorKind == BinaryOperatorKind.ConditionalOr &&
+                binaryOperation.LeftOperand.ConstantValue.HasValue &&
+                binaryOperation.LeftOperand.ConstantValue.Value is bool leftOr &&
+                leftOr)
+            {
+                PurityAnalysisEngine.LogDebug("    [BinaryOpRule] Constant true || skips right operand. Binary operation is Pure.");
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
 
             var rightResult = PurityAnalysisEngine.CheckSingleOperation(binaryOperation.RightOperand, context, currentState);
             if (!rightResult.IsPure)
