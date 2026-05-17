@@ -1871,6 +1871,21 @@ namespace PurelySharp.Analyzer.Engine
 
         internal static bool IsKnownPureBCLMember(ISymbol symbol) => ImpurityCatalog.IsKnownPureBCLMember(symbol);
 
+        internal static bool IsKnownPureBCLArrayFactoryOperation(IOperation? operation, out IMethodSymbol factoryMethod)
+        {
+            var unwrappedOperation = SkipImplicitConversions(operation);
+            if (unwrappedOperation is IInvocationOperation invocation &&
+                invocation.Type is IArrayTypeSymbol &&
+                IsKnownPureBCLMember(invocation.TargetMethod.OriginalDefinition))
+            {
+                factoryMethod = invocation.TargetMethod;
+                return true;
+            }
+
+            factoryMethod = null!;
+            return false;
+        }
+
 
         internal static bool IsKnownImpure(ISymbol symbol) => ImpurityCatalog.IsKnownImpure(symbol);
         internal static string? GetKnownImpureMemberSource(ISymbol symbol) => ImpurityCatalog.GetKnownImpureMemberSource(symbol);
@@ -2417,7 +2432,8 @@ namespace PurelySharp.Analyzer.Engine
 
                     if (targetSymbol is ILocalSymbol localSymbol && localSymbol.Type is IArrayTypeSymbol)
                     {
-                        if (valueOperation is IArrayCreationOperation)
+                        if (valueOperation is IArrayCreationOperation ||
+                            IsKnownPureBCLArrayFactoryOperation(valueOperation, out _))
                         {
                             nextState = nextState.WithOwnedLocalArray(localSymbol);
                         }
@@ -2469,7 +2485,8 @@ namespace PurelySharp.Analyzer.Engine
                                 ILocalSymbol declaredSymbol = declarator.Symbol;
                                 if (declaredSymbol.Type is IArrayTypeSymbol)
                                 {
-                                    if (initializerValue is IArrayCreationOperation)
+                                    if (initializerValue is IArrayCreationOperation ||
+                                        IsKnownPureBCLArrayFactoryOperation(initializerValue, out _))
                                     {
                                         nextState = nextState.WithOwnedLocalArray(declaredSymbol);
                                     }
