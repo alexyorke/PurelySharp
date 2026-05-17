@@ -73,6 +73,39 @@ public class TestClass
         }
 
         [Test]
+        public async Task Ps0002_ConfiguredKnownImpureTypeProperty_IncludesNamespaceOrTypeCatalogSource()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using PurelySharp.Attributes;
+
+public class Boundary
+{
+    public int Value => 1;
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int TestMethod(Boundary boundary)
+    {
+        return boundary.Value;
+    }
+}",
+                ImmutableDictionary<string, string>.Empty.Add(
+                    "purelysharp_known_impure_types",
+                    "Boundary"));
+
+            var diagnostic = diagnostics
+                .Where(d => d.Id == PurelySharpDiagnostics.PurityNotVerifiedId)
+                .Single(d => d.GetMessage().Contains("'TestMethod'", StringComparison.Ordinal));
+
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCategoryProperty], Is.EqualTo("catalog_hit"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityRuleProperty], Is.EqualTo("PropertyReferencePurityRule"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCatalogSourceProperty], Is.EqualTo("known_impure_namespace_or_type"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpuritySymbolProperty], Does.Contain("Boundary.Value"));
+        }
+
+        [Test]
         public async Task Ps0002_ImpureCallee_IncludesCalleeChain()
         {
             var diagnostics = await GetAnalyzerDiagnosticsAsync(@"

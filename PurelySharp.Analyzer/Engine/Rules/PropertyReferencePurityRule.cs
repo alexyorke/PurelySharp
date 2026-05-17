@@ -64,6 +64,20 @@ namespace PurelySharp.Analyzer.Engine.Rules
                         catalogSource: "known_impure_member"));
             }
 
+            if (PurityAnalysisEngine.IsInConfiguredImpureNamespaceOrType(propertySymbol))
+            {
+                PurityAnalysisEngine.LogDebug($"    [PropRefRule] Property {propertySymbol.Name} is in a known impure namespace or type. Impure.");
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                    propertyReferenceOperation.Syntax,
+                    PurityAnalysisEngine.PurityEvidence.Create(
+                        GetCatalogHitCategory(propertySymbol),
+                        ruleName: nameof(PropertyReferencePurityRule),
+                        operation: propertyReferenceOperation,
+                        syntaxNode: propertyReferenceOperation.Syntax,
+                        symbol: propertySymbol,
+                        catalogSource: "known_impure_namespace_or_type"));
+            }
+
             if (propertySymbol.GetMethod != null &&
                 IsPotentiallyDispatchedGetter(propertySymbol.GetMethod) &&
                 !PurityAnalysisEngine.IsKnownPureBCLMember(propertySymbol))

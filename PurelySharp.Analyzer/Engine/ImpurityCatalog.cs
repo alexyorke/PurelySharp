@@ -310,6 +310,36 @@ namespace PurelySharp.Analyzer.Engine
 			return false;
 		}
 
+		public static bool IsInConfiguredImpureNamespaceOrType(ISymbol symbol)
+		{
+			if (symbol == null) return false;
+
+			INamedTypeSymbol? containingType = symbol as INamedTypeSymbol ?? symbol.ContainingType;
+			while (containingType != null)
+			{
+				string typeName = containingType.OriginalDefinition.ToDisplayString();
+				if (_extraImpureTypes.Contains(typeName))
+				{
+					return true;
+				}
+
+				INamespaceSymbol? ns = containingType.ContainingNamespace;
+				while (ns != null && !ns.IsGlobalNamespace)
+				{
+					if (_extraImpureNamespaces.Contains(ns.ToDisplayString()))
+					{
+						return true;
+					}
+
+					ns = ns.ContainingNamespace;
+				}
+
+				containingType = containingType.ContainingType;
+			}
+
+			return false;
+		}
+
 		private static bool IsMutableImmutableBuilderMember(ISymbol symbol)
 		{
 			if (!IsImmutableBuilderType(symbol.ContainingType))
