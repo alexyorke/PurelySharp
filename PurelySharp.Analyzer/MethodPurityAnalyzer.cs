@@ -65,14 +65,20 @@ namespace PurelySharp.Analyzer
                 || HasAttributeByName(methodSymbol, "EnforcePureAttribute");
             bool hasPureAttribute = (pureAttributeSymbol != null && HasAttribute(methodSymbol, pureAttributeSymbol))
                 || HasAttributeByName(methodSymbol, "PureAttribute");
-            bool hasPureExternalAttribute = (pureExternalAttributeSymbol != null && HasAttribute(methodSymbol, pureExternalAttributeSymbol))
-                || HasAttributeByName(methodSymbol, "PureExternalAttribute")
+            bool hasDirectPureExternalAttribute = (pureExternalAttributeSymbol != null && HasAttribute(methodSymbol, pureExternalAttributeSymbol))
+                || HasAttributeByName(methodSymbol, "PureExternalAttribute");
+            bool hasDirectImpureAttribute = (impureAttributeSymbol != null && HasAttribute(methodSymbol, impureAttributeSymbol))
+                || HasAttributeByName(methodSymbol, "ImpureAttribute");
+            bool hasPureExternalAttribute = hasDirectPureExternalAttribute
                 || PurityAnalysisEngine.HasPureExternalAttribute(methodSymbol);
-            bool hasImpureAttribute = (impureAttributeSymbol != null && HasAttribute(methodSymbol, impureAttributeSymbol))
-                || HasAttributeByName(methodSymbol, "ImpureAttribute")
+            bool hasImpureAttribute = hasDirectImpureAttribute
                 || PurityAnalysisEngine.HasImpureAttribute(methodSymbol);
 
-            if (hasEnforcePureAttribute && hasPureAttribute)
+            if (HasConflictingPurityAttributes(
+                hasEnforcePureAttribute,
+                hasPureAttribute,
+                hasDirectPureExternalAttribute,
+                hasDirectImpureAttribute))
             {
                 Location? conflictingDiagnosticLocation = GetIdentifierLocation(context.Node);
                 if (conflictingDiagnosticLocation != null)
@@ -260,6 +266,25 @@ namespace PurelySharp.Analyzer
             }
 
             return true;
+        }
+
+        private static bool HasConflictingPurityAttributes(
+            bool hasEnforcePureAttribute,
+            bool hasPureAttribute,
+            bool hasPureExternalAttribute,
+            bool hasImpureAttribute)
+        {
+            if (hasImpureAttribute && (hasEnforcePureAttribute || hasPureAttribute || hasPureExternalAttribute))
+            {
+                return true;
+            }
+
+            if (hasPureExternalAttribute && (hasEnforcePureAttribute || hasPureAttribute))
+            {
+                return true;
+            }
+
+            return hasEnforcePureAttribute && hasPureAttribute;
         }
 
         private static bool MatchesSuggestionScope(IMethodSymbol methodSymbol, MissingPuritySuggestionScope scope)

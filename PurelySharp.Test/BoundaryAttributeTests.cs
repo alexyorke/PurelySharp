@@ -75,10 +75,17 @@ public class TestClass
 {
     [Impure]
     [EnforcePure]
-    public int {|PS0002:Contradiction|}() => 1;
+    public int Contradiction() => 1;
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
+            var expectedConflict = VerifyCS.Diagnostic(PurelySharpDiagnostics.ConflictingPurityAttributesId)
+                .WithSpan(8, 16, 8, 29)
+                .WithArguments("Contradiction");
+            var expectedImpurity = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                .WithSpan(8, 16, 8, 29)
+                .WithArguments("Contradiction");
+
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedConflict, expectedImpurity);
         }
 
         [Test]

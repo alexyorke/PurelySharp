@@ -91,8 +91,8 @@ namespace PurelySharp.Analyzer
 
         public const string ConflictingPurityAttributesId = "PS0005";
         private static readonly LocalizableString ConflictingPurityAttributesTitle = "Conflicting purity attributes";
-        private static readonly LocalizableString ConflictingPurityAttributesMessageFormat = "Method '{0}' has both [EnforcePure] and [Pure] attributes applied";
-        private static readonly LocalizableString ConflictingPurityAttributesDescription = "Apply only one of [EnforcePure] or [Pure] to a method. Both attributes together are redundant and can be confusing.";
+        private static readonly LocalizableString ConflictingPurityAttributesMessageFormat = "Method '{0}' has conflicting purity attributes applied";
+        private static readonly LocalizableString ConflictingPurityAttributesDescription = "Apply one purity contract to a method. Combining enforcing, trusted-external, and explicit-impure attributes is contradictory or confusing.";
 
         public static readonly DiagnosticDescriptor ConflictingPurityAttributesRule = new DiagnosticDescriptor(
             id: ConflictingPurityAttributesId,

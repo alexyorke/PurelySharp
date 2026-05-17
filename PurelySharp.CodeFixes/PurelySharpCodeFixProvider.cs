@@ -78,8 +78,8 @@ namespace PurelySharp
                     {
                         context.RegisterCodeFix(
                             CodeAction.Create(
-                                "Remove [Pure] attribute (keep [EnforcePure])",
-                                c => RemoveAttributesMatchingAsync(document, root, declConflict, IsPureAttributeOnly, c),
+                                "Remove conflicting purity boundary attributes",
+                                c => RemoveAttributesMatchingAsync(document, root, declConflict, IsConflictingPurityBoundaryAttribute, c),
                                 nameof(RemoveAttributesMatchingAsync) + "PS0005"),
                             diagnostic);
                     }
@@ -257,8 +257,10 @@ namespace PurelySharp
                    && t.ContainingNamespace?.ToDisplayString() == "PurelySharp.Attributes";
         }
 
-        private static bool IsPureAttributeOnly(INamedTypeSymbol? t) =>
-            t != null && t.Name == "PureAttribute" && t.ContainingNamespace?.ToDisplayString() == "PurelySharp.Attributes";
+        private static bool IsConflictingPurityBoundaryAttribute(INamedTypeSymbol? t) =>
+            t != null &&
+            t.Name is "PureAttribute" or "PureExternalAttribute" or "ImpureAttribute" &&
+            t.ContainingNamespace?.ToDisplayString() == "PurelySharp.Attributes";
 
         private static bool IsAllowSynchronizationAttribute(INamedTypeSymbol? t) =>
             t != null && t.Name == "AllowSynchronizationAttribute" && t.ContainingNamespace?.ToDisplayString() == "PurelySharp.Attributes";
