@@ -1376,6 +1376,7 @@ public static class Constants
         "System.Threading.Interlocked.Read(ref long)",
         "System.TimeSpan.CompareTo(System.TimeSpan)",
         "System.TimeSpan.FromDays(double)",
+        "System.Uri.IsWellFormedUriString(string, System.UriKind)",
         "System.Uri.ToString()",
 
 
