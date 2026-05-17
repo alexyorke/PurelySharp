@@ -25,6 +25,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 valueOperation = assignmentOperation.Value;
 
             }
+            else if (operation is ICompoundAssignmentOperation compoundAssignmentOperation)
+            {
+                targetOperation = compoundAssignmentOperation.Target;
+                valueOperation = compoundAssignmentOperation.Value;
+
+            }
             else if (operation is IIncrementOrDecrementOperation incrementDecrementOperation)
             {
                 targetOperation = incrementDecrementOperation.Target;

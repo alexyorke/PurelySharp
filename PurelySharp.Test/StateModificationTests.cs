@@ -94,6 +94,33 @@ public class TestClass
         }
 
         [Test]
+        public async Task CompoundAssignmentWithImpureRhs_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:TestMethod|}()
+    {
+        var value = 0;
+        value += ReadImpure();
+        return value;
+    }
+
+    private int ReadImpure()
+    {
+        Console.WriteLine(""impure"");
+        return 1;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
 
 
 
