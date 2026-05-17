@@ -891,7 +891,9 @@ namespace PurelySharp.Analyzer.Engine
                                 if (!exResult.IsPure)
                                 {
                                     LogDebug($"{indent}    Post-CFG: Throw exception expression is IMPURE: {firstThrowOp.Exception.Syntax}");
-                                    result = PurityAnalysisResult.Impure(exResult.ImpureSyntaxNode ?? firstThrowOp.Syntax);
+                                    result = PurityAnalysisResult.Impure(
+                                        exResult.ImpureSyntaxNode ?? firstThrowOp.Syntax,
+                                        exResult.Evidence);
                                     goto PostCfgChecksDone;
                                 }
                             }

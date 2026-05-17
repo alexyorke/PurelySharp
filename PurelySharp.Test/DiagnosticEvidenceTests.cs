@@ -494,6 +494,29 @@ public class TestClass
         }
 
         [Test]
+        public async Task Ps0002_ThrowExceptionExpressionImpurity_PreservesOriginalEvidence()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void TestMethod()
+    {
+        throw new InvalidOperationException(Console.ReadLine());
+    }
+}");
+
+            var diagnostic = SingleDiagnostic(diagnostics, PurelySharpDiagnostics.PurityNotVerifiedId);
+
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCategoryProperty], Is.EqualTo("catalog_hit"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityRuleProperty], Is.EqualTo("MethodInvocationPurityRule"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpuritySymbolProperty], Does.Contain("System.Console.ReadLine"));
+        }
+
+        [Test]
         public async Task Ps0002_UnsafePointerOperation_IncludesUnsafePointerCategory()
         {
             var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
