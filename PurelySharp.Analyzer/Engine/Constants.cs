@@ -1115,6 +1115,7 @@ public static class Constants
         "System.Guid.ParseExact(string, string)",
         "System.Guid.TryParse(string?, out System.Guid)",
         "System.Guid.TryParseExact(string?, string?, out System.Guid)",
+        "System.Guid.ToByteArray()",
         "System.Guid.ToString()",
         "System.Guid.ToString(string?)",
 
