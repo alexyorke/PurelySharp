@@ -958,6 +958,50 @@ public class TestClass
         }
 
         [Test]
+        public async Task InterfaceMethod_OnLocalReassignedFromUnknownImplementation_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System;
+
+public interface IReassignedCounter
+{
+    int Increment(int value);
+}
+
+public sealed class SealedReassignedCounter : IReassignedCounter
+{
+    public int Increment(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class ImpureReassignedCounter : IReassignedCounter
+{
+    public int Increment(int value)
+    {
+        Console.WriteLine(value);
+        return value + 1;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:Process|}(IReassignedCounter unknown, int value)
+    {
+        IReassignedCounter counter = new SealedReassignedCounter();
+        counter = unknown;
+        return counter.Increment(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task InterfaceMethod_OnSealedImplementation_ThroughAsCast_NoConservativeDiagnostic()
         {
             var test = @"
