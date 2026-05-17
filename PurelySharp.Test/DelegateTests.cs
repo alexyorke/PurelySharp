@@ -192,6 +192,32 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
+
+        [Test]
+        public async Task DelegateInitializedFromPreviousDeclarator_NoDiagnostic()
+        {
+            var testCode = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public static void PureTarget()
+    {
+    }
+
+    [EnforcePure]
+    public void TestMethod()
+    {
+        Action first = PureTarget, second = first;
+        second();
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
     }
 }
 

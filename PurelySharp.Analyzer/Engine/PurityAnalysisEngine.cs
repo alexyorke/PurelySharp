@@ -2687,19 +2687,19 @@ namespace PurelySharp.Analyzer.Engine
                                 var initializerValue = declarator.Initializer.Value;
                                 ILocalSymbol declaredSymbol = declarator.Symbol;
 
-                                if (TryResolveKnownConcreteType(initializerValue, currentState, out var concreteType))
+                                if (TryResolveKnownConcreteType(initializerValue, nextState, out var concreteType))
                                 {
                                     nextState = nextState.WithLocalConcreteType(declaredSymbol, concreteType);
                                 }
 
-                                if (IsOwnedLocalArrayValue(initializerValue, currentState))
+                                if (IsOwnedLocalArrayValue(initializerValue, nextState))
                                 {
                                     nextState = nextState.WithOwnedLocalArray(declaredSymbol);
                                 }
 
                                 if (declaredSymbol.Type?.TypeKind == TypeKind.Delegate)
                                 {
-                                    PurityAnalysisEngine.PotentialTargets? valueTargets = ResolvePotentialTargets(initializerValue, currentState);
+                                    PurityAnalysisEngine.PotentialTargets? valueTargets = ResolvePotentialTargets(initializerValue, nextState);
                                     if (valueTargets != null)
                                     {
                                         nextState = nextState.WithDelegateTarget(declaredSymbol, valueTargets.Value);
