@@ -958,6 +958,49 @@ public class TestClass
         }
 
         [Test]
+        public async Task InterfaceMethod_OnLocalInitializedFromPreviousDeclarator_NoConservativeDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System;
+
+public interface IAliasCounter
+{
+    int Increment(int value);
+}
+
+public sealed class SealedAliasCounter : IAliasCounter
+{
+    public int Increment(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class ImpureAliasCounter : IAliasCounter
+{
+    public int Increment(int value)
+    {
+        Console.WriteLine(value);
+        return value + 1;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Process(int value)
+    {
+        IAliasCounter first = new SealedAliasCounter(), second = first;
+        return second.Increment(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task InterfaceMethod_OnLocalReassignedFromUnknownImplementation_Diagnostic()
         {
             var test = @"
