@@ -1057,6 +1057,7 @@ public static class Constants
         "System.DateTime.DateTime(long)",
         "System.DateTime.DateTime(int, int, int)",
         "System.DateTime.AddDays(double)",
+        "System.DateTime.AddTicks(long)",
         "System.DateTime.IsLeapYear(int)",
         "System.DateTimeOffset.DateTimeOffset(long, System.TimeSpan)",
         "System.DateTimeOffset.FromUnixTimeMilliseconds(long)",

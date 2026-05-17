@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1407/1407` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1408/1408` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -33,6 +33,7 @@
 - `out` arguments on otherwise pure calls now reject non-local targets such as fields while still allowing local/discard `out` targets for cataloged pure calls
 - `bool.TryParse(string?, out bool)` is now cataloged as pure for nullable-enabled target frameworks
 - `purelysharp_purity_profile = strict` now opts into mutable `this` field-read diagnostics while `balanced` remains the default
+- deterministic `System.DateTime.AddTicks(long)` is now cataloged as pure without weakening ambient-time diagnostics
 - boundary attribute tests now cover direct attribute precedence over assembly-level purity defaults
 - caching coverage now verifies the lazy compilation call graph is reused across repeated purity requests
 - corpus SARIF parsing now trims diagnostic evidence properties and normalizes whitespace-only values before aggregation
