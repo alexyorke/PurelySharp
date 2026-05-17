@@ -86,7 +86,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task WebUtilityUrlEncodeToBytes_NoDiagnostic()
+        public async Task WebUtilityUrlEncodeToBytes_ReturnedArray_Diagnostic()
         {
             var test = @"
 using System.Net;
@@ -95,7 +95,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public byte[] TestMethod(byte[] value)
+    public byte[] {|PS0002:TestMethod|}(byte[] value)
     {
         return WebUtility.UrlEncodeToBytes(value, 0, value.Length);
     }
@@ -105,7 +105,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task WebUtilityUrlDecodeToBytes_NoDiagnostic()
+        public async Task WebUtilityUrlDecodeToBytes_ReturnedArray_Diagnostic()
         {
             var test = @"
 using System.Net;
@@ -114,7 +114,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public byte[] TestMethod(byte[] value)
+    public byte[] {|PS0002:TestMethod|}(byte[] value)
     {
         return WebUtility.UrlDecodeToBytes(value, 0, value.Length);
     }

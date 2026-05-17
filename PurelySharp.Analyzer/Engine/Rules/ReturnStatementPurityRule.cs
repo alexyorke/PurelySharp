@@ -36,6 +36,19 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     PurityAnalysisEngine.LogDebug($"    [ReturnRule] Returned value is IMPURE. Return statement is Impure.");
                     return valueResult;
                 }
+                else if (IsKnownPureArrayFactoryReturn(returnOperation.ReturnedValue, out var factoryMethod))
+                {
+                    PurityAnalysisEngine.LogDebug($"    [ReturnRule] Returned value escapes mutable array from known-pure factory '{factoryMethod.ToDisplayString()}'. Return statement is Impure.");
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                        returnOperation.ReturnedValue.Syntax,
+                        PurityAnalysisEngine.PurityEvidence.Create(
+                            "mutable_state_escape",
+                            ruleName: nameof(ReturnStatementPurityRule),
+                            operation: returnOperation,
+                            syntaxNode: returnOperation.ReturnedValue.Syntax,
+                            symbol: factoryMethod,
+                            catalogSource: "returned_array_factory"));
+                }
                 else if (IsOwnedLocalArrayReturn(returnOperation.ReturnedValue, currentState, out var localSymbol))
                 {
                     PurityAnalysisEngine.LogDebug($"    [ReturnRule] Returned value escapes owned fresh local array '{localSymbol.Name}'. Return statement is Impure.");
@@ -57,6 +70,23 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static bool IsKnownPureArrayFactoryReturn(
+            IOperation returnedValue,
+            out IMethodSymbol factoryMethod)
+        {
+            var unwrappedReturnedValue = PurityAnalysisEngine.SkipImplicitConversions(returnedValue);
+            if (unwrappedReturnedValue is IInvocationOperation invocation &&
+                invocation.Type is IArrayTypeSymbol &&
+                PurityAnalysisEngine.IsKnownPureBCLMember(invocation.TargetMethod.OriginalDefinition))
+            {
+                factoryMethod = invocation.TargetMethod;
+                return true;
+            }
+
+            factoryMethod = null!;
+            return false;
         }
 
         private static bool IsOwnedLocalArrayReturn(
