@@ -1223,10 +1223,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
 
-            foreach (var getEnumerator in unwrappedSource.Type
-                         .GetMembers("GetEnumerator")
-                         .OfType<IMethodSymbol>()
-                         .Where(method => method.Parameters.Length == 0 && method.DeclaringSyntaxReferences.Length > 0))
+            foreach (var getEnumerator in EnumerateSourceGetEnumeratorImplementations(unwrappedSource.Type))
             {
                 var enumeratorPurity = PurityAnalysisEngine.GetCalleePurity(getEnumerator.OriginalDefinition, context);
                 if (!enumeratorPurity.IsPure)
@@ -1236,6 +1233,59 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static IEnumerable<IMethodSymbol> EnumerateSourceGetEnumeratorImplementations(ITypeSymbol sourceType)
+        {
+            var seen = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+
+            foreach (var getEnumerator in sourceType
+                         .GetMembers("GetEnumerator")
+                         .OfType<IMethodSymbol>()
+                         .Where(method => method.Parameters.Length == 0 && method.DeclaringSyntaxReferences.Length > 0))
+            {
+                if (seen.Add(getEnumerator.OriginalDefinition))
+                {
+                    yield return getEnumerator;
+                }
+            }
+
+            if (sourceType is not INamedTypeSymbol namedSourceType)
+            {
+                yield break;
+            }
+
+            foreach (var interfaceType in namedSourceType.AllInterfaces)
+            {
+                if (!IsEnumerableInterface(interfaceType))
+                {
+                    continue;
+                }
+
+                foreach (var interfaceGetEnumerator in interfaceType
+                             .GetMembers("GetEnumerator")
+                             .OfType<IMethodSymbol>()
+                             .Where(method => method.Parameters.Length == 0))
+                {
+                    var implementation = namedSourceType.FindImplementationForInterfaceMember(interfaceGetEnumerator) as IMethodSymbol;
+                    if (implementation == null || implementation.DeclaringSyntaxReferences.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    if (seen.Add(implementation.OriginalDefinition))
+                    {
+                        yield return implementation;
+                    }
+                }
+            }
+        }
+
+        private static bool IsEnumerableInterface(INamedTypeSymbol typeSymbol)
+        {
+            var originalDefinition = typeSymbol.OriginalDefinition;
+            return originalDefinition.SpecialType == SpecialType.System_Collections_IEnumerable ||
+                originalDefinition.SpecialType == SpecialType.System_Collections_Generic_IEnumerable_T;
         }
 
         private static IEnumerable<INamedTypeSymbol> EnumerateAllNamedTypes(INamespaceSymbol root)
