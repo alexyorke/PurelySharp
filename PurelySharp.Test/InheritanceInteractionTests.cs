@@ -104,7 +104,7 @@ public abstract class DataProcessor
     [EnforcePure] // Abstract declaration itself is not diagnosed; callers still stay conservative when overrides can vary.
     public abstract int Process(int data);
 
-    [EnforcePure] // The base implementation is currently impure because int.ToString() is culture-sensitive.
+    [EnforcePure] // The base implementation is impure because int.ToString() is culture-sensitive.
     public virtual string Format(int data) => data.ToString();
 
     [EnforcePure] // Calls through the abstract slot, so downstream dispatch remains conservative.

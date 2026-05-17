@@ -25,7 +25,7 @@ public class TestClass
     [EnforcePure]
     public int TestMethod()
     {
-        // Environment.ProcessorCount is now known impure
+        // Environment.ProcessorCount reads ambient process state.
         return Environment.ProcessorCount;
     }
 }

@@ -10,7 +10,7 @@ The primary goal of PurelySharp is to provide developers with tools to identify 
 
 ## Current Status & Features
 
-Currently, the analyzer provides the following checks:
+The analyzer provides the following checks:
 
 1.  **`[EnforcePure]` / `[Pure]` Attributes:** Use either `PurelySharp.Attributes.EnforcePureAttribute` or `PurelySharp.Attributes.PureAttribute` to mark methods intended to be pure. The analyzer treats `[Pure]` as an interchangeable shorthand for `[EnforcePure]`. Applying both at once yields `PS0005` (conflict).
 2.  **PS0002: Purity Not Verified:** If a method is marked with a purity attribute (`[EnforcePure]` or `[Pure]`) and the engine cannot determine it to be pure based on the current rules (see below), it reports diagnostic `PS0002`.
@@ -21,7 +21,7 @@ Currently, the analyzer provides the following checks:
     - Purity of invoked methods (recursive check with cycle detection).
     - Purity of expressions (constants, parameters, `static readonly` fields, basic operators, etc.).
     - Purity of basic statements (local declarations, return, simple expression statements).
-6.  **Regression status:** The in-repo analyzer suite currently passes `1389/1389` tests on .NET 8.
+6.  **Regression coverage:** The in-repo analyzer suite runs on .NET 8 via `PurelySharp.Test`.
 
 **Inherent limitations (not “missing features”):**
 

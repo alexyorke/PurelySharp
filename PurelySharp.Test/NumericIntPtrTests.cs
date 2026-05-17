@@ -276,7 +276,7 @@ namespace TestNamespace
         public nint {|PS0002:AddAndLog|}(nint a, nint b) 
         {
             nint result = a + b; 
-            File.AppendAllText(""log.txt"", $""{result}""); // Impure File IO causes method to fail verification
+            File.AppendAllText(""log.txt"", $""{result}""); // File I/O is impure and triggers PS0002.
             return result;
         }
     }

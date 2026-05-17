@@ -29,7 +29,7 @@ public class TestClass
     [EnforcePure]
     public bool TestMethod(string input)
     {
-        // Static Regex.IsMatch is now known pure
+        // Static Regex.IsMatch is treated as pure.
         return Regex.IsMatch(input, ""^[a-z]+$"");
     }
 }
@@ -50,7 +50,7 @@ public class TestClass
     [EnforcePure]
     public Match TestMethod(string input)
     {
-        // Static Regex.Match is now known pure
+        // Static Regex.Match is treated as pure.
         return Regex.Match(input, ""^[a-z]+$"");
     }
 }
@@ -84,7 +84,7 @@ public class TestClass
     [EnforcePure]
     public Regex TestMethod()
     {
-        // Regex constructor is now known pure
+        // Regex construction is treated as pure.
         return new Regex(""^[a-z]+$"");
     }
 }
