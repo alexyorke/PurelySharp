@@ -142,5 +142,24 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task FreshLocalArrayReturnedThroughSameDeclarationAlias_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int[] {|PS0002:TestMethod|}()
+    {
+        int[] first = new int[1], second = first;
+        return second;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

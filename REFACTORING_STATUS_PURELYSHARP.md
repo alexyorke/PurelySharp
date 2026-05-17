@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1423/1423` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1424/1424` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -25,6 +25,7 @@
 - generic `new T()` construction now emits structured unsupported-operation evidence instead of fallback PS0002 metadata
 - returning an owned fresh local array now reports mutable-state escape while non-escaping local array mutation remains allowed
 - returning an owned fresh array through a non-array local alias now reports mutable-state escape
+- returning an owned fresh array through a same-declaration local alias has direct regression coverage
 - returning mutable arrays from known-pure BCL factory calls now reports mutable-state escape, including locals initialized from those factories
 - `Array.Empty<T>()` remains allowed because it returns a zero-length array that cannot expose mutable elements
 - fresh local arrays created by collection expressions are now tracked like `new[]` arrays: local mutation can stay pure, while returning the array still reports escape
