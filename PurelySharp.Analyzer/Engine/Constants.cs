@@ -1077,6 +1077,7 @@ public static class Constants
         "System.DateTimeOffset.AddTicks(long)",
         "System.DateTimeOffset.AddYears(int)",
         "System.DateTimeOffset.FromUnixTimeMilliseconds(long)",
+        "System.DateTimeOffset.FromUnixTimeSeconds(long)",
         "System.DateTimeOffset.ToUnixTimeMilliseconds()",
         "System.DateTimeOffset.ToUnixTimeSeconds()",
 
