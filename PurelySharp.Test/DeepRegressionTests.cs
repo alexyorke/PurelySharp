@@ -182,5 +182,34 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task ConstantNullConditionalAccess_IgnoresUnreachableImpureWhenNotNull()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public sealed class Service
+{
+    public int Impure()
+    {
+        Console.WriteLine(""impure"");
+        return 1;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Run()
+    {
+        ((Service)null)?.Impure();
+        return 1;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

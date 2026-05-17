@@ -1588,6 +1588,16 @@ namespace PurelySharp.Analyzer.Engine
                         }
                     }
                 }
+                else if (ancestor is Microsoft.CodeAnalysis.CSharp.Syntax.ConditionalAccessExpressionSyntax conditionalAccessExpressionSyntax)
+                {
+                    var receiverValue = semanticModel.GetConstantValue(conditionalAccessExpressionSyntax.Expression);
+                    if (receiverValue.HasValue &&
+                        receiverValue.Value == null &&
+                        conditionalAccessExpressionSyntax.WhenNotNull.Span.Contains(syntaxNode.Span))
+                    {
+                        return true;
+                    }
+                }
                 else if (ancestor is Microsoft.CodeAnalysis.CSharp.Syntax.BinaryExpressionSyntax binaryExpressionSyntax)
                 {
                     var leftValue = semanticModel.GetConstantValue(binaryExpressionSyntax.Left);

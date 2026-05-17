@@ -27,6 +27,13 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
             PurityAnalysisEngine.LogDebug($"    [ConditionalAccessRule] Operation before '?.' is Pure.");
 
+            var receiver = PurityAnalysisEngine.SkipImplicitConversions(conditionalAccessOperation.Operation) ??
+                conditionalAccessOperation.Operation;
+            if (receiver.ConstantValue.HasValue && receiver.ConstantValue.Value == null)
+            {
+                PurityAnalysisEngine.LogDebug($"    [ConditionalAccessRule] Constant null receiver skips WhenNotNull. Conditional Access Operation is Pure.");
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
 
             var whenNotNullResult = PurityAnalysisEngine.CheckSingleOperation(conditionalAccessOperation.WhenNotNull, context, currentState);
             if (!whenNotNullResult.IsPure)

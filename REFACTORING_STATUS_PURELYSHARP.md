@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1427/1427` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1428/1428` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -37,6 +37,7 @@
 - constant conditional return expressions now ignore dead mutable-array escape arms
 - constant short-circuit `&&`/`||` expressions now skip unreachable impure right operands
 - constant non-null coalesce expressions now skip unreachable impure fallback operands
+- constant-null conditional access now skips unreachable impure `WhenNotNull` operations
 - dynamic indexer access now has direct regression coverage for conservative `dynamic_dispatch` handling
 - `out` arguments on otherwise pure calls now reject non-local targets such as fields while still allowing local/discard `out` targets for cataloged pure calls
 - `bool.TryParse(string?, out bool)` is now cataloged as pure for nullable-enabled target frameworks
