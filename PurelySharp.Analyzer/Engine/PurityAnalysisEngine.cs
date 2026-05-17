@@ -1887,6 +1887,13 @@ namespace PurelySharp.Analyzer.Engine
             return false;
         }
 
+        internal static bool IsArrayCollectionExpressionOperation(IOperation? operation)
+        {
+            var unwrappedOperation = SkipImplicitConversions(operation);
+            return unwrappedOperation is ICollectionExpressionOperation collectionExpression &&
+                collectionExpression.Type is IArrayTypeSymbol;
+        }
+
         private static bool IsArrayEmptyFactory(IMethodSymbol methodSymbol)
         {
             return methodSymbol.Name == "Empty" &&
@@ -2441,6 +2448,7 @@ namespace PurelySharp.Analyzer.Engine
                     if (targetSymbol is ILocalSymbol localSymbol && localSymbol.Type is IArrayTypeSymbol)
                     {
                         if (valueOperation is IArrayCreationOperation ||
+                            IsArrayCollectionExpressionOperation(valueOperation) ||
                             IsKnownPureBCLArrayFactoryOperation(valueOperation, out _))
                         {
                             nextState = nextState.WithOwnedLocalArray(localSymbol);
@@ -2494,6 +2502,7 @@ namespace PurelySharp.Analyzer.Engine
                                 if (declaredSymbol.Type is IArrayTypeSymbol)
                                 {
                                     if (initializerValue is IArrayCreationOperation ||
+                                        IsArrayCollectionExpressionOperation(initializerValue) ||
                                         IsKnownPureBCLArrayFactoryOperation(initializerValue, out _))
                                     {
                                         nextState = nextState.WithOwnedLocalArray(declaredSymbol);

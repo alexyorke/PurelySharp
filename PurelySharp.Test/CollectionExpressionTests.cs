@@ -166,6 +166,51 @@ public class CollectionExpressionExample
         }
 
         [Test]
+        public async Task PureMethod_LocalMutableArrayCollectionExpression_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+
+
+public class CollectionExpressionExample
+{
+    [EnforcePure]
+    public int SumWithLocalArray(int value)
+    {
+        int[] array = [1, 2, 3];
+        array[0] = value;
+        return array[0] + array[1] + array[2];
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task PureMethod_ReturningFreshLocalCollectionExpressionArray_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+
+
+public class CollectionExpressionExample
+{
+    [EnforcePure]
+    public int[] {|PS0002:GetArray|}()
+    {
+        int[] array = [1, 2, 3];
+        return array;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task PureMethod_ReturningModifiedFreshLocalArray_Diagnostic()
         {
             var test = @"

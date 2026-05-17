@@ -26,7 +26,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 string targetTypeName = targetType.OriginalDefinition.ToDisplayString();
                 PurityAnalysisEngine.LogDebug($" CollectionExpressionRule: Target Type is {targetTypeName}");
 
-                if (!IsPureCollectionExpressionTargetType(targetType))
+                var isFreshLocalArrayInitialization =
+                    targetType is IArrayTypeSymbol &&
+                    IsFreshLocalArrayInitialization(collectionExpression);
+
+                if (!IsPureCollectionExpressionTargetType(targetType) &&
+                    !isFreshLocalArrayInitialization)
                 {
                     PurityAnalysisEngine.LogDebug($" CollectionExpressionRule: Target type '{targetTypeName}' is not a known pure collection-expression target. Marking IMPURE.");
                     return PurityAnalysisEngine.PurityAnalysisResult.Impure(
@@ -38,6 +43,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
                             syntaxNode: collectionExpression.Syntax,
                             symbol: targetType,
                             catalogSource: "collection_expression_target"));
+                }
+
+                if (isFreshLocalArrayInitialization)
+                {
+                    PurityAnalysisEngine.LogDebug($" CollectionExpressionRule: Array collection expression '{collectionExpression.Syntax}' initializes a fresh local array. Treating allocation as PURE.");
                 }
             }
             else
@@ -78,6 +88,32 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 named.TypeArguments.Length == 1 &&
                 named.ContainingNamespace?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == "global::System" &&
                 (named.Name == "ReadOnlySpan" || named.Name == "Span"))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool IsFreshLocalArrayInitialization(ICollectionExpressionOperation collectionExpression)
+        {
+            IOperation? current = collectionExpression.Parent;
+
+            if (current is IConversionOperation conversionOperation)
+            {
+                current = conversionOperation.Parent;
+            }
+
+            if (current is IVariableInitializerOperation variableInitializer &&
+                variableInitializer.Parent is IVariableDeclaratorOperation variableDeclarator &&
+                variableDeclarator.Symbol.Type is IArrayTypeSymbol)
+            {
+                return true;
+            }
+
+            if (current is IAssignmentOperation assignmentOperation &&
+                assignmentOperation.Target is ILocalReferenceOperation localReference &&
+                localReference.Type is IArrayTypeSymbol)
             {
                 return true;
             }
