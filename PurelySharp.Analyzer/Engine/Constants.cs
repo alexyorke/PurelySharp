@@ -1107,6 +1107,7 @@ public static class Constants
 
 
         "System.Guid.Guid(byte[])",
+        "System.Guid.Guid(string)",
         "System.Guid.CompareTo(System.Guid)",
         "System.Guid.Empty.get",
         "System.Guid.Equals(System.Guid)",

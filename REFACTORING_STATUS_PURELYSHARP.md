@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1429/1429` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1430/1430` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -52,6 +52,7 @@
 - deterministic `System.Guid` value members are cataloged without weakening `Guid.NewGuid()` diagnostics
 - deterministic `System.Guid.TryParse(string?, out Guid)` is cataloged as pure
 - deterministic exact-format `System.Guid` parse/format members are cataloged as pure
+- deterministic `System.Guid(string)` construction is cataloged as pure
 - boundary attribute tests now cover direct attribute precedence over assembly-level purity defaults
 - caching coverage now verifies the lazy compilation call graph is reused across repeated purity requests
 - corpus SARIF parsing now trims diagnostic evidence properties and normalizes whitespace-only values before aggregation
