@@ -157,5 +157,30 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task ConstantNonNullCoalesce_IgnoresUnreachableImpureRightOperand()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    private static string ImpureFallback()
+    {
+        Console.WriteLine(""impure"");
+        return ""fallback"";
+    }
+
+    [EnforcePure]
+    public string Run()
+    {
+        return ""fixed"" ?? ImpureFallback();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

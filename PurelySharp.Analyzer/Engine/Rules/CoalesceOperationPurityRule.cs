@@ -36,6 +36,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
             PurityAnalysisEngine.LogDebug($"    [CoalesceRule] Left side is Pure.");
 
+            if (coalesceOperation.Value.ConstantValue.HasValue &&
+                coalesceOperation.Value.ConstantValue.Value != null)
+            {
+                PurityAnalysisEngine.LogDebug($"    [CoalesceRule] Constant non-null left side skips WhenNull. Coalesce Operation is Pure.");
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
 
             var rightResult = PurityAnalysisEngine.CheckSingleOperation(coalesceOperation.WhenNull, context, currentState);
             if (!rightResult.IsPure)

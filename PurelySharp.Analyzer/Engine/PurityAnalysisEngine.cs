@@ -1601,6 +1601,14 @@ namespace PurelySharp.Analyzer.Engine
                             return true;
                         }
                     }
+
+                    if (leftValue.HasValue &&
+                        leftValue.Value != null &&
+                        binaryExpressionSyntax.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.CoalesceExpression) &&
+                        binaryExpressionSyntax.Right.Span.Contains(syntaxNode.Span))
+                    {
+                        return true;
+                    }
                 }
                 else if (ancestor is Microsoft.CodeAnalysis.CSharp.Syntax.SwitchExpressionSyntax switchExpressionSyntax)
                 {
