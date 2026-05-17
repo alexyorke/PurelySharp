@@ -89,6 +89,49 @@ public class TestClass
         }
 
         [Test]
+        public async Task InterfacePropertyGetter_OnLocalInitializedWithSealedImplementation_NoDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public interface ILocalCounter
+{
+    int Count { get; }
+}
+
+public sealed class SealedLocalCounter : ILocalCounter
+{
+    public int Count => 1;
+}
+
+public sealed class ImpureLocalCounter : ILocalCounter
+{
+    private int _reads;
+
+    public int Count
+    {
+        get
+        {
+            _reads++;
+            return _reads;
+        }
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Read()
+    {
+        ILocalCounter counter = new SealedLocalCounter();
+        return counter.Count;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task VirtualPropertyGetter_WithImpureOverride_Diagnostic()
         {
             var test = @"

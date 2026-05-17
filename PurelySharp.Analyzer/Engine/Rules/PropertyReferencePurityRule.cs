@@ -90,6 +90,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 var dispatchResult = CheckDispatchedGetterPurity(
                     propertyReferenceOperation,
                     context,
+                    currentState,
                     isPureEnforcedProperty);
                 if (!dispatchResult.IsPure)
                 {
@@ -313,12 +314,14 @@ namespace PurelySharp.Analyzer.Engine.Rules
         private static PurityAnalysisEngine.PurityAnalysisResult CheckDispatchedGetterPurity(
             IPropertyReferenceOperation propertyReferenceOperation,
             PurityAnalysisContext context,
+            PurityAnalysisEngine.PurityAnalysisState currentState,
             bool trustContractWhenNoTargets)
         {
             var candidates = ResolvePotentialGetterTargets(
                 propertyReferenceOperation.Property,
                 context.SemanticModel,
-                GetKnownReceiverType(propertyReferenceOperation.Instance));
+                GetTrackedLocalReceiverType(propertyReferenceOperation.Instance, currentState) ??
+                    GetKnownReceiverType(propertyReferenceOperation.Instance));
 
             if (candidates.IsDefaultOrEmpty)
             {
@@ -356,6 +359,15 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return getterResult.IsPure
                 ? PurityAnalysisEngine.PurityAnalysisResult.Pure
                 : getterResult.WithCallee(getterSymbol, propertyReferenceOperation.Syntax);
+        }
+
+        private static INamedTypeSymbol? GetTrackedLocalReceiverType(
+            IOperation? instanceOperation,
+            PurityAnalysisEngine.PurityAnalysisState currentState)
+        {
+            return PurityAnalysisEngine.TryResolveKnownConcreteType(instanceOperation, currentState, out var concreteType)
+                ? concreteType
+                : null;
         }
 
         private static string GetCatalogHitCategory(ISymbol symbol)
