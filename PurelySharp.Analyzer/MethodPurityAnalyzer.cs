@@ -126,6 +126,10 @@ namespace PurelySharp.Analyzer
                 allowSynchronizationAttributeSymbol);
             bool isPure = purityResult.IsPure;
 
+            var effectiveMissingPuritySuggestions = AnalyzerConfiguration.GetMissingPuritySuggestionOptions(
+                context.Options,
+                context.Node.SyntaxTree,
+                missingPuritySuggestions);
 
             if (!isPure && hasPurityEnforcementAttribute)
             {
@@ -168,14 +172,14 @@ namespace PurelySharp.Analyzer
                 }
             }
 
-            else if (missingPuritySuggestions.IsEnabled && isPure && !hasPurityEnforcementAttribute && !hasAllowSynchronization && !hasImpureAttribute)
+            else if (effectiveMissingPuritySuggestions.IsEnabled && isPure && !hasPurityEnforcementAttribute && !hasAllowSynchronization && !hasImpureAttribute)
             {
                 if (context.Node is LocalFunctionStatementSyntax)
                 {
                     return;
                 }
 
-                if (!ShouldReportMissingEnforcePure(context, methodSymbol, missingPuritySuggestions))
+                if (!ShouldReportMissingEnforcePure(context, methodSymbol, effectiveMissingPuritySuggestions))
                 {
                     return;
                 }

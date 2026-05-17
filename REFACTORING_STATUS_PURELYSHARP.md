@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1364/1364` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1365/1365` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -12,7 +12,7 @@
   - `PS0002` diagnostics now carry structured impurity evidence through diagnostic properties, including category, rule, operation kind, symbol, catalog/config source, and callee chain; configured known-impure method hits, including the target method under analysis, are identified as `config_known_impure`, and configured impure type/namespace property reads report `known_impure_namespace_or_type`
   - optional `PS0009` explanation diagnostics can be emitted with `purelysharp_emit_explanations = true`
   - `Tools/PurelySharp.CorpusReport` can summarize SARIF/errorlog output into JSON with a stable `SchemaVersion`, diagnostic counts, per-diagnostic evidence rows, impurity categories, rule-name counts, top impure APIs, catalog-miss candidates, and false-positive candidates without double-counting `PS0009` explanation evidence
-  - `PS0004` suggestions now support scope, generated/test filtering, namespace filters, and minimum-complexity controls while preserving the default `all` behavior
+  - `PS0004` suggestions now support scope, generated/test filtering, namespace filters, minimum-complexity controls, and per-file `.editorconfig` sections while preserving the default `all` behavior
   - `PurelySharp.Baseline.json` additional files can suppress method-level `PS0002` and `PS0004` diagnostics by diagnostic ID, symbol documentation ID, and relative path
   - `[PureExternal]` and `[Impure]` boundary attributes are available for explicit trusted/impure method, property, constructor, and assembly boundaries
   - `using(existingLocal)` now analyzes the implicit `Dispose()` call, including post-CFG using-operation coverage

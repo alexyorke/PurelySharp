@@ -56,6 +56,29 @@ namespace PurelySharp.Analyzer.Configuration
             return new AnalyzerConfiguration(impureMethods, pureMethods, impureNamespaces, impureTypes, debug, suggestMissing, missingPuritySuggestions, emitExplanations);
         }
 
+        public static MissingPuritySuggestionOptions GetMissingPuritySuggestionOptions(
+            AnalyzerOptions options,
+            SyntaxTree syntaxTree,
+            MissingPuritySuggestionOptions fallback)
+        {
+            try
+            {
+                var treeOptions = options.AnalyzerConfigOptionsProvider.GetOptions(syntaxTree);
+                bool suggestMissing = GetBoolOrDefault(treeOptions, ConfigKeys.SuggestMissingEnforcePure, fallback.Enabled);
+                return new MissingPuritySuggestionOptions(
+                    suggestMissing,
+                    GetMissingPuritySuggestionScope(treeOptions, fallback.Scope),
+                    GetBoolOrDefault(treeOptions, ConfigKeys.SuggestMissingEnforcePureExcludeGenerated, fallback.ExcludeGeneratedFiles),
+                    GetBoolOrDefault(treeOptions, ConfigKeys.SuggestMissingEnforcePureExcludeTests, fallback.ExcludeTestFiles),
+                    GetNonNegativeInt(treeOptions, ConfigKeys.SuggestMissingEnforcePureMinComplexity, fallback.MinimumComplexity),
+                    GetValues(treeOptions, ConfigKeys.SuggestMissingEnforcePureNamespaceFilters, fallback.NamespaceFilters));
+            }
+            catch
+            {
+                return fallback;
+            }
+        }
+
         private static ImmutableHashSet<string> GetValues(AnalyzerOptions options, string key)
         {
             var builder = ImmutableHashSet.CreateBuilder<string>(StringComparer.Ordinal);
@@ -78,6 +101,29 @@ namespace PurelySharp.Analyzer.Configuration
             {
                 // Ignore config parsing issues; default to empty overrides
             }
+            return builder.ToImmutable();
+        }
+
+        private static ImmutableHashSet<string> GetValues(
+            AnalyzerConfigOptions options,
+            string key,
+            ImmutableHashSet<string> fallback)
+        {
+            var builder = ImmutableHashSet.CreateBuilder<string>(StringComparer.Ordinal);
+            if (!options.TryGetValue(key, out var value) || string.IsNullOrWhiteSpace(value))
+            {
+                return fallback;
+            }
+
+            foreach (var token in value.Split(new[] { ',', ';', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                var item = token.Trim();
+                if (item.Length > 0)
+                {
+                    builder.Add(item);
+                }
+            }
+
             return builder.ToImmutable();
         }
 
@@ -114,6 +160,32 @@ namespace PurelySharp.Analyzer.Configuration
             return true;
         }
 
+        private static bool GetBoolOrDefault(AnalyzerConfigOptions options, string key, bool fallback)
+        {
+            if (!options.TryGetValue(key, out var value) || string.IsNullOrWhiteSpace(value))
+            {
+                return fallback;
+            }
+
+            if (bool.TryParse(value.Trim(), out var parsed))
+            {
+                return parsed;
+            }
+
+            var lowered = value.Trim().ToLowerInvariant();
+            if (lowered == "0" || lowered == "false" || lowered == "no" || lowered == "off")
+            {
+                return false;
+            }
+
+            if (lowered == "1" || lowered == "true" || lowered == "yes" || lowered == "on")
+            {
+                return true;
+            }
+
+            return fallback;
+        }
+
         private static MissingPuritySuggestionScope GetMissingPuritySuggestionScope(AnalyzerOptions options)
         {
             try
@@ -143,6 +215,33 @@ namespace PurelySharp.Analyzer.Configuration
             return MissingPuritySuggestionScope.All;
         }
 
+        private static MissingPuritySuggestionScope GetMissingPuritySuggestionScope(
+            AnalyzerConfigOptions options,
+            MissingPuritySuggestionScope fallback)
+        {
+            if (options.TryGetValue(ConfigKeys.SuggestMissingEnforcePureScope, out var value) &&
+                !string.IsNullOrWhiteSpace(value))
+            {
+                switch (value.Trim().ToLowerInvariant())
+                {
+                    case "all":
+                        return MissingPuritySuggestionScope.All;
+                    case "public":
+                    case "public-only":
+                        return MissingPuritySuggestionScope.Public;
+                    case "internal":
+                    case "internal-only":
+                        return MissingPuritySuggestionScope.Internal;
+                    case "off":
+                    case "none":
+                    case "false":
+                        return MissingPuritySuggestionScope.Off;
+                }
+            }
+
+            return fallback;
+        }
+
         private static int GetNonNegativeInt(AnalyzerOptions options, string key)
         {
             try
@@ -158,6 +257,15 @@ namespace PurelySharp.Analyzer.Configuration
             catch { }
 
             return 0;
+        }
+
+        private static int GetNonNegativeInt(AnalyzerConfigOptions options, string key, int fallback)
+        {
+            return options.TryGetValue(key, out var value) &&
+                   int.TryParse(value.Trim(), out var parsed) &&
+                   parsed > 0
+                ? parsed
+                : fallback;
         }
     }
 

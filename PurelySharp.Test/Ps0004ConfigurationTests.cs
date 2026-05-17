@@ -27,6 +27,20 @@ public class TestClass
         }
 
         [Test]
+        public async Task Ps0004_PerTreeScopeOff_SuppressesMissingPuritySuggestions()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+public class TestClass
+{
+    public int Pure() => 1;
+}",
+                ImmutableDictionary<string, string>.Empty,
+                treeOptions: ImmutableDictionary<string, string>.Empty.Add("purelysharp_suggest_missing_enforce_pure_scope", "off"));
+
+            Assert.That(DiagnosticMessages(diagnostics), Has.None.Contains("Pure"));
+        }
+
+        [Test]
         public async Task Ps0004_LegacyBooleanFalse_SuppressesMissingPuritySuggestions()
         {
             var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
@@ -164,7 +178,8 @@ public class TestClass
         private static async Task<ImmutableArray<Diagnostic>> GetAnalyzerDiagnosticsAsync(
             string source,
             ImmutableDictionary<string, string> globalOptions,
-            string? filePath = null)
+            string? filePath = null,
+            ImmutableDictionary<string, string>? treeOptions = null)
         {
             var syntaxTree = CSharpSyntaxTree.ParseText(
                 source,
@@ -181,7 +196,7 @@ public class TestClass
 
             var analyzerOptions = new AnalyzerOptions(
                 ImmutableArray<AdditionalText>.Empty,
-                new TestAnalyzerConfigOptionsProvider(globalOptions));
+                new TestAnalyzerConfigOptionsProvider(globalOptions, treeOptions ?? ImmutableDictionary<string, string>.Empty));
 
             var compilationWithAnalyzers = compilation.WithAnalyzers(
                 ImmutableArray.Create<DiagnosticAnalyzer>(new PurelySharpAnalyzer()),
@@ -215,16 +230,20 @@ public class TestClass
         private sealed class TestAnalyzerConfigOptionsProvider : AnalyzerConfigOptionsProvider
         {
             private readonly AnalyzerConfigOptions _globalOptions;
+            private readonly AnalyzerConfigOptions _treeOptions;
             private readonly AnalyzerConfigOptions _emptyOptions = new TestAnalyzerConfigOptions(ImmutableDictionary<string, string>.Empty);
 
-            public TestAnalyzerConfigOptionsProvider(ImmutableDictionary<string, string> globalOptions)
+            public TestAnalyzerConfigOptionsProvider(
+                ImmutableDictionary<string, string> globalOptions,
+                ImmutableDictionary<string, string> treeOptions)
             {
                 _globalOptions = new TestAnalyzerConfigOptions(globalOptions);
+                _treeOptions = new TestAnalyzerConfigOptions(treeOptions);
             }
 
             public override AnalyzerConfigOptions GlobalOptions => _globalOptions;
 
-            public override AnalyzerConfigOptions GetOptions(SyntaxTree tree) => _emptyOptions;
+            public override AnalyzerConfigOptions GetOptions(SyntaxTree tree) => _treeOptions;
 
             public override AnalyzerConfigOptions GetOptions(AdditionalText textFile) => _emptyOptions;
         }

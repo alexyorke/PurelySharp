@@ -21,7 +21,7 @@ Currently, the analyzer provides the following checks:
     - Purity of invoked methods (recursive check with cycle detection).
     - Purity of expressions (constants, parameters, `static readonly` fields, basic operators, etc.).
     - Purity of basic statements (local declarations, return, simple expression statements).
-6.  **Regression status:** The in-repo analyzer suite currently passes `1364/1364` tests on .NET 8.
+6.  **Regression status:** The in-repo analyzer suite currently passes `1365/1365` tests on .NET 8.
 
 **Inherent limitations (not “missing features”):**
 
@@ -32,7 +32,7 @@ Currently, the analyzer provides the following checks:
 **Recently implemented (see codebase):**
 
 - **Code fixes** (`PurelySharp.CodeFixes`) for `PS0002`–`PS0008` (remove/add attributes, resolve conflicts). The demo and tests reference the code-fix project where applicable.
-- **Configuration** via `.editorconfig` / MSBuild `global analyzerconfig`: `purelysharp_known_impure_methods`, `purelysharp_known_pure_methods`, `purelysharp_known_impure_namespaces`, `purelysharp_known_impure_types`, `purelysharp_enable_debug_logging`, `purelysharp_suggest_missing_enforce_pure` (`true`/`false`, default `true`), and `purelysharp_suggest_missing_enforce_pure_scope` (`all`, `public`, `internal`, `off`, default `all`) to tune `PS0004` suggestions. Optional PS0004 filters include `purelysharp_suggest_missing_enforce_pure_exclude_generated`, `purelysharp_suggest_missing_enforce_pure_exclude_tests`, `purelysharp_suggest_missing_enforce_pure_min_complexity`, and `purelysharp_suggest_missing_enforce_pure_namespace_filters`. Adoption baselines are supported through an additional file named `PurelySharp.Baseline.json`, matching diagnostics by ID, symbol documentation ID, and relative path. Boundary attributes `[PureExternal]` and `[Impure]` let teams explicitly trust or reject boundary methods, properties, constructors, or whole assemblies without broad catalog changes.
+- **Configuration** via `.editorconfig` / MSBuild `global analyzerconfig`: `purelysharp_known_impure_methods`, `purelysharp_known_pure_methods`, `purelysharp_known_impure_namespaces`, `purelysharp_known_impure_types`, `purelysharp_enable_debug_logging`, `purelysharp_suggest_missing_enforce_pure` (`true`/`false`, default `true`), and `purelysharp_suggest_missing_enforce_pure_scope` (`all`, `public`, `internal`, `off`, default `all`) to tune `PS0004` suggestions. Optional PS0004 filters include `purelysharp_suggest_missing_enforce_pure_exclude_generated`, `purelysharp_suggest_missing_enforce_pure_exclude_tests`, `purelysharp_suggest_missing_enforce_pure_min_complexity`, and `purelysharp_suggest_missing_enforce_pure_namespace_filters`; these PS0004 controls honor per-file `.editorconfig` sections. Adoption baselines are supported through an additional file named `PurelySharp.Baseline.json`, matching diagnostics by ID, symbol documentation ID, and relative path. Boundary attributes `[PureExternal]` and `[Impure]` let teams explicitly trust or reject boundary methods, properties, constructors, or whole assemblies without broad catalog changes.
 - **`[AllowSynchronization]`** is supported alongside `[EnforcePure]`/`[Pure]` (`PS0006`–`PS0008`).
 
 ## How It Works
