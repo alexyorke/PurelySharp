@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -134,21 +135,22 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             foreach (var local in declaredLocals)
             {
-                if (local.Type == null || !ImplementsIDisposable(local.Type, context.SemanticModel.Compilation))
+                var disposeReceiverType = ResolveDisposeReceiverType(local, operation, context.SemanticModel);
+                if (disposeReceiverType == null || !ImplementsIDisposable(disposeReceiverType, context.SemanticModel.Compilation))
                 {
                     PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Local '{local.Name}' is not IDisposable. Skipping Dispose check.");
                     continue;
                 }
 
-                PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Checking implicit Dispose() for local '{local.Name}' of type {local.Type.Name}");
+                PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Checking implicit Dispose() for local '{local.Name}' of type {disposeReceiverType.Name}");
 
 
-                IMethodSymbol? disposeMethod = FindDisposeMethod(local.Type, context.SemanticModel.Compilation);
+                IMethodSymbol? disposeMethod = FindDisposeMethod(disposeReceiverType, context.SemanticModel.Compilation);
 
                 if (disposeMethod == null)
                 {
 
-                    PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Could not find Dispose method for type {local.Type.Name}. Assuming impure.");
+                    PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Could not find Dispose method for type {disposeReceiverType.Name}. Assuming impure.");
                     return PurityAnalysisEngine.PurityAnalysisResult.Impure(impureSyntaxNode ?? operation.Syntax);
                 }
 
@@ -202,6 +204,82 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return locals;
         }
 
+        private ITypeSymbol? ResolveDisposeReceiverType(ILocalSymbol local, IOperation usingOperation, SemanticModel semanticModel)
+        {
+            var initializerType = TryGetStableObjectCreationInitializerType(local, usingOperation, semanticModel);
+            if (initializerType != null && ImplementsIDisposable(initializerType, semanticModel.Compilation))
+            {
+                PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Local '{local.Name}' Dispose receiver resolved from initializer type {initializerType.Name}.");
+                return initializerType;
+            }
+
+            return local.Type;
+        }
+
+        private ITypeSymbol? TryGetStableObjectCreationInitializerType(ILocalSymbol local, IOperation usingOperation, SemanticModel semanticModel)
+        {
+            var declaratorSyntax = local.DeclaringSyntaxReferences
+                .Select(reference => reference.GetSyntax())
+                .OfType<VariableDeclaratorSyntax>()
+                .FirstOrDefault();
+            var initializerSyntax = declaratorSyntax?.Initializer?.Value;
+            if (declaratorSyntax == null || initializerSyntax == null)
+            {
+                return null;
+            }
+
+            if (HasAssignmentToLocalBetweenDeclarationAndUsing(local, usingOperation, declaratorSyntax))
+            {
+                PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Local '{local.Name}' is reassigned before using; using declared type for Dispose resolution.");
+                return null;
+            }
+
+            var initializerOperation = semanticModel.GetOperation(initializerSyntax);
+            var unwrappedInitializer = PurityAnalysisEngine.SkipImplicitConversions(initializerOperation);
+            return unwrappedInitializer is IObjectCreationOperation objectCreationOperation
+                ? objectCreationOperation.Type
+                : null;
+        }
+
+        private bool HasAssignmentToLocalBetweenDeclarationAndUsing(
+            ILocalSymbol local,
+            IOperation usingOperation,
+            VariableDeclaratorSyntax declaratorSyntax)
+        {
+            var rootOperation = usingOperation;
+            while (rootOperation.Parent != null)
+            {
+                rootOperation = rootOperation.Parent;
+            }
+
+            var declarationStart = declaratorSyntax.SpanStart;
+            var usingStart = usingOperation.Syntax.SpanStart;
+            foreach (var operation in rootOperation.DescendantsAndSelf())
+            {
+                if (operation.Syntax.SpanStart <= declarationStart || operation.Syntax.SpanStart >= usingStart)
+                {
+                    continue;
+                }
+
+                switch (operation)
+                {
+                    case ISimpleAssignmentOperation assignment when IsLocalTarget(assignment.Target, local):
+                    case ICompoundAssignmentOperation compoundAssignment when IsLocalTarget(compoundAssignment.Target, local):
+                    case IIncrementOrDecrementOperation incrementOrDecrement when IsLocalTarget(incrementOrDecrement.Target, local):
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool IsLocalTarget(IOperation? targetOperation, ILocalSymbol local)
+        {
+            var unwrappedTarget = PurityAnalysisEngine.SkipImplicitConversions(targetOperation);
+            return unwrappedTarget is ILocalReferenceOperation localReferenceOperation &&
+                SymbolEqualityComparer.Default.Equals(localReferenceOperation.Local, local);
+        }
+
 
         private bool ImplementsIDisposable(ITypeSymbol typeSymbol, Compilation compilation)
         {
@@ -227,6 +305,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
             IMethodSymbol? interfaceDisposeMethod = disposableInterface.GetMembers("Dispose").OfType<IMethodSymbol>().FirstOrDefault();
             if (interfaceDisposeMethod == null) return null;
 
+
+            if (typeSymbol.Equals(disposableInterface, SymbolEqualityComparer.Default) ||
+                typeSymbol.TypeKind == TypeKind.Interface && typeSymbol.AllInterfaces.Contains(disposableInterface, SymbolEqualityComparer.Default))
+            {
+                return interfaceDisposeMethod;
+            }
 
             return typeSymbol.FindImplementationForInterfaceMember(interfaceDisposeMethod) as IMethodSymbol;
         }

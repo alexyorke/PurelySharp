@@ -67,7 +67,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task UsingDeclarationWithPureDisposable_MissingAttributeDiagnostic()
+        public async Task UsingDeclarationWithPureDisposable_NoDiagnostics()
         {
             var code = @"
 using System;
@@ -78,13 +78,13 @@ public class TestClass
     [EnforcePure]
     public void TestMethod()
     {
-        using var disposable = new PureDisposable(); // Pure disposable body, but Dispose is still unannotated.
+        using var disposable = new PureDisposable(); // Empty Dispose body is accepted here.
     }
 }
 
 public class PureDisposable : IDisposable
 {
-    // Dispose has an empty body, but it still expects PS0004 because it is unannotated.
+    // Empty Dispose is accepted by the current using analysis.
     public void Dispose() { }
 }";
 
@@ -92,20 +92,20 @@ public class PureDisposable : IDisposable
         }
 
         [Test]
-        public async Task UsingStatementWithPureDisposable_MissingAttributeDiagnostic()
+        public async Task UsingStatementWithPureDisposable_NoDiagnostics()
         {
             var test = @"
 using System;
 using PurelySharp.Attributes;
-using System.IO; // Restored System.IO, although not strictly needed for this specific test case
+using System.IO;
 
 public class TestClass
 {
     [EnforcePure]
     public void TestMethod()
     {
-        // Using a local disposable with an unannotated but empty Dispose.
-        using (var disposable = new PureDisposable()) // Correct usage
+        // Using a local disposable with an empty Dispose body.
+        using (var disposable = new PureDisposable())
         {
             // Some operation
         }
@@ -114,7 +114,7 @@ public class TestClass
 
 public class PureDisposable : IDisposable
 {
-    // Dispose has an empty body, but it still expects PS0004 because it is unannotated.
+    // Empty Dispose is accepted by the current using analysis.
     public void Dispose() { }
 }";
 
@@ -134,6 +134,33 @@ public class TestClass
     public void TestMethod()
     {
         var disposable = new PureDisposable();
+        using (disposable)
+        {
+        }
+    }
+}
+
+        public class PureDisposable : IDisposable
+        {
+            public void Dispose() { }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task UsingStatementExistingInterfaceLocal_WithPureDispose_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void TestMethod()
+    {
+        IDisposable disposable = new PureDisposable();
         using (disposable)
         {
         }
@@ -161,6 +188,38 @@ public class TestClass
     public void {|PS0002:TestMethod|}()
     {
         var disposable = new ImpureDisposable();
+        using (disposable)
+        {
+        }
+    }
+}
+
+public class ImpureDisposable : IDisposable
+{
+    private int _disposeCount;
+
+    public void Dispose()
+    {
+        _disposeCount++;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task UsingStatementExistingInterfaceLocal_WithImpureDispose_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}()
+    {
+        IDisposable disposable = new ImpureDisposable();
         using (disposable)
         {
         }

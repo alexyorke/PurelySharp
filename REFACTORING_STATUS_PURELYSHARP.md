@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1375/1375` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1377/1377` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -15,6 +15,7 @@
 - throw expressions in conditional expression branches now report PS0002 instead of treating the throw itself as pure
 - LINQ source enumeration now resolves explicit interface `GetEnumerator` implementations before treating deferred queries as pure
 - virtual and interface property getters with pure contracts now inspect possible impure overrides/implementations before trusting the slot
+- `using(existingLocal)` now resolves stable concrete disposable initializers so implicit `Dispose` purity is checked precisely
   - `PS0002` diagnostics now carry structured impurity evidence through diagnostic properties, including category, rule, operation kind, symbol, catalog/config source, and callee chain; configured known-impure method hits, including the target method under analysis, are identified as `config_known_impure`, and configured impure type/namespace property reads report `known_impure_namespace_or_type`
   - optional `PS0009` explanation diagnostics can be emitted with `purelysharp_emit_explanations = true`
   - `Tools/PurelySharp.CorpusReport` can summarize SARIF/errorlog output into JSON with a stable `SchemaVersion`, diagnostic counts, per-diagnostic evidence rows, impurity categories, rule-name counts, top impure APIs, catalog-miss candidates, and false-positive candidates without double-counting `PS0009` explanation evidence
