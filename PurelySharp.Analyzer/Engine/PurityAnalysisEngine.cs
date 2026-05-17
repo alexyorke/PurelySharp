@@ -271,6 +271,7 @@ namespace PurelySharp.Analyzer.Engine
             public ImmutableDictionary<CaptureId, PurityAnalysisResult> FlowCaptures { get; }
             public ImmutableDictionary<CaptureId, PotentialTargets> FlowCaptureTargets { get; }
             public ImmutableHashSet<ISymbol> OwnedLocalArraySymbols { get; }
+            public ImmutableDictionary<ISymbol, INamedTypeSymbol> LocalConcreteTypes { get; }
 
 
             internal PurityAnalysisState(
@@ -280,7 +281,8 @@ namespace PurelySharp.Analyzer.Engine
                 ImmutableDictionary<CaptureId, PurityAnalysisResult>? flowCaptures,
                 ImmutableDictionary<CaptureId, PotentialTargets>? flowCaptureTargets = null,
                 ImmutableHashSet<ISymbol>? ownedLocalArraySymbols = null,
-                PurityEvidence firstImpurityEvidence = default)
+                PurityEvidence firstImpurityEvidence = default,
+                ImmutableDictionary<ISymbol, INamedTypeSymbol>? localConcreteTypes = null)
             {
                 HasPotentialImpurity = hasPotentialImpurity;
                 FirstImpureSyntaxNode = firstImpureSyntaxNode;
@@ -290,6 +292,7 @@ namespace PurelySharp.Analyzer.Engine
                 FlowCaptures = flowCaptures ?? ImmutableDictionary<CaptureId, PurityAnalysisResult>.Empty;
                 FlowCaptureTargets = flowCaptureTargets ?? ImmutableDictionary<CaptureId, PotentialTargets>.Empty;
                 OwnedLocalArraySymbols = ownedLocalArraySymbols ?? ImmutableHashSet.Create<ISymbol>(SymbolEqualityComparer.Default);
+                LocalConcreteTypes = localConcreteTypes ?? ImmutableDictionary.Create<ISymbol, INamedTypeSymbol>(SymbolEqualityComparer.Default);
             }
 
 
@@ -322,7 +325,8 @@ namespace PurelySharp.Analyzer.Engine
                 var mergedCaptures = MergeFlowCaptureMaps(stateList.Select(s => s.FlowCaptures));
                 var mergedCaptureTargets = MergeFlowCaptureTargetMapsAcrossAll(stateList.Select(s => s.FlowCaptureTargets));
                 var mergedOwnedLocalArrays = IntersectOwnedLocalArraySymbolsAcrossAll(stateList.Select(s => s.OwnedLocalArraySymbols));
-                return new PurityAnalysisState(mergedImpurity, firstImpureNode, mergedTargets, mergedCaptures, mergedCaptureTargets, mergedOwnedLocalArrays, firstEvidence);
+                var mergedLocalConcreteTypes = IntersectLocalConcreteTypesAcrossAll(stateList.Select(s => s.LocalConcreteTypes));
+                return new PurityAnalysisState(mergedImpurity, firstImpureNode, mergedTargets, mergedCaptures, mergedCaptureTargets, mergedOwnedLocalArrays, firstEvidence, localConcreteTypes: mergedLocalConcreteTypes);
             }
 
 
@@ -334,7 +338,8 @@ namespace PurelySharp.Analyzer.Engine
                     this.DelegateTargetMap.Count != other.DelegateTargetMap.Count ||
                     this.FlowCaptures.Count != other.FlowCaptures.Count ||
                     this.FlowCaptureTargets.Count != other.FlowCaptureTargets.Count ||
-                    this.OwnedLocalArraySymbols.Count != other.OwnedLocalArraySymbols.Count)
+                    this.OwnedLocalArraySymbols.Count != other.OwnedLocalArraySymbols.Count ||
+                    this.LocalConcreteTypes.Count != other.LocalConcreteTypes.Count)
                 {
                     return false;
                 }
@@ -368,6 +373,15 @@ namespace PurelySharp.Analyzer.Engine
                 foreach (var symbol in this.OwnedLocalArraySymbols)
                 {
                     if (!other.OwnedLocalArraySymbols.Contains(symbol))
+                    {
+                        return false;
+                    }
+                }
+
+                foreach (var kvp in this.LocalConcreteTypes)
+                {
+                    if (!other.LocalConcreteTypes.TryGetValue(kvp.Key, out var otherType) ||
+                        !SymbolEqualityComparer.Default.Equals(kvp.Value, otherType))
                     {
                         return false;
                     }
@@ -414,6 +428,12 @@ namespace PurelySharp.Analyzer.Engine
                     hash = hash * 23 + SymbolEqualityComparer.Default.GetHashCode(symbol);
                 }
 
+                foreach (var kvp in LocalConcreteTypes.OrderBy(kv => kv.Key.Name))
+                {
+                    hash = hash * 23 + SymbolEqualityComparer.Default.GetHashCode(kvp.Key);
+                    hash = hash * 23 + SymbolEqualityComparer.Default.GetHashCode(kvp.Value);
+                }
+
                 return hash;
             }
 
@@ -424,7 +444,7 @@ namespace PurelySharp.Analyzer.Engine
             public PurityAnalysisState WithImpurity(SyntaxNode node)
             {
                 if (HasPotentialImpurity) return this;
-                return new PurityAnalysisState(true, node, this.DelegateTargetMap, this.FlowCaptures, this.FlowCaptureTargets, this.OwnedLocalArraySymbols, PurityEvidence.Create("unsupported_operation", syntaxNode: node));
+                return new PurityAnalysisState(true, node, this.DelegateTargetMap, this.FlowCaptures, this.FlowCaptureTargets, this.OwnedLocalArraySymbols, PurityEvidence.Create("unsupported_operation", syntaxNode: node), localConcreteTypes: this.LocalConcreteTypes);
             }
 
             public PurityAnalysisState WithImpurity(PurityAnalysisResult result, SyntaxNode fallbackNode)
@@ -434,14 +454,14 @@ namespace PurelySharp.Analyzer.Engine
                 var evidence = result.Evidence.IsEmpty
                     ? PurityEvidence.Create("unsupported_operation", syntaxNode: node)
                     : result.Evidence.WithSyntax(node);
-                return new PurityAnalysisState(true, node, this.DelegateTargetMap, this.FlowCaptures, this.FlowCaptureTargets, this.OwnedLocalArraySymbols, evidence);
+                return new PurityAnalysisState(true, node, this.DelegateTargetMap, this.FlowCaptures, this.FlowCaptureTargets, this.OwnedLocalArraySymbols, evidence, localConcreteTypes: this.LocalConcreteTypes);
             }
 
             public PurityAnalysisState WithDelegateTarget(ISymbol delegateSymbol, PotentialTargets targets)
             {
 
                 var newMap = this.DelegateTargetMap.SetItem(delegateSymbol, targets);
-                return new PurityAnalysisState(this.HasPotentialImpurity, this.FirstImpureSyntaxNode, newMap, this.FlowCaptures, this.FlowCaptureTargets, this.OwnedLocalArraySymbols, this.FirstImpurityEvidence);
+                return new PurityAnalysisState(this.HasPotentialImpurity, this.FirstImpureSyntaxNode, newMap, this.FlowCaptures, this.FlowCaptureTargets, this.OwnedLocalArraySymbols, this.FirstImpurityEvidence, localConcreteTypes: this.LocalConcreteTypes);
             }
 
             public PurityAnalysisState WithoutDelegateTarget(ISymbol delegateSymbol)
@@ -452,22 +472,22 @@ namespace PurelySharp.Analyzer.Engine
                 }
 
                 var newMap = this.DelegateTargetMap.Remove(delegateSymbol);
-                return new PurityAnalysisState(this.HasPotentialImpurity, this.FirstImpureSyntaxNode, newMap, this.FlowCaptures, this.FlowCaptureTargets, this.OwnedLocalArraySymbols, this.FirstImpurityEvidence);
+                return new PurityAnalysisState(this.HasPotentialImpurity, this.FirstImpureSyntaxNode, newMap, this.FlowCaptures, this.FlowCaptureTargets, this.OwnedLocalArraySymbols, this.FirstImpurityEvidence, localConcreteTypes: this.LocalConcreteTypes);
             }
 
             public PurityAnalysisState WithFlowCaptureResult(CaptureId id, PurityAnalysisResult result)
             {
-                return new PurityAnalysisState(HasPotentialImpurity, FirstImpureSyntaxNode, DelegateTargetMap, FlowCaptures.SetItem(id, result), FlowCaptureTargets, OwnedLocalArraySymbols, FirstImpurityEvidence);
+                return new PurityAnalysisState(HasPotentialImpurity, FirstImpureSyntaxNode, DelegateTargetMap, FlowCaptures.SetItem(id, result), FlowCaptureTargets, OwnedLocalArraySymbols, FirstImpurityEvidence, localConcreteTypes: LocalConcreteTypes);
             }
 
             public PurityAnalysisState WithFlowCaptureTarget(CaptureId id, PotentialTargets targets)
             {
-                return new PurityAnalysisState(HasPotentialImpurity, FirstImpureSyntaxNode, DelegateTargetMap, FlowCaptures, FlowCaptureTargets.SetItem(id, targets), OwnedLocalArraySymbols, FirstImpurityEvidence);
+                return new PurityAnalysisState(HasPotentialImpurity, FirstImpureSyntaxNode, DelegateTargetMap, FlowCaptures, FlowCaptureTargets.SetItem(id, targets), OwnedLocalArraySymbols, FirstImpurityEvidence, localConcreteTypes: LocalConcreteTypes);
             }
 
             public PurityAnalysisState WithOwnedLocalArray(ISymbol localSymbol)
             {
-                return new PurityAnalysisState(HasPotentialImpurity, FirstImpureSyntaxNode, DelegateTargetMap, FlowCaptures, FlowCaptureTargets, OwnedLocalArraySymbols.Add(localSymbol), FirstImpurityEvidence);
+                return new PurityAnalysisState(HasPotentialImpurity, FirstImpureSyntaxNode, DelegateTargetMap, FlowCaptures, FlowCaptureTargets, OwnedLocalArraySymbols.Add(localSymbol), FirstImpurityEvidence, localConcreteTypes: LocalConcreteTypes);
             }
 
             public PurityAnalysisState WithoutOwnedLocalArray(ISymbol localSymbol)
@@ -477,12 +497,38 @@ namespace PurelySharp.Analyzer.Engine
                     return this;
                 }
 
-                return new PurityAnalysisState(HasPotentialImpurity, FirstImpureSyntaxNode, DelegateTargetMap, FlowCaptures, FlowCaptureTargets, OwnedLocalArraySymbols.Remove(localSymbol), FirstImpurityEvidence);
+                return new PurityAnalysisState(HasPotentialImpurity, FirstImpureSyntaxNode, DelegateTargetMap, FlowCaptures, FlowCaptureTargets, OwnedLocalArraySymbols.Remove(localSymbol), FirstImpurityEvidence, localConcreteTypes: LocalConcreteTypes);
             }
 
             public bool IsOwnedLocalArraySymbol(ISymbol localSymbol)
             {
                 return OwnedLocalArraySymbols.Contains(localSymbol);
+            }
+
+            public PurityAnalysisState WithLocalConcreteType(ISymbol localSymbol, INamedTypeSymbol concreteType)
+            {
+                if (LocalConcreteTypes.TryGetValue(localSymbol, out var existingType) &&
+                    SymbolEqualityComparer.Default.Equals(existingType, concreteType))
+                {
+                    return this;
+                }
+
+                return new PurityAnalysisState(HasPotentialImpurity, FirstImpureSyntaxNode, DelegateTargetMap, FlowCaptures, FlowCaptureTargets, OwnedLocalArraySymbols, FirstImpurityEvidence, localConcreteTypes: LocalConcreteTypes.SetItem(localSymbol, concreteType));
+            }
+
+            public PurityAnalysisState WithoutLocalConcreteType(ISymbol localSymbol)
+            {
+                if (!LocalConcreteTypes.ContainsKey(localSymbol))
+                {
+                    return this;
+                }
+
+                return new PurityAnalysisState(HasPotentialImpurity, FirstImpureSyntaxNode, DelegateTargetMap, FlowCaptures, FlowCaptureTargets, OwnedLocalArraySymbols, FirstImpurityEvidence, localConcreteTypes: LocalConcreteTypes.Remove(localSymbol));
+            }
+
+            public bool TryGetLocalConcreteType(ISymbol localSymbol, out INamedTypeSymbol concreteType)
+            {
+                return LocalConcreteTypes.TryGetValue(localSymbol, out concreteType!);
             }
 
             private static bool PurityResultsEqual(PurityAnalysisResult a, PurityAnalysisResult b)
@@ -797,6 +843,7 @@ namespace PurelySharp.Analyzer.Engine
                 PurityAnalysisResult result = PurityAnalysisResult.Pure;
                 var mergedDelegateTargetsFromCfg = ImmutableDictionary.Create<ISymbol, PotentialTargets>(SymbolEqualityComparer.Default);
                 var mergedOwnedLocalArraysFromCfg = ImmutableHashSet.Create<ISymbol>(SymbolEqualityComparer.Default);
+                var mergedLocalConcreteTypesFromCfg = ImmutableDictionary.Create<ISymbol, INamedTypeSymbol>(SymbolEqualityComparer.Default);
                 if (bodySyntaxNode != null)
                 {
                     bool requiresNestedBodyFallback = methodBodyIOperation?.Parent != null;
@@ -824,7 +871,8 @@ namespace PurelySharp.Analyzer.Engine
                             methodSymbol,
                             purityCache,
                             out mergedDelegateTargetsFromCfg,
-                            out mergedOwnedLocalArraysFromCfg);
+                            out mergedOwnedLocalArraysFromCfg,
+                            out mergedLocalConcreteTypesFromCfg);
                     }
 
                     LogDebug($"{indent}  CFG Analysis Result for {methodSymbol.ToDisplayString()}: IsPure={result.IsPure}, ImpureNode={result.ImpureSyntaxNode?.Kind()}");
@@ -857,7 +905,8 @@ namespace PurelySharp.Analyzer.Engine
                             null,
                             mergedDelegateTargetsFromCfg,
                             null,
-                            ownedLocalArraySymbols: mergedOwnedLocalArraysFromCfg);
+                            ownedLocalArraySymbols: mergedOwnedLocalArraysFromCfg,
+                            localConcreteTypes: mergedLocalConcreteTypesFromCfg);
                         foreach (var returnOp in methodBodyIOperation.DescendantsAndSelf().OfType<IReturnOperation>())
                         {
                             if (returnOp.ReturnedValue != null)
@@ -1094,6 +1143,36 @@ namespace PurelySharp.Analyzer.Engine
             return builder.ToImmutable();
         }
 
+        private static ImmutableDictionary<ISymbol, INamedTypeSymbol> MergeLocalConcreteTypesFromBlockStates(
+            IEnumerable<PurityAnalysisState> states)
+        {
+            var builder = ImmutableDictionary.CreateBuilder<ISymbol, INamedTypeSymbol>(SymbolEqualityComparer.Default);
+            var conflictedSymbols = ImmutableHashSet.CreateBuilder<ISymbol>(SymbolEqualityComparer.Default);
+
+            foreach (var state in states)
+            {
+                foreach (var kvp in state.LocalConcreteTypes)
+                {
+                    if (conflictedSymbols.Contains(kvp.Key))
+                    {
+                        continue;
+                    }
+
+                    if (builder.TryGetValue(kvp.Key, out var existingType) &&
+                        !SymbolEqualityComparer.Default.Equals(existingType, kvp.Value))
+                    {
+                        builder.Remove(kvp.Key);
+                        conflictedSymbols.Add(kvp.Key);
+                        continue;
+                    }
+
+                    builder[kvp.Key] = kvp.Value;
+                }
+            }
+
+            return builder.ToImmutable();
+        }
+
         private static PurityAnalysisResult AnalyzePurityUsingCFGInternal(
             SyntaxNode bodyNode,
             SemanticModel semanticModel,
@@ -1103,10 +1182,12 @@ namespace PurelySharp.Analyzer.Engine
             IMethodSymbol containingMethodSymbol,
             Dictionary<IMethodSymbol, PurityAnalysisResult> purityCache,
             out ImmutableDictionary<ISymbol, PotentialTargets> mergedDelegateTargetsFromBlocks,
-            out ImmutableHashSet<ISymbol> mergedOwnedLocalArraysFromBlocks)
+            out ImmutableHashSet<ISymbol> mergedOwnedLocalArraysFromBlocks,
+            out ImmutableDictionary<ISymbol, INamedTypeSymbol> mergedLocalConcreteTypesFromBlocks)
         {
             mergedDelegateTargetsFromBlocks = ImmutableDictionary.Create<ISymbol, PotentialTargets>(SymbolEqualityComparer.Default);
             mergedOwnedLocalArraysFromBlocks = ImmutableHashSet.Create<ISymbol>(SymbolEqualityComparer.Default);
+            mergedLocalConcreteTypesFromBlocks = ImmutableDictionary.Create<ISymbol, INamedTypeSymbol>(SymbolEqualityComparer.Default);
             // Roslyn 4.x: Create(BlockSyntax|ArrowClause, model) throws ("operation has a non-null parent").
             // Create(BaseMethodDeclarationSyntax|LocalFunctionStatement|ConstructorDeclaration|... , model) is the supported root.
             ControlFlowGraph? cfg = null;
@@ -1218,6 +1299,7 @@ namespace PurelySharp.Analyzer.Engine
 
             mergedDelegateTargetsFromBlocks = MergeDelegateTargetMapsFromBlockStates(exitBlockStates.Values);
             mergedOwnedLocalArraysFromBlocks = MergeOwnedLocalArraySymbolsFromBlockStates(exitBlockStates.Values);
+            mergedLocalConcreteTypesFromBlocks = MergeLocalConcreteTypesFromBlockStates(exitBlockStates.Values);
 
             PurityAnalysisResult finalResult = PurityAnalysisResult.Pure;
             
@@ -1894,6 +1976,50 @@ namespace PurelySharp.Analyzer.Engine
                 collectionExpression.Type is IArrayTypeSymbol;
         }
 
+        internal static bool TryResolveKnownConcreteType(
+            IOperation? operation,
+            PurityAnalysisState currentState,
+            out INamedTypeSymbol concreteType)
+        {
+            operation = SkipImplicitConversions(operation);
+
+            while (operation is IParenthesizedOperation parenthesizedOperation)
+            {
+                operation = SkipImplicitConversions(parenthesizedOperation.Operand);
+            }
+
+            if (operation is IConversionOperation conversionOperation)
+            {
+                return TryResolveKnownConcreteType(conversionOperation.Operand, currentState, out concreteType);
+            }
+
+            if (operation is IObjectCreationOperation objectCreationOperation &&
+                objectCreationOperation.Type is INamedTypeSymbol createdType &&
+                createdType.TypeKind is TypeKind.Class or TypeKind.Struct)
+            {
+                concreteType = createdType;
+                return true;
+            }
+
+            if (operation is ILocalReferenceOperation localReference &&
+                currentState.TryGetLocalConcreteType(localReference.Local, out concreteType))
+            {
+                return true;
+            }
+
+            if (operation is IConditionalOperation conditionalOperation &&
+                TryResolveKnownConcreteType(conditionalOperation.WhenTrue, currentState, out var whenTrueType) &&
+                TryResolveKnownConcreteType(conditionalOperation.WhenFalse, currentState, out var whenFalseType) &&
+                SymbolEqualityComparer.Default.Equals(whenTrueType, whenFalseType))
+            {
+                concreteType = whenTrueType;
+                return true;
+            }
+
+            concreteType = null!;
+            return false;
+        }
+
         private static bool IsArrayEmptyFactory(IMethodSymbol methodSymbol)
         {
             return methodSymbol.Name == "Empty" &&
@@ -2243,8 +2369,9 @@ namespace PurelySharp.Analyzer.Engine
             var mergedCaptures = PurityAnalysisState.MergeFlowCaptureMapsForPair(state1.FlowCaptures, state2.FlowCaptures);
             var mergedCaptureTargets = IntersectFlowCaptureTargetMaps(state1.FlowCaptureTargets, state2.FlowCaptureTargets);
             var mergedOwnedLocalArrays = IntersectOwnedLocalArraySymbols(state1.OwnedLocalArraySymbols, state2.OwnedLocalArraySymbols);
+            var mergedLocalConcreteTypes = IntersectLocalConcreteTypes(state1.LocalConcreteTypes, state2.LocalConcreteTypes);
 
-            return new PurityAnalysisState(mergedImpurity, firstImpureNode, finalMap, mergedCaptures, mergedCaptureTargets, mergedOwnedLocalArrays, firstImpurityEvidence);
+            return new PurityAnalysisState(mergedImpurity, firstImpureNode, finalMap, mergedCaptures, mergedCaptureTargets, mergedOwnedLocalArrays, firstImpurityEvidence, localConcreteTypes: mergedLocalConcreteTypes);
         }
 
         private static ImmutableDictionary<ISymbol, PotentialTargets> MergeDelegateTargetMapsAcrossAll(
@@ -2287,6 +2414,46 @@ namespace PurelySharp.Analyzer.Engine
             while (enumerator.MoveNext())
             {
                 merged = IntersectOwnedLocalArraySymbols(merged, enumerator.Current);
+            }
+
+            return merged;
+        }
+
+        private static ImmutableDictionary<ISymbol, INamedTypeSymbol> IntersectLocalConcreteTypes(
+            ImmutableDictionary<ISymbol, INamedTypeSymbol> first,
+            ImmutableDictionary<ISymbol, INamedTypeSymbol> second)
+        {
+            if (first.IsEmpty || second.IsEmpty)
+            {
+                return ImmutableDictionary.Create<ISymbol, INamedTypeSymbol>(SymbolEqualityComparer.Default);
+            }
+
+            var builder = ImmutableDictionary.CreateBuilder<ISymbol, INamedTypeSymbol>(SymbolEqualityComparer.Default);
+            foreach (var kvp in first)
+            {
+                if (second.TryGetValue(kvp.Key, out var otherType) &&
+                    SymbolEqualityComparer.Default.Equals(kvp.Value, otherType))
+                {
+                    builder[kvp.Key] = kvp.Value;
+                }
+            }
+
+            return builder.ToImmutable();
+        }
+
+        private static ImmutableDictionary<ISymbol, INamedTypeSymbol> IntersectLocalConcreteTypesAcrossAll(
+            IEnumerable<ImmutableDictionary<ISymbol, INamedTypeSymbol>> maps)
+        {
+            using var enumerator = maps.GetEnumerator();
+            if (!enumerator.MoveNext())
+            {
+                return ImmutableDictionary.Create<ISymbol, INamedTypeSymbol>(SymbolEqualityComparer.Default);
+            }
+
+            var merged = enumerator.Current;
+            while (enumerator.MoveNext())
+            {
+                merged = IntersectLocalConcreteTypes(merged, enumerator.Current);
             }
 
             return merged;
@@ -2445,6 +2612,18 @@ namespace PurelySharp.Analyzer.Engine
                     var valueOperation = assignmentOperation.Value;
                     var targetSymbol = TryResolveSymbol(targetOperation);
 
+                    if (targetSymbol is ILocalSymbol assignedLocalSymbol)
+                    {
+                        if (TryResolveKnownConcreteType(valueOperation, currentState, out var concreteType))
+                        {
+                            nextState = nextState.WithLocalConcreteType(assignedLocalSymbol, concreteType);
+                        }
+                        else
+                        {
+                            nextState = nextState.WithoutLocalConcreteType(assignedLocalSymbol);
+                        }
+                    }
+
                     if (targetSymbol is ILocalSymbol localSymbol && localSymbol.Type is IArrayTypeSymbol)
                     {
                         if (valueOperation is IArrayCreationOperation ||
@@ -2499,6 +2678,12 @@ namespace PurelySharp.Analyzer.Engine
                             {
                                 var initializerValue = declarator.Initializer.Value;
                                 ILocalSymbol declaredSymbol = declarator.Symbol;
+
+                                if (TryResolveKnownConcreteType(initializerValue, currentState, out var concreteType))
+                                {
+                                    nextState = nextState.WithLocalConcreteType(declaredSymbol, concreteType);
+                                }
+
                                 if (declaredSymbol.Type is IArrayTypeSymbol)
                                 {
                                     if (initializerValue is IArrayCreationOperation ||

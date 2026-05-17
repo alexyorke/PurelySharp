@@ -226,7 +226,8 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     : invocationOperation.Instance != null
                         && !IsBaseReference(invocationOperation.Instance)))
             {
-                var knownReceiverType = GetKnownReceiverType(invocationOperation.Instance);
+                var knownReceiverType = GetTrackedLocalReceiverType(invocationOperation.Instance, currentState) ??
+                    GetKnownReceiverType(invocationOperation.Instance);
                 if (knownReceiverType == null)
                 {
                     knownReceiverType = GetKnownStaticInterfaceReceiverType(invokedMethodSymbol);
@@ -401,6 +402,15 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 || methodSymbol.IsVirtual
                 || methodSymbol.IsAbstract
                 || methodSymbol.IsOverride;
+        }
+
+        private static INamedTypeSymbol? GetTrackedLocalReceiverType(
+            IOperation? invocationInstance,
+            PurityAnalysisEngine.PurityAnalysisState currentState)
+        {
+            return PurityAnalysisEngine.TryResolveKnownConcreteType(invocationInstance, currentState, out var concreteType)
+                ? concreteType
+                : null;
         }
 
         private static bool IsCompilerGeneratedArrayForeachInvocation(

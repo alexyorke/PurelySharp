@@ -915,6 +915,49 @@ public class TestClass
         }
 
         [Test]
+        public async Task InterfaceMethod_OnLocalInitializedWithSealedImplementation_NoConservativeDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System;
+
+public interface ILocalCounter
+{
+    int Increment(int value);
+}
+
+public sealed class SealedLocalCounter : ILocalCounter
+{
+    public int Increment(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class ImpureLocalCounter : ILocalCounter
+{
+    public int Increment(int value)
+    {
+        Console.WriteLine(value);
+        return value + 1;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Process(int value)
+    {
+        ILocalCounter counter = new SealedLocalCounter();
+        return counter.Increment(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task InterfaceMethod_OnSealedImplementation_ThroughAsCast_NoConservativeDiagnostic()
         {
             var test = @"
