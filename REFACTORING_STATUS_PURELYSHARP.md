@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1396/1396` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1400/1400` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -25,7 +25,10 @@
 - `Array.Empty<T>()` remains allowed because it returns a zero-length array that cannot expose mutable elements
 - fresh local arrays created by collection expressions are now tracked like `new[]` arrays: local mutation can stay pure, while returning the array still reports escape
 - interface/virtual dispatch now narrows through locals initialized from known concrete receiver types and forgets that narrowing after unknown reassignment
+- interface/virtual property getter dispatch now uses the same concrete-local receiver narrowing and includes reassignment guard coverage
 - conditional return expressions now preserve mutable-array escape diagnostics when any reachable arm returns a known-pure array factory result or owned local array
+- constant conditional return expressions now ignore dead mutable-array escape arms
+- dynamic indexer access now has direct regression coverage for conservative `dynamic_dispatch` handling
 - boundary attribute tests now cover direct attribute precedence over assembly-level purity defaults
 - caching coverage now verifies the lazy compilation call graph is reused across repeated purity requests
 - corpus SARIF parsing now trims diagnostic evidence properties and normalizes whitespace-only values before aggregation
