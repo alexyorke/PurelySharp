@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Immutable;
+using System.Threading;
 using Microsoft.CodeAnalysis;
 using PurelySharp.Analyzer.Configuration;
 
@@ -7,17 +8,47 @@ namespace PurelySharp.Analyzer.Engine
 {
 	internal static class ImpurityCatalog
 	{
-		private static ImmutableHashSet<string> _extraImpureMethods = ImmutableHashSet<string>.Empty;
-		private static ImmutableHashSet<string> _extraPureMethods = ImmutableHashSet<string>.Empty;
-		private static ImmutableHashSet<string> _extraImpureNamespaces = ImmutableHashSet<string>.Empty;
-		private static ImmutableHashSet<string> _extraImpureTypes = ImmutableHashSet<string>.Empty;
+		private static readonly AsyncLocal<AnalyzerConfiguration?> _configuredOverrides = new AsyncLocal<AnalyzerConfiguration?>();
 
-		public static void InitializeOverrides(AnalyzerConfiguration config)
+		private static ImmutableHashSet<string> ExtraImpureMethods =>
+			_configuredOverrides.Value?.ExtraKnownImpureMethods ?? ImmutableHashSet<string>.Empty;
+
+		private static ImmutableHashSet<string> ExtraPureMethods =>
+			_configuredOverrides.Value?.ExtraKnownPureMethods ?? ImmutableHashSet<string>.Empty;
+
+		private static ImmutableHashSet<string> ExtraImpureNamespaces =>
+			_configuredOverrides.Value?.ExtraKnownImpureNamespaces ?? ImmutableHashSet<string>.Empty;
+
+		private static ImmutableHashSet<string> ExtraImpureTypes =>
+			_configuredOverrides.Value?.ExtraKnownImpureTypes ?? ImmutableHashSet<string>.Empty;
+
+		internal static IDisposable UseConfiguredOverrides(AnalyzerConfiguration config)
 		{
-			_extraImpureMethods = config.ExtraKnownImpureMethods;
-			_extraPureMethods = config.ExtraKnownPureMethods;
-			_extraImpureNamespaces = config.ExtraKnownImpureNamespaces;
-			_extraImpureTypes = config.ExtraKnownImpureTypes;
+			var previous = _configuredOverrides.Value;
+			_configuredOverrides.Value = config;
+			return new ConfiguredOverrideScope(previous);
+		}
+
+		private sealed class ConfiguredOverrideScope : IDisposable
+		{
+			private readonly AnalyzerConfiguration? _previous;
+			private bool _disposed;
+
+			public ConfiguredOverrideScope(AnalyzerConfiguration? previous)
+			{
+				_previous = previous;
+			}
+
+			public void Dispose()
+			{
+				if (_disposed)
+				{
+					return;
+				}
+
+				_configuredOverrides.Value = _previous;
+				_disposed = true;
+			}
 		}
 
 		public static bool IsKnownPureBCLMember(ISymbol symbol)
@@ -71,13 +102,13 @@ namespace PurelySharp.Analyzer.Engine
 			}
 
 			PurityAnalysisEngine.LogDebug($"    [IsKnownPure] Checking HashSet.Contains for signature: \"{signature}\"");
-			bool isKnownPure = Constants.KnownPureBCLMembers.Contains(signature) || _extraPureMethods.Contains(signature);
+			bool isKnownPure = Constants.KnownPureBCLMembers.Contains(signature) || ExtraPureMethods.Contains(signature);
 			PurityAnalysisEngine.LogDebug($"    [IsKnownPure] HashSet.Contains result: {isKnownPure}");
 
 			if (!isKnownPure && symbol is IMethodSymbol methodSymbol && methodSymbol.IsGenericMethod)
 			{
 				signature = methodSymbol.ConstructedFrom.ToDisplayString();
-				isKnownPure = Constants.KnownPureBCLMembers.Contains(signature) || _extraPureMethods.Contains(signature);
+				isKnownPure = Constants.KnownPureBCLMembers.Contains(signature) || ExtraPureMethods.Contains(signature);
 			}
 			else if (!isKnownPure && symbol is IPropertySymbol propertySymbol && propertySymbol.ContainingType.IsGenericType)
 			{
@@ -89,7 +120,7 @@ namespace PurelySharp.Analyzer.Engine
 				{
 					signature = $"{propertySymbol.ContainingType.ConstructedFrom.ToDisplayString()}.{propertySymbol.Name}.get";
 				}
-				isKnownPure = Constants.KnownPureBCLMembers.Contains(signature) || _extraPureMethods.Contains(signature);
+				isKnownPure = Constants.KnownPureBCLMembers.Contains(signature) || ExtraPureMethods.Contains(signature);
 			}
 
 			if (isKnownPure)
@@ -180,7 +211,7 @@ namespace PurelySharp.Analyzer.Engine
 			}
 
 			PurityAnalysisEngine.LogDebug($"    [IsKnownImpure] Checking HashSet.Contains for signature: \"{signature}\"");
-			if (_extraImpureMethods.Contains(signature))
+			if (ExtraImpureMethods.Contains(signature))
 			{
 				PurityAnalysisEngine.LogDebug($"Helper IsKnownImpure: Match found for {symbol.ToDisplayString()} using configured full signature '{signature}'");
 				return "config_known_impure";
@@ -198,7 +229,7 @@ namespace PurelySharp.Analyzer.Engine
 			{
 				string simplifiedName = $"{symbol.ContainingType.Name}.{symbol.Name}";
 				PurityAnalysisEngine.LogDebug($"    [IsKnownImpure] Checking HashSet.Contains for simplified name: \"{simplifiedName}\"");
-				if (_extraImpureMethods.Contains(simplifiedName))
+				if (ExtraImpureMethods.Contains(simplifiedName))
 				{
 					PurityAnalysisEngine.LogDebug($"Helper IsKnownImpure: Match found for {symbol.ToDisplayString()} using configured simplified name '{simplifiedName}'");
 					return "config_known_impure";
@@ -214,7 +245,7 @@ namespace PurelySharp.Analyzer.Engine
 			if (symbol is IMethodSymbol methodSymbol && methodSymbol.IsGenericMethod)
 			{
 				signature = methodSymbol.ConstructedFrom.ToDisplayString();
-				if (_extraImpureMethods.Contains(signature))
+				if (ExtraImpureMethods.Contains(signature))
 				{
 					PurityAnalysisEngine.LogDebug($"Helper IsKnownImpure: Generic match found for {symbol.ToDisplayString()} using configured signature '{signature}'");
 					return "config_known_impure";
@@ -283,7 +314,7 @@ namespace PurelySharp.Analyzer.Engine
 				string typeName = containingType.OriginalDefinition.ToDisplayString();
 				PurityAnalysisEngine.LogDebug($"    [INOT] Checking type: {typeName}");
 				PurityAnalysisEngine.LogDebug($"    [INOT] Comparing '{typeName}' against KnownImpureTypeNames...");
-				if (Constants.KnownImpureTypeNames.Contains(typeName) || _extraImpureTypes.Contains(typeName))
+				if (Constants.KnownImpureTypeNames.Contains(typeName) || ExtraImpureTypes.Contains(typeName))
 				{
 					PurityAnalysisEngine.LogDebug($"    [INOT] --> Match found for impure type: {typeName}");
 					return true;
@@ -294,7 +325,7 @@ namespace PurelySharp.Analyzer.Engine
 				{
 					string namespaceName = ns.ToDisplayString();
 					PurityAnalysisEngine.LogDebug($"    [INOT] Checking namespace: {namespaceName}");
-					if (Constants.KnownImpureNamespaces.Contains(namespaceName) || _extraImpureNamespaces.Contains(namespaceName))
+					if (Constants.KnownImpureNamespaces.Contains(namespaceName) || ExtraImpureNamespaces.Contains(namespaceName))
 					{
 						PurityAnalysisEngine.LogDebug($"    [INOT] --> Match found for impure namespace: {namespaceName}");
 						return true;
@@ -318,7 +349,7 @@ namespace PurelySharp.Analyzer.Engine
 			while (containingType != null)
 			{
 				string typeName = containingType.OriginalDefinition.ToDisplayString();
-				if (_extraImpureTypes.Contains(typeName))
+				if (ExtraImpureTypes.Contains(typeName))
 				{
 					return true;
 				}
@@ -326,7 +357,7 @@ namespace PurelySharp.Analyzer.Engine
 				INamespaceSymbol? ns = containingType.ContainingNamespace;
 				while (ns != null && !ns.IsGlobalNamespace)
 				{
-					if (_extraImpureNamespaces.Contains(ns.ToDisplayString()))
+					if (ExtraImpureNamespaces.Contains(ns.ToDisplayString()))
 					{
 						return true;
 					}

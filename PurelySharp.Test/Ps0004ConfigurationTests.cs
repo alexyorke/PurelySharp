@@ -181,6 +181,53 @@ public class TestClass
             Assert.That(messages, Has.Some.Contains("Bigger"));
         }
 
+        [Test]
+        public async Task ConfiguredKnownImpureMethods_AreIsolatedAcrossConcurrentCompilations()
+        {
+            const int methodCount = 40;
+            var methods = string.Join(Environment.NewLine, Enumerable.Range(0, methodCount)
+                .Select(index => $"    [EnforcePure] public void Test{index}() => Configured.Danger();"));
+            var source = @"
+using PurelySharp.Attributes;
+
+public static class Configured
+{
+    public static void Danger() { }
+}
+
+public class TestClass
+{
+" + methods + @"
+}";
+
+            var baseOptions = ImmutableDictionary<string, string>.Empty
+                .Add("purelysharp_suggest_missing_enforce_pure", "false");
+            var configuredOptions = baseOptions
+                .Add("purelysharp_known_impure_methods", "Configured.Danger");
+            var emptyOptions = baseOptions;
+
+            var tasks = Enumerable.Range(0, 16)
+                .Select(index => GetAnalyzerDiagnosticsAsync(
+                    source,
+                    index % 2 == 0 ? configuredOptions : emptyOptions,
+                    concurrentAnalysis: true))
+                .ToArray();
+
+            var results = await Task.WhenAll(tasks);
+            for (int index = 0; index < results.Length; index++)
+            {
+                var ps0002Count = results[index].Count(diagnostic => diagnostic.Id == PurelySharpDiagnostics.PurityNotVerifiedId);
+                if (index % 2 == 0)
+                {
+                    Assert.That(ps0002Count, Is.EqualTo(methodCount), $"Configured compilation {index} should see its impure override.");
+                }
+                else
+                {
+                    Assert.That(ps0002Count, Is.Zero, $"Unconfigured compilation {index} should not see another compilation's impure override.");
+                }
+            }
+        }
+
         private static ImmutableArray<string> DiagnosticMessages(ImmutableArray<Diagnostic> diagnostics)
         {
             return diagnostics
@@ -193,7 +240,8 @@ public class TestClass
             string source,
             ImmutableDictionary<string, string> globalOptions,
             string? filePath = null,
-            ImmutableDictionary<string, string>? treeOptions = null)
+            ImmutableDictionary<string, string>? treeOptions = null,
+            bool concurrentAnalysis = false)
         {
             var syntaxTree = CSharpSyntaxTree.ParseText(
                 source,
@@ -217,7 +265,7 @@ public class TestClass
                 new CompilationWithAnalyzersOptions(
                     analyzerOptions,
                     onAnalyzerException: null,
-                    concurrentAnalysis: false,
+                    concurrentAnalysis: concurrentAnalysis,
                     logAnalyzerExecutionTime: false,
                     reportSuppressedDiagnostics: false));
 
