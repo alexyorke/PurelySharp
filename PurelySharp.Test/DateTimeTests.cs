@@ -186,5 +186,33 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task DateTimeOffsetDeterministicAddMethods_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public DateTimeOffset TestMethod(DateTimeOffset value, TimeSpan offset)
+    {
+        return value
+            .Add(offset)
+            .AddDays(1)
+            .AddHours(2)
+            .AddMilliseconds(3)
+            .AddMinutes(4)
+            .AddMonths(5)
+            .AddSeconds(6)
+            .AddTicks(7)
+            .AddYears(8);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
