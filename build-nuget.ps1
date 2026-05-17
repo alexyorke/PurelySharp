@@ -11,7 +11,12 @@ $repoRoot = Split-Path -Parent $PSCommandPath
 Push-Location $repoRoot
 try {
 	# Ensure output directory exists
-	$outFull = Join-Path $repoRoot $OutputDir
+	$outFull = if ([System.IO.Path]::IsPathRooted($OutputDir)) {
+		$OutputDir
+	}
+	else {
+		Join-Path $repoRoot $OutputDir
+	}
 	New-Item -ItemType Directory -Force -Path $outFull | Out-Null
 	Get-ChildItem -Path $outFull -Filter *.nupkg -File -ErrorAction SilentlyContinue | Remove-Item -Force
 
