@@ -31,6 +31,13 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
                 if (initOp is ISimpleAssignmentOperation assignment)
                 {
+                    var targetResult = CheckAssignmentTargetPurity(assignment, context);
+                    if (!targetResult.IsPure)
+                    {
+                        PurityAnalysisEngine.LogDebug($"[ObjInitRule]  -> Initializer assignment target IMPURE: {assignment.Target.Syntax}");
+                        return targetResult;
+                    }
+
                     valueToCheck = assignment.Value;
                     PurityAnalysisEngine.LogDebug($"[ObjInitRule]  - Checking Assignment Value: {valueToCheck?.Syntax}");
                 }
@@ -70,6 +77,22 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             PurityAnalysisEngine.LogDebug($"[ObjInitRule] All initializer values pure for: {initializer.Syntax}");
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckAssignmentTargetPurity(
+            ISimpleAssignmentOperation assignment,
+            PurityAnalysisContext context)
+        {
+            if (assignment.Target is IPropertyReferenceOperation propertyReference &&
+                propertyReference.Property.SetMethod is { } setter)
+            {
+                var setterPurity = PurityAnalysisEngine.GetCalleePurity(setter.OriginalDefinition, context);
+                return setterPurity.IsPure
+                    ? PurityAnalysisEngine.PurityAnalysisResult.Pure
+                    : setterPurity.WithCallee(setter.OriginalDefinition, assignment.Target.Syntax);
+            }
+
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
         }
     }
