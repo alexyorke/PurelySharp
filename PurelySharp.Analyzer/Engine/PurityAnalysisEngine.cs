@@ -2639,16 +2639,9 @@ namespace PurelySharp.Analyzer.Engine
                         }
                     }
 
-                    if (targetSymbol is ILocalSymbol localSymbol && localSymbol.Type is IArrayTypeSymbol)
+                    if (targetSymbol is ILocalSymbol localSymbol)
                     {
-                        if (valueOperation is IArrayCreationOperation ||
-                            IsArrayCollectionExpressionOperation(valueOperation) ||
-                            IsKnownPureBCLArrayFactoryOperation(valueOperation, out _))
-                        {
-                            nextState = nextState.WithOwnedLocalArray(localSymbol);
-                        }
-                        else if (valueOperation is ILocalReferenceOperation localReference &&
-                                 currentState.IsOwnedLocalArraySymbol(localReference.Local))
+                        if (IsOwnedLocalArrayValue(valueOperation, currentState))
                         {
                             nextState = nextState.WithOwnedLocalArray(localSymbol);
                         }
@@ -2699,19 +2692,9 @@ namespace PurelySharp.Analyzer.Engine
                                     nextState = nextState.WithLocalConcreteType(declaredSymbol, concreteType);
                                 }
 
-                                if (declaredSymbol.Type is IArrayTypeSymbol)
+                                if (IsOwnedLocalArrayValue(initializerValue, currentState))
                                 {
-                                    if (initializerValue is IArrayCreationOperation ||
-                                        IsArrayCollectionExpressionOperation(initializerValue) ||
-                                        IsKnownPureBCLArrayFactoryOperation(initializerValue, out _))
-                                    {
-                                        nextState = nextState.WithOwnedLocalArray(declaredSymbol);
-                                    }
-                                    else if (initializerValue is ILocalReferenceOperation localReference &&
-                                             currentState.IsOwnedLocalArraySymbol(localReference.Local))
-                                    {
-                                        nextState = nextState.WithOwnedLocalArray(declaredSymbol);
-                                    }
+                                    nextState = nextState.WithOwnedLocalArray(declaredSymbol);
                                 }
 
                                 if (declaredSymbol.Type?.TypeKind == TypeKind.Delegate)
@@ -2730,6 +2713,25 @@ namespace PurelySharp.Analyzer.Engine
 
 
             return nextState;
+        }
+
+        private static bool IsOwnedLocalArrayValue(IOperation? valueOperation, PurityAnalysisState currentState)
+        {
+            var unwrappedValue = SkipImplicitConversions(valueOperation);
+            if (unwrappedValue == null)
+            {
+                return false;
+            }
+
+            if (unwrappedValue is IArrayCreationOperation ||
+                IsArrayCollectionExpressionOperation(unwrappedValue) ||
+                IsKnownPureBCLArrayFactoryOperation(unwrappedValue, out _))
+            {
+                return true;
+            }
+
+            return unwrappedValue is ILocalReferenceOperation localReference &&
+                   currentState.IsOwnedLocalArraySymbol(localReference.Local);
         }
 
 

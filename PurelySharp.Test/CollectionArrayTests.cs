@@ -103,5 +103,44 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task FreshLocalArrayReturnedThroughObjectAlias_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public object {|PS0002:TestMethod|}()
+    {
+        var array = new int[1];
+        object boxed = array;
+        return boxed;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task FreshArrayCreationReturnedThroughObjectAlias_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public object {|PS0002:TestMethod|}()
+    {
+        object boxed = new int[1];
+        return boxed;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

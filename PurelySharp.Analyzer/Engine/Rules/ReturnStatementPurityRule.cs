@@ -106,7 +106,6 @@ namespace PurelySharp.Analyzer.Engine.Rules
         {
             var unwrappedReturnedValue = PurityAnalysisEngine.SkipImplicitConversions(returnedValue);
             if (unwrappedReturnedValue is ILocalReferenceOperation localReference &&
-                localReference.Type is IArrayTypeSymbol &&
                 currentState.IsOwnedLocalArraySymbol(localReference.Local))
             {
                 localSymbol = localReference.Local;
