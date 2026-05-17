@@ -45,14 +45,16 @@ jobs:
       - name: Validate NuGet package contents
         shell: pwsh
         run: |
-          $package = Get-ChildItem nupkgs -Filter PurelySharp.*.nupkg |
+          $packages = @(Get-ChildItem nupkgs -Filter PurelySharp.*.nupkg -File |
             Where-Object { $_.Name -notlike "PurelySharp.Attributes.*" } |
-            Select-Object -First 1
+            Sort-Object Name)
 
-          if (-not $package) {
-            throw "PurelySharp analyzer package was not produced."
+          if ($packages.Count -ne 1) {
+            $found = if ($packages.Count -eq 0) { "<none>" } else { $packages.Name -join ", " }
+            throw "Expected exactly one PurelySharp analyzer package, found $($packages.Count): $found"
           }
 
+          $package = $packages[0]
           $entries = tar -tf $package.FullName
           $requiredEntries = @(
             "README.md",
