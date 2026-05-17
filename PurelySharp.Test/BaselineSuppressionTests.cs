@@ -55,6 +55,52 @@ public class TestClass
         }
 
         [Test]
+        public async Task Baseline_DoesNotSuppressFileNameOnlyPath()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void Impure()
+    {
+        Console.WriteLine(""impure"");
+    }
+}", Baseline("PS0002", "M:TestClass.Impure", "ProductionCode.cs"));
+
+            Assert.That(diagnostics.Any(diagnostic => diagnostic.Id == PurelySharpDiagnostics.PurityNotVerifiedId), Is.True);
+        }
+
+        [Test]
+        public async Task Baseline_ParsesJsonEscapedValues()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void Impure()
+    {
+        Console.WriteLine(""impure"");
+    }
+}", @"{
+  ""diagnostics"": [
+    {
+      ""diagnosticId"": ""PS0002"",
+      ""symbol"": ""M:TestClass.\u0049mpure"",
+      ""path"": ""src/ProductionCode.cs""
+    }
+  ]
+}");
+
+            Assert.That(diagnostics.Any(diagnostic => diagnostic.Id == PurelySharpDiagnostics.PurityNotVerifiedId), Is.False);
+        }
+
+        [Test]
         public async Task Baseline_SuppressesExactPs0004Match()
         {
             var diagnostics = await GetAnalyzerDiagnosticsAsync(@"

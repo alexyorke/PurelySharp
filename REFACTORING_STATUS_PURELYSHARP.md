@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1370/1370` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1372/1372` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -11,6 +11,7 @@
 - Recent completed work since the earlier `505/505` checkpoint:
 - constructor property/indexer assignments now check setter purity before allowing constructor-local writes
 - per-file PS0004 configuration can re-enable suggestions after a global disable without requiring a repeated scope setting
+- baseline suppression parsing now handles escaped JSON strings and exact normalized path matches without broad suffix suppression
   - `PS0002` diagnostics now carry structured impurity evidence through diagnostic properties, including category, rule, operation kind, symbol, catalog/config source, and callee chain; configured known-impure method hits, including the target method under analysis, are identified as `config_known_impure`, and configured impure type/namespace property reads report `known_impure_namespace_or_type`
   - optional `PS0009` explanation diagnostics can be emitted with `purelysharp_emit_explanations = true`
   - `Tools/PurelySharp.CorpusReport` can summarize SARIF/errorlog output into JSON with a stable `SchemaVersion`, diagnostic counts, per-diagnostic evidence rows, impurity categories, rule-name counts, top impure APIs, catalog-miss candidates, and false-positive candidates without double-counting `PS0009` explanation evidence
