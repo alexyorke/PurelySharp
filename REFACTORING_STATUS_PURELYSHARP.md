@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1457/1457` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1458/1458` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -73,6 +73,7 @@
 - `foreach` loops now analyze in-compilation `GetEnumerator()` implementations for custom enumerable sources
 - `for` loops now analyze initializer, condition, and incrementor operations separately from body reachability, including constant-false body pruning
 - constant-false pruning for while loops now applies only to top-tested loops; `do/while(false)` bodies are still analyzed
+- switch statements now analyze their governing value expression before treating the switch structure as pure
 - caching coverage now verifies the lazy compilation call graph is reused across repeated purity requests
 - corpus SARIF parsing now trims diagnostic evidence properties and normalizes whitespace-only values before aggregation
 - NuGet build script now accepts absolute output directories as well as repo-relative output paths

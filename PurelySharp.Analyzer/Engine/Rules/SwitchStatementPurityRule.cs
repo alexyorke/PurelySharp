@@ -21,6 +21,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
             PurityAnalysisEngine.LogDebug($"SwitchStatementPurityRule: Analyzing {switchOperation.Syntax}");
 
 
+            var valueResult = PurityAnalysisEngine.CheckSingleOperation(switchOperation.Value, context, currentState);
+            if (!valueResult.IsPure)
+            {
+                PurityAnalysisEngine.LogDebug($"SwitchStatementPurityRule: Switch value is impure: {switchOperation.Value.Syntax}");
+                return valueResult;
+            }
 
 
 

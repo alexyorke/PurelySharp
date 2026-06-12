@@ -106,6 +106,34 @@ public class TestClass
                                    .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
+
+        [Test]
+        public async Task MethodWithImpureSwitchValue_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int TestMethod()
+    {
+        switch (Console.Read())
+        {
+            case 1:
+                return 10;
+            default:
+                return 0;
+        }
+    }
+}";
+
+            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                   .WithSpan(8, 16, 8, 26)
+                                   .WithArguments("TestMethod");
+            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+        }
     }
 }
 
