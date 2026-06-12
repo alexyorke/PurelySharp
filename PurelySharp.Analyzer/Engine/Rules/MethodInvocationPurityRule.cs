@@ -229,6 +229,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     }
                 }
 
+                if (TryCheckLinqDefaultEqualityDispatchPurity(invocationOperation, context, out var linqEqualityDispatchResult))
+                {
+                    return linqEqualityDispatchResult;
+                }
+
                 PurityAnalysisEngine.LogDebug("  [MIR] LINQ source and all remaining arguments determined to be pure.");
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
@@ -640,6 +645,32 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             var methodSymbol = invocationOperation.TargetMethod;
             if (!TryGetDefaultEqualityCollectionElementType(methodSymbol, out var elementType))
+            {
+                return false;
+            }
+
+            result = CheckDefaultEqualityDispatchPurity(elementType, invocationOperation, context);
+            return true;
+        }
+
+        private static bool TryCheckLinqDefaultEqualityDispatchPurity(
+            IInvocationOperation invocationOperation,
+            PurityAnalysisContext context,
+            out PurityAnalysisEngine.PurityAnalysisResult result)
+        {
+            result = PurityAnalysisEngine.PurityAnalysisResult.Pure;
+
+            var methodSymbol = invocationOperation.TargetMethod;
+            if (methodSymbol.Name != "Contains" ||
+                methodSymbol.Parameters.Length != 2 ||
+                methodSymbol.TypeArguments.Length != 1 ||
+                methodSymbol.ContainingType?.OriginalDefinition.ToDisplayString() != "System.Linq.Enumerable")
+            {
+                return false;
+            }
+
+            var elementType = methodSymbol.TypeArguments[0];
+            if (elementType.TypeKind == TypeKind.TypeParameter)
             {
                 return false;
             }
