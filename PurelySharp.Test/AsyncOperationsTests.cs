@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 using NUnit.Framework;
 using System.Threading.Tasks;
@@ -53,7 +53,7 @@ namespace TestNamespace
         [EnforcePure]
         public async Task<int> {|PS0002:TestMethod|}()
         {
-            // Await a pure Task.Delay
+            // Await Task.Delay, which is treated as impure.
             await Task.Delay(10);
             return 42;
         }

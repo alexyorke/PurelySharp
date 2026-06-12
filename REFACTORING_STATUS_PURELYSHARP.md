@@ -151,7 +151,7 @@
   - assignment RHS, method argument, LINQ argument, and property getter impurities now preserve the original structured evidence instead of collapsing to generic unsupported-operation evidence
   - variable initializers, collection/spread expressions, direct array/object creation, user-defined conversions/operators, and using/Dispose checks now preserve or classify structured impurity evidence
   - constructor initializers, delegate creation, event assignment, and interpolated-string expressions now preserve or classify structured impurity evidence
-  - direct throw-only bodies now report `throw` evidence, impure throw exception expressions preserve their original evidence, guard throws remain allowed when their exception expression is pure, and conservative recursive-call diagnostics now report structured `recursive_call` evidence
+  - throw operations now report `throw` evidence after preserving impure exception-expression evidence, including direct and guard throws, and conservative recursive-call diagnostics now report structured `recursive_call` evidence
   - post-CFG known-impure invocation fallback now emits the same structured catalog-hit evidence as normal invocation analysis
   - `purelysharp_suggest_missing_enforce_pure_scope = public` now treats `protected` and `protected internal` members as externally visible public API for `PS0004`
   - local NuGet build scripts now explicitly pack both `PurelySharp` and `PurelySharp.Attributes` into `artifacts\nuget`
@@ -174,7 +174,7 @@
   - nested local-function and lambda purity fallback analysis
   - getter-body verification instead of attribute-shape trust
   - explicit `if`/`while`/`for` condition impurity propagation through CFG branch values
-  - direct throw-only body reporting without reclassifying guard throws as impure
+  - throw reporting for direct and guard throws
   - constant-condition CFG pruning plus dead-branch suppression for post-CFG known-impure scans
   - field-initializer delegate target resolution for stored delegate invocation
   - interface dispatch narrowing now recognizes conditional receiver branches that both resolve to the same sealed in-compilation implementation, with direct regression coverage

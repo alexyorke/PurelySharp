@@ -2,7 +2,7 @@
 
 A Roslyn analyzer designed to help enforce method purity in C# projects.
 
-**Note:** PurelySharp **v1** ships a full diagnostic surface (`PS0002`–`PS0008`), code fixes, editor/MSBuild configuration, CFG-based method-body analysis, and the feature matrix below. It is **conservative by design**: it may report `PS0002` when it cannot prove purity. **Perfect** purity verification for arbitrary C# and the whole BCL is **not possible** (undecidable in the general case); this tool implements practical, bounded rules and catalogs instead.
+**Note:** PurelySharp **v1** ships a full diagnostic surface (`PS0002`-`PS0009`), code fixes, editor/MSBuild configuration, CFG-based method-body analysis, and the feature matrix below. It is **conservative by design**: it may report `PS0002` when it cannot prove purity. **Perfect** purity verification for arbitrary C# and the whole BCL is **not possible** (undecidable in the general case); this tool implements practical, bounded rules and catalogs instead.
 
 ## Goal
 
@@ -123,7 +123,7 @@ Use the provided script to produce a VSIX for Visual Studio plus local NuGet pac
     }
     ```
 
-4.  Observe the `PS0002` and `PS0003` diagnostics during build or in the IDE (if VSIX is installed).
+4.  Observe the `PS0003` diagnostic during build or in the IDE (if VSIX is installed).
 
 Note: Diagnostic messages refer to `[EnforcePure]` and `[Pure]` interchangeably.
 
@@ -256,7 +256,7 @@ This project is licensed under the MIT License.
 - [x] Expression statements (Pure callees ok; assignments to locals ok; instance field / property writes impure.)
 - [x] If statements
 - [x] Switch statements
-- [x] Throw statements/expressions - direct throw-only bodies are reported; guard throws inside otherwise pure flows remain allowed by the current rules.
+- [x] Throw statements/expressions - throw operations report `PS0002`, including direct throw-only bodies, conditional throw expressions, and guard throws.
 - [x] Try-catch-finally blocks
 - [x] Local functions (Analyzed via invocation.)
 - [x] Using statements
@@ -343,7 +343,7 @@ This project is licensed under the MIT License.
 - [x] Conversion methods (Parse, TryParse, etc.) - Assumed impure.
 - [x] I/O operations (File, Console, etc.) - Explicitly marked impure.
 - [x] Network operations - Explicitly marked impure.
-- [x] Threading/Task operations - Explicitly marked impure.
+- [x] Threading/Task operations - Side-effecting and scheduling members are marked impure; deterministic task/value-task wrappers are cataloged individually.
 - [x] Random number generation - Explicitly marked impure.
 - [x] Event subscription/invocation - Assumed impure.
 - [x] Delegate invocation - DFA target tracking handled for locals and initializer-resolved members.
@@ -566,9 +566,9 @@ Note that delegate invocations are analyzed conservatively. If the analyzer cann
 ## Attributes
 
 - [x] `[EnforcePure]` - Marks a method that should be analyzed for purity
-- [x] `[AllowSynchronization]` - Allows lock statements in pure methods when synchronizing on readonly objects
+- [x] `[AllowSynchronization]` - Marks synchronization intent for `PS0006`-`PS0008`; lock operations remain conservative for purity
 
-## Impure Namespaces (Always Considered Impure)
+## Namespaces with Common Impure Members
 
 - System.IO
 - System.Net
@@ -579,7 +579,7 @@ Note that delegate invocations are analyzed conservatively. If the analyzer cann
 - System.Security.Cryptography
 - System.Runtime.InteropServices
 
-## Impure Types (Always Considered Impure)
+## Types with Common Impure Members
 
 - Random
 - DateTime
@@ -603,7 +603,7 @@ Note that delegate invocations are analyzed conservatively. If the analyzer cann
 - Calling methods with side effects
 - I/O operations (file, console, network)
 - Ambient environment, application-context, application-domain, or configuration state reads
-- Async operations
+- Side-effecting async/scheduling operations
 - Locking (thread synchronization)
 - Event subscription/raising
 - Unsafe code and pointer manipulation
@@ -897,7 +897,7 @@ public class TestClass
 
 #### Lock Statements with AllowSynchronization
 
-Lock statements are allowed in pure methods when using the `[AllowSynchronization]` attribute:
+`[AllowSynchronization]` records synchronization intent and suppresses redundant synchronization-attribute diagnostics when a lock is present. Lock operations and mutable shared state remain conservative for purity analysis.
 
 ```csharp
 using System;
@@ -917,20 +917,20 @@ public class TestClass
     [AllowSynchronization]
     public int GetOrComputeValue(string key, Func<string, int> computeFunc)
     {
-        lock (_lockObj) // Normally impure, but allowed with [AllowSynchronization]
+        lock (_lockObj) // Still reported as impure synchronization for PS0002
         {
             if (_cache.TryGetValue(key, out int value))
                 return value;
 
             // Compute is allowed if the function is pure
             int newValue = computeFunc(key);
-            _cache[key] = newValue; // This would be impure without [AllowSynchronization]
+            _cache[key] = newValue; // Mutable shared state remains impure
             return newValue;
         }
     }
 }
 
-// No analyzer errors with [AllowSynchronization]
+// Analyzer reports PS0002: synchronization and mutable shared state remains impure.
 ```
 
 #### Switch Expressions and Pattern Matching
@@ -957,7 +957,7 @@ public class TestClass
         {
             Circle c => Math.PI * c.Radius * c.Radius,
             Rectangle r => r.Width * r.Height,
-            _ => throw new ArgumentException("Unknown shape type")
+            _ => 0
         };
     }
 }
@@ -1023,9 +1023,6 @@ public class TestClass
         var filteredData = data
             .Where(x => !IsOutlier(x) && x >= threshold)
             .ToImmutableList();
-
-        if (!filteredData.Any())
-            throw new ArgumentException("No valid data points after filtering");
 
         // Multiple computations on the filtered data
         var average = filteredData.Average();
