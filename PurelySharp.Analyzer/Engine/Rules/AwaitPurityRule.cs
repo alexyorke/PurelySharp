@@ -65,16 +65,58 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return isCompletedResult;
             }
 
-            var continuationSchedulingResult = CheckAwaitContinuationSchedulingMethods(
-                awaitInfo.GetAwaiterMethod?.ReturnType,
-                awaitOperation.Syntax,
-                context);
-            if (!continuationSchedulingResult.IsPure)
+            if (!IsKnownConstantTrueIsCompletedGetter(awaitInfo.IsCompletedProperty?.GetMethod, context.SemanticModel))
             {
-                return continuationSchedulingResult;
+                var continuationSchedulingResult = CheckAwaitContinuationSchedulingMethods(
+                    awaitInfo.GetAwaiterMethod?.ReturnType,
+                    awaitOperation.Syntax,
+                    context);
+                if (!continuationSchedulingResult.IsPure)
+                {
+                    return continuationSchedulingResult;
+                }
             }
 
             return CheckAwaitPatternMethod(awaitInfo.GetResultMethod, awaitOperation.Syntax, context);
+        }
+
+        private static bool IsKnownConstantTrueIsCompletedGetter(
+            IMethodSymbol? getter,
+            SemanticModel semanticModel)
+        {
+            if (getter == null)
+            {
+                return false;
+            }
+
+            foreach (var syntaxReference in getter.DeclaringSyntaxReferences)
+            {
+                if (syntaxReference.GetSyntax() is not AccessorDeclarationSyntax accessor)
+                {
+                    continue;
+                }
+
+                ExpressionSyntax? expression = accessor.ExpressionBody?.Expression ??
+                    accessor.Body?.Statements
+                        .OfType<ReturnStatementSyntax>()
+                        .SingleOrDefault()
+                        ?.Expression;
+
+                if (expression == null)
+                {
+                    continue;
+                }
+
+                var constant = semanticModel.GetConstantValue(expression);
+                if (constant.HasValue &&
+                    constant.Value is bool boolValue &&
+                    boolValue)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static PurityAnalysisEngine.PurityAnalysisResult CheckAwaitContinuationSchedulingMethods(

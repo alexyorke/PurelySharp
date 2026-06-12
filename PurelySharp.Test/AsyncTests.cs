@@ -208,6 +208,62 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task AwaitCustomAwaiterAlreadyCompletedWithImpureOnCompleted_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+using PurelySharp.Attributes;
+
+public static class GlobalState
+{
+    public static int Count;
+}
+
+public sealed class Awaitable
+{
+    [EnforcePure]
+    public Awaiter GetAwaiter()
+    {
+        return new Awaiter();
+    }
+}
+
+public sealed class Awaiter : INotifyCompletion
+{
+    public bool IsCompleted
+    {
+        [EnforcePure]
+        get { return true; }
+    }
+
+    public void OnCompleted(Action continuation)
+    {
+        GlobalState.Count++;
+        continuation();
+    }
+
+    [EnforcePure]
+    public int GetResult()
+    {
+        return 42;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public async Task<int> TestMethod()
+    {
+        return await new Awaitable();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
 
