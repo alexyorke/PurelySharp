@@ -32,6 +32,31 @@ public class TestClass
         }
 
         [Test]
+        public async Task UnusedImpureLocalFunction_NoDiagnostic()
+        {
+            var code = @"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    private int _val = 0;
+
+    [EnforcePure]
+    public int PureMethod()
+    {
+        int Unused()
+        {
+            _val = 1;
+            return _val;
+        }
+
+        return 0;
+    }
+}";
+            await VerifyCS.VerifyAnalyzerAsync(code);
+        }
+
+        [Test]
         public async Task ImpureLocalFunction_ReportsDiagnostic()
         {
             var code = @"

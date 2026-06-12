@@ -12,8 +12,8 @@ namespace PurelySharp.Analyzer.Engine.Rules
         public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
             _ = (ILocalFunctionOperation)operation;
-            // Local function bodies are validated after the main CFG pass (see PurityAnalysisEngine
-            // "Post-CFG: Checking Unreachable Local Functions") and again when invoked via GetCalleePurity.
+            // Local function declarations do not execute their bodies. Invoked local functions are
+            // validated via GetCalleePurity at the call site.
             // Walking DescendantsAndSelf here hit operation kinds with no registered rule and defaulted to impure.
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
         }

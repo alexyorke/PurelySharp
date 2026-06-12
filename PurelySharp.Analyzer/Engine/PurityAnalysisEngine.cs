@@ -993,24 +993,7 @@ namespace PurelySharp.Analyzer.Engine
                             }
                         }
 
-                        LogDebug($"{indent}  Post-CFG: Checking Unreachable Local Functions...");
-                        foreach (var localFuncOp in methodBodyIOperation.DescendantsAndSelf().OfType<ILocalFunctionOperation>())
-                        {
-                            var localFunctionSymbol = localFuncOp.Symbol?.OriginalDefinition;
-                            if (localFunctionSymbol != null)
-                            {
-                                if (SymbolEqualityComparer.Default.Equals(localFunctionSymbol, methodSymbol.OriginalDefinition))
-                                {
-                                    continue;
-                                }
-                                var lfResult = AnalyzeOperationSubtreePurity(localFuncOp, semanticModel, enforcePureAttributeSymbol, allowSynchronizationAttributeSymbol, visited, localFunctionSymbol, purityCache);
-                                if (!lfResult.IsPure)
-                                {
-                                    result = lfResult;
-                                    goto PostCfgChecksDone;
-                                }
-                            }
-                        }
+                        LogDebug($"{indent}  Post-CFG: Skipping local function declarations; invoked local functions are checked through callee purity.");
 
                         LogDebug($"{indent}  Post-CFG: Checking Known Impure Invocations...");
                         foreach (var invocationOp in methodBodyIOperation.DescendantsAndSelf().OfType<IInvocationOperation>())
