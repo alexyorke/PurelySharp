@@ -227,5 +227,149 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task ImmutableSortedDictionaryContainsKeyDispatchToImpureComparable_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Immutable;
+using PurelySharp.Attributes;
+
+public sealed class MutableKey : IComparable<MutableKey>
+{
+    public int CompareTo(MutableKey other)
+    {
+        Console.WriteLine(""compare"");
+        return 0;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(ImmutableSortedDictionary<MutableKey, int> values, MutableKey key)
+    {
+        return values.ContainsKey(key);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ImmutableSortedDictionaryContainsKeyForBuiltinKey_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Immutable;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool TestMethod(ImmutableSortedDictionary<int, string> values, int key)
+    {
+        return values.ContainsKey(key);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ImmutableSortedDictionaryIndexerDispatchToImpureComparable_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Immutable;
+using PurelySharp.Attributes;
+
+public sealed class MutableKey : IComparable<MutableKey>
+{
+    public int CompareTo(MutableKey other)
+    {
+        Console.WriteLine(""compare"");
+        return 0;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:TestMethod|}(ImmutableSortedDictionary<MutableKey, int> values, MutableKey key)
+    {
+        return values[key];
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ImmutableSortedDictionaryIndexerForBuiltinKey_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Immutable;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int TestMethod(ImmutableSortedDictionary<int, int> values, int key)
+    {
+        return values[key];
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ImmutableSortedSetContainsDispatchToImpureComparable_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Immutable;
+using PurelySharp.Attributes;
+
+public sealed class MutableKey : IComparable<MutableKey>
+{
+    public int CompareTo(MutableKey other)
+    {
+        Console.WriteLine(""compare"");
+        return 0;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(ImmutableSortedSet<MutableKey> values, MutableKey key)
+    {
+        return values.Contains(key);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ImmutableSortedSetContainsForBuiltinKey_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Immutable;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool TestMethod(ImmutableSortedSet<int> values, int key)
+    {
+        return values.Contains(key);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

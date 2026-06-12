@@ -377,10 +377,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
             result = PurityAnalysisEngine.PurityAnalysisResult.Pure;
 
             var propertySymbol = propertyReferenceOperation.Property;
+            var typeDefinition = (propertySymbol.ContainingType as INamedTypeSymbol)?.OriginalDefinition.ToDisplayString();
             if (!propertySymbol.IsIndexer ||
                 propertySymbol.ContainingType is not INamedTypeSymbol containingType ||
                 containingType.TypeArguments.Length != 2 ||
-                containingType.OriginalDefinition.ToDisplayString() != "System.Collections.Generic.SortedDictionary<TKey, TValue>" ||
+                (typeDefinition != "System.Collections.Generic.SortedDictionary<TKey, TValue>" &&
+                 typeDefinition != "System.Collections.Immutable.ImmutableSortedDictionary<TKey, TValue>") ||
                 propertyReferenceOperation.Arguments.Length == 0)
             {
                 return false;
