@@ -1253,7 +1253,6 @@ public static class Constants
 
         "System.Threading.Tasks.Task.CompletedTask.get",
         "System.Threading.Tasks.Task.FromResult<TResult>(TResult)",
-        "System.Threading.Volatile.Read",
 
 
         "System.TimeSpan.TimeSpan(long)",
@@ -1458,7 +1457,6 @@ public static class Constants
         "System.Text.Encoding.ASCII.get",
         "System.Text.StringBuilder.Length.get",
         "System.Threading.CancellationToken.None.get",
-        "System.Threading.Interlocked.Read(ref long)",
         "System.TimeSpan.CompareTo(System.TimeSpan)",
         "System.TimeSpan.FromDays(double)",
         "System.Uri.IsWellFormedUriString(string, System.UriKind)",

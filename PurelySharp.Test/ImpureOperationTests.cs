@@ -170,6 +170,27 @@ public class TestClass
         }
 
         [Test]
+        public async Task InterlockedRead_ReportsPS0002()
+        {
+            var test = @"
+using System.Threading;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    private long _value;
+
+    [EnforcePure]
+    public long {|PS0002:ReadInterlocked|}()
+    {
+        return Interlocked.Read(ref _value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task EventSubscription_ReportsPS0002()
         {
             var test = @"

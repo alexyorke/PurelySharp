@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1470/1470` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1471/1471` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -70,6 +70,7 @@
 - `System.Buffers.Binary.BinaryPrimitives.ReverseEndianness` scalar overloads are cataloged as deterministic pure helpers
 - `System.Net.IPAddress.Parse(string)` is cataloged consistently with the span overload as deterministic parsing without network I/O
 - `Comparer<T>.Default` and `EqualityComparer<T>.Default` getters are cataloged as pure singleton retrieval; comparer dispatch remains separately guarded
+- stale pure catalog entries for `Volatile.Read` and `Interlocked.Read` were removed so synchronization members consistently remain impure
 - property/indexer reference arguments are analyzed before getter purity or assignment-target shortcuts are accepted
 - array element assignment targets now analyze array and index expressions before skipping the element read itself
 - switch case guards and catch filters now participate in CFG branch-value analysis instead of being skipped as non-`if`/loop branch values
