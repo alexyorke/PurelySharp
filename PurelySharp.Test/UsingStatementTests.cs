@@ -295,6 +295,58 @@ public class ImpureDisposable : IDisposable
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task UsingDeclarationPatternDisposableRefStruct_WithImpureDispose_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public ref struct Lease
+{
+    public void Dispose()
+    {
+        System.Console.WriteLine(""disposed"");
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}()
+    {
+        using var lease = new Lease();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task UsingDeclarationPatternDisposableRefStruct_WithPureDispose_NoDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public ref struct Lease
+{
+    [EnforcePure]
+    public void Dispose()
+    {
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public void TestMethod()
+    {
+        using var lease = new Lease();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
 
