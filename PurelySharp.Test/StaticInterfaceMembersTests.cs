@@ -198,6 +198,56 @@ public class Calculator
         }
 
         [Test]
+        public async Task StaticAbstractInterfaceOperator_GenericDispatch_IsConservative()
+        {
+            var test = @"
+// Requires LangVersion 11+
+#nullable enable
+using PurelySharp.Attributes;
+
+public interface IAdditive<T> where T : IAdditive<T>
+{
+    [EnforcePure]
+    static abstract T operator +(T left, T right);
+}
+
+public readonly struct Number : IAdditive<Number>
+{
+    public readonly int Value;
+
+    [EnforcePure]
+    public Number(int value)
+    {
+        Value = value;
+    }
+
+    [EnforcePure]
+    public static Number operator +(Number left, Number right) => new Number(left.Value + right.Value);
+}
+
+public class Calculator
+{
+    [EnforcePure]
+    public T {|PS0002:AddGeneric|}<T>(T left, T right) where T : IAdditive<T>
+    {
+        return left + right;
+    }
+}
+";
+
+            await new VerifyCS.Test
+            {
+                TestCode = test,
+                ReferenceAssemblies = ReferenceAssemblies.Net.Net80,
+                SolutionTransforms =
+                {
+                    (solution, projectId) =>
+                        solution.AddMetadataReference(projectId, Microsoft.CodeAnalysis.MetadataReference.CreateFromFile(typeof(EnforcePureAttribute).Assembly.Location))
+                },
+            }.RunAsync();
+        }
+
+        [Test]
         public async Task StaticInterfaceMethod_VirtualWithDefault_PureImplementation_MissingAttributeDiagnostics()
         {
             var test = @"
