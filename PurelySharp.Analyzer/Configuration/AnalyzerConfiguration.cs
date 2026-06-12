@@ -292,7 +292,7 @@ namespace PurelySharp.Analyzer.Configuration
                 var global = options.AnalyzerConfigOptionsProvider.GlobalOptions;
                 if (global.TryGetValue(key, out var value) &&
                     int.TryParse(value.Trim(), out var parsed) &&
-                    parsed > 0)
+                    parsed >= 0)
                 {
                     return parsed;
                 }
@@ -306,7 +306,7 @@ namespace PurelySharp.Analyzer.Configuration
         {
             return options.TryGetValue(key, out var value) &&
                    int.TryParse(value.Trim(), out var parsed) &&
-                   parsed > 0
+                   parsed >= 0
                 ? parsed
                 : fallback;
         }

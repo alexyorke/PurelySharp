@@ -296,6 +296,20 @@ public class TestClass
         }
 
         [Test]
+        public async Task Ps0004_PerTreeMinComplexityZero_ClearsGlobalMinComplexity()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+public class TestClass
+{
+    public int Tiny() => 1;
+}",
+                ImmutableDictionary<string, string>.Empty.Add("purelysharp_suggest_missing_enforce_pure_min_complexity", "3"),
+                treeOptions: ImmutableDictionary<string, string>.Empty.Add("purelysharp_suggest_missing_enforce_pure_min_complexity", "0"));
+
+            Assert.That(DiagnosticMessages(diagnostics), Has.Some.Contains("Tiny"));
+        }
+
+        [Test]
         public async Task ConfiguredKnownImpureMethods_AreIsolatedAcrossConcurrentCompilations()
         {
             const int methodCount = 40;
