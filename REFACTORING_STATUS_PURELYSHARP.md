@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1624/1624` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1625/1625` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -128,6 +128,7 @@
 - baseline coverage now verifies relative baseline paths suppress diagnostics reported with absolute source paths
 - PS0004 `exclude_tests` now recognizes root-relative `test/` and `tests/` paths even when namespaces and type names are not test-like
 - delegate target resolution now merges conditional delegate assignment arms and stays conservative when either arm is unresolved
+- mutable delegate field initializers are no longer trusted as stable invocation targets; initializer fallback is limited to local symbols and readonly fields without later assignments
 - multi-declarator variable declarations now resolve later declarators against earlier declarator state
 - `System.Uri.IsWellFormedUriString(string, UriKind)` is now covered as a precise known-pure member
 - README installation guidance now matches the actual `PurelySharp` and `PurelySharp.Attributes` package IDs and local package workflow

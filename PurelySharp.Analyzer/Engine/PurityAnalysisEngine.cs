@@ -2894,7 +2894,9 @@ namespace PurelySharp.Analyzer.Engine
                 return sourceTargets;
             }
 
-            if (valueSourceSymbol != null && semanticModel != null)
+            if (valueSourceSymbol != null &&
+                semanticModel != null &&
+                CanTrustDelegateInitializerSymbol(valueSourceSymbol, semanticModel))
             {
                 var initializerTargets = TryResolveDelegateInitializerTargets(valueSourceSymbol, semanticModel, currentState);
                 if (initializerTargets != null)
@@ -2904,6 +2906,46 @@ namespace PurelySharp.Analyzer.Engine
             }
 
             return null;
+        }
+
+        private static bool CanTrustDelegateInitializerSymbol(ISymbol symbol, SemanticModel semanticModel)
+        {
+            if (symbol is ILocalSymbol)
+            {
+                return true;
+            }
+
+            if (symbol is IFieldSymbol fieldSymbol)
+            {
+                return fieldSymbol.IsReadOnly &&
+                    !HasAssignmentToField(fieldSymbol, semanticModel);
+            }
+
+            return false;
+        }
+
+        private static bool HasAssignmentToField(IFieldSymbol fieldSymbol, SemanticModel semanticModel)
+        {
+            foreach (var syntaxReference in fieldSymbol.ContainingType.DeclaringSyntaxReferences)
+            {
+                if (syntaxReference.GetSyntax() is not TypeDeclarationSyntax typeDeclaration)
+                {
+                    continue;
+                }
+
+                foreach (var assignment in typeDeclaration.DescendantNodes().OfType<AssignmentExpressionSyntax>())
+                {
+                    var model = semanticModel.Compilation.GetSemanticModel(assignment.SyntaxTree);
+                    var targetOperation = model.GetOperation(assignment.Left);
+                    var targetSymbol = TryResolveSymbol(SkipImplicitConversions(targetOperation));
+                    if (SymbolEqualityComparer.Default.Equals(targetSymbol, fieldSymbol))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         private static PurityAnalysisEngine.PotentialTargets? TryResolveDelegateInitializerTargets(ISymbol symbol, SemanticModel semanticModel, PurityAnalysisState currentState)

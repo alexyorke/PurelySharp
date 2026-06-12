@@ -68,12 +68,49 @@ public delegate void MyAction();
 
 public class TestClass
 {
-    private MyAction _pureAction = () => { var x = 1; }; // Pure target
+    private readonly MyAction _pureAction = () => { var x = 1; }; // Pure target
 
     [EnforcePure]
     public void TestMethod()
     {
         _pureAction();
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
+
+        [Test]
+        public async Task MutableDelegateFieldInitializer_Diagnostic()
+        {
+            var testCode = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    private Action _callback = PureTarget;
+
+    [EnforcePure]
+    public static void PureTarget()
+    {
+    }
+
+    public static void ImpureTarget()
+    {
+        Console.WriteLine();
+    }
+
+    public void MakeImpure()
+    {
+        _callback = ImpureTarget;
+    }
+
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}()
+    {
+        _callback();
     }
 }
 ";
