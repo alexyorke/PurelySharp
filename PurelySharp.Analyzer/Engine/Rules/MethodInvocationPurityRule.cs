@@ -375,6 +375,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return collectionEqualityDispatchResult;
             }
 
+            if (TryCheckMemoryExtensionsDefaultEqualityDispatchPurity(invocationOperation, context, out var memoryExtensionsEqualityDispatchResult))
+            {
+                return memoryExtensionsEqualityDispatchResult;
+            }
+
             if (TryCheckCollectionComparisonDispatchPurity(invocationOperation, context, out var collectionComparisonDispatchResult))
             {
                 return collectionComparisonDispatchResult;
@@ -683,10 +688,45 @@ namespace PurelySharp.Analyzer.Engine.Rules
             result = PurityAnalysisEngine.PurityAnalysisResult.Pure;
 
             var methodSymbol = invocationOperation.TargetMethod;
-            if (methodSymbol.Name != "Contains" ||
-                methodSymbol.Parameters.Length != 2 ||
+            if (methodSymbol.Name is not ("Contains" or "SequenceEqual") ||
                 methodSymbol.TypeArguments.Length != 1 ||
                 methodSymbol.ContainingType?.OriginalDefinition.ToDisplayString() != "System.Linq.Enumerable")
+            {
+                return false;
+            }
+
+            if ((methodSymbol.Name == "Contains" && methodSymbol.Parameters.Length != 2) ||
+                (methodSymbol.Name == "SequenceEqual" && methodSymbol.Parameters.Length != 2))
+            {
+                return false;
+            }
+
+            var elementType = methodSymbol.TypeArguments[0];
+            if (elementType.TypeKind == TypeKind.TypeParameter)
+            {
+                return false;
+            }
+
+            result = CheckDefaultEqualityDispatchPurity(elementType, invocationOperation, context);
+            return true;
+        }
+
+        private static bool TryCheckMemoryExtensionsDefaultEqualityDispatchPurity(
+            IInvocationOperation invocationOperation,
+            PurityAnalysisContext context,
+            out PurityAnalysisEngine.PurityAnalysisResult result)
+        {
+            result = PurityAnalysisEngine.PurityAnalysisResult.Pure;
+
+            var methodSymbol = invocationOperation.TargetMethod;
+            if (methodSymbol.Name != "SequenceEqual" ||
+                methodSymbol.Parameters.Length != 2 ||
+                methodSymbol.ContainingType?.OriginalDefinition.ToDisplayString() != "System.MemoryExtensions")
+            {
+                return false;
+            }
+
+            if (methodSymbol.TypeArguments.Length < 1)
             {
                 return false;
             }
