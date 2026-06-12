@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using PurelySharp.Analyzer.Engine;
 
 namespace PurelySharp.Analyzer.Engine.Rules
@@ -64,7 +65,93 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return isCompletedResult;
             }
 
+            var continuationSchedulingResult = CheckAwaitContinuationSchedulingMethods(
+                awaitInfo.GetAwaiterMethod?.ReturnType,
+                awaitOperation.Syntax,
+                context);
+            if (!continuationSchedulingResult.IsPure)
+            {
+                return continuationSchedulingResult;
+            }
+
             return CheckAwaitPatternMethod(awaitInfo.GetResultMethod, awaitOperation.Syntax, context);
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckAwaitContinuationSchedulingMethods(
+            ITypeSymbol? awaiterType,
+            SyntaxNode awaitSyntax,
+            PurityAnalysisContext context)
+        {
+            if (awaiterType == null)
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            foreach (var schedulingMethod in EnumerateAwaitContinuationSchedulingMethods(awaiterType, context.SemanticModel.Compilation))
+            {
+                var schedulingResult = CheckAwaitPatternMethod(schedulingMethod, awaitSyntax, context);
+                if (!schedulingResult.IsPure)
+                {
+                    return schedulingResult;
+                }
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static IEnumerable<IMethodSymbol> EnumerateAwaitContinuationSchedulingMethods(
+            ITypeSymbol awaiterType,
+            Compilation compilation)
+        {
+            var seen = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+
+            foreach (var method in awaiterType.GetMembers()
+                         .OfType<IMethodSymbol>()
+                         .Where(IsContinuationSchedulingMethod))
+            {
+                if (seen.Add(method.OriginalDefinition))
+                {
+                    yield return method;
+                }
+            }
+
+            if (awaiterType is not INamedTypeSymbol namedAwaiterType)
+            {
+                yield break;
+            }
+
+            foreach (var interfaceName in new[]
+            {
+                "System.Runtime.CompilerServices.INotifyCompletion",
+                "System.Runtime.CompilerServices.ICriticalNotifyCompletion"
+            })
+            {
+                var interfaceType = compilation.GetTypeByMetadataName(interfaceName);
+                if (interfaceType == null ||
+                    !SymbolEqualityComparer.Default.Equals(namedAwaiterType, interfaceType) &&
+                    !namedAwaiterType.AllInterfaces.Contains(interfaceType, SymbolEqualityComparer.Default))
+                {
+                    continue;
+                }
+
+                foreach (var interfaceMethod in interfaceType.GetMembers()
+                             .OfType<IMethodSymbol>()
+                             .Where(IsContinuationSchedulingMethod))
+                {
+                    var implementation = namedAwaiterType.FindImplementationForInterfaceMember(interfaceMethod) as IMethodSymbol;
+                    if (implementation != null && seen.Add(implementation.OriginalDefinition))
+                    {
+                        yield return implementation;
+                    }
+                }
+            }
+        }
+
+        private static bool IsContinuationSchedulingMethod(IMethodSymbol methodSymbol)
+        {
+            return methodSymbol.Name is "OnCompleted" or "UnsafeOnCompleted" &&
+                   methodSymbol.Parameters.Length == 1 &&
+                   methodSymbol.Parameters[0].Type.ToDisplayString() == "System.Action";
         }
 
         private static PurityAnalysisEngine.PurityAnalysisResult CheckAwaitPatternMethod(
