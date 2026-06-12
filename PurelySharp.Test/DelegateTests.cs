@@ -119,6 +119,43 @@ public class TestClass
         }
 
         [Test]
+        public async Task ReadonlyDelegateFieldInitializerOverwrittenInConstructor_Diagnostic()
+        {
+            var testCode = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    private readonly Action _callback = PureTarget;
+
+    public TestClass()
+    {
+        _callback = ImpureTarget;
+    }
+
+    [EnforcePure]
+    public static void PureTarget()
+    {
+    }
+
+    public static void ImpureTarget()
+    {
+        Console.WriteLine();
+    }
+
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}()
+    {
+        _callback();
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
+
+        [Test]
         public async Task DelegateInvocationWithImpureArgument_Diagnostic()
         {
             var testCode = @"

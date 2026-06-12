@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1628/1628` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1629/1629` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -130,6 +130,7 @@
 - PS0004 `exclude_tests` now recognizes root-relative `test/` and `tests/` paths even when namespaces and type names are not test-like
 - delegate target resolution now merges conditional delegate assignment arms and stays conservative when either arm is unresolved
 - mutable delegate field initializers are no longer trusted as stable invocation targets; initializer fallback is limited to local symbols and readonly fields without later assignments
+- readonly delegate field initializer fallback has direct regression coverage for constructor overwrites that make the invocation target unstable
 - multi-declarator variable declarations now resolve later declarators against earlier declarator state
 - corpus catalog-miss rankings now preserve impurity category and keep distinct miss categories separate even when they reference the same symbol
 - `System.Uri.IsWellFormedUriString(string, UriKind)` is now covered as a precise known-pure member
