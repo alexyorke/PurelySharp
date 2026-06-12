@@ -42,6 +42,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
 
+            if (TryCheckDictionaryIndexerKeyDispatchPurity(propertyReferenceOperation, context, out var dictionaryIndexerResult))
+            {
+                return dictionaryIndexerResult;
+            }
+
             var isPureEnforcedProperty = PurityAnalysisEngine.IsPureEnforced(
                 propertySymbol,
                 context.EnforcePureAttributeSymbol,
@@ -328,6 +333,188 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return true;
             }
             return false;
+        }
+
+        private static bool TryCheckDictionaryIndexerKeyDispatchPurity(
+            IPropertyReferenceOperation propertyReferenceOperation,
+            PurityAnalysisContext context,
+            out PurityAnalysisEngine.PurityAnalysisResult result)
+        {
+            result = PurityAnalysisEngine.PurityAnalysisResult.Pure;
+
+            var propertySymbol = propertyReferenceOperation.Property;
+            if (!propertySymbol.IsIndexer ||
+                propertySymbol.ContainingType is not INamedTypeSymbol containingType ||
+                containingType.TypeArguments.Length != 2 ||
+                containingType.OriginalDefinition.ToDisplayString() != "System.Collections.Generic.Dictionary<TKey, TValue>" ||
+                propertyReferenceOperation.Arguments.Length == 0)
+            {
+                return false;
+            }
+
+            var keyType = containingType.TypeArguments[0];
+            if (keyType.TypeKind == TypeKind.TypeParameter)
+            {
+                return false;
+            }
+
+            result = CheckDictionaryKeyDispatchPurity(keyType, propertyReferenceOperation, context);
+            return true;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckDictionaryKeyDispatchPurity(
+            ITypeSymbol keyType,
+            IPropertyReferenceOperation propertyReferenceOperation,
+            PurityAnalysisContext context)
+        {
+            if (IsBuiltinValueKey(keyType))
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            if (!TryGetObjectOverride(keyType, nameof(object.GetHashCode), parameterCount: 0, out var getHashCodeOverride))
+            {
+                return UnknownKeyDispatch(propertyReferenceOperation);
+            }
+
+            var hashPurity = CheckResolvedKeyImplementation(getHashCodeOverride, propertyReferenceOperation, context);
+            if (!hashPurity.IsPure)
+            {
+                return hashPurity;
+            }
+
+            if (TryGetIEquatableEqualsImplementation(keyType, out var equalsImplementation))
+            {
+                return CheckResolvedKeyImplementation(equalsImplementation, propertyReferenceOperation, context);
+            }
+
+            if (TryGetObjectOverride(keyType, nameof(object.Equals), parameterCount: 1, out var objectEqualsOverride))
+            {
+                return CheckResolvedKeyImplementation(objectEqualsOverride, propertyReferenceOperation, context);
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckResolvedKeyImplementation(
+            IMethodSymbol implementation,
+            IPropertyReferenceOperation propertyReferenceOperation,
+            PurityAnalysisContext context)
+        {
+            if (implementation.DeclaringSyntaxReferences.Length == 0 &&
+                !PurityAnalysisEngine.IsKnownPureBCLMember(implementation) &&
+                !PurityAnalysisEngine.HasPureExternalAttribute(implementation))
+            {
+                return UnknownKeyDispatch(propertyReferenceOperation, implementation);
+            }
+
+            var implementationPurity = PurityAnalysisEngine.GetCalleePurity(implementation.OriginalDefinition, context);
+            return implementationPurity.IsPure
+                ? PurityAnalysisEngine.PurityAnalysisResult.Pure
+                : implementationPurity.WithCallee(implementation.OriginalDefinition, propertyReferenceOperation.Syntax);
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult UnknownKeyDispatch(
+            IPropertyReferenceOperation propertyReferenceOperation,
+            ISymbol? symbol = null)
+        {
+            return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                propertyReferenceOperation.Syntax,
+                PurityAnalysisEngine.PurityEvidence.Create(
+                    "unknown_external_call",
+                    nameof(PropertyReferencePurityRule),
+                    propertyReferenceOperation,
+                    symbol: symbol ?? propertyReferenceOperation.Property.GetMethod));
+        }
+
+        private static bool TryGetIEquatableEqualsImplementation(
+            ITypeSymbol keyType,
+            out IMethodSymbol implementation)
+        {
+            implementation = null!;
+
+            if (keyType is not INamedTypeSymbol namedType)
+            {
+                return false;
+            }
+
+            foreach (var interfaceType in namedType.AllInterfaces)
+            {
+                if (interfaceType.OriginalDefinition.ToDisplayString() != "System.IEquatable<T>" ||
+                    interfaceType.TypeArguments.Length != 1 ||
+                    !SymbolEqualityComparer.Default.Equals(interfaceType.TypeArguments[0], keyType))
+                {
+                    continue;
+                }
+
+                var interfaceEquals = interfaceType
+                    .GetMembers(nameof(IEquatable<object>.Equals))
+                    .OfType<IMethodSymbol>()
+                    .FirstOrDefault(method => method.Parameters.Length == 1);
+                if (interfaceEquals == null)
+                {
+                    continue;
+                }
+
+                var foundImplementation = namedType.FindImplementationForInterfaceMember(interfaceEquals) as IMethodSymbol;
+                if (foundImplementation != null)
+                {
+                    implementation = foundImplementation;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TryGetObjectOverride(
+            ITypeSymbol keyType,
+            string memberName,
+            int parameterCount,
+            out IMethodSymbol implementation)
+        {
+            implementation = null!;
+
+            if (keyType is not INamedTypeSymbol namedType)
+            {
+                return false;
+            }
+
+            var foundImplementation = namedType
+                .GetMembers(memberName)
+                .OfType<IMethodSymbol>()
+                .FirstOrDefault(method => method.IsOverride && method.Parameters.Length == parameterCount);
+            if (foundImplementation == null)
+            {
+                return false;
+            }
+
+            implementation = foundImplementation;
+            return true;
+        }
+
+        private static bool IsBuiltinValueKey(ITypeSymbol keyType)
+        {
+            if (keyType.TypeKind == TypeKind.Enum)
+            {
+                return true;
+            }
+
+            return keyType.SpecialType is
+                SpecialType.System_Boolean or
+                SpecialType.System_Byte or
+                SpecialType.System_SByte or
+                SpecialType.System_Int16 or
+                SpecialType.System_UInt16 or
+                SpecialType.System_Int32 or
+                SpecialType.System_UInt32 or
+                SpecialType.System_Int64 or
+                SpecialType.System_UInt64 or
+                SpecialType.System_Single or
+                SpecialType.System_Double or
+                SpecialType.System_Decimal or
+                SpecialType.System_Char or
+                SpecialType.System_String;
         }
 
         private static bool IsPotentiallyDispatchedGetter(IMethodSymbol getterSymbol)

@@ -458,5 +458,53 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task DictionaryIndexerDispatchToImpureGetHashCode_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public sealed class MutableRecord
+{
+    public override int GetHashCode()
+    {
+        Console.WriteLine(""hash"");
+        return 0;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:TestMethod|}(Dictionary<MutableRecord, int> values, MutableRecord value)
+    {
+        return values[value];
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task DictionaryIndexerForBuiltinKey_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int TestMethod(Dictionary<string, int> values, string key)
+    {
+        return values[key];
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
