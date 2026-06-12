@@ -117,7 +117,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
         {
             return loopOperation switch
             {
-                IWhileLoopOperation whileLoop => IsCompileTimeFalse(whileLoop.Condition),
+                IWhileLoopOperation whileLoop => whileLoop.ConditionIsTop && IsCompileTimeFalse(whileLoop.Condition),
                 IForLoopOperation forLoop => IsCompileTimeFalse(forLoop.Condition),
                 _ => false
             };

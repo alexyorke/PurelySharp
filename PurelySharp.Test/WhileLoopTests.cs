@@ -127,5 +127,32 @@ namespace TestNamespace
 
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
+
+        [Test]
+        public async Task DoWhileFalse_StillAnalyzesBody_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [EnforcePure]
+        public void {|PS0002:TestMethod|}()
+        {
+            do
+            {
+                Console.WriteLine(""runs once"");
+            }
+            while (false);
+        }
+    }
+}
+" + MinimalEnforcePureAttributeSource;
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
