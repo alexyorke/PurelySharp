@@ -624,6 +624,106 @@ public class TestClass
         }
 
         [Test]
+        public async Task LinqJoinDefaultKeyEqualityDispatchToImpureEquatable_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public sealed class MutableRecord : IEquatable<MutableRecord>
+{
+    public bool Equals(MutableRecord other)
+    {
+        Console.WriteLine(""equals"");
+        return true;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public IEnumerable<MutableRecord> {|PS0002:TestMethod|}(IEnumerable<MutableRecord> left, IEnumerable<MutableRecord> right)
+    {
+        return left.Join(right, l => l, r => r, (l, r) => l);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task LinqJoinDefaultKeyEqualityForBuiltinKey_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public IEnumerable<string> TestMethod(IEnumerable<string> left, IEnumerable<string> right)
+    {
+        return left.Join(right, l => l.Length, r => r.Length, (l, r) => l);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task LinqGroupJoinDefaultComparerDispatchToImpureEquatable_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public sealed class MutableRecord : IEquatable<MutableRecord>
+{
+    public bool Equals(MutableRecord other)
+    {
+        Console.WriteLine(""equals"");
+        return true;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public IEnumerable<MutableRecord> {|PS0002:TestMethod|}(IEnumerable<MutableRecord> left, IEnumerable<MutableRecord> right)
+    {
+        return left.GroupJoin(right, l => l, r => r, (l, group) => l, default(IEqualityComparer<MutableRecord>));
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task LinqGroupJoinDefaultComparerForBuiltinKey_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public IEnumerable<string> TestMethod(IEnumerable<string> left, IEnumerable<string> right)
+    {
+        return left.GroupJoin(right, l => l.Length, r => r.Length, (l, group) => l, default(IEqualityComparer<int>));
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task LinqDistinctWithInterfaceEqualityComparerParameter_Diagnostic()
         {
             var test = @"

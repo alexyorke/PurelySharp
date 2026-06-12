@@ -729,6 +729,17 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return true;
             }
 
+            if (methodSymbol.Name is "Join" or "GroupJoin")
+            {
+                if (methodSymbol.TypeArguments.Length < 3)
+                {
+                    return false;
+                }
+
+                equalityType = methodSymbol.TypeArguments[2];
+                return true;
+            }
+
             if (methodSymbol.Name is not ("Contains" or "SequenceEqual" or "Distinct" or "Except" or "Intersect" or "Union") ||
                 methodSymbol.TypeArguments.Length != 1)
             {
