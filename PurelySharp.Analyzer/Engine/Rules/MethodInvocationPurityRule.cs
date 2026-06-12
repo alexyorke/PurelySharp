@@ -937,9 +937,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
             result = PurityAnalysisEngine.PurityAnalysisResult.Pure;
 
             var methodSymbol = invocationOperation.TargetMethod;
-            if (methodSymbol.Name != "SequenceEqual" ||
-                methodSymbol.Parameters.Length != 2 ||
-                methodSymbol.ContainingType?.OriginalDefinition.ToDisplayString() != "System.MemoryExtensions")
+            if (methodSymbol.ContainingType?.OriginalDefinition.ToDisplayString() != "System.MemoryExtensions" ||
+                methodSymbol.Name is not ("SequenceEqual" or "Contains" or "IndexOf" or "LastIndexOf") ||
+                methodSymbol.Parameters.Length != 2)
             {
                 return false;
             }

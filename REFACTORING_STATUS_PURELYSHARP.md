@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1575/1575` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1579/1579` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -76,7 +76,7 @@
 - concrete `List<T>.Contains`, `Array.IndexOf<T>`, and LINQ `Enumerable.Contains<TSource>` calls now derive default equality purity from the element type instead of blindly trusting broad pure catalog entries
 - concrete `HashSet<T>.Contains/TryGetValue` and `Dictionary<TKey,TValue>.ContainsKey/TryGetValue` calls now derive key hash/equality purity from the key type before accepting broad catalog purity
 - concrete `Dictionary<TKey,TValue>` indexer reads now derive key hash/equality purity from the key type instead of treating the getter as intrinsically pure
-- LINQ and span `SequenceEqual<T>` calls now derive default equality purity from the element type instead of blindly trusting broad catalog entries
+- LINQ and span `SequenceEqual<T>` plus span `Contains`/`IndexOf`/`LastIndexOf` calls now derive default equality purity from the element type instead of blindly trusting broad catalog entries
 - LINQ `Contains`/`SequenceEqual`/`Distinct`/`Union`/`Except`/`Intersect` default comparer paths, including `null` or `default` comparer overloads, now fall back to default equality dispatch instead of bypassing element equality analysis
 - LINQ `GroupBy`, `ToLookup`, `Join`, and `GroupJoin` default comparer paths now derive equality purity from the selected key type (`TKey`) instead of the source element type
 - LINQ `OrderBy`/`ThenBy` and generic `Min`/`Max` default comparer paths now derive comparison purity from the selected key/value type instead of treating ordering/extrema as intrinsically pure
