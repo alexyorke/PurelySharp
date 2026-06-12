@@ -47,6 +47,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return dictionaryIndexerResult;
             }
 
+            if (TryCheckSortedDictionaryIndexerComparisonDispatchPurity(propertyReferenceOperation, context, out var sortedDictionaryIndexerResult))
+            {
+                return sortedDictionaryIndexerResult;
+            }
+
             var isPureEnforcedProperty = PurityAnalysisEngine.IsPureEnforced(
                 propertySymbol,
                 context.EnforcePureAttributeSymbol,
@@ -362,6 +367,33 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return true;
         }
 
+        private static bool TryCheckSortedDictionaryIndexerComparisonDispatchPurity(
+            IPropertyReferenceOperation propertyReferenceOperation,
+            PurityAnalysisContext context,
+            out PurityAnalysisEngine.PurityAnalysisResult result)
+        {
+            result = PurityAnalysisEngine.PurityAnalysisResult.Pure;
+
+            var propertySymbol = propertyReferenceOperation.Property;
+            if (!propertySymbol.IsIndexer ||
+                propertySymbol.ContainingType is not INamedTypeSymbol containingType ||
+                containingType.TypeArguments.Length != 2 ||
+                containingType.OriginalDefinition.ToDisplayString() != "System.Collections.Generic.SortedDictionary<TKey, TValue>" ||
+                propertyReferenceOperation.Arguments.Length == 0)
+            {
+                return false;
+            }
+
+            var keyType = containingType.TypeArguments[0];
+            if (keyType.TypeKind == TypeKind.TypeParameter)
+            {
+                return false;
+            }
+
+            result = CheckSortedDictionaryKeyDispatchPurity(keyType, propertyReferenceOperation, context);
+            return true;
+        }
+
         private static PurityAnalysisEngine.PurityAnalysisResult CheckDictionaryKeyDispatchPurity(
             ITypeSymbol keyType,
             IPropertyReferenceOperation propertyReferenceOperation,
@@ -394,6 +426,29 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckSortedDictionaryKeyDispatchPurity(
+            ITypeSymbol keyType,
+            IPropertyReferenceOperation propertyReferenceOperation,
+            PurityAnalysisContext context)
+        {
+            if (IsBuiltinValueKey(keyType))
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            if (TryGetIComparableCompareToImplementation(keyType, out var compareToImplementation))
+            {
+                return CheckResolvedKeyImplementation(compareToImplementation, propertyReferenceOperation, context);
+            }
+
+            if (TryGetIComparableObjectCompareToImplementation(keyType, out var objectCompareToImplementation))
+            {
+                return CheckResolvedKeyImplementation(objectCompareToImplementation, propertyReferenceOperation, context);
+            }
+
+            return UnknownKeyDispatch(propertyReferenceOperation);
         }
 
         private static PurityAnalysisEngine.PurityAnalysisResult CheckResolvedKeyImplementation(
@@ -457,6 +512,84 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 }
 
                 var foundImplementation = namedType.FindImplementationForInterfaceMember(interfaceEquals) as IMethodSymbol;
+                if (foundImplementation != null)
+                {
+                    implementation = foundImplementation;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TryGetIComparableCompareToImplementation(
+            ITypeSymbol keyType,
+            out IMethodSymbol implementation)
+        {
+            implementation = null!;
+
+            if (keyType is not INamedTypeSymbol namedType)
+            {
+                return false;
+            }
+
+            foreach (var interfaceType in namedType.AllInterfaces)
+            {
+                if (interfaceType.OriginalDefinition.ToDisplayString() != "System.IComparable<T>" ||
+                    interfaceType.TypeArguments.Length != 1 ||
+                    !SymbolEqualityComparer.Default.Equals(interfaceType.TypeArguments[0], keyType))
+                {
+                    continue;
+                }
+
+                var interfaceCompareTo = interfaceType
+                    .GetMembers(nameof(IComparable<object>.CompareTo))
+                    .OfType<IMethodSymbol>()
+                    .FirstOrDefault(method => method.Parameters.Length == 1);
+                if (interfaceCompareTo == null)
+                {
+                    continue;
+                }
+
+                var foundImplementation = namedType.FindImplementationForInterfaceMember(interfaceCompareTo) as IMethodSymbol;
+                if (foundImplementation != null)
+                {
+                    implementation = foundImplementation;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TryGetIComparableObjectCompareToImplementation(
+            ITypeSymbol keyType,
+            out IMethodSymbol implementation)
+        {
+            implementation = null!;
+
+            if (keyType is not INamedTypeSymbol namedType)
+            {
+                return false;
+            }
+
+            foreach (var interfaceType in namedType.AllInterfaces)
+            {
+                if (interfaceType.ToDisplayString() != "System.IComparable")
+                {
+                    continue;
+                }
+
+                var interfaceCompareTo = interfaceType
+                    .GetMembers(nameof(IComparable.CompareTo))
+                    .OfType<IMethodSymbol>()
+                    .FirstOrDefault(method => method.Parameters.Length == 1);
+                if (interfaceCompareTo == null)
+                {
+                    continue;
+                }
+
+                var foundImplementation = namedType.FindImplementationForInterfaceMember(interfaceCompareTo) as IMethodSymbol;
                 if (foundImplementation != null)
                 {
                     implementation = foundImplementation;
