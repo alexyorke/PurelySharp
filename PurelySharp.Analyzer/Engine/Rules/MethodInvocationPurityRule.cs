@@ -494,10 +494,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return typeDefinition is
                 "System.Collections.Generic.Dictionary<TKey, TValue>" or
                 "System.Collections.Generic.HashSet<T>" or
+                "System.Collections.Generic.SortedSet<T>" or
                 "System.Collections.Generic.SortedDictionary<TKey, TValue>" or
                 "System.Collections.Generic.SortedList<TKey, TValue>" or
                 "System.Collections.Immutable.ImmutableDictionary<TKey, TValue>" or
                 "System.Collections.Immutable.ImmutableHashSet<T>" or
+                "System.Collections.Immutable.ImmutableSortedSet<T>" or
                 "System.Collections.Immutable.ImmutableSortedDictionary<TKey, TValue>";
         }
 
@@ -1147,7 +1149,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             if (containingType.TypeArguments.Length == 1 &&
                 typeDefinition == "System.Collections.Generic.SortedSet<T>" &&
-                methodSymbol.Name == "Contains")
+                methodSymbol.Name is "Contains" or "TryGetValue")
             {
                 keyType = containingType.TypeArguments[0];
                 return keyType.TypeKind != TypeKind.TypeParameter;
@@ -1155,7 +1157,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             if (containingType.TypeArguments.Length == 1 &&
                 typeDefinition == "System.Collections.Immutable.ImmutableSortedSet<T>" &&
-                methodSymbol.Name is "Contains" or "Add" or "Remove")
+                methodSymbol.Name is "Contains" or "TryGetValue" or "Add" or "Remove")
             {
                 keyType = containingType.TypeArguments[0];
                 return keyType.TypeKind != TypeKind.TypeParameter;

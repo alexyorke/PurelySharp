@@ -373,6 +373,54 @@ public class TestClass
         }
 
         [Test]
+        public async Task SortedSetTryGetValueDispatchToImpureComparable_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public sealed class MutableKey : IComparable<MutableKey>
+{
+    public int CompareTo(MutableKey other)
+    {
+        Console.WriteLine(""compare"");
+        return 0;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(SortedSet<MutableKey> values, MutableKey key)
+    {
+        return values.TryGetValue(key, out var actual) && actual != null;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task SortedSetTryGetValueForBuiltinKey_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool TestMethod(SortedSet<int> values, int key)
+    {
+        return values.TryGetValue(key, out _);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ImmutableSortedDictionaryContainsKeyDispatchToImpureComparable_Diagnostic()
         {
             var test = @"
@@ -510,6 +558,54 @@ public class TestClass
     public bool TestMethod(ImmutableSortedSet<int> values, int key)
     {
         return values.Contains(key);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ImmutableSortedSetTryGetValueDispatchToImpureComparable_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Immutable;
+using PurelySharp.Attributes;
+
+public sealed class MutableKey : IComparable<MutableKey>
+{
+    public int CompareTo(MutableKey other)
+    {
+        Console.WriteLine(""compare"");
+        return 0;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(ImmutableSortedSet<MutableKey> values, MutableKey key)
+    {
+        return values.TryGetValue(key, out var actual) && actual != null;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ImmutableSortedSetTryGetValueForBuiltinKey_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Immutable;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool TestMethod(ImmutableSortedSet<int> values, int key)
+    {
+        return values.TryGetValue(key, out _);
     }
 }";
 
