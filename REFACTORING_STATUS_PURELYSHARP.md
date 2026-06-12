@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1466/1466` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1467/1467` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -71,6 +71,7 @@
 - `System.Net.IPAddress.Parse(string)` is cataloged consistently with the span overload as deterministic parsing without network I/O
 - property/indexer reference arguments are analyzed before getter purity or assignment-target shortcuts are accepted
 - array element assignment targets now analyze array and index expressions before skipping the element read itself
+- switch case guards now participate in CFG branch-value analysis instead of being skipped as non-`if`/loop branch values
 - boundary attribute tests now cover direct attribute precedence over assembly-level purity defaults
 - direct external `JetBrains.Annotations.PureAttribute` and `System.Diagnostics.Contracts.PureAttribute` metadata now acts as a purity contract instead of requiring catalog entries
 - external purity metadata on property getters is now considered when analyzing property symbols, including known-impure namespace overrides

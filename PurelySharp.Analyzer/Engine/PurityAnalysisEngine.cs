@@ -1535,7 +1535,8 @@ namespace PurelySharp.Analyzer.Engine
                 if (ancestor is Microsoft.CodeAnalysis.CSharp.Syntax.IfStatementSyntax ||
                     ancestor is Microsoft.CodeAnalysis.CSharp.Syntax.WhileStatementSyntax ||
                     ancestor is Microsoft.CodeAnalysis.CSharp.Syntax.DoStatementSyntax ||
-                    ancestor is Microsoft.CodeAnalysis.CSharp.Syntax.ForStatementSyntax)
+                    ancestor is Microsoft.CodeAnalysis.CSharp.Syntax.ForStatementSyntax ||
+                    ancestor is Microsoft.CodeAnalysis.CSharp.Syntax.WhenClauseSyntax)
                 {
                     return true;
                 }

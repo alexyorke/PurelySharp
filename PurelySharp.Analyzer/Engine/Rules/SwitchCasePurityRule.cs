@@ -13,6 +13,16 @@ namespace PurelySharp.Analyzer.Engine.Rules
         public PurityAnalysisEngine.PurityAnalysisResult CheckPurity(IOperation operation, PurityAnalysisContext context, PurityAnalysisEngine.PurityAnalysisState currentState)
         {
 
+            foreach (var child in operation.ChildOperations)
+            {
+                var childResult = PurityAnalysisEngine.CheckSingleOperation(child, context, currentState);
+                if (!childResult.IsPure)
+                {
+                    PurityAnalysisEngine.LogDebug($"    [SwitchCaseRule] CaseClause child operation is impure: {child.Syntax}");
+                    return childResult;
+                }
+            }
+
             PurityAnalysisEngine.LogDebug($"    [SwitchCaseRule] CaseClause operation ({operation.Syntax}) - Pure");
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
         }
