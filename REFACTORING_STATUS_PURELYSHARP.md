@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1615/1615` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1616/1616` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -21,6 +21,7 @@
 - LINQ secondary enumerable arguments now analyze locally declared `GetEnumerator()` implementations before treating multi-source queries as pure
 - virtual and interface property getters with pure contracts now inspect possible impure overrides/implementations before trusting the slot
 - `using(existingLocal)` now resolves stable concrete disposable initializers so implicit `Dispose` purity is checked precisely
+- `using(expression)` now checks implicit `Dispose` purity for expression resources such as direct object creation instead of only checking resource acquisition purity
 - configured pure/impure catalog overrides now run in scoped analysis context to avoid cross-compilation leakage
 - catalog tests now include symbol-resolved smoke coverage for representative pure and impure members, including `KeyedCollection<TKey,TItem>` and nullable exception-constructor signatures that have previously drifted
 - catalog tests now resolve recent Guid and DateTimeOffset entries against net8 reference assemblies

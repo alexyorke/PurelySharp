@@ -41,6 +41,37 @@ public class TestClass
         }
 
         [Test]
+        public async Task UsingStatementExpressionResource_WithImpureDispose_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}()
+    {
+        using (new ImpureDisposable())
+        {
+        }
+    }
+}
+
+public class ImpureDisposable : IDisposable
+{
+    private int _disposeCount;
+
+    public void Dispose()
+    {
+        _disposeCount++;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task UsingDeclaration_Diagnostic()
         {
             var test = @"

@@ -173,6 +173,34 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 }
             }
 
+            if (declaredLocals.Count == 0)
+            {
+                var expressionDisposeReceiverType = ResolveExpressionDisposeReceiverType(resourceOperation);
+                if (expressionDisposeReceiverType != null && ImplementsIDisposable(expressionDisposeReceiverType, context.SemanticModel.Compilation))
+                {
+                    PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Checking implicit Dispose() for expression resource of type {expressionDisposeReceiverType.Name}");
+
+                    IMethodSymbol? disposeMethod = FindDisposeMethod(expressionDisposeReceiverType, context.SemanticModel.Compilation);
+
+                    if (disposeMethod == null)
+                    {
+                        PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Could not find Dispose method for expression resource type {expressionDisposeReceiverType.Name}. Assuming impure.");
+                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(impureSyntaxNode ?? operation.Syntax);
+                    }
+
+                    PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Checking callee purity of {disposeMethod.ToDisplayString()}");
+                    var disposeResult = PurityAnalysisEngine.GetCalleePurity(disposeMethod, context);
+
+                    if (!disposeResult.IsPure)
+                    {
+                        PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Implicit Dispose() call on expression resource ({disposeMethod.Name}) is IMPURE.");
+                        return disposeResult.WithCallee(disposeMethod, impureSyntaxNode ?? operation.Syntax);
+                    }
+
+                    PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Implicit Dispose() call on expression resource ({disposeMethod.Name}) was analyzed as Pure.");
+                }
+            }
+
 
             PurityAnalysisEngine.LogDebug($"UsingStatementPurityRule: Resource, Body (if applicable), and Dispose() calls are all pure. Result: Pure.");
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
@@ -214,6 +242,14 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             return local.Type;
+        }
+
+        private ITypeSymbol? ResolveExpressionDisposeReceiverType(IOperation? resourceOperation)
+        {
+            var unwrappedResource = PurityAnalysisEngine.SkipImplicitConversions(resourceOperation);
+            return unwrappedResource is IObjectCreationOperation objectCreationOperation
+                ? objectCreationOperation.Type
+                : unwrappedResource?.Type ?? resourceOperation?.Type;
         }
 
         private ITypeSymbol? TryGetStableObjectCreationInitializerType(ILocalSymbol local, IOperation usingOperation, SemanticModel semanticModel)
