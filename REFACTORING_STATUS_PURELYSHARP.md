@@ -43,6 +43,7 @@
 - nullable-display `System.IO.Path` parser overloads such as `GetExtension(string?)` are cataloged as deterministic string operations without relaxing the broader `System.IO` namespace
 - unannotated non-framework metadata-only method calls now report unknown external call impurity instead of being treated as pure, while framework reference-assembly calls preserve the existing catalog/namespace policy
 - post-CFG throw scanning now skips statically unreachable throws, preserving reachable throw diagnostics without tainting constant-dead branches
+- `TimeSpan.Parse` with an explicit `CultureInfo.InvariantCulture` provider is allowed for string and span inputs, while current-culture overloads remain conservative
 - return escape analysis now inspects coalesce expressions so fresh owned arrays cannot escape through `??` arms without `PS0002`
 - generic static abstract interface operator dispatch is now conservative, matching static interface method dispatch when no concrete target is known
 - unused local function declarations no longer taint enclosing pure methods; invoked local functions are still checked through callee purity
