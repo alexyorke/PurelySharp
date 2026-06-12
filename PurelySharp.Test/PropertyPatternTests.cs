@@ -71,5 +71,47 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task PropertyPatternWithRelationalPattern_NoDiagnostic()
+        {
+            var test = @"
+#pragma warning disable PS0004
+using PurelySharp.Attributes;
+
+public sealed class Probe
+{
+    public int Value { get; }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool TestMethod(Probe probe)
+    {
+        return probe is { Value: > 0 };
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task NegatedNullPattern_NoDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool TestMethod(object value)
+    {
+        return value is not null;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
