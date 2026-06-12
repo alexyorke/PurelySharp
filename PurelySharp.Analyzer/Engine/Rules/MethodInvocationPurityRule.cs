@@ -688,9 +688,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             result = PurityAnalysisEngine.PurityAnalysisResult.Pure;
 
             var methodSymbol = invocationOperation.TargetMethod;
-            if (methodSymbol.Name is not ("Contains" or "SequenceEqual" or "Distinct" or "Except" or "Intersect" or "Union") ||
-                methodSymbol.TypeArguments.Length != 1 ||
-                methodSymbol.ContainingType?.OriginalDefinition.ToDisplayString() != "System.Linq.Enumerable")
+            if (!TryGetLinqDefaultEqualityDispatchType(methodSymbol, out var equalityType))
             {
                 return false;
             }
@@ -700,43 +698,81 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return false;
             }
 
-            var elementType = methodSymbol.TypeArguments[0];
-            if (elementType.TypeKind == TypeKind.TypeParameter)
+            if (equalityType.TypeKind == TypeKind.TypeParameter)
             {
                 return false;
             }
 
-            result = CheckDefaultEqualityDispatchPurity(elementType, invocationOperation, context);
+            result = CheckDefaultEqualityDispatchPurity(equalityType, invocationOperation, context);
+            return true;
+        }
+
+        private static bool TryGetLinqDefaultEqualityDispatchType(
+            IMethodSymbol methodSymbol,
+            out ITypeSymbol equalityType)
+        {
+            equalityType = null!;
+
+            if (methodSymbol.ContainingType?.OriginalDefinition.ToDisplayString() != "System.Linq.Enumerable")
+            {
+                return false;
+            }
+
+            if (methodSymbol.Name == "GroupBy")
+            {
+                if (methodSymbol.TypeArguments.Length < 2)
+                {
+                    return false;
+                }
+
+                equalityType = methodSymbol.TypeArguments[1];
+                return true;
+            }
+
+            if (methodSymbol.Name is not ("Contains" or "SequenceEqual" or "Distinct" or "Except" or "Intersect" or "Union") ||
+                methodSymbol.TypeArguments.Length != 1)
+            {
+                return false;
+            }
+
+            equalityType = methodSymbol.TypeArguments[0];
             return true;
         }
 
         private static bool IsLinqDefaultEqualityOverload(IInvocationOperation invocationOperation)
         {
             var methodSymbol = invocationOperation.TargetMethod;
-            if ((methodSymbol.Name == "Contains" && methodSymbol.Parameters.Length == 2) ||
-                (methodSymbol.Name == "SequenceEqual" && methodSymbol.Parameters.Length == 2) ||
-                (methodSymbol.Name == "Distinct" && methodSymbol.Parameters.Length == 1) ||
-                (IsLinqBinarySetOperation(methodSymbol.Name) && methodSymbol.Parameters.Length == 2))
+            if (TryGetEqualityComparerArgumentIndex(methodSymbol, out var comparerArgumentIndex))
             {
-                return true;
-            }
-
-            if ((methodSymbol.Name == "Contains" && methodSymbol.Parameters.Length == 3) ||
-                (methodSymbol.Name == "SequenceEqual" && methodSymbol.Parameters.Length == 3) ||
-                (methodSymbol.Name == "Distinct" && methodSymbol.Parameters.Length == 2) ||
-                (IsLinqBinarySetOperation(methodSymbol.Name) && methodSymbol.Parameters.Length == 3))
-            {
-                var comparerArgumentIndex = methodSymbol.Name == "Distinct" ? 1 : 2;
                 return invocationOperation.Arguments.Length > comparerArgumentIndex &&
                     IsNullOrDefaultComparerArgument(invocationOperation.Arguments[comparerArgumentIndex]);
+            }
+
+            return true;
+        }
+
+        private static bool TryGetEqualityComparerArgumentIndex(
+            IMethodSymbol methodSymbol,
+            out int argumentIndex)
+        {
+            argumentIndex = -1;
+
+            for (int i = 0; i < methodSymbol.Parameters.Length; i++)
+            {
+                if (IsEqualityComparerType(methodSymbol.Parameters[i].Type))
+                {
+                    argumentIndex = i;
+                    return true;
+                }
             }
 
             return false;
         }
 
-        private static bool IsLinqBinarySetOperation(string methodName)
+        private static bool IsEqualityComparerType(ITypeSymbol? typeSymbol)
         {
-            return methodName is "Except" or "Intersect" or "Union";
+            return typeSymbol is INamedTypeSymbol namedType &&
+                namedType.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.IEqualityComparer<T>";
         }
 
         private static bool TryCheckMemoryExtensionsDefaultEqualityDispatchPurity(

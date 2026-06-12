@@ -424,6 +424,106 @@ public class TestClass
         }
 
         [Test]
+        public async Task LinqGroupByDefaultKeyEqualityDispatchToImpureEquatable_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public sealed class MutableRecord : IEquatable<MutableRecord>
+{
+    public bool Equals(MutableRecord other)
+    {
+        Console.WriteLine(""equals"");
+        return true;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public IEnumerable<IGrouping<MutableRecord, MutableRecord>> {|PS0002:TestMethod|}(IEnumerable<MutableRecord> values)
+    {
+        return values.GroupBy(value => value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task LinqGroupByDefaultKeyEqualityForBuiltinKey_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public IEnumerable<IGrouping<int, string>> TestMethod(IEnumerable<string> values)
+    {
+        return values.GroupBy(value => value.Length);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task LinqGroupByDefaultComparerDispatchToImpureEquatable_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public sealed class MutableRecord : IEquatable<MutableRecord>
+{
+    public bool Equals(MutableRecord other)
+    {
+        Console.WriteLine(""equals"");
+        return true;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public IEnumerable<IGrouping<MutableRecord, MutableRecord>> {|PS0002:TestMethod|}(IEnumerable<MutableRecord> values)
+    {
+        return values.GroupBy(value => value, default(IEqualityComparer<MutableRecord>));
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task LinqGroupByDefaultComparerForBuiltinKey_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public IEnumerable<IGrouping<int, string>> TestMethod(IEnumerable<string> values)
+    {
+        return values.GroupBy(value => value.Length, default(IEqualityComparer<int>));
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task LinqDistinctWithInterfaceEqualityComparerParameter_Diagnostic()
         {
             var test = @"
