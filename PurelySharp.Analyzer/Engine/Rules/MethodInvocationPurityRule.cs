@@ -433,6 +433,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
             PurityAnalysisEngine.LogDebug($"  [MIR] Analyzing regular call to: {methodDisplayString} | Syntax: {invocationOperation.Syntax}");
 
 
+            if (TryCheckArrayAsReadOnlyOwnedLocalArrayPurity(invocationOperation, currentState, out var arrayAsReadOnlyResult))
+            {
+                return arrayAsReadOnlyResult;
+            }
+
 
             PurityAnalysisEngine.LogDebug($"  [MIR] Checking IsKnownImpure with signature: '{originalDefinitionSymbol.ToDisplayString()}'");
             if (PurityAnalysisEngine.IsKnownImpure(originalDefinitionSymbol))
@@ -484,6 +489,22 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return calleePurity.IsPure
                 ? PurityAnalysisEngine.PurityAnalysisResult.Pure
                 : calleePurity.WithCallee(originalDefinitionSymbol, invocationOperation.Syntax);
+        }
+
+        private static bool TryCheckArrayAsReadOnlyOwnedLocalArrayPurity(
+            IInvocationOperation invocationOperation,
+            PurityAnalysisEngine.PurityAnalysisState currentState,
+            out PurityAnalysisEngine.PurityAnalysisResult result)
+        {
+            result = PurityAnalysisEngine.PurityAnalysisResult.Pure;
+
+            if (PurityAnalysisEngine.IsArrayAsReadOnlyOwnedLocalArrayInvocation(invocationOperation, currentState))
+            {
+                PurityAnalysisEngine.LogDebug("  [MIR] Array.AsReadOnly over tracked fresh local array is treated as pure.");
+                return true;
+            }
+
+            return false;
         }
 
         private static bool IsPotentiallyDispatchedMethod(IMethodSymbol methodSymbol)

@@ -1017,6 +1017,7 @@ namespace PurelySharp.Analyzer.Engine
 
                             if (invocationOp.TargetMethod != null &&
                                 IsKnownImpure(invocationOp.TargetMethod.OriginalDefinition) &&
+                                !IsArrayAsReadOnlyOwnedLocalArrayInvocation(invocationOp, postCfgReturnState) &&
                                 !IsTransientCharArrayConsumedByStringConstructor(invocationOp, semanticModel))
                             {
                                 LogDebug($"{indent}    Post-CFG: Found Known Impure Invocation IMPURE: {invocationOp.Syntax} calling {invocationOp.TargetMethod.ToDisplayString()}");
@@ -2827,6 +2828,24 @@ namespace PurelySharp.Analyzer.Engine
             }
 
             return operation;
+        }
+
+        internal static bool IsArrayAsReadOnlyOwnedLocalArrayInvocation(
+            IInvocationOperation invocationOperation,
+            PurityAnalysisState currentState)
+        {
+            var targetMethod = invocationOperation.TargetMethod?.OriginalDefinition;
+            if (targetMethod == null ||
+                targetMethod.Name != "AsReadOnly" ||
+                targetMethod.ContainingType?.ToDisplayString() != "System.Array" ||
+                invocationOperation.Arguments.Length != 1)
+            {
+                return false;
+            }
+
+            var argumentValue = SkipImplicitConversions(invocationOperation.Arguments[0].Value);
+            return argumentValue is ILocalReferenceOperation localReference &&
+                   currentState.IsOwnedLocalArraySymbol(localReference.Local);
         }
 
 
