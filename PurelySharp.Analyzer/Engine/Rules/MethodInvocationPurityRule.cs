@@ -234,6 +234,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     return linqEqualityDispatchResult;
                 }
 
+                if (TryCheckLinqDefaultComparisonDispatchPurity(invocationOperation, context, out var linqComparisonDispatchResult))
+                {
+                    return linqComparisonDispatchResult;
+                }
+
                 PurityAnalysisEngine.LogDebug("  [MIR] LINQ source and all remaining arguments determined to be pure.");
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
@@ -707,6 +712,62 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return true;
         }
 
+        private static bool TryCheckLinqDefaultComparisonDispatchPurity(
+            IInvocationOperation invocationOperation,
+            PurityAnalysisContext context,
+            out PurityAnalysisEngine.PurityAnalysisResult result)
+        {
+            result = PurityAnalysisEngine.PurityAnalysisResult.Pure;
+
+            var methodSymbol = invocationOperation.TargetMethod;
+            if (!TryGetLinqDefaultComparisonDispatchType(methodSymbol, out var comparisonType))
+            {
+                return false;
+            }
+
+            if (!IsLinqDefaultComparisonOverload(invocationOperation))
+            {
+                return false;
+            }
+
+            if (comparisonType.TypeKind == TypeKind.TypeParameter)
+            {
+                return false;
+            }
+
+            result = CheckDefaultComparisonDispatchPurity(comparisonType, invocationOperation, context);
+            return true;
+        }
+
+        private static bool TryGetLinqDefaultComparisonDispatchType(
+            IMethodSymbol methodSymbol,
+            out ITypeSymbol comparisonType)
+        {
+            comparisonType = null!;
+
+            if (methodSymbol.ContainingType?.OriginalDefinition.ToDisplayString() != "System.Linq.Enumerable" ||
+                methodSymbol.Name is not ("OrderBy" or "OrderByDescending" or "ThenBy" or "ThenByDescending") ||
+                methodSymbol.TypeArguments.Length < 2)
+            {
+                return false;
+            }
+
+            comparisonType = methodSymbol.TypeArguments[1];
+            return true;
+        }
+
+        private static bool IsLinqDefaultComparisonOverload(IInvocationOperation invocationOperation)
+        {
+            var methodSymbol = invocationOperation.TargetMethod;
+            if (TryGetComparerArgumentIndex(methodSymbol, out var comparerArgumentIndex))
+            {
+                return invocationOperation.Arguments.Length > comparerArgumentIndex &&
+                    IsNullOrDefaultComparerArgument(invocationOperation.Arguments[comparerArgumentIndex]);
+            }
+
+            return true;
+        }
+
         private static bool TryGetLinqDefaultEqualityDispatchType(
             IMethodSymbol methodSymbol,
             out ITypeSymbol equalityType)
@@ -760,6 +821,30 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             return true;
+        }
+
+        private static bool TryGetComparerArgumentIndex(
+            IMethodSymbol methodSymbol,
+            out int argumentIndex)
+        {
+            argumentIndex = -1;
+
+            for (int i = 0; i < methodSymbol.Parameters.Length; i++)
+            {
+                if (IsComparerType(methodSymbol.Parameters[i].Type))
+                {
+                    argumentIndex = i;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsComparerType(ITypeSymbol? typeSymbol)
+        {
+            return typeSymbol is INamedTypeSymbol namedType &&
+                namedType.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.IComparer<T>";
         }
 
         private static bool TryGetEqualityComparerArgumentIndex(

@@ -774,6 +774,106 @@ public class TestClass
         }
 
         [Test]
+        public async Task LinqOrderByDefaultComparisonDispatchToImpureComparable_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public sealed class MutableKey : IComparable<MutableKey>
+{
+    public int CompareTo(MutableKey other)
+    {
+        Console.WriteLine(""compare"");
+        return 0;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public IOrderedEnumerable<MutableKey> {|PS0002:TestMethod|}(IEnumerable<MutableKey> values)
+    {
+        return values.OrderBy(value => value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task LinqOrderByDefaultComparisonForBuiltinKey_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public IOrderedEnumerable<string> TestMethod(IEnumerable<string> values)
+    {
+        return values.OrderBy(value => value.Length);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task LinqThenByDefaultComparerDispatchToImpureComparable_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public sealed class MutableKey : IComparable<MutableKey>
+{
+    public int CompareTo(MutableKey other)
+    {
+        Console.WriteLine(""compare"");
+        return 0;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public IOrderedEnumerable<MutableKey> {|PS0002:TestMethod|}(IEnumerable<MutableKey> values)
+    {
+        return values.OrderBy(value => 0).ThenBy(value => value, default(IComparer<MutableKey>));
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task LinqThenByDefaultComparerForBuiltinKey_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public IOrderedEnumerable<string> TestMethod(IEnumerable<string> values)
+    {
+        return values.OrderBy(value => 0).ThenBy(value => value.Length, default(IComparer<int>));
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task LinqOrderByWithInterfaceComparerParameter_Diagnostic()
         {
             var test = @"
