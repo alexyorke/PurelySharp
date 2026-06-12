@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1495/1495` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1497/1497` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -75,6 +75,7 @@
 - built-in floating-point and decimal `EqualityComparer<T>` dispatch is treated as pure value equality/hash behavior
 - concrete `List<T>.Contains`, `Array.IndexOf<T>`, and LINQ `Enumerable.Contains<TSource>` calls now derive default equality purity from the element type instead of blindly trusting broad pure catalog entries
 - concrete `HashSet<T>.Contains` and `Dictionary<TKey,TValue>.ContainsKey/TryGetValue` calls now derive key hash/equality purity from the key type before accepting broad catalog purity
+- concrete `Dictionary<TKey,TValue>` indexer reads now derive key hash/equality purity from the key type instead of treating the getter as intrinsically pure
 - concrete `SortedDictionary<TKey,TValue>.ContainsKey/TryGetValue`, `List<T>.BinarySearch(T)`, and `MemoryExtensions.BinarySearch<T>` calls now derive comparison purity from the key/element type instead of blindly trusting broad catalog entries
 - `global.json` pins the repo to .NET SDK `9.0.315` so build-backed validation does not float to newer SDK behavior
 - stale pure catalog entries for `Volatile.Read` and `Interlocked.Read` were removed so synchronization members consistently remain impure
