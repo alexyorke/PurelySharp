@@ -360,6 +360,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 }
             }
 
+            if (TryCheckEqualityComparerDispatchPurity(invocationOperation, context, out var equalityComparerDispatchResult))
+            {
+                return equalityComparerDispatchResult;
+            }
+
             if (PurityAnalysisEngine.HasPureExternalAttribute(originalDefinitionSymbol))
             {
                 PurityAnalysisEngine.LogDebug("  [MIR] --> PURE ([PureExternal] boundary attribute)");
@@ -555,6 +560,198 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static bool TryCheckEqualityComparerDispatchPurity(
+            IInvocationOperation invocationOperation,
+            PurityAnalysisContext context,
+            out PurityAnalysisEngine.PurityAnalysisResult result)
+        {
+            result = PurityAnalysisEngine.PurityAnalysisResult.Pure;
+
+            var methodSymbol = invocationOperation.TargetMethod;
+            if (!TryGetEqualityComparerElementType(methodSymbol, out var elementType))
+            {
+                return false;
+            }
+
+            if (IsBuiltinValueEquality(elementType))
+            {
+                return true;
+            }
+
+            if (methodSymbol.Name == nameof(object.Equals) && methodSymbol.Parameters.Length == 2)
+            {
+                if (TryGetIEquatableEqualsImplementation(elementType, out var equalsImplementation))
+                {
+                    result = CheckResolvedEqualityImplementation(
+                        equalsImplementation,
+                        invocationOperation,
+                        context);
+                    return true;
+                }
+
+                if (TryGetObjectOverride(elementType, nameof(object.Equals), parameterCount: 1, out var objectEqualsOverride))
+                {
+                    result = CheckResolvedEqualityImplementation(
+                        objectEqualsOverride,
+                        invocationOperation,
+                        context);
+                    return true;
+                }
+            }
+            else if (methodSymbol.Name == nameof(object.GetHashCode) && methodSymbol.Parameters.Length == 1)
+            {
+                if (TryGetObjectOverride(elementType, nameof(object.GetHashCode), parameterCount: 0, out var getHashCodeOverride))
+                {
+                    result = CheckResolvedEqualityImplementation(
+                        getHashCodeOverride,
+                        invocationOperation,
+                        context);
+                    return true;
+                }
+            }
+            else
+            {
+                return false;
+            }
+
+            result = PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                invocationOperation.Syntax,
+                PurityAnalysisEngine.PurityEvidence.Create(
+                    "unknown_external_call",
+                    nameof(MethodInvocationPurityRule),
+                    invocationOperation,
+                    symbol: methodSymbol));
+            return true;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckResolvedEqualityImplementation(
+            IMethodSymbol implementation,
+            IInvocationOperation invocationOperation,
+            PurityAnalysisContext context)
+        {
+            if (implementation.DeclaringSyntaxReferences.Length == 0 &&
+                !PurityAnalysisEngine.IsKnownPureBCLMember(implementation) &&
+                !PurityAnalysisEngine.HasPureExternalAttribute(implementation))
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                    invocationOperation.Syntax,
+                    PurityAnalysisEngine.PurityEvidence.Create(
+                        "unknown_external_call",
+                        nameof(MethodInvocationPurityRule),
+                        invocationOperation,
+                        symbol: implementation));
+            }
+
+            var implementationPurity = PurityAnalysisEngine.GetCalleePurity(implementation.OriginalDefinition, context);
+            return implementationPurity.IsPure
+                ? PurityAnalysisEngine.PurityAnalysisResult.Pure
+                : implementationPurity.WithCallee(implementation.OriginalDefinition, invocationOperation.Syntax);
+        }
+
+        private static bool TryGetEqualityComparerElementType(
+            IMethodSymbol methodSymbol,
+            out ITypeSymbol elementType)
+        {
+            elementType = null!;
+
+            if (methodSymbol.ContainingType is not INamedTypeSymbol containingType ||
+                containingType.TypeArguments.Length != 1 ||
+                containingType.OriginalDefinition.ToDisplayString() != "System.Collections.Generic.EqualityComparer<T>")
+            {
+                return false;
+            }
+
+            if ((methodSymbol.Name == nameof(object.Equals) && methodSymbol.Parameters.Length == 2) ||
+                (methodSymbol.Name == nameof(object.GetHashCode) && methodSymbol.Parameters.Length == 1))
+            {
+                elementType = containingType.TypeArguments[0];
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryGetIEquatableEqualsImplementation(
+            ITypeSymbol elementType,
+            out IMethodSymbol implementation)
+        {
+            implementation = null!;
+
+            if (elementType is not INamedTypeSymbol namedType)
+            {
+                return false;
+            }
+
+            foreach (var interfaceType in namedType.AllInterfaces)
+            {
+                if (interfaceType.OriginalDefinition.ToDisplayString() != "System.IEquatable<T>" ||
+                    interfaceType.TypeArguments.Length != 1 ||
+                    !SymbolEqualityComparer.Default.Equals(interfaceType.TypeArguments[0], elementType))
+                {
+                    continue;
+                }
+
+                var interfaceEquals = interfaceType
+                    .GetMembers(nameof(IEquatable<object>.Equals))
+                    .OfType<IMethodSymbol>()
+                    .FirstOrDefault(method => method.Parameters.Length == 1);
+                if (interfaceEquals == null)
+                {
+                    continue;
+                }
+
+                var foundImplementation = namedType.FindImplementationForInterfaceMember(interfaceEquals) as IMethodSymbol;
+                if (foundImplementation != null)
+                {
+                    implementation = foundImplementation;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TryGetObjectOverride(
+            ITypeSymbol elementType,
+            string memberName,
+            int parameterCount,
+            out IMethodSymbol implementation)
+        {
+            implementation = null!;
+
+            if (elementType is not INamedTypeSymbol namedType)
+            {
+                return false;
+            }
+
+            implementation = namedType
+                .GetMembers(memberName)
+                .OfType<IMethodSymbol>()
+                .FirstOrDefault(method => method.IsOverride && method.Parameters.Length == parameterCount);
+            return implementation != null;
+        }
+
+        private static bool IsBuiltinValueEquality(ITypeSymbol elementType)
+        {
+            if (elementType.TypeKind == TypeKind.Enum)
+            {
+                return true;
+            }
+
+            return elementType.SpecialType is
+                SpecialType.System_Boolean or
+                SpecialType.System_Byte or
+                SpecialType.System_SByte or
+                SpecialType.System_Int16 or
+                SpecialType.System_UInt16 or
+                SpecialType.System_Int32 or
+                SpecialType.System_UInt32 or
+                SpecialType.System_Int64 or
+                SpecialType.System_UInt64 or
+                SpecialType.System_Char or
+                SpecialType.System_String;
         }
 
         private static bool CanHaveExternalOverrides(IMethodSymbol methodSymbol, INamedTypeSymbol? knownReceiverType)
@@ -927,6 +1124,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
         {
             var compilation = semanticModel.Compilation;
             var target = invokedMethodSymbol.OriginalDefinition;
+            var interfaceImplementationTarget = invokedMethodSymbol.ContainingType?.TypeKind == TypeKind.Interface
+                ? invokedMethodSymbol
+                : target;
             var targets = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
 
             if (target.ContainingType?.TypeKind == TypeKind.Interface)
@@ -935,7 +1135,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 {
                     if (IsAllocationOnlyInterfaceReceiver(invocationInstance))
                     {
-                        var implementation = knownReceiverType.FindImplementationForInterfaceMember(target) as IMethodSymbol;
+                        var implementation = knownReceiverType.FindImplementationForInterfaceMember(interfaceImplementationTarget) as IMethodSymbol;
                         if (implementation != null)
                         {
                             targets.Add(implementation.OriginalDefinition);
@@ -951,7 +1151,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     if (knownReceiverType.TypeKind == TypeKind.Struct ||
                         (knownReceiverType.TypeKind == TypeKind.Class && knownReceiverType.IsSealed))
                     {
-                        var implementation = knownReceiverType.FindImplementationForInterfaceMember(target) as IMethodSymbol;
+                        var implementation = knownReceiverType.FindImplementationForInterfaceMember(interfaceImplementationTarget) as IMethodSymbol;
                         if (implementation != null)
                         {
                             targets.Add(implementation.OriginalDefinition);

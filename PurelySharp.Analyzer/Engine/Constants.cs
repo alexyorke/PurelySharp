@@ -1424,8 +1424,6 @@ public static class Constants
         "System.Enum.TryParse<TEnum>(string, bool, out TEnum)",
         "System.Enum.TryParse<TEnum>(string?, out TEnum)",
         "System.Enum.TryParse<TEnum>(string?, bool, out TEnum)",
-        "System.IEquatable<T>.Equals(T)",
-
         "System.Linq.Enumerable.Average",
         "System.Linq.Enumerable.Distinct<TSource>(System.Collections.Generic.IEnumerable<TSource>)",
         "System.Linq.Enumerable.ElementAt<TSource>(System.Collections.Generic.IEnumerable<TSource>, int)",
@@ -1513,8 +1511,6 @@ public static class Constants
         "System.Buffers.ReadOnlySequence<T>.Start.get",
         "char.ConvertFromUtf32(int)",
         "char.ConvertToUtf32(char, char)",
-        "System.Collections.Generic.EqualityComparer<T>.Equals(T, T)",
-        "System.Collections.Generic.EqualityComparer<T>.GetHashCode(T)",
         "System.Collections.Generic.ICollection<T>.Contains(T)",
         "System.Collections.Generic.IList<T>.IndexOf(T)",
         "System.Collections.Generic.List<T>.Contains(T)",
