@@ -759,6 +759,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task PathGetFileNameWithoutExtension_NoDiagnostic()
+        {
+            var test = @"
+#nullable enable
+using System.IO;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public string? TestMethod(string path)
+    {
+        return Path.GetFileNameWithoutExtension(path);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task UnusedMemoryStreamCreation_ReportsPS0002()
         {
 

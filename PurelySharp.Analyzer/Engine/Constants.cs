@@ -1127,6 +1127,8 @@ public static class Constants
         "System.IO.Path.GetExtension(string?)",
         "System.IO.Path.GetFileName(string)",
         "System.IO.Path.GetFileName(string?)",
+        "System.IO.Path.GetFileNameWithoutExtension(string)",
+        "System.IO.Path.GetFileNameWithoutExtension(string?)",
 
 
         "System.Linq.Enumerable.Aggregate",
