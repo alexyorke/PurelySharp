@@ -101,6 +101,7 @@ public static class CatalogConflictSamples
         {
             var source = @"
 using System;
+using System.Numerics;
 
 public static class RecentCatalogSignatureSamples
 {
@@ -111,6 +112,8 @@ public static class RecentCatalogSignatureSamples
         _ = Guid.TryParseExact(text, ""D"", out parsed);
         _ = guid.ToString(""N"");
         _ = guid.ToByteArray();
+        _ = BitOperations.LeadingZeroCount(1u);
+        _ = BitOperations.PopCount(1ul);
         var fromSeconds = DateTimeOffset.FromUnixTimeSeconds(0);
         var added = value.AddDays(1);
         return added.ToUnixTimeMilliseconds() + value.Offset.Ticks;
@@ -128,6 +131,8 @@ public static class RecentCatalogSignatureSamples
             AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "Guid.TryParseExact(text, \"D\", out parsed)"), expectedPure: true, expectedImpure: false);
             AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "guid.ToString(\"N\")"), expectedPure: true, expectedImpure: false);
             AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "guid.ToByteArray()"), expectedPure: true, expectedImpure: false);
+            AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "BitOperations.LeadingZeroCount(1u)"), expectedPure: true, expectedImpure: false);
+            AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "BitOperations.PopCount(1ul)"), expectedPure: true, expectedImpure: false);
             AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "DateTimeOffset.FromUnixTimeSeconds(0)"), expectedPure: true, expectedImpure: false);
             AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "value.AddDays(1)"), expectedPure: true, expectedImpure: false);
             AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "added.ToUnixTimeMilliseconds()"), expectedPure: true, expectedImpure: false);
