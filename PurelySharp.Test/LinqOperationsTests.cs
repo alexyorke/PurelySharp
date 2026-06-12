@@ -524,6 +524,106 @@ public class TestClass
         }
 
         [Test]
+        public async Task LinqToLookupDefaultKeyEqualityDispatchToImpureEquatable_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public sealed class MutableRecord : IEquatable<MutableRecord>
+{
+    public bool Equals(MutableRecord other)
+    {
+        Console.WriteLine(""equals"");
+        return true;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public ILookup<MutableRecord, MutableRecord> {|PS0002:TestMethod|}(IEnumerable<MutableRecord> values)
+    {
+        return values.ToLookup(value => value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task LinqToLookupDefaultKeyEqualityForBuiltinKey_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public ILookup<int, string> TestMethod(IEnumerable<string> values)
+    {
+        return values.ToLookup(value => value.Length);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task LinqToLookupDefaultComparerDispatchToImpureEquatable_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public sealed class MutableRecord : IEquatable<MutableRecord>
+{
+    public bool Equals(MutableRecord other)
+    {
+        Console.WriteLine(""equals"");
+        return true;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public ILookup<MutableRecord, MutableRecord> {|PS0002:TestMethod|}(IEnumerable<MutableRecord> values)
+    {
+        return values.ToLookup(value => value, default(IEqualityComparer<MutableRecord>));
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task LinqToLookupDefaultComparerForBuiltinKey_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public ILookup<int, string> TestMethod(IEnumerable<string> values)
+    {
+        return values.ToLookup(value => value.Length, default(IEqualityComparer<int>));
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task LinqDistinctWithInterfaceEqualityComparerParameter_Diagnostic()
         {
             var test = @"

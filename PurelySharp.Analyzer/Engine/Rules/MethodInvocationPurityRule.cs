@@ -718,7 +718,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return false;
             }
 
-            if (methodSymbol.Name == "GroupBy")
+            if (methodSymbol.Name is "GroupBy" or "ToLookup")
             {
                 if (methodSymbol.TypeArguments.Length < 2)
                 {
