@@ -215,5 +215,31 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task IndexerReadWithImpureIndex_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class ReadOnlyCollection
+{
+    public int this[int index] => index;
+}
+
+public class TestClass
+{
+    private readonly ReadOnlyCollection _collection = new ReadOnlyCollection();
+
+    [EnforcePure]
+    public int {|PS0002:GetItem|}()
+    {
+        return _collection[Console.Read()];
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

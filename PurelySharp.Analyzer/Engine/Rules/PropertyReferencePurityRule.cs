@@ -30,6 +30,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
 
+            var argumentResult = CheckArguments(propertyReferenceOperation, context, currentState);
+            if (!argumentResult.IsPure)
+            {
+                return argumentResult;
+            }
 
             if (IsPartOfAssignmentTarget(propertyReferenceOperation))
             {
@@ -282,6 +287,28 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
 
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckArguments(
+            IPropertyReferenceOperation propertyReferenceOperation,
+            PurityAnalysisContext context,
+            PurityAnalysisEngine.PurityAnalysisState currentState)
+        {
+            foreach (var argument in propertyReferenceOperation.Arguments)
+            {
+                if (argument.Value == null)
+                {
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(argument.Syntax);
+                }
+
+                var argumentResult = PurityAnalysisEngine.CheckSingleOperation(argument.Value, context, currentState);
+                if (!argumentResult.IsPure)
+                {
+                    return argumentResult;
+                }
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
         }
 
         private static bool IsPartOfAssignmentTarget(IOperation operation)
