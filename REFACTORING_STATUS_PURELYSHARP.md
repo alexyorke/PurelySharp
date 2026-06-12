@@ -68,6 +68,7 @@
 - `System.Numerics.BitOperations` deterministic helpers now use symbol-resolved member-level catalog signatures instead of stale `System.BitOperations` entries
 - `System.Buffers.Binary.BinaryPrimitives` integer read helpers are cataloged as deterministic pure reads while span-writing helpers remain conservative
 - `System.Buffers.Binary.BinaryPrimitives.ReverseEndianness` scalar overloads are cataloged as deterministic pure helpers
+- `System.Net.IPAddress.Parse(string)` is cataloged consistently with the span overload as deterministic parsing without network I/O
 - boundary attribute tests now cover direct attribute precedence over assembly-level purity defaults
 - direct external `JetBrains.Annotations.PureAttribute` and `System.Diagnostics.Contracts.PureAttribute` metadata now acts as a purity contract instead of requiring catalog entries
 - external purity metadata on property getters is now considered when analyzing property symbols, including known-impure namespace overrides

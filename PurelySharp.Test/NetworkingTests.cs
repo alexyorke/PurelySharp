@@ -170,7 +170,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task IPAddressParse_Diagnostic()
+        public async Task IPAddressParse_NoDiagnostic()
         {
             var test = @"
 using System.Net;
@@ -179,7 +179,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public IPAddress {|PS0002:TestMethod|}(string value)
+    public IPAddress TestMethod(string value)
     {
         return IPAddress.Parse(value);
     }
