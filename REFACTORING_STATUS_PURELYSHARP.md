@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1452/1452` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1453/1453` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -69,6 +69,7 @@
 - external purity metadata on property getters is now considered when analyzing property symbols, including known-impure namespace overrides
 - assembly-level `PureExternal` is now considered when property symbols are checked for purity enforcement, including known-impure namespace overrides
 - explicit pure constructor boundaries now override the final object-creation impure-namespace fallback without weakening array or mutable-collection handling
+- `foreach` loops now analyze the collection expression before the loop body so impure enumerable sources are not skipped
 - caching coverage now verifies the lazy compilation call graph is reused across repeated purity requests
 - corpus SARIF parsing now trims diagnostic evidence properties and normalizes whitespace-only values before aggregation
 - NuGet build script now accepts absolute output directories as well as repo-relative output paths

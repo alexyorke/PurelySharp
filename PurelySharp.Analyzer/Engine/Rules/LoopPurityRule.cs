@@ -28,6 +28,16 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
 
+            if (loopOperation is IForEachLoopOperation forEachLoopOperation)
+            {
+                var collectionResult = PurityAnalysisEngine.CheckSingleOperation(forEachLoopOperation.Collection, context, currentState);
+                if (!collectionResult.IsPure)
+                {
+                    PurityAnalysisEngine.LogDebug($"    [LoopRule] IMPURE due to foreach collection expression: {forEachLoopOperation.Collection.Syntax}");
+                    return collectionResult;
+                }
+            }
+
 
             if (loopOperation.Body != null)
             {
