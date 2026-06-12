@@ -375,6 +375,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return equalityComparerDispatchResult;
             }
 
+            if (TryCheckComparerDispatchPurity(invocationOperation, context, out var comparerDispatchResult))
+            {
+                return comparerDispatchResult;
+            }
+
             if (TryCheckCollectionEqualityDispatchPurity(invocationOperation, context, out var collectionEqualityDispatchResult))
             {
                 return collectionEqualityDispatchResult;
@@ -648,6 +653,23 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     nameof(MethodInvocationPurityRule),
                     invocationOperation,
                     symbol: methodSymbol));
+            return true;
+        }
+
+        private static bool TryCheckComparerDispatchPurity(
+            IInvocationOperation invocationOperation,
+            PurityAnalysisContext context,
+            out PurityAnalysisEngine.PurityAnalysisResult result)
+        {
+            result = PurityAnalysisEngine.PurityAnalysisResult.Pure;
+
+            var methodSymbol = invocationOperation.TargetMethod;
+            if (!TryGetComparerElementType(methodSymbol, out var elementType))
+            {
+                return false;
+            }
+
+            result = CheckDefaultComparisonDispatchPurity(elementType, invocationOperation, context);
             return true;
         }
 
@@ -958,6 +980,28 @@ namespace PurelySharp.Analyzer.Engine.Rules
             {
                 elementType = containingType.TypeArguments[0];
                 return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryGetComparerElementType(
+            IMethodSymbol methodSymbol,
+            out ITypeSymbol elementType)
+        {
+            elementType = null!;
+
+            if (methodSymbol.ContainingType is not INamedTypeSymbol containingType ||
+                containingType.TypeArguments.Length != 1 ||
+                containingType.OriginalDefinition.ToDisplayString() != "System.Collections.Generic.Comparer<T>")
+            {
+                return false;
+            }
+
+            if (methodSymbol.Name == "Compare" && methodSymbol.Parameters.Length == 2)
+            {
+                elementType = containingType.TypeArguments[0];
+                return elementType.TypeKind != TypeKind.TypeParameter;
             }
 
             return false;

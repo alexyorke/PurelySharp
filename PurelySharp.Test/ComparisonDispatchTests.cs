@@ -181,6 +181,54 @@ public class TestClass
         }
 
         [Test]
+        public async Task ComparerDefaultCompareDispatchToImpureComparable_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public sealed class MutableKey : IComparable<MutableKey>
+{
+    public int CompareTo(MutableKey other)
+    {
+        Console.WriteLine(""compare"");
+        return 0;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:TestMethod|}(MutableKey left, MutableKey right)
+    {
+        return Comparer<MutableKey>.Default.Compare(left, right);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ComparerDefaultCompareForBuiltinKey_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int TestMethod(int left, int right)
+    {
+        return Comparer<int>.Default.Compare(left, right);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task SortedDictionaryIndexerDispatchToImpureComparable_Diagnostic()
         {
             var test = @"
