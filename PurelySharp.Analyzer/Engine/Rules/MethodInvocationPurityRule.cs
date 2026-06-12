@@ -220,6 +220,13 @@ namespace PurelySharp.Analyzer.Engine.Rules
                         PurityAnalysisEngine.LogDebug("  [MIR] --> IMPURE (LINQ comparer argument has impure comparison implementation)");
                         return comparerResult;
                     }
+
+                    var enumerableArgumentResult = CheckLinqSourceEnumeratorPurity(argument.Value, context);
+                    if (!enumerableArgumentResult.IsPure)
+                    {
+                        PurityAnalysisEngine.LogDebug("  [MIR] --> IMPURE (LINQ enumerable argument GetEnumerator was impure)");
+                        return enumerableArgumentResult;
+                    }
                 }
 
                 PurityAnalysisEngine.LogDebug("  [MIR] LINQ source and all remaining arguments determined to be pure.");

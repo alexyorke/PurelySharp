@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1440/1440` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1442/1442` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -18,6 +18,7 @@
 - compound assignments now analyze RHS impurity instead of treating unsupported compound assignment operations as pure
 - LINQ source enumeration now resolves explicit interface `GetEnumerator` implementations before treating deferred queries as pure
 - LINQ comparer arguments now analyze locally declared `IEqualityComparer<T>` and `IComparer<T>` implementations before treating comparer-backed queries as pure
+- LINQ secondary enumerable arguments now analyze locally declared `GetEnumerator()` implementations before treating multi-source queries as pure
 - virtual and interface property getters with pure contracts now inspect possible impure overrides/implementations before trusting the slot
 - `using(existingLocal)` now resolves stable concrete disposable initializers so implicit `Dispose` purity is checked precisely
 - configured pure/impure catalog overrides now run in scoped analysis context to avoid cross-compilation leakage
