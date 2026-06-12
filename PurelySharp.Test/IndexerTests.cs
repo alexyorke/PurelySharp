@@ -82,9 +82,8 @@ public class TestClass
 
 
 
-            var expectedGetItem = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0004).WithSpan(13, 19, 13, 23).WithArguments("get_Item");
             var expectedSetValue = VerifyCS.Diagnostic(PurelySharpAnalyzer.PS0002).WithSpan(25, 17, 25, 25).WithArguments("SetValue");
-            await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedGetItem, expectedSetValue });
+            await VerifyCS.VerifyAnalyzerAsync(test, expectedSetValue);
         }
 
         [Test]

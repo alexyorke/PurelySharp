@@ -360,11 +360,6 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             var keyType = containingType.TypeArguments[0];
-            if (keyType.TypeKind == TypeKind.TypeParameter)
-            {
-                return false;
-            }
-
             result = CheckDictionaryKeyDispatchPurity(keyType, propertyReferenceOperation, context);
             return true;
         }
@@ -390,11 +385,6 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             var keyType = containingType.TypeArguments[0];
-            if (keyType.TypeKind == TypeKind.TypeParameter)
-            {
-                return false;
-            }
-
             result = CheckSortedDictionaryKeyDispatchPurity(keyType, propertyReferenceOperation, context);
             return true;
         }

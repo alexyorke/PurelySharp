@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1606/1606` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1608/1608` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -82,6 +82,7 @@
 - LINQ `GroupBy`, `ToLookup`, `Join`, and `GroupJoin` default comparer paths now derive equality purity from the selected key type (`TKey`) instead of the source element type
 - LINQ `OrderBy`/`ThenBy` and generic `Min`/`Max` default comparer paths now derive comparison purity from the selected key/value type instead of treating ordering/extrema as intrinsically pure
 - generic type-parameter comparison paths now remain conservative instead of falling through to broad catalog purity when `Comparer<T>.Default` cannot be resolved
+- generic dictionary and sorted-dictionary indexer reads now remain conservative instead of falling through when key equality/comparison cannot be resolved
 - LINQ delegate arguments and delegate-invoking `List<T>`/array helper methods now reject unresolved delegate targets instead of treating delegate parameters as pure values
 - direct `Comparer<T>.Compare(T,T)` calls now derive comparison purity from `T` instead of treating the abstract comparer dispatch as intrinsically pure or unknown
 - ImmutableList<T>.Contains now derives default equality purity from the element type instead of relying on the broad immutable-collection catalog shortcut
