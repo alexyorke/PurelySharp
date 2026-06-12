@@ -213,6 +213,13 @@ namespace PurelySharp.Analyzer.Engine.Rules
                             argumentResult.ImpureSyntaxNode ?? argument.Value.Syntax,
                             argumentResult.Evidence);
                     }
+
+                    var comparerResult = CheckLinqComparerArgumentPurity(argument, context);
+                    if (!comparerResult.IsPure)
+                    {
+                        PurityAnalysisEngine.LogDebug("  [MIR] --> IMPURE (LINQ comparer argument has impure comparison implementation)");
+                        return comparerResult;
+                    }
                 }
 
                 PurityAnalysisEngine.LogDebug("  [MIR] LINQ source and all remaining arguments determined to be pure.");
@@ -1274,6 +1281,28 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
         }
 
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckLinqComparerArgumentPurity(
+            IArgumentOperation argument,
+            PurityAnalysisContext context)
+        {
+            var value = PurityAnalysisEngine.SkipImplicitConversions(argument.Value) ?? argument.Value;
+            if (value.Type == null)
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            foreach (var comparisonMethod in EnumerateComparerImplementations(value.Type))
+            {
+                var comparisonPurity = PurityAnalysisEngine.GetCalleePurity(comparisonMethod.OriginalDefinition, context);
+                if (!comparisonPurity.IsPure)
+                {
+                    return comparisonPurity.WithCallee(comparisonMethod, value.Syntax);
+                }
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
         private static IEnumerable<IMethodSymbol> EnumerateSourceGetEnumeratorImplementations(ITypeSymbol sourceType)
         {
             var seen = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
@@ -1325,6 +1354,44 @@ namespace PurelySharp.Analyzer.Engine.Rules
             var originalDefinition = typeSymbol.OriginalDefinition;
             return originalDefinition.SpecialType == SpecialType.System_Collections_IEnumerable ||
                 originalDefinition.SpecialType == SpecialType.System_Collections_Generic_IEnumerable_T;
+        }
+
+        private static IEnumerable<IMethodSymbol> EnumerateComparerImplementations(ITypeSymbol comparerType)
+        {
+            if (comparerType is not INamedTypeSymbol namedComparerType)
+            {
+                yield break;
+            }
+
+            var seen = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+            foreach (var interfaceType in namedComparerType.AllInterfaces)
+            {
+                if (!IsComparerInterface(interfaceType))
+                {
+                    continue;
+                }
+
+                foreach (var interfaceMethod in interfaceType.GetMembers().OfType<IMethodSymbol>())
+                {
+                    var implementation = namedComparerType.FindImplementationForInterfaceMember(interfaceMethod) as IMethodSymbol;
+                    if (implementation == null || implementation.DeclaringSyntaxReferences.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    if (seen.Add(implementation.OriginalDefinition))
+                    {
+                        yield return implementation;
+                    }
+                }
+            }
+        }
+
+        private static bool IsComparerInterface(INamedTypeSymbol typeSymbol)
+        {
+            var displayString = typeSymbol.OriginalDefinition.ToDisplayString();
+            return displayString == "System.Collections.Generic.IEqualityComparer<T>" ||
+                displayString == "System.Collections.Generic.IComparer<T>";
         }
 
         private static IEnumerable<INamedTypeSymbol> EnumerateAllNamedTypes(INamespaceSymbol root)

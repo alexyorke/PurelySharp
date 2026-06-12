@@ -163,6 +163,95 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task LinqDistinctWithImpureEqualityComparer_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public sealed class ImpureComparer : IEqualityComparer<int>
+{
+    public bool Equals(int x, int y)
+    {
+        Console.WriteLine(""comparing"");
+        return x == y;
+    }
+
+    public int GetHashCode(int obj) => obj;
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public IEnumerable<int> {|PS0002:TestMethod|}(IEnumerable<int> numbers)
+    {
+        return numbers.Distinct(new ImpureComparer());
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task LinqDistinctWithPureEqualityComparer_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public sealed class PureComparer : IEqualityComparer<int>
+{
+    public bool Equals(int x, int y) => x == y;
+
+    public int GetHashCode(int obj) => obj;
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public IEnumerable<int> TestMethod(IEnumerable<int> numbers)
+    {
+        return numbers.Distinct(new PureComparer());
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task LinqOrderByWithImpureComparer_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public sealed class ImpureComparer : IComparer<int>
+{
+    public int Compare(int x, int y)
+    {
+        Console.WriteLine(""comparing"");
+        return x.CompareTo(y);
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public IOrderedEnumerable<int> {|PS0002:TestMethod|}(IEnumerable<int> numbers)
+    {
+        return numbers.OrderBy(value => value, new ImpureComparer());
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
 
