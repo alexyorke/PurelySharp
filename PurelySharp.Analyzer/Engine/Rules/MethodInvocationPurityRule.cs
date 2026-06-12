@@ -796,11 +796,6 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return false;
             }
 
-            if (equalityType.TypeKind == TypeKind.TypeParameter)
-            {
-                return false;
-            }
-
             result = CheckDefaultEqualityDispatchPurity(equalityType, invocationOperation, context);
             return true;
         }
@@ -1099,7 +1094,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 methodSymbol.Name is "IndexOf" or "LastIndexOf")
             {
                 elementType = methodSymbol.TypeArguments[0];
-                return elementType.TypeKind != TypeKind.TypeParameter;
+                return true;
             }
 
             var typeDefinition = containingType.OriginalDefinition.ToDisplayString();
@@ -1109,7 +1104,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             {
                 elementType = containingType.TypeArguments[0];
                 requiresHashCode = true;
-                return elementType.TypeKind != TypeKind.TypeParameter;
+                return true;
             }
 
             if (containingType.TypeArguments.Length == 2 &&
@@ -1118,7 +1113,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             {
                 elementType = containingType.TypeArguments[0];
                 requiresHashCode = true;
-                return elementType.TypeKind != TypeKind.TypeParameter;
+                return true;
             }
 
             if (containingType.TypeArguments.Length == 2 &&
@@ -1127,7 +1122,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 methodSymbol.Name == "ContainsValue")
             {
                 elementType = containingType.TypeArguments[1];
-                return elementType.TypeKind != TypeKind.TypeParameter;
+                return true;
             }
 
             if (containingType.TypeArguments.Length != 1)
@@ -1168,7 +1163,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             requiresHashCode =
                 typeDefinition == "System.Collections.Generic.HashSet<T>" ||
                 typeDefinition == "System.Collections.Immutable.ImmutableHashSet<T>";
-            return elementType.TypeKind != TypeKind.TypeParameter;
+            return true;
         }
 
         private static bool TryGetDefaultComparisonCollectionKeyType(

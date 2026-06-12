@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1602/1602` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1604/1604` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -74,6 +74,7 @@
 - `IEquatable<T>.Equals(T)` and `EqualityComparer<T>.Equals/GetHashCode` no longer rely on broad pure catalog entries; dispatch now derives purity from in-compilation equality/hash implementations where possible and stays conservative for unresolved user dispatch
 - built-in floating-point and decimal `EqualityComparer<T>` dispatch is treated as pure value equality/hash behavior
 - concrete `List<T>.Contains`, `Array.IndexOf<T>`, and LINQ `Enumerable.Contains<TSource>` calls now derive default equality purity from the element type instead of blindly trusting broad pure catalog entries
+- generic type-parameter equality lookups now remain conservative instead of falling through to broad catalog purity when `T.Equals`/`GetHashCode` cannot be resolved
 - concrete `HashSet<T>.Contains/TryGetValue` and set-relation methods plus `Dictionary<TKey,TValue>.ContainsKey/TryGetValue` and `ContainsValue` calls now derive key/value equality purity from the key or value type before accepting broad catalog purity
 - concrete `Dictionary<TKey,TValue>` indexer reads now derive key hash/equality purity from the key type instead of treating the getter as intrinsically pure
 - LINQ and span `SequenceEqual<T>` plus span `Contains`/`IndexOf`/`LastIndexOf`/`StartsWith`/`EndsWith` calls now derive default equality purity from the element type instead of blindly trusting broad catalog entries

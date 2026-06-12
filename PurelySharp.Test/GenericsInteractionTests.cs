@@ -74,13 +74,17 @@ public class GenericTestManager
             var expectedFindStringStartingWithB = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
                                                           .WithSpan(31, 19, 31, 42)
                                                           .WithArguments("FindStringStartingWithB");
+            var expectedContainsItem = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                            .WithSpan(22, 17, 22, 29)
+                                            .WithArguments("ContainsItem");
 
             await VerifyCS.VerifyAnalyzerAsync(
                 test,
                 expectedGetAll,
                 expectedHasBanana,
                 expectedFindItem,
-                expectedFindStringStartingWithB);
+                expectedFindStringStartingWithB,
+                expectedContainsItem);
         }
 
         [Test]
@@ -116,9 +120,13 @@ public class Repository<T>
             var expectedAddAndLog = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
                                             .WithSpan(17, 17, 17, 26)
                                             .WithArguments("AddAndLog");
+            var expectedContainsItem = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
+                                            .WithSpan(14, 17, 14, 29)
+                                            .WithArguments("ContainsItem");
 
             await VerifyCS.VerifyAnalyzerAsync(test,
-                                             expectedAddAndLog);
+                                             expectedAddAndLog,
+                                             expectedContainsItem);
         }
     }
 }
