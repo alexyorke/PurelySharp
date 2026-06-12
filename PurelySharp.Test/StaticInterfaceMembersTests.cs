@@ -298,6 +298,54 @@ public class Calculator
         }
 
         [Test]
+        public async Task StaticAbstractInterfaceConversionOperator_GenericDispatch_IsConservative()
+        {
+            var test = @"
+// Requires LangVersion 11+
+#nullable enable
+using PurelySharp.Attributes;
+
+public interface IIntConvertible<T> where T : IIntConvertible<T>
+{
+    static abstract explicit operator int(T value);
+}
+
+public readonly struct Number : IIntConvertible<Number>
+{
+    public readonly int Value;
+
+    [EnforcePure]
+    public Number(int value)
+    {
+        Value = value;
+    }
+
+    public static explicit operator int(Number value) => value.Value;
+}
+
+public class Calculator
+{
+    [EnforcePure]
+    public int {|PS0002:ConvertGeneric|}<T>(T value) where T : IIntConvertible<T>
+    {
+        return (int)value;
+    }
+}
+";
+
+            await new VerifyCS.Test
+            {
+                TestCode = test,
+                ReferenceAssemblies = ReferenceAssemblies.Net.Net80,
+                SolutionTransforms =
+                {
+                    (solution, projectId) =>
+                        solution.AddMetadataReference(projectId, Microsoft.CodeAnalysis.MetadataReference.CreateFromFile(typeof(EnforcePureAttribute).Assembly.Location))
+                },
+            }.RunAsync();
+        }
+
+        [Test]
         public async Task StaticInterfaceMethod_VirtualWithDefault_PureImplementation_MissingAttributeDiagnostics()
         {
             var test = @"
