@@ -1122,7 +1122,11 @@ public static class Constants
 
         "System.IO.Path.Combine(string, string)",
         "System.IO.Path.GetDirectoryName(string)",
+        "System.IO.Path.GetDirectoryName(string?)",
+        "System.IO.Path.GetExtension(string)",
+        "System.IO.Path.GetExtension(string?)",
         "System.IO.Path.GetFileName(string)",
+        "System.IO.Path.GetFileName(string?)",
 
 
         "System.Linq.Enumerable.Aggregate",
@@ -1361,7 +1365,9 @@ public static class Constants
         "System.Index.Index(int, bool)",
         "System.IO.EndOfStreamException.EndOfStreamException()",
         "System.IO.Path.ChangeExtension(string, string)",
+        "System.IO.Path.ChangeExtension(string?, string?)",
         "System.IO.Path.HasExtension(string)",
+        "System.IO.Path.HasExtension(string?)",
         "System.IO.Pipelines.Pipe.Pipe(System.IO.Pipelines.PipeOptions)",
         "System.Linq.Expressions.Expression.Constant(object)",
         "System.Linq.Expressions.Expression.Call(System.Reflection.MethodInfo, System.Linq.Expressions.Expression[])",
