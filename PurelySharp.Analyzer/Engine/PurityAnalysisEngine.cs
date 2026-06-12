@@ -1677,8 +1677,17 @@ namespace PurelySharp.Analyzer.Engine
             Microsoft.CodeAnalysis.CSharp.Syntax.SwitchExpressionArmSyntax? matchedArm = null;
             foreach (var arm in switchExpressionSyntax.Arms)
             {
-                if (MatchesConstantSwitchPattern(arm.Pattern, governingValue.Value, semanticModel) &&
-                    IsConstantTrueWhenClause(arm.WhenClause, semanticModel))
+                if (!MatchesConstantSwitchPattern(arm.Pattern, governingValue.Value, semanticModel))
+                {
+                    continue;
+                }
+
+                if (IsUnknownWhenClause(arm.WhenClause, semanticModel))
+                {
+                    return false;
+                }
+
+                if (IsConstantTrueWhenClause(arm.WhenClause, semanticModel))
                 {
                     matchedArm = arm;
                     break;
@@ -1786,6 +1795,19 @@ namespace PurelySharp.Analyzer.Engine
 
             var whenValue = semanticModel.GetConstantValue(whenClause.Condition);
             return whenValue.HasValue && whenValue.Value is bool boolValue && boolValue;
+        }
+
+        private static bool IsUnknownWhenClause(
+            Microsoft.CodeAnalysis.CSharp.Syntax.WhenClauseSyntax? whenClause,
+            SemanticModel semanticModel)
+        {
+            if (whenClause == null)
+            {
+                return false;
+            }
+
+            var whenValue = semanticModel.GetConstantValue(whenClause.Condition);
+            return !whenValue.HasValue;
         }
 
         private static bool ConstantValuesEqual(object? left, object? right)

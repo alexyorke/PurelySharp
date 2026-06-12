@@ -188,6 +188,29 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task ConstantSwitchExpressionWithRuntimeGuard_DoesNotDropReachableArmValue()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:TestMethod|}(bool flag)
+    {
+        return 1 switch
+        {
+            1 when flag => Console.Read(),
+            _ => 0
+        };
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
 
