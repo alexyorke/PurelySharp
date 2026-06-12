@@ -375,6 +375,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return collectionEqualityDispatchResult;
             }
 
+            if (TryCheckCollectionComparisonDispatchPurity(invocationOperation, context, out var collectionComparisonDispatchResult))
+            {
+                return collectionComparisonDispatchResult;
+            }
+
             if (PurityAnalysisEngine.HasPureExternalAttribute(originalDefinitionSymbol))
             {
                 PurityAnalysisEngine.LogDebug("  [MIR] --> PURE ([PureExternal] boundary attribute)");
@@ -653,6 +658,23 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return true;
         }
 
+        private static bool TryCheckCollectionComparisonDispatchPurity(
+            IInvocationOperation invocationOperation,
+            PurityAnalysisContext context,
+            out PurityAnalysisEngine.PurityAnalysisResult result)
+        {
+            result = PurityAnalysisEngine.PurityAnalysisResult.Pure;
+
+            var methodSymbol = invocationOperation.TargetMethod;
+            if (!TryGetDefaultComparisonCollectionKeyType(methodSymbol, out var keyType))
+            {
+                return false;
+            }
+
+            result = CheckDefaultComparisonDispatchPurity(keyType, invocationOperation, context);
+            return true;
+        }
+
         private static bool TryCheckLinqDefaultEqualityDispatchPurity(
             IInvocationOperation invocationOperation,
             PurityAnalysisContext context,
@@ -785,6 +807,24 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return elementType.TypeKind != TypeKind.TypeParameter;
         }
 
+        private static bool TryGetDefaultComparisonCollectionKeyType(
+            IMethodSymbol methodSymbol,
+            out ITypeSymbol keyType)
+        {
+            keyType = null!;
+
+            if (methodSymbol.ContainingType is not INamedTypeSymbol containingType ||
+                containingType.TypeArguments.Length != 2 ||
+                containingType.OriginalDefinition.ToDisplayString() != "System.Collections.Generic.SortedDictionary<TKey, TValue>" ||
+                methodSymbol.Name is not ("ContainsKey" or "TryGetValue"))
+            {
+                return false;
+            }
+
+            keyType = containingType.TypeArguments[0];
+            return keyType.TypeKind != TypeKind.TypeParameter;
+        }
+
         private static PurityAnalysisEngine.PurityAnalysisResult CheckDefaultEqualityDispatchPurity(
             ITypeSymbol elementType,
             IInvocationOperation invocationOperation,
@@ -849,6 +889,41 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     symbol: invocationOperation.TargetMethod));
         }
 
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckDefaultComparisonDispatchPurity(
+            ITypeSymbol keyType,
+            IInvocationOperation invocationOperation,
+            PurityAnalysisContext context)
+        {
+            if (IsBuiltinValueComparison(keyType))
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            if (TryGetIComparableCompareToImplementation(keyType, out var compareToImplementation))
+            {
+                return CheckResolvedEqualityImplementation(
+                    compareToImplementation,
+                    invocationOperation,
+                    context);
+            }
+
+            if (TryGetIComparableObjectCompareToImplementation(keyType, out var objectCompareToImplementation))
+            {
+                return CheckResolvedEqualityImplementation(
+                    objectCompareToImplementation,
+                    invocationOperation,
+                    context);
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                invocationOperation.Syntax,
+                PurityAnalysisEngine.PurityEvidence.Create(
+                    "unknown_external_call",
+                    nameof(MethodInvocationPurityRule),
+                    invocationOperation,
+                    symbol: invocationOperation.TargetMethod));
+        }
+
         private static bool TryGetIEquatableEqualsImplementation(
             ITypeSymbol elementType,
             out IMethodSymbol implementation)
@@ -889,6 +964,84 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return false;
         }
 
+        private static bool TryGetIComparableCompareToImplementation(
+            ITypeSymbol keyType,
+            out IMethodSymbol implementation)
+        {
+            implementation = null!;
+
+            if (keyType is not INamedTypeSymbol namedType)
+            {
+                return false;
+            }
+
+            foreach (var interfaceType in namedType.AllInterfaces)
+            {
+                if (interfaceType.OriginalDefinition.ToDisplayString() != "System.IComparable<T>" ||
+                    interfaceType.TypeArguments.Length != 1 ||
+                    !SymbolEqualityComparer.Default.Equals(interfaceType.TypeArguments[0], keyType))
+                {
+                    continue;
+                }
+
+                var interfaceCompareTo = interfaceType
+                    .GetMembers(nameof(IComparable<object>.CompareTo))
+                    .OfType<IMethodSymbol>()
+                    .FirstOrDefault(method => method.Parameters.Length == 1);
+                if (interfaceCompareTo == null)
+                {
+                    continue;
+                }
+
+                var foundImplementation = namedType.FindImplementationForInterfaceMember(interfaceCompareTo) as IMethodSymbol;
+                if (foundImplementation != null)
+                {
+                    implementation = foundImplementation;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TryGetIComparableObjectCompareToImplementation(
+            ITypeSymbol keyType,
+            out IMethodSymbol implementation)
+        {
+            implementation = null!;
+
+            if (keyType is not INamedTypeSymbol namedType)
+            {
+                return false;
+            }
+
+            foreach (var interfaceType in namedType.AllInterfaces)
+            {
+                if (interfaceType.ToDisplayString() != "System.IComparable")
+                {
+                    continue;
+                }
+
+                var interfaceCompareTo = interfaceType
+                    .GetMembers(nameof(IComparable.CompareTo))
+                    .OfType<IMethodSymbol>()
+                    .FirstOrDefault(method => method.Parameters.Length == 1);
+                if (interfaceCompareTo == null)
+                {
+                    continue;
+                }
+
+                var foundImplementation = namedType.FindImplementationForInterfaceMember(interfaceCompareTo) as IMethodSymbol;
+                if (foundImplementation != null)
+                {
+                    implementation = foundImplementation;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private static bool TryGetObjectOverride(
             ITypeSymbol elementType,
             string memberName,
@@ -917,6 +1070,30 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             return elementType.SpecialType is
+                SpecialType.System_Boolean or
+                SpecialType.System_Byte or
+                SpecialType.System_SByte or
+                SpecialType.System_Int16 or
+                SpecialType.System_UInt16 or
+                SpecialType.System_Int32 or
+                SpecialType.System_UInt32 or
+                SpecialType.System_Int64 or
+                SpecialType.System_UInt64 or
+                SpecialType.System_Single or
+                SpecialType.System_Double or
+                SpecialType.System_Decimal or
+                SpecialType.System_Char or
+                SpecialType.System_String;
+        }
+
+        private static bool IsBuiltinValueComparison(ITypeSymbol keyType)
+        {
+            if (keyType.TypeKind == TypeKind.Enum)
+            {
+                return true;
+            }
+
+            return keyType.SpecialType is
                 SpecialType.System_Boolean or
                 SpecialType.System_Byte or
                 SpecialType.System_SByte or
