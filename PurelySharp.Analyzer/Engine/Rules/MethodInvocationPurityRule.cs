@@ -746,8 +746,23 @@ namespace PurelySharp.Analyzer.Engine.Rules
             comparisonType = null!;
 
             if (methodSymbol.ContainingType?.OriginalDefinition.ToDisplayString() != "System.Linq.Enumerable" ||
-                methodSymbol.Name is not ("OrderBy" or "OrderByDescending" or "ThenBy" or "ThenByDescending") ||
-                methodSymbol.TypeArguments.Length < 2)
+                methodSymbol.Name is not ("OrderBy" or "OrderByDescending" or "ThenBy" or "ThenByDescending" or "Min" or "Max"))
+            {
+                return false;
+            }
+
+            if (methodSymbol.Name is "Min" or "Max")
+            {
+                if (methodSymbol.TypeArguments.Length != 1)
+                {
+                    return false;
+                }
+
+                comparisonType = methodSymbol.TypeArguments[0];
+                return true;
+            }
+
+            if (methodSymbol.TypeArguments.Length < 2)
             {
                 return false;
             }

@@ -874,6 +874,56 @@ public class TestClass
         }
 
         [Test]
+        public async Task LinqMinDefaultComparisonDispatchToImpureComparable_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public sealed class MutableKey : IComparable<MutableKey>
+{
+    public int CompareTo(MutableKey other)
+    {
+        Console.WriteLine(""compare"");
+        return 0;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public MutableKey {|PS0002:TestMethod|}(IEnumerable<MutableKey> values)
+    {
+        return values.Min();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task LinqMaxDefaultComparisonForBuiltinValue_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int TestMethod(IEnumerable<int> values)
+    {
+        return values.Max();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task LinqOrderByWithInterfaceComparerParameter_Diagnostic()
         {
             var test = @"
