@@ -38,6 +38,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
 
+            bool isAwaitUsing = IsAwaitUsingOperation(operation);
 
             if (resourceOperation != null)
             {
@@ -135,7 +136,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             foreach (var local in declaredLocals)
             {
-                var disposeReceiverType = ResolveDisposeReceiverType(local, operation, context.SemanticModel);
+                var disposeReceiverType = ResolveDisposeReceiverType(local, operation, context.SemanticModel, isAwaitUsing);
                 if (disposeReceiverType == null)
                 {
                     PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Local '{local.Name}' has no resolvable Dispose receiver type. Skipping Dispose check.");
@@ -145,8 +146,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Checking implicit Dispose() for local '{local.Name}' of type {disposeReceiverType.Name}");
 
 
-                IMethodSymbol? disposeMethod = FindDisposeMethod(disposeReceiverType, context.SemanticModel.Compilation) ??
-                    FindDisposeAsyncMethod(disposeReceiverType, context.SemanticModel.Compilation);
+                IMethodSymbol? disposeMethod = FindDisposalMethod(disposeReceiverType, context.SemanticModel.Compilation, isAwaitUsing);
 
                 if (disposeMethod == null)
                 {
@@ -181,8 +181,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 {
                     PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Checking implicit Dispose() for expression resource of type {expressionDisposeReceiverType.Name}");
 
-                    IMethodSymbol? disposeMethod = FindDisposeMethod(expressionDisposeReceiverType, context.SemanticModel.Compilation) ??
-                        FindDisposeAsyncMethod(expressionDisposeReceiverType, context.SemanticModel.Compilation);
+                    IMethodSymbol? disposeMethod = FindDisposalMethod(expressionDisposeReceiverType, context.SemanticModel.Compilation, isAwaitUsing);
 
                     if (disposeMethod == null)
                     {
@@ -234,10 +233,10 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return locals;
         }
 
-        private ITypeSymbol? ResolveDisposeReceiverType(ILocalSymbol local, IOperation usingOperation, SemanticModel semanticModel)
+        private ITypeSymbol? ResolveDisposeReceiverType(ILocalSymbol local, IOperation usingOperation, SemanticModel semanticModel, bool isAwaitUsing)
         {
             var initializerType = TryGetStableObjectCreationInitializerType(local, usingOperation, semanticModel);
-            if (initializerType != null && FindDisposeMethod(initializerType, semanticModel.Compilation) != null)
+            if (initializerType != null && FindDisposalMethod(initializerType, semanticModel.Compilation, isAwaitUsing) != null)
             {
                 PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Local '{local.Name}' Dispose receiver resolved from initializer type {initializerType.Name}.");
                 return initializerType;
@@ -349,6 +348,23 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return typeSymbol.Equals(disposableInterface, SymbolEqualityComparer.Default) ||
                   typeSymbol.AllInterfaces.Contains(disposableInterface, SymbolEqualityComparer.Default);
 
+        }
+
+        private static bool IsAwaitUsingOperation(IOperation operation)
+        {
+            return operation.Syntax switch
+            {
+                UsingStatementSyntax usingStatementSyntax => usingStatementSyntax.AwaitKeyword.RawKind != 0,
+                LocalDeclarationStatementSyntax localDeclarationStatementSyntax => localDeclarationStatementSyntax.AwaitKeyword.RawKind != 0,
+                _ => false
+            };
+        }
+
+        private IMethodSymbol? FindDisposalMethod(ITypeSymbol typeSymbol, Compilation compilation, bool isAwaitUsing)
+        {
+            return isAwaitUsing
+                ? FindDisposeAsyncMethod(typeSymbol, compilation) ?? FindDisposeMethod(typeSymbol, compilation)
+                : FindDisposeMethod(typeSymbol, compilation) ?? FindDisposeAsyncMethod(typeSymbol, compilation);
         }
 
         private IMethodSymbol? FindDisposeMethod(ITypeSymbol typeSymbol, Compilation compilation)
