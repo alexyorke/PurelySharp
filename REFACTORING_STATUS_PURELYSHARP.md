@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1620/1620` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1621/1621` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -42,6 +42,7 @@
 - interface property getter dispatch now has direct regression coverage for sealed receiver narrowing through explicit casts and same-implementation conditional branches
 - conditional return expressions now preserve mutable-array escape diagnostics when any reachable arm returns a known-pure array factory result or owned local array
 - constant conditional return expressions now ignore dead mutable-array escape arms
+- constant switch sections with unreachable false guards now have direct regression coverage to prevent dead impure operations from tainting the method
 - constant short-circuit `&&`/`||` expressions now skip unreachable impure right operands
 - constant non-null coalesce expressions now skip unreachable impure fallback operands
 - constant-null conditional access now skips unreachable impure `WhenNotNull` operations

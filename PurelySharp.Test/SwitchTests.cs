@@ -162,6 +162,32 @@ public class TestClass
                                    .WithArguments("TestMethod");
             await VerifyCS.VerifyAnalyzerAsync(test, expected);
         }
+
+        [Test]
+        public async Task ConstantSwitchFalseGuardWithoutDefault_IgnoresDeadImpureSection()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int TestMethod()
+    {
+        switch (1)
+        {
+            case 1 when false:
+                Console.WriteLine(""dead"");
+                return 1;
+        }
+
+        return 2;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
 
