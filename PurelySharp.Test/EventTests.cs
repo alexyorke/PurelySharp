@@ -51,7 +51,7 @@ public class TestClass
     public void TestMethod()
     {
         // Event subscription modifies state and should be impure.
-        MyEvent += () => Console.WriteLine(); // Expect PS0002 if no specific rule flags this
+        MyEvent += () => Console.WriteLine(); // Event assignment is reported as mutable state write.
     }
 }
 ";
@@ -73,7 +73,7 @@ using PurelySharp.Attributes;
 public class EventSource
 {
     public event EventHandler TestEvent;
-    // Removed [EnforcePure] - Base methods shouldn't usually need it unless explicitly designed pure
+    // Base helper is intentionally unannotated so this test only expects diagnostics on enforced methods.
     protected virtual void OnTestEvent(object sender, EventArgs e) => TestEvent?.Invoke(this, e); // Added parameters
 }
 
