@@ -820,6 +820,15 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             var typeDefinition = containingType.OriginalDefinition.ToDisplayString();
+            if (typeDefinition == "System.MemoryExtensions" &&
+                methodSymbol.IsGenericMethod &&
+                methodSymbol.Name == "BinarySearch" &&
+                methodSymbol.Parameters.Length == 2)
+            {
+                keyType = methodSymbol.Parameters[1].Type;
+                return keyType.TypeKind != TypeKind.TypeParameter;
+            }
+
             if (containingType.TypeArguments.Length == 2 &&
                 typeDefinition == "System.Collections.Generic.SortedDictionary<TKey, TValue>" &&
                 methodSymbol.Name is "ContainsKey" or "TryGetValue")
