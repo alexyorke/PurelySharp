@@ -284,6 +284,32 @@ public class TestClass
         }
 
         [Test]
+        public async Task MetadataOnlyExternalMethodWithoutBoundaryAttribute_IsConservative()
+        {
+            var boundaryReference = CreateBoundaryReference(
+                "UntrustedExternalBoundary",
+                @"
+public static class Boundary
+{
+    private static int _counter;
+
+    public static int Next() => ++_counter;
+}");
+
+            var verifier = CreateVerifier(@"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:Caller|}() => Boundary.Next();
+}");
+            verifier.TestState.AdditionalReferences.Add(boundaryReference);
+
+            await verifier.RunAsync();
+        }
+
+        [Test]
         public async Task ExternalJetBrainsPureAttribute_OverridesImpureNamespaceAtCallSite()
         {
             var boundaryReference = CreateBoundaryReference(

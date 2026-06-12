@@ -479,6 +479,18 @@ namespace PurelySharp.Analyzer.Engine.Rules
                         catalogSource: "known_impure_namespace_or_type"));
             }
 
+            if (IsUntrustedMetadataOnlyMethod(originalDefinitionSymbol))
+            {
+                PurityAnalysisEngine.LogDebug("  [MIR] --> IMPURE (Metadata-only external method without purity boundary)");
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                    invocationOperation.Syntax,
+                    PurityAnalysisEngine.PurityEvidence.Create(
+                        "unknown_external_call",
+                        nameof(MethodInvocationPurityRule),
+                        invocationOperation,
+                        symbol: originalDefinitionSymbol,
+                        catalogSource: "metadata"));
+            }
 
             PurityAnalysisEngine.LogDebug($"  [MIR] Performing purity check for: {methodDisplayString}");
 
@@ -489,6 +501,33 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return calleePurity.IsPure
                 ? PurityAnalysisEngine.PurityAnalysisResult.Pure
                 : calleePurity.WithCallee(originalDefinitionSymbol, invocationOperation.Syntax);
+        }
+
+        private static bool IsUntrustedMetadataOnlyMethod(IMethodSymbol methodSymbol)
+        {
+            if (methodSymbol.DeclaringSyntaxReferences.Length > 0 || methodSymbol.IsAbstract)
+            {
+                return false;
+            }
+
+            var assemblyName = methodSymbol.ContainingAssembly?.Identity.Name;
+            return !IsFrameworkAssemblyName(assemblyName);
+        }
+
+        private static bool IsFrameworkAssemblyName(string? assemblyName)
+        {
+            if (string.IsNullOrEmpty(assemblyName))
+            {
+                return false;
+            }
+
+            var name = assemblyName!;
+            return name == "mscorlib" ||
+                name == "netstandard" ||
+                name == "System" ||
+                name == "System.Private.CoreLib" ||
+                name.StartsWith("System.", StringComparison.Ordinal) ||
+                name.StartsWith("Microsoft.", StringComparison.Ordinal);
         }
 
         private static bool TryCheckArrayAsReadOnlyOwnedLocalArrayPurity(
