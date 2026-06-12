@@ -33,17 +33,27 @@ namespace PurelySharp.Test
         {
             var source = @"
 using System;
+using System.Collections.ObjectModel;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
+
+public sealed class NameCollection : KeyedCollection<string, string>
+{
+    protected override string GetKeyForItem(string item) => item;
+}
 
 public static class CatalogSignatureSamples
 {
     public static int Sample()
     {
         var list = new List<int>();
+        var names = new NameCollection();
         list.Add(1);
         var now = DateTime.Now;
         _ = IPAddress.Loopback;
+        _ = names.Contains(""alpha"");
+        _ = new FileNotFoundException(""missing.txt"");
         return Array.Empty<int>().Length + list.Count + now.Day;
     }
 }";
@@ -68,6 +78,12 @@ public static class CatalogSignatureSamples
 
             Assert.That(GetPropertySignature(compilation, syntaxTree, "list.Count"), Is.EqualTo("System.Collections.Generic.List<T>.Count.get"));
             Assert.That(Constants.KnownPureBCLMembers, Does.Contain(GetPropertySignature(compilation, syntaxTree, "list.Count")));
+
+            Assert.That(GetInvocationSignature(compilation, syntaxTree, "names.Contains(\"alpha\")"), Is.EqualTo("System.Collections.ObjectModel.KeyedCollection<TKey, TItem>.Contains(TKey)"));
+            Assert.That(Constants.KnownPureBCLMembers, Does.Contain(GetInvocationSignature(compilation, syntaxTree, "names.Contains(\"alpha\")")));
+
+            Assert.That(GetObjectCreationSignature(compilation, syntaxTree, "new FileNotFoundException(\"missing.txt\")"), Is.EqualTo("System.IO.FileNotFoundException.FileNotFoundException(string?)"));
+            Assert.That(Constants.KnownPureBCLMembers, Does.Contain(GetObjectCreationSignature(compilation, syntaxTree, "new FileNotFoundException(\"missing.txt\")")));
         }
 
         [Test]
@@ -236,6 +252,17 @@ public static class RecentCatalogSignatureSamples
                 .Single(node => node.ToString() == expressionText);
             var symbol = compilation.GetSemanticModel(syntaxTree).GetSymbolInfo(invocation).Symbol;
             Assert.That(symbol, Is.Not.Null, "Invocation should resolve: " + expressionText);
+            return symbol!.OriginalDefinition.ToDisplayString();
+        }
+
+        private static string GetObjectCreationSignature(Compilation compilation, SyntaxTree syntaxTree, string expressionText)
+        {
+            var objectCreation = syntaxTree.GetRoot()
+                .DescendantNodes()
+                .OfType<ObjectCreationExpressionSyntax>()
+                .Single(node => node.ToString() == expressionText);
+            var symbol = compilation.GetSemanticModel(syntaxTree).GetSymbolInfo(objectCreation).Symbol;
+            Assert.That(symbol, Is.Not.Null, "Object creation should resolve: " + expressionText);
             return symbol!.OriginalDefinition.ToDisplayString();
         }
 

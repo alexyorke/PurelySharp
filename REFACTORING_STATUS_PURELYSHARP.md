@@ -22,7 +22,7 @@
 - virtual and interface property getters with pure contracts now inspect possible impure overrides/implementations before trusting the slot
 - `using(existingLocal)` now resolves stable concrete disposable initializers so implicit `Dispose` purity is checked precisely
 - configured pure/impure catalog overrides now run in scoped analysis context to avoid cross-compilation leakage
-- catalog tests now include symbol-resolved smoke coverage for representative pure and impure members
+- catalog tests now include symbol-resolved smoke coverage for representative pure and impure members, including `KeyedCollection<TKey,TItem>` and nullable exception-constructor signatures that have previously drifted
 - catalog tests now resolve recent Guid and DateTimeOffset entries against net8 reference assemblies
 - non-return throw statements now report PS0002 consistently instead of being treated as pure divergence
 - generic `new T()` construction now emits structured unsupported-operation evidence instead of fallback PS0002 metadata
