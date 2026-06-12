@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1609/1609` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1611/1611` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -85,7 +85,7 @@
 - generic dictionary and sorted-dictionary indexer reads now remain conservative instead of falling through when key equality/comparison cannot be resolved
 - LINQ delegate arguments and delegate-invoking `List<T>`/array helper methods now reject unresolved delegate targets instead of treating delegate parameters as pure values
 - direct `Comparer<T>.Compare(T,T)` calls now derive comparison purity from `T` instead of treating the abstract comparer dispatch as intrinsically pure or unknown
-- ImmutableList<T>.Contains now derives default equality purity from the element type instead of relying on the broad immutable-collection catalog shortcut
+- ImmutableList<T>.Contains/Remove now derives default equality purity from the element type instead of relying on the broad immutable-collection catalog shortcut
 - ImmutableHashSet<T>.Contains/TryGetValue/set-relation methods and ImmutableDictionary<TKey,TValue>.ContainsKey/TryGetValue now derive key hash/equality purity from the element or key type before accepting immutable-collection catalog purity
 - ImmutableHashSet<T>.Add/Remove and ImmutableDictionary<TKey,TValue>.Add/Remove/SetItem now derive key hash/equality purity from the element or key type before accepting immutable update methods as pure
 - ImmutableDictionary<TKey,TValue> indexer reads now derive key hash/equality purity from the key type instead of relying on the broad immutable-property catalog shortcut

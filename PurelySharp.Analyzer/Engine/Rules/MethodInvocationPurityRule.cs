@@ -1145,11 +1145,14 @@ namespace PurelySharp.Analyzer.Engine.Rules
             var isImmutableHashSetUpdate =
                 typeDefinition == "System.Collections.Immutable.ImmutableHashSet<T>" &&
                 methodSymbol.Name is "Add" or "Remove";
+            var isImmutableListRemove =
+                typeDefinition == "System.Collections.Immutable.ImmutableList<T>" &&
+                methodSymbol.Name == "Remove";
             var isHashSetRelation =
                 (typeDefinition == "System.Collections.Generic.HashSet<T>" ||
                  typeDefinition == "System.Collections.Immutable.ImmutableHashSet<T>") &&
                 methodSymbol.Name is "SetEquals" or "Overlaps" or "IsSubsetOf" or "IsSupersetOf" or "IsProperSubsetOf" or "IsProperSupersetOf";
-            if (!isDefaultEqualityLookup && !isImmutableHashSetUpdate && !isHashSetRelation)
+            if (!isDefaultEqualityLookup && !isImmutableHashSetUpdate && !isImmutableListRemove && !isHashSetRelation)
             {
                 return false;
             }

@@ -1281,6 +1281,54 @@ public class TestClass
         }
 
         [Test]
+        public async Task ImmutableListRemoveDispatchToImpureEquatableImplementation_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Immutable;
+using PurelySharp.Attributes;
+
+public sealed class MutableRecord : IEquatable<MutableRecord>
+{
+    public bool Equals(MutableRecord other)
+    {
+        Console.WriteLine(""equals"");
+        return true;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public ImmutableList<MutableRecord> {|PS0002:TestMethod|}(ImmutableList<MutableRecord> values, MutableRecord value)
+    {
+        return values.Remove(value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ImmutableListRemoveForBuiltinValueEquality_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Immutable;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public ImmutableList<int> TestMethod(ImmutableList<int> values, int value)
+    {
+        return values.Remove(value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ImmutableDictionaryContainsKeyDispatchToImpureHashCodeOverride_Diagnostic()
         {
             var test = @"
