@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1471/1471` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1477/1477` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -69,7 +69,11 @@
 - `System.Buffers.Binary.BinaryPrimitives` integer read helpers are cataloged as deterministic pure reads while span-writing helpers remain conservative
 - `System.Buffers.Binary.BinaryPrimitives.ReverseEndianness` scalar overloads are cataloged as deterministic pure helpers
 - `System.Net.IPAddress.Parse(string)` is cataloged consistently with the span overload as deterministic parsing without network I/O
+- `System.Net.IPAddress.Loopback` is cataloged as a deterministic pure singleton property using its resolved getter signature
 - `Comparer<T>.Default` and `EqualityComparer<T>.Default` getters are cataloged as pure singleton retrieval; comparer dispatch remains separately guarded
+- `IEquatable<T>.Equals(T)` and `EqualityComparer<T>.Equals/GetHashCode` no longer rely on broad pure catalog entries; dispatch now derives purity from in-compilation equality/hash implementations where possible and stays conservative for unresolved user dispatch
+- built-in floating-point and decimal `EqualityComparer<T>` dispatch is treated as pure value equality/hash behavior
+- `global.json` pins the repo to .NET SDK `9.0.315` so build-backed validation does not float to newer SDK behavior
 - stale pure catalog entries for `Volatile.Read` and `Interlocked.Read` were removed so synchronization members consistently remain impure
 - property/indexer reference arguments are analyzed before getter purity or assignment-target shortcuts are accepted
 - array element assignment targets now analyze array and index expressions before skipping the element read itself
@@ -179,9 +183,9 @@
   - `System.Enum.IsDefined(System.Type, object)` is now treated as an impure runtime enum-metadata lookup
   - `System.Lazy<T>.Lazy(System.Func<T>)` is now treated as an impure lazy-state constructor
   - `System.Globalization.CultureInfo.GetCultureInfo(string)` is now treated as an impure shared-culture lookup
-  - explicitly cataloged static readonly fields now override the default-pure field-read path, allowing `IPAddress.Loopback` to be treated as an impure shared-instance field
-  - `System.Net.IPAddress.Parse(string)` is now treated as an impure network-address construction API
-  - `System.Convert.FromBase64String(string)` is now treated as an impure mutable-array construction API
+  - `System.Net.IPAddress.Loopback` is now treated as a pure deterministic singleton property through a resolved getter catalog entry
+  - `System.Net.IPAddress.Parse(string)` is now treated as deterministic pure parsing without network I/O
+  - `System.Convert.FromBase64String(string)` is now treated as pure for non-escaping local use while byte-array escape remains diagnosed
   - `System.Array.ConvertAll<TInput, TOutput>(TInput[], System.Converter<TInput, TOutput>)` is now treated as an impure mutable-array materialization API, with direct regression coverage
   - `System.Collections.Generic.List<T>.ToArray()` is now treated as an impure mutable-array construction API
   - `System.Linq.Enumerable.ToHashSet<TSource>(System.Collections.Generic.IEnumerable<TSource>)` is now treated as an impure mutable-set materialization API, with direct regression coverage
@@ -194,8 +198,8 @@
   - `System.Collections.Generic.Dictionary<TKey, TValue>.Keys.get` is now treated as an impure mutable-view collection read
   - `System.Collections.Generic.Dictionary<TKey, TValue>.Values.get` is now treated as an impure mutable-view collection read
   - `System.Collections.Generic.SortedDictionary<TKey, TValue>.Keys.get`, `System.Collections.Generic.SortedDictionary<TKey, TValue>.Values.get`, `System.Collections.Generic.IDictionary<TKey, TValue>.Keys.get`, and `System.Collections.Generic.IDictionary<TKey, TValue>.Values.get` are now treated as impure mutable-view collection reads, with direct regression coverage
-  - `System.Collections.Generic.Comparer<T>.Default.get` is now treated as an impure shared-comparer lookup
-  - `System.Collections.Generic.EqualityComparer<T>.Default.get` is now treated as an impure shared-comparer lookup
+  - `System.Collections.Generic.Comparer<T>.Default.get` is now treated as a pure singleton lookup
+  - `System.Collections.Generic.EqualityComparer<T>.Default.get` is now treated as a pure singleton lookup, while equality/hash dispatch is analyzed separately
   - `object.Equals(object)` is now treated as an impure virtual runtime-dispatch call
   - `object.GetType()` is now treated as an impure runtime-type lookup
   - `object.ToString()` is now treated as an impure virtual runtime-dispatch call

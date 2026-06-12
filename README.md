@@ -68,7 +68,7 @@ Use the provided script to produce a VSIX for Visual Studio plus local NuGet pac
 
 1. Prerequisites
    - Visual Studio 2022 with the "Visual Studio extension development" workload (VSSDK)
-   - .NET SDK 8.0+
+   - .NET SDK 9.0.315, selected by the repo `global.json`
 
 2. Build artifacts
    ```powershell
