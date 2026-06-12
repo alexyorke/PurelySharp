@@ -61,6 +61,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
 				new PropertySubpatternPurityRule(),
 				new RelationalPatternPurityRule(),
 				new RecursivePatternPurityRule(),
+				new TypePatternPurityRule(),
 				new IsPatternPurityRule(),
 				new IsNullPurityRule(),
 				new StructuralPurityRule(),
