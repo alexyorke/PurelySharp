@@ -795,5 +795,101 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task ImmutableHashSetAddDispatchToImpureHashCodeOverride_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Immutable;
+using PurelySharp.Attributes;
+
+public sealed class MutableRecord
+{
+    public override int GetHashCode()
+    {
+        Console.WriteLine(""hash"");
+        return 0;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public ImmutableHashSet<MutableRecord> {|PS0002:TestMethod|}(ImmutableHashSet<MutableRecord> values, MutableRecord value)
+    {
+        return values.Add(value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ImmutableHashSetAddForBuiltinValueEquality_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Immutable;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public ImmutableHashSet<int> TestMethod(ImmutableHashSet<int> values, int value)
+    {
+        return values.Add(value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ImmutableDictionarySetItemDispatchToImpureHashCodeOverride_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Immutable;
+using PurelySharp.Attributes;
+
+public sealed class MutableRecord
+{
+    public override int GetHashCode()
+    {
+        Console.WriteLine(""hash"");
+        return 0;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public ImmutableDictionary<MutableRecord, int> {|PS0002:TestMethod|}(ImmutableDictionary<MutableRecord, int> values, MutableRecord key)
+    {
+        return values.SetItem(key, 1);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ImmutableDictionarySetItemForBuiltinKey_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Immutable;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public ImmutableDictionary<string, int> TestMethod(ImmutableDictionary<string, int> values, string key)
+    {
+        return values.SetItem(key, 1);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

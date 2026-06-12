@@ -814,9 +814,17 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             var typeDefinition = containingType.OriginalDefinition.ToDisplayString();
             if (containingType.TypeArguments.Length == 2 &&
-                (typeDefinition == "System.Collections.Generic.Dictionary<TKey, TValue>" ||
-                 typeDefinition == "System.Collections.Immutable.ImmutableDictionary<TKey, TValue>") &&
+                typeDefinition == "System.Collections.Generic.Dictionary<TKey, TValue>" &&
                 methodSymbol.Name is "ContainsKey" or "TryGetValue")
+            {
+                elementType = containingType.TypeArguments[0];
+                requiresHashCode = true;
+                return elementType.TypeKind != TypeKind.TypeParameter;
+            }
+
+            if (containingType.TypeArguments.Length == 2 &&
+                typeDefinition == "System.Collections.Immutable.ImmutableDictionary<TKey, TValue>" &&
+                methodSymbol.Name is "ContainsKey" or "TryGetValue" or "Add" or "Remove" or "SetItem")
             {
                 elementType = containingType.TypeArguments[0];
                 requiresHashCode = true;
@@ -840,7 +848,14 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return false;
             }
 
-            if (methodSymbol.Name != "Contains" && methodSymbol.Name != "IndexOf" && methodSymbol.Name != "LastIndexOf")
+            var isDefaultEqualityLookup =
+                methodSymbol.Name == "Contains" ||
+                methodSymbol.Name == "IndexOf" ||
+                methodSymbol.Name == "LastIndexOf";
+            var isImmutableHashSetUpdate =
+                typeDefinition == "System.Collections.Immutable.ImmutableHashSet<T>" &&
+                methodSymbol.Name is "Add" or "Remove";
+            if (!isDefaultEqualityLookup && !isImmutableHashSetUpdate)
             {
                 return false;
             }
