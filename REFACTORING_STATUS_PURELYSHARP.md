@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1640/1640` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1641/1641` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -43,6 +43,7 @@
 - nullable-display `System.IO.Path` parser overloads such as `GetExtension(string?)` are cataloged as deterministic string operations without relaxing the broader `System.IO` namespace
 - unannotated non-framework metadata-only method calls now report unknown external call impurity instead of being treated as pure, while framework reference-assembly calls preserve the existing catalog/namespace policy
 - post-CFG throw scanning now skips statically unreachable throws, preserving reachable throw diagnostics without tainting constant-dead branches
+- return escape analysis now inspects coalesce expressions so fresh owned arrays cannot escape through `??` arms without `PS0002`
 - interface/virtual dispatch now narrows through locals initialized from known concrete receiver types and forgets that narrowing after unknown reassignment
 - interface/virtual dispatch through same-declaration concrete receiver aliases has direct regression coverage
 - public virtual dispatch now has direct regression coverage for sealed receiver narrowing through a base-class cast
