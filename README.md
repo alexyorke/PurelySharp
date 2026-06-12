@@ -23,7 +23,7 @@ The analyzer provides the following checks:
     - Purity of basic statements (local declarations, return, simple expression statements).
 6.  **Regression coverage:** The in-repo analyzer suite runs on .NET 8 via `PurelySharp.Test`.
 
-**Inherent limitations (not “missing features”):**
+**Inherent limitations (not "missing features"):**
 
 - **Whole-program / whole-BCL formal proof** of purity is out of scope; the analyzer uses explicit impure/pure catalogs, symbolic method analysis, and conservative defaults.
 - **CFG and dataflow:** method bodies are analyzed with Roslyn `ControlFlowGraph` rooted at the method (or constructor / local function) declaration, with flow-capture handling for lowered conditionals, explicit condition-branch tracking, and conservative constant-branch pruning. Remaining edge cases may still produce false positives (`PS0002`) or false negatives; the engine stays conservative when in doubt.
@@ -31,9 +31,9 @@ The analyzer provides the following checks:
 
 **Recently implemented (see codebase):**
 
-- **Code fixes** (`PurelySharp.CodeFixes`) for `PS0002`–`PS0008` (remove/add attributes, resolve conflicts). The demo and tests reference the code-fix project where applicable.
+- **Code fixes** (`PurelySharp.CodeFixes`) for `PS0002`-`PS0008` (remove/add attributes, resolve conflicts). The demo and tests reference the code-fix project where applicable.
 - **Configuration** via `.editorconfig` / MSBuild `global analyzerconfig`: `purelysharp_known_impure_methods`, `purelysharp_known_pure_methods`, `purelysharp_known_impure_namespaces`, `purelysharp_known_impure_types`, `purelysharp_purity_profile` (`balanced`, `strict`, `pragmatic`; default `balanced`), `purelysharp_enable_debug_logging`, `purelysharp_suggest_missing_enforce_pure` (`true`/`false`, default `true`), and `purelysharp_suggest_missing_enforce_pure_scope` (`all`, `public`, `internal`, `off`, default `all`) to tune `PS0004` suggestions. The `strict` profile currently tightens mutable `this` field reads; `balanced` preserves the default adoption behavior. Optional PS0004 filters include `purelysharp_suggest_missing_enforce_pure_exclude_generated`, `purelysharp_suggest_missing_enforce_pure_exclude_tests`, `purelysharp_suggest_missing_enforce_pure_min_complexity`, and `purelysharp_suggest_missing_enforce_pure_namespace_filters`; these PS0004 controls honor per-file `.editorconfig` sections. Adoption baselines are supported through an additional file named `PurelySharp.Baseline.json`, matching diagnostics by ID, symbol documentation ID, and relative path. Boundary attributes `[PureExternal]` and `[Impure]` let teams explicitly trust or reject boundary methods, properties, constructors, or whole assemblies without broad catalog changes.
-- **`[AllowSynchronization]`** is supported alongside `[EnforcePure]`/`[Pure]` (`PS0006`–`PS0008`).
+- **`[AllowSynchronization]`** is supported alongside `[EnforcePure]`/`[Pure]` (`PS0006`-`PS0008`).
 
 ## How It Works
 
@@ -84,17 +84,17 @@ Use the provided script to produce a VSIX for Visual Studio plus local NuGet pac
 
 3. Install the VSIX into Visual Studio
    - Close Visual Studio.
-   - Double‑click the generated `.vsix` and complete the installer.
+   - Double-click the generated `.vsix` and complete the installer.
    - Reopen Visual Studio.
 
 4. Use the local NuGet packages
-   - In Visual Studio: Tools → NuGet Package Manager → Package Manager Settings → Package Sources
+   - In Visual Studio: Tools -> NuGet Package Manager -> Package Manager Settings -> Package Sources
    - Add a new local source pointing to `artifacts\nuget`
-   - In your test project: Manage NuGet Packages → select the local source → install `PurelySharp` and `PurelySharp.Attributes` as needed
+   - In your test project: Manage NuGet Packages -> select the local source -> install `PurelySharp` and `PurelySharp.Attributes` as needed
 
 5. Updating/uninstalling
    - Re-run the build script to produce a new VSIX/NuGet; reinstall the VSIX to update
-   - Manage installed extensions via Extensions → Manage Extensions in Visual Studio
+   - Manage installed extensions via Extensions -> Manage Extensions in Visual Studio
 
 ## Usage
 
@@ -111,7 +111,7 @@ Use the provided script to produce a VSIX for Visual Studio plus local NuGet pac
         [Pure]
         public int Add(int a, int b)
         {
-            // Simple arithmetic on parameters is treated as pure — no PS0002 here.
+            // Simple arithmetic on parameters is treated as pure - no PS0002 here.
             return a + b;
         }
 
@@ -243,7 +243,7 @@ This project is licensed under the MIT License.
 - [x] Null coalescing operators (`??`, `?.`)
 - [x] Interpolated strings (Assumed impure unless constant.)
 - [x] Stack allocations and Span operations
-- [x] Indices and ranges (C# 8.0+) — basic range construction is treated as pure when endpoints are pure
+- [x] Indices and ranges (C# 8.0+) - basic range construction is treated as pure when endpoints are pure
 - [x] Bit shift operations and basic binary/unary operators
 - [x] Async/await expressions
 - [x] Unsafe code blocks (Assumed impure)
@@ -385,7 +385,7 @@ This project is licensed under the MIT License.
 
 ### C# 12 Specific Features
 
-- [x] Collection expressions — immutable collection types under `System.Collections.Immutable`, stack-only `Span` / `ReadOnlySpan`, with per-element purity checks; other targets (e.g. arrays, `List<T>`) stay impure
+- [x] Collection expressions - immutable collection types under `System.Collections.Immutable`, stack-only `Span` / `ReadOnlySpan`, with per-element purity checks; other targets (e.g. arrays, `List<T>`) stay impure
 - [x] Primary constructors
 - [x] Inline arrays
 - [x] Optional parameters in lambda expressions
@@ -612,7 +612,7 @@ Note that delegate invocations are analyzed conservatively. If the analyzer cann
 ## Cross-Framework and Language Version Support
 
 - [x] C# 8.0+ language features
-- [x] Different target frameworks — analyzer is `netstandard2.0`; in-repo `PurelySharp.Smoke.Net472` builds with the analyzer on .NET Framework 4.7.2; primary regression suite runs on .NET 8 (`PurelySharp.Test`)
+- [x] Different target frameworks - analyzer is `netstandard2.0`; in-repo `PurelySharp.Smoke.Net472` builds with the analyzer on .NET Framework 4.7.2; primary regression suite runs on .NET 8 (`PurelySharp.Test`)
 
 ## Examples
 
@@ -667,7 +667,7 @@ public class TestClass
     }
 }
 
-// Analyzer diagnostic PS0002 — method is marked pure but contains impure operations
+// Analyzer diagnostic PS0002 - method is marked pure but contains impure operations
 ```
 
 #### I/O Operations
@@ -688,7 +688,7 @@ public class TestClass
     }
 }
 
-// Analyzer diagnostic PS0002 — method is marked pure but contains impure operations
+// Analyzer diagnostic PS0002 - method is marked pure but contains impure operations
 ```
 
 #### Console Output
@@ -709,7 +709,7 @@ public class TestClass
     }
 }
 
-// Analyzer diagnostic PS0002 — method is marked pure but contains impure operations
+// Analyzer diagnostic PS0002 - method is marked pure but contains impure operations
 ```
 
 #### Static Field Access
@@ -732,7 +732,7 @@ public class TestClass
     }
 }
 
-// Analyzer diagnostic PS0002 — method is marked pure but contains impure operations
+// Analyzer diagnostic PS0002 - method is marked pure but contains impure operations
 ```
 
 #### Volatile Field Access
@@ -762,7 +762,7 @@ public class TestClass
     }
 }
 
-// Analyzer diagnostic PS0002 — volatile reads/writes are treated as impure
+// Analyzer diagnostic PS0002 - volatile reads/writes are treated as impure
 ```
 
 #### Thread Synchronization with Volatile Fields
@@ -801,7 +801,7 @@ public class TestClass
     private void Initialize() { /* ... */ }
 }
 
-// Analyzer diagnostic PS0002 — volatile access remains impure even with [AllowSynchronization]
+// Analyzer diagnostic PS0002 - volatile access remains impure even with [AllowSynchronization]
 ```
 
 #### Atomic Operations with Interlocked
@@ -833,7 +833,7 @@ public class TestClass
     }
 }
 
-// Analyzer diagnostic PS0002 — Interlocked operations are treated as impure
+// Analyzer diagnostic PS0002 - Interlocked operations are treated as impure
 ```
 
 ### More Complex Examples
@@ -1129,7 +1129,7 @@ A ready-to-run demo app is included in the solution: `PurelySharp.Demo`.
   - PS0004: Methods that appear pure but are missing `[EnforcePure]`
   - PS0003 is intentionally not demonstrated in the demo to keep the focus on core purity rules
 
-- How it’s wired
+- How it's wired
   - References `PurelySharp.Analyzer` and `PurelySharp.CodeFixes` as analyzers via project references
   - References `PurelySharp.Attributes` as a normal project reference
   - Local `.editorconfig` in `PurelySharp.Demo` tunes severities: PS0002=warning, PS0004=suggestion, PS0003=none
