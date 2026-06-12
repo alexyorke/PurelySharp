@@ -383,6 +383,54 @@ public class TestClass
         }
 
         [Test]
+        public async Task HashSetTryGetValueDispatchToImpureHashCodeOverride_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public sealed class MutableRecord
+{
+    public override int GetHashCode()
+    {
+        Console.WriteLine(""hash"");
+        return 0;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(HashSet<MutableRecord> values, MutableRecord value)
+    {
+        return values.TryGetValue(value, out var actual) && actual != null;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task HashSetTryGetValueForBuiltinValueEquality_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool TestMethod(HashSet<int> values, int value)
+    {
+        return values.TryGetValue(value, out _);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DictionaryContainsKeyDispatchToImpureGetHashCode_Diagnostic()
         {
             var test = @"
@@ -794,6 +842,54 @@ public class TestClass
     public bool TestMethod(ImmutableHashSet<int> values, int value)
     {
         return values.Contains(value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ImmutableHashSetTryGetValueDispatchToImpureHashCodeOverride_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Immutable;
+using PurelySharp.Attributes;
+
+public sealed class MutableRecord
+{
+    public override int GetHashCode()
+    {
+        Console.WriteLine(""hash"");
+        return 0;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(ImmutableHashSet<MutableRecord> values, MutableRecord value)
+    {
+        return values.TryGetValue(value, out var actual) && actual != null;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ImmutableHashSetTryGetValueForBuiltinValueEquality_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Immutable;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool TestMethod(ImmutableHashSet<int> values, int value)
+    {
+        return values.TryGetValue(value, out _);
     }
 }";
 

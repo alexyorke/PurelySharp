@@ -350,9 +350,10 @@ namespace PurelySharp.Analyzer.Engine.Rules
                                 symbol: PurityAnalysisEngine.TryResolveSymbol(argument.Value) ?? originalDefinitionSymbol));
                     }
 
-                    if (PurityAnalysisEngine.IsKnownPureBCLMember(originalDefinitionSymbol))
+                    if (PurityAnalysisEngine.IsKnownPureBCLMember(originalDefinitionSymbol) ||
+                        IsDispatchAnalyzedOutArgumentMethod(invokedMethodSymbol))
                     {
-                        PurityAnalysisEngine.LogDebug($"  [MIR]   Skipping purity check for local/discard out argument '{argument.Syntax}' on known pure member {originalDefinitionSymbol.ToDisplayString()}.");
+                        PurityAnalysisEngine.LogDebug($"  [MIR]   Skipping purity check for local/discard out argument target '{argument.Syntax}' on dispatch-analyzed member {originalDefinitionSymbol.ToDisplayString()}.");
                         continue;
                     }
                 }
@@ -480,6 +481,24 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return operation is ILocalReferenceOperation ||
                 operation is IDeclarationExpressionOperation ||
                 operation is IDiscardOperation;
+        }
+
+        private static bool IsDispatchAnalyzedOutArgumentMethod(IMethodSymbol methodSymbol)
+        {
+            if (methodSymbol.Name != "TryGetValue")
+            {
+                return false;
+            }
+
+            var typeDefinition = methodSymbol.ContainingType?.OriginalDefinition.ToDisplayString();
+            return typeDefinition is
+                "System.Collections.Generic.Dictionary<TKey, TValue>" or
+                "System.Collections.Generic.HashSet<T>" or
+                "System.Collections.Generic.SortedDictionary<TKey, TValue>" or
+                "System.Collections.Generic.SortedList<TKey, TValue>" or
+                "System.Collections.Immutable.ImmutableDictionary<TKey, TValue>" or
+                "System.Collections.Immutable.ImmutableHashSet<T>" or
+                "System.Collections.Immutable.ImmutableSortedDictionary<TKey, TValue>";
         }
 
         private static INamedTypeSymbol? GetTrackedLocalReceiverType(
@@ -1070,7 +1089,8 @@ namespace PurelySharp.Analyzer.Engine.Rules
             var isDefaultEqualityLookup =
                 methodSymbol.Name == "Contains" ||
                 methodSymbol.Name == "IndexOf" ||
-                methodSymbol.Name == "LastIndexOf";
+                methodSymbol.Name == "LastIndexOf" ||
+                methodSymbol.Name == "TryGetValue";
             var isImmutableHashSetUpdate =
                 typeDefinition == "System.Collections.Immutable.ImmutableHashSet<T>" &&
                 methodSymbol.Name is "Add" or "Remove";
