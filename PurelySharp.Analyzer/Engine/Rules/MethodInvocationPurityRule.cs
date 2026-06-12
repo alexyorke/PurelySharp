@@ -688,7 +688,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             result = PurityAnalysisEngine.PurityAnalysisResult.Pure;
 
             var methodSymbol = invocationOperation.TargetMethod;
-            if (methodSymbol.Name is not ("Contains" or "SequenceEqual" or "Distinct") ||
+            if (methodSymbol.Name is not ("Contains" or "SequenceEqual" or "Distinct" or "Except" or "Intersect" or "Union") ||
                 methodSymbol.TypeArguments.Length != 1 ||
                 methodSymbol.ContainingType?.OriginalDefinition.ToDisplayString() != "System.Linq.Enumerable")
             {
@@ -715,14 +715,16 @@ namespace PurelySharp.Analyzer.Engine.Rules
             var methodSymbol = invocationOperation.TargetMethod;
             if ((methodSymbol.Name == "Contains" && methodSymbol.Parameters.Length == 2) ||
                 (methodSymbol.Name == "SequenceEqual" && methodSymbol.Parameters.Length == 2) ||
-                (methodSymbol.Name == "Distinct" && methodSymbol.Parameters.Length == 1))
+                (methodSymbol.Name == "Distinct" && methodSymbol.Parameters.Length == 1) ||
+                (IsLinqBinarySetOperation(methodSymbol.Name) && methodSymbol.Parameters.Length == 2))
             {
                 return true;
             }
 
             if ((methodSymbol.Name == "Contains" && methodSymbol.Parameters.Length == 3) ||
                 (methodSymbol.Name == "SequenceEqual" && methodSymbol.Parameters.Length == 3) ||
-                (methodSymbol.Name == "Distinct" && methodSymbol.Parameters.Length == 2))
+                (methodSymbol.Name == "Distinct" && methodSymbol.Parameters.Length == 2) ||
+                (IsLinqBinarySetOperation(methodSymbol.Name) && methodSymbol.Parameters.Length == 3))
             {
                 var comparerArgumentIndex = methodSymbol.Name == "Distinct" ? 1 : 2;
                 return invocationOperation.Arguments.Length > comparerArgumentIndex &&
@@ -730,6 +732,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             return false;
+        }
+
+        private static bool IsLinqBinarySetOperation(string methodName)
+        {
+            return methodName is "Except" or "Intersect" or "Union";
         }
 
         private static bool TryCheckMemoryExtensionsDefaultEqualityDispatchPurity(

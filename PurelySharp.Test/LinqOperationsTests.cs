@@ -324,6 +324,106 @@ public class TestClass
         }
 
         [Test]
+        public async Task LinqUnionDefaultEqualityDispatchToImpureEquatable_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public sealed class MutableRecord : IEquatable<MutableRecord>
+{
+    public bool Equals(MutableRecord other)
+    {
+        Console.WriteLine(""equals"");
+        return true;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public IEnumerable<MutableRecord> {|PS0002:TestMethod|}(IEnumerable<MutableRecord> left, IEnumerable<MutableRecord> right)
+    {
+        return left.Union(right);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task LinqUnionDefaultEqualityForBuiltinValue_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public IEnumerable<int> TestMethod(IEnumerable<int> left, IEnumerable<int> right)
+    {
+        return left.Union(right);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task LinqExceptNullComparerDispatchToImpureEquatable_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public sealed class MutableRecord : IEquatable<MutableRecord>
+{
+    public bool Equals(MutableRecord other)
+    {
+        Console.WriteLine(""equals"");
+        return true;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public IEnumerable<MutableRecord> {|PS0002:TestMethod|}(IEnumerable<MutableRecord> left, IEnumerable<MutableRecord> right)
+    {
+        return left.Except(right, null);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task LinqIntersectDefaultComparerForBuiltinValue_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public IEnumerable<int> TestMethod(IEnumerable<int> left, IEnumerable<int> right)
+    {
+        return left.Intersect(right, default(IEqualityComparer<int>));
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task LinqDistinctWithInterfaceEqualityComparerParameter_Diagnostic()
         {
             var test = @"
