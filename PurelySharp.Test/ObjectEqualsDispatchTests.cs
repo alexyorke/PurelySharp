@@ -431,6 +431,54 @@ public class TestClass
         }
 
         [Test]
+        public async Task HashSetSetEqualsDispatchToImpureHashCodeOverride_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public sealed class MutableRecord
+{
+    public override int GetHashCode()
+    {
+        Console.WriteLine(""hash"");
+        return 0;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(HashSet<MutableRecord> values, HashSet<MutableRecord> other)
+    {
+        return values.SetEquals(other);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task HashSetOverlapsForBuiltinValueEquality_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool TestMethod(HashSet<int> values, HashSet<int> other)
+    {
+        return values.Overlaps(other);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DictionaryContainsKeyDispatchToImpureGetHashCode_Diagnostic()
         {
             var test = @"
@@ -1078,6 +1126,54 @@ public class TestClass
     public bool TestMethod(ImmutableHashSet<int> values, int value)
     {
         return values.TryGetValue(value, out _);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ImmutableHashSetIsSubsetOfDispatchToImpureHashCodeOverride_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Immutable;
+using PurelySharp.Attributes;
+
+public sealed class MutableRecord
+{
+    public override int GetHashCode()
+    {
+        Console.WriteLine(""hash"");
+        return 0;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(ImmutableHashSet<MutableRecord> values, ImmutableHashSet<MutableRecord> other)
+    {
+        return values.IsSubsetOf(other);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ImmutableHashSetSetEqualsForBuiltinValueEquality_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Immutable;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool TestMethod(ImmutableHashSet<int> values, ImmutableHashSet<int> other)
+    {
+        return values.SetEquals(other);
     }
 }";
 
