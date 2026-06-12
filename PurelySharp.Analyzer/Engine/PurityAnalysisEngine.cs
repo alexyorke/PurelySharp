@@ -937,9 +937,14 @@ namespace PurelySharp.Analyzer.Engine
 
 
                         LogDebug($"{indent}  Post-CFG: Checking ThrowOperations...");
-                        var firstThrowOp = methodBodyIOperation.DescendantsAndSelf().OfType<IThrowOperation>().FirstOrDefault();
-                        if (firstThrowOp != null)
+                        foreach (var firstThrowOp in methodBodyIOperation.DescendantsAndSelf().OfType<IThrowOperation>())
                         {
+                            if (IsInStaticallyUnreachableBranch(firstThrowOp.Syntax, semanticModel))
+                            {
+                                LogDebug($"{indent}    Post-CFG: Skipping statically unreachable throw: {firstThrowOp.Syntax}");
+                                continue;
+                            }
+
                             if (firstThrowOp.Exception != null)
                             {
                                 var exResult = CheckSingleOperation(firstThrowOp.Exception, postCfgContext, PurityAnalysisState.Pure);

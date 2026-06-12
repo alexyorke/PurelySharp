@@ -58,6 +58,30 @@ public class TestClass
         }
 
         [Test]
+        public async Task ConstantFalseIf_IgnoresDeadThrow()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Run()
+    {
+        if (false)
+        {
+            throw new InvalidOperationException();
+        }
+
+        return 1;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ConstantSwitchExpression_IgnoresUnmatchedImpureArm()
         {
             var test = @"
