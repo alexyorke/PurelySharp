@@ -1115,7 +1115,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             keyType = null!;
 
             if (methodSymbol.ContainingType is not INamedTypeSymbol containingType ||
-                methodSymbol.Name is not ("ContainsKey" or "TryGetValue" or "BinarySearch" or "Contains" or "Add" or "Remove" or "SetItem"))
+                methodSymbol.Name is not ("ContainsKey" or "TryGetValue" or "BinarySearch" or "SequenceCompareTo" or "Contains" or "Add" or "Remove" or "SetItem"))
             {
                 return false;
             }
@@ -1123,10 +1123,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
             var typeDefinition = containingType.OriginalDefinition.ToDisplayString();
             if (typeDefinition == "System.MemoryExtensions" &&
                 methodSymbol.IsGenericMethod &&
-                methodSymbol.Name == "BinarySearch" &&
+                methodSymbol.Name is "BinarySearch" or "SequenceCompareTo" &&
                 methodSymbol.Parameters.Length == 2)
             {
-                keyType = methodSymbol.Parameters[1].Type;
+                keyType = methodSymbol.Name == "BinarySearch"
+                    ? methodSymbol.Parameters[1].Type
+                    : methodSymbol.TypeArguments[0];
                 return keyType.TypeKind != TypeKind.TypeParameter;
             }
 
