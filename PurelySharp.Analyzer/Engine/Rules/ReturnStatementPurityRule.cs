@@ -95,6 +95,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     IsKnownPureArrayFactoryReturn(conditionalOperation.WhenFalse, out factoryMethod);
             }
 
+            if (unwrappedReturnedValue is ICoalesceOperation coalesceOperation)
+            {
+                return IsKnownPureArrayFactoryReturn(coalesceOperation.Value, out factoryMethod) ||
+                    IsKnownPureArrayFactoryReturn(coalesceOperation.WhenNull, out factoryMethod);
+            }
+
             factoryMethod = null!;
             return false;
         }
@@ -124,6 +130,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
                 return IsOwnedLocalArrayReturn(conditionalOperation.WhenTrue, currentState, out localSymbol) ||
                     IsOwnedLocalArrayReturn(conditionalOperation.WhenFalse, currentState, out localSymbol);
+            }
+
+            if (unwrappedReturnedValue is ICoalesceOperation coalesceOperation)
+            {
+                return IsOwnedLocalArrayReturn(coalesceOperation.Value, currentState, out localSymbol) ||
+                    IsOwnedLocalArrayReturn(coalesceOperation.WhenNull, currentState, out localSymbol);
             }
 
             localSymbol = null!;

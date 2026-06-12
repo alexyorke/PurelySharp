@@ -70,6 +70,7 @@ public class TestClass
         public async Task ArrayConvertAll_Diagnostic()
         {
             var test = @"
+#nullable enable
 using System;
 using PurelySharp.Attributes;
 
@@ -195,6 +196,27 @@ public class TestClass
     {
         int[] first = new int[1], second = first;
         return second;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task FreshLocalArrayReturnedThroughCoalesce_Diagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int[] {|PS0002:TestMethod|}()
+    {
+        int[]? array = new int[1];
+        return array ?? Array.Empty<int>();
     }
 }";
 
