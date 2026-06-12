@@ -1128,7 +1128,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             keyType = null!;
 
             if (methodSymbol.ContainingType is not INamedTypeSymbol containingType ||
-                methodSymbol.Name is not ("ContainsKey" or "TryGetValue" or "BinarySearch" or "SequenceCompareTo" or "Contains" or "Add" or "Remove" or "SetItem"))
+                methodSymbol.Name is not ("ContainsKey" or "TryGetValue" or "BinarySearch" or "SequenceCompareTo" or "Contains" or "Add" or "Remove" or "SetItem" or "IndexOfKey"))
             {
                 return false;
             }
@@ -1158,7 +1158,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             if (containingType.TypeArguments.Length == 2 &&
                 (typeDefinition == "System.Collections.Generic.SortedDictionary<TKey, TValue>" ||
                  typeDefinition == "System.Collections.Generic.SortedList<TKey, TValue>") &&
-                methodSymbol.Name is "ContainsKey" or "TryGetValue")
+                methodSymbol.Name is "ContainsKey" or "TryGetValue" or "IndexOfKey")
             {
                 keyType = containingType.TypeArguments[0];
                 return keyType.TypeKind != TypeKind.TypeParameter;

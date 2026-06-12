@@ -419,6 +419,54 @@ public class TestClass
         }
 
         [Test]
+        public async Task SortedListIndexOfKeyDispatchToImpureComparable_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public sealed class MutableKey : IComparable<MutableKey>
+{
+    public int CompareTo(MutableKey other)
+    {
+        Console.WriteLine(""compare"");
+        return 0;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:TestMethod|}(SortedList<MutableKey, int> values, MutableKey key)
+    {
+        return values.IndexOfKey(key);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task SortedListIndexOfKeyForBuiltinKey_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int TestMethod(SortedList<int, int> values, int key)
+    {
+        return values.IndexOfKey(key);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task SortedListIndexerDispatchToImpureComparable_Diagnostic()
         {
             var test = @"
