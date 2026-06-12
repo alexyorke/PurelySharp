@@ -218,6 +218,45 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
+
+        [Test]
+        public async Task DelegateCreationWithImpureReceiver_Diagnostic()
+        {
+            var testCode = @"
+using System;
+using PurelySharp.Attributes;
+
+public sealed class Receiver
+{
+    [EnforcePure]
+    public Receiver()
+    {
+    }
+
+    [EnforcePure]
+    public void Target()
+    {
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    private static Receiver Create(int value)
+    {
+        return new Receiver();
+    }
+
+    [EnforcePure]
+    public Action {|PS0002:TestMethod|}()
+    {
+        return Create(Console.Read()).Target;
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
     }
 }
 

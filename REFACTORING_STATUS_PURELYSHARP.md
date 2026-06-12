@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1468/1468` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1469/1469` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -73,6 +73,7 @@
 - array element assignment targets now analyze array and index expressions before skipping the element read itself
 - switch case guards now participate in CFG branch-value analysis instead of being skipped as non-`if`/loop branch values
 - object initializer property/indexer targets now analyze receiver and argument expressions before accepting setter purity
+- delegate creation from method groups now analyzes receiver expressions before accepting target-method purity
 - boundary attribute tests now cover direct attribute precedence over assembly-level purity defaults
 - direct external `JetBrains.Annotations.PureAttribute` and `System.Diagnostics.Contracts.PureAttribute` metadata now acts as a purity contract instead of requiring catalog entries
 - external purity metadata on property getters is now considered when analyzing property symbols, including known-impure namespace overrides

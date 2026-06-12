@@ -75,6 +75,15 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 PurityAnalysisEngine.LogDebug($"    [DelegateCreationRule] Found MethodReferenceOperation: {methodReference.Method.ToDisplayString()}. Analyzing target method.");
                 IMethodSymbol targetMethodSymbol = methodReference.Method;
 
+                if (methodReference.Instance != null)
+                {
+                    var instanceResult = PurityAnalysisEngine.CheckSingleOperation(methodReference.Instance, context, currentState);
+                    if (!instanceResult.IsPure)
+                    {
+                        PurityAnalysisEngine.LogDebug($"    [DelegateCreationRule] Method group receiver is impure: {methodReference.Instance.Syntax}");
+                        return instanceResult;
+                    }
+                }
 
                 var methodResult = PurityAnalysisEngine.GetCalleePurity(targetMethodSymbol, context);
 
