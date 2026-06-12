@@ -10,7 +10,7 @@ namespace PurelySharp.Test
     public class ComparerTests
     {
         [Test]
-        public async Task EqualityComparerDefault_Diagnostic()
+        public async Task EqualityComparerDefault_NoDiagnostic()
         {
             var test = @"
 using System.Collections.Generic;
@@ -19,7 +19,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public EqualityComparer<int> {|PS0002:TestMethod|}()
+    public EqualityComparer<int> TestMethod()
     {
         return EqualityComparer<int>.Default;
     }
@@ -29,7 +29,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task ComparerDefault_Diagnostic()
+        public async Task ComparerDefault_NoDiagnostic()
         {
             var test = @"
 using System.Collections.Generic;
@@ -38,7 +38,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public Comparer<int> {|PS0002:TestMethod|}()
+    public Comparer<int> TestMethod()
     {
         return Comparer<int>.Default;
     }

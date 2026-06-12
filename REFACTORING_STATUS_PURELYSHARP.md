@@ -69,6 +69,7 @@
 - `System.Buffers.Binary.BinaryPrimitives` integer read helpers are cataloged as deterministic pure reads while span-writing helpers remain conservative
 - `System.Buffers.Binary.BinaryPrimitives.ReverseEndianness` scalar overloads are cataloged as deterministic pure helpers
 - `System.Net.IPAddress.Parse(string)` is cataloged consistently with the span overload as deterministic parsing without network I/O
+- `Comparer<T>.Default` and `EqualityComparer<T>.Default` getters are cataloged as pure singleton retrieval; comparer dispatch remains separately guarded
 - property/indexer reference arguments are analyzed before getter purity or assignment-target shortcuts are accepted
 - array element assignment targets now analyze array and index expressions before skipping the element read itself
 - switch case guards and catch filters now participate in CFG branch-value analysis instead of being skipped as non-`if`/loop branch values
