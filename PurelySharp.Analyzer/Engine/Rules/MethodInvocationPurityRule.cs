@@ -438,6 +438,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return arrayAsReadOnlyResult;
             }
 
+            if (PurityAnalysisEngine.IsTimeSpanInvariantCultureParseInvocation(invocationOperation))
+            {
+                PurityAnalysisEngine.LogDebug("  [MIR] --> PURE (TimeSpan.Parse with CultureInfo.InvariantCulture)");
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
 
             PurityAnalysisEngine.LogDebug($"  [MIR] Checking IsKnownImpure with signature: '{originalDefinitionSymbol.ToDisplayString()}'");
             if (PurityAnalysisEngine.IsKnownImpure(originalDefinitionSymbol))

@@ -489,7 +489,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task TimeSpanParse_InvariantCulture_Diagnostic()
+        public async Task TimeSpanParse_InvariantCulture_NoDiagnostic()
         {
             var test = @"
 #nullable enable
@@ -500,7 +500,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public TimeSpan {|PS0002:TestMethod|}(string value)
+    public TimeSpan TestMethod(string value)
     {
         return TimeSpan.Parse(value, CultureInfo.InvariantCulture);
     }
@@ -4041,7 +4041,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task TimeSpanParse_SpanInvariantCulture_Diagnostic()
+        public async Task TimeSpanParse_SpanInvariantCulture_NoDiagnostic()
         {
             var test = @"
 #nullable enable
@@ -4052,7 +4052,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public TimeSpan {|PS0002:TestMethod|}(string value)
+    public TimeSpan TestMethod(string value)
     {
         ReadOnlySpan<char> span = value.AsSpan();
         return TimeSpan.Parse(span, CultureInfo.InvariantCulture);

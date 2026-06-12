@@ -1006,6 +1006,7 @@ namespace PurelySharp.Analyzer.Engine
                             if (invocationOp.TargetMethod != null &&
                                 IsKnownImpure(invocationOp.TargetMethod.OriginalDefinition) &&
                                 !IsArrayAsReadOnlyOwnedLocalArrayInvocation(invocationOp, postCfgReturnState) &&
+                                !IsTimeSpanInvariantCultureParseInvocation(invocationOp) &&
                                 !IsTransientCharArrayConsumedByStringConstructor(invocationOp, semanticModel))
                             {
                                 LogDebug($"{indent}    Post-CFG: Found Known Impure Invocation IMPURE: {invocationOp.Syntax} calling {invocationOp.TargetMethod.ToDisplayString()}");
@@ -2841,6 +2842,29 @@ namespace PurelySharp.Analyzer.Engine
             var argumentValue = SkipImplicitConversions(invocationOperation.Arguments[0].Value);
             return argumentValue is ILocalReferenceOperation localReference &&
                    currentState.IsOwnedLocalArraySymbol(localReference.Local);
+        }
+
+        internal static bool IsTimeSpanInvariantCultureParseInvocation(IInvocationOperation invocationOperation)
+        {
+            var targetMethod = invocationOperation.TargetMethod?.OriginalDefinition;
+            if (targetMethod == null ||
+                targetMethod.ContainingType?.ToDisplayString() != "System.TimeSpan" ||
+                targetMethod.Name != "Parse" ||
+                targetMethod.Parameters.Length != 2 ||
+                invocationOperation.Arguments.Length != 2)
+            {
+                return false;
+            }
+
+            return IsCultureInfoInvariantCulture(invocationOperation.Arguments[1].Value);
+        }
+
+        private static bool IsCultureInfoInvariantCulture(IOperation? operation)
+        {
+            var unwrappedOperation = SkipImplicitConversions(operation);
+            return unwrappedOperation is IPropertyReferenceOperation propertyReference &&
+                propertyReference.Property.Name == "InvariantCulture" &&
+                propertyReference.Property.ContainingType?.ToDisplayString() == "System.Globalization.CultureInfo";
         }
 
         internal static bool ShouldAnalyzeCompoundAssignmentOperator(IMethodSymbol operatorMethod)
