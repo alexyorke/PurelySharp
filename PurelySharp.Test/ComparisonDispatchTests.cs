@@ -181,6 +181,53 @@ public class TestClass
         }
 
         [Test]
+        public async Task ArrayBinarySearchDispatchToImpureComparable_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public sealed class MutableKey : IComparable<MutableKey>
+{
+    public int CompareTo(MutableKey other)
+    {
+        Console.WriteLine(""compare"");
+        return 0;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:TestMethod|}(MutableKey[] values, MutableKey key)
+    {
+        return Array.BinarySearch(values, key);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ArrayBinarySearchForBuiltinKey_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int TestMethod(int[] values, int key)
+    {
+        return Array.BinarySearch(values, key);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task SpanSequenceCompareToDispatchToImpureComparable_Diagnostic()
         {
             var test = @"

@@ -1121,6 +1121,16 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             var typeDefinition = containingType.OriginalDefinition.ToDisplayString();
+            if (containingType.SpecialType == SpecialType.System_Array &&
+                methodSymbol.IsGenericMethod &&
+                methodSymbol.Name == "BinarySearch" &&
+                methodSymbol.TypeArguments.Length == 1 &&
+                methodSymbol.Parameters.Length >= 2)
+            {
+                keyType = methodSymbol.TypeArguments[0];
+                return keyType.TypeKind != TypeKind.TypeParameter;
+            }
+
             if (typeDefinition == "System.MemoryExtensions" &&
                 methodSymbol.IsGenericMethod &&
                 methodSymbol.Name is "BinarySearch" or "SequenceCompareTo" &&
