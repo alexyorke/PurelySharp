@@ -814,15 +814,30 @@ namespace PurelySharp.Analyzer.Engine.Rules
             keyType = null!;
 
             if (methodSymbol.ContainingType is not INamedTypeSymbol containingType ||
-                containingType.TypeArguments.Length != 2 ||
-                containingType.OriginalDefinition.ToDisplayString() != "System.Collections.Generic.SortedDictionary<TKey, TValue>" ||
-                methodSymbol.Name is not ("ContainsKey" or "TryGetValue"))
+                methodSymbol.Name is not ("ContainsKey" or "TryGetValue" or "BinarySearch"))
             {
                 return false;
             }
 
-            keyType = containingType.TypeArguments[0];
-            return keyType.TypeKind != TypeKind.TypeParameter;
+            var typeDefinition = containingType.OriginalDefinition.ToDisplayString();
+            if (containingType.TypeArguments.Length == 2 &&
+                typeDefinition == "System.Collections.Generic.SortedDictionary<TKey, TValue>" &&
+                methodSymbol.Name is "ContainsKey" or "TryGetValue")
+            {
+                keyType = containingType.TypeArguments[0];
+                return keyType.TypeKind != TypeKind.TypeParameter;
+            }
+
+            if (containingType.TypeArguments.Length == 1 &&
+                typeDefinition == "System.Collections.Generic.List<T>" &&
+                methodSymbol.Name == "BinarySearch" &&
+                methodSymbol.Parameters.Length == 1)
+            {
+                keyType = containingType.TypeArguments[0];
+                return keyType.TypeKind != TypeKind.TypeParameter;
+            }
+
+            return false;
         }
 
         private static PurityAnalysisEngine.PurityAnalysisResult CheckDefaultEqualityDispatchPurity(
