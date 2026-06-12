@@ -188,6 +188,25 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        [Test]
+        public async Task IPAddressIsLoopback_NoDiagnostic()
+        {
+            var test = @"
+using System.Net;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool TestMethod(IPAddress address)
+    {
+        return IPAddress.IsLoopback(address);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
 
 
 

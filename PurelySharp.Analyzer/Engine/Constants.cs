@@ -1542,6 +1542,7 @@ public static class Constants
         "System.Math.Ceiling(decimal)",
         "System.Net.IPAddress.Any.get",
         "System.Net.IPAddress.Loopback.get",
+        "System.Net.IPAddress.IsLoopback(System.Net.IPAddress)",
         "System.Net.IPAddress.Parse(string)",
         "System.Net.IPAddress.Parse(System.ReadOnlySpan<char>)",
         "System.NotSupportedException.NotSupportedException(string)",
