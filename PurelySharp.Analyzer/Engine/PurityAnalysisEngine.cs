@@ -2077,6 +2077,11 @@ namespace PurelySharp.Analyzer.Engine
                 return true;
             }
 
+            if (HasRecognizedExternalPureAttribute(symbol))
+            {
+                return true;
+            }
+
             if (HasDirectAttributeNamed(symbol, "ImpureAttribute", "PurelySharp.Attributes.ImpureAttribute") ||
                 HasAssemblyAttributeNamed(symbol, "ImpureAttribute", "PurelySharp.Attributes.ImpureAttribute"))
             {
@@ -2156,6 +2161,7 @@ namespace PurelySharp.Analyzer.Engine
                     ad.AttributeClass?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                     pureAttributeFullyQualifiedName,
                     StringComparison.Ordinal) ||
+                HasRecognizedExternalPureAttribute(symbol) ||
                 HasPureExternalAttribute(symbol)
             );
         }
@@ -2196,6 +2202,18 @@ namespace PurelySharp.Analyzer.Engine
                 IsAttributeNamed(ad, attributeName, fullyQualifiedMetadataName, fullyQualifiedName)) == true;
         }
 
+        private static bool HasRecognizedExternalPureAttribute(ISymbol symbol)
+        {
+            if (symbol == null)
+            {
+                return false;
+            }
+
+            return GetAttributesIncludingAssociatedSymbol(symbol).Any(ad =>
+                IsAttributeMetadataName(ad, "JetBrains.Annotations.PureAttribute") ||
+                IsAttributeMetadataName(ad, "System.Diagnostics.Contracts.PureAttribute"));
+        }
+
         private static bool IsAttributeNamed(
             AttributeData attributeData,
             string attributeName,
@@ -2206,6 +2224,16 @@ namespace PurelySharp.Analyzer.Engine
                 string.Equals(attributeData.AttributeClass?.Name, attributeName, StringComparison.Ordinal) ||
                 string.Equals(attributeData.AttributeClass?.ToDisplayString(), fullyQualifiedMetadataName, StringComparison.Ordinal) ||
                 string.Equals(attributeData.AttributeClass?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), fullyQualifiedName, StringComparison.Ordinal);
+        }
+
+        private static bool IsAttributeMetadataName(AttributeData attributeData, string fullyQualifiedMetadataName)
+        {
+            return
+                string.Equals(attributeData.AttributeClass?.ToDisplayString(), fullyQualifiedMetadataName, StringComparison.Ordinal) ||
+                string.Equals(
+                    attributeData.AttributeClass?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                    "global::" + fullyQualifiedMetadataName,
+                    StringComparison.Ordinal);
         }
 
         private static IEnumerable<AttributeData> GetAttributesIncludingAssociatedSymbol(ISymbol symbol)

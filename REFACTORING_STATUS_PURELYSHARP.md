@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1447/1447` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1448/1448` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -65,6 +65,7 @@
 - deterministic `System.Guid(string)` construction is cataloged as pure
 - `System.Guid.ToByteArray()` is cataloged as pure for non-escaping use while direct array returns still report mutable-state escape
 - boundary attribute tests now cover direct attribute precedence over assembly-level purity defaults
+- direct external `JetBrains.Annotations.PureAttribute` and `System.Diagnostics.Contracts.PureAttribute` metadata now acts as a purity contract instead of requiring catalog entries
 - caching coverage now verifies the lazy compilation call graph is reused across repeated purity requests
 - corpus SARIF parsing now trims diagnostic evidence properties and normalizes whitespace-only values before aggregation
 - NuGet build script now accepts absolute output directories as well as repo-relative output paths

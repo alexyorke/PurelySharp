@@ -283,6 +283,42 @@ public class TestClass
             await verifier.RunAsync();
         }
 
+        [Test]
+        public async Task ExternalJetBrainsPureAttribute_OverridesImpureNamespaceAtCallSite()
+        {
+            var boundaryReference = CreateBoundaryReference(
+                "JetBrainsPureBoundary",
+                @"
+namespace JetBrains.Annotations
+{
+    [System.AttributeUsage(System.AttributeTargets.Method)]
+    public sealed class PureAttribute : System.Attribute
+    {
+    }
+}
+
+namespace System.IO
+{
+    public static class TrustedSdk
+    {
+        [JetBrains.Annotations.Pure]
+        public static int StableLength(string value) => value.Length;
+    }
+}");
+
+            var verifier = CreateVerifier(@"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Caller(string value) => System.IO.TrustedSdk.StableLength(value);
+}");
+            verifier.TestState.AdditionalReferences.Add(boundaryReference);
+
+            await verifier.RunAsync();
+        }
+
         private static VerifyCS.Test CreateVerifier(string source)
         {
             var verifier = new VerifyCS.Test
