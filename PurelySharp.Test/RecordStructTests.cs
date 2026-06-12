@@ -170,7 +170,7 @@ public record struct Counter
         }
 
         [Test]
-        public async Task RecordStructWithImmutableList_WithExpression_NoDiagnostic()
+        public async Task RecordStructWithImmutableList_WithExpression_ReportsExpectedDiagnostics()
         {
 
 
