@@ -818,11 +818,6 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return false;
             }
 
-            if (comparisonType.TypeKind == TypeKind.TypeParameter)
-            {
-                return false;
-            }
-
             result = CheckDefaultComparisonDispatchPurity(comparisonType, invocationOperation, context);
             return true;
         }
@@ -1186,7 +1181,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 methodSymbol.Parameters.Length >= 2)
             {
                 keyType = methodSymbol.TypeArguments[0];
-                return keyType.TypeKind != TypeKind.TypeParameter;
+                return true;
             }
 
             if (typeDefinition == "System.MemoryExtensions" &&
@@ -1197,7 +1192,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 keyType = methodSymbol.Name == "BinarySearch"
                     ? methodSymbol.Parameters[1].Type
                     : methodSymbol.TypeArguments[0];
-                return keyType.TypeKind != TypeKind.TypeParameter;
+                return true;
             }
 
             if (containingType.TypeArguments.Length == 2 &&
@@ -1206,7 +1201,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 methodSymbol.Name is "ContainsKey" or "TryGetValue" or "IndexOfKey")
             {
                 keyType = containingType.TypeArguments[0];
-                return keyType.TypeKind != TypeKind.TypeParameter;
+                return true;
             }
 
             if (containingType.TypeArguments.Length == 2 &&
@@ -1214,7 +1209,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 methodSymbol.Name is "ContainsKey" or "TryGetValue" or "Add" or "Remove" or "SetItem")
             {
                 keyType = containingType.TypeArguments[0];
-                return keyType.TypeKind != TypeKind.TypeParameter;
+                return true;
             }
 
             if (containingType.TypeArguments.Length == 1 &&
@@ -1222,7 +1217,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 methodSymbol.Name is "Contains" or "TryGetValue")
             {
                 keyType = containingType.TypeArguments[0];
-                return keyType.TypeKind != TypeKind.TypeParameter;
+                return true;
             }
 
             if (containingType.TypeArguments.Length == 1 &&
@@ -1230,7 +1225,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 methodSymbol.Name is "Contains" or "TryGetValue" or "Add" or "Remove")
             {
                 keyType = containingType.TypeArguments[0];
-                return keyType.TypeKind != TypeKind.TypeParameter;
+                return true;
             }
 
             if (containingType.TypeArguments.Length == 1 &&
@@ -1239,7 +1234,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 methodSymbol.Parameters.Length == 1)
             {
                 keyType = containingType.TypeArguments[0];
-                return keyType.TypeKind != TypeKind.TypeParameter;
+                return true;
             }
 
             return false;
