@@ -365,6 +365,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return equalityComparerDispatchResult;
             }
 
+            if (TryCheckCollectionEqualityDispatchPurity(invocationOperation, context, out var collectionEqualityDispatchResult))
+            {
+                return collectionEqualityDispatchResult;
+            }
+
             if (PurityAnalysisEngine.HasPureExternalAttribute(originalDefinitionSymbol))
             {
                 PurityAnalysisEngine.LogDebug("  [MIR] --> PURE ([PureExternal] boundary attribute)");
@@ -626,6 +631,23 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return true;
         }
 
+        private static bool TryCheckCollectionEqualityDispatchPurity(
+            IInvocationOperation invocationOperation,
+            PurityAnalysisContext context,
+            out PurityAnalysisEngine.PurityAnalysisResult result)
+        {
+            result = PurityAnalysisEngine.PurityAnalysisResult.Pure;
+
+            var methodSymbol = invocationOperation.TargetMethod;
+            if (!TryGetDefaultEqualityCollectionElementType(methodSymbol, out var elementType))
+            {
+                return false;
+            }
+
+            result = CheckDefaultEqualityDispatchPurity(elementType, invocationOperation, context);
+            return true;
+        }
+
         private static PurityAnalysisEngine.PurityAnalysisResult CheckResolvedEqualityImplementation(
             IMethodSymbol implementation,
             IInvocationOperation invocationOperation,
@@ -671,6 +693,78 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             return false;
+        }
+
+        private static bool TryGetDefaultEqualityCollectionElementType(
+            IMethodSymbol methodSymbol,
+            out ITypeSymbol elementType)
+        {
+            elementType = null!;
+
+            if (methodSymbol.ContainingType is not INamedTypeSymbol containingType ||
+                containingType.TypeArguments.Length != 1 ||
+                methodSymbol.Parameters.Length < 1)
+            {
+                return false;
+            }
+
+            var typeDefinition = containingType.OriginalDefinition.ToDisplayString();
+            var usesDefaultEquality =
+                typeDefinition == "System.Collections.Generic.List<T>" ||
+                typeDefinition == "System.Collections.Generic.Queue<T>" ||
+                typeDefinition == "System.Collections.Generic.Stack<T>";
+            if (!usesDefaultEquality)
+            {
+                return false;
+            }
+
+            if (methodSymbol.Name != "Contains" && methodSymbol.Name != "IndexOf" && methodSymbol.Name != "LastIndexOf")
+            {
+                return false;
+            }
+
+            elementType = containingType.TypeArguments[0];
+            return elementType.TypeKind != TypeKind.TypeParameter;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckDefaultEqualityDispatchPurity(
+            ITypeSymbol elementType,
+            IInvocationOperation invocationOperation,
+            PurityAnalysisContext context)
+        {
+            if (IsBuiltinValueEquality(elementType))
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            if (TryGetIEquatableEqualsImplementation(elementType, out var equalsImplementation))
+            {
+                return CheckResolvedEqualityImplementation(
+                    equalsImplementation,
+                    invocationOperation,
+                    context);
+            }
+
+            if (TryGetObjectOverride(elementType, nameof(object.Equals), parameterCount: 1, out var objectEqualsOverride))
+            {
+                return CheckResolvedEqualityImplementation(
+                    objectEqualsOverride,
+                    invocationOperation,
+                    context);
+            }
+
+            if (elementType is INamedTypeSymbol { TypeKind: TypeKind.Class, IsSealed: true })
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                invocationOperation.Syntax,
+                PurityAnalysisEngine.PurityEvidence.Create(
+                    "unknown_external_call",
+                    nameof(MethodInvocationPurityRule),
+                    invocationOperation,
+                    symbol: invocationOperation.TargetMethod));
         }
 
         private static bool TryGetIEquatableEqualsImplementation(

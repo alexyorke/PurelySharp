@@ -188,5 +188,53 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task ListContainsDispatchToImpureEquatableImplementation_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public sealed class MutableRecord : IEquatable<MutableRecord>
+{
+    public bool Equals(MutableRecord other)
+    {
+        Console.WriteLine(""equals"");
+        return true;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(List<MutableRecord> values, MutableRecord value)
+    {
+        return values.Contains(value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ListContainsForBuiltinValueEquality_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool TestMethod(List<int> values, int value)
+    {
+        return values.Contains(value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
