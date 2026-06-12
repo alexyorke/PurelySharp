@@ -148,5 +148,45 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task EqualityComparerDefaultEqualsForFloatingAndDecimalValues_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool TestMethod(double left, double right, decimal first, decimal second)
+    {
+        return EqualityComparer<double>.Default.Equals(left, right) &&
+            EqualityComparer<decimal>.Default.Equals(first, second);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task EqualityComparerDefaultGetHashCodeForFloatingAndDecimalValues_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int TestMethod(double value, decimal amount)
+    {
+        return EqualityComparer<double>.Default.GetHashCode(value) +
+            EqualityComparer<decimal>.Default.GetHashCode(amount);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
