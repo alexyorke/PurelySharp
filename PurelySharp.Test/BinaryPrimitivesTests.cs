@@ -39,5 +39,30 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task BinaryPrimitivesReverseEndianness_NoDiagnostic()
+        {
+            var test = @"
+using System.Buffers.Binary;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public long TestMethod(short s, ushort us, int i, uint ui, long l, ulong ul)
+    {
+        return
+            BinaryPrimitives.ReverseEndianness(s) +
+            BinaryPrimitives.ReverseEndianness(us) +
+            BinaryPrimitives.ReverseEndianness(i) +
+            BinaryPrimitives.ReverseEndianness(ui) +
+            BinaryPrimitives.ReverseEndianness(l) +
+            (long)BinaryPrimitives.ReverseEndianness(ul);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
