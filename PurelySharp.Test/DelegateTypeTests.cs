@@ -262,7 +262,7 @@ public class TestClass
     public void UseCombinedDelegates()
     {
         var combined = CombineDelegates();
-        combined(""Test message""); // Pure invocation if delegates are pure
+        combined(""Test message""); // Returned combined delegate target is not proven here, so invocation is reported.
     }
 }";
 

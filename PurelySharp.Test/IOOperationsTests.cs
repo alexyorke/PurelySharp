@@ -88,7 +88,7 @@ public class TestClass
     [EnforcePure]
     public async Task<int> TestMethod()
     {
-        // Just awaiting Task.FromResult should be pure, but the method is async
+        // Task.FromResult is treated as a deterministic completed task wrapper.
         return await Task.FromResult(42);
     }
 }";
@@ -329,7 +329,7 @@ public class TestClass
     [EnforcePure]
     public void TestMethod(List<string> items)
     {
-        // Extension method calls Console but might not be detected
+        // Extension method invokes an impure lambda, so the call is reported.
         items.ForEach(item => Console.WriteLine(item));
     }
 }";
