@@ -1522,7 +1522,7 @@ public static class Constants
         "System.Convert.ToHexString(byte[])",
         "decimal.Negate(decimal)",
         "double.PositiveInfinity.get",
-        "System.FileNotFoundException.FileNotFoundException(string)",
+        "System.IO.FileNotFoundException.FileNotFoundException(string?)",
         "System.FormattableString.Format.get",
         "System.FormattableString.ToString(System.IFormatProvider)",
         "System.HashCode.HashCode()",
