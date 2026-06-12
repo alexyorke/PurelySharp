@@ -96,7 +96,6 @@ public static class Constants
         "System.Console.Out.get",
         "System.ComponentModel.TypeDescriptor.GetConverter(System.Type)",
         "System.ComponentModel.TypeDescriptor.GetProperties(object)",
-        "System.Convert.FromBase64String(string)",
         "System.Convert.ToByte(object?)",
         "System.Convert.ToByte(string?)",
         "System.Convert.ToDateTime(object?)",
@@ -1051,6 +1050,7 @@ public static class Constants
         "System.Collections.Immutable.ImmutableHashSet.Create<T>()",
 
 
+        "System.Convert.FromBase64String(string)",
         "System.Convert.ToBase64String(byte[])",
 
 
