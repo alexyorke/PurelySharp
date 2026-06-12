@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1461/1461` tests in `PurelySharp.Test` on .NET 8.
+- Full analyzer suite is green: `1462/1462` tests in `PurelySharp.Test` on .NET 8.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -65,7 +65,7 @@
 - deterministic `System.Guid(string)` construction is cataloged as pure
 - `System.Guid.ToByteArray()` is cataloged as pure for non-escaping use while direct array returns still report mutable-state escape
 - `System.Convert.FromBase64String(string)` is cataloged as pure for non-escaping use while direct byte-array returns still report mutable-state escape
-- `System.Numerics.BitOperations` deterministic helpers now use symbol-resolved catalog signatures instead of stale `System.BitOperations` entries
+- `System.Numerics.BitOperations` deterministic helpers now use symbol-resolved member-level catalog signatures instead of stale `System.BitOperations` entries
 - boundary attribute tests now cover direct attribute precedence over assembly-level purity defaults
 - direct external `JetBrains.Annotations.PureAttribute` and `System.Diagnostics.Contracts.PureAttribute` metadata now acts as a purity contract instead of requiring catalog entries
 - external purity metadata on property getters is now considered when analyzing property symbols, including known-impure namespace overrides
