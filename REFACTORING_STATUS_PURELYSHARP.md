@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1611/1611` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1612/1612` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -92,6 +92,7 @@
 - concrete `SortedDictionary<TKey,TValue>.ContainsKey/TryGetValue`, `SortedList<TKey,TValue>.ContainsKey/TryGetValue/IndexOfKey`, `SortedSet<T>.Contains/TryGetValue`, `List<T>.BinarySearch(T)`, `Array.BinarySearch<T>`, and `MemoryExtensions.BinarySearch<T>/SequenceCompareTo<T>` calls now derive comparison purity from the key/element type instead of blindly trusting broad catalog entries
 - concrete `SortedDictionary<TKey,TValue>.ContainsValue` calls now derive value equality purity from the value type instead of blindly trusting catalog purity
 - concrete `SortedDictionary<TKey,TValue>` and `SortedList<TKey,TValue>` indexer reads now derive key comparison purity from the key type instead of treating the getter as intrinsically pure
+- `KeyedCollection<TKey,TItem>` catalog signatures now use the real `System.Collections.ObjectModel` namespace, with direct `Contains` coverage
 - ImmutableSortedDictionary<TKey,TValue>.ContainsKey/indexer reads and ImmutableSortedSet<T>.Contains/TryGetValue now derive comparison purity from the key/element type before accepting immutable-collection catalog purity
 - ImmutableSortedSet<T>.Add/Remove and ImmutableSortedDictionary<TKey,TValue>.Add/Remove/SetItem now derive comparison purity from the element or key type before accepting immutable sorted update methods as pure
 - `global.json` pins the repo to .NET SDK `9.0.315` so build-backed validation does not float to newer SDK behavior

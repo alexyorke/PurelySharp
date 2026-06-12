@@ -721,7 +721,7 @@ public static class Constants
 
 
 
-        "System.Collections.Generic.KeyedCollection<TKey, TItem>.Remove(TKey)",
+        "System.Collections.ObjectModel.KeyedCollection<TKey, TItem>.Remove(TKey)",
         "System.ComponentModel.AddingNewEventArgs.AddingNewEventArgs()",
         "System.ComponentModel.CancelEventArgs.Cancel.get",
         "System.ComponentModel.CancelEventArgs.Cancel.set",
@@ -1296,7 +1296,7 @@ public static class Constants
         "System.Collections.Generic.SortedDictionary<TKey, TValue>.ContainsValue(TValue)",
         "System.Collections.Generic.SortedDictionary<TKey, TValue>.TryGetValue(TKey, out TValue)",
         "System.Collections.Generic.SortedDictionary<TKey, TValue>.Count.get",
-        "System.Collections.Generic.KeyedCollection<TKey, TItem>.Contains(TKey)",
+        "System.Collections.ObjectModel.KeyedCollection<TKey, TItem>.Contains(TKey)",
         "System.Drawing.Color.FromArgb(int, int, int, int)",
         "System.Drawing.Point.Point(int, int)",
         "System.Globalization.StringInfo.ParseCombiningCharacters(string)",
