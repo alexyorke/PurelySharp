@@ -17,6 +17,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
         {
             IOperation targetOperation;
             IOperation? valueOperation = null;
+            IMethodSymbol? compoundOperatorMethod = null;
             SyntaxNode diagnosticNode = operation.Syntax;
 
             if (operation is IAssignmentOperation assignmentOperation)
@@ -29,6 +30,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             {
                 targetOperation = compoundAssignmentOperation.Target;
                 valueOperation = compoundAssignmentOperation.Value;
+                compoundOperatorMethod = compoundAssignmentOperation.OperatorMethod?.OriginalDefinition;
 
             }
             else if (operation is IIncrementOrDecrementOperation incrementDecrementOperation)
@@ -116,6 +118,16 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     }
                 }
 
+            }
+
+            if (compoundOperatorMethod != null)
+            {
+                var operatorResult = CheckCompoundAssignmentOperatorPurity(compoundOperatorMethod, operation, context);
+                if (!operatorResult.IsPure)
+                {
+                    PurityAnalysisEngine.LogDebug($"    [AssignRule] Compound assignment operator '{compoundOperatorMethod.Name}' is IMPURE.");
+                    return operatorResult;
+                }
             }
 
 
@@ -210,6 +222,33 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             PurityAnalysisEngine.LogDebug("AssignmentPurityRule: Both target and value (if applicable) are pure. Result: Pure");
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckCompoundAssignmentOperatorPurity(
+            IMethodSymbol operatorMethod,
+            IOperation operation,
+            PurityAnalysisContext context)
+        {
+            if (PurityAnalysisEngine.IsKnownPureBCLMember(operatorMethod) ||
+                PurityAnalysisEngine.HasPureExternalAttribute(operatorMethod))
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            if (!ShouldAnalyzeCompoundAssignmentOperator(operatorMethod))
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            var operatorPurity = PurityAnalysisEngine.GetCalleePurity(operatorMethod, context);
+            return operatorPurity.IsPure
+                ? PurityAnalysisEngine.PurityAnalysisResult.Pure
+                : operatorPurity.WithCallee(operatorMethod, operation.Syntax);
+        }
+
+        private static bool ShouldAnalyzeCompoundAssignmentOperator(IMethodSymbol operatorMethod)
+        {
+            return PurityAnalysisEngine.ShouldAnalyzeCompoundAssignmentOperator(operatorMethod);
         }
 
         private static PurityAnalysisEngine.PurityAnalysisResult CheckPropertySetterPurity(

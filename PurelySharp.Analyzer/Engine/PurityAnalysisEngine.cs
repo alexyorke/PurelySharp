@@ -1065,6 +1065,13 @@ namespace PurelySharp.Analyzer.Engine
                                 isChecked = true;
                                 operatorMethod = unaryOp.OperatorMethod;
                             }
+                            else if (operation is ICompoundAssignmentOperation compoundAssignmentOp &&
+                                     compoundAssignmentOp.OperatorMethod != null &&
+                                     ShouldAnalyzeCompoundAssignmentOperator(compoundAssignmentOp.OperatorMethod.OriginalDefinition))
+                            {
+                                isChecked = true;
+                                operatorMethod = compoundAssignmentOp.OperatorMethod.OriginalDefinition;
+                            }
 
                             if (isChecked && operatorMethod != null)
                             {
@@ -2846,6 +2853,13 @@ namespace PurelySharp.Analyzer.Engine
             var argumentValue = SkipImplicitConversions(invocationOperation.Arguments[0].Value);
             return argumentValue is ILocalReferenceOperation localReference &&
                    currentState.IsOwnedLocalArraySymbol(localReference.Local);
+        }
+
+        internal static bool ShouldAnalyzeCompoundAssignmentOperator(IMethodSymbol operatorMethod)
+        {
+            return operatorMethod.DeclaringSyntaxReferences.Length > 0 ||
+                   IsKnownImpure(operatorMethod) ||
+                   HasImpureAttribute(operatorMethod);
         }
 
 

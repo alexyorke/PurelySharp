@@ -61,6 +61,14 @@ namespace PurelySharp.Analyzer.Engine.Analysis
 						}
 					}
 
+					foreach (var compound in body.Descendants().OfType<ICompoundAssignmentOperation>())
+					{
+						if (compound.OperatorMethod != null)
+						{
+							callees.Add(compound.OperatorMethod.OriginalDefinition);
+						}
+					}
+
 					foreach (var conv in body.Descendants().OfType<IConversionOperation>())
 					{
 						var method = conv.Conversion.MethodSymbol;

@@ -89,6 +89,38 @@ public class Counter
             await VerifyCS.VerifyAnalyzerAsync(test, expectedVal, expectedCtor, expectedOp);
         }
 
+        [Test]
+        public async Task ImpureOperatorOverload_CompoundAssignment_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public struct Counter
+{
+    private static int Hits;
+
+    [Impure]
+    public static Counter operator +(Counter left, Counter right)
+    {
+        Hits++;
+        return left;
+    }
+}
+
+public static class Demo
+{
+    [EnforcePure]
+    public static Counter {|PS0002:TestMethod|}()
+    {
+        var value = default(Counter);
+        value += default(Counter);
+        return value;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
 
         [Test]
         public async Task ComparisonOperatorOverload_MissingAttributeDiagnostics()
