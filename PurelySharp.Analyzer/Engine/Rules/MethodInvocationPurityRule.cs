@@ -644,12 +644,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
             result = PurityAnalysisEngine.PurityAnalysisResult.Pure;
 
             var methodSymbol = invocationOperation.TargetMethod;
-            if (!TryGetDefaultEqualityCollectionElementType(methodSymbol, out var elementType))
+            if (!TryGetDefaultEqualityCollectionElementType(methodSymbol, out var elementType, out var requiresHashCode))
             {
                 return false;
             }
 
-            result = CheckDefaultEqualityDispatchPurity(elementType, invocationOperation, context);
+            result = CheckDefaultEqualityDispatchPurity(elementType, invocationOperation, context, requiresHashCode);
             return true;
         }
 
@@ -728,9 +728,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
         private static bool TryGetDefaultEqualityCollectionElementType(
             IMethodSymbol methodSymbol,
-            out ITypeSymbol elementType)
+            out ITypeSymbol elementType,
+            out bool requiresHashCode)
         {
             elementType = null!;
+            requiresHashCode = false;
 
             if (methodSymbol.ContainingType is not INamedTypeSymbol containingType ||
                 methodSymbol.Parameters.Length < 1)
@@ -757,7 +759,8 @@ namespace PurelySharp.Analyzer.Engine.Rules
             var usesDefaultEquality =
                 typeDefinition == "System.Collections.Generic.List<T>" ||
                 typeDefinition == "System.Collections.Generic.Queue<T>" ||
-                typeDefinition == "System.Collections.Generic.Stack<T>";
+                typeDefinition == "System.Collections.Generic.Stack<T>" ||
+                typeDefinition == "System.Collections.Generic.HashSet<T>";
             if (!usesDefaultEquality)
             {
                 return false;
@@ -769,17 +772,42 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             elementType = containingType.TypeArguments[0];
+            requiresHashCode = typeDefinition == "System.Collections.Generic.HashSet<T>";
             return elementType.TypeKind != TypeKind.TypeParameter;
         }
 
         private static PurityAnalysisEngine.PurityAnalysisResult CheckDefaultEqualityDispatchPurity(
             ITypeSymbol elementType,
             IInvocationOperation invocationOperation,
-            PurityAnalysisContext context)
+            PurityAnalysisContext context,
+            bool requiresHashCode = false)
         {
             if (IsBuiltinValueEquality(elementType))
             {
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            if (requiresHashCode)
+            {
+                if (!TryGetObjectOverride(elementType, nameof(object.GetHashCode), parameterCount: 0, out var getHashCodeOverride))
+                {
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                        invocationOperation.Syntax,
+                        PurityAnalysisEngine.PurityEvidence.Create(
+                            "unknown_external_call",
+                            nameof(MethodInvocationPurityRule),
+                            invocationOperation,
+                            symbol: invocationOperation.TargetMethod));
+                }
+
+                var hashPurity = CheckResolvedEqualityImplementation(
+                    getHashCodeOverride,
+                    invocationOperation,
+                    context);
+                if (!hashPurity.IsPure)
+                {
+                    return hashPurity;
+                }
             }
 
             if (TryGetIEquatableEqualsImplementation(elementType, out var equalsImplementation))
