@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1523/1523` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1527/1527` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -84,6 +84,7 @@
 - concrete `SortedDictionary<TKey,TValue>.ContainsKey/TryGetValue`, `List<T>.BinarySearch(T)`, and `MemoryExtensions.BinarySearch<T>` calls now derive comparison purity from the key/element type instead of blindly trusting broad catalog entries
 - concrete `SortedDictionary<TKey,TValue>` indexer reads now derive key comparison purity from the key type instead of treating the getter as intrinsically pure
 - ImmutableSortedDictionary<TKey,TValue>.ContainsKey/indexer reads and ImmutableSortedSet<T>.Contains now derive comparison purity from the key/element type before accepting immutable-collection catalog purity
+- ImmutableSortedSet<T>.Add/Remove and ImmutableSortedDictionary<TKey,TValue>.Add/Remove/SetItem now derive comparison purity from the element or key type before accepting immutable sorted update methods as pure
 - `global.json` pins the repo to .NET SDK `9.0.315` so build-backed validation does not float to newer SDK behavior
 - stale pure catalog entries for `Volatile.Read` and `Interlocked.Read` were removed so synchronization members consistently remain impure
 - property/indexer reference arguments are analyzed before getter purity or assignment-target shortcuts are accepted
