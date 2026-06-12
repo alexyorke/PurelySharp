@@ -29,6 +29,25 @@ public class TestClass<T>
         }
 
         [Test]
+        public async Task ComparerDefaultWithUnresolvedGenericElement_Diagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public class TestClass<T>
+{
+    [EnforcePure]
+    public int {|PS0002:TestMethod|}(T left, T right)
+    {
+        return Comparer<T>.Default.Compare(left, right);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task LinqOrderByWithUnresolvedGenericElement_Diagnostic()
         {
             var test = @"

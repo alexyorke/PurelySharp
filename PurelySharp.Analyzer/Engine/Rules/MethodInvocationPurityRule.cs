@@ -1062,7 +1062,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             if (methodSymbol.Name == "Compare" && methodSymbol.Parameters.Length == 2)
             {
                 elementType = containingType.TypeArguments[0];
-                return elementType.TypeKind != TypeKind.TypeParameter;
+                return true;
             }
 
             return false;
