@@ -2798,7 +2798,7 @@ namespace PurelySharp.Analyzer.Engine
 
         private static bool IsOwnedLocalArrayValue(IOperation? valueOperation, PurityAnalysisState currentState)
         {
-            var unwrappedValue = SkipImplicitConversions(valueOperation);
+            var unwrappedValue = UnwrapArrayOwnershipPreservingConversions(valueOperation);
             if (unwrappedValue == null)
             {
                 return false;
@@ -2813,6 +2813,20 @@ namespace PurelySharp.Analyzer.Engine
 
             return unwrappedValue is ILocalReferenceOperation localReference &&
                    currentState.IsOwnedLocalArraySymbol(localReference.Local);
+        }
+
+        internal static IOperation? UnwrapArrayOwnershipPreservingConversions(IOperation? operation)
+        {
+            while (operation is IConversionOperation conversion &&
+                   (conversion.IsImplicit ||
+                    (!conversion.Conversion.IsUserDefined &&
+                     (conversion.Conversion.IsIdentity ||
+                      conversion.Conversion.IsReference))))
+            {
+                operation = conversion.Operand;
+            }
+
+            return operation;
         }
 
 

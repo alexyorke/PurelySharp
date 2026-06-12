@@ -76,7 +76,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             IOperation? returnedValue,
             out IMethodSymbol factoryMethod)
         {
-            var unwrappedReturnedValue = PurityAnalysisEngine.SkipImplicitConversions(returnedValue);
+            var unwrappedReturnedValue = PurityAnalysisEngine.UnwrapArrayOwnershipPreservingConversions(returnedValue);
             if (PurityAnalysisEngine.IsKnownPureBCLArrayFactoryOperation(unwrappedReturnedValue, out factoryMethod))
             {
                 return true;
@@ -104,7 +104,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             PurityAnalysisEngine.PurityAnalysisState currentState,
             out ILocalSymbol localSymbol)
         {
-            var unwrappedReturnedValue = PurityAnalysisEngine.SkipImplicitConversions(returnedValue);
+            var unwrappedReturnedValue = PurityAnalysisEngine.UnwrapArrayOwnershipPreservingConversions(returnedValue);
             if (unwrappedReturnedValue is ILocalReferenceOperation localReference &&
                 currentState.IsOwnedLocalArraySymbol(localReference.Local))
             {
