@@ -411,6 +411,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return memoryExtensionsEqualityDispatchResult;
             }
 
+            if (TryCheckHashCodeCombineDispatchPurity(invocationOperation, context, out var hashCodeCombineDispatchResult))
+            {
+                return hashCodeCombineDispatchResult;
+            }
+
             if (TryCheckCollectionComparisonDispatchPurity(invocationOperation, context, out var collectionComparisonDispatchResult))
             {
                 return collectionComparisonDispatchResult;
@@ -1009,6 +1014,34 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return true;
         }
 
+        private static bool TryCheckHashCodeCombineDispatchPurity(
+            IInvocationOperation invocationOperation,
+            PurityAnalysisContext context,
+            out PurityAnalysisEngine.PurityAnalysisResult result)
+        {
+            result = PurityAnalysisEngine.PurityAnalysisResult.Pure;
+
+            var methodSymbol = invocationOperation.TargetMethod;
+            if (methodSymbol.ContainingType?.ToDisplayString() != "System.HashCode" ||
+                methodSymbol.Name != "Combine" ||
+                !methodSymbol.IsGenericMethod ||
+                methodSymbol.TypeArguments.Length == 0)
+            {
+                return false;
+            }
+
+            foreach (var typeArgument in methodSymbol.TypeArguments)
+            {
+                result = CheckDefaultHashDispatchPurity(typeArgument, invocationOperation, context);
+                if (!result.IsPure)
+                {
+                    return true;
+                }
+            }
+
+            return true;
+        }
+
         private static PurityAnalysisEngine.PurityAnalysisResult CheckResolvedEqualityImplementation(
             IMethodSymbol implementation,
             IInvocationOperation invocationOperation,
@@ -1256,6 +1289,33 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             return false;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckDefaultHashDispatchPurity(
+            ITypeSymbol elementType,
+            IInvocationOperation invocationOperation,
+            PurityAnalysisContext context)
+        {
+            if (IsBuiltinValueEquality(elementType))
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            if (!TryGetObjectOverride(elementType, nameof(object.GetHashCode), parameterCount: 0, out var getHashCodeOverride))
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                    invocationOperation.Syntax,
+                    PurityAnalysisEngine.PurityEvidence.Create(
+                        "unknown_external_call",
+                        nameof(MethodInvocationPurityRule),
+                        invocationOperation,
+                        symbol: invocationOperation.TargetMethod));
+            }
+
+            return CheckResolvedEqualityImplementation(
+                getHashCodeOverride,
+                invocationOperation,
+                context);
         }
 
         private static PurityAnalysisEngine.PurityAnalysisResult CheckDefaultEqualityDispatchPurity(

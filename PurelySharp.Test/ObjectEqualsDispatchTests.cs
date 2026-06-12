@@ -190,6 +190,53 @@ public class TestClass
         }
 
         [Test]
+        public async Task HashCodeCombineDispatchToImpureGetHashCode_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public sealed class MutableRecord
+{
+    public override int GetHashCode()
+    {
+        Console.WriteLine(""hash"");
+        return 0;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:TestMethod|}(MutableRecord value)
+    {
+        return HashCode.Combine(value, 1);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task HashCodeCombineForBuiltinValueTypes_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int TestMethod(int value, long other)
+    {
+        return HashCode.Combine(value, other);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ListContainsDispatchToImpureEquatableImplementation_Diagnostic()
         {
             var test = @"

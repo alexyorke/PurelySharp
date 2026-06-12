@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1625/1625` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1627/1627` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -79,6 +79,7 @@
 - `System.Net.IPAddress.Loopback` is cataloged as a deterministic pure singleton property using its resolved getter signature
 - `Comparer<T>.Default` and `EqualityComparer<T>.Default` getters are cataloged as pure singleton retrieval; comparer dispatch remains separately guarded
 - `IEquatable<T>.Equals(T)` and `EqualityComparer<T>.Equals/GetHashCode` no longer rely on broad pure catalog entries; dispatch now derives purity from in-compilation equality/hash implementations where possible and stays conservative for unresolved user dispatch
+- `HashCode.Combine<T...>` now derives hash purity from each type argument before accepting the pure catalog entry, so impure user `GetHashCode()` overrides are reported
 - built-in floating-point and decimal `EqualityComparer<T>` dispatch is treated as pure value equality/hash behavior
 - concrete `List<T>.Contains`, `Array.IndexOf<T>`, and LINQ `Enumerable.Contains<TSource>` calls now derive default equality purity from the element type instead of blindly trusting broad pure catalog entries
 - generic type-parameter equality lookups now remain conservative instead of falling through to broad catalog purity when `T.Equals`/`GetHashCode` cannot be resolved
