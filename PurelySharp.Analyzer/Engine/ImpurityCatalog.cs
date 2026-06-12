@@ -58,6 +58,12 @@ namespace PurelySharp.Analyzer.Engine
 		{
 			if (symbol == null) return false;
 
+			if (IsInConfiguredImpureNamespaceOrType(symbol) && !IsConfiguredKnownPureMember(symbol))
+			{
+				PurityAnalysisEngine.LogDebug($"Helper IsKnownPureBCLMember: Configured impure namespace/type suppresses known-pure catalog for {symbol.ToDisplayString()}");
+				return false;
+			}
+
 			if (IsMutableImmutableBuilderMember(symbol))
 			{
 				PurityAnalysisEngine.LogDebug($"Helper IsKnownPureBCLMember: Skipping mutable immutable-builder member: {symbol.ToDisplayString()}");
@@ -138,6 +144,38 @@ namespace PurelySharp.Analyzer.Engine
 			}
 
 			return isKnownPure;
+		}
+
+		private static bool IsConfiguredKnownPureMember(ISymbol symbol)
+		{
+			string signature = symbol.OriginalDefinition.ToDisplayString();
+			if (symbol.Kind == SymbolKind.Property &&
+				!signature.EndsWith(".get", StringComparison.Ordinal) &&
+				!signature.EndsWith(".set", StringComparison.Ordinal))
+			{
+				signature += ".get";
+			}
+
+			if (ExtraPureMethods.Contains(signature))
+			{
+				return true;
+			}
+
+			if (symbol is IMethodSymbol methodSymbol && methodSymbol.IsGenericMethod)
+			{
+				return ExtraPureMethods.Contains(methodSymbol.ConstructedFrom.ToDisplayString());
+			}
+
+			if (symbol is IPropertySymbol propertySymbol && propertySymbol.ContainingType.IsGenericType)
+			{
+				signature = propertySymbol.IsIndexer
+					? propertySymbol.OriginalDefinition.ToDisplayString()
+					: $"{propertySymbol.ContainingType.ConstructedFrom.ToDisplayString()}.{propertySymbol.Name}.get";
+
+				return ExtraPureMethods.Contains(signature);
+			}
+
+			return false;
 		}
 
 		public static bool IsKnownImpure(ISymbol symbol)

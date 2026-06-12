@@ -134,6 +134,35 @@ public class TestClass
         }
 
         [Test]
+        public async Task Ps0002_ConfiguredKnownImpureTypeOverridesKnownPureBclHeuristic()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int TestMethod(int value)
+    {
+        return Math.Abs(value);
+    }
+}",
+                ImmutableDictionary<string, string>.Empty.Add(
+                    "purelysharp_known_impure_types",
+                    "System.Math"));
+
+            var diagnostic = diagnostics
+                .Where(d => d.Id == PurelySharpDiagnostics.PurityNotVerifiedId)
+                .Single(d => d.GetMessage().Contains("'TestMethod'", StringComparison.Ordinal));
+
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCategoryProperty], Is.EqualTo("catalog_hit"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityRuleProperty], Is.EqualTo("MethodInvocationPurityRule"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCatalogSourceProperty], Is.EqualTo("known_impure_namespace_or_type"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpuritySymbolProperty], Does.Contain("System.Math.Abs"));
+        }
+
+        [Test]
         public async Task Ps0002_ImpureCallee_IncludesCalleeChain()
         {
             var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
