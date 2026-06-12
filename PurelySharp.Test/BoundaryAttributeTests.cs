@@ -394,6 +394,38 @@ public class TestClass
             await verifier.RunAsync();
         }
 
+        [Test]
+        public async Task AssemblyPureExternal_PropertyInImpureNamespace_IsTrustedAtCallSite()
+        {
+            var boundaryReference = CreateBoundaryReference(
+                "AssemblyPureExternalPropertyBoundary",
+                @"
+using System;
+using PurelySharp.Attributes;
+
+[assembly: PureExternal]
+
+namespace System.IO
+{
+    public static class TrustedAssemblyPropertySdk
+    {
+        public static int StableValue => DateTime.Now.Millisecond;
+    }
+}");
+
+            var verifier = CreateVerifier(@"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Caller() => System.IO.TrustedAssemblyPropertySdk.StableValue;
+}");
+            verifier.TestState.AdditionalReferences.Add(boundaryReference);
+
+            await verifier.RunAsync();
+        }
+
         private static VerifyCS.Test CreateVerifier(string source)
         {
             var verifier = new VerifyCS.Test

@@ -2152,6 +2152,11 @@ namespace PurelySharp.Analyzer.Engine
                 return false;
             }
 
+            if (HasPureExternalAttribute(symbol) || HasRecognizedExternalPureAttribute(symbol))
+            {
+                return true;
+            }
+
             var pureAttributeFullyQualifiedName = "global::PurelySharp.Attributes.PureAttribute";
             return GetAttributesIncludingAssociatedSymbol(symbol).Any(ad =>
                 SymbolEqualityComparer.Default.Equals(ad.AttributeClass?.OriginalDefinition, enforcePureAttributeSymbol) ||
@@ -2160,9 +2165,7 @@ namespace PurelySharp.Analyzer.Engine
                 string.Equals(
                     ad.AttributeClass?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                     pureAttributeFullyQualifiedName,
-                    StringComparison.Ordinal) ||
-                HasRecognizedExternalPureAttribute(symbol) ||
-                HasPureExternalAttribute(symbol)
+                    StringComparison.Ordinal)
             );
         }
 
