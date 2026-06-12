@@ -814,7 +814,8 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             var typeDefinition = containingType.OriginalDefinition.ToDisplayString();
             if (containingType.TypeArguments.Length == 2 &&
-                typeDefinition == "System.Collections.Generic.Dictionary<TKey, TValue>" &&
+                (typeDefinition == "System.Collections.Generic.Dictionary<TKey, TValue>" ||
+                 typeDefinition == "System.Collections.Immutable.ImmutableDictionary<TKey, TValue>") &&
                 methodSymbol.Name is "ContainsKey" or "TryGetValue")
             {
                 elementType = containingType.TypeArguments[0];
@@ -832,7 +833,8 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 typeDefinition == "System.Collections.Immutable.ImmutableList<T>" ||
                 typeDefinition == "System.Collections.Generic.Queue<T>" ||
                 typeDefinition == "System.Collections.Generic.Stack<T>" ||
-                typeDefinition == "System.Collections.Generic.HashSet<T>";
+                typeDefinition == "System.Collections.Generic.HashSet<T>" ||
+                typeDefinition == "System.Collections.Immutable.ImmutableHashSet<T>";
             if (!usesDefaultEquality)
             {
                 return false;
@@ -844,7 +846,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             elementType = containingType.TypeArguments[0];
-            requiresHashCode = typeDefinition == "System.Collections.Generic.HashSet<T>";
+            requiresHashCode =
+                typeDefinition == "System.Collections.Generic.HashSet<T>" ||
+                typeDefinition == "System.Collections.Immutable.ImmutableHashSet<T>";
             return elementType.TypeKind != TypeKind.TypeParameter;
         }
 
