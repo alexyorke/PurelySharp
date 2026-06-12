@@ -224,6 +224,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task LinqDistinctWithInterfaceEqualityComparerParameter_Diagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public IEnumerable<int> {|PS0002:TestMethod|}(IEnumerable<int> numbers, IEqualityComparer<int> comparer)
+    {
+        return numbers.Distinct(comparer);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task LinqOrderByWithImpureComparer_Diagnostic()
         {
             var test = @"
@@ -247,6 +267,26 @@ public class TestClass
     public IOrderedEnumerable<int> {|PS0002:TestMethod|}(IEnumerable<int> numbers)
     {
         return numbers.OrderBy(value => value, new ImpureComparer());
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task LinqOrderByWithInterfaceComparerParameter_Diagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public IOrderedEnumerable<int> {|PS0002:TestMethod|}(IEnumerable<int> numbers, IComparer<int> comparer)
+    {
+        return numbers.OrderBy(value => value, comparer);
     }
 }";
 

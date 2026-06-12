@@ -1933,13 +1933,27 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
 
+            var foundImplementation = false;
             foreach (var comparisonMethod in EnumerateComparerImplementations(value.Type))
             {
+                foundImplementation = true;
                 var comparisonPurity = PurityAnalysisEngine.GetCalleePurity(comparisonMethod.OriginalDefinition, context);
                 if (!comparisonPurity.IsPure)
                 {
                     return comparisonPurity.WithCallee(comparisonMethod, value.Syntax);
                 }
+            }
+
+            if (!foundImplementation && IsUnresolvedComparerDispatch(value.Type))
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                    value.Syntax,
+                    PurityAnalysisEngine.PurityEvidence.Create(
+                        "unknown_external_call",
+                        nameof(MethodInvocationPurityRule),
+                        argument,
+                        syntaxNode: value.Syntax,
+                        symbol: PurityAnalysisEngine.TryResolveSymbol(value) ?? argument.Parameter));
             }
 
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
@@ -2034,6 +2048,38 @@ namespace PurelySharp.Analyzer.Engine.Rules
             var displayString = typeSymbol.OriginalDefinition.ToDisplayString();
             return displayString == "System.Collections.Generic.IEqualityComparer<T>" ||
                 displayString == "System.Collections.Generic.IComparer<T>";
+        }
+
+        private static bool IsUnresolvedComparerDispatch(ITypeSymbol comparerType)
+        {
+            if (comparerType is ITypeParameterSymbol typeParameter)
+            {
+                return typeParameter.ConstraintTypes
+                    .OfType<INamedTypeSymbol>()
+                    .Any(IsComparerOrDerivedInterface);
+            }
+
+            if (comparerType is not INamedTypeSymbol namedComparerType)
+            {
+                return false;
+            }
+
+            if (IsComparerInterface(namedComparerType))
+            {
+                return true;
+            }
+
+            if (namedComparerType.TypeKind != TypeKind.Interface && !namedComparerType.IsAbstract)
+            {
+                return false;
+            }
+
+            return IsComparerOrDerivedInterface(namedComparerType);
+        }
+
+        private static bool IsComparerOrDerivedInterface(INamedTypeSymbol typeSymbol)
+        {
+            return IsComparerInterface(typeSymbol) || typeSymbol.AllInterfaces.Any(IsComparerInterface);
         }
 
         private static IEnumerable<INamedTypeSymbol> EnumerateAllNamedTypes(INamespaceSymbol root)
