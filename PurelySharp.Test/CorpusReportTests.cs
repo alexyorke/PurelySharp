@@ -116,6 +116,42 @@ namespace PurelySharp.Test
         }
 
         [Test]
+        public void CreateFromSarifJson_PreservesCatalogMissCategoriesForSameSymbol()
+        {
+            var report = SarifCorpusReport.CreateFromSarifJson("sample.sarif", """
+{
+  "version": "2.1.0",
+  "runs": [
+    {
+      "results": [
+        {
+          "ruleId": "PS0002",
+          "properties": {
+            "purelysharp.impurity.category": "unknown_external_call",
+            "purelysharp.impurity.operation_kind": "Invocation",
+            "purelysharp.impurity.symbol": "External.Api()"
+          }
+        },
+        {
+          "ruleId": "PS0002",
+          "properties": {
+            "purelysharp.impurity.category": "unsupported_operation",
+            "purelysharp.impurity.operation_kind": "FunctionPointerInvocation",
+            "purelysharp.impurity.symbol": "External.Api()"
+          }
+        }
+      ]
+    }
+  ]
+}
+""");
+
+            Assert.That(report.CatalogMisses, Has.Length.EqualTo(2));
+            Assert.That(report.CatalogMisses, Does.Contain(new RankedItem("External.Api()", 1, "unknown_external_call")));
+            Assert.That(report.CatalogMisses, Does.Contain(new RankedItem("External.Api()", 1, "unsupported_operation")));
+        }
+
+        [Test]
         public void CreateFromSarifJson_AggregatesUnknownOperationKinds()
         {
             var report = SarifCorpusReport.CreateFromSarifJson("sample.sarif", """
@@ -197,7 +233,7 @@ namespace PurelySharp.Test
             Assert.That(report.UnknownOperationKinds["FunctionPointerInvocation"], Is.EqualTo(2));
             Assert.That(report.TopImpureApis, Has.Length.EqualTo(1));
             Assert.That(report.TopImpureApis[0], Is.EqualTo(new RankedItem("delegate*<void>", 2)));
-            Assert.That(report.CatalogMisses[0], Is.EqualTo(new RankedItem("delegate*<void>", 2)));
+            Assert.That(report.CatalogMisses[0], Is.EqualTo(new RankedItem("delegate*<void>", 2, "unsupported_operation")));
             Assert.That(report.FalsePositiveCandidates[0], Is.EqualTo(new RankedItem("delegate*<void>", 2, "unsupported_operation")));
             Assert.That(report.Diagnostics[0].Category, Is.EqualTo("unsupported_operation"));
             Assert.That(report.Diagnostics[0].OperationKind, Is.EqualTo("FunctionPointerInvocation"));

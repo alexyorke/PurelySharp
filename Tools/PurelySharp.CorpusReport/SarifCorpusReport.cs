@@ -44,7 +44,7 @@ public static class SarifCorpusReport
         private readonly Dictionary<string, int> _operationKinds = new(StringComparer.Ordinal);
         private readonly Dictionary<string, int> _unknownOperationKinds = new(StringComparer.Ordinal);
         private readonly Dictionary<string, int> _symbols = new(StringComparer.Ordinal);
-        private readonly Dictionary<string, int> _catalogMisses = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, (string Category, int Count)> _catalogMisses = new(StringComparer.Ordinal);
         private readonly Dictionary<string, (string Category, int Count)> _falsePositiveCandidates = new(StringComparer.Ordinal);
         private readonly ImmutableArray<DiagnosticEvidenceItem>.Builder _diagnostics = ImmutableArray.CreateBuilder<DiagnosticEvidenceItem>();
 
@@ -92,8 +92,8 @@ public static class SarifCorpusReport
                 ToImmutableSortedDictionary(_operationKinds),
                 ToImmutableSortedDictionary(_unknownOperationKinds),
                 ToRankedItems(_symbols),
-                ToRankedItems(_catalogMisses),
-                ToFalsePositiveRankedItems(_falsePositiveCandidates));
+                ToCategorizedRankedItems(_catalogMisses),
+                ToCategorizedRankedItems(_falsePositiveCandidates));
         }
 
         private void AddResult(string inputName, JsonElement result)
@@ -161,15 +161,12 @@ public static class SarifCorpusReport
 
             if (category != null && symbol != null && CatalogMissCategories.Contains(category))
             {
-                Increment(_catalogMisses, symbol);
+                IncrementCategorized(_catalogMisses, category, symbol);
             }
 
             if (category != null && symbol != null && FalsePositiveCandidateCategories.Contains(category))
             {
-                var key = category + "|" + symbol;
-                _falsePositiveCandidates[key] = _falsePositiveCandidates.TryGetValue(key, out var existing)
-                    ? (category, existing.Count + 1)
-                    : (category, 1);
+                IncrementCategorized(_falsePositiveCandidates, category, symbol);
             }
         }
 
@@ -207,6 +204,14 @@ public static class SarifCorpusReport
             values[key] = values.TryGetValue(key, out var count) ? count + 1 : 1;
         }
 
+        private static void IncrementCategorized(Dictionary<string, (string Category, int Count)> values, string category, string value)
+        {
+            var key = category + "|" + value;
+            values[key] = values.TryGetValue(key, out var existing)
+                ? (category, existing.Count + 1)
+                : (category, 1);
+        }
+
         private static ImmutableDictionary<string, int> ToImmutableSortedDictionary(Dictionary<string, int> values)
         {
             return values
@@ -223,7 +228,7 @@ public static class SarifCorpusReport
                 .ToImmutableArray();
         }
 
-        private static ImmutableArray<RankedItem> ToFalsePositiveRankedItems(Dictionary<string, (string Category, int Count)> values)
+        private static ImmutableArray<RankedItem> ToCategorizedRankedItems(Dictionary<string, (string Category, int Count)> values)
         {
             return values
                 .Select(pair =>
