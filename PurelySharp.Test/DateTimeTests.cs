@@ -170,6 +170,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task DateTimeOADateAndDaysInMonthHelpers_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public double TestMethod(DateTime value)
+    {
+        return DateTime.FromOADate(value.ToOADate()).ToOADate() +
+            DateTime.DaysInMonth(value.Year, value.Month);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DateTimeOffsetNow_Diagnostic()
         {
             var test = @"
