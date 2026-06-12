@@ -1071,6 +1071,15 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return elementType.TypeKind != TypeKind.TypeParameter;
             }
 
+            if (containingType.TypeArguments.Length == 2 &&
+                (typeDefinition == "System.Collections.Generic.Dictionary<TKey, TValue>" ||
+                 typeDefinition == "System.Collections.Generic.SortedDictionary<TKey, TValue>") &&
+                methodSymbol.Name == "ContainsValue")
+            {
+                elementType = containingType.TypeArguments[1];
+                return elementType.TypeKind != TypeKind.TypeParameter;
+            }
+
             if (containingType.TypeArguments.Length != 1)
             {
                 return false;

@@ -556,6 +556,106 @@ public class TestClass
         }
 
         [Test]
+        public async Task DictionaryContainsValueDispatchToImpureEqualsOverride_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public sealed class MutableRecord
+{
+    public override bool Equals(object obj)
+    {
+        Console.WriteLine(""equals"");
+        return obj is MutableRecord;
+    }
+
+    public override int GetHashCode() => 0;
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(Dictionary<string, MutableRecord> values, MutableRecord value)
+    {
+        return values.ContainsValue(value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task DictionaryContainsValueForBuiltinValue_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool TestMethod(Dictionary<string, int> values, int value)
+    {
+        return values.ContainsValue(value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task SortedDictionaryContainsValueDispatchToImpureEqualsOverride_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public sealed class MutableRecord
+{
+    public override bool Equals(object obj)
+    {
+        Console.WriteLine(""equals"");
+        return obj is MutableRecord;
+    }
+
+    public override int GetHashCode() => 0;
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(SortedDictionary<int, MutableRecord> values, MutableRecord value)
+    {
+        return values.ContainsValue(value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task SortedDictionaryContainsValueForBuiltinValue_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool TestMethod(SortedDictionary<int, int> values, int value)
+    {
+        return values.ContainsValue(value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DictionaryIndexerDispatchToImpureGetHashCode_Diagnostic()
         {
             var test = @"

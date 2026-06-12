@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1591/1591` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1595/1595` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -74,7 +74,7 @@
 - `IEquatable<T>.Equals(T)` and `EqualityComparer<T>.Equals/GetHashCode` no longer rely on broad pure catalog entries; dispatch now derives purity from in-compilation equality/hash implementations where possible and stays conservative for unresolved user dispatch
 - built-in floating-point and decimal `EqualityComparer<T>` dispatch is treated as pure value equality/hash behavior
 - concrete `List<T>.Contains`, `Array.IndexOf<T>`, and LINQ `Enumerable.Contains<TSource>` calls now derive default equality purity from the element type instead of blindly trusting broad pure catalog entries
-- concrete `HashSet<T>.Contains/TryGetValue` and set-relation methods plus `Dictionary<TKey,TValue>.ContainsKey/TryGetValue` calls now derive key hash/equality purity from the key type before accepting broad catalog purity
+- concrete `HashSet<T>.Contains/TryGetValue` and set-relation methods plus `Dictionary<TKey,TValue>.ContainsKey/TryGetValue` and `ContainsValue` calls now derive key/value equality purity from the key or value type before accepting broad catalog purity
 - concrete `Dictionary<TKey,TValue>` indexer reads now derive key hash/equality purity from the key type instead of treating the getter as intrinsically pure
 - LINQ and span `SequenceEqual<T>` plus span `Contains`/`IndexOf`/`LastIndexOf`/`StartsWith`/`EndsWith` calls now derive default equality purity from the element type instead of blindly trusting broad catalog entries
 - LINQ `Contains`/`SequenceEqual`/`Distinct`/`Union`/`Except`/`Intersect` default comparer paths, including `null` or `default` comparer overloads, now fall back to default equality dispatch instead of bypassing element equality analysis
@@ -86,6 +86,7 @@
 - ImmutableHashSet<T>.Add/Remove and ImmutableDictionary<TKey,TValue>.Add/Remove/SetItem now derive key hash/equality purity from the element or key type before accepting immutable update methods as pure
 - ImmutableDictionary<TKey,TValue> indexer reads now derive key hash/equality purity from the key type instead of relying on the broad immutable-property catalog shortcut
 - concrete `SortedDictionary<TKey,TValue>.ContainsKey/TryGetValue`, `SortedList<TKey,TValue>.ContainsKey/TryGetValue`, `SortedSet<T>.Contains/TryGetValue`, `List<T>.BinarySearch(T)`, `Array.BinarySearch<T>`, and `MemoryExtensions.BinarySearch<T>/SequenceCompareTo<T>` calls now derive comparison purity from the key/element type instead of blindly trusting broad catalog entries
+- concrete `SortedDictionary<TKey,TValue>.ContainsValue` calls now derive value equality purity from the value type instead of blindly trusting catalog purity
 - concrete `SortedDictionary<TKey,TValue>` and `SortedList<TKey,TValue>` indexer reads now derive key comparison purity from the key type instead of treating the getter as intrinsically pure
 - ImmutableSortedDictionary<TKey,TValue>.ContainsKey/indexer reads and ImmutableSortedSet<T>.Contains/TryGetValue now derive comparison purity from the key/element type before accepting immutable-collection catalog purity
 - ImmutableSortedSet<T>.Add/Remove and ImmutableSortedDictionary<TKey,TValue>.Add/Remove/SetItem now derive comparison purity from the element or key type before accepting immutable sorted update methods as pure
