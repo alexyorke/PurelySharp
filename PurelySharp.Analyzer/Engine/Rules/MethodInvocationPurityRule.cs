@@ -938,7 +938,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             var methodSymbol = invocationOperation.TargetMethod;
             if (methodSymbol.ContainingType?.OriginalDefinition.ToDisplayString() != "System.MemoryExtensions" ||
-                methodSymbol.Name is not ("SequenceEqual" or "Contains" or "IndexOf" or "LastIndexOf") ||
+                methodSymbol.Name is not ("SequenceEqual" or "Contains" or "IndexOf" or "LastIndexOf" or "StartsWith" or "EndsWith") ||
                 methodSymbol.Parameters.Length != 2)
             {
                 return false;

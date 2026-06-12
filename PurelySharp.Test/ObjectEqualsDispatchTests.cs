@@ -847,6 +847,100 @@ public class TestClass
         }
 
         [Test]
+        public async Task SpanStartsWithDispatchToImpureEquatableImplementation_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public sealed class MutableRecord : IEquatable<MutableRecord>
+{
+    public bool Equals(MutableRecord other)
+    {
+        Console.WriteLine(""equals"");
+        return true;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(ReadOnlySpan<MutableRecord> values, ReadOnlySpan<MutableRecord> prefix)
+    {
+        return values.StartsWith(prefix);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task SpanStartsWithForBuiltinValueEquality_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool TestMethod(ReadOnlySpan<int> values, ReadOnlySpan<int> prefix)
+    {
+        return values.StartsWith(prefix);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task SpanEndsWithDispatchToImpureEquatableImplementation_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public sealed class MutableRecord : IEquatable<MutableRecord>
+{
+    public bool Equals(MutableRecord other)
+    {
+        Console.WriteLine(""equals"");
+        return true;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(ReadOnlySpan<MutableRecord> values, ReadOnlySpan<MutableRecord> suffix)
+    {
+        return values.EndsWith(suffix);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task SpanEndsWithForBuiltinValueEquality_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool TestMethod(ReadOnlySpan<int> values, ReadOnlySpan<int> suffix)
+    {
+        return values.EndsWith(suffix);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ImmutableListContainsDispatchToImpureEquatableImplementation_Diagnostic()
         {
             var test = @"
