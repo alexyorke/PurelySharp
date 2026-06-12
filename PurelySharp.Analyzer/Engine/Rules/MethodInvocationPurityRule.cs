@@ -750,12 +750,21 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return elementType.TypeKind != TypeKind.TypeParameter;
             }
 
+            var typeDefinition = containingType.OriginalDefinition.ToDisplayString();
+            if (containingType.TypeArguments.Length == 2 &&
+                typeDefinition == "System.Collections.Generic.Dictionary<TKey, TValue>" &&
+                methodSymbol.Name is "ContainsKey" or "TryGetValue")
+            {
+                elementType = containingType.TypeArguments[0];
+                requiresHashCode = true;
+                return elementType.TypeKind != TypeKind.TypeParameter;
+            }
+
             if (containingType.TypeArguments.Length != 1)
             {
                 return false;
             }
 
-            var typeDefinition = containingType.OriginalDefinition.ToDisplayString();
             var usesDefaultEquality =
                 typeDefinition == "System.Collections.Generic.List<T>" ||
                 typeDefinition == "System.Collections.Generic.Queue<T>" ||

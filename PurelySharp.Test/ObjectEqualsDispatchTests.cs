@@ -381,5 +381,82 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task DictionaryContainsKeyDispatchToImpureGetHashCode_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public sealed class MutableRecord
+{
+    public override int GetHashCode()
+    {
+        Console.WriteLine(""hash"");
+        return 0;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(Dictionary<MutableRecord, int> values, MutableRecord value)
+    {
+        return values.ContainsKey(value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task DictionaryTryGetValueDispatchToImpureGetHashCode_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public sealed class MutableRecord
+{
+    public override int GetHashCode()
+    {
+        Console.WriteLine(""hash"");
+        return 0;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(Dictionary<MutableRecord, int> values, MutableRecord value)
+    {
+        return values.TryGetValue(value, out var result) && result > 0;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task DictionaryTryGetValueForBuiltinKey_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool TestMethod(Dictionary<string, int> values, string key)
+    {
+        return values.TryGetValue(key, out var result) && result > 0;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
