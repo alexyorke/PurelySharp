@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1503/1503` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1505/1505` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -77,6 +77,7 @@
 - concrete `HashSet<T>.Contains` and `Dictionary<TKey,TValue>.ContainsKey/TryGetValue` calls now derive key hash/equality purity from the key type before accepting broad catalog purity
 - concrete `Dictionary<TKey,TValue>` indexer reads now derive key hash/equality purity from the key type instead of treating the getter as intrinsically pure
 - LINQ and span `SequenceEqual<T>` calls now derive default equality purity from the element type instead of blindly trusting broad catalog entries
+- ImmutableList<T>.Contains now derives default equality purity from the element type instead of relying on the broad immutable-collection catalog shortcut
 - concrete `SortedDictionary<TKey,TValue>.ContainsKey/TryGetValue`, `List<T>.BinarySearch(T)`, and `MemoryExtensions.BinarySearch<T>` calls now derive comparison purity from the key/element type instead of blindly trusting broad catalog entries
 - concrete `SortedDictionary<TKey,TValue>` indexer reads now derive key comparison purity from the key type instead of treating the getter as intrinsically pure
 - `global.json` pins the repo to .NET SDK `9.0.315` so build-backed validation does not float to newer SDK behavior

@@ -829,6 +829,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             var usesDefaultEquality =
                 typeDefinition == "System.Collections.Generic.List<T>" ||
+                typeDefinition == "System.Collections.Immutable.ImmutableList<T>" ||
                 typeDefinition == "System.Collections.Generic.Queue<T>" ||
                 typeDefinition == "System.Collections.Generic.Stack<T>" ||
                 typeDefinition == "System.Collections.Generic.HashSet<T>";
