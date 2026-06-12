@@ -539,7 +539,16 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     "ForEach" or
                     "RemoveAll" or
                     "TrueForAll",
-                "System.Array" => methodSymbol.Name == "ConvertAll",
+                "System.Array" => methodSymbol.Name is
+                    "ConvertAll" or
+                    "Exists" or
+                    "Find" or
+                    "FindAll" or
+                    "FindIndex" or
+                    "FindLast" or
+                    "FindLastIndex" or
+                    "ForEach" or
+                    "TrueForAll",
                 _ => false
             };
         }

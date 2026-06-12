@@ -51,6 +51,44 @@ public class TestClass
         }
 
         [Test]
+        public async Task ArrayExistsWithUnresolvedPredicateParameter_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(int[] values, Predicate<int> predicate)
+    {
+        return Array.Exists(values, predicate);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ArrayExistsWithPureLambda_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool TestMethod(int[] values)
+    {
+        return Array.Exists(values, static value => value > 0);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ListExistsWithPureLambda_NoDiagnostic()
         {
             var test = @"
