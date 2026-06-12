@@ -35,5 +35,39 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task ForeachImpureGetEnumerator_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public sealed class ImpureSequence : IEnumerable<int>
+{
+    public IEnumerator<int> GetEnumerator()
+    {
+        Console.WriteLine(""enumerating"");
+        return ((IEnumerable<int>)Array.Empty<int>()).GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}(ImpureSequence values)
+    {
+        foreach (var value in values)
+        {
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

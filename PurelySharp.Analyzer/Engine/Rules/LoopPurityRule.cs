@@ -36,6 +36,13 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     PurityAnalysisEngine.LogDebug($"    [LoopRule] IMPURE due to foreach collection expression: {forEachLoopOperation.Collection.Syntax}");
                     return collectionResult;
                 }
+
+                var enumeratorResult = CheckForEachEnumeratorPurity(forEachLoopOperation.Collection, context);
+                if (!enumeratorResult.IsPure)
+                {
+                    PurityAnalysisEngine.LogDebug($"    [LoopRule] IMPURE due to foreach GetEnumerator implementation: {forEachLoopOperation.Collection.Syntax}");
+                    return enumeratorResult;
+                }
             }
 
 
@@ -81,6 +88,81 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return constantValue.HasValue &&
                    constantValue.Value is bool boolValue &&
                    !boolValue;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckForEachEnumeratorPurity(
+            IOperation collectionOperation,
+            PurityAnalysisContext context)
+        {
+            var unwrappedCollection = PurityAnalysisEngine.SkipImplicitConversions(collectionOperation) ?? collectionOperation;
+            if (unwrappedCollection.Type == null)
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            foreach (var getEnumerator in EnumerateGetEnumeratorImplementations(unwrappedCollection.Type))
+            {
+                var enumeratorPurity = PurityAnalysisEngine.GetCalleePurity(getEnumerator.OriginalDefinition, context);
+                if (!enumeratorPurity.IsPure)
+                {
+                    return enumeratorPurity.WithCallee(getEnumerator, unwrappedCollection.Syntax);
+                }
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static IEnumerable<IMethodSymbol> EnumerateGetEnumeratorImplementations(ITypeSymbol collectionType)
+        {
+            var seen = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+
+            foreach (var getEnumerator in collectionType
+                         .GetMembers("GetEnumerator")
+                         .OfType<IMethodSymbol>()
+                         .Where(method => method.Parameters.Length == 0 && method.DeclaringSyntaxReferences.Length > 0))
+            {
+                if (seen.Add(getEnumerator.OriginalDefinition))
+                {
+                    yield return getEnumerator;
+                }
+            }
+
+            if (collectionType is not INamedTypeSymbol namedCollectionType)
+            {
+                yield break;
+            }
+
+            foreach (var interfaceType in namedCollectionType.AllInterfaces)
+            {
+                if (!IsEnumerableInterface(interfaceType))
+                {
+                    continue;
+                }
+
+                foreach (var interfaceGetEnumerator in interfaceType
+                             .GetMembers("GetEnumerator")
+                             .OfType<IMethodSymbol>()
+                             .Where(method => method.Parameters.Length == 0))
+                {
+                    var implementation = namedCollectionType.FindImplementationForInterfaceMember(interfaceGetEnumerator) as IMethodSymbol;
+                    if (implementation == null || implementation.DeclaringSyntaxReferences.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    if (seen.Add(implementation.OriginalDefinition))
+                    {
+                        yield return implementation;
+                    }
+                }
+            }
+        }
+
+        private static bool IsEnumerableInterface(INamedTypeSymbol typeSymbol)
+        {
+            var originalDefinition = typeSymbol.OriginalDefinition;
+            return originalDefinition.SpecialType == SpecialType.System_Collections_IEnumerable ||
+                originalDefinition.SpecialType == SpecialType.System_Collections_Generic_IEnumerable_T;
         }
     }
 }
