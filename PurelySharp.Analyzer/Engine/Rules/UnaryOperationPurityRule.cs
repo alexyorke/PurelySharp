@@ -49,6 +49,18 @@ namespace PurelySharp.Analyzer.Engine.Rules
             if (unaryOperation.OperatorMethod != null)
             {
 
+                if (IsStaticAbstractInterfaceOperator(unaryOperation.OperatorMethod))
+                {
+                    PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] Static abstract interface operator '{unaryOperation.OperatorMethod.Name}' has unresolved dispatch targets. Unary operation is Impure.");
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                        unaryOperation.Syntax,
+                        PurityAnalysisEngine.PurityEvidence.Create(
+                            "unknown_external_call",
+                            nameof(UnaryOperationPurityRule),
+                            unaryOperation,
+                            symbol: unaryOperation.OperatorMethod));
+                }
+
                 if (context.PurityCache.TryGetValue(unaryOperation.OperatorMethod.OriginalDefinition, out var cachedResult))
                 {
                     if (!cachedResult.IsPure)
@@ -134,6 +146,14 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             PurityAnalysisEngine.LogDebug($"    [UnaryOpRule] Unary operation is Pure.");
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static bool IsStaticAbstractInterfaceOperator(IMethodSymbol methodSymbol)
+        {
+            return methodSymbol.IsStatic &&
+                methodSymbol.IsAbstract &&
+                methodSymbol.MethodKind == MethodKind.UserDefinedOperator &&
+                methodSymbol.ContainingType?.TypeKind == TypeKind.Interface;
         }
     }
 }

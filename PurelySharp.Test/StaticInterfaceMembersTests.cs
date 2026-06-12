@@ -248,6 +248,56 @@ public class Calculator
         }
 
         [Test]
+        public async Task StaticAbstractInterfaceUnaryOperator_GenericDispatch_IsConservative()
+        {
+            var test = @"
+// Requires LangVersion 11+
+#nullable enable
+using PurelySharp.Attributes;
+
+public interface INegatable<T> where T : INegatable<T>
+{
+    [EnforcePure]
+    static abstract T operator -(T value);
+}
+
+public readonly struct Number : INegatable<Number>
+{
+    public readonly int Value;
+
+    [EnforcePure]
+    public Number(int value)
+    {
+        Value = value;
+    }
+
+    [EnforcePure]
+    public static Number operator -(Number value) => new Number(-value.Value);
+}
+
+public class Calculator
+{
+    [EnforcePure]
+    public T {|PS0002:NegateGeneric|}<T>(T value) where T : INegatable<T>
+    {
+        return -value;
+    }
+}
+";
+
+            await new VerifyCS.Test
+            {
+                TestCode = test,
+                ReferenceAssemblies = ReferenceAssemblies.Net.Net80,
+                SolutionTransforms =
+                {
+                    (solution, projectId) =>
+                        solution.AddMetadataReference(projectId, Microsoft.CodeAnalysis.MetadataReference.CreateFromFile(typeof(EnforcePureAttribute).Assembly.Location))
+                },
+            }.RunAsync();
+        }
+
+        [Test]
         public async Task StaticInterfaceMethod_VirtualWithDefault_PureImplementation_MissingAttributeDiagnostics()
         {
             var test = @"
