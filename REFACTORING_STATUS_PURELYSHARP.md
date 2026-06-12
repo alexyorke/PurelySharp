@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1637/1637` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1638/1638` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -40,6 +40,7 @@
 - `Array.AsReadOnly<T>(T[])` now stays conservative for caller-owned arrays but allows read-only views over tracked owned local arrays
 - `FormattableString.Invariant(...)` now allows formatted interpolated strings without ambient-culture `PS0002` when interpolation expressions are pure, while preserving diagnostics for impure interpolation expressions
 - `System.Net.IPAddress.IsLoopback(System.Net.IPAddress)` is cataloged as a deterministic predicate without relaxing the broader `System.Net` namespace
+- nullable-display `System.IO.Path` parser overloads such as `GetExtension(string?)` are cataloged as deterministic string operations without relaxing the broader `System.IO` namespace
 - interface/virtual dispatch now narrows through locals initialized from known concrete receiver types and forgets that narrowing after unknown reassignment
 - interface/virtual dispatch through same-declaration concrete receiver aliases has direct regression coverage
 - public virtual dispatch now has direct regression coverage for sealed receiver narrowing through a base-class cast
