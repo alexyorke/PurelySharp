@@ -1274,7 +1274,18 @@ public static class Constants
 
 
 
+        "System.Buffers.Binary.BinaryPrimitives.ReadInt16BigEndian(System.ReadOnlySpan<byte>)",
+        "System.Buffers.Binary.BinaryPrimitives.ReadInt16LittleEndian(System.ReadOnlySpan<byte>)",
+        "System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(System.ReadOnlySpan<byte>)",
         "System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(System.ReadOnlySpan<byte>)",
+        "System.Buffers.Binary.BinaryPrimitives.ReadInt64BigEndian(System.ReadOnlySpan<byte>)",
+        "System.Buffers.Binary.BinaryPrimitives.ReadInt64LittleEndian(System.ReadOnlySpan<byte>)",
+        "System.Buffers.Binary.BinaryPrimitives.ReadUInt16BigEndian(System.ReadOnlySpan<byte>)",
+        "System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(System.ReadOnlySpan<byte>)",
+        "System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(System.ReadOnlySpan<byte>)",
+        "System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(System.ReadOnlySpan<byte>)",
+        "System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(System.ReadOnlySpan<byte>)",
+        "System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(System.ReadOnlySpan<byte>)",
         "System.Buffers.Text.Utf8Parser.TryParse(System.ReadOnlySpan<byte>, out int, out int)",
         "System.Collections.Generic.LinkedListNode<T>.Value.get",
         "System.Collections.Generic.SortedList<TKey, TValue>.IndexOfKey(TKey)",

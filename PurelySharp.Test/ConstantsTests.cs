@@ -101,6 +101,7 @@ public static class CatalogConflictSamples
         {
             var source = @"
 using System;
+using System.Buffers.Binary;
 using System.Numerics;
 
 public static class RecentCatalogSignatureSamples
@@ -132,6 +133,19 @@ public static class RecentCatalogSignatureSamples
         _ = BitOperations.TrailingZeroCount(1u);
         _ = BitOperations.TrailingZeroCount(1L);
         _ = BitOperations.TrailingZeroCount(1ul);
+        ReadOnlySpan<byte> bytes = stackalloc byte[8];
+        _ = BinaryPrimitives.ReadInt16BigEndian(bytes);
+        _ = BinaryPrimitives.ReadInt16LittleEndian(bytes);
+        _ = BinaryPrimitives.ReadInt32BigEndian(bytes);
+        _ = BinaryPrimitives.ReadInt32LittleEndian(bytes);
+        _ = BinaryPrimitives.ReadInt64BigEndian(bytes);
+        _ = BinaryPrimitives.ReadInt64LittleEndian(bytes);
+        _ = BinaryPrimitives.ReadUInt16BigEndian(bytes);
+        _ = BinaryPrimitives.ReadUInt16LittleEndian(bytes);
+        _ = BinaryPrimitives.ReadUInt32BigEndian(bytes);
+        _ = BinaryPrimitives.ReadUInt32LittleEndian(bytes);
+        _ = BinaryPrimitives.ReadUInt64BigEndian(bytes);
+        _ = BinaryPrimitives.ReadUInt64LittleEndian(bytes);
         var fromSeconds = DateTimeOffset.FromUnixTimeSeconds(0);
         var added = value.AddDays(1);
         return added.ToUnixTimeMilliseconds() + value.Offset.Ticks;
@@ -169,6 +183,18 @@ public static class RecentCatalogSignatureSamples
             AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "BitOperations.TrailingZeroCount(1u)"), expectedPure: true, expectedImpure: false);
             AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "BitOperations.TrailingZeroCount(1L)"), expectedPure: true, expectedImpure: false);
             AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "BitOperations.TrailingZeroCount(1ul)"), expectedPure: true, expectedImpure: false);
+            AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "BinaryPrimitives.ReadInt16BigEndian(bytes)"), expectedPure: true, expectedImpure: false);
+            AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "BinaryPrimitives.ReadInt16LittleEndian(bytes)"), expectedPure: true, expectedImpure: false);
+            AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "BinaryPrimitives.ReadInt32BigEndian(bytes)"), expectedPure: true, expectedImpure: false);
+            AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "BinaryPrimitives.ReadInt32LittleEndian(bytes)"), expectedPure: true, expectedImpure: false);
+            AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "BinaryPrimitives.ReadInt64BigEndian(bytes)"), expectedPure: true, expectedImpure: false);
+            AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "BinaryPrimitives.ReadInt64LittleEndian(bytes)"), expectedPure: true, expectedImpure: false);
+            AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "BinaryPrimitives.ReadUInt16BigEndian(bytes)"), expectedPure: true, expectedImpure: false);
+            AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "BinaryPrimitives.ReadUInt16LittleEndian(bytes)"), expectedPure: true, expectedImpure: false);
+            AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "BinaryPrimitives.ReadUInt32BigEndian(bytes)"), expectedPure: true, expectedImpure: false);
+            AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "BinaryPrimitives.ReadUInt32LittleEndian(bytes)"), expectedPure: true, expectedImpure: false);
+            AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "BinaryPrimitives.ReadUInt64BigEndian(bytes)"), expectedPure: true, expectedImpure: false);
+            AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "BinaryPrimitives.ReadUInt64LittleEndian(bytes)"), expectedPure: true, expectedImpure: false);
             AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "DateTimeOffset.FromUnixTimeSeconds(0)"), expectedPure: true, expectedImpure: false);
             AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "value.AddDays(1)"), expectedPure: true, expectedImpure: false);
             AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "added.ToUnixTimeMilliseconds()"), expectedPure: true, expectedImpure: false);
