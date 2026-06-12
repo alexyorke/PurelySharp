@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1477/1477` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1483/1483` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -73,6 +73,7 @@
 - `Comparer<T>.Default` and `EqualityComparer<T>.Default` getters are cataloged as pure singleton retrieval; comparer dispatch remains separately guarded
 - `IEquatable<T>.Equals(T)` and `EqualityComparer<T>.Equals/GetHashCode` no longer rely on broad pure catalog entries; dispatch now derives purity from in-compilation equality/hash implementations where possible and stays conservative for unresolved user dispatch
 - built-in floating-point and decimal `EqualityComparer<T>` dispatch is treated as pure value equality/hash behavior
+- concrete `List<T>.Contains`, `Array.IndexOf<T>`, and LINQ `Enumerable.Contains<TSource>` calls now derive default equality purity from the element type instead of blindly trusting broad pure catalog entries
 - `global.json` pins the repo to .NET SDK `9.0.315` so build-backed validation does not float to newer SDK behavior
 - stale pure catalog entries for `Volatile.Read` and `Interlocked.Read` were removed so synchronization members consistently remain impure
 - property/indexer reference arguments are analyzed before getter purity or assignment-target shortcuts are accepted
