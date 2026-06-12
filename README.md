@@ -271,9 +271,10 @@ This project is licensed under the MIT License.
 - [x] Read-only collections (IReadOnly\* interfaces) - Creation assumed impure.
 - [x] Arrays (when used in a read-only manner)
 - [x] Tuples (creation)
-- [x] Collection expressions (C# 12) — `System.Collections.Immutable.*`, `Span<T>` / `ReadOnlySpan<T>`; direct and spread elements are analyzed; arrays and mutable collection targets remain impure
+- [x] Collection expressions (C# 12) - `System.Collections.Immutable.*`, `Span<T>` / `ReadOnlySpan<T>`; direct and spread elements are analyzed; arrays and mutable collection targets remain impure
 - [x] Mutable collections (List, Dictionary, etc.) - Creation/modification assumed impure.
 - [x] Modifying collection elements - Assumed impure.
+- [x] Default equality/comparison dispatch for collections, dictionaries, LINQ, comparers, and indexers is analyzed from the element/key type; unresolved generic type parameters stay conservative.
 - [x] Inline arrays (C# 12)
 
 ### Method Types
@@ -492,6 +493,7 @@ PurelySharp supports delegate types and operations. The purity analysis for dele
   - Invoking a delegate is pure if the delegate target is pure and all arguments are pure.
   - Stored delegate fields/properties can also be resolved when their initializer target is known.
   - If the analyzer can't determine the purity of the delegate target, it conservatively marks the invocation as impure.
+  - Delegate arguments passed to LINQ and delegate-invoking `List<T>` / `Array` helper methods are resolved too; unresolved delegate parameters remain conservative because those APIs invoke the delegate.
 - **Delegate Combination**:
   - Combining delegates (`+=`, `+`) is pure if both delegate operands are pure.
   - Removing delegates (`-=`, `-`) is pure if both delegate operands are pure.
@@ -519,7 +521,7 @@ public class DelegateOperations
     [EnforcePure]
     public IEnumerable<int> ProcessNumbers(IEnumerable<int> numbers)
     {
-        // Using delegates with LINQ (pure)
+        // Using inline pure delegates with LINQ (pure)
         return numbers.Where(n => n > 0)
                      .Select(n => n * 2);
     }
