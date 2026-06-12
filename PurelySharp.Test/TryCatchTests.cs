@@ -99,5 +99,31 @@ public class TestClass
                                 .WithArguments("ImpureMethod");
             await VerifyCS.VerifyAnalyzerAsync(code, expected);
         }
+
+        [Test]
+        public async Task ImpureCatchFilter_ReportsDiagnostic()
+        {
+            var code = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:ImpureMethod|}(int divisor)
+    {
+        try
+        {
+            return 1 / divisor;
+        }
+        catch (Exception) when (Console.Read() > 0)
+        {
+            return 0;
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(code);
+        }
     }
 }
