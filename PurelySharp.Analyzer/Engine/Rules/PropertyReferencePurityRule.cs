@@ -382,6 +382,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 propertySymbol.ContainingType is not INamedTypeSymbol containingType ||
                 containingType.TypeArguments.Length != 2 ||
                 (typeDefinition != "System.Collections.Generic.SortedDictionary<TKey, TValue>" &&
+                 typeDefinition != "System.Collections.Generic.SortedList<TKey, TValue>" &&
                  typeDefinition != "System.Collections.Immutable.ImmutableSortedDictionary<TKey, TValue>") ||
                 propertyReferenceOperation.Arguments.Length == 0)
             {

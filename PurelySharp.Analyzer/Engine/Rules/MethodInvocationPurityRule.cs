@@ -1109,7 +1109,8 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             if (containingType.TypeArguments.Length == 2 &&
-                typeDefinition == "System.Collections.Generic.SortedDictionary<TKey, TValue>" &&
+                (typeDefinition == "System.Collections.Generic.SortedDictionary<TKey, TValue>" ||
+                 typeDefinition == "System.Collections.Generic.SortedList<TKey, TValue>") &&
                 methodSymbol.Name is "ContainsKey" or "TryGetValue")
             {
                 keyType = containingType.TypeArguments[0];
