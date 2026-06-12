@@ -93,6 +93,65 @@ namespace TestNamespace
 
             await VerifyCS.VerifyAnalyzerAsync(test, new[] { expectedOuter });
         }
+
+        [Test]
+        public async Task AwaitCustomAwaiterPatternMembers_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+using PurelySharp.Attributes;
+
+public static class GlobalState
+{
+    public static int Count;
+}
+
+public sealed class ImpureAwaitable
+{
+    public ImpureAwaiter GetAwaiter()
+    {
+        GlobalState.Count++;
+        return new ImpureAwaiter();
+    }
+}
+
+public sealed class ImpureAwaiter : INotifyCompletion
+{
+    public bool IsCompleted
+    {
+        get
+        {
+            GlobalState.Count++;
+            return true;
+        }
+    }
+
+    public void OnCompleted(Action continuation)
+    {
+        GlobalState.Count++;
+        continuation();
+    }
+
+    public int GetResult()
+    {
+        GlobalState.Count++;
+        return 42;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public async Task<int> {|PS0002:TestMethod|}()
+    {
+        return await new ImpureAwaitable();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
 
