@@ -2250,6 +2250,15 @@ namespace PurelySharp.Analyzer.Engine
                     yield return attribute;
                 }
             }
+
+            if (symbol is IPropertySymbol { GetMethod: { } getMethod } &&
+                getMethod.DeclaringSyntaxReferences.Length == 0)
+            {
+                foreach (var attribute in getMethod.GetAttributes())
+                {
+                    yield return attribute;
+                }
+            }
         }
 
 
