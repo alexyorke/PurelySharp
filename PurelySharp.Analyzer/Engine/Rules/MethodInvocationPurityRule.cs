@@ -688,7 +688,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             result = PurityAnalysisEngine.PurityAnalysisResult.Pure;
 
             var methodSymbol = invocationOperation.TargetMethod;
-            if (methodSymbol.Name is not ("Contains" or "SequenceEqual") ||
+            if (methodSymbol.Name is not ("Contains" or "SequenceEqual" or "Distinct") ||
                 methodSymbol.TypeArguments.Length != 1 ||
                 methodSymbol.ContainingType?.OriginalDefinition.ToDisplayString() != "System.Linq.Enumerable")
             {
@@ -714,16 +714,19 @@ namespace PurelySharp.Analyzer.Engine.Rules
         {
             var methodSymbol = invocationOperation.TargetMethod;
             if ((methodSymbol.Name == "Contains" && methodSymbol.Parameters.Length == 2) ||
-                (methodSymbol.Name == "SequenceEqual" && methodSymbol.Parameters.Length == 2))
+                (methodSymbol.Name == "SequenceEqual" && methodSymbol.Parameters.Length == 2) ||
+                (methodSymbol.Name == "Distinct" && methodSymbol.Parameters.Length == 1))
             {
                 return true;
             }
 
             if ((methodSymbol.Name == "Contains" && methodSymbol.Parameters.Length == 3) ||
-                (methodSymbol.Name == "SequenceEqual" && methodSymbol.Parameters.Length == 3))
+                (methodSymbol.Name == "SequenceEqual" && methodSymbol.Parameters.Length == 3) ||
+                (methodSymbol.Name == "Distinct" && methodSymbol.Parameters.Length == 2))
             {
-                return invocationOperation.Arguments.Length >= 3 &&
-                    IsNullOrDefaultComparerArgument(invocationOperation.Arguments[2]);
+                var comparerArgumentIndex = methodSymbol.Name == "Distinct" ? 1 : 2;
+                return invocationOperation.Arguments.Length > comparerArgumentIndex &&
+                    IsNullOrDefaultComparerArgument(invocationOperation.Arguments[comparerArgumentIndex]);
             }
 
             return false;

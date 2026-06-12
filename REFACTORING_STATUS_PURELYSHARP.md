@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1531/1531` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1535/1535` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -77,7 +77,7 @@
 - concrete `HashSet<T>.Contains` and `Dictionary<TKey,TValue>.ContainsKey/TryGetValue` calls now derive key hash/equality purity from the key type before accepting broad catalog purity
 - concrete `Dictionary<TKey,TValue>` indexer reads now derive key hash/equality purity from the key type instead of treating the getter as intrinsically pure
 - LINQ and span `SequenceEqual<T>` calls now derive default equality purity from the element type instead of blindly trusting broad catalog entries
-- LINQ `Contains`/`SequenceEqual` comparer overloads with `null` or `default` comparers now fall back to default equality dispatch instead of bypassing element equality analysis
+- LINQ `Contains`/`SequenceEqual`/`Distinct` default comparer paths, including `null` or `default` comparer overloads, now fall back to default equality dispatch instead of bypassing element equality analysis
 - ImmutableList<T>.Contains now derives default equality purity from the element type instead of relying on the broad immutable-collection catalog shortcut
 - ImmutableHashSet<T>.Contains and ImmutableDictionary<TKey,TValue>.ContainsKey/TryGetValue now derive key hash/equality purity from the element or key type before accepting immutable-collection catalog purity
 - ImmutableHashSet<T>.Add/Remove and ImmutableDictionary<TKey,TValue>.Add/Remove/SetItem now derive key hash/equality purity from the element or key type before accepting immutable update methods as pure

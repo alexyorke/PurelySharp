@@ -224,6 +224,106 @@ public class TestClass
         }
 
         [Test]
+        public async Task LinqDistinctDefaultEqualityDispatchToImpureEquatable_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public sealed class MutableRecord : IEquatable<MutableRecord>
+{
+    public bool Equals(MutableRecord other)
+    {
+        Console.WriteLine(""equals"");
+        return true;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public IEnumerable<MutableRecord> {|PS0002:TestMethod|}(IEnumerable<MutableRecord> values)
+    {
+        return values.Distinct();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task LinqDistinctDefaultEqualityForBuiltinValue_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public IEnumerable<int> TestMethod(IEnumerable<int> values)
+    {
+        return values.Distinct();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task LinqDistinctNullComparerDispatchToImpureEquatable_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public sealed class MutableRecord : IEquatable<MutableRecord>
+{
+    public bool Equals(MutableRecord other)
+    {
+        Console.WriteLine(""equals"");
+        return true;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public IEnumerable<MutableRecord> {|PS0002:TestMethod|}(IEnumerable<MutableRecord> values)
+    {
+        return values.Distinct(null);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task LinqDistinctDefaultComparerForBuiltinValue_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public IEnumerable<int> TestMethod(IEnumerable<int> values)
+    {
+        return values.Distinct(default(IEqualityComparer<int>));
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task LinqDistinctWithInterfaceEqualityComparerParameter_Diagnostic()
         {
             var test = @"
