@@ -31,7 +31,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
                 if (initOp is ISimpleAssignmentOperation assignment)
                 {
-                    var targetResult = CheckAssignmentTargetPurity(assignment, context);
+                    var targetResult = CheckAssignmentTargetPurity(assignment, context, currentState);
                     if (!targetResult.IsPure)
                     {
                         PurityAnalysisEngine.LogDebug($"[ObjInitRule]  -> Initializer assignment target IMPURE: {assignment.Target.Syntax}");
@@ -93,15 +93,53 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
         private static PurityAnalysisEngine.PurityAnalysisResult CheckAssignmentTargetPurity(
             ISimpleAssignmentOperation assignment,
-            PurityAnalysisContext context)
+            PurityAnalysisContext context,
+            PurityAnalysisEngine.PurityAnalysisState currentState)
         {
             if (assignment.Target is IPropertyReferenceOperation propertyReference &&
                 propertyReference.Property.SetMethod is { } setter)
             {
+                var targetExpressionResult = CheckPropertyReferenceTargetPurity(propertyReference, context, currentState);
+                if (!targetExpressionResult.IsPure)
+                {
+                    return targetExpressionResult;
+                }
+
                 var setterPurity = PurityAnalysisEngine.GetCalleePurity(setter.OriginalDefinition, context);
                 return setterPurity.IsPure
                     ? PurityAnalysisEngine.PurityAnalysisResult.Pure
                     : setterPurity.WithCallee(setter.OriginalDefinition, assignment.Target.Syntax);
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckPropertyReferenceTargetPurity(
+            IPropertyReferenceOperation propertyReference,
+            PurityAnalysisContext context,
+            PurityAnalysisEngine.PurityAnalysisState currentState)
+        {
+            if (propertyReference.Instance != null)
+            {
+                var instanceResult = PurityAnalysisEngine.CheckSingleOperation(propertyReference.Instance, context, currentState);
+                if (!instanceResult.IsPure)
+                {
+                    return instanceResult;
+                }
+            }
+
+            foreach (var argument in propertyReference.Arguments)
+            {
+                if (argument.Value == null)
+                {
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(argument.Syntax);
+                }
+
+                var argumentResult = PurityAnalysisEngine.CheckSingleOperation(argument.Value, context, currentState);
+                if (!argumentResult.IsPure)
+                {
+                    return argumentResult;
+                }
             }
 
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;

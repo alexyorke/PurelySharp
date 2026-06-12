@@ -67,5 +67,34 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
+
+        [Test]
+        public async Task ObjectInitializerIndexerWithImpureIndex_Diagnostic()
+        {
+            var testCode = @"
+using System;
+using PurelySharp.Attributes;
+
+public class Target
+{
+    public int this[int index]
+    {
+        [EnforcePure]
+        set { }
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public Target {|PS0002:Create|}()
+    {
+        return new Target { [Console.Read()] = 1 };
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
     }
 }
