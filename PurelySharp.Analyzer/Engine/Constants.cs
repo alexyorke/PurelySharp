@@ -1050,6 +1050,7 @@ public static class Constants
 
         "System.Convert.FromBase64String(string)",
         "System.Convert.ToBase64String(byte[])",
+        "System.Convert.ToBase64String(byte[], int, int)",
 
 
         "System.DateTime.DateTime(long)",
@@ -1497,6 +1498,7 @@ public static class Constants
         "System.Collections.Generic.Queue<T>.Contains(T)",
         "System.Collections.Generic.Stack<T>.Contains(T)",
         "System.Convert.ToBase64String(byte[])",
+        "System.Convert.ToBase64String(byte[], int, int)",
         "System.DateTime.Day.get",
         "System.DateTime.DayOfWeek.get",
         "System.DateTime.DayOfYear.get",

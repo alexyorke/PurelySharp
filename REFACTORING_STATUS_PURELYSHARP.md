@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1651/1651` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1652/1652` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -48,6 +48,7 @@
 - configured impure types/namespaces now take precedence over hardcoded known-pure BCL heuristics, while exact configured pure member overrides remain narrow
 - custom awaiter analysis now includes source-defined `OnCompleted` and `UnsafeOnCompleted` continuation scheduling methods in addition to `GetAwaiter`, `IsCompleted`, and `GetResult`
 - awaiter continuation scheduling is skipped when a source `IsCompleted` getter is provably constant `true`, avoiding a false positive for synchronously completed awaiters
+- `System.Convert.ToBase64String(byte[], int, int)` is cataloged as a deterministic string-producing overload without relaxing mutable-array escape checks
 - return escape analysis now inspects coalesce expressions so fresh owned arrays cannot escape through `??` arms without `PS0002`
 - generic static abstract interface operator dispatch is now conservative, matching static interface method dispatch when no concrete target is known
 - unused local function declarations no longer taint enclosing pure methods; invoked local functions are still checked through callee purity
