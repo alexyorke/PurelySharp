@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1629/1629` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1633/1633` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -23,6 +23,7 @@
 - `using(existingLocal)` now resolves stable concrete disposable initializers so implicit `Dispose` purity is checked precisely
 - `using(expression)` now checks implicit `Dispose` purity for expression resources such as direct object creation instead of only checking resource acquisition purity
 - `using((IDisposable)new PureDisposable())` now unwraps conversion nodes before resolving the implicit `Dispose` target, avoiding false positives for pure concrete disposers hidden by interface casts
+- pattern-based using disposal now checks parameterless instance `Dispose()` on non-`IDisposable` ref structs, so impure cleanup is reported instead of skipped
 - configured pure/impure catalog overrides now run in scoped analysis context to avoid cross-compilation leakage
 - catalog tests now include symbol-resolved smoke coverage for representative pure and impure members, including `KeyedCollection<TKey,TItem>` and nullable exception-constructor signatures that have previously drifted
 - catalog tests now resolve recent Guid and DateTimeOffset entries against net8 reference assemblies
@@ -34,6 +35,7 @@
 - returning mutable arrays from known-pure BCL factory calls now reports mutable-state escape, including locals initialized from those factories
 - `Array.Empty<T>()` remains allowed because it returns a zero-length array that cannot expose mutable elements
 - fresh local arrays created by collection expressions are now tracked like `new[]` arrays: local mutation can stay pure, while returning the array still reports escape
+- `FormattableString.Invariant(...)` now allows formatted interpolated strings without ambient-culture `PS0002` when interpolation expressions are pure, while preserving diagnostics for impure interpolation expressions
 - interface/virtual dispatch now narrows through locals initialized from known concrete receiver types and forgets that narrowing after unknown reassignment
 - interface/virtual dispatch through same-declaration concrete receiver aliases has direct regression coverage
 - public virtual dispatch now has direct regression coverage for sealed receiver narrowing through a base-class cast
