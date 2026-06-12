@@ -702,8 +702,22 @@ namespace PurelySharp.Analyzer.Engine.Rules
             elementType = null!;
 
             if (methodSymbol.ContainingType is not INamedTypeSymbol containingType ||
-                containingType.TypeArguments.Length != 1 ||
                 methodSymbol.Parameters.Length < 1)
+            {
+                return false;
+            }
+
+            if (containingType.SpecialType == SpecialType.System_Array &&
+                methodSymbol.IsGenericMethod &&
+                methodSymbol.TypeArguments.Length == 1 &&
+                methodSymbol.Parameters.Length >= 2 &&
+                methodSymbol.Name is "IndexOf" or "LastIndexOf")
+            {
+                elementType = methodSymbol.TypeArguments[0];
+                return elementType.TypeKind != TypeKind.TypeParameter;
+            }
+
+            if (containingType.TypeArguments.Length != 1)
             {
                 return false;
             }
