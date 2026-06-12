@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1644/1644` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1645/1645` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -47,6 +47,7 @@
 - generic static abstract interface operator dispatch is now conservative, matching static interface method dispatch when no concrete target is known
 - unused local function declarations no longer taint enclosing pure methods; invoked local functions are still checked through callee purity
 - generic static abstract interface unary operator dispatch is now conservative, matching the binary operator and static interface method policies
+- generic static abstract interface conversion operator dispatch is now conservative, closing the adjacent abstract/no-body purity gap
 - interface/virtual dispatch now narrows through locals initialized from known concrete receiver types and forgets that narrowing after unknown reassignment
 - interface/virtual dispatch through same-declaration concrete receiver aliases has direct regression coverage
 - public virtual dispatch now has direct regression coverage for sealed receiver narrowing through a base-class cast
