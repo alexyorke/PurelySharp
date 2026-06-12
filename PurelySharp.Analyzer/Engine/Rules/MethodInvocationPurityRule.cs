@@ -695,8 +695,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return false;
             }
 
-            if ((methodSymbol.Name == "Contains" && methodSymbol.Parameters.Length != 2) ||
-                (methodSymbol.Name == "SequenceEqual" && methodSymbol.Parameters.Length != 2))
+            if (!IsLinqDefaultEqualityOverload(invocationOperation))
             {
                 return false;
             }
@@ -709,6 +708,25 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             result = CheckDefaultEqualityDispatchPurity(elementType, invocationOperation, context);
             return true;
+        }
+
+        private static bool IsLinqDefaultEqualityOverload(IInvocationOperation invocationOperation)
+        {
+            var methodSymbol = invocationOperation.TargetMethod;
+            if ((methodSymbol.Name == "Contains" && methodSymbol.Parameters.Length == 2) ||
+                (methodSymbol.Name == "SequenceEqual" && methodSymbol.Parameters.Length == 2))
+            {
+                return true;
+            }
+
+            if ((methodSymbol.Name == "Contains" && methodSymbol.Parameters.Length == 3) ||
+                (methodSymbol.Name == "SequenceEqual" && methodSymbol.Parameters.Length == 3))
+            {
+                return invocationOperation.Arguments.Length >= 3 &&
+                    IsNullOrDefaultComparerArgument(invocationOperation.Arguments[2]);
+            }
+
+            return false;
         }
 
         private static bool TryCheckMemoryExtensionsDefaultEqualityDispatchPurity(
@@ -1962,6 +1980,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
 
+            if (IsNullOrDefaultComparerValue(value))
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
             var foundImplementation = false;
             foreach (var comparisonMethod in EnumerateComparerImplementations(value.Type))
             {
@@ -1986,6 +2009,24 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static bool IsNullOrDefaultComparerArgument(IArgumentOperation argument)
+        {
+            var value = PurityAnalysisEngine.SkipImplicitConversions(argument.Value) ?? argument.Value;
+            return IsNullOrDefaultComparerValue(value);
+        }
+
+        private static bool IsNullOrDefaultComparerValue(IOperation value)
+        {
+            value = PurityAnalysisEngine.SkipImplicitConversions(value) ?? value;
+
+            if (value.ConstantValue.HasValue && value.ConstantValue.Value == null)
+            {
+                return true;
+            }
+
+            return value is IDefaultValueOperation;
         }
 
         private static IEnumerable<IMethodSymbol> EnumerateSourceGetEnumeratorImplementations(ITypeSymbol sourceType)
