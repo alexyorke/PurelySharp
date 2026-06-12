@@ -174,6 +174,17 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             if (objectCreationOperation.Type != null && PurityAnalysisEngine.IsInImpureNamespaceOrType(objectCreationOperation.Type))
             {
+                if (constructorSymbol != null &&
+                    (PurityAnalysisEngine.HasPureExternalAttribute(constructorSymbol) ||
+                     PurityAnalysisEngine.IsPureEnforced(
+                         constructorSymbol,
+                         context.EnforcePureAttributeSymbol,
+                         context.PureAttributeSymbol)))
+                {
+                    PurityAnalysisEngine.LogDebug($"    [ObjCreateRule] Object creation '{objectCreationOperation.Syntax}' has an explicit pure constructor boundary. Skipping impure namespace/type fallback.");
+                    return PurityAnalysisResult.Pure;
+                }
+
                 PurityAnalysisEngine.LogDebug($"    [ObjCreateRule] Object creation '{objectCreationOperation.Syntax}' is IMPURE because type '{objectCreationOperation.Type.ToDisplayString()}' is in a known impure namespace/type.");
                 return PurityAnalysisResult.Impure(
                     objectCreationOperation.Syntax,

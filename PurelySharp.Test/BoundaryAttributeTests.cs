@@ -426,6 +426,38 @@ public class TestClass
             await verifier.RunAsync();
         }
 
+        [Test]
+        public async Task PureExternalConstructorInImpureNamespace_IsTrustedAtCallSite()
+        {
+            var boundaryReference = CreateBoundaryReference(
+                "PureExternalConstructorImpureNamespaceBoundary",
+                @"
+using PurelySharp.Attributes;
+
+namespace System.IO
+{
+    public sealed class TrustedConstructedSdk
+    {
+        [PureExternal]
+        public TrustedConstructedSdk()
+        {
+        }
+    }
+}");
+
+            var verifier = CreateVerifier(@"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public object Caller() => new System.IO.TrustedConstructedSdk();
+}");
+            verifier.TestState.AdditionalReferences.Add(boundaryReference);
+
+            await verifier.RunAsync();
+        }
+
         private static VerifyCS.Test CreateVerifier(string source)
         {
             var verifier = new VerifyCS.Test
