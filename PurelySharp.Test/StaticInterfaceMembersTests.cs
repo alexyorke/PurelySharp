@@ -210,7 +210,7 @@ namespace TestNamespace
 {
     public interface IMultiplyable<T> where T : IMultiplyable<T>
     {
-        // Default implementation is impure (throws), but we might not analyze it directly.
+        // Default implementation is impure (throws); this test verifies the pure override suggestion path.
         // Purity check applies to overriding implementations.
         static virtual T Multiply(T a, T b) => throw new NotImplementedException();
     }

@@ -28,7 +28,7 @@ public class TestClass
     [EnforcePure]
     public string TestMethod(string input)
     {
-        // Split and the subsequent string/LINQ pipeline are pure in the current analyzer model.
+        // Split and the subsequent string/LINQ pipeline are treated as pure by the analyzer.
         var words = input.Split(' ')
             .Where(w => !string.IsNullOrEmpty(w))
             .Select(w => w.Trim().ToLower())

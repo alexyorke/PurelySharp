@@ -141,7 +141,7 @@ public class TestClass
 
 public class PureDisposable : IDisposable
 {
-    // Empty Dispose is accepted by the current using analysis.
+    // Empty Dispose is treated as pure.
     public void Dispose() { }
 }";
 
@@ -171,7 +171,7 @@ public class TestClass
 
 public class PureDisposable : IDisposable
 {
-    // Empty Dispose is accepted by the current using analysis.
+    // Empty Dispose is treated as pure.
     public void Dispose() { }
 }";
 

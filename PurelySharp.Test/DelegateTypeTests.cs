@@ -182,7 +182,7 @@ public class TestClass
     public void ApplyAction(Action action)
     {
         // Invocation happens here, purity depends on 'action'
-        action(); // Should trigger PS0002 if action's purity cannot be guaranteed
+        action(); // Unresolved delegate purity is reported as PS0002.
     }
 
     [EnforcePure]

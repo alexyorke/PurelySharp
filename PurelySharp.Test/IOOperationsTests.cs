@@ -438,7 +438,7 @@ public class TestClass
     [EnforcePure]
     public string TestMethod()
     {
-        // Reading from static field should be detected as impure
+        // Reading from static field is detected as impure.
         return sharedState;
     }
 }";
@@ -892,7 +892,7 @@ public class TestClass
     [EnforcePure]
     public void TestMethod(string message)
     {
-        // Direct Console.WriteLine call should be detected as impure
+        // Direct Console.WriteLine is detected as impure.
         Console.WriteLine(message);
     }
 }";
