@@ -99,6 +99,44 @@ public class TestClass
         }
 
         [Test]
+        public async Task FormattableStringInvariant_WithFormatSpecifier_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public string TestMethod(double value)
+    {
+        return FormattableString.Invariant($""{value,10:N2}"");
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task FormattableStringInvariant_WithImpureInterpolationExpression_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public string {|PS0002:TestMethod|}()
+    {
+        return FormattableString.Invariant($""{Console.Read():N2}"");
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task StringBuilderOperations_Diagnostic()
         {
 

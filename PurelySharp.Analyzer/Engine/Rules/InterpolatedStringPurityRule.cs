@@ -27,6 +27,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             PurityAnalysisEngine.LogDebug($"InterpolatedStringPurityRule: Assuming interpolation operation itself is pure for {interpolatedString.Syntax}. Part purity handled elsewhere.");
 
+            var isFormattableStringInvariantArgument = IsFormattableStringInvariantArgument(interpolatedString);
 
             foreach (var part in interpolatedString.Parts)
             {
@@ -50,7 +51,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     {
                         PurityAnalysisEngine.LogDebug($"    [InterpStrRule] Checking Interpolation Alignment: {interpolation.Alignment.Syntax}");
                         partResult = PurityAnalysisEngine.CheckSingleOperation(interpolation.Alignment, context, currentState);
-                        if (partResult.IsPure)
+                        if (partResult.IsPure && !isFormattableStringInvariantArgument)
                         {
                             PurityAnalysisEngine.LogDebug($"    [InterpStrRule] Non-null interpolation alignment implies formatting semantics. Marking impure.");
                             partResult = PurityAnalysisEngine.PurityAnalysisResult.Impure(
@@ -67,7 +68,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     {
                         PurityAnalysisEngine.LogDebug($"    [InterpStrRule] Checking Interpolation FormatString: {interpolation.FormatString.Syntax}");
                         partResult = PurityAnalysisEngine.CheckSingleOperation(interpolation.FormatString, context, currentState);
-                        if (partResult.IsPure)
+                        if (partResult.IsPure && !isFormattableStringInvariantArgument)
                         {
                             PurityAnalysisEngine.LogDebug($"    [InterpStrRule] Non-null interpolation format string implies formatting semantics. Marking impure.");
                             partResult = PurityAnalysisEngine.PurityAnalysisResult.Impure(
@@ -98,6 +99,32 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static bool IsFormattableStringInvariantArgument(IInterpolatedStringOperation interpolatedString)
+        {
+            IOperation current = interpolatedString;
+            while (current.Parent is IConversionOperation conversion &&
+                   ReferenceEquals(conversion.Operand, current))
+            {
+                current = conversion;
+            }
+
+            if (current.Parent is not IArgumentOperation argumentOperation ||
+                !ReferenceEquals(argumentOperation.Value, current))
+            {
+                return false;
+            }
+
+            if (argumentOperation.Parent is not IInvocationOperation invocationOperation)
+            {
+                return false;
+            }
+
+            var targetMethod = invocationOperation.TargetMethod;
+            return targetMethod.Name == "Invariant" &&
+                   targetMethod.ContainingType?.Name == "FormattableString" &&
+                   targetMethod.ContainingType.ContainingNamespace?.ToDisplayString() == "System";
         }
     }
 }

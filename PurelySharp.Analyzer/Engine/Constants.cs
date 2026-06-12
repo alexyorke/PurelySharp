@@ -1524,6 +1524,7 @@ public static class Constants
         "double.PositiveInfinity.get",
         "System.IO.FileNotFoundException.FileNotFoundException(string?)",
         "System.FormattableString.Format.get",
+        "System.FormattableString.Invariant(System.FormattableString)",
         "System.FormattableString.ToString(System.IFormatProvider)",
         "System.HashCode.HashCode()",
         "System.HashCode.ToHashCode()",
