@@ -219,6 +219,90 @@ public class TestClass
         }
 
         [Test]
+        public async Task InterfacePropertyGetter_OnSealedImplementationThroughCast_NoDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public interface ICastCounter
+{
+    int Count { get; }
+}
+
+public sealed class SealedCastCounter : ICastCounter
+{
+    public int Count => 1;
+}
+
+public sealed class ImpureCastCounter : ICastCounter
+{
+    private int _reads;
+
+    public int Count
+    {
+        get
+        {
+            _reads++;
+            return _reads;
+        }
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Read()
+    {
+        return ((ICastCounter)new SealedCastCounter()).Count;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task InterfacePropertyGetter_OnConditionalSealedImplementationBranches_NoDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public interface IConditionalCounter
+{
+    int Count { get; }
+}
+
+public sealed class SealedConditionalCounter : IConditionalCounter
+{
+    public int Count => 1;
+}
+
+public sealed class ImpureConditionalCounter : IConditionalCounter
+{
+    private int _reads;
+
+    public int Count
+    {
+        get
+        {
+            _reads++;
+            return _reads;
+        }
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public int Read(bool flag)
+    {
+        return (flag ? (IConditionalCounter)new SealedConditionalCounter() : new SealedConditionalCounter()).Count;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task VirtualPropertyGetter_WithImpureOverride_Diagnostic()
         {
             var test = @"
