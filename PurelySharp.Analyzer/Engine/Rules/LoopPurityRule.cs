@@ -22,6 +22,39 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             PurityAnalysisEngine.LogDebug($"    [LoopRule] Analyzing loop body for: {loopOperation.Syntax}");
 
+            if (loopOperation is IForLoopOperation forLoopOperation)
+            {
+                foreach (var beforeOperation in forLoopOperation.Before)
+                {
+                    var beforeResult = PurityAnalysisEngine.CheckSingleOperation(beforeOperation, context, currentState);
+                    if (!beforeResult.IsPure)
+                    {
+                        PurityAnalysisEngine.LogDebug($"    [LoopRule] IMPURE due to for-loop initializer: {beforeOperation.Syntax}");
+                        return beforeResult;
+                    }
+                }
+
+                if (forLoopOperation.Condition != null)
+                {
+                    var conditionResult = PurityAnalysisEngine.CheckSingleOperation(forLoopOperation.Condition, context, currentState);
+                    if (!conditionResult.IsPure)
+                    {
+                        PurityAnalysisEngine.LogDebug($"    [LoopRule] IMPURE due to for-loop condition: {forLoopOperation.Condition.Syntax}");
+                        return conditionResult;
+                    }
+                }
+            }
+            else if (loopOperation is IWhileLoopOperation whileLoopOperation &&
+                whileLoopOperation.Condition != null)
+            {
+                var conditionResult = PurityAnalysisEngine.CheckSingleOperation(whileLoopOperation.Condition, context, currentState);
+                if (!conditionResult.IsPure)
+                {
+                    PurityAnalysisEngine.LogDebug($"    [LoopRule] IMPURE due to while-loop condition: {whileLoopOperation.Condition.Syntax}");
+                    return conditionResult;
+                }
+            }
+
             if (HasStaticallyUnreachableBody(loopOperation))
             {
                 PurityAnalysisEngine.LogDebug($"    [LoopRule] Skipping unreachable loop body for: {loopOperation.Syntax}");
@@ -56,6 +89,19 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     {
                         PurityAnalysisEngine.LogDebug($"    [LoopRule] IMPURE due to operation in loop body: {bodyOp.Kind} at {bodyOp.Syntax.GetLocation()?.GetLineSpan().StartLinePosition}");
                         return opResult;
+                    }
+                }
+            }
+
+            if (loopOperation is IForLoopOperation reachableForLoopOperation)
+            {
+                foreach (var atLoopBottomOperation in reachableForLoopOperation.AtLoopBottom)
+                {
+                    var atLoopBottomResult = PurityAnalysisEngine.CheckSingleOperation(atLoopBottomOperation, context, currentState);
+                    if (!atLoopBottomResult.IsPure)
+                    {
+                        PurityAnalysisEngine.LogDebug($"    [LoopRule] IMPURE due to for-loop incrementor: {atLoopBottomOperation.Syntax}");
+                        return atLoopBottomResult;
                     }
                 }
             }
