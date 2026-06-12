@@ -34,6 +34,7 @@ namespace PurelySharp.Test
             var source = @"
 using System;
 using System.Collections.Generic;
+using System.Net;
 
 public static class CatalogSignatureSamples
 {
@@ -42,6 +43,7 @@ public static class CatalogSignatureSamples
         var list = new List<int>();
         list.Add(1);
         var now = DateTime.Now;
+        _ = IPAddress.Loopback;
         return Array.Empty<int>().Length + list.Count + now.Day;
     }
 }";
@@ -58,6 +60,9 @@ public static class CatalogSignatureSamples
             Assert.That(GetPropertySignature(compilation, syntaxTree, "DateTime.Now"), Is.EqualTo("System.DateTime.Now.get"));
             Assert.That(Constants.KnownImpureMethods, Does.Contain(GetPropertySignature(compilation, syntaxTree, "DateTime.Now")));
 
+            Assert.That(GetPropertySignature(compilation, syntaxTree, "IPAddress.Loopback"), Is.EqualTo("System.Net.IPAddress.Loopback.get"));
+            Assert.That(Constants.KnownPureBCLMembers, Does.Contain(GetPropertySignature(compilation, syntaxTree, "IPAddress.Loopback")));
+
             Assert.That(GetInvocationSignature(compilation, syntaxTree, "Array.Empty<int>()"), Is.EqualTo("System.Array.Empty<T>()"));
             Assert.That(Constants.KnownPureBCLMembers, Does.Contain(GetInvocationSignature(compilation, syntaxTree, "Array.Empty<int>()")));
 
@@ -71,6 +76,7 @@ public static class CatalogSignatureSamples
             var source = @"
 using System;
 using System.Collections.Generic;
+using System.Net;
 
 public static class CatalogConflictSamples
 {
@@ -81,6 +87,7 @@ public static class CatalogConflictSamples
         _ = list.Count;
         _ = Array.Empty<int>();
         _ = DateTime.Now;
+        _ = IPAddress.Loopback;
     }
 }";
             var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Preview));
@@ -92,6 +99,7 @@ public static class CatalogConflictSamples
 
             AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "list.Add(1)"), expectedPure: false, expectedImpure: true);
             AssertCatalogMembership(GetPropertySignature(compilation, syntaxTree, "DateTime.Now"), expectedPure: false, expectedImpure: true);
+            AssertCatalogMembership(GetPropertySignature(compilation, syntaxTree, "IPAddress.Loopback"), expectedPure: true, expectedImpure: false);
             AssertCatalogMembership(GetInvocationSignature(compilation, syntaxTree, "Array.Empty<int>()"), expectedPure: true, expectedImpure: false);
             AssertCatalogMembership(GetPropertySignature(compilation, syntaxTree, "list.Count"), expectedPure: true, expectedImpure: false);
         }

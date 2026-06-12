@@ -151,7 +151,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task IPAddressLoopback_Diagnostic()
+        public async Task IPAddressLoopback_NoDiagnostic()
         {
             var test = @"
 using System.Net;
@@ -160,7 +160,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public IPAddress {|PS0002:TestMethod|}()
+    public IPAddress TestMethod()
     {
         return IPAddress.Loopback;
     }
