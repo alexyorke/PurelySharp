@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1619/1619` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1620/1620` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -36,6 +36,7 @@
 - fresh local arrays created by collection expressions are now tracked like `new[]` arrays: local mutation can stay pure, while returning the array still reports escape
 - interface/virtual dispatch now narrows through locals initialized from known concrete receiver types and forgets that narrowing after unknown reassignment
 - interface/virtual dispatch through same-declaration concrete receiver aliases has direct regression coverage
+- public virtual dispatch now has direct regression coverage for sealed receiver narrowing through a base-class cast
 - interface/virtual property getter dispatch now uses the same concrete-local receiver narrowing and includes reassignment guard coverage
 - interface property getter dispatch through same-declaration concrete receiver aliases has direct regression coverage
 - interface property getter dispatch now has direct regression coverage for sealed receiver narrowing through explicit casts and same-implementation conditional branches

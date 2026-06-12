@@ -657,6 +657,45 @@ public class WorkerHost
         }
 
         [Test]
+        public async Task PublicVirtualDispatch_OnSealedImplementationThroughBaseCast_NoConservativeDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System;
+
+public class BaseWorker
+{
+    public virtual int Compute(int value) => value;
+}
+
+public sealed class PureWorker : BaseWorker
+{
+    public override int Compute(int value) => value + 1;
+}
+
+public sealed class ImpureWorker : BaseWorker
+{
+    public override int Compute(int value)
+    {
+        Console.WriteLine(value);
+        return value + 1;
+    }
+}
+
+public class WorkerHost
+{
+    [EnforcePure]
+    public int ComputeWithVirtualDispatch(int value)
+    {
+        return ((BaseWorker)new PureWorker()).Compute(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task InternalVirtualMethod_NoExternalOverrides_NoDiagnostic()
         {
             var test = @"
