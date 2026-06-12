@@ -246,10 +246,27 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
         private ITypeSymbol? ResolveExpressionDisposeReceiverType(IOperation? resourceOperation)
         {
-            var unwrappedResource = PurityAnalysisEngine.SkipImplicitConversions(resourceOperation);
+            var unwrappedResource = UnwrapConversionsForDisposeReceiver(resourceOperation);
             return unwrappedResource is IObjectCreationOperation objectCreationOperation
                 ? objectCreationOperation.Type
                 : unwrappedResource?.Type ?? resourceOperation?.Type;
+        }
+
+        private IOperation? UnwrapConversionsForDisposeReceiver(IOperation? operation)
+        {
+            var current = PurityAnalysisEngine.SkipImplicitConversions(operation);
+            while (current is IConversionOperation conversion)
+            {
+                var operand = PurityAnalysisEngine.SkipImplicitConversions(conversion.Operand);
+                if (operand == null || ReferenceEquals(operand, current))
+                {
+                    break;
+                }
+
+                current = operand;
+            }
+
+            return current;
         }
 
         private ITypeSymbol? TryGetStableObjectCreationInitializerType(ILocalSymbol local, IOperation usingOperation, SemanticModel semanticModel)

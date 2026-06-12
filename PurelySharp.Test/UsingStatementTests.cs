@@ -72,6 +72,32 @@ public class ImpureDisposable : IDisposable
         }
 
         [Test]
+        public async Task UsingStatementExpressionCastToInterface_WithPureDispose_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void TestMethod()
+    {
+        using ((IDisposable)new PureDisposable())
+        {
+        }
+    }
+}
+
+public class PureDisposable : IDisposable
+{
+    public void Dispose() { }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task UsingDeclaration_Diagnostic()
         {
             var test = @"
