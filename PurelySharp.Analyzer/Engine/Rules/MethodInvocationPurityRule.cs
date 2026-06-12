@@ -214,6 +214,13 @@ namespace PurelySharp.Analyzer.Engine.Rules
                             argumentResult.Evidence);
                     }
 
+                    var delegateTargetResult = CheckDelegateArgumentTargetPurity(argument, context, currentState);
+                    if (!delegateTargetResult.IsPure)
+                    {
+                        PurityAnalysisEngine.LogDebug("  [MIR] --> IMPURE (LINQ delegate argument target was impure or unresolved)");
+                        return delegateTargetResult;
+                    }
+
                     var comparerResult = CheckLinqComparerArgumentPurity(argument, context);
                     if (!comparerResult.IsPure)
                     {
@@ -371,6 +378,19 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 }
             }
 
+            if (IsKnownDelegateInvokingBclMethod(originalDefinitionSymbol))
+            {
+                foreach (var argument in invocationOperation.Arguments)
+                {
+                    var delegateTargetResult = CheckDelegateArgumentTargetPurity(argument, context, currentState);
+                    if (!delegateTargetResult.IsPure)
+                    {
+                        PurityAnalysisEngine.LogDebug("  [MIR] --> IMPURE (delegate-invoking BCL argument target was impure or unresolved)");
+                        return delegateTargetResult;
+                    }
+                }
+            }
+
             if (TryCheckEqualityComparerDispatchPurity(invocationOperation, context, out var equalityComparerDispatchResult))
             {
                 return equalityComparerDispatchResult;
@@ -501,6 +521,27 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 "System.Collections.Immutable.ImmutableHashSet<T>" or
                 "System.Collections.Immutable.ImmutableSortedSet<T>" or
                 "System.Collections.Immutable.ImmutableSortedDictionary<TKey, TValue>";
+        }
+
+        private static bool IsKnownDelegateInvokingBclMethod(IMethodSymbol methodSymbol)
+        {
+            var typeDefinition = methodSymbol.ContainingType?.OriginalDefinition.ToDisplayString();
+            return typeDefinition switch
+            {
+                "System.Collections.Generic.List<T>" => methodSymbol.Name is
+                    "ConvertAll" or
+                    "Exists" or
+                    "Find" or
+                    "FindAll" or
+                    "FindIndex" or
+                    "FindLast" or
+                    "FindLastIndex" or
+                    "ForEach" or
+                    "RemoveAll" or
+                    "TrueForAll",
+                "System.Array" => methodSymbol.Name == "ConvertAll",
+                _ => false
+            };
         }
 
         private static INamedTypeSymbol? GetTrackedLocalReceiverType(
@@ -1262,6 +1303,46 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     nameof(MethodInvocationPurityRule),
                     invocationOperation,
                     symbol: invocationOperation.TargetMethod));
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckDelegateArgumentTargetPurity(
+            IArgumentOperation argument,
+            PurityAnalysisContext context,
+            PurityAnalysisEngine.PurityAnalysisState currentState)
+        {
+            if (argument.Parameter?.Type?.TypeKind != TypeKind.Delegate)
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            var potentialTargets = PurityAnalysisEngine.ResolvePotentialTargets(
+                argument.Value,
+                currentState,
+                context.SemanticModel);
+            if (potentialTargets == null ||
+                potentialTargets.Value.IsUnresolved ||
+                potentialTargets.Value.MethodSymbols.Count == 0)
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                    argument.Value.Syntax,
+                    PurityAnalysisEngine.PurityEvidence.Create(
+                        "unresolved_delegate_target",
+                        nameof(MethodInvocationPurityRule),
+                        argument,
+                        syntaxNode: argument.Value.Syntax,
+                        symbol: PurityAnalysisEngine.TryResolveSymbol(argument.Value) ?? argument.Parameter));
+            }
+
+            foreach (var targetMethod in potentialTargets.Value.MethodSymbols)
+            {
+                var targetPurity = PurityAnalysisEngine.GetCalleePurity(targetMethod, context);
+                if (!targetPurity.IsPure)
+                {
+                    return targetPurity.WithCallee(targetMethod, argument.Value.Syntax);
+                }
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
         }
 
         private static PurityAnalysisEngine.PurityAnalysisResult CheckDefaultComparisonDispatchPurity(

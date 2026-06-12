@@ -68,8 +68,19 @@ public class GenericTestManager
             var expectedHasBanana = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
                                           .WithSpan(37, 17, 37, 26)
                                           .WithArguments("HasBanana");
+            var expectedFindItem = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                           .WithSpan(13, 14, 13, 22)
+                                           .WithArguments("FindItem");
+            var expectedFindStringStartingWithB = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
+                                                          .WithSpan(31, 19, 31, 42)
+                                                          .WithArguments("FindStringStartingWithB");
 
-            await VerifyCS.VerifyAnalyzerAsync(test, expectedGetAll, expectedHasBanana);
+            await VerifyCS.VerifyAnalyzerAsync(
+                test,
+                expectedGetAll,
+                expectedHasBanana,
+                expectedFindItem,
+                expectedFindStringStartingWithB);
         }
 
         [Test]
