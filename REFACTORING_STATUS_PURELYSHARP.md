@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1633/1633` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1635/1635` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -16,6 +16,7 @@
 - baseline suppression parsing now handles escaped JSON strings and exact normalized path matches without broad suffix suppression
 - throw expressions in conditional expression branches now report PS0002 instead of treating the throw itself as pure
 - compound assignments now analyze RHS impurity instead of treating unsupported compound assignment operations as pure
+- compound assignments now analyze source/boundary user-defined operator methods and include those operator edges in the call graph
 - LINQ source enumeration now resolves explicit interface `GetEnumerator` implementations before treating deferred queries as pure
 - LINQ comparer arguments now analyze locally declared `IEqualityComparer<T>` and `IComparer<T>` implementations, route `EqualityComparer<T>.Default`/`Comparer<T>.Default` through default equality/comparison dispatch, and report unresolved comparer interface/abstract dispatch conservatively before treating comparer-backed queries as pure
 - LINQ secondary enumerable arguments now analyze locally declared `GetEnumerator()` implementations before treating multi-source queries as pure
@@ -35,6 +36,7 @@
 - returning mutable arrays from known-pure BCL factory calls now reports mutable-state escape, including locals initialized from those factories
 - `Array.Empty<T>()` remains allowed because it returns a zero-length array that cannot expose mutable elements
 - fresh local arrays created by collection expressions are now tracked like `new[]` arrays: local mutation can stay pure, while returning the array still reports escape
+- `Array.AsReadOnly<T>(T[])` now stays conservative for caller-owned arrays but allows read-only views over tracked owned local arrays
 - `FormattableString.Invariant(...)` now allows formatted interpolated strings without ambient-culture `PS0002` when interpolation expressions are pure, while preserving diagnostics for impure interpolation expressions
 - interface/virtual dispatch now narrows through locals initialized from known concrete receiver types and forgets that narrowing after unknown reassignment
 - interface/virtual dispatch through same-declaration concrete receiver aliases has direct regression coverage
