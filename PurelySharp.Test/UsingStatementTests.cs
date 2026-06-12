@@ -72,6 +72,42 @@ public class ImpureDisposable : IDisposable
         }
 
         [Test]
+        public async Task AwaitUsingStatementExpressionResource_WithImpureDisposeAsync_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Threading.Tasks;
+using PurelySharp.Attributes;
+
+public static class GlobalState
+{
+    public static int Count;
+}
+
+public sealed class AsyncResource : IAsyncDisposable
+{
+    public ValueTask DisposeAsync()
+    {
+        GlobalState.Count++;
+        return ValueTask.CompletedTask;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public async Task {|PS0002:TestMethod|}()
+    {
+        await using (new AsyncResource())
+        {
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task UsingStatementExpressionCastToInterface_WithPureDispose_NoDiagnostic()
         {
             var test = @"

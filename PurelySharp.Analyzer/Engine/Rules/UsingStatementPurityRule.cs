@@ -145,12 +145,13 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Checking implicit Dispose() for local '{local.Name}' of type {disposeReceiverType.Name}");
 
 
-                IMethodSymbol? disposeMethod = FindDisposeMethod(disposeReceiverType, context.SemanticModel.Compilation);
+                IMethodSymbol? disposeMethod = FindDisposeMethod(disposeReceiverType, context.SemanticModel.Compilation) ??
+                    FindDisposeAsyncMethod(disposeReceiverType, context.SemanticModel.Compilation);
 
                 if (disposeMethod == null)
                 {
 
-                    PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Could not find Dispose method for type {disposeReceiverType.Name}. Assuming impure.");
+                    PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Could not find Dispose or DisposeAsync method for type {disposeReceiverType.Name}. Assuming impure.");
                     return PurityAnalysisEngine.PurityAnalysisResult.Impure(impureSyntaxNode ?? operation.Syntax);
                 }
 
@@ -180,11 +181,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 {
                     PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Checking implicit Dispose() for expression resource of type {expressionDisposeReceiverType.Name}");
 
-                    IMethodSymbol? disposeMethod = FindDisposeMethod(expressionDisposeReceiverType, context.SemanticModel.Compilation);
+                    IMethodSymbol? disposeMethod = FindDisposeMethod(expressionDisposeReceiverType, context.SemanticModel.Compilation) ??
+                        FindDisposeAsyncMethod(expressionDisposeReceiverType, context.SemanticModel.Compilation);
 
                     if (disposeMethod == null)
                     {
-                        PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Could not find Dispose method for expression resource type {expressionDisposeReceiverType.Name}. Skipping Dispose check.");
+                        PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Could not find Dispose or DisposeAsync method for expression resource type {expressionDisposeReceiverType.Name}. Skipping Dispose check.");
                         return PurityAnalysisEngine.PurityAnalysisResult.Pure;
                     }
 
@@ -377,6 +379,35 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     !method.IsStatic &&
                     method.Parameters.Length == 0 &&
                     method.ReturnsVoid);
+        }
+
+        private IMethodSymbol? FindDisposeAsyncMethod(ITypeSymbol typeSymbol, Compilation compilation)
+        {
+            INamedTypeSymbol? asyncDisposableInterface = compilation.GetTypeByMetadataName("System.IAsyncDisposable");
+            if (asyncDisposableInterface != null)
+            {
+                IMethodSymbol? interfaceDisposeAsyncMethod = asyncDisposableInterface.GetMembers("DisposeAsync").OfType<IMethodSymbol>().FirstOrDefault();
+                if (interfaceDisposeAsyncMethod != null)
+                {
+                    if (typeSymbol.Equals(asyncDisposableInterface, SymbolEqualityComparer.Default) ||
+                        typeSymbol.TypeKind == TypeKind.Interface && typeSymbol.AllInterfaces.Contains(asyncDisposableInterface, SymbolEqualityComparer.Default))
+                    {
+                        return interfaceDisposeAsyncMethod;
+                    }
+
+                    var implementation = typeSymbol.FindImplementationForInterfaceMember(interfaceDisposeAsyncMethod) as IMethodSymbol;
+                    if (implementation != null)
+                    {
+                        return implementation;
+                    }
+                }
+            }
+
+            return typeSymbol.GetMembers("DisposeAsync")
+                .OfType<IMethodSymbol>()
+                .FirstOrDefault(method =>
+                    !method.IsStatic &&
+                    method.Parameters.Length == 0);
         }
     }
 }
