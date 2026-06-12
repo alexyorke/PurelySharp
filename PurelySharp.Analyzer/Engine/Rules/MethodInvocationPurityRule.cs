@@ -2183,7 +2183,22 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return true;
             }
 
+            if (IsDefaultComparerSingleton(value))
+            {
+                return true;
+            }
+
             return value is IDefaultValueOperation;
+        }
+
+        private static bool IsDefaultComparerSingleton(IOperation value)
+        {
+            return value is IPropertyReferenceOperation propertyReference &&
+                propertyReference.Property.Name == "Default" &&
+                propertyReference.Property.ContainingType is INamedTypeSymbol containingType &&
+                containingType.OriginalDefinition.ToDisplayString() is
+                    "System.Collections.Generic.EqualityComparer<T>" or
+                    "System.Collections.Generic.Comparer<T>";
         }
 
         private static IEnumerable<IMethodSymbol> EnumerateSourceGetEnumeratorImplementations(ITypeSymbol sourceType)

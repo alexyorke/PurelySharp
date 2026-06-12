@@ -324,6 +324,56 @@ public class TestClass
         }
 
         [Test]
+        public async Task LinqContainsEqualityComparerDefaultDispatchToImpureEquatable_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public sealed class MutableRecord : IEquatable<MutableRecord>
+{
+    public bool Equals(MutableRecord other)
+    {
+        Console.WriteLine(""equals"");
+        return true;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(IEnumerable<MutableRecord> values, MutableRecord value)
+    {
+        return values.Contains(value, EqualityComparer<MutableRecord>.Default);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task LinqContainsEqualityComparerDefaultForBuiltinValue_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool TestMethod(IEnumerable<int> values, int value)
+    {
+        return values.Contains(value, EqualityComparer<int>.Default);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task LinqUnionDefaultEqualityDispatchToImpureEquatable_Diagnostic()
         {
             var test = @"
@@ -867,6 +917,56 @@ public class TestClass
     public IOrderedEnumerable<string> TestMethod(IEnumerable<string> values)
     {
         return values.OrderBy(value => 0).ThenBy(value => value.Length, default(IComparer<int>));
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task LinqOrderByComparerDefaultDispatchToImpureComparable_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public sealed class MutableKey : IComparable<MutableKey>
+{
+    public int CompareTo(MutableKey other)
+    {
+        Console.WriteLine(""compare"");
+        return 0;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public IOrderedEnumerable<MutableKey> {|PS0002:TestMethod|}(IEnumerable<MutableKey> values)
+    {
+        return values.OrderBy(value => value, Comparer<MutableKey>.Default);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task LinqOrderByComparerDefaultForBuiltinKey_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public IOrderedEnumerable<string> TestMethod(IEnumerable<string> values)
+    {
+        return values.OrderBy(value => value.Length, Comparer<int>.Default);
     }
 }";
 

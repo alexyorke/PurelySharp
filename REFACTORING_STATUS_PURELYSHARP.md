@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1557/1557` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1561/1561` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -17,7 +17,7 @@
 - throw expressions in conditional expression branches now report PS0002 instead of treating the throw itself as pure
 - compound assignments now analyze RHS impurity instead of treating unsupported compound assignment operations as pure
 - LINQ source enumeration now resolves explicit interface `GetEnumerator` implementations before treating deferred queries as pure
-- LINQ comparer arguments now analyze locally declared `IEqualityComparer<T>` and `IComparer<T>` implementations, and unresolved comparer interface/abstract dispatch is reported conservatively before treating comparer-backed queries as pure
+- LINQ comparer arguments now analyze locally declared `IEqualityComparer<T>` and `IComparer<T>` implementations, route `EqualityComparer<T>.Default`/`Comparer<T>.Default` through default equality/comparison dispatch, and report unresolved comparer interface/abstract dispatch conservatively before treating comparer-backed queries as pure
 - LINQ secondary enumerable arguments now analyze locally declared `GetEnumerator()` implementations before treating multi-source queries as pure
 - virtual and interface property getters with pure contracts now inspect possible impure overrides/implementations before trusting the slot
 - `using(existingLocal)` now resolves stable concrete disposable initializers so implicit `Dispose` purity is checked precisely
