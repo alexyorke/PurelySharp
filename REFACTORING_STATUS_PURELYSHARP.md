@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1613/1613` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1615/1615` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -76,6 +76,7 @@
 - concrete `List<T>.Contains`, `Array.IndexOf<T>`, and LINQ `Enumerable.Contains<TSource>` calls now derive default equality purity from the element type instead of blindly trusting broad pure catalog entries
 - generic type-parameter equality lookups now remain conservative instead of falling through to broad catalog purity when `T.Equals`/`GetHashCode` cannot be resolved
 - concrete `HashSet<T>.Contains/TryGetValue` and set-relation methods plus `Dictionary<TKey,TValue>.ContainsKey/TryGetValue` and `ContainsValue` calls now derive key/value equality purity from the key or value type before accepting broad catalog purity
+- HashSet<T>/ImmutableHashSet<T> set-relation methods now also analyze the secondary enumerable source's `GetEnumerator()` implementation before treating relation checks as pure
 - concrete `Dictionary<TKey,TValue>` indexer reads now derive key hash/equality purity from the key type instead of treating the getter as intrinsically pure
 - LINQ and span `SequenceEqual<T>` plus span `Contains`/`IndexOf`/`LastIndexOf`/`StartsWith`/`EndsWith` calls now derive default equality purity from the element type instead of blindly trusting broad catalog entries
 - LINQ `Contains`/`SequenceEqual`/`Distinct`/`Union`/`Except`/`Intersect` default comparer paths, including `null` or `default` comparer overloads, now fall back to default equality dispatch instead of bypassing element equality analysis

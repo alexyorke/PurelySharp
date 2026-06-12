@@ -757,6 +757,16 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return false;
             }
 
+            if (IsHashSetRelationMethod(methodSymbol) &&
+                invocationOperation.Arguments.Length > 0)
+            {
+                result = CheckLinqSourceEnumeratorPurity(invocationOperation.Arguments[0].Value, context);
+                if (!result.IsPure)
+                {
+                    return true;
+                }
+            }
+
             result = CheckDefaultEqualityDispatchPurity(elementType, invocationOperation, context, requiresHashCode);
             return true;
         }
@@ -1148,10 +1158,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             var isImmutableListRemove =
                 typeDefinition == "System.Collections.Immutable.ImmutableList<T>" &&
                 methodSymbol.Name == "Remove";
-            var isHashSetRelation =
-                (typeDefinition == "System.Collections.Generic.HashSet<T>" ||
-                 typeDefinition == "System.Collections.Immutable.ImmutableHashSet<T>") &&
-                methodSymbol.Name is "SetEquals" or "Overlaps" or "IsSubsetOf" or "IsSupersetOf" or "IsProperSubsetOf" or "IsProperSupersetOf";
+            var isHashSetRelation = IsHashSetRelationMethod(methodSymbol);
             if (!isDefaultEqualityLookup && !isImmutableHashSetUpdate && !isImmutableListRemove && !isHashSetRelation)
             {
                 return false;
@@ -1162,6 +1169,14 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 typeDefinition == "System.Collections.Generic.HashSet<T>" ||
                 typeDefinition == "System.Collections.Immutable.ImmutableHashSet<T>";
             return true;
+        }
+
+        private static bool IsHashSetRelationMethod(IMethodSymbol methodSymbol)
+        {
+            var typeDefinition = methodSymbol.ContainingType?.OriginalDefinition.ToDisplayString();
+            return (typeDefinition == "System.Collections.Generic.HashSet<T>" ||
+                    typeDefinition == "System.Collections.Immutable.ImmutableHashSet<T>") &&
+                methodSymbol.Name is "SetEquals" or "Overlaps" or "IsSubsetOf" or "IsSupersetOf" or "IsProperSubsetOf" or "IsProperSupersetOf";
         }
 
         private static bool TryGetDefaultComparisonCollectionKeyType(

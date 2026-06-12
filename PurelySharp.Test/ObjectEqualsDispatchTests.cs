@@ -460,6 +460,38 @@ public class TestClass
         }
 
         [Test]
+        public async Task HashSetSetEqualsWithImpureSecondaryEnumerator_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public sealed class ImpureSequence : IEnumerable<int>
+{
+    public IEnumerator<int> GetEnumerator()
+    {
+        Console.WriteLine(""enumerate"");
+        return ((IEnumerable<int>)Array.Empty<int>()).GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(HashSet<int> values, ImpureSequence other)
+    {
+        return values.SetEquals(other);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task HashSetOverlapsForBuiltinValueEquality_NoDiagnostic()
         {
             var test = @"
@@ -1322,6 +1354,39 @@ public class TestClass
     public ImmutableList<int> TestMethod(ImmutableList<int> values, int value)
     {
         return values.Remove(value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ImmutableHashSetSetEqualsWithImpureSecondaryEnumerator_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using PurelySharp.Attributes;
+
+public sealed class ImpureSequence : IEnumerable<int>
+{
+    public IEnumerator<int> GetEnumerator()
+    {
+        Console.WriteLine(""enumerate"");
+        return ((IEnumerable<int>)Array.Empty<int>()).GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(ImmutableHashSet<int> values, ImpureSequence other)
+    {
+        return values.SetEquals(other);
     }
 }";
 
