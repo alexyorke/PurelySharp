@@ -136,11 +136,26 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             foreach (var local in declaredLocals)
             {
+                var localWasReassigned = WasLocalReassignedBeforeUsing(local, operation);
                 var disposeReceiverType = ResolveDisposeReceiverType(local, operation, context.SemanticModel, isAwaitUsing);
                 if (disposeReceiverType == null)
                 {
                     PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Local '{local.Name}' has no resolvable Dispose receiver type. Skipping Dispose check.");
                     continue;
+                }
+
+                if (localWasReassigned && disposeReceiverType.TypeKind == TypeKind.Interface)
+                {
+                    PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Local '{local.Name}' was reassigned before using and has interface dispose receiver type. Treating implicit Dispose dispatch as impure.");
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                        impureSyntaxNode ?? operation.Syntax,
+                        PurityAnalysisEngine.PurityEvidence.Create(
+                            "unknown_external_call",
+                            nameof(UsingStatementPurityRule),
+                            operation,
+                            syntaxNode: impureSyntaxNode ?? operation.Syntax,
+                            symbol: local,
+                            catalogSource: "unstable_using_resource"));
                 }
 
                 PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Checking implicit Dispose() for local '{local.Name}' of type {disposeReceiverType.Name}");
@@ -319,6 +334,16 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 : null;
         }
 
+        private bool WasLocalReassignedBeforeUsing(ILocalSymbol local, IOperation usingOperation)
+        {
+            var declaratorSyntax = local.DeclaringSyntaxReferences
+                .Select(reference => reference.GetSyntax())
+                .OfType<VariableDeclaratorSyntax>()
+                .FirstOrDefault();
+            return declaratorSyntax != null &&
+                HasAssignmentToLocalBetweenDeclarationAndUsing(local, usingOperation, declaratorSyntax);
+        }
+
         private bool HasAssignmentToLocalBetweenDeclarationAndUsing(
             ILocalSymbol local,
             IOperation usingOperation,
@@ -345,6 +370,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     case ICompoundAssignmentOperation compoundAssignment when IsLocalTarget(compoundAssignment.Target, local):
                     case IIncrementOrDecrementOperation incrementOrDecrement when IsLocalTarget(incrementOrDecrement.Target, local):
                     case IDeconstructionAssignmentOperation deconstructionAssignment when ContainsLocalAssignmentTarget(deconstructionAssignment.Target, local):
+                    case IInvocationOperation invocationOperation when HasByRefLocalArgument(invocationOperation, local):
                         return true;
                 }
             }
@@ -368,6 +394,20 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     {
                         return true;
                     }
+                }
+            }
+
+            return false;
+        }
+
+        private bool HasByRefLocalArgument(IInvocationOperation invocationOperation, ILocalSymbol local)
+        {
+            foreach (var argument in invocationOperation.Arguments)
+            {
+                if (argument.Parameter?.RefKind is RefKind.Ref or RefKind.Out &&
+                    IsLocalTarget(argument.Value, local))
+                {
+                    return true;
                 }
             }
 
