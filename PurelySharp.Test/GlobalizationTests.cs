@@ -425,7 +425,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task DateTimeOffsetParseExact_SpanSingleFormat_InvariantCulture_Diagnostic()
+        public async Task DateTimeOffsetParseExact_SpanSingleRoundtripInvariantCulture_NoDiagnostic()
         {
             var test = @"
 #nullable enable
@@ -436,7 +436,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public DateTimeOffset {|PS0002:TestMethod|}(string dateStr)
+    public DateTimeOffset TestMethod(string dateStr)
     {
         ReadOnlySpan<char> span = dateStr.AsSpan();
         return DateTimeOffset.ParseExact(span, ""O"", CultureInfo.InvariantCulture, DateTimeStyles.None);
@@ -2633,7 +2633,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task DateTimeParseExact_SpanSingleFormat_InvariantCulture_Diagnostic()
+        public async Task DateTimeParseExact_SpanSingleRoundtripInvariantCulture_NoDiagnostic()
         {
             var test = @"
 #nullable enable
@@ -2644,7 +2644,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public DateTime {|PS0002:TestMethod|}(string dateStr)
+    public DateTime TestMethod(string dateStr)
     {
         ReadOnlySpan<char> span = dateStr.AsSpan();
         return DateTime.ParseExact(span, ""O"", CultureInfo.InvariantCulture, DateTimeStyles.None);
@@ -3262,7 +3262,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task DateOnlyParseExact_SpanSingleFormatInvariantCulture_Diagnostic()
+        public async Task DateOnlyParseExact_SpanSingleFormatInvariantCulture_NoDiagnostic()
         {
             var test = @"
 #nullable enable
@@ -3273,7 +3273,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public DateOnly {|PS0002:TestMethod|}(string dateStr)
+    public DateOnly TestMethod(string dateStr)
     {
         ReadOnlySpan<char> span = dateStr.AsSpan();
         return DateOnly.ParseExact(span, ""d"", CultureInfo.InvariantCulture);
@@ -4356,7 +4356,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task TimeOnlyParseExact_SpanSingleFormatInvariantCulture_Diagnostic()
+        public async Task TimeOnlyParseExact_SpanSingleFormatInvariantCulture_NoDiagnostic()
         {
             var test = @"
 #nullable enable
@@ -4367,7 +4367,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public TimeOnly {|PS0002:TestMethod|}(string value)
+    public TimeOnly TestMethod(string value)
     {
         ReadOnlySpan<char> span = value.AsSpan();
         return TimeOnly.ParseExact(span, ""t"", CultureInfo.InvariantCulture);

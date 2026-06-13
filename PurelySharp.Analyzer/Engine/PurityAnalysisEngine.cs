@@ -3136,7 +3136,7 @@ namespace PurelySharp.Analyzer.Engine
 
             if (targetMethod.Parameters.Length == 3 &&
                 invocationOperation.Arguments.Length == 3 &&
-                targetMethod.Parameters[0].Type.SpecialType == SpecialType.System_String &&
+                IsStringOrReadOnlySpanOfChar(targetMethod.Parameters[0].Type) &&
                 IsSingleTimeOnlyInvariantFormat(invocationOperation.Arguments[1].Value))
             {
                 return IsCultureInfoInvariantCulture(invocationOperation.Arguments[2].Value);
@@ -3144,7 +3144,7 @@ namespace PurelySharp.Analyzer.Engine
 
             if (targetMethod.Parameters.Length == 4 &&
                 invocationOperation.Arguments.Length == 4 &&
-                targetMethod.Parameters[0].Type.SpecialType == SpecialType.System_String &&
+                IsStringOrReadOnlySpanOfChar(targetMethod.Parameters[0].Type) &&
                 IsSingleTimeOnlyInvariantFormat(invocationOperation.Arguments[1].Value) &&
                 IsDateTimeStylesNone(invocationOperation.Arguments[3].Value))
             {
@@ -3166,7 +3166,7 @@ namespace PurelySharp.Analyzer.Engine
 
             if (targetMethod.Parameters.Length == 3 &&
                 invocationOperation.Arguments.Length == 3 &&
-                targetMethod.Parameters[0].Type.SpecialType == SpecialType.System_String &&
+                IsStringOrReadOnlySpanOfChar(targetMethod.Parameters[0].Type) &&
                 IsSingleDateOnlyInvariantFormat(invocationOperation.Arguments[1].Value))
             {
                 return IsCultureInfoInvariantCulture(invocationOperation.Arguments[2].Value);
@@ -3174,7 +3174,7 @@ namespace PurelySharp.Analyzer.Engine
 
             if (targetMethod.Parameters.Length == 4 &&
                 invocationOperation.Arguments.Length == 4 &&
-                targetMethod.Parameters[0].Type.SpecialType == SpecialType.System_String &&
+                IsStringOrReadOnlySpanOfChar(targetMethod.Parameters[0].Type) &&
                 IsSingleDateOnlyInvariantFormat(invocationOperation.Arguments[1].Value) &&
                 IsDateTimeStylesNone(invocationOperation.Arguments[3].Value))
             {
@@ -3204,7 +3204,7 @@ namespace PurelySharp.Analyzer.Engine
 
             if (targetMethod.Parameters.Length == 4 &&
                 invocationOperation.Arguments.Length == 4 &&
-                targetMethod.Parameters[0].Type.SpecialType == SpecialType.System_String &&
+                IsStringOrReadOnlySpanOfChar(targetMethod.Parameters[0].Type) &&
                 IsSingleDateTimeRoundtripFormat(invocationOperation.Arguments[1].Value) &&
                 IsDateTimeStylesNone(invocationOperation.Arguments[3].Value))
             {
@@ -3234,7 +3234,7 @@ namespace PurelySharp.Analyzer.Engine
 
             if (targetMethod.Parameters.Length == 4 &&
                 invocationOperation.Arguments.Length == 4 &&
-                targetMethod.Parameters[0].Type.SpecialType == SpecialType.System_String &&
+                IsStringOrReadOnlySpanOfChar(targetMethod.Parameters[0].Type) &&
                 IsSingleDateTimeOffsetRoundtripFormat(invocationOperation.Arguments[1].Value) &&
                 IsDateTimeStylesNone(invocationOperation.Arguments[3].Value))
             {
@@ -3306,6 +3306,12 @@ namespace PurelySharp.Analyzer.Engine
                 namedType.OriginalDefinition.ToDisplayString() == "System.ReadOnlySpan<T>" &&
                 namedType.TypeArguments.Length == 1 &&
                 namedType.TypeArguments[0].SpecialType == SpecialType.System_Char;
+        }
+
+        private static bool IsStringOrReadOnlySpanOfChar(ITypeSymbol typeSymbol)
+        {
+            return typeSymbol.SpecialType == SpecialType.System_String ||
+                IsReadOnlySpanOfChar(typeSymbol);
         }
 
         private static bool IsCultureInfoInvariantCulture(IOperation? operation)
