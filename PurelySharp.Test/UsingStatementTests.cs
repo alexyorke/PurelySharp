@@ -576,6 +576,51 @@ public class ImpureDisposable : IDisposable
         }
 
         [Test]
+        public async Task UsingStatementExistingPolymorphicLocalReassignedWithImpureDispose_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}()
+    {
+        BaseDisposable disposable = new PureDisposable();
+        disposable = new ImpureDisposable();
+
+        using (disposable)
+        {
+        }
+    }
+}
+
+public abstract class BaseDisposable : IDisposable
+{
+    public virtual void Dispose()
+    {
+    }
+}
+
+public sealed class PureDisposable : BaseDisposable
+{
+}
+
+public sealed class ImpureDisposable : BaseDisposable
+{
+    private int _disposeCount;
+
+    public override void Dispose()
+    {
+        _disposeCount++;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task UsingDeclarationPatternDisposableRefStruct_WithImpureDispose_Diagnostic()
         {
             var test = @"

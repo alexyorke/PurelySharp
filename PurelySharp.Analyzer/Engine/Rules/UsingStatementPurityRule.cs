@@ -144,20 +144,6 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     continue;
                 }
 
-                if (localWasReassigned && disposeReceiverType.TypeKind == TypeKind.Interface)
-                {
-                    PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Local '{local.Name}' was reassigned before using and has interface dispose receiver type. Treating implicit Dispose dispatch as impure.");
-                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(
-                        impureSyntaxNode ?? operation.Syntax,
-                        PurityAnalysisEngine.PurityEvidence.Create(
-                            "unknown_external_call",
-                            nameof(UsingStatementPurityRule),
-                            operation,
-                            syntaxNode: impureSyntaxNode ?? operation.Syntax,
-                            symbol: local,
-                            catalogSource: "unstable_using_resource"));
-                }
-
                 PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Checking implicit Dispose() for local '{local.Name}' of type {disposeReceiverType.Name}");
 
 
@@ -168,6 +154,21 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
                     PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Could not find Dispose or DisposeAsync method for type {disposeReceiverType.Name}. Assuming impure.");
                     return PurityAnalysisEngine.PurityAnalysisResult.Impure(impureSyntaxNode ?? operation.Syntax);
+                }
+
+                if (localWasReassigned &&
+                    (disposeReceiverType.TypeKind == TypeKind.Interface || IsOverridableDispatchTarget(disposeMethod)))
+                {
+                    PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Local '{local.Name}' was reassigned before using and has unstable Dispose dispatch. Treating implicit Dispose dispatch as impure.");
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                        impureSyntaxNode ?? operation.Syntax,
+                        PurityAnalysisEngine.PurityEvidence.Create(
+                            "unknown_external_call",
+                            nameof(UsingStatementPurityRule),
+                            operation,
+                            syntaxNode: impureSyntaxNode ?? operation.Syntax,
+                            symbol: disposeMethod,
+                            catalogSource: "unstable_using_resource"));
                 }
 
 
@@ -563,6 +564,18 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 .FirstOrDefault(method =>
                     !method.IsStatic &&
                     method.Parameters.Length == 0);
+        }
+
+        private static bool IsOverridableDispatchTarget(IMethodSymbol methodSymbol)
+        {
+            if (methodSymbol.IsStatic || methodSymbol.ContainingType?.IsSealed == true)
+            {
+                return false;
+            }
+
+            return methodSymbol.IsVirtual ||
+                methodSymbol.IsAbstract ||
+                methodSymbol.IsOverride && methodSymbol.IsSealed == false;
         }
     }
 }
