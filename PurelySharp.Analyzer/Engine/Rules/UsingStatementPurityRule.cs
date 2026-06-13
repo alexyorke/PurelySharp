@@ -320,7 +320,30 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     case ISimpleAssignmentOperation assignment when IsLocalTarget(assignment.Target, local):
                     case ICompoundAssignmentOperation compoundAssignment when IsLocalTarget(compoundAssignment.Target, local):
                     case IIncrementOrDecrementOperation incrementOrDecrement when IsLocalTarget(incrementOrDecrement.Target, local):
+                    case IDeconstructionAssignmentOperation deconstructionAssignment when ContainsLocalAssignmentTarget(deconstructionAssignment.Target, local):
                         return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool ContainsLocalAssignmentTarget(IOperation? targetOperation, ILocalSymbol local)
+        {
+            var unwrappedTarget = PurityAnalysisEngine.SkipImplicitConversions(targetOperation);
+            if (IsLocalTarget(unwrappedTarget, local))
+            {
+                return true;
+            }
+
+            if (unwrappedTarget is ITupleOperation tupleOperation)
+            {
+                foreach (var element in tupleOperation.Elements)
+                {
+                    if (ContainsLocalAssignmentTarget(element, local))
+                    {
+                        return true;
+                    }
                 }
             }
 
