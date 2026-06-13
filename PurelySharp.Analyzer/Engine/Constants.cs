@@ -21,7 +21,6 @@ public static class Constants
         StringComparer.Ordinal,
         "System.Random",
         "System.DateTime",
-        "System.Guid",
         "System.Console",
         "System.Environment",
         "System.Timers.Timer"

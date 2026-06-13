@@ -29,6 +29,14 @@ namespace PurelySharp.Test
         }
 
         [Test]
+        public void GuidCatalog_DoesNotMarkWholeTypeImpure()
+        {
+            Assert.That(Constants.KnownImpureTypeNames, Does.Not.Contain("System.Guid"));
+            Assert.That(Constants.KnownImpureMethods, Does.Contain("System.Guid.NewGuid()"));
+            Assert.That(Constants.KnownPureBCLMembers, Does.Contain("System.Guid.Parse(string)"));
+        }
+
+        [Test]
         public void RepresentativeCatalogSignaturesResolveAgainstNet80References()
         {
             var source = @"
