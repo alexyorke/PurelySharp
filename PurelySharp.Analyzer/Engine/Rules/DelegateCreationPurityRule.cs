@@ -85,12 +85,31 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     }
                 }
 
-                var methodResult = PurityAnalysisEngine.GetCalleePurity(targetMethodSymbol, context);
+                var potentialTargets = PurityAnalysisEngine.ResolvePotentialTargets(delegateCreation, currentState, context.SemanticModel);
+                if (potentialTargets == null || potentialTargets.Value.IsUnresolved)
+                {
+                    PurityAnalysisEngine.LogDebug("    [DelegateCreationRule] Delegate target could dispatch to unresolved runtime target. Assuming impure.");
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                        delegateCreation.Syntax,
+                        PurityAnalysisEngine.PurityEvidence.Create(
+                            "unresolved_delegate_target",
+                            nameof(DelegateCreationPurityRule),
+                            delegateCreation,
+                            symbol: targetMethodSymbol));
+                }
 
-                PurityAnalysisEngine.LogDebug($"    [DelegateCreationRule] Referenced method analysis result: IsPure={methodResult.IsPure}");
-                return methodResult.IsPure
-                    ? PurityAnalysisEngine.PurityAnalysisResult.Pure
-                    : methodResult.WithCallee(targetMethodSymbol, delegateCreation.Syntax);
+                foreach (var targetMethod in potentialTargets.Value.MethodSymbols)
+                {
+                    var methodResult = PurityAnalysisEngine.GetCalleePurity(targetMethod, context);
+
+                    PurityAnalysisEngine.LogDebug($"    [DelegateCreationRule] Referenced method analysis result for {targetMethod.ToDisplayString()}: IsPure={methodResult.IsPure}");
+                    if (!methodResult.IsPure)
+                    {
+                        return methodResult.WithCallee(targetMethod, delegateCreation.Syntax);
+                    }
+                }
+
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
             else
             {
