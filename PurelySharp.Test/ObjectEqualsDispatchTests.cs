@@ -821,6 +821,71 @@ public class TestClass
         }
 
         [Test]
+        public async Task DictionaryIndexerWithBuiltinKeyAndDirectImpureComparer_Diagnostic()
+        {
+            var test = @"
+#pragma warning disable PS0004
+using System;
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    private sealed class ImpureStringComparer : IEqualityComparer<string>
+    {
+        public bool Equals(string x, string y) => x == y;
+
+        public int GetHashCode(string obj)
+        {
+            Console.WriteLine(""hash"");
+            return obj.GetHashCode();
+        }
+    }
+
+    private readonly Dictionary<string, int> _values =
+        new Dictionary<string, int>(new ImpureStringComparer()) { [""x""] = 1 };
+
+    [EnforcePure]
+    public int {|PS0002:TestMethod|}()
+    {
+        return _values[""x""];
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task DictionaryIndexerWithBuiltinKeyAndDirectPureComparer_NoDiagnostic()
+        {
+            var test = @"
+#pragma warning disable PS0004
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    private sealed class PureStringComparer : IEqualityComparer<string>
+    {
+        public bool Equals(string x, string y) => x == y;
+
+        public int GetHashCode(string obj) => obj.Length;
+    }
+
+    private readonly Dictionary<string, int> _values =
+        new Dictionary<string, int>(new PureStringComparer()) { [""x""] = 1 };
+
+    [EnforcePure]
+    public int TestMethod()
+    {
+        return _values[""x""];
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task LinqSequenceEqualDispatchToImpureEquatableImplementation_Diagnostic()
         {
             var test = @"

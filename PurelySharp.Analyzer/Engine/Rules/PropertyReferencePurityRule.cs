@@ -436,6 +436,15 @@ namespace PurelySharp.Analyzer.Engine.Rules
         {
             var receiverOperation = PurityAnalysisEngine.SkipImplicitConversions(propertyReferenceOperation.Instance) ??
                 propertyReferenceOperation.Instance;
+            var knownConstructionComparerResult = CheckKnownDictionaryConstructionComparerPurity(
+                receiverOperation,
+                propertyReferenceOperation,
+                context);
+            if (!knownConstructionComparerResult.IsPure)
+            {
+                return knownConstructionComparerResult;
+            }
+
             if (receiverOperation?.Type is not INamedTypeSymbol receiverType ||
                 receiverType.DeclaringSyntaxReferences.Length == 0)
             {
@@ -467,6 +476,115 @@ namespace PurelySharp.Analyzer.Engine.Rules
                             return comparerResult;
                         }
                     }
+                }
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckKnownDictionaryConstructionComparerPurity(
+            IOperation? receiverOperation,
+            IPropertyReferenceOperation propertyReferenceOperation,
+            PurityAnalysisContext context)
+        {
+            var unwrappedReceiver = PurityAnalysisEngine.SkipImplicitConversions(receiverOperation) ?? receiverOperation;
+            if (unwrappedReceiver is IObjectCreationOperation objectCreationOperation)
+            {
+                return CheckDictionaryObjectCreationComparerPurity(
+                    objectCreationOperation,
+                    propertyReferenceOperation,
+                    context);
+            }
+
+            if (TryGetReceiverInitializerOperation(unwrappedReceiver, context, out var initializerOperation) &&
+                PurityAnalysisEngine.SkipImplicitConversions(initializerOperation) is IObjectCreationOperation initializerObjectCreation)
+            {
+                return CheckDictionaryObjectCreationComparerPurity(
+                    initializerObjectCreation,
+                    propertyReferenceOperation,
+                    context);
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static bool TryGetReceiverInitializerOperation(
+            IOperation? receiverOperation,
+            PurityAnalysisContext context,
+            out IOperation initializerOperation)
+        {
+            ISymbol? receiverSymbol = receiverOperation switch
+            {
+                IFieldReferenceOperation fieldReference => fieldReference.Field,
+                IPropertyReferenceOperation propertyReference => propertyReference.Property,
+                _ => null
+            };
+
+            if (receiverSymbol == null)
+            {
+                initializerOperation = null!;
+                return false;
+            }
+
+            foreach (var syntaxReference in receiverSymbol.DeclaringSyntaxReferences)
+            {
+                SyntaxNode? initializerSyntax = syntaxReference.GetSyntax(context.CancellationToken) switch
+                {
+                    VariableDeclaratorSyntax variableDeclarator => variableDeclarator.Initializer?.Value,
+                    PropertyDeclarationSyntax propertyDeclaration => propertyDeclaration.Initializer?.Value,
+                    _ => null
+                };
+
+                if (initializerSyntax == null)
+                {
+                    continue;
+                }
+
+                var semanticModel = context.SemanticModel.Compilation.GetSemanticModel(initializerSyntax.SyntaxTree);
+                var operation = semanticModel.GetOperation(initializerSyntax, context.CancellationToken);
+                if (operation != null)
+                {
+                    initializerOperation = operation;
+                    return true;
+                }
+            }
+
+            initializerOperation = null!;
+            return false;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckDictionaryObjectCreationComparerPurity(
+            IObjectCreationOperation objectCreationOperation,
+            IPropertyReferenceOperation propertyReferenceOperation,
+            PurityAnalysisContext context)
+        {
+            if (objectCreationOperation.Type is not INamedTypeSymbol objectType ||
+                objectType.OriginalDefinition.ToDisplayString() != "System.Collections.Generic.Dictionary<TKey, TValue>")
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            foreach (var argument in objectCreationOperation.Arguments)
+            {
+                var value = PurityAnalysisEngine.SkipImplicitConversions(argument.Value) ?? argument.Value;
+                if (value?.Type == null ||
+                    argument.Parameter?.Type is not INamedTypeSymbol parameterType ||
+                    !IsComparerOrDerivedInterface(parameterType) &&
+                    !IsComparerOrDerivedInterface(value.Type))
+                {
+                    continue;
+                }
+
+                var comparerArgumentResult = PurityAnalysisEngine.CheckSingleOperation(value, context, PurityAnalysisEngine.PurityAnalysisState.Pure);
+                if (!comparerArgumentResult.IsPure)
+                {
+                    return comparerArgumentResult;
+                }
+
+                var comparerResult = CheckComparerValuePurity(value, propertyReferenceOperation, context);
+                if (!comparerResult.IsPure)
+                {
+                    return comparerResult;
                 }
             }
 
