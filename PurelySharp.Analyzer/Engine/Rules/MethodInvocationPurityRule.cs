@@ -342,11 +342,11 @@ namespace PurelySharp.Analyzer.Engine.Rules
             PurityAnalysisEngine.LogDebug($"  [MIR] Checking purity of {invocationOperation.Arguments.Length} arguments for {originalDefinitionSymbol.Name}.");
             foreach (var argument in invocationOperation.Arguments)
             {
-                if (argument.Parameter?.RefKind == RefKind.Out)
+                if (argument.Parameter?.RefKind is RefKind.Out or RefKind.Ref)
                 {
                     if (!IsPureOutArgumentTarget(argument.Value))
                     {
-                        PurityAnalysisEngine.LogDebug($"  [MIR]   Out argument '{argument.Syntax}' writes to non-local state.");
+                        PurityAnalysisEngine.LogDebug($"  [MIR]   By-reference argument '{argument.Syntax}' writes to non-local state.");
                         return PurityAnalysisEngine.PurityAnalysisResult.Impure(
                             argument.Syntax,
                             PurityAnalysisEngine.PurityEvidence.Create(
@@ -357,8 +357,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
                                 symbol: PurityAnalysisEngine.TryResolveSymbol(argument.Value) ?? originalDefinitionSymbol));
                     }
 
-                    if (PurityAnalysisEngine.IsKnownPureBCLMember(originalDefinitionSymbol) ||
-                        IsDispatchAnalyzedOutArgumentMethod(invokedMethodSymbol))
+                    if (argument.Parameter.RefKind == RefKind.Out &&
+                        (PurityAnalysisEngine.IsKnownPureBCLMember(originalDefinitionSymbol) ||
+                         IsDispatchAnalyzedOutArgumentMethod(invokedMethodSymbol)))
                     {
                         PurityAnalysisEngine.LogDebug($"  [MIR]   Skipping purity check for local/discard out argument target '{argument.Syntax}' on dispatch-analyzed member {originalDefinitionSymbol.ToDisplayString()}.");
                         continue;

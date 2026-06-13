@@ -96,6 +96,32 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test, expectedX, expectedY);
         }
 
+        [Test]
+        public async Task PureExternalRefArgumentToField_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    private int _field;
+
+    [PureExternal]
+    private static void TrustedWrite(ref int value)
+    {
+        value = 42;
+    }
+
+    [EnforcePure]
+    public void {|PS0002:Caller|}()
+    {
+        TrustedWrite(ref _field);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
 
     }
 }
