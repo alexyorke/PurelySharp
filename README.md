@@ -385,7 +385,7 @@ This project is licensed under the MIT License.
 
 ### C# 12 Specific Features
 
-- [x] Collection expressions - immutable collection types under `System.Collections.Immutable`, stack-only `Span` / `ReadOnlySpan`, with per-element purity checks; other targets (e.g. arrays, `List<T>`) stay impure
+- [x] Collection expressions - immutable collection types under `System.Collections.Immutable`, stack-only `Span` / `ReadOnlySpan`, and owned non-escaping array targets, with per-element purity checks; mutable collection targets (e.g. `List<T>`) stay impure, and escaping arrays report mutable-state escape
 - [x] Primary constructors
 - [x] Inline arrays
 - [x] Optional parameters in lambda expressions
