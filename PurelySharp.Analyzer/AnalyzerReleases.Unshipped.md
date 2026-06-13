@@ -14,3 +14,4 @@
 - `PS0010` reports definite integer/decimal divide-by-zero and modulo-by-zero expressions with compile-time constant zero divisors, excluding floating-point division.
 - `PS0010` reports definite null dereferences on literal/default-null receivers and suppresses them when caught.
 - `PS0010` emits structured exception evidence properties for categories and sources.
+- Corpus reports aggregate `PS0010` counts plus exception categories and sources.

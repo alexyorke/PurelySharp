@@ -74,7 +74,41 @@ namespace PurelySharp.Test
             Assert.That(report.Diagnostics[2].RuleId, Is.EqualTo("PS0004"));
 
             var json = JsonSerializer.Serialize(report);
-            Assert.That(json, Does.Contain(@"""SchemaVersion"":""1.0"""));
+            Assert.That(json, Does.Contain(@"""SchemaVersion"":""1.1"""));
+        }
+
+        [Test]
+        public void CreateFromSarifJson_AggregatesExceptionFlowEvidence()
+        {
+            var report = SarifCorpusReport.CreateFromSarifJson("sample.sarif", """
+{
+  "version": "2.1.0",
+  "runs": [
+    {
+      "results": [
+        {
+          "ruleId": "PS0010",
+          "message": { "text": "Method 'TestMethod' can throw: System.ArgumentNullException" },
+          "properties": {
+            "purelysharp.exceptions.types": "System.ArgumentNullException",
+            "purelysharp.exceptions.categories": "effect_summary",
+            "purelysharp.exceptions.sources": "System.ArgumentNullException=effect_summary:System.ArgumentNullException.ThrowIfNull(object, string)"
+          }
+        }
+      ]
+    }
+  ]
+}
+""");
+
+            Assert.That(report.Ps0010Count, Is.EqualTo(1));
+            Assert.That(report.TotalPurelySharpDiagnostics, Is.EqualTo(1));
+            Assert.That(report.ExceptionCategories["effect_summary"], Is.EqualTo(1));
+            Assert.That(report.ExceptionSources[0], Is.EqualTo(new RankedItem("System.ArgumentNullException=effect_summary:System.ArgumentNullException.ThrowIfNull(object, string)", 1)));
+            Assert.That(report.Diagnostics[0].RuleId, Is.EqualTo("PS0010"));
+            Assert.That(report.Diagnostics[0].ExceptionTypes, Is.EqualTo("System.ArgumentNullException"));
+            Assert.That(report.Diagnostics[0].ExceptionCategories, Is.EqualTo("effect_summary"));
+            Assert.That(report.Diagnostics[0].ExceptionSources, Does.Contain("System.ArgumentNullException.ThrowIfNull"));
         }
 
         [Test]

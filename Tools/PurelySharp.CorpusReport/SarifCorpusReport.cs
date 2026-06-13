@@ -13,6 +13,9 @@ public static class SarifCorpusReport
     private const string SymbolProperty = "purelysharp.impurity.symbol";
     private const string CatalogSourceProperty = "purelysharp.impurity.catalog_source";
     private const string CalleeChainProperty = "purelysharp.impurity.callee_chain";
+    private const string ExceptionTypesProperty = "purelysharp.exceptions.types";
+    private const string ExceptionCategoriesProperty = "purelysharp.exceptions.categories";
+    private const string ExceptionSourcesProperty = "purelysharp.exceptions.sources";
 
     private static readonly ImmutableHashSet<string> CatalogMissCategories =
         ImmutableHashSet.Create(StringComparer.Ordinal, "unknown_external_call", "unsupported_operation");
@@ -47,10 +50,12 @@ public static class SarifCorpusReport
     {
         private readonly ImmutableArray<string>.Builder _inputs = ImmutableArray.CreateBuilder<string>();
         private readonly Dictionary<string, int> _categories = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, int> _exceptionCategories = new(StringComparer.Ordinal);
         private readonly Dictionary<string, int> _ruleNames = new(StringComparer.Ordinal);
         private readonly Dictionary<string, int> _operationKinds = new(StringComparer.Ordinal);
         private readonly Dictionary<string, int> _unknownOperationKinds = new(StringComparer.Ordinal);
         private readonly Dictionary<string, int> _symbols = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, int> _exceptionSources = new(StringComparer.Ordinal);
         private readonly Dictionary<string, (string Category, int Count)> _catalogMisses = new(StringComparer.Ordinal);
         private readonly Dictionary<string, (string Category, int Count)> _falsePositiveCandidates = new(StringComparer.Ordinal);
         private readonly ImmutableArray<DiagnosticEvidenceItem>.Builder _diagnostics = ImmutableArray.CreateBuilder<DiagnosticEvidenceItem>();
@@ -58,6 +63,7 @@ public static class SarifCorpusReport
         private int _ps0002Count;
         private int _ps0004Count;
         private int _ps0009Count;
+        private int _ps0010Count;
         private int _totalPurelySharpDiagnostics;
 
         public void AddSarifJson(string inputName, string sarifJson)
@@ -92,13 +98,16 @@ public static class SarifCorpusReport
                 _ps0002Count,
                 _ps0004Count,
                 _ps0009Count,
+                _ps0010Count,
                 _totalPurelySharpDiagnostics,
                 _diagnostics.ToImmutable(),
                 ToImmutableSortedDictionary(_categories),
+                ToImmutableSortedDictionary(_exceptionCategories),
                 ToImmutableSortedDictionary(_ruleNames),
                 ToImmutableSortedDictionary(_operationKinds),
                 ToImmutableSortedDictionary(_unknownOperationKinds),
                 ToRankedItems(_symbols),
+                ToRankedItems(_exceptionSources),
                 ToCategorizedRankedItems(_catalogMisses),
                 ToCategorizedRankedItems(_falsePositiveCandidates));
         }
@@ -125,11 +134,15 @@ public static class SarifCorpusReport
             {
                 _ps0009Count++;
             }
+            else if (ruleId == "PS0010")
+            {
+                _ps0010Count++;
+            }
 
             if (!result.TryGetProperty("properties", out var properties) ||
                 properties.ValueKind != JsonValueKind.Object)
             {
-                _diagnostics.Add(new DiagnosticEvidenceItem(inputName, ruleId, message, null, null, null, null, null, null));
+                _diagnostics.Add(new DiagnosticEvidenceItem(inputName, ruleId, message, null, null, null, null, null, null, null, null, null));
                 return;
             }
 
@@ -139,6 +152,9 @@ public static class SarifCorpusReport
             var symbol = GetEvidenceProperty(properties, SymbolProperty);
             var catalogSource = GetEvidenceProperty(properties, CatalogSourceProperty);
             var calleeChain = GetEvidenceProperty(properties, CalleeChainProperty);
+            var exceptionTypes = GetEvidenceProperty(properties, ExceptionTypesProperty);
+            var exceptionCategories = GetEvidenceProperty(properties, ExceptionCategoriesProperty);
+            var exceptionSources = GetEvidenceProperty(properties, ExceptionSourcesProperty);
 
             _diagnostics.Add(new DiagnosticEvidenceItem(
                 inputName,
@@ -149,7 +165,17 @@ public static class SarifCorpusReport
                 operationKind,
                 symbol,
                 catalogSource,
-                calleeChain));
+                calleeChain,
+                exceptionTypes,
+                exceptionCategories,
+                exceptionSources));
+
+            if (ruleId == "PS0010")
+            {
+                IncrementSeparatedValues(_exceptionCategories, exceptionCategories);
+                IncrementSeparatedValues(_exceptionSources, exceptionSources);
+                return;
+            }
 
             if (ruleId != "PS0002")
             {
@@ -217,6 +243,23 @@ public static class SarifCorpusReport
             values[key] = values.TryGetValue(key, out var existing)
                 ? (category, existing.Count + 1)
                 : (category, 1);
+        }
+
+        private static void IncrementSeparatedValues(Dictionary<string, int> values, string? separatedValues)
+        {
+            if (string.IsNullOrWhiteSpace(separatedValues))
+            {
+                return;
+            }
+
+            foreach (var item in separatedValues.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                var value = item.Trim();
+                if (value.Length > 0)
+                {
+                    Increment(values, value);
+                }
+            }
         }
 
         private static ImmutableDictionary<string, int> ToImmutableSortedDictionary(Dictionary<string, int> values)

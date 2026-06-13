@@ -202,7 +202,7 @@ dotnet run --project Tools/PurelySharp.CorpusReport -- artifacts/purelysharp.sar
 dotnet run --project Tools/PurelySharp.CorpusReport -- --output artifacts/purelysharp-report.json PurelySharp.sln
 ```
 
-The JSON report includes a stable `SchemaVersion`, `PS0002`, `PS0004`, and `PS0009` counts, per-diagnostic evidence rows, impurity categories, rule-name counts, operation kinds, unsupported/unknown operation kinds, top impure APIs, catalog/config-source details, catalog-miss candidates, and false-positive candidates based on the structured diagnostic properties emitted by `PS0002`. Explanation diagnostics (`PS0009`) remain visible as diagnostic rows but do not double-count impurity aggregates.
+The JSON report includes a stable `SchemaVersion`, `PS0002`, `PS0004`, `PS0009`, and `PS0010` counts, per-diagnostic evidence rows, impurity categories, exception categories/sources, rule-name counts, operation kinds, unsupported/unknown operation kinds, top impure APIs, catalog/config-source details, catalog-miss candidates, and false-positive candidates based on the structured diagnostic properties emitted by `PS0002` and `PS0010`. Explanation diagnostics (`PS0009`) remain visible as diagnostic rows but do not double-count impurity aggregates.
 
 ## CI Usage
 
