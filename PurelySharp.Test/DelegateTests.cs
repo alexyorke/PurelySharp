@@ -372,6 +372,32 @@ public class TestClass
         }
 
         [Test]
+        public async Task ExplicitDelegateCreationFromFreshVirtualReceiver_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class PureWorker
+{
+    public virtual void Work()
+    {
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public Action Create()
+    {
+        return new Action(new PureWorker().Work);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DelegateCompoundAddPreservesUnknownTarget_Diagnostic()
         {
             var testCode = @"

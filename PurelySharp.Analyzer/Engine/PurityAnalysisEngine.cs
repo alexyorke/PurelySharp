@@ -3066,6 +3066,11 @@ namespace PurelySharp.Analyzer.Engine
                 return false;
             }
 
+            if (SkipImplicitConversions(methodReference.Instance) is IObjectCreationOperation)
+            {
+                return false;
+            }
+
             return methodReference.Instance.Type is not INamedTypeSymbol receiverType ||
                 !receiverType.IsSealed;
         }
