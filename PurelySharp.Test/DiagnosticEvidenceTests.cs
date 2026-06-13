@@ -1799,6 +1799,66 @@ public class TestClass
             Assert.That(diagnostics.Any(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId), Is.False);
         }
 
+        [Test]
+        public async Task Ps0010_DirectNullMemberAccess_ReportsNullReferenceException()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+public class TestClass
+{
+    public int TestMethod()
+    {
+        return ((string)null).Length;
+    }
+}",
+                ImmutableDictionary<string, string>.Empty.Add("purelysharp_report_exceptions", "true"));
+
+            var diagnostic = SingleDiagnostic(diagnostics.Where(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId).ToImmutableArray(), PurelySharpDiagnostics.ExceptionSummaryId);
+
+            Assert.That(diagnostic.GetMessage(), Does.Contain("'TestMethod'"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ExceptionTypesProperty], Is.EqualTo("System.NullReferenceException"));
+        }
+
+        [Test]
+        public async Task Ps0010_DefaultReferenceMemberAccess_Caught_IsSuppressed()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+
+public class TestClass
+{
+    public int TestMethod()
+    {
+        try
+        {
+            return default(string).Length;
+        }
+        catch (NullReferenceException)
+        {
+            return 0;
+        }
+    }
+}",
+                ImmutableDictionary<string, string>.Empty.Add("purelysharp_report_exceptions", "true"));
+
+            Assert.That(diagnostics.Any(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId), Is.False);
+        }
+
+        [Test]
+        public async Task Ps0010_NullConditionalAccess_DoesNotReportNullReferenceException()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+public class TestClass
+{
+    public int? TestMethod()
+    {
+        return ((string)null)?.Length;
+    }
+}",
+                ImmutableDictionary<string, string>.Empty.Add("purelysharp_report_exceptions", "true"));
+
+            Assert.That(diagnostics.Any(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId), Is.False);
+        }
+
         private static Diagnostic SingleDiagnostic(ImmutableArray<Diagnostic> diagnostics, string diagnosticId)
         {
             return diagnostics.Single(d => d.Id == diagnosticId);

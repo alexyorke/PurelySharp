@@ -159,6 +159,17 @@ namespace PurelySharp.Analyzer
                 thrownTypes.Add("System.DivideByZeroException");
             }
 
+            foreach (var nullDereferenceNode in GetDefiniteNullDereferenceNodes(methodNode, semanticModel, cancellationToken))
+            {
+                var exceptionType = semanticModel.Compilation.GetTypeByMetadataName("System.NullReferenceException");
+                if (IsCaughtWithinMethod(nullDereferenceNode, exceptionType, methodNode, semanticModel, cancellationToken))
+                {
+                    continue;
+                }
+
+                thrownTypes.Add("System.NullReferenceException");
+            }
+
             return thrownTypes;
         }
 
@@ -211,6 +222,32 @@ namespace PurelySharp.Analyzer
                 }
 
                 yield return binaryExpression;
+            }
+        }
+
+        private static IEnumerable<SyntaxNode> GetDefiniteNullDereferenceNodes(
+            SyntaxNode methodNode,
+            SemanticModel semanticModel,
+            System.Threading.CancellationToken cancellationToken)
+        {
+            foreach (var node in methodNode.DescendantNodes(
+                         descendIntoChildren: candidate => ReferenceEquals(candidate, methodNode) || !IsNestedCallableBoundary(candidate)))
+            {
+                if (node is MemberAccessExpressionSyntax memberAccess &&
+                    IsDefinitelyNullExpression(memberAccess.Expression, semanticModel, cancellationToken))
+                {
+                    yield return memberAccess;
+                }
+                else if (node is ElementAccessExpressionSyntax elementAccess &&
+                    IsDefinitelyNullExpression(elementAccess.Expression, semanticModel, cancellationToken))
+                {
+                    yield return elementAccess;
+                }
+                else if (node is InvocationExpressionSyntax invocation &&
+                    IsDefinitelyNullExpression(invocation.Expression, semanticModel, cancellationToken))
+                {
+                    yield return invocation;
+                }
             }
         }
 
@@ -352,6 +389,61 @@ namespace PurelySharp.Analyzer
                 default:
                     return false;
             }
+        }
+
+        private static bool IsDefinitelyNullExpression(
+            ExpressionSyntax expression,
+            SemanticModel semanticModel,
+            System.Threading.CancellationToken cancellationToken)
+        {
+            while (true)
+            {
+                if (expression is ParenthesizedExpressionSyntax parenthesized)
+                {
+                    expression = parenthesized.Expression;
+                    continue;
+                }
+
+                if (expression is CastExpressionSyntax castExpression)
+                {
+                    if (IsDefinitelyNullExpression(castExpression.Expression, semanticModel, cancellationToken))
+                    {
+                        var castType = semanticModel.GetTypeInfo(castExpression, cancellationToken).Type;
+                        return IsReferenceType(castType);
+                    }
+
+                    return false;
+                }
+
+                if (expression is PostfixUnaryExpressionSyntax postfixUnary &&
+                    postfixUnary.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.SuppressNullableWarningExpression))
+                {
+                    expression = postfixUnary.Operand;
+                    continue;
+                }
+
+                break;
+            }
+
+            if (expression.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.NullLiteralExpression))
+            {
+                return true;
+            }
+
+            if (expression is DefaultExpressionSyntax defaultExpression)
+            {
+                var defaultType = semanticModel.GetTypeInfo(defaultExpression, cancellationToken).Type;
+                return IsReferenceType(defaultType);
+            }
+
+            return false;
+        }
+
+        private static bool IsReferenceType(ITypeSymbol? typeSymbol)
+        {
+            return typeSymbol != null &&
+                typeSymbol.TypeKind != TypeKind.TypeParameter &&
+                typeSymbol.IsReferenceType;
         }
 
         private static ITypeSymbol? GetRethrownExceptionType(
