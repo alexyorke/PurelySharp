@@ -121,5 +121,27 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
+
+        [Test]
+        public async Task RecordPrimaryConstructorOwnedArrayEscape_Diagnostic()
+        {
+            var testCode = @"
+using PurelySharp.Attributes;
+
+public sealed record Holder(int[] Values);
+
+public class TestClass
+{
+    [EnforcePure]
+    public Holder {|PS0002:Create|}()
+    {
+        int[] values = [1, 2, 3];
+        return new Holder(values);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
     }
 }

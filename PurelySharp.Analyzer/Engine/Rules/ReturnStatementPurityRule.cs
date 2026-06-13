@@ -186,9 +186,76 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 }
             }
 
+            foreach (var objectCreation in returnedValue.DescendantsAndSelf().OfType<IObjectCreationOperation>())
+            {
+                if (!IsRecordConstructionWithEscapingParameters(objectCreation))
+                {
+                    continue;
+                }
+
+                foreach (var argument in objectCreation.Arguments)
+                {
+                    if (IsOwnedLocalArrayReturn(argument.Value, currentState, out var localSymbol))
+                    {
+                        escapeSyntax = argument.Value.Syntax;
+                        escapeSymbol = localSymbol;
+                        catalogSource = "owned_local_array_record_constructor_escape";
+                        return true;
+                    }
+
+                    if (IsKnownPureArrayFactoryReturn(argument.Value, out var factoryMethod))
+                    {
+                        escapeSyntax = argument.Value.Syntax;
+                        escapeSymbol = factoryMethod;
+                        catalogSource = "array_factory_record_constructor_escape";
+                        return true;
+                    }
+                }
+            }
+
             escapeSyntax = null!;
             escapeSymbol = null!;
             catalogSource = string.Empty;
+            return false;
+        }
+
+        private static bool IsRecordConstructionWithEscapingParameters(IObjectCreationOperation objectCreationOperation)
+        {
+            if (objectCreationOperation.Type is not INamedTypeSymbol namedType ||
+                !namedType.IsRecord)
+            {
+                return false;
+            }
+
+            foreach (var argument in objectCreationOperation.Arguments)
+            {
+                var parameter = argument.Parameter;
+                if (parameter == null)
+                {
+                    continue;
+                }
+
+                if (HasMatchingRecordProperty(namedType, parameter))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool HasMatchingRecordProperty(INamedTypeSymbol recordType, IParameterSymbol parameter)
+        {
+            foreach (var member in recordType.GetMembers())
+            {
+                if (member is IPropertySymbol property &&
+                    string.Equals(property.Name, parameter.Name, System.StringComparison.OrdinalIgnoreCase) &&
+                    SymbolEqualityComparer.Default.Equals(property.Type, parameter.Type))
+                {
+                    return true;
+                }
+            }
+
             return false;
         }
 
