@@ -1312,6 +1312,69 @@ public class TestClass
             Assert.That(diagnostics.Any(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId), Is.False);
         }
 
+        [Test]
+        public async Task Ps0010_SourceCalleeThrow_PropagatesToCaller()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+
+public class TestClass
+{
+    public void Caller()
+    {
+        Callee();
+    }
+
+    private void Callee()
+    {
+        throw new InvalidOperationException();
+    }
+}",
+                ImmutableDictionary<string, string>.Empty.Add("purelysharp_report_exceptions", "true"));
+
+            var exceptionDiagnostics = diagnostics
+                .Where(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId)
+                .ToArray();
+
+            Assert.That(exceptionDiagnostics.Length, Is.EqualTo(2));
+            Assert.That(exceptionDiagnostics.Single(d => d.GetMessage().Contains("'Caller'", StringComparison.Ordinal)).Properties[PurelySharpDiagnostics.ExceptionTypesProperty], Is.EqualTo("System.InvalidOperationException"));
+            Assert.That(exceptionDiagnostics.Single(d => d.GetMessage().Contains("'Callee'", StringComparison.Ordinal)).Properties[PurelySharpDiagnostics.ExceptionTypesProperty], Is.EqualTo("System.InvalidOperationException"));
+        }
+
+        [Test]
+        public async Task Ps0010_SourceCalleeThrow_CaughtByCaller_IsSuppressedOnCaller()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+
+public class TestClass
+{
+    public void Caller()
+    {
+        try
+        {
+            Callee();
+        }
+        catch (InvalidOperationException)
+        {
+        }
+    }
+
+    private void Callee()
+    {
+        throw new InvalidOperationException();
+    }
+}",
+                ImmutableDictionary<string, string>.Empty.Add("purelysharp_report_exceptions", "true"));
+
+            var exceptionDiagnostics = diagnostics
+                .Where(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId)
+                .ToArray();
+
+            Assert.That(exceptionDiagnostics.Any(d => d.GetMessage().Contains("'Caller'", StringComparison.Ordinal)), Is.False);
+            Assert.That(exceptionDiagnostics.Single(d => d.GetMessage().Contains("'Callee'", StringComparison.Ordinal)).Properties[PurelySharpDiagnostics.ExceptionTypesProperty], Is.EqualTo("System.InvalidOperationException"));
+        }
+
         private static Diagnostic SingleDiagnostic(ImmutableArray<Diagnostic> diagnostics, string diagnosticId)
         {
             return diagnostics.Single(d => d.Id == diagnosticId);

@@ -39,7 +39,12 @@ namespace PurelySharp.Analyzer
                 return;
             }
 
-            var thrownTypes = CollectUncaughtThrows(context.Node, context.SemanticModel, context.CancellationToken);
+            var thrownTypes = CollectUncaughtExceptions(
+                context.Node,
+                context.SemanticModel,
+                context.CancellationToken,
+                methodSymbol,
+                new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default));
             if (thrownTypes.Count == 0)
             {
                 return;
@@ -65,11 +70,14 @@ namespace PurelySharp.Analyzer
                 messageArgs: new object[] { methodSymbol.Name, exceptionList }));
         }
 
-        private static HashSet<string> CollectUncaughtThrows(
+        private static HashSet<string> CollectUncaughtExceptions(
             SyntaxNode methodNode,
             SemanticModel semanticModel,
-            System.Threading.CancellationToken cancellationToken)
+            System.Threading.CancellationToken cancellationToken,
+            IMethodSymbol methodSymbol,
+            HashSet<IMethodSymbol> visitedMethods)
         {
+            visitedMethods.Add(methodSymbol.OriginalDefinition);
             var thrownTypes = new HashSet<string>(StringComparer.Ordinal);
             foreach (var throwNode in GetThrowNodes(methodNode))
             {
@@ -82,6 +90,24 @@ namespace PurelySharp.Analyzer
                 thrownTypes.Add(exceptionType?.ToDisplayString(ExceptionTypeDisplayFormat) ?? UnknownExceptionType);
             }
 
+            foreach (var invocation in GetInvocationNodes(methodNode))
+            {
+                if (!(semanticModel.GetSymbolInfo(invocation, cancellationToken).Symbol is IMethodSymbol invokedMethod))
+                {
+                    continue;
+                }
+
+                foreach (var exception in CollectSourceCalleeExceptions(invokedMethod, semanticModel.Compilation, cancellationToken, visitedMethods))
+                {
+                    if (IsCaughtWithinMethod(invocation, exception.Type, methodNode, semanticModel, cancellationToken))
+                    {
+                        continue;
+                    }
+
+                    thrownTypes.Add(exception.DisplayName);
+                }
+            }
+
             return thrownTypes;
         }
 
@@ -90,6 +116,13 @@ namespace PurelySharp.Analyzer
             return methodNode.DescendantNodes(
                     descendIntoChildren: node => ReferenceEquals(node, methodNode) || !IsNestedCallableBoundary(node))
                 .Where(node => node is ThrowStatementSyntax || node is ThrowExpressionSyntax);
+        }
+
+        private static IEnumerable<InvocationExpressionSyntax> GetInvocationNodes(SyntaxNode methodNode)
+        {
+            return methodNode.DescendantNodes(
+                    descendIntoChildren: node => ReferenceEquals(node, methodNode) || !IsNestedCallableBoundary(node))
+                .OfType<InvocationExpressionSyntax>();
         }
 
         private static bool IsNestedCallableBoundary(SyntaxNode node)
@@ -123,6 +156,53 @@ namespace PurelySharp.Analyzer
 
             var typeInfo = semanticModel.GetTypeInfo(exceptionExpression, cancellationToken);
             return typeInfo.Type ?? typeInfo.ConvertedType;
+        }
+
+        private static IEnumerable<ExceptionCandidate> CollectSourceCalleeExceptions(
+            IMethodSymbol invokedMethod,
+            Compilation compilation,
+            System.Threading.CancellationToken cancellationToken,
+            HashSet<IMethodSymbol> visitedMethods)
+        {
+            var originalDefinition = invokedMethod.OriginalDefinition;
+            if (!visitedMethods.Add(originalDefinition))
+            {
+                return Enumerable.Empty<ExceptionCandidate>();
+            }
+
+            try
+            {
+                var syntaxReference = invokedMethod.DeclaringSyntaxReferences.FirstOrDefault()
+                    ?? originalDefinition.DeclaringSyntaxReferences.FirstOrDefault();
+                if (syntaxReference == null)
+                {
+                    return Enumerable.Empty<ExceptionCandidate>();
+                }
+
+                var syntax = syntaxReference.GetSyntax(cancellationToken);
+                var semanticModel = compilation.GetSemanticModel(syntax.SyntaxTree);
+                var exceptions = CollectUncaughtExceptions(
+                    syntax,
+                    semanticModel,
+                    cancellationToken,
+                    invokedMethod,
+                    visitedMethods);
+
+                return exceptions
+                    .Select(name => new ExceptionCandidate(TryResolveExceptionType(compilation, name), name))
+                    .ToArray();
+            }
+            finally
+            {
+                visitedMethods.Remove(originalDefinition);
+            }
+        }
+
+        private static ITypeSymbol? TryResolveExceptionType(Compilation compilation, string displayName)
+        {
+            return displayName == UnknownExceptionType
+                ? null
+                : compilation.GetTypeByMetadataName(displayName);
         }
 
         private static bool IsCaughtWithinMethod(
@@ -213,6 +293,19 @@ namespace PurelySharp.Analyzer
                     } ?? accessor.Keyword.GetLocation(),
                 _ => node.GetLocation()
             };
+        }
+
+        private sealed class ExceptionCandidate
+        {
+            public ExceptionCandidate(ITypeSymbol? type, string displayName)
+            {
+                Type = type;
+                DisplayName = displayName;
+            }
+
+            public ITypeSymbol? Type { get; }
+
+            public string DisplayName { get; }
         }
     }
 }
