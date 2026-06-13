@@ -78,6 +78,44 @@ namespace PurelySharp.Test
         }
 
         [Test]
+        public void CreateFromNamedSarifFiles_UsesStableInputNameForReportRows()
+        {
+            var sarifPath = Path.Combine(TestContext.CurrentContext.WorkDirectory, Guid.NewGuid() + ".sarif");
+            try
+            {
+                File.WriteAllText(sarifPath, """
+{
+  "version": "2.1.0",
+  "runs": [
+    {
+      "results": [
+        {
+          "ruleId": "PS0002",
+          "message": { "text": "impure" },
+          "properties": {
+            "purelysharp.impurity.category": "catalog_hit",
+            "purelysharp.impurity.symbol": "System.Console.WriteLine(string)"
+          }
+        }
+      ]
+    }
+  ]
+}
+""");
+
+                var report = SarifCorpusReport.CreateFromSarifFiles(
+                    new[] { new SarifCorpusInput("src/App/App.csproj", sarifPath) });
+
+                Assert.That(report.Inputs, Is.EqualTo(new[] { "src/App/App.csproj" }));
+                Assert.That(report.Diagnostics[0].Input, Is.EqualTo("src/App/App.csproj"));
+            }
+            finally
+            {
+                File.Delete(sarifPath);
+            }
+        }
+
+        [Test]
         public void CreateFromSarifJson_IdentifiesCatalogMissesAndFalsePositiveCandidates()
         {
             var report = SarifCorpusReport.CreateFromSarifJson("sample.sarif", """

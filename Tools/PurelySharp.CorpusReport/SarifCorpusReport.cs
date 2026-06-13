@@ -3,6 +3,8 @@ using System.Text.Json;
 
 namespace PurelySharp.Tools.CorpusReport;
 
+public sealed record SarifCorpusInput(string InputName, string SarifPath);
+
 public static class SarifCorpusReport
 {
     private const string CategoryProperty = "purelysharp.impurity.category";
@@ -20,10 +22,15 @@ public static class SarifCorpusReport
 
     public static CorpusReportSummary CreateFromSarifFiles(IEnumerable<string> sarifPaths)
     {
+        return CreateFromSarifFiles(sarifPaths.Select(path => new SarifCorpusInput(path, path)));
+    }
+
+    public static CorpusReportSummary CreateFromSarifFiles(IEnumerable<SarifCorpusInput> inputs)
+    {
         var builder = new SummaryBuilder();
-        foreach (var sarifPath in sarifPaths)
+        foreach (var input in inputs)
         {
-            builder.AddSarifJson(sarifPath, File.ReadAllText(sarifPath));
+            builder.AddSarifJson(input.InputName, File.ReadAllText(input.SarifPath));
         }
 
         return builder.Build();

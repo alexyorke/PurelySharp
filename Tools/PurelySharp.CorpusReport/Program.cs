@@ -9,7 +9,7 @@ if (options.ShowHelp || options.Inputs.Count == 0)
     return options.Inputs.Count == 0 ? 1 : 0;
 }
 
-var sarifInputs = new List<string>();
+var sarifInputs = new List<SarifCorpusInput>();
 var temporaryFiles = new List<string>();
 try
 {
@@ -22,11 +22,11 @@ try
             var sarifPath = Path.Combine(Path.GetTempPath(), "purelysharp-" + Guid.NewGuid().ToString("N") + ".sarif");
             temporaryFiles.Add(sarifPath);
             RunBuild(input, sarifPath);
-            sarifInputs.Add(sarifPath);
+            sarifInputs.Add(new SarifCorpusInput(input, sarifPath));
         }
         else
         {
-            sarifInputs.Add(input);
+            sarifInputs.Add(new SarifCorpusInput(input, input));
         }
     }
 
