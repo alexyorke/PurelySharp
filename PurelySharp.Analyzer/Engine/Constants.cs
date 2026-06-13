@@ -904,6 +904,8 @@ public static class Constants
         "System.Collections.Generic.List<T>.Reverse()",
         "System.Collections.Generic.List<T>.Sort()",
         "System.Collections.Generic.List<T>.Sort(System.Comparison<T>)",
+        "System.Collections.Generic.List<T>.Sort(System.Collections.Generic.IComparer<T>?)",
+        "System.Collections.Generic.List<T>.Sort(int, int, System.Collections.Generic.IComparer<T>?)",
         "System.Collections.Generic.Queue<T>.Clear()",
         "System.Collections.Generic.Stack<T>.Clear()",
         "System.Exception.Source.set",

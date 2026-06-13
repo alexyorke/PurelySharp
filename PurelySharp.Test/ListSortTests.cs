@@ -27,5 +27,43 @@ public sealed class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task ListSortWithComparer_Diagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public sealed class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}(List<int> values, IComparer<int> comparer)
+    {
+        values.Sort(comparer);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ListSortRangeWithComparer_Diagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public sealed class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}(List<int> values, IComparer<int> comparer)
+    {
+        values.Sort(0, values.Count, comparer);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
