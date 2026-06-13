@@ -143,5 +143,36 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(testCode);
         }
+
+        [Test]
+        public async Task FreshLocalArrayEscapesThroughClassConstructor_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public sealed class Box
+{
+    public readonly int[] Items;
+
+    [EnforcePure]
+    public Box(int[] items)
+    {
+        Items = items;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public Box {|PS0002:TestMethod|}()
+    {
+        var items = new int[1];
+        items[0] = 42;
+        return new Box(items);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }

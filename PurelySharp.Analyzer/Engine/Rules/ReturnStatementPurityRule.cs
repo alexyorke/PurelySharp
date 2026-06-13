@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
 using System.Linq;
@@ -78,6 +79,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 else if (TryFindReturnedInitializerArrayEscape(
                              returnOperation.ReturnedValue,
                              currentState,
+                             context.SemanticModel,
                              out var escapeSyntax,
                              out var escapeSymbol,
                              out var catalogSource))
@@ -219,6 +221,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
         private static bool TryFindReturnedInitializerArrayEscape(
             IOperation returnedValue,
             PurityAnalysisEngine.PurityAnalysisState currentState,
+            SemanticModel semanticModel,
             out SyntaxNode escapeSyntax,
             out ISymbol escapeSymbol,
             out string catalogSource)
@@ -244,7 +247,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             foreach (var objectCreation in returnedValue.DescendantsAndSelf().OfType<IObjectCreationOperation>())
             {
-                if (!IsRecordConstructionWithEscapingParameters(objectCreation))
+                if (!IsConstructionWithEscapingParameters(objectCreation, semanticModel))
                 {
                     continue;
                 }
@@ -255,7 +258,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     {
                         escapeSyntax = argument.Value.Syntax;
                         escapeSymbol = localSymbol;
-                        catalogSource = "owned_local_array_record_constructor_escape";
+                        catalogSource = "owned_local_array_constructor_escape";
                         return true;
                     }
 
@@ -263,7 +266,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     {
                         escapeSyntax = argument.Value.Syntax;
                         escapeSymbol = factoryMethod;
-                        catalogSource = "array_factory_record_constructor_escape";
+                        catalogSource = "array_factory_constructor_escape";
                         return true;
                     }
                 }
@@ -275,10 +278,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return false;
         }
 
-        private static bool IsRecordConstructionWithEscapingParameters(IObjectCreationOperation objectCreationOperation)
+        private static bool IsConstructionWithEscapingParameters(
+            IObjectCreationOperation objectCreationOperation,
+            SemanticModel semanticModel)
         {
             if (objectCreationOperation.Type is not INamedTypeSymbol namedType ||
-                !namedType.IsRecord)
+                objectCreationOperation.Constructor == null)
             {
                 return false;
             }
@@ -291,13 +296,72 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     continue;
                 }
 
-                if (HasMatchingRecordProperty(namedType, parameter))
+                if (namedType.IsRecord && HasMatchingRecordProperty(namedType, parameter))
+                {
+                    return true;
+                }
+
+                if (ConstructorStoresParameterInInstanceMember(objectCreationOperation.Constructor, parameter, semanticModel))
                 {
                     return true;
                 }
             }
 
             return false;
+        }
+
+        private static bool ConstructorStoresParameterInInstanceMember(
+            IMethodSymbol constructor,
+            IParameterSymbol parameter,
+            SemanticModel semanticModel)
+        {
+            foreach (var syntaxReference in constructor.DeclaringSyntaxReferences)
+            {
+                var constructorSyntax = syntaxReference.GetSyntax();
+                var constructorModel = semanticModel.Compilation.GetSemanticModel(constructorSyntax.SyntaxTree);
+                foreach (var assignment in constructorSyntax.DescendantNodes().OfType<AssignmentExpressionSyntax>())
+                {
+                    if (constructorModel.GetOperation(assignment) is not ISimpleAssignmentOperation assignmentOperation)
+                    {
+                        continue;
+                    }
+
+                    if (PurityAnalysisEngine.SkipImplicitConversions(assignmentOperation.Value) is not IParameterReferenceOperation parameterReference ||
+                        !SymbolEqualityComparer.Default.Equals(parameterReference.Parameter, parameter))
+                    {
+                        continue;
+                    }
+
+                    if (assignmentOperation.Target is IFieldReferenceOperation fieldReference &&
+                        IsInstanceMemberOfConstructedType(fieldReference.Field, constructor.ContainingType) &&
+                        IsThisOrImplicitInstance(fieldReference.Instance))
+                    {
+                        return true;
+                    }
+
+                    if (assignmentOperation.Target is IPropertyReferenceOperation propertyReference &&
+                        IsInstanceMemberOfConstructedType(propertyReference.Property, constructor.ContainingType) &&
+                        IsThisOrImplicitInstance(propertyReference.Instance))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsInstanceMemberOfConstructedType(ISymbol member, INamedTypeSymbol constructedType)
+        {
+            return member is IFieldSymbol { IsStatic: false } or IPropertySymbol { IsStatic: false } &&
+                SymbolEqualityComparer.Default.Equals(member.ContainingType.OriginalDefinition, constructedType.OriginalDefinition);
+        }
+
+        private static bool IsThisOrImplicitInstance(IOperation? instance)
+        {
+            var unwrappedInstance = PurityAnalysisEngine.SkipImplicitConversions(instance);
+            return unwrappedInstance == null ||
+                unwrappedInstance is IInstanceReferenceOperation;
         }
 
         private static bool HasMatchingRecordProperty(INamedTypeSymbol recordType, IParameterSymbol parameter)
