@@ -104,15 +104,15 @@ namespace PurelySharp.Analyzer
                     continue;
                 }
 
-                foreach (var exception in CollectCalleeExceptions(invokedMethod, semanticModel.Compilation, cancellationToken, exceptionSummaryCatalog, visitedMethods))
-                {
-                    if (IsCaughtWithinMethod(invocation, exception.Type, methodNode, semanticModel, cancellationToken))
-                    {
-                        continue;
-                    }
-
-                    exceptionEvidence.Add(exception.DisplayName, exception.Category, exception.Source);
-                }
+                AddUncaughtCalleeExceptions(
+                    exceptionEvidence,
+                    invocation,
+                    invokedMethod,
+                    methodNode,
+                    semanticModel,
+                    cancellationToken,
+                    exceptionSummaryCatalog,
+                    visitedMethods);
             }
 
             foreach (var creation in GetObjectCreationNodes(methodNode))
@@ -122,15 +122,15 @@ namespace PurelySharp.Analyzer
                     continue;
                 }
 
-                foreach (var exception in CollectCalleeExceptions(constructorSymbol, semanticModel.Compilation, cancellationToken, exceptionSummaryCatalog, visitedMethods))
-                {
-                    if (IsCaughtWithinMethod(creation, exception.Type, methodNode, semanticModel, cancellationToken))
-                    {
-                        continue;
-                    }
-
-                    exceptionEvidence.Add(exception.DisplayName, exception.Category, exception.Source);
-                }
+                AddUncaughtCalleeExceptions(
+                    exceptionEvidence,
+                    creation,
+                    constructorSymbol,
+                    methodNode,
+                    semanticModel,
+                    cancellationToken,
+                    exceptionSummaryCatalog,
+                    visitedMethods);
             }
 
             foreach (var propertyAccess in GetPropertyAccessNodes(methodNode, semanticModel, cancellationToken))
@@ -141,15 +141,15 @@ namespace PurelySharp.Analyzer
                     continue;
                 }
 
-                foreach (var exception in CollectCalleeExceptions(propertySymbol.GetMethod, semanticModel.Compilation, cancellationToken, exceptionSummaryCatalog, visitedMethods))
-                {
-                    if (IsCaughtWithinMethod(propertyAccess, exception.Type, methodNode, semanticModel, cancellationToken))
-                    {
-                        continue;
-                    }
-
-                    exceptionEvidence.Add(exception.DisplayName, exception.Category, exception.Source);
-                }
+                AddUncaughtCalleeExceptions(
+                    exceptionEvidence,
+                    propertyAccess,
+                    propertySymbol.GetMethod,
+                    methodNode,
+                    semanticModel,
+                    cancellationToken,
+                    exceptionSummaryCatalog,
+                    visitedMethods);
             }
 
             foreach (var divideByZeroNode in GetDefiniteDivideByZeroNodes(methodNode, semanticModel, cancellationToken))
@@ -175,6 +175,32 @@ namespace PurelySharp.Analyzer
             }
 
             return exceptionEvidence;
+        }
+
+        private static void AddUncaughtCalleeExceptions(
+            ExceptionEvidenceSet exceptionEvidence,
+            SyntaxNode callSite,
+            IMethodSymbol callee,
+            SyntaxNode methodNode,
+            SemanticModel semanticModel,
+            System.Threading.CancellationToken cancellationToken,
+            ExceptionSummaryCatalog exceptionSummaryCatalog,
+            HashSet<IMethodSymbol> visitedMethods)
+        {
+            foreach (var exception in CollectCalleeExceptions(
+                         callee,
+                         semanticModel.Compilation,
+                         cancellationToken,
+                         exceptionSummaryCatalog,
+                         visitedMethods))
+            {
+                if (IsCaughtWithinMethod(callSite, exception.Type, methodNode, semanticModel, cancellationToken))
+                {
+                    continue;
+                }
+
+                exceptionEvidence.Add(exception.DisplayName, exception.Category, exception.Source);
+            }
         }
 
         private static IEnumerable<SyntaxNode> GetThrowNodes(SyntaxNode methodNode)
