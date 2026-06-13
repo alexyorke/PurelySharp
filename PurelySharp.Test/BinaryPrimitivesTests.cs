@@ -95,6 +95,37 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        [TestCase("BinaryPrimitives.TryWriteInt16BigEndian(destination, 1)")]
+        [TestCase("BinaryPrimitives.TryWriteInt16LittleEndian(destination, 1)")]
+        [TestCase("BinaryPrimitives.TryWriteInt32BigEndian(destination, 1)")]
+        [TestCase("BinaryPrimitives.TryWriteInt32LittleEndian(destination, 1)")]
+        [TestCase("BinaryPrimitives.TryWriteInt64BigEndian(destination, 1L)")]
+        [TestCase("BinaryPrimitives.TryWriteInt64LittleEndian(destination, 1L)")]
+        [TestCase("BinaryPrimitives.TryWriteUInt16BigEndian(destination, 1)")]
+        [TestCase("BinaryPrimitives.TryWriteUInt16LittleEndian(destination, 1)")]
+        [TestCase("BinaryPrimitives.TryWriteUInt32BigEndian(destination, 1U)")]
+        [TestCase("BinaryPrimitives.TryWriteUInt32LittleEndian(destination, 1U)")]
+        [TestCase("BinaryPrimitives.TryWriteUInt64BigEndian(destination, 1UL)")]
+        [TestCase("BinaryPrimitives.TryWriteUInt64LittleEndian(destination, 1UL)")]
+        public async Task BinaryPrimitivesIntegerTryWrites_Diagnostic(string expression)
+        {
+            var test = @"
+using System;
+using System.Buffers.Binary;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(Span<byte> destination)
+    {
+        return " + expression + @";
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
         [TestCase("BinaryPrimitives.WriteSingleBigEndian(destination, 1.0f);")]
         [TestCase("BinaryPrimitives.WriteSingleLittleEndian(destination, 1.0f);")]
         [TestCase("BinaryPrimitives.WriteDoubleBigEndian(destination, 1.0);")]
