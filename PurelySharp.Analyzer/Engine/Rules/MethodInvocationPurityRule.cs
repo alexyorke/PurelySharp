@@ -1055,8 +1055,110 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return false;
             }
 
+            var receiverComparerResult = CheckSortedCollectionReceiverComparerPurity(invocationOperation, context);
+            if (!receiverComparerResult.IsPure)
+            {
+                result = receiverComparerResult;
+                return true;
+            }
+
             result = CheckDefaultComparisonDispatchPurity(keyType, invocationOperation, context);
             return true;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckSortedCollectionReceiverComparerPurity(
+            IInvocationOperation invocationOperation,
+            PurityAnalysisContext context)
+        {
+            var methodSymbol = invocationOperation.TargetMethod;
+            if (!IsConcreteSortedCollectionType(methodSymbol.ContainingType))
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            var receiverOperation = PurityAnalysisEngine.SkipImplicitConversions(invocationOperation.Instance) ??
+                invocationOperation.Instance;
+            var constructionResult = CheckKnownSortedCollectionConstructionComparerPurity(
+                receiverOperation,
+                invocationOperation,
+                context);
+            if (!constructionResult.IsPure)
+            {
+                return constructionResult;
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckKnownSortedCollectionConstructionComparerPurity(
+            IOperation? receiverOperation,
+            IInvocationOperation invocationOperation,
+            PurityAnalysisContext context)
+        {
+            var unwrappedReceiver = PurityAnalysisEngine.SkipImplicitConversions(receiverOperation) ?? receiverOperation;
+            if (unwrappedReceiver is IObjectCreationOperation objectCreationOperation)
+            {
+                return CheckSortedCollectionObjectCreationComparerPurity(objectCreationOperation, invocationOperation, context);
+            }
+
+            if (TryGetReceiverInitializerOperation(unwrappedReceiver, context, out var initializerOperation) &&
+                PurityAnalysisEngine.SkipImplicitConversions(initializerOperation) is IObjectCreationOperation initializerObjectCreation)
+            {
+                return CheckSortedCollectionObjectCreationComparerPurity(initializerObjectCreation, invocationOperation, context);
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckSortedCollectionObjectCreationComparerPurity(
+            IObjectCreationOperation objectCreationOperation,
+            IInvocationOperation invocationOperation,
+            PurityAnalysisContext context)
+        {
+            if (!IsConcreteSortedCollectionType(objectCreationOperation.Type))
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            foreach (var argument in objectCreationOperation.Arguments)
+            {
+                var value = PurityAnalysisEngine.SkipImplicitConversions(argument.Value) ?? argument.Value;
+                if (value?.Type == null ||
+                    argument.Parameter?.Type is not INamedTypeSymbol parameterType ||
+                    !IsComparerType(parameterType) &&
+                    (value.Type is not INamedTypeSymbol namedValueType ||
+                     !IsComparerOrDerivedInterface(namedValueType)))
+                {
+                    continue;
+                }
+
+                var comparerArgumentResult = PurityAnalysisEngine.CheckSingleOperation(value, context, PurityAnalysisEngine.PurityAnalysisState.Pure);
+                if (!comparerArgumentResult.IsPure)
+                {
+                    return comparerArgumentResult;
+                }
+
+                var comparerResult = CheckComparerValuePurity(value, invocationOperation, context);
+                if (!comparerResult.IsPure)
+                {
+                    return comparerResult;
+                }
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static bool IsConcreteSortedCollectionType(ITypeSymbol? typeSymbol)
+        {
+            if (typeSymbol is not INamedTypeSymbol namedType)
+            {
+                return false;
+            }
+
+            return namedType.OriginalDefinition.ToDisplayString() is
+                "System.Collections.Generic.SortedDictionary<TKey, TValue>" or
+                "System.Collections.Generic.SortedList<TKey, TValue>" or
+                "System.Collections.Generic.SortedSet<T>";
         }
 
         private static bool TryCheckLinqDefaultEqualityDispatchPurity(

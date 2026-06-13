@@ -86,6 +86,41 @@ public class TestClass
         }
 
         [Test]
+        public async Task SortedDictionaryContainsKeyWithDirectImpureComparer_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public sealed class ImpureStringComparer : IComparer<string>
+{
+    public int Compare(string x, string y)
+    {
+        Console.WriteLine(""compare"");
+        return StringComparer.Ordinal.Compare(x, y);
+    }
+}
+
+public sealed class TestClass
+{
+    private readonly SortedDictionary<string, int> _values =
+        new SortedDictionary<string, int>(new ImpureStringComparer())
+        {
+            [""x""] = 1
+        };
+
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(string key)
+    {
+        return _values.ContainsKey(key);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ListBinarySearchDispatchToImpureComparable_Diagnostic()
         {
             var test = @"

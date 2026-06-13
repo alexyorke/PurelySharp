@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1700/1700` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1701/1701` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -56,6 +56,7 @@
 - `await foreach` over a source-defined async enumerator with an impure `MoveNextAsync` now has direct regression coverage for existing diagnostics
 - deterministic `System.DateTime.Date` access now has direct regression coverage through `Date.Ticks`
 - dictionary indexer reads now inspect source-defined receiver constructors for custom comparer instances before trusting builtin-key equality dispatch
+- sorted collection lookups now inspect source-defined receiver constructors for custom comparer instances before trusting builtin-key comparison dispatch
 - constant-switch reachability pruning now follows `goto case` and `goto default` edges before treating unmatched sections as dead
 - return escape analysis now rejects owned fresh arrays assigned into returned object initializer members
 - deterministic `System.Version(int, int)` construction now has direct regression coverage for existing constructor handling
