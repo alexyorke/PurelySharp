@@ -1599,6 +1599,80 @@ public class TestClass
         }
 
         [Test]
+        public async Task Ps0010_EffectSummaryConstructor_PropagatesToFactory()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+
+public class TestClass
+{
+    public Uri Create(string value)
+    {
+        return new Uri(value);
+    }
+}",
+                ImmutableDictionary<string, string>.Empty.Add("purelysharp_report_exceptions", "true"),
+                additionalFiles: ImmutableArray.Create<AdditionalText>(new InMemoryAdditionalText(
+                    "PurelySharp.EffectSummary.json",
+                    @"{
+  ""SchemaVersion"": 1,
+  ""Assemblies"": [
+    {
+      ""Methods"": [
+        {
+          ""Symbol"": ""System.Uri..ctor(string)"",
+          ""ThrownExceptionTypes"": [""System.UriFormatException""],
+          ""TransitiveThrownExceptionTypes"": []
+        }
+      ]
+    }
+  ]
+}")));
+
+            var diagnostic = SingleDiagnostic(diagnostics.Where(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId).ToImmutableArray(), PurelySharpDiagnostics.ExceptionSummaryId);
+
+            Assert.That(diagnostic.GetMessage(), Does.Contain("'Create'"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ExceptionTypesProperty], Is.EqualTo("System.UriFormatException"));
+        }
+
+        [Test]
+        public async Task Ps0010_EffectSummaryPropertyGetter_PropagatesToReader()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+
+public class TestClass
+{
+    public string Read()
+    {
+        return Environment.CurrentDirectory;
+    }
+}",
+                ImmutableDictionary<string, string>.Empty.Add("purelysharp_report_exceptions", "true"),
+                additionalFiles: ImmutableArray.Create<AdditionalText>(new InMemoryAdditionalText(
+                    "PurelySharp.EffectSummary.json",
+                    @"{
+  ""SchemaVersion"": 1,
+  ""Assemblies"": [
+    {
+      ""Methods"": [
+        {
+          ""Symbol"": ""System.Environment.get_CurrentDirectory()"",
+          ""ThrownExceptionTypes"": [""System.InvalidOperationException""],
+          ""TransitiveThrownExceptionTypes"": []
+        }
+      ]
+    }
+  ]
+}")));
+
+            var diagnostic = SingleDiagnostic(diagnostics.Where(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId).ToImmutableArray(), PurelySharpDiagnostics.ExceptionSummaryId);
+
+            Assert.That(diagnostic.GetMessage(), Does.Contain("'Read'"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ExceptionTypesProperty], Is.EqualTo("System.InvalidOperationException"));
+        }
+
+        [Test]
         public async Task Ps0010_RethrowTypedCatch_ReportsCaughtExceptionType()
         {
             var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
