@@ -594,7 +594,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task TimeSpanParseExact_SpanWithStyles_InvariantCulture_Diagnostic()
+        public async Task TimeSpanParseExact_SpanSingleFormatInvariantCultureWithStyles_NoDiagnostic()
         {
             var test = @"
 #nullable enable
@@ -605,7 +605,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public TimeSpan {|PS0002:TestMethod|}(string value)
+    public TimeSpan TestMethod(string value)
     {
         ReadOnlySpan<char> span = value.AsSpan();
         return TimeSpan.ParseExact(span, ""c"", CultureInfo.InvariantCulture, TimeSpanStyles.None);

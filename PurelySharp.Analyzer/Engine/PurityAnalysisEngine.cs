@@ -3104,7 +3104,8 @@ namespace PurelySharp.Analyzer.Engine
             if (targetMethod.Name == "ParseExact" &&
                 targetMethod.Parameters.Length == 4 &&
                 invocationOperation.Arguments.Length == 4 &&
-                targetMethod.Parameters[0].Type.SpecialType == SpecialType.System_String &&
+                (targetMethod.Parameters[0].Type.SpecialType == SpecialType.System_String ||
+                 IsReadOnlySpanOfChar(targetMethod.Parameters[0].Type)) &&
                 IsSingleTimeSpanConstantFormat(invocationOperation.Arguments[1].Value) &&
                 IsTimeSpanStylesNone(invocationOperation.Arguments[3].Value))
             {
@@ -3128,6 +3129,14 @@ namespace PurelySharp.Analyzer.Engine
             return unwrappedOperation?.ConstantValue.HasValue == true &&
                 unwrappedOperation.ConstantValue.Value is int styles &&
                 styles == 0;
+        }
+
+        private static bool IsReadOnlySpanOfChar(ITypeSymbol typeSymbol)
+        {
+            return typeSymbol is INamedTypeSymbol namedType &&
+                namedType.OriginalDefinition.ToDisplayString() == "System.ReadOnlySpan<T>" &&
+                namedType.TypeArguments.Length == 1 &&
+                namedType.TypeArguments[0].SpecialType == SpecialType.System_Char;
         }
 
         private static bool IsCultureInfoInvariantCulture(IOperation? operation)
