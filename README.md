@@ -326,7 +326,7 @@ This project is licensed under the MIT License.
 - [x] Value types
 - [x] Reference types (passed by value)
 - [x] Ref parameters - Treated as impure.
-- [x] Out parameters - Treated as impure.
+- [x] Out parameters - Writes from pure method bodies and non-local `out` targets are impure; local or discard `out` arguments on known-pure or dispatch-proven calls can be pure.
 - [x] In parameters
 - [x] Params arrays
 - [x] Params collections (C# 13)
