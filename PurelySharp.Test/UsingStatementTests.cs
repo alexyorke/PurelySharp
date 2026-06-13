@@ -536,6 +536,46 @@ public class ImpureDisposable : IDisposable
         }
 
         [Test]
+        public async Task UsingStatementExistingLocalReassignedThroughRefLocalAlias_WithImpureDispose_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}()
+    {
+        IDisposable disposable = new PureDisposable();
+        ref IDisposable alias = ref disposable;
+        alias = new ImpureDisposable();
+
+        using (disposable)
+        {
+        }
+    }
+}
+
+public class PureDisposable : IDisposable
+{
+    public void Dispose() { }
+}
+
+public class ImpureDisposable : IDisposable
+{
+    private int _disposeCount;
+
+    public void Dispose()
+    {
+        _disposeCount++;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task UsingDeclarationPatternDisposableRefStruct_WithImpureDispose_Diagnostic()
         {
             var test = @"
