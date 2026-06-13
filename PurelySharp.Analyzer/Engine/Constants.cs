@@ -890,6 +890,8 @@ public static class Constants
         "System.Array.ConstrainedCopy(System.Array, int, System.Array, int, int)",
         "System.Array.Copy(System.Array, System.Array, int)",
         "System.Array.Resize<T>(ref T[], int)",
+        "System.Array.Sort<T>(T[], System.Collections.Generic.IComparer<T>?)",
+        "System.Array.Sort<T>(T[], int, int, System.Collections.Generic.IComparer<T>?)",
         "System.Collections.Generic.Dictionary<TKey, TValue>.Clear()",
         "System.Collections.Generic.Dictionary<TKey, TValue>.Remove(TKey)",
         "System.Collections.Generic.HashSet<T>.Add(T)",
