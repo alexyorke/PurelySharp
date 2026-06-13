@@ -1751,15 +1751,97 @@ namespace PurelySharp.Analyzer.Engine
                 return false;
             }
 
+            var reachableSections = GetReachableConstantSwitchStatementSections(
+                matchedSection,
+                switchStatementSyntax,
+                semanticModel);
+
             foreach (var section in switchStatementSyntax.Sections)
             {
-                if (!ReferenceEquals(section, matchedSection) && section.Span.Contains(syntaxNode.Span))
+                if (!reachableSections.Any(reachableSection => ReferenceEquals(reachableSection, section)) &&
+                    section.Span.Contains(syntaxNode.Span))
                 {
                     return true;
                 }
             }
 
             return false;
+        }
+
+        private static List<Microsoft.CodeAnalysis.CSharp.Syntax.SwitchSectionSyntax> GetReachableConstantSwitchStatementSections(
+            Microsoft.CodeAnalysis.CSharp.Syntax.SwitchSectionSyntax matchedSection,
+            Microsoft.CodeAnalysis.CSharp.Syntax.SwitchStatementSyntax switchStatementSyntax,
+            SemanticModel semanticModel)
+        {
+            var reachableSections = new List<Microsoft.CodeAnalysis.CSharp.Syntax.SwitchSectionSyntax>
+            {
+                matchedSection
+            };
+
+            for (var index = 0; index < reachableSections.Count; index++)
+            {
+                var section = reachableSections[index];
+                foreach (var gotoStatement in section
+                             .DescendantNodes()
+                             .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.GotoStatementSyntax>())
+                {
+                    if (!ReferenceEquals(
+                            gotoStatement.Ancestors().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.SwitchStatementSyntax>().FirstOrDefault(),
+                            switchStatementSyntax))
+                    {
+                        continue;
+                    }
+
+                    var targetSection = ResolveConstantSwitchGotoTarget(gotoStatement, switchStatementSyntax, semanticModel);
+                    if (targetSection == null ||
+                        reachableSections.Any(reachableSection => ReferenceEquals(reachableSection, targetSection)))
+                    {
+                        continue;
+                    }
+
+                    reachableSections.Add(targetSection);
+                }
+            }
+
+            return reachableSections;
+        }
+
+        private static Microsoft.CodeAnalysis.CSharp.Syntax.SwitchSectionSyntax? ResolveConstantSwitchGotoTarget(
+            Microsoft.CodeAnalysis.CSharp.Syntax.GotoStatementSyntax gotoStatement,
+            Microsoft.CodeAnalysis.CSharp.Syntax.SwitchStatementSyntax switchStatementSyntax,
+            SemanticModel semanticModel)
+        {
+            if (gotoStatement.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.GotoDefaultStatement))
+            {
+                return switchStatementSyntax.Sections.FirstOrDefault(section =>
+                    section.Labels.Any(label => label is Microsoft.CodeAnalysis.CSharp.Syntax.DefaultSwitchLabelSyntax));
+            }
+
+            if (!gotoStatement.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.GotoCaseStatement) ||
+                gotoStatement.Expression == null)
+            {
+                return null;
+            }
+
+            var gotoValue = semanticModel.GetConstantValue(gotoStatement.Expression);
+            if (!gotoValue.HasValue)
+            {
+                return null;
+            }
+
+            foreach (var section in switchStatementSyntax.Sections)
+            {
+                foreach (var label in section.Labels.OfType<Microsoft.CodeAnalysis.CSharp.Syntax.CaseSwitchLabelSyntax>())
+                {
+                    var labelValue = semanticModel.GetConstantValue(label.Value);
+                    if (labelValue.HasValue && ConstantValuesEqual(labelValue.Value, gotoValue.Value))
+                    {
+                        return section;
+                    }
+                }
+            }
+
+            return null;
         }
 
         private static bool MatchesConstantSwitchPattern(

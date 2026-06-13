@@ -131,6 +131,31 @@ public class TestClass
         }
 
         [Test]
+        public async Task ConstantSwitchGotoDefault_ReachesThrow_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:Run|}()
+    {
+        switch (1)
+        {
+            case 1:
+                goto default;
+            default:
+                throw new InvalidOperationException();
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ShortCircuitFalseAnd_IgnoresUnreachableImpureRightOperand()
         {
             var test = @"
