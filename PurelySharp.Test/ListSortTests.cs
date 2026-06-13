@@ -1,0 +1,31 @@
+using System.Threading.Tasks;
+using NUnit.Framework;
+using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
+    PurelySharp.Analyzer.PurelySharpAnalyzer>;
+
+namespace PurelySharp.Test
+{
+    [TestFixture]
+    public class ListSortTests
+    {
+        [Test]
+        public async Task ListSortWithComparison_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public sealed class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}(List<int> values, Comparison<int> comparison)
+    {
+        values.Sort(comparison);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+    }
+}
