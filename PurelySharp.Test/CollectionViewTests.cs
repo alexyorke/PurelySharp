@@ -281,6 +281,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task ReadOnlyCollectionCtorExistingList_Diagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public ReadOnlyCollection<int> {|PS0002:TestMethod|}(List<int> values)
+    {
+        return new ReadOnlyCollection<int>(values);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task CollectionsMarshalAsSpan_Diagnostic()
         {
             var test = @"
