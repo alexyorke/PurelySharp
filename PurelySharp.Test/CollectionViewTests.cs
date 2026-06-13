@@ -243,6 +243,44 @@ public class TestClass
         }
 
         [Test]
+        public async Task ReadOnlyCollectionCtorFreshArray_NoDiagnostic()
+        {
+            var test = @"
+using System.Collections.ObjectModel;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public ReadOnlyCollection<int> TestMethod()
+    {
+        return new ReadOnlyCollection<int>(new[] { 1, 2, 3 });
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ReadOnlyCollectionCtorExistingArray_Diagnostic()
+        {
+            var test = @"
+using System.Collections.ObjectModel;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public ReadOnlyCollection<int> {|PS0002:TestMethod|}(int[] values)
+    {
+        return new ReadOnlyCollection<int>(values);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task CollectionsMarshalAsSpan_Diagnostic()
         {
             var test = @"

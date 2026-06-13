@@ -61,6 +61,32 @@ namespace PurelySharp.Analyzer.Engine.Rules
                         continue;
                     }
 
+                    if (IsReadOnlyCollectionConstructor(objectCreationOperation))
+                    {
+                        if (IsPureReadOnlyCollectionArrayConstructorArgument(objectCreationOperation, argument, currentState))
+                        {
+                            PurityAnalysisEngine.LogDebug($"      [ObjCreateRule.Args] Treating fresh array as PURE for ReadOnlyCollection construction.");
+                            continue;
+                        }
+
+                        var readOnlyCollectionArgumentResult = PurityAnalysisEngine.CheckSingleOperation(argument.Value, context, currentState);
+                        if (!readOnlyCollectionArgumentResult.IsPure)
+                        {
+                            return readOnlyCollectionArgumentResult;
+                        }
+
+                        PurityAnalysisEngine.LogDebug($"      [ObjCreateRule.Args] ReadOnlyCollection source is not analyzer-owned. Treating wrapper construction as IMPURE.");
+                        return PurityAnalysisResult.Impure(
+                            objectCreationOperation.Syntax,
+                            PurityAnalysisEngine.PurityEvidence.Create(
+                                "mutable_state_read",
+                                ruleName: nameof(ObjectCreationPurityRule),
+                                operation: objectCreationOperation,
+                                syntaxNode: objectCreationOperation.Syntax,
+                                symbol: objectCreationOperation.Constructor,
+                                catalogSource: "read_only_collection_external_source"));
+                    }
+
                     var argumentResult = PurityAnalysisEngine.CheckSingleOperation(argument.Value, context, currentState);
                     if (!argumentResult.IsPure)
                     {
@@ -240,6 +266,29 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             var sourceResult = PurityAnalysisEngine.CheckSingleOperation(invocationOperation.Arguments[0].Value, context, currentState);
             return sourceResult.IsPure;
+        }
+
+        private static bool IsPureReadOnlyCollectionArrayConstructorArgument(
+            IObjectCreationOperation objectCreationOperation,
+            IArgumentOperation argument,
+            PurityAnalysisEngine.PurityAnalysisState currentState)
+        {
+            if (!IsReadOnlyCollectionConstructor(objectCreationOperation))
+            {
+                return false;
+            }
+
+            var argumentValue = PurityAnalysisEngine.UnwrapArrayOwnershipPreservingConversions(argument.Value);
+            return argumentValue is IArrayCreationOperation ||
+                argumentValue is ILocalReferenceOperation localReference &&
+                currentState.IsOwnedLocalArraySymbol(localReference.Local);
+        }
+
+        private static bool IsReadOnlyCollectionConstructor(IObjectCreationOperation objectCreationOperation)
+        {
+            var constructorSymbol = objectCreationOperation.Constructor?.OriginalDefinition;
+            return constructorSymbol?.ContainingType?.OriginalDefinition.ToDisplayString() == "System.Collections.ObjectModel.ReadOnlyCollection<T>" &&
+                constructorSymbol.Parameters.Length == 1;
         }
     }
 }
