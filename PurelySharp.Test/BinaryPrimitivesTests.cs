@@ -126,6 +126,31 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        [TestCase("BinaryPrimitives.TryWriteSingleBigEndian(destination, 1.0f)")]
+        [TestCase("BinaryPrimitives.TryWriteSingleLittleEndian(destination, 1.0f)")]
+        [TestCase("BinaryPrimitives.TryWriteDoubleBigEndian(destination, 1.0)")]
+        [TestCase("BinaryPrimitives.TryWriteDoubleLittleEndian(destination, 1.0)")]
+        [TestCase("BinaryPrimitives.TryWriteHalfBigEndian(destination, (Half)1)")]
+        [TestCase("BinaryPrimitives.TryWriteHalfLittleEndian(destination, (Half)1)")]
+        public async Task BinaryPrimitivesFloatingPointTryWrites_Diagnostic(string expression)
+        {
+            var test = @"
+using System;
+using System.Buffers.Binary;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(Span<byte> destination)
+    {
+        return " + expression + @";
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
         [TestCase("BinaryPrimitives.WriteSingleBigEndian(destination, 1.0f);")]
         [TestCase("BinaryPrimitives.WriteSingleLittleEndian(destination, 1.0f);")]
         [TestCase("BinaryPrimitives.WriteDoubleBigEndian(destination, 1.0);")]
