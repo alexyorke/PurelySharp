@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 
@@ -239,19 +240,16 @@ namespace PurelySharp.Analyzer
                     continue;
                 }
 
-                var rightConstant = semanticModel.GetConstantValue(binaryExpression.Right, cancellationToken);
-                if (!rightConstant.HasValue || !IsIntegralOrDecimalZero(rightConstant.Value))
-                {
-                    continue;
-                }
-
                 var rightType = semanticModel.GetTypeInfo(binaryExpression.Right, cancellationToken).ConvertedType;
                 if (!IsThrowingDivideByZeroType(rightType))
                 {
                     continue;
                 }
 
-                yield return binaryExpression;
+                if (IsDefinitelyZeroExpression(binaryExpression.Right, binaryExpression, semanticModel, cancellationToken))
+                {
+                    yield return binaryExpression;
+                }
             }
         }
 
@@ -264,17 +262,17 @@ namespace PurelySharp.Analyzer
                          descendIntoChildren: candidate => ReferenceEquals(candidate, methodNode) || !IsNestedCallableBoundary(candidate)))
             {
                 if (node is MemberAccessExpressionSyntax memberAccess &&
-                    IsDefinitelyNullExpression(memberAccess.Expression, semanticModel, cancellationToken))
+                    IsDefinitelyNullExpression(memberAccess.Expression, memberAccess, semanticModel, cancellationToken))
                 {
                     yield return memberAccess;
                 }
                 else if (node is ElementAccessExpressionSyntax elementAccess &&
-                    IsDefinitelyNullExpression(elementAccess.Expression, semanticModel, cancellationToken))
+                    IsDefinitelyNullExpression(elementAccess.Expression, elementAccess, semanticModel, cancellationToken))
                 {
                     yield return elementAccess;
                 }
                 else if (node is InvocationExpressionSyntax invocation &&
-                    IsDefinitelyNullExpression(invocation.Expression, semanticModel, cancellationToken))
+                    IsDefinitelyNullExpression(invocation.Expression, invocation, semanticModel, cancellationToken))
                 {
                     yield return invocation;
                 }
@@ -426,8 +424,20 @@ namespace PurelySharp.Analyzer
             }
         }
 
+        private static bool IsDefinitelyZeroExpression(
+            ExpressionSyntax expression,
+            SyntaxNode useNode,
+            SemanticModel semanticModel,
+            System.Threading.CancellationToken cancellationToken)
+        {
+            var constantValue = semanticModel.GetConstantValue(expression, cancellationToken);
+            return (constantValue.HasValue && IsIntegralOrDecimalZero(constantValue.Value)) ||
+                IsKnownByDominatingIf(expression, useNode, semanticModel, cancellationToken, PathFactKind.Zero);
+        }
+
         private static bool IsDefinitelyNullExpression(
             ExpressionSyntax expression,
+            SyntaxNode useNode,
             SemanticModel semanticModel,
             System.Threading.CancellationToken cancellationToken)
         {
@@ -441,7 +451,7 @@ namespace PurelySharp.Analyzer
 
                 if (expression is CastExpressionSyntax castExpression)
                 {
-                    if (IsDefinitelyNullExpression(castExpression.Expression, semanticModel, cancellationToken))
+                    if (IsDefinitelyNullExpression(castExpression.Expression, useNode, semanticModel, cancellationToken))
                     {
                         var castType = semanticModel.GetTypeInfo(castExpression, cancellationToken).Type;
                         return IsReferenceType(castType);
@@ -469,6 +479,202 @@ namespace PurelySharp.Analyzer
             {
                 var defaultType = semanticModel.GetTypeInfo(defaultExpression, cancellationToken).Type;
                 return IsReferenceType(defaultType);
+            }
+
+            return IsKnownByDominatingIf(expression, useNode, semanticModel, cancellationToken, PathFactKind.Null);
+        }
+
+        private static bool IsKnownByDominatingIf(
+            ExpressionSyntax expression,
+            SyntaxNode useNode,
+            SemanticModel semanticModel,
+            System.Threading.CancellationToken cancellationToken,
+            PathFactKind factKind)
+        {
+            var symbol = GetLocalOrParameterSymbol(expression, semanticModel, cancellationToken);
+            if (symbol == null)
+            {
+                return false;
+            }
+
+            foreach (var ifStatement in useNode.Ancestors().OfType<IfStatementSyntax>())
+            {
+                if (ifStatement.Statement.Span.Contains(useNode.SpanStart) &&
+                    ConditionImpliesFact(ifStatement.Condition, symbol, factKind, branchWhenTrue: true, semanticModel, cancellationToken) &&
+                    !IsSymbolAssignedBeforeUse(ifStatement.Statement, useNode.SpanStart, symbol, semanticModel, cancellationToken))
+                {
+                    return true;
+                }
+
+                if (ifStatement.Else?.Statement is { } elseStatement &&
+                    elseStatement.Span.Contains(useNode.SpanStart) &&
+                    ConditionImpliesFact(ifStatement.Condition, symbol, factKind, branchWhenTrue: false, semanticModel, cancellationToken) &&
+                    !IsSymbolAssignedBeforeUse(elseStatement, useNode.SpanStart, symbol, semanticModel, cancellationToken))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static ISymbol? GetLocalOrParameterSymbol(
+            ExpressionSyntax expression,
+            SemanticModel semanticModel,
+            System.Threading.CancellationToken cancellationToken)
+        {
+            expression = UnwrapFactExpression(expression);
+            var symbol = semanticModel.GetSymbolInfo(expression, cancellationToken).Symbol;
+            return symbol is ILocalSymbol or IParameterSymbol ? symbol.OriginalDefinition : null;
+        }
+
+        private static ExpressionSyntax UnwrapFactExpression(ExpressionSyntax expression)
+        {
+            while (true)
+            {
+                if (expression is ParenthesizedExpressionSyntax parenthesized)
+                {
+                    expression = parenthesized.Expression;
+                    continue;
+                }
+
+                if (expression is PostfixUnaryExpressionSyntax postfixUnary &&
+                    postfixUnary.IsKind(SyntaxKind.SuppressNullableWarningExpression))
+                {
+                    expression = postfixUnary.Operand;
+                    continue;
+                }
+
+                return expression;
+            }
+        }
+
+        private static bool ConditionImpliesFact(
+            ExpressionSyntax condition,
+            ISymbol symbol,
+            PathFactKind factKind,
+            bool branchWhenTrue,
+            SemanticModel semanticModel,
+            System.Threading.CancellationToken cancellationToken)
+        {
+            condition = UnwrapFactExpression(condition);
+            if (condition is BinaryExpressionSyntax binaryExpression)
+            {
+                var equalityImpliesFact = binaryExpression.IsKind(SyntaxKind.EqualsExpression) && branchWhenTrue;
+                var inequalityImpliesFact = binaryExpression.IsKind(SyntaxKind.NotEqualsExpression) && !branchWhenTrue;
+                if (!equalityImpliesFact && !inequalityImpliesFact)
+                {
+                    return false;
+                }
+
+                return IsSymbolComparedToFact(binaryExpression.Left, binaryExpression.Right, symbol, factKind, semanticModel, cancellationToken) ||
+                    IsSymbolComparedToFact(binaryExpression.Right, binaryExpression.Left, symbol, factKind, semanticModel, cancellationToken);
+            }
+
+            if (condition is IsPatternExpressionSyntax isPatternExpression &&
+                branchWhenTrue &&
+                ExpressionMatchesSymbol(isPatternExpression.Expression, symbol, semanticModel, cancellationToken) &&
+                PatternMatchesFact(isPatternExpression.Pattern, factKind, semanticModel, cancellationToken))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool IsSymbolComparedToFact(
+            ExpressionSyntax symbolExpression,
+            ExpressionSyntax factExpression,
+            ISymbol symbol,
+            PathFactKind factKind,
+            SemanticModel semanticModel,
+            System.Threading.CancellationToken cancellationToken)
+        {
+            return ExpressionMatchesSymbol(symbolExpression, symbol, semanticModel, cancellationToken) &&
+                ExpressionMatchesFact(factExpression, factKind, semanticModel, cancellationToken);
+        }
+
+        private static bool ExpressionMatchesSymbol(
+            ExpressionSyntax expression,
+            ISymbol symbol,
+            SemanticModel semanticModel,
+            System.Threading.CancellationToken cancellationToken)
+        {
+            var expressionSymbol = GetLocalOrParameterSymbol(expression, semanticModel, cancellationToken);
+            return expressionSymbol != null && SymbolEqualityComparer.Default.Equals(expressionSymbol, symbol);
+        }
+
+        private static bool ExpressionMatchesFact(
+            ExpressionSyntax expression,
+            PathFactKind factKind,
+            SemanticModel semanticModel,
+            System.Threading.CancellationToken cancellationToken)
+        {
+            expression = UnwrapFactExpression(expression);
+            if (factKind == PathFactKind.Null)
+            {
+                return expression.IsKind(SyntaxKind.NullLiteralExpression);
+            }
+
+            var constantValue = semanticModel.GetConstantValue(expression, cancellationToken);
+            return constantValue.HasValue && IsIntegralOrDecimalZero(constantValue.Value);
+        }
+
+        private static bool PatternMatchesFact(
+            PatternSyntax pattern,
+            PathFactKind factKind,
+            SemanticModel semanticModel,
+            System.Threading.CancellationToken cancellationToken)
+        {
+            if (pattern is ConstantPatternSyntax constantPattern)
+            {
+                return ExpressionMatchesFact(constantPattern.Expression, factKind, semanticModel, cancellationToken);
+            }
+
+            return false;
+        }
+
+        private static bool IsSymbolAssignedBeforeUse(
+            SyntaxNode branchRoot,
+            int useSpanStart,
+            ISymbol symbol,
+            SemanticModel semanticModel,
+            System.Threading.CancellationToken cancellationToken)
+        {
+            foreach (var node in branchRoot.DescendantNodes(
+                         descendIntoChildren: candidate => !IsNestedCallableBoundary(candidate)))
+            {
+                if (node.SpanStart >= useSpanStart)
+                {
+                    continue;
+                }
+
+                if (node is AssignmentExpressionSyntax assignment &&
+                    ExpressionMatchesSymbol(assignment.Left, symbol, semanticModel, cancellationToken))
+                {
+                    return true;
+                }
+
+                if (node is PrefixUnaryExpressionSyntax prefixUnary &&
+                    (prefixUnary.IsKind(SyntaxKind.PreIncrementExpression) || prefixUnary.IsKind(SyntaxKind.PreDecrementExpression)) &&
+                    ExpressionMatchesSymbol(prefixUnary.Operand, symbol, semanticModel, cancellationToken))
+                {
+                    return true;
+                }
+
+                if (node is PostfixUnaryExpressionSyntax postfixUnary &&
+                    (postfixUnary.IsKind(SyntaxKind.PostIncrementExpression) || postfixUnary.IsKind(SyntaxKind.PostDecrementExpression)) &&
+                    ExpressionMatchesSymbol(postfixUnary.Operand, symbol, semanticModel, cancellationToken))
+                {
+                    return true;
+                }
+
+                if (node is ArgumentSyntax argument &&
+                    !argument.RefKindKeyword.IsKind(SyntaxKind.None) &&
+                    ExpressionMatchesSymbol(argument.Expression, symbol, semanticModel, cancellationToken))
+                {
+                    return true;
+                }
             }
 
             return false;
@@ -742,6 +948,12 @@ namespace PurelySharp.Analyzer
                         .OrderBy(item => item.Key, StringComparer.Ordinal)
                         .SelectMany(item => item.Value.Select(source => item.Key + "=" + source)));
             }
+        }
+
+        private enum PathFactKind
+        {
+            Zero,
+            Null
         }
     }
 }
