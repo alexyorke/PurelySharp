@@ -91,22 +91,40 @@ public sealed class TestClass
 using System;
 using PurelySharp.Attributes;
 
+    public sealed class TestClass
+    {
+        [EnforcePure]
+        public void {|PS0002:TestMethod|}(int[] source, int[] destination)
+        {
+            Array.Copy(source, 0, destination, 0, source.Length);
+        }
+    }";
+
+        await VerifyCS.VerifyAnalyzerAsync(test);
+    }
+
+    [Test]
+    public async Task ArrayCopyTo_Diagnostic()
+    {
+        var test = @"
+using PurelySharp.Attributes;
+
 public sealed class TestClass
 {
     [EnforcePure]
     public void {|PS0002:TestMethod|}(int[] source, int[] destination)
     {
-        Array.Copy(source, 0, destination, 0, source.Length);
+        source.CopyTo(destination, 0);
     }
 }";
 
-            await VerifyCS.VerifyAnalyzerAsync(test);
-        }
+        await VerifyCS.VerifyAnalyzerAsync(test);
+    }
 
-        [Test]
-        public async Task ArrayClearFullArray_Diagnostic()
-        {
-            var test = @"
+    [Test]
+    public async Task ArrayClearFullArray_Diagnostic()
+    {
+        var test = @"
 using System;
 using PurelySharp.Attributes;
 

@@ -890,6 +890,7 @@ public static class Constants
         "System.Array.ConstrainedCopy(System.Array, int, System.Array, int, int)",
         "System.Array.Copy(System.Array, System.Array, int)",
         "System.Array.Copy(System.Array, int, System.Array, int, int)",
+        "System.Array.CopyTo(System.Array, int)",
         "System.Array.Clear(System.Array)",
         "System.Array.Fill<T>(T[], T)",
         "System.Array.Fill<T>(T[], T, int, int)",
