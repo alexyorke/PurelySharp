@@ -8,3 +8,5 @@
 | PS0010 | ExceptionFlow | Info | Optional thrown-exception summary emitted when `purelysharp_report_exceptions` is enabled. |
 
 ### Enhancements
+
+- `PS0010` can consume generated `PurelySharp.EffectSummary.json` additional files and propagate summarized metadata/library exception types through source callers.

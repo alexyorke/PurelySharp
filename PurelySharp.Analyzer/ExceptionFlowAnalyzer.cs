@@ -19,7 +19,8 @@ namespace PurelySharp.Analyzer
 
         public static void AnalyzeSymbolForExceptions(
             SyntaxNodeAnalysisContext context,
-            bool reportExceptions)
+            bool reportExceptions,
+            ExceptionSummaryCatalog exceptionSummaryCatalog)
         {
             if (!Analyzer.Configuration.AnalyzerConfiguration.GetReportExceptions(
                     context.Options,
@@ -44,6 +45,7 @@ namespace PurelySharp.Analyzer
                 context.SemanticModel,
                 context.CancellationToken,
                 methodSymbol,
+                exceptionSummaryCatalog,
                 new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default));
             if (thrownTypes.Count == 0)
             {
@@ -75,6 +77,7 @@ namespace PurelySharp.Analyzer
             SemanticModel semanticModel,
             System.Threading.CancellationToken cancellationToken,
             IMethodSymbol methodSymbol,
+            ExceptionSummaryCatalog exceptionSummaryCatalog,
             HashSet<IMethodSymbol> visitedMethods)
         {
             visitedMethods.Add(methodSymbol.OriginalDefinition);
@@ -97,7 +100,7 @@ namespace PurelySharp.Analyzer
                     continue;
                 }
 
-                foreach (var exception in CollectSourceCalleeExceptions(invokedMethod, semanticModel.Compilation, cancellationToken, visitedMethods))
+                foreach (var exception in CollectCalleeExceptions(invokedMethod, semanticModel.Compilation, cancellationToken, exceptionSummaryCatalog, visitedMethods))
                 {
                     if (IsCaughtWithinMethod(invocation, exception.Type, methodNode, semanticModel, cancellationToken))
                     {
@@ -115,7 +118,7 @@ namespace PurelySharp.Analyzer
                     continue;
                 }
 
-                foreach (var exception in CollectSourceCalleeExceptions(constructorSymbol, semanticModel.Compilation, cancellationToken, visitedMethods))
+                foreach (var exception in CollectCalleeExceptions(constructorSymbol, semanticModel.Compilation, cancellationToken, exceptionSummaryCatalog, visitedMethods))
                 {
                     if (IsCaughtWithinMethod(creation, exception.Type, methodNode, semanticModel, cancellationToken))
                     {
@@ -134,7 +137,7 @@ namespace PurelySharp.Analyzer
                     continue;
                 }
 
-                foreach (var exception in CollectSourceCalleeExceptions(propertySymbol.GetMethod, semanticModel.Compilation, cancellationToken, visitedMethods))
+                foreach (var exception in CollectCalleeExceptions(propertySymbol.GetMethod, semanticModel.Compilation, cancellationToken, exceptionSummaryCatalog, visitedMethods))
                 {
                     if (IsCaughtWithinMethod(propertyAccess, exception.Type, methodNode, semanticModel, cancellationToken))
                     {
@@ -260,6 +263,7 @@ namespace PurelySharp.Analyzer
             IMethodSymbol invokedMethod,
             Compilation compilation,
             System.Threading.CancellationToken cancellationToken,
+            ExceptionSummaryCatalog exceptionSummaryCatalog,
             HashSet<IMethodSymbol> visitedMethods)
         {
             var originalDefinition = invokedMethod.OriginalDefinition;
@@ -284,6 +288,7 @@ namespace PurelySharp.Analyzer
                     semanticModel,
                     cancellationToken,
                     invokedMethod,
+                    exceptionSummaryCatalog,
                     visitedMethods);
 
                 return exceptions
@@ -293,6 +298,29 @@ namespace PurelySharp.Analyzer
             finally
             {
                 visitedMethods.Remove(originalDefinition);
+            }
+        }
+
+        private static IEnumerable<ExceptionCandidate> CollectCalleeExceptions(
+            IMethodSymbol invokedMethod,
+            Compilation compilation,
+            System.Threading.CancellationToken cancellationToken,
+            ExceptionSummaryCatalog exceptionSummaryCatalog,
+            HashSet<IMethodSymbol> visitedMethods)
+        {
+            foreach (var exception in CollectSourceCalleeExceptions(invokedMethod, compilation, cancellationToken, exceptionSummaryCatalog, visitedMethods))
+            {
+                yield return exception;
+            }
+
+            if (!exceptionSummaryCatalog.TryGetExceptions(invokedMethod, out var summaryExceptions))
+            {
+                yield break;
+            }
+
+            foreach (var exceptionType in summaryExceptions)
+            {
+                yield return new ExceptionCandidate(TryResolveExceptionType(compilation, exceptionType), exceptionType);
             }
         }
 

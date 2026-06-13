@@ -85,6 +85,14 @@ dotnet run --project Tools\PurelySharp.EffectSummary -- --framework net8.0 --sym
 
 When transitive roots are enabled, the JSON also includes `TransitiveThrownExceptionTypes`. For example, `System.ArgumentNullException.ThrowIfNull(...)` can surface `System.ArgumentNullException` from its helper callee even when the public guard method does not directly contain the `throw` instruction.
 
+## Analyzer consumption
+
+The analyzer can consume generated exception summaries when the JSON is supplied as an additional file named `PurelySharp.EffectSummary.json` or `*.PurelySharp.EffectSummary.json`.
+
+With `purelysharp_report_exceptions = true`, `PS0010` uses `ThrownExceptionTypes` and `TransitiveThrownExceptionTypes` for matching metadata/library method calls. This extends exception-flow reporting beyond current-compilation source without doing slow live decompilation inside Roslyn analyzer callbacks.
+
+The lookup is exact and evidence-based: summaries are keyed by method symbol strings emitted by this tool, and catch filtering still happens at the source call site when the exception type resolves in the current compilation.
+
 Run against a specific assembly:
 
 ```powershell
@@ -100,5 +108,5 @@ The durable path from here is:
 1. Add a fixed-point classifier over the emitted call/effect graph.
 2. Add explicit root seed files for native/runtime/OS/environment/reflection/threading categories.
 3. Generate checked-in summaries for supported target frameworks.
-4. Teach the analyzer to consume summaries before falling back to hardcoded catalog entries.
+4. Generate and version checked-in framework summaries for supported target frameworks.
 5. Optionally clone `dotnet/runtime` or the unified .NET source tree to map IL summaries back to source files and comments for review.

@@ -2,10 +2,12 @@ using System;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Text;
 using NUnit.Framework;
 using PurelySharp.Analyzer;
 
@@ -1519,6 +1521,83 @@ public class Widget
             Assert.That(exceptionDiagnostics.Single(d => d.GetMessage().Contains("'get_Value'", StringComparison.Ordinal)).Properties[PurelySharpDiagnostics.ExceptionTypesProperty], Is.EqualTo("System.InvalidOperationException"));
         }
 
+        [Test]
+        public async Task Ps0010_EffectSummaryLibraryCall_PropagatesToCaller()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+
+public class TestClass
+{
+    public void TestMethod(object value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+    }
+}",
+                ImmutableDictionary<string, string>.Empty.Add("purelysharp_report_exceptions", "true"),
+                additionalFiles: ImmutableArray.Create<AdditionalText>(new InMemoryAdditionalText(
+                    "PurelySharp.EffectSummary.json",
+                    @"{
+  ""SchemaVersion"": 1,
+  ""Assemblies"": [
+    {
+      ""Methods"": [
+        {
+          ""Symbol"": ""System.ArgumentNullException.ThrowIfNull(object, string)"",
+          ""ThrownExceptionTypes"": [],
+          ""TransitiveThrownExceptionTypes"": [""System.ArgumentNullException""]
+        }
+      ]
+    }
+  ]
+}")));
+
+            var diagnostic = SingleDiagnostic(diagnostics.Where(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId).ToImmutableArray(), PurelySharpDiagnostics.ExceptionSummaryId);
+
+            Assert.That(diagnostic.GetMessage(), Does.Contain("'TestMethod'"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ExceptionTypesProperty], Is.EqualTo("System.ArgumentNullException"));
+        }
+
+        [Test]
+        public async Task Ps0010_EffectSummaryLibraryCall_CaughtAtCallSite_IsSuppressed()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+
+public class TestClass
+{
+    public void TestMethod(object value)
+    {
+        try
+        {
+            ArgumentNullException.ThrowIfNull(value);
+        }
+        catch (ArgumentNullException)
+        {
+        }
+    }
+}",
+                ImmutableDictionary<string, string>.Empty.Add("purelysharp_report_exceptions", "true"),
+                additionalFiles: ImmutableArray.Create<AdditionalText>(new InMemoryAdditionalText(
+                    "PurelySharp.EffectSummary.json",
+                    @"{
+  ""SchemaVersion"": 1,
+  ""Assemblies"": [
+    {
+      ""Methods"": [
+        {
+          ""Symbol"": ""System.ArgumentNullException.ThrowIfNull(object, string)"",
+          ""ThrownExceptionTypes"": [],
+          ""TransitiveThrownExceptionTypes"": [""System.ArgumentNullException""]
+        }
+      ]
+    }
+  ]
+}")));
+
+            Assert.That(diagnostics.Any(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId), Is.False);
+        }
+
         private static Diagnostic SingleDiagnostic(ImmutableArray<Diagnostic> diagnostics, string diagnosticId)
         {
             return diagnostics.Single(d => d.Id == diagnosticId);
@@ -1527,7 +1606,8 @@ public class Widget
         private static async Task<ImmutableArray<Diagnostic>> GetAnalyzerDiagnosticsAsync(
             string source,
             ImmutableDictionary<string, string>? globalOptions = null,
-            bool allowUnsafe = false)
+            bool allowUnsafe = false,
+            ImmutableArray<AdditionalText>? additionalFiles = null)
         {
             var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Preview));
             var references = GetTrustedPlatformReferences()
@@ -1540,7 +1620,7 @@ public class Widget
                 new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, allowUnsafe: allowUnsafe));
 
             var analyzerOptions = new AnalyzerOptions(
-                ImmutableArray<AdditionalText>.Empty,
+                additionalFiles ?? ImmutableArray<AdditionalText>.Empty,
                 new TestAnalyzerConfigOptionsProvider(globalOptions ?? ImmutableDictionary<string, string>.Empty));
 
             var compilationWithAnalyzers = compilation.WithAnalyzers(
@@ -1608,6 +1688,24 @@ public class Widget
 
                 value = string.Empty;
                 return false;
+            }
+        }
+
+        private sealed class InMemoryAdditionalText : AdditionalText
+        {
+            private readonly string _text;
+
+            public InMemoryAdditionalText(string path, string text)
+            {
+                Path = path;
+                _text = text;
+            }
+
+            public override string Path { get; }
+
+            public override SourceText GetText(CancellationToken cancellationToken = default)
+            {
+                return SourceText.From(_text);
             }
         }
     }
