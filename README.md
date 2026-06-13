@@ -142,7 +142,7 @@ Note: Diagnostic messages refer to `[EnforcePure]` and `[Pure]` interchangeably.
   - **Message:** `Method '{0}' can throw: {1}`
   - **Severity:** Info
   - **Enabled by:** `.editorconfig` option `purelysharp_report_exceptions = true`
-  - **Meaning:** The analyzer found uncaught source-level `throw` or throw-expression paths, or propagated exception facts from source callees or `PurelySharp.EffectSummary.json`, and reports the exception type list in the diagnostic message and `purelysharp.exceptions.types` property.
+  - **Meaning:** The analyzer found uncaught source-level `throw` or throw-expression paths, or propagated exception facts from source callees or `PurelySharp.EffectSummary.json`, and reports the exception type list in the diagnostic message and `purelysharp.exceptions.types` property. `PS0010` also emits structured `purelysharp.exceptions.categories` and `purelysharp.exceptions.sources` properties for report tooling.
 
 - **PS0003: Misplaced Attribute**
   - **Message:** `The [EnforcePure] attribute can only be applied to method declarations.`

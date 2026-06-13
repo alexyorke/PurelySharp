@@ -1556,6 +1556,8 @@ public class TestClass
 
             Assert.That(diagnostic.GetMessage(), Does.Contain("'TestMethod'"));
             Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ExceptionTypesProperty], Is.EqualTo("System.ArgumentNullException"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ExceptionCategoriesProperty], Is.EqualTo("effect_summary"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ExceptionSourcesProperty], Does.Contain("System.ArgumentNullException=effect_summary:System.ArgumentNullException.ThrowIfNull"));
         }
 
         [Test]
@@ -1816,6 +1818,30 @@ public class TestClass
 
             Assert.That(diagnostic.GetMessage(), Does.Contain("'TestMethod'"));
             Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ExceptionTypesProperty], Is.EqualTo("System.NullReferenceException"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ExceptionCategoriesProperty], Is.EqualTo("definite_null_dereference"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ExceptionSourcesProperty], Is.EqualTo("System.NullReferenceException=definite_null_dereference:null_receiver"));
+        }
+
+        [Test]
+        public async Task Ps0010_DirectThrow_IncludesStructuredEvidenceProperties()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+
+public class TestClass
+{
+    public void TestMethod()
+    {
+        throw new InvalidOperationException();
+    }
+}",
+                ImmutableDictionary<string, string>.Empty.Add("purelysharp_report_exceptions", "true"));
+
+            var diagnostic = SingleDiagnostic(diagnostics.Where(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId).ToImmutableArray(), PurelySharpDiagnostics.ExceptionSummaryId);
+
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ExceptionTypesProperty], Is.EqualTo("System.InvalidOperationException"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ExceptionCategoriesProperty], Is.EqualTo("direct_throw"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ExceptionSourcesProperty], Is.EqualTo("System.InvalidOperationException=direct_throw:throw"));
         }
 
         [Test]

@@ -40,14 +40,14 @@ namespace PurelySharp.Analyzer
                 return;
             }
 
-            var thrownTypes = CollectUncaughtExceptions(
+            var exceptionEvidence = CollectUncaughtExceptions(
                 context.Node,
                 context.SemanticModel,
                 context.CancellationToken,
                 methodSymbol,
                 exceptionSummaryCatalog,
                 new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default));
-            if (thrownTypes.Count == 0)
+            if (exceptionEvidence.Count == 0)
             {
                 return;
             }
@@ -58,11 +58,12 @@ namespace PurelySharp.Analyzer
                 return;
             }
 
-            var sortedTypes = thrownTypes.OrderBy(type => type, StringComparer.Ordinal).ToArray();
+            var sortedTypes = exceptionEvidence.Types;
             var exceptionList = string.Join(", ", sortedTypes);
-            var properties = ImmutableDictionary<string, string?>.Empty.Add(
-                PurelySharpDiagnostics.ExceptionTypesProperty,
-                string.Join(";", sortedTypes));
+            var properties = ImmutableDictionary<string, string?>.Empty
+                .Add(PurelySharpDiagnostics.ExceptionTypesProperty, string.Join(";", sortedTypes))
+                .Add(PurelySharpDiagnostics.ExceptionCategoriesProperty, exceptionEvidence.FormatCategories())
+                .Add(PurelySharpDiagnostics.ExceptionSourcesProperty, exceptionEvidence.FormatSources());
 
             context.ReportDiagnostic(Diagnostic.Create(
                 PurelySharpDiagnostics.ExceptionSummaryRule,
@@ -72,7 +73,7 @@ namespace PurelySharp.Analyzer
                 messageArgs: new object[] { methodSymbol.Name, exceptionList }));
         }
 
-        private static HashSet<string> CollectUncaughtExceptions(
+        private static ExceptionEvidenceSet CollectUncaughtExceptions(
             SyntaxNode methodNode,
             SemanticModel semanticModel,
             System.Threading.CancellationToken cancellationToken,
@@ -81,7 +82,7 @@ namespace PurelySharp.Analyzer
             HashSet<IMethodSymbol> visitedMethods)
         {
             visitedMethods.Add(methodSymbol.OriginalDefinition);
-            var thrownTypes = new HashSet<string>(StringComparer.Ordinal);
+            var exceptionEvidence = new ExceptionEvidenceSet();
             foreach (var throwNode in GetThrowNodes(methodNode))
             {
                 var exceptionType = GetThrownExceptionType(throwNode, semanticModel, cancellationToken);
@@ -90,7 +91,10 @@ namespace PurelySharp.Analyzer
                     continue;
                 }
 
-                thrownTypes.Add(exceptionType?.ToDisplayString(ExceptionTypeDisplayFormat) ?? UnknownExceptionType);
+                exceptionEvidence.Add(
+                    exceptionType?.ToDisplayString(ExceptionTypeDisplayFormat) ?? UnknownExceptionType,
+                    IsRethrow(throwNode) ? "rethrow" : "direct_throw",
+                    "throw");
             }
 
             foreach (var invocation in GetInvocationNodes(methodNode))
@@ -107,7 +111,7 @@ namespace PurelySharp.Analyzer
                         continue;
                     }
 
-                    thrownTypes.Add(exception.DisplayName);
+                    exceptionEvidence.Add(exception.DisplayName, exception.Category, exception.Source);
                 }
             }
 
@@ -125,7 +129,7 @@ namespace PurelySharp.Analyzer
                         continue;
                     }
 
-                    thrownTypes.Add(exception.DisplayName);
+                    exceptionEvidence.Add(exception.DisplayName, exception.Category, exception.Source);
                 }
             }
 
@@ -144,7 +148,7 @@ namespace PurelySharp.Analyzer
                         continue;
                     }
 
-                    thrownTypes.Add(exception.DisplayName);
+                    exceptionEvidence.Add(exception.DisplayName, exception.Category, exception.Source);
                 }
             }
 
@@ -156,7 +160,7 @@ namespace PurelySharp.Analyzer
                     continue;
                 }
 
-                thrownTypes.Add("System.DivideByZeroException");
+                exceptionEvidence.Add("System.DivideByZeroException", "definite_divide_by_zero", "binary_operator");
             }
 
             foreach (var nullDereferenceNode in GetDefiniteNullDereferenceNodes(methodNode, semanticModel, cancellationToken))
@@ -167,10 +171,10 @@ namespace PurelySharp.Analyzer
                     continue;
                 }
 
-                thrownTypes.Add("System.NullReferenceException");
+                exceptionEvidence.Add("System.NullReferenceException", "definite_null_dereference", "null_receiver");
             }
 
-            return thrownTypes;
+            return exceptionEvidence;
         }
 
         private static IEnumerable<SyntaxNode> GetThrowNodes(SyntaxNode methodNode)
@@ -340,6 +344,11 @@ namespace PurelySharp.Analyzer
             return typeInfo.Type ?? typeInfo.ConvertedType;
         }
 
+        private static bool IsRethrow(SyntaxNode throwNode)
+        {
+            return throwNode is ThrowStatementSyntax statement && statement.Expression == null;
+        }
+
         private static bool IsIntegralOrDecimalZero(object? value)
         {
             switch (value)
@@ -501,8 +510,12 @@ namespace PurelySharp.Analyzer
                     exceptionSummaryCatalog,
                     visitedMethods);
 
-                return exceptions
-                    .Select(name => new ExceptionCandidate(TryResolveExceptionType(compilation, name), name))
+                return exceptions.Types
+                    .Select(name => new ExceptionCandidate(
+                        TryResolveExceptionType(compilation, name),
+                        name,
+                        "source_callee",
+                        invokedMethod.OriginalDefinition.ToDisplayString()))
                     .ToArray();
             }
             finally
@@ -530,7 +543,11 @@ namespace PurelySharp.Analyzer
 
             foreach (var exceptionType in summaryExceptions)
             {
-                yield return new ExceptionCandidate(TryResolveExceptionType(compilation, exceptionType), exceptionType);
+                yield return new ExceptionCandidate(
+                    TryResolveExceptionType(compilation, exceptionType),
+                    exceptionType,
+                    "effect_summary",
+                    invokedMethod.OriginalDefinition.ToDisplayString());
             }
         }
 
@@ -633,15 +650,72 @@ namespace PurelySharp.Analyzer
 
         private sealed class ExceptionCandidate
         {
-            public ExceptionCandidate(ITypeSymbol? type, string displayName)
+            public ExceptionCandidate(ITypeSymbol? type, string displayName, string category, string source)
             {
                 Type = type;
                 DisplayName = displayName;
+                Category = category;
+                Source = source;
             }
 
             public ITypeSymbol? Type { get; }
 
             public string DisplayName { get; }
+
+            public string Category { get; }
+
+            public string Source { get; }
+        }
+
+        private sealed class ExceptionEvidenceSet
+        {
+            private readonly Dictionary<string, SortedSet<string>> _categoriesByType =
+                new Dictionary<string, SortedSet<string>>(StringComparer.Ordinal);
+
+            private readonly Dictionary<string, SortedSet<string>> _sourcesByType =
+                new Dictionary<string, SortedSet<string>>(StringComparer.Ordinal);
+
+            public int Count => _categoriesByType.Count;
+
+            public string[] Types => _categoriesByType.Keys.OrderBy(type => type, StringComparer.Ordinal).ToArray();
+
+            public void Add(string exceptionType, string category, string source)
+            {
+                if (!_categoriesByType.TryGetValue(exceptionType, out var categories))
+                {
+                    categories = new SortedSet<string>(StringComparer.Ordinal);
+                    _categoriesByType.Add(exceptionType, categories);
+                }
+
+                categories.Add(category);
+
+                if (!_sourcesByType.TryGetValue(exceptionType, out var sources))
+                {
+                    sources = new SortedSet<string>(StringComparer.Ordinal);
+                    _sourcesByType.Add(exceptionType, sources);
+                }
+
+                sources.Add(category + ":" + source);
+            }
+
+            public string FormatCategories()
+            {
+                return string.Join(
+                    ";",
+                    _categoriesByType.Values
+                        .SelectMany(categories => categories)
+                        .Distinct(StringComparer.Ordinal)
+                        .OrderBy(category => category, StringComparer.Ordinal));
+            }
+
+            public string FormatSources()
+            {
+                return string.Join(
+                    ";",
+                    _sourcesByType
+                        .OrderBy(item => item.Key, StringComparer.Ordinal)
+                        .SelectMany(item => item.Value.Select(source => item.Key + "=" + source)));
+            }
         }
     }
 }
