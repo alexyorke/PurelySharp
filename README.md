@@ -271,7 +271,7 @@ This project is licensed under the MIT License.
 - [x] Read-only collections (IReadOnly\* interfaces) - Creation assumed impure.
 - [x] Arrays (when used in a read-only manner)
 - [x] Tuples (creation)
-- [x] Collection expressions (C# 12) - `System.Collections.Immutable.*`, `Span<T>` / `ReadOnlySpan<T>`; direct and spread elements are analyzed; arrays and mutable collection targets remain impure
+- [x] Collection expressions (C# 12) - `System.Collections.Immutable.*`, `Span<T>` / `ReadOnlySpan<T>`, and owned non-escaping array targets; direct and spread elements are analyzed; mutable collection targets remain impure, and escaping arrays still report mutable-state escape
 - [x] Mutable collections (List, Dictionary, etc.) - Creation/modification assumed impure.
 - [x] Modifying collection elements - Assumed impure.
 - [x] Default equality/comparison dispatch for collections, dictionaries, LINQ, comparers, and indexers is analyzed from the element/key type; unresolved generic type parameters stay conservative.
