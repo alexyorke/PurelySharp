@@ -2865,13 +2865,16 @@ namespace PurelySharp.Analyzer.Engine
 
                         if (TryResolveSymbol(SkipImplicitConversions(argument.Value)) is ILocalSymbol localSymbol)
                         {
-                            nextState = nextState
-                                .WithoutLocalConcreteType(localSymbol)
-                                .WithoutOwnedLocalArray(localSymbol);
-
-                            if (localSymbol.Type?.TypeKind == TypeKind.Delegate)
+                            foreach (var writtenLocalSymbol in EnumerateWrittenLocalSymbols(localSymbol, context))
                             {
-                                nextState = nextState.WithDelegateTarget(localSymbol, PotentialTargets.Unresolved);
+                                nextState = nextState
+                                    .WithoutLocalConcreteType(writtenLocalSymbol)
+                                    .WithoutOwnedLocalArray(writtenLocalSymbol);
+
+                                if (writtenLocalSymbol.Type?.TypeKind == TypeKind.Delegate)
+                                {
+                                    nextState = nextState.WithDelegateTarget(writtenLocalSymbol, PotentialTargets.Unresolved);
+                                }
                             }
                         }
                     }
@@ -2923,6 +2926,65 @@ namespace PurelySharp.Analyzer.Engine
 
 
             return nextState;
+        }
+
+        private static IEnumerable<ILocalSymbol> EnumerateWrittenLocalSymbols(
+            ILocalSymbol localSymbol,
+            Rules.PurityAnalysisContext context)
+        {
+            var visited = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
+            foreach (var writtenLocalSymbol in EnumerateWrittenLocalSymbols(localSymbol, context, visited))
+            {
+                yield return writtenLocalSymbol;
+            }
+        }
+
+        private static IEnumerable<ILocalSymbol> EnumerateWrittenLocalSymbols(
+            ILocalSymbol localSymbol,
+            Rules.PurityAnalysisContext context,
+            HashSet<ISymbol> visited)
+        {
+            if (!visited.Add(localSymbol))
+            {
+                yield break;
+            }
+
+            yield return localSymbol;
+
+            if (localSymbol.RefKind == RefKind.None)
+            {
+                yield break;
+            }
+
+            foreach (var syntaxReference in localSymbol.DeclaringSyntaxReferences)
+            {
+                if (syntaxReference.GetSyntax() is not Microsoft.CodeAnalysis.CSharp.Syntax.VariableDeclaratorSyntax declaratorSyntax ||
+                    declaratorSyntax.Initializer?.Value == null)
+                {
+                    continue;
+                }
+
+                var initializerSyntax = declaratorSyntax.Initializer.Value;
+                if (initializerSyntax is Microsoft.CodeAnalysis.CSharp.Syntax.RefExpressionSyntax refExpressionSyntax)
+                {
+                    initializerSyntax = refExpressionSyntax.Expression;
+                }
+
+                if (context.SemanticModel.GetOperation(initializerSyntax) is not { } initializerOperation)
+                {
+                    continue;
+                }
+
+                if (TryResolveSymbol(SkipImplicitConversions(initializerOperation)) is not ILocalSymbol targetLocalSymbol)
+                {
+                    continue;
+                }
+
+                foreach (var writtenLocalSymbol in EnumerateWrittenLocalSymbols(targetLocalSymbol, context, visited))
+                {
+                    yield return writtenLocalSymbol;
+                }
+            }
         }
 
         private static bool IsOwnedLocalArrayValue(IOperation? valueOperation, PurityAnalysisState currentState)

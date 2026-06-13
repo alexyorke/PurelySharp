@@ -279,6 +279,45 @@ public class TestClass
         }
 
         [Test]
+        public async Task DelegateReassignedThroughRefLocalAlias_Diagnostic()
+        {
+            var testCode = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public static void PureTarget()
+    {
+    }
+
+    public static void ImpureTarget()
+    {
+        Console.WriteLine();
+    }
+
+    [PureExternal]
+    private static void Replace(ref Action action)
+    {
+        action = ImpureTarget;
+    }
+
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}()
+    {
+        Action action = PureTarget;
+        ref Action alias = ref action;
+        Replace(ref alias);
+        action();
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(testCode);
+        }
+
+        [Test]
         public async Task DelegateInvocation_ConstantConditionalDeadImpureTarget_NoDiagnostic()
         {
             var test = @"
