@@ -36,6 +36,18 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return operandResult;
             }
 
+            if (conversionOperation.Operand.Type?.TypeKind == TypeKind.Dynamic ||
+                conversionOperation.Type?.TypeKind == TypeKind.Dynamic)
+            {
+                PurityAnalysisEngine.LogDebug("    [ConversionRule] Dynamic conversion detected. Conservatively treating as Impure.");
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                    conversionOperation.Syntax,
+                    PurityAnalysisEngine.PurityEvidence.Create(
+                        "dynamic_dispatch",
+                        nameof(ConversionPurityRule),
+                        conversionOperation));
+            }
+
 
             if (conversionOperation.Conversion.IsUserDefined && conversionOperation.Conversion.MethodSymbol != null)
             {

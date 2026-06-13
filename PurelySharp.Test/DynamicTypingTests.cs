@@ -166,6 +166,24 @@ public class TestClass
         }
 
         [Test]
+        public async Task DynamicExplicitConversion_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public int {|PS0002:ConvertDynamic|}(dynamic value)
+    {
+        return (int)value;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DynamicMethodCall_WithExplicitAsCast_Diagnostic()
         {
 
