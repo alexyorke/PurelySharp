@@ -597,6 +597,38 @@ public class TestClass
         }
 
         [Test]
+        public async Task Ps0002_MutualRecursionWithRealImpurity_PreservesRealCalleeEvidence()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void A()
+    {
+        B();
+    }
+
+    [EnforcePure]
+    public void B()
+    {
+        A();
+        Console.WriteLine(""impure"");
+    }
+}");
+
+            var diagnostic = diagnostics
+                .Where(diagnostic => diagnostic.Id == PurelySharpDiagnostics.PurityNotVerifiedId)
+                .Single(diagnostic => diagnostic.GetMessage().Contains("'A'", StringComparison.Ordinal));
+
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCategoryProperty], Is.EqualTo("catalog_hit"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpuritySymbolProperty], Does.Contain("System.Console.WriteLine"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCalleeChainProperty], Does.Contain("TestClass.B"));
+        }
+
+        [Test]
         public async Task Ps0002_EnvironmentProperty_IncludesReflectionEnvironmentCategory()
         {
             var diagnostics = await GetAnalyzerDiagnosticsAsync(@"

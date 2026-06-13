@@ -1351,6 +1351,8 @@ namespace PurelySharp.Analyzer.Engine
 
 
             var currentStateInBlock = stateBefore;
+            PurityAnalysisResult? deferredRecursiveImpurity = null;
+            SyntaxNode? deferredRecursiveSyntax = null;
             foreach (var op in block.Operations)
             {
                 if (op == null) continue;
@@ -1378,6 +1380,13 @@ namespace PurelySharp.Analyzer.Engine
                 {
                     LogDebug($"ApplyTransferFunction IMPURE DETECTED in Block #{block.Ordinal} by Op: {op.Kind} ({op.Syntax})");
 
+                    if (IsRecursivePlaceholderImpurity(opResult))
+                    {
+                        deferredRecursiveImpurity ??= opResult;
+                        deferredRecursiveSyntax ??= op.Syntax;
+                        continue;
+                    }
+
                     currentStateInBlock = currentStateInBlock.WithImpurity(opResult, op.Syntax);
                     break;
                 }
@@ -1387,6 +1396,17 @@ namespace PurelySharp.Analyzer.Engine
                 currentStateInBlock = UpdateDelegateMapForOperation(op, ruleContext, currentStateInBlock);
                 LogDebug($"  [ApplyTF] After UpdateDelegateMapForOperation: StateImpure={currentStateInBlock.HasPotentialImpurity}, MapCount={currentStateInBlock.DelegateTargetMap.Count}");
 
+            }
+
+            if (!currentStateInBlock.HasPotentialImpurity && deferredRecursiveImpurity.HasValue)
+            {
+                var fallbackSyntax = deferredRecursiveSyntax ??
+                    block.Operations.FirstOrDefault()?.Syntax ??
+                    containingMethodSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax();
+
+                currentStateInBlock = currentStateInBlock.WithImpurity(
+                    deferredRecursiveImpurity.Value,
+                    fallbackSyntax!);
             }
 
             if (!currentStateInBlock.HasPotentialImpurity &&
@@ -1409,6 +1429,13 @@ namespace PurelySharp.Analyzer.Engine
 
             LogDebug($"ApplyTransferFunction END for Block #{block.Ordinal} - Final State: Impure={currentStateInBlock.HasPotentialImpurity}");
             return currentStateInBlock;
+        }
+
+        private static bool IsRecursivePlaceholderImpurity(PurityAnalysisResult result)
+        {
+            return !result.IsPure &&
+                result.Evidence.RuleName == "RecursivePurityAnalysis" &&
+                result.Evidence.CatalogSource == "recursive_call";
         }
 
 
