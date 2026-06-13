@@ -3080,14 +3080,35 @@ namespace PurelySharp.Analyzer.Engine
             var targetMethod = invocationOperation.TargetMethod?.OriginalDefinition;
             if (targetMethod == null ||
                 targetMethod.ContainingType?.ToDisplayString() != "System.TimeSpan" ||
-                targetMethod.Name != "Parse" ||
-                targetMethod.Parameters.Length != 2 ||
-                invocationOperation.Arguments.Length != 2)
+                invocationOperation.Arguments.Length < 2)
             {
                 return false;
             }
 
-            return IsCultureInfoInvariantCulture(invocationOperation.Arguments[1].Value);
+            if (targetMethod.Name == "Parse" &&
+                targetMethod.Parameters.Length == 2 &&
+                invocationOperation.Arguments.Length == 2)
+            {
+                return IsCultureInfoInvariantCulture(invocationOperation.Arguments[1].Value);
+            }
+
+            if (targetMethod.Name == "ParseExact" &&
+                targetMethod.Parameters.Length == 3 &&
+                invocationOperation.Arguments.Length == 3 &&
+                IsSingleTimeSpanConstantFormat(invocationOperation.Arguments[1].Value))
+            {
+                return IsCultureInfoInvariantCulture(invocationOperation.Arguments[2].Value);
+            }
+
+            return false;
+        }
+
+        private static bool IsSingleTimeSpanConstantFormat(IOperation? operation)
+        {
+            var unwrappedOperation = SkipImplicitConversions(operation);
+            return unwrappedOperation?.ConstantValue.HasValue == true &&
+                unwrappedOperation.ConstantValue.Value is string format &&
+                (format == "c" || format == "g" || format == "G");
         }
 
         private static bool IsCultureInfoInvariantCulture(IOperation? operation)
