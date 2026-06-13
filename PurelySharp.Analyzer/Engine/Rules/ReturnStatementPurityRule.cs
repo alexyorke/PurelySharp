@@ -89,6 +89,19 @@ namespace PurelySharp.Analyzer.Engine.Rules
                             symbol: spanMethod,
                             catalogSource: "returned_array_span_view"));
                 }
+                else if (IsCallerOwnedArrayMemoryReturn(returnOperation.ReturnedValue, currentState, out var memoryConstructor))
+                {
+                    PurityAnalysisEngine.LogDebug($"    [ReturnRule] Returned value escapes memory view over caller-owned array through '{memoryConstructor.ToDisplayString()}'. Return statement is Impure.");
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                        returnOperation.ReturnedValue.Syntax,
+                        PurityAnalysisEngine.PurityEvidence.Create(
+                            "mutable_state_escape",
+                            ruleName: nameof(ReturnStatementPurityRule),
+                            operation: returnOperation,
+                            syntaxNode: returnOperation.ReturnedValue.Syntax,
+                            symbol: memoryConstructor,
+                            catalogSource: "returned_array_memory_view"));
+                }
                 else if (TryFindReturnedInitializerArrayEscape(
                              returnOperation.ReturnedValue,
                              currentState,
@@ -224,6 +237,59 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             methodSymbol = null!;
             return false;
+        }
+
+        private static bool IsCallerOwnedArrayMemoryReturn(
+            IOperation? returnedValue,
+            PurityAnalysisEngine.PurityAnalysisState currentState,
+            out IMethodSymbol constructorSymbol)
+        {
+            var unwrappedReturnedValue = PurityAnalysisEngine.UnwrapArrayOwnershipPreservingConversions(returnedValue);
+            if (unwrappedReturnedValue is IObjectCreationOperation objectCreationOperation &&
+                IsMemoryViewConstructor(objectCreationOperation.Constructor) &&
+                objectCreationOperation.Arguments.Length > 0 &&
+                !IsAnalyzerOwnedArraySpanSource(objectCreationOperation.Arguments[0].Value, currentState))
+            {
+                constructorSymbol = objectCreationOperation.Constructor!;
+                return true;
+            }
+
+            if (unwrappedReturnedValue is IConditionalOperation conditionalOperation)
+            {
+                if (TryGetConstantCondition(conditionalOperation, out var conditionValue))
+                {
+                    return IsCallerOwnedArrayMemoryReturn(
+                        conditionValue ? conditionalOperation.WhenTrue : conditionalOperation.WhenFalse,
+                        currentState,
+                        out constructorSymbol);
+                }
+
+                return IsCallerOwnedArrayMemoryReturn(conditionalOperation.WhenTrue, currentState, out constructorSymbol) ||
+                    IsCallerOwnedArrayMemoryReturn(conditionalOperation.WhenFalse, currentState, out constructorSymbol);
+            }
+
+            if (unwrappedReturnedValue is ICoalesceOperation coalesceOperation)
+            {
+                return IsCallerOwnedArrayMemoryReturn(coalesceOperation.Value, currentState, out constructorSymbol) ||
+                    IsCallerOwnedArrayMemoryReturn(coalesceOperation.WhenNull, currentState, out constructorSymbol);
+            }
+
+            constructorSymbol = null!;
+            return false;
+        }
+
+        private static bool IsMemoryViewConstructor(IMethodSymbol? methodSymbol)
+        {
+            if (methodSymbol == null ||
+                methodSymbol.MethodKind != MethodKind.Constructor ||
+                methodSymbol.ContainingType is not INamedTypeSymbol containingType ||
+                methodSymbol.Parameters.Length == 0 ||
+                methodSymbol.Parameters[0].Type is not IArrayTypeSymbol)
+            {
+                return false;
+            }
+
+            return containingType.OriginalDefinition.ToDisplayString() is "System.Memory<T>" or "System.ReadOnlyMemory<T>";
         }
 
         private static bool TryGetArraySpanSource(

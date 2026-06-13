@@ -340,6 +340,45 @@ public class TestClass
         }
 
         [Test]
+        public async Task ReadOnlyMemoryCtorCallerOwnedArray_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public ReadOnlyMemory<int> {|PS0002:TestMethod|}(int[] values)
+    {
+        return new ReadOnlyMemory<int>(values);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ReadOnlyMemoryCtorOwnedArray_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public ReadOnlyMemory<int> TestMethod()
+    {
+        var values = new[] { 1, 2, 3 };
+        return new ReadOnlyMemory<int>(values);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task CollectionsMarshalAsSpan_Diagnostic()
         {
             var test = @"
