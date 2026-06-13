@@ -1006,7 +1006,7 @@ namespace PurelySharp.Analyzer.Engine
                             if (invocationOp.TargetMethod != null &&
                                 IsKnownImpure(invocationOp.TargetMethod.OriginalDefinition) &&
                                 !IsArrayAsReadOnlyOwnedLocalArrayInvocation(invocationOp, postCfgReturnState) &&
-                                !IsTimeSpanInvariantCultureParseInvocation(invocationOp) &&
+                                !IsInvariantCultureDeterministicParseInvocation(invocationOp) &&
                                 !IsTransientCharArrayConsumedByStringConstructor(invocationOp, semanticModel))
                             {
                                 LogDebug($"{indent}    Post-CFG: Found Known Impure Invocation IMPURE: {invocationOp.Syntax} calling {invocationOp.TargetMethod.ToDisplayString()}");
@@ -3115,6 +3115,42 @@ namespace PurelySharp.Analyzer.Engine
             return false;
         }
 
+        internal static bool IsInvariantCultureDeterministicParseInvocation(IInvocationOperation invocationOperation)
+        {
+            return IsTimeSpanInvariantCultureParseInvocation(invocationOperation) ||
+                IsDateTimeOffsetInvariantCultureParseExactInvocation(invocationOperation);
+        }
+
+        private static bool IsDateTimeOffsetInvariantCultureParseExactInvocation(IInvocationOperation invocationOperation)
+        {
+            var targetMethod = invocationOperation.TargetMethod?.OriginalDefinition;
+            if (targetMethod == null ||
+                targetMethod.ContainingType?.ToDisplayString() != "System.DateTimeOffset" ||
+                targetMethod.Name != "ParseExact")
+            {
+                return false;
+            }
+
+            if (targetMethod.Parameters.Length == 3 &&
+                invocationOperation.Arguments.Length == 3 &&
+                targetMethod.Parameters[0].Type.SpecialType == SpecialType.System_String &&
+                IsSingleDateTimeOffsetRoundtripFormat(invocationOperation.Arguments[1].Value))
+            {
+                return IsCultureInfoInvariantCulture(invocationOperation.Arguments[2].Value);
+            }
+
+            if (targetMethod.Parameters.Length == 4 &&
+                invocationOperation.Arguments.Length == 4 &&
+                targetMethod.Parameters[0].Type.SpecialType == SpecialType.System_String &&
+                IsSingleDateTimeOffsetRoundtripFormat(invocationOperation.Arguments[1].Value) &&
+                IsDateTimeStylesNone(invocationOperation.Arguments[3].Value))
+            {
+                return IsCultureInfoInvariantCulture(invocationOperation.Arguments[2].Value);
+            }
+
+            return false;
+        }
+
         private static bool IsSingleTimeSpanConstantFormat(IOperation? operation)
         {
             var unwrappedOperation = SkipImplicitConversions(operation);
@@ -3123,7 +3159,23 @@ namespace PurelySharp.Analyzer.Engine
                 (format == "c" || format == "g" || format == "G");
         }
 
+        private static bool IsSingleDateTimeOffsetRoundtripFormat(IOperation? operation)
+        {
+            var unwrappedOperation = SkipImplicitConversions(operation);
+            return unwrappedOperation?.ConstantValue.HasValue == true &&
+                unwrappedOperation.ConstantValue.Value is string format &&
+                (format == "O" || format == "o");
+        }
+
         private static bool IsTimeSpanStylesNone(IOperation? operation)
+        {
+            var unwrappedOperation = SkipImplicitConversions(operation);
+            return unwrappedOperation?.ConstantValue.HasValue == true &&
+                unwrappedOperation.ConstantValue.Value is int styles &&
+                styles == 0;
+        }
+
+        private static bool IsDateTimeStylesNone(IOperation? operation)
         {
             var unwrappedOperation = SkipImplicitConversions(operation);
             return unwrappedOperation?.ConstantValue.HasValue == true &&

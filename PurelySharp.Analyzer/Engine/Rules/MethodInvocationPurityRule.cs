@@ -440,9 +440,9 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return arrayAsReadOnlyResult;
             }
 
-            if (PurityAnalysisEngine.IsTimeSpanInvariantCultureParseInvocation(invocationOperation))
+            if (PurityAnalysisEngine.IsInvariantCultureDeterministicParseInvocation(invocationOperation))
             {
-                PurityAnalysisEngine.LogDebug("  [MIR] --> PURE (TimeSpan.Parse with CultureInfo.InvariantCulture)");
+                PurityAnalysisEngine.LogDebug("  [MIR] --> PURE (deterministic parse with CultureInfo.InvariantCulture)");
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
 
