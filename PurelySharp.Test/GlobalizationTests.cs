@@ -42,7 +42,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task DateTimeParse_InvariantCulture_NoDiagnostic()
+        public async Task DateTimeParse_InvariantCulture_Diagnostic()
         {
             var test = @"
 #nullable enable
@@ -55,7 +55,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public DateTime TestMethod(string dateStr)
+    public DateTime {|PS0002:TestMethod|}(string dateStr)
     {
         return DateTime.Parse(dateStr, CultureInfo.InvariantCulture);
     }
@@ -65,7 +65,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task DateTimeParse_InvariantCultureWithNoneStyles_NoDiagnostic()
+        public async Task DateTimeParse_InvariantCultureWithStyles_Diagnostic()
         {
             var test = @"
 #nullable enable
@@ -76,7 +76,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public DateTime TestMethod(string dateStr)
+    public DateTime {|PS0002:TestMethod|}(string dateStr)
     {
         return DateTime.Parse(dateStr, CultureInfo.InvariantCulture, DateTimeStyles.None);
     }
@@ -106,7 +106,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task DateTimeParse_SpanInvariantCulture_NoDiagnostic()
+        public async Task DateTimeParse_SpanInvariantCulture_Diagnostic()
         {
             var test = @"
 #nullable enable
@@ -117,7 +117,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public DateTime TestMethod(string dateStr)
+    public DateTime {|PS0002:TestMethod|}(string dateStr)
     {
         ReadOnlySpan<char> span = dateStr.AsSpan();
         return DateTime.Parse(span, CultureInfo.InvariantCulture);
@@ -128,7 +128,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task DateTimeParse_SpanInvariantCultureWithNoneStyles_NoDiagnostic()
+        public async Task DateTimeParse_SpanInvariantCultureWithStyles_Diagnostic()
         {
             var test = @"
 #nullable enable
@@ -139,7 +139,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public DateTime TestMethod(string dateStr)
+    public DateTime {|PS0002:TestMethod|}(string dateStr)
     {
         ReadOnlySpan<char> span = dateStr.AsSpan();
         return DateTime.Parse(span, CultureInfo.InvariantCulture, DateTimeStyles.None);
