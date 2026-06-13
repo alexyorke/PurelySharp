@@ -2813,8 +2813,11 @@ namespace PurelySharp.Analyzer.Engine
                     var targetOperation = assignmentOperation.Target;
                     var valueOperation = assignmentOperation.Value;
                     var targetSymbol = TryResolveSymbol(targetOperation);
+                    var writtenLocalSymbols = targetSymbol is ILocalSymbol targetLocalSymbol
+                        ? EnumerateWrittenLocalSymbols(targetLocalSymbol, context).ToArray()
+                        : Array.Empty<ILocalSymbol>();
 
-                    if (targetSymbol is ILocalSymbol assignedLocalSymbol)
+                    foreach (var assignedLocalSymbol in writtenLocalSymbols)
                     {
                         if (TryResolveKnownConcreteType(valueOperation, currentState, out var concreteType))
                         {
@@ -2826,7 +2829,7 @@ namespace PurelySharp.Analyzer.Engine
                         }
                     }
 
-                    if (targetSymbol is ILocalSymbol localSymbol)
+                    foreach (var localSymbol in writtenLocalSymbols)
                     {
                         if (IsOwnedLocalArrayValue(valueOperation, currentState))
                         {
@@ -2843,13 +2846,19 @@ namespace PurelySharp.Analyzer.Engine
                         PurityAnalysisEngine.PotentialTargets? valueTargets = ResolvePotentialTargets(valueOperation, currentState);
                         if (valueTargets != null)
                         {
-                            nextState = nextState.WithDelegateTarget(targetSymbol, valueTargets.Value);
-                            LogDebug($"    [ATF-DEL-ASSIGN] Updated map for {targetSymbol.Name} with {valueTargets.Value.MethodSymbols.Count} targets. New Map Count: {nextState.DelegateTargetMap.Count}");
+                            foreach (var writtenTargetSymbol in GetAssignmentTargetSymbols(targetSymbol, writtenLocalSymbols))
+                            {
+                                nextState = nextState.WithDelegateTarget(writtenTargetSymbol, valueTargets.Value);
+                                LogDebug($"    [ATF-DEL-ASSIGN] Updated map for {writtenTargetSymbol.Name} with {valueTargets.Value.MethodSymbols.Count} targets. New Map Count: {nextState.DelegateTargetMap.Count}");
+                            }
                         }
                         else
                         {
-                            nextState = nextState.WithDelegateTarget(targetSymbol, PotentialTargets.Unresolved);
-                            LogDebug($"    [ATF-DEL-ASSIGN] Marked map for {targetSymbol.Name} unresolved because assigned value targets are unresolved. New Map Count: {nextState.DelegateTargetMap.Count}");
+                            foreach (var writtenTargetSymbol in GetAssignmentTargetSymbols(targetSymbol, writtenLocalSymbols))
+                            {
+                                nextState = nextState.WithDelegateTarget(writtenTargetSymbol, PotentialTargets.Unresolved);
+                                LogDebug($"    [ATF-DEL-ASSIGN] Marked map for {writtenTargetSymbol.Name} unresolved because assigned value targets are unresolved. New Map Count: {nextState.DelegateTargetMap.Count}");
+                            }
                         }
                     }
                 }
@@ -2926,6 +2935,22 @@ namespace PurelySharp.Analyzer.Engine
 
 
             return nextState;
+        }
+
+        private static IEnumerable<ISymbol> GetAssignmentTargetSymbols(
+            ISymbol targetSymbol,
+            ILocalSymbol[] writtenLocalSymbols)
+        {
+            if (writtenLocalSymbols.Length == 0)
+            {
+                yield return targetSymbol;
+                yield break;
+            }
+
+            foreach (var writtenLocalSymbol in writtenLocalSymbols)
+            {
+                yield return writtenLocalSymbol;
+            }
         }
 
         private static IEnumerable<ILocalSymbol> EnumerateWrittenLocalSymbols(
