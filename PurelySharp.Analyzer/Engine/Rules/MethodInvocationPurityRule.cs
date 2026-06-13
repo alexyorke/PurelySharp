@@ -696,8 +696,10 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             if (CanHaveExternalDispatchTargets(invokedMethodSymbol, invocationOperation, knownReceiverType))
             {
+                var isTypeParameterReceiver = invocationOperation.Instance?.Type?.TypeKind == TypeKind.TypeParameter;
                 var hasConcreteImplementationCandidate =
                     invokedMethodSymbol.ContainingType?.TypeKind == TypeKind.Interface &&
+                    !isTypeParameterReceiver &&
                     candidateMethods.Any(method => method.ContainingType?.TypeKind != TypeKind.Interface);
 
                 if (!hasConcreteImplementationCandidate)

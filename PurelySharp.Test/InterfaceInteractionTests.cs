@@ -474,6 +474,38 @@ public class TestClass
         }
 
         [Test]
+        public async Task GenericInterfaceConstraint_WithKnownPureImplementation_StillConservativeImpure()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public interface IPublicWorker
+{
+    int Compute(int value);
+}
+
+public sealed class PureWorker : IPublicWorker
+{
+    public int Compute(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class WorkerHost
+{
+    [EnforcePure]
+    public int {|PS0002:Run|}<T>(T worker, int value) where T : IPublicWorker
+    {
+        return worker.Compute(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task InterfaceImplementation_MixedPurity_ConservativeImpure()
         {
             var test = @"
