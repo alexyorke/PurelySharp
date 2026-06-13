@@ -340,7 +340,7 @@ This project is licensed under the MIT License.
 - [x] String operations - Constants pure, method calls follow invocation rules.
 - [x] Math operations - Basic operators pure, `System.Math` calls follow invocation rules.
 - [x] Tuple operations (creation)
-- [x] Conversion methods (Parse, TryParse, etc.) - Assumed impure.
+- [x] Conversion methods (Parse, TryParse, etc.) - Deterministic cataloged overloads are pure; culture/environment-dependent overloads remain conservative.
 - [x] I/O operations (File, Console, etc.) - Explicitly marked impure.
 - [x] Network operations - Explicitly marked impure.
 - [x] Threading/Task operations - Side-effecting and scheduling members are marked impure; deterministic task/value-task wrappers are cataloged individually.
