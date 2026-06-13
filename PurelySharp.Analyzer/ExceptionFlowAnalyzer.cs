@@ -515,6 +515,42 @@ namespace PurelySharp.Analyzer
                 }
             }
 
+            return IsKnownByPrecedingGuardIf(symbol, useNode, semanticModel, cancellationToken, factKind);
+        }
+
+        private static bool IsKnownByPrecedingGuardIf(
+            ISymbol symbol,
+            SyntaxNode useNode,
+            SemanticModel semanticModel,
+            System.Threading.CancellationToken cancellationToken,
+            PathFactKind factKind)
+        {
+            var containingStatement = useNode
+                .AncestorsAndSelf()
+                .OfType<StatementSyntax>()
+                .FirstOrDefault(statement => statement.Parent is BlockSyntax);
+            if (containingStatement?.Parent is not BlockSyntax block)
+            {
+                return false;
+            }
+
+            foreach (var statement in block.Statements)
+            {
+                if (ReferenceEquals(statement, containingStatement))
+                {
+                    break;
+                }
+
+                if (statement is IfStatementSyntax ifStatement &&
+                    ifStatement.Else == null &&
+                    StatementDefinitelyExits(ifStatement.Statement) &&
+                    ConditionImpliesFact(ifStatement.Condition, symbol, factKind, branchWhenTrue: false, semanticModel, cancellationToken) &&
+                    !IsSymbolAssignedBetween(block, ifStatement.Span.End, useNode.SpanStart, symbol, semanticModel, cancellationToken))
+                {
+                    return true;
+                }
+            }
+
             return false;
         }
 
@@ -558,8 +594,28 @@ namespace PurelySharp.Analyzer
             System.Threading.CancellationToken cancellationToken)
         {
             condition = UnwrapFactExpression(condition);
+            if (condition is PrefixUnaryExpressionSyntax prefixUnary &&
+                prefixUnary.IsKind(SyntaxKind.LogicalNotExpression))
+            {
+                return ConditionImpliesFact(prefixUnary.Operand, symbol, factKind, !branchWhenTrue, semanticModel, cancellationToken);
+            }
+
             if (condition is BinaryExpressionSyntax binaryExpression)
             {
+                if (binaryExpression.IsKind(SyntaxKind.LogicalAndExpression))
+                {
+                    return branchWhenTrue &&
+                        (ConditionImpliesFact(binaryExpression.Left, symbol, factKind, branchWhenTrue: true, semanticModel, cancellationToken) ||
+                         ConditionImpliesFact(binaryExpression.Right, symbol, factKind, branchWhenTrue: true, semanticModel, cancellationToken));
+                }
+
+                if (binaryExpression.IsKind(SyntaxKind.LogicalOrExpression))
+                {
+                    return !branchWhenTrue &&
+                        (ConditionImpliesFact(binaryExpression.Left, symbol, factKind, branchWhenTrue: false, semanticModel, cancellationToken) ||
+                         ConditionImpliesFact(binaryExpression.Right, symbol, factKind, branchWhenTrue: false, semanticModel, cancellationToken));
+                }
+
                 var equalityImpliesFact = binaryExpression.IsKind(SyntaxKind.EqualsExpression) && branchWhenTrue;
                 var inequalityImpliesFact = binaryExpression.IsKind(SyntaxKind.NotEqualsExpression) && !branchWhenTrue;
                 if (!equalityImpliesFact && !inequalityImpliesFact)
@@ -572,9 +628,8 @@ namespace PurelySharp.Analyzer
             }
 
             if (condition is IsPatternExpressionSyntax isPatternExpression &&
-                branchWhenTrue &&
                 ExpressionMatchesSymbol(isPatternExpression.Expression, symbol, semanticModel, cancellationToken) &&
-                PatternMatchesFact(isPatternExpression.Pattern, factKind, semanticModel, cancellationToken))
+                PatternImpliesFact(isPatternExpression.Pattern, factKind, branchWhenTrue, semanticModel, cancellationToken))
             {
                 return true;
             }
@@ -620,15 +675,27 @@ namespace PurelySharp.Analyzer
             return constantValue.HasValue && IsIntegralOrDecimalZero(constantValue.Value);
         }
 
-        private static bool PatternMatchesFact(
+        private static bool PatternImpliesFact(
             PatternSyntax pattern,
             PathFactKind factKind,
+            bool branchWhenTrue,
             SemanticModel semanticModel,
             System.Threading.CancellationToken cancellationToken)
         {
+            if (pattern is ParenthesizedPatternSyntax parenthesizedPattern)
+            {
+                return PatternImpliesFact(parenthesizedPattern.Pattern, factKind, branchWhenTrue, semanticModel, cancellationToken);
+            }
+
             if (pattern is ConstantPatternSyntax constantPattern)
             {
-                return ExpressionMatchesFact(constantPattern.Expression, factKind, semanticModel, cancellationToken);
+                return branchWhenTrue && ExpressionMatchesFact(constantPattern.Expression, factKind, semanticModel, cancellationToken);
+            }
+
+            if (pattern is UnaryPatternSyntax unaryPattern &&
+                unaryPattern.OperatorToken.IsKind(SyntaxKind.NotKeyword))
+            {
+                return PatternImpliesFact(unaryPattern.Pattern, factKind, !branchWhenTrue, semanticModel, cancellationToken);
             }
 
             return false;
@@ -641,10 +708,21 @@ namespace PurelySharp.Analyzer
             SemanticModel semanticModel,
             System.Threading.CancellationToken cancellationToken)
         {
-            foreach (var node in branchRoot.DescendantNodes(
+            return IsSymbolAssignedBetween(branchRoot, branchRoot.SpanStart - 1, useSpanStart, symbol, semanticModel, cancellationToken);
+        }
+
+        private static bool IsSymbolAssignedBetween(
+            SyntaxNode root,
+            int afterSpanStart,
+            int beforeSpanStart,
+            ISymbol symbol,
+            SemanticModel semanticModel,
+            System.Threading.CancellationToken cancellationToken)
+        {
+            foreach (var node in root.DescendantNodes(
                          descendIntoChildren: candidate => !IsNestedCallableBoundary(candidate)))
             {
-                if (node.SpanStart >= useSpanStart)
+                if (node.SpanStart <= afterSpanStart || node.SpanStart >= beforeSpanStart)
                 {
                     continue;
                 }
@@ -678,6 +756,20 @@ namespace PurelySharp.Analyzer
             }
 
             return false;
+        }
+
+        private static bool StatementDefinitelyExits(StatementSyntax statement)
+        {
+            switch (statement)
+            {
+                case ReturnStatementSyntax:
+                case ThrowStatementSyntax:
+                    return true;
+                case BlockSyntax block:
+                    return block.Statements.LastOrDefault() is ReturnStatementSyntax or ThrowStatementSyntax;
+                default:
+                    return false;
+            }
         }
 
         private static bool IsReferenceType(ITypeSymbol? typeSymbol)

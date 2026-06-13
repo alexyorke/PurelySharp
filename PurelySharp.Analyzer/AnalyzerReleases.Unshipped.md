@@ -17,4 +17,4 @@
 - Corpus reports aggregate `PS0010` counts plus exception categories and sources.
 - Effect summary IL exception extraction recognizes constructed exception objects stored to and reloaded from locals before `throw`.
 - Effect summary output includes assembly SHA-256, per-method IL SHA-256, and method cache keys for self-validating generated indexes.
-- `PS0010` uses bounded branch path facts for simple local/parameter zero-divisor and null-receiver exception cases.
+- `PS0010` uses bounded branch path facts for simple local/parameter zero-divisor and null-receiver exception cases, including short-circuit conditions, `is not` else branches, and guard `if` false paths.
