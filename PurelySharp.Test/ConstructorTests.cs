@@ -85,6 +85,39 @@ public class TestClass
         }
 
         [Test]
+        public async Task VirtualPropertySetterInPureConstructorDispatchesToImpureOverride_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public class Base
+{
+    [EnforcePure]
+    public {|PS0002:Base|}()
+    {
+        Value = 1;
+    }
+
+    public virtual int Value
+    {
+        set { }
+    }
+}
+
+public sealed class Derived : Base
+{
+    private static int _writes;
+
+    public override int Value
+    {
+        set { _writes++; }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ConstructorWithMutableField_MissingAttributeDiagnostic()
         {
             var test = @"

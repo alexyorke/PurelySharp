@@ -141,7 +141,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
 
-            var setterResult = CheckPropertySetterPurity(targetOperation, context);
+            var setterResult = CheckPropertySetterPurity(targetOperation, context, currentState);
             if (!setterResult.IsPure)
             {
                 PurityAnalysisEngine.LogDebug($"    [AssignRule] Property/indexer setter is IMPURE for assignment target {targetOperation.Syntax}.");
@@ -253,7 +253,8 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
         private static PurityAnalysisEngine.PurityAnalysisResult CheckPropertySetterPurity(
             IOperation targetOperation,
-            PurityAnalysisContext context)
+            PurityAnalysisContext context,
+            PurityAnalysisEngine.PurityAnalysisState currentState)
         {
             if (targetOperation is not IPropertyReferenceOperation propertyReference ||
                 propertyReference.Property.SetMethod is not { } setter)
@@ -261,10 +262,261 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
             }
 
+            if (IsPotentiallyDispatchedSetter(setter))
+            {
+                return CheckDispatchedSetterPurity(propertyReference, context, currentState);
+            }
+
             var setterResult = PurityAnalysisEngine.GetCalleePurity(setter.OriginalDefinition, context);
             return setterResult.IsPure
                 ? PurityAnalysisEngine.PurityAnalysisResult.Pure
                 : setterResult.WithCallee(setter.OriginalDefinition, targetOperation.Syntax);
+        }
+
+        private static bool IsPotentiallyDispatchedSetter(IMethodSymbol setterSymbol)
+        {
+            return setterSymbol.ContainingType?.TypeKind == TypeKind.Interface ||
+                   setterSymbol.IsVirtual ||
+                   setterSymbol.IsAbstract ||
+                   setterSymbol.IsOverride;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckDispatchedSetterPurity(
+            IPropertyReferenceOperation propertyReferenceOperation,
+            PurityAnalysisContext context,
+            PurityAnalysisEngine.PurityAnalysisState currentState)
+        {
+            var candidates = ResolvePotentialSetterTargets(
+                propertyReferenceOperation.Property,
+                context.SemanticModel,
+                GetTrackedLocalReceiverType(propertyReferenceOperation.Instance, currentState) ??
+                    GetKnownReceiverType(propertyReferenceOperation.Instance));
+
+            if (candidates.IsDefaultOrEmpty)
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                    propertyReferenceOperation.Syntax,
+                    PurityAnalysisEngine.PurityEvidence.Create(
+                        "dynamic_dispatch",
+                        nameof(AssignmentPurityRule),
+                        propertyReferenceOperation,
+                        symbol: propertyReferenceOperation.Property.SetMethod));
+            }
+
+            foreach (var setterCandidate in candidates)
+            {
+                var setterResult = PurityAnalysisEngine.GetCalleePurity(setterCandidate, context);
+                if (!setterResult.IsPure)
+                {
+                    return setterResult.WithCallee(setterCandidate, propertyReferenceOperation.Syntax);
+                }
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static INamedTypeSymbol? GetTrackedLocalReceiverType(
+            IOperation? instanceOperation,
+            PurityAnalysisEngine.PurityAnalysisState currentState)
+        {
+            return PurityAnalysisEngine.TryResolveKnownConcreteType(instanceOperation, currentState, out var concreteType)
+                ? concreteType
+                : null;
+        }
+
+        private static ImmutableArray<IMethodSymbol> ResolvePotentialSetterTargets(
+            IPropertySymbol propertySymbol,
+            SemanticModel semanticModel,
+            INamedTypeSymbol? knownReceiverType)
+        {
+            var targets = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+            var targetProperty = propertySymbol.OriginalDefinition;
+
+            if (knownReceiverType != null &&
+                (knownReceiverType.TypeKind == TypeKind.Struct || knownReceiverType.IsSealed))
+            {
+                AddSetterForReceiverType(knownReceiverType, targetProperty, targets);
+                return targets.ToImmutableArray();
+            }
+
+            if (targetProperty.ContainingType?.TypeKind == TypeKind.Interface)
+            {
+                foreach (var type in EnumerateAllNamedTypes(semanticModel.Compilation.Assembly.GlobalNamespace))
+                {
+                    if (type.TypeKind != TypeKind.Class && type.TypeKind != TypeKind.Struct)
+                    {
+                        continue;
+                    }
+
+                    if (!ImplementsInterface(type, targetProperty.ContainingType))
+                    {
+                        continue;
+                    }
+
+                    AddSetterForReceiverType(type, targetProperty, targets);
+                }
+
+                if (targetProperty.SetMethod != null && !targetProperty.SetMethod.IsAbstract)
+                {
+                    targets.Add(targetProperty.SetMethod.OriginalDefinition);
+                }
+
+                return targets.ToImmutableArray();
+            }
+
+            var baseProperty = GetRootOverriddenProperty(targetProperty);
+            var baseType = baseProperty.ContainingType;
+            if (baseType != null)
+            {
+                foreach (var type in EnumerateAllNamedTypes(semanticModel.Compilation.Assembly.GlobalNamespace))
+                {
+                    if (!DerivesFrom(type, baseType))
+                    {
+                        continue;
+                    }
+
+                    foreach (var property in type.GetMembers(baseProperty.Name).OfType<IPropertySymbol>())
+                    {
+                        if (OverridesProperty(property, baseProperty) && property.SetMethod != null)
+                        {
+                            targets.Add(property.SetMethod.OriginalDefinition);
+                        }
+                    }
+                }
+            }
+
+            if (baseProperty.SetMethod != null && !baseProperty.SetMethod.IsAbstract)
+            {
+                targets.Add(baseProperty.SetMethod.OriginalDefinition);
+            }
+
+            return targets.ToImmutableArray();
+        }
+
+        private static INamedTypeSymbol? GetKnownReceiverType(IOperation? instanceOperation)
+        {
+            var unwrapped = PurityAnalysisEngine.SkipImplicitConversions(instanceOperation);
+            if (unwrapped is IObjectCreationOperation objectCreationOperation)
+            {
+                return objectCreationOperation.Type as INamedTypeSymbol;
+            }
+
+            return unwrapped?.Type as INamedTypeSymbol;
+        }
+
+        private static void AddSetterForReceiverType(
+            INamedTypeSymbol receiverType,
+            IPropertySymbol targetProperty,
+            HashSet<IMethodSymbol> targets)
+        {
+            ISymbol? implementation = null;
+            if (targetProperty.ContainingType?.TypeKind == TypeKind.Interface)
+            {
+                implementation = receiverType.FindImplementationForInterfaceMember(targetProperty);
+            }
+            else
+            {
+                for (INamedTypeSymbol? current = receiverType; current != null; current = current.BaseType)
+                {
+                    implementation = current
+                        .GetMembers(targetProperty.Name)
+                        .OfType<IPropertySymbol>()
+                        .FirstOrDefault(property =>
+                            SymbolEqualityComparer.Default.Equals(property.OriginalDefinition, targetProperty) ||
+                            OverridesProperty(property, targetProperty));
+                    if (implementation != null)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            if (implementation is IPropertySymbol propertySymbol && propertySymbol.SetMethod != null)
+            {
+                targets.Add(propertySymbol.SetMethod.OriginalDefinition);
+            }
+            else if (implementation is IMethodSymbol methodSymbol)
+            {
+                targets.Add(methodSymbol.OriginalDefinition);
+            }
+        }
+
+        private static IPropertySymbol GetRootOverriddenProperty(IPropertySymbol propertySymbol)
+        {
+            var current = propertySymbol;
+            while (current.OverriddenProperty != null)
+            {
+                current = current.OverriddenProperty;
+            }
+
+            return current.OriginalDefinition;
+        }
+
+        private static bool OverridesProperty(IPropertySymbol property, IPropertySymbol target)
+        {
+            var current = property;
+            while (current != null)
+            {
+                if (SymbolEqualityComparer.Default.Equals(current.OriginalDefinition, target.OriginalDefinition))
+                {
+                    return true;
+                }
+
+                current = current.OverriddenProperty;
+            }
+
+            return false;
+        }
+
+        private static IEnumerable<INamedTypeSymbol> EnumerateAllNamedTypes(INamespaceSymbol namespaceSymbol)
+        {
+            foreach (var type in namespaceSymbol.GetTypeMembers())
+            {
+                foreach (var nested in EnumerateTypeAndNestedTypes(type))
+                {
+                    yield return nested;
+                }
+            }
+
+            foreach (var nestedNamespace in namespaceSymbol.GetNamespaceMembers())
+            {
+                foreach (var type in EnumerateAllNamedTypes(nestedNamespace))
+                {
+                    yield return type;
+                }
+            }
+        }
+
+        private static IEnumerable<INamedTypeSymbol> EnumerateTypeAndNestedTypes(INamedTypeSymbol typeSymbol)
+        {
+            yield return typeSymbol;
+
+            foreach (var nestedType in typeSymbol.GetTypeMembers())
+            {
+                foreach (var nested in EnumerateTypeAndNestedTypes(nestedType))
+                {
+                    yield return nested;
+                }
+            }
+        }
+
+        private static bool DerivesFrom(INamedTypeSymbol type, INamedTypeSymbol baseType)
+        {
+            for (INamedTypeSymbol? current = type; current != null; current = current.BaseType)
+            {
+                if (SymbolEqualityComparer.Default.Equals(current.OriginalDefinition, baseType.OriginalDefinition))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool ImplementsInterface(INamedTypeSymbol type, INamedTypeSymbol interfaceSymbol)
+        {
+            return type.AllInterfaces.Any(candidate =>
+                SymbolEqualityComparer.Default.Equals(candidate.OriginalDefinition, interfaceSymbol.OriginalDefinition));
         }
 
         private bool IsAssignmentTargetPure(IOperation targetOperation, PurityAnalysisContext context, ISymbol? targetSymbol, PurityAnalysisEngine.PurityAnalysisState currentState)
