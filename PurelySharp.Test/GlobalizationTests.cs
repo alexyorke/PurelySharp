@@ -4103,7 +4103,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task TimeOnlyParse_InvariantCulture_Diagnostic()
+        public async Task TimeOnlyParse_InvariantCulture_NoDiagnostic()
         {
             var test = @"
 #nullable enable
@@ -4114,7 +4114,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public TimeOnly {|PS0002:TestMethod|}(string value)
+    public TimeOnly TestMethod(string value)
     {
         return TimeOnly.Parse(value, CultureInfo.InvariantCulture);
     }
@@ -4124,7 +4124,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task TimeOnlyParse_InvariantCultureWithStyles_String_Diagnostic()
+        public async Task TimeOnlyParse_InvariantCultureWithNoneStyles_NoDiagnostic()
         {
             var test = @"
 #nullable enable
@@ -4135,7 +4135,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public TimeOnly {|PS0002:TestMethod|}(string value)
+    public TimeOnly TestMethod(string value)
     {
         return TimeOnly.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.None);
     }
@@ -4145,7 +4145,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task TimeOnlyParse_SpanInvariantCulture_Diagnostic()
+        public async Task TimeOnlyParse_SpanInvariantCulture_NoDiagnostic()
         {
             var test = @"
 #nullable enable
@@ -4156,7 +4156,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public TimeOnly {|PS0002:TestMethod|}(string value)
+    public TimeOnly TestMethod(string value)
     {
         ReadOnlySpan<char> span = value.AsSpan();
         return TimeOnly.Parse(span, CultureInfo.InvariantCulture);
@@ -4167,7 +4167,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task TimeOnlyParse_SpanInvariantCultureWithStyles_Diagnostic()
+        public async Task TimeOnlyParse_SpanInvariantCultureWithNoneStyles_NoDiagnostic()
         {
             var test = @"
 #nullable enable
@@ -4178,7 +4178,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public TimeOnly {|PS0002:TestMethod|}(string value)
+    public TimeOnly TestMethod(string value)
     {
         ReadOnlySpan<char> span = value.AsSpan();
         return TimeOnly.Parse(span, CultureInfo.InvariantCulture, DateTimeStyles.None);
