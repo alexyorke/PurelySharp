@@ -165,6 +165,53 @@ public class TestClass
         }
 
         [Test]
+        public async Task LinqSourceWithImpureMoveNext_Diagnostic()
+        {
+            var test = @"
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using PurelySharp.Attributes;
+
+public static class GlobalState
+{
+    public static int Count;
+}
+
+public sealed class Sequence : IEnumerable<int>
+{
+    public IEnumerator<int> GetEnumerator() => new Enumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    private sealed class Enumerator : IEnumerator<int>
+    {
+        public int Current => 0;
+        object IEnumerator.Current => Current;
+
+        public bool MoveNext()
+        {
+            GlobalState.Count++;
+            return false;
+        }
+
+        public void Reset() { }
+        public void Dispose() { }
+    }
+}
+
+public sealed class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(Sequence values)
+    {
+        return values.Any();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task LinqDistinctWithImpureEqualityComparer_Diagnostic()
         {
             var test = @"

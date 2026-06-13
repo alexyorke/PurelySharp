@@ -2740,9 +2740,176 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 {
                     return enumeratorPurity.WithCallee(getEnumerator, unwrappedSource.Syntax);
                 }
+
+                var runtimePurity = CheckLinqEnumeratorRuntimeMemberPurity(
+                    getEnumerator,
+                    unwrappedSource.Type,
+                    context,
+                    unwrappedSource.Syntax);
+                if (!runtimePurity.IsPure)
+                {
+                    return runtimePurity;
+                }
             }
 
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckLinqEnumeratorRuntimeMemberPurity(
+            IMethodSymbol getEnumerator,
+            ITypeSymbol sourceType,
+            PurityAnalysisContext context,
+            SyntaxNode callSite)
+        {
+            foreach (var enumeratorType in EnumerateLinqReturnedEnumeratorTypes(getEnumerator, sourceType, context.SemanticModel))
+            {
+                foreach (var runtimeMember in EnumerateLinqEnumeratorRuntimeMembers(enumeratorType))
+                {
+                    var runtimePurity = PurityAnalysisEngine.GetCalleePurity(runtimeMember.OriginalDefinition, context);
+                    if (!runtimePurity.IsPure)
+                    {
+                        return runtimePurity.WithCallee(runtimeMember.OriginalDefinition, callSite);
+                    }
+                }
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static IEnumerable<INamedTypeSymbol> EnumerateLinqReturnedEnumeratorTypes(
+            IMethodSymbol getEnumerator,
+            ITypeSymbol sourceType,
+            SemanticModel semanticModel)
+        {
+            var seen = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+
+            AddConcreteLinqEnumeratorType(getEnumerator.ReturnType, seen);
+            AddNestedLinqEnumeratorTypes(sourceType, seen);
+
+            foreach (var syntaxReference in getEnumerator.DeclaringSyntaxReferences)
+            {
+                if (syntaxReference.GetSyntax() is not MethodDeclarationSyntax methodDeclaration)
+                {
+                    continue;
+                }
+
+                if (methodDeclaration.ExpressionBody?.Expression != null)
+                {
+                    AddConcreteLinqEnumeratorType(
+                        GetLinqExpressionType(methodDeclaration.ExpressionBody.Expression, semanticModel),
+                        seen);
+                }
+
+                if (methodDeclaration.Body == null)
+                {
+                    continue;
+                }
+
+                foreach (var returnStatement in methodDeclaration.Body.DescendantNodes().OfType<ReturnStatementSyntax>())
+                {
+                    if (returnStatement.Expression == null)
+                    {
+                        continue;
+                    }
+
+                    AddConcreteLinqEnumeratorType(
+                        GetLinqExpressionType(returnStatement.Expression, semanticModel),
+                        seen);
+                }
+            }
+
+            return seen;
+        }
+
+        private static void AddNestedLinqEnumeratorTypes(
+            ITypeSymbol sourceType,
+            HashSet<INamedTypeSymbol> enumeratorTypes)
+        {
+            if (sourceType is not INamedTypeSymbol namedSourceType)
+            {
+                return;
+            }
+
+            foreach (var nestedType in EnumerateLinqNestedTypes(namedSourceType))
+            {
+                if (nestedType.DeclaringSyntaxReferences.Length == 0 ||
+                    !IsLinqEnumeratorType(nestedType))
+                {
+                    continue;
+                }
+
+                enumeratorTypes.Add(nestedType.OriginalDefinition);
+            }
+        }
+
+        private static IEnumerable<INamedTypeSymbol> EnumerateLinqNestedTypes(INamedTypeSymbol typeSymbol)
+        {
+            foreach (var nestedType in typeSymbol.GetTypeMembers())
+            {
+                yield return nestedType;
+                foreach (var descendant in EnumerateLinqNestedTypes(nestedType))
+                {
+                    yield return descendant;
+                }
+            }
+        }
+
+        private static bool IsLinqEnumeratorType(INamedTypeSymbol typeSymbol)
+        {
+            return typeSymbol.AllInterfaces.Any(interfaceType =>
+                interfaceType.OriginalDefinition.SpecialType == SpecialType.System_Collections_IEnumerator ||
+                interfaceType.OriginalDefinition.SpecialType == SpecialType.System_Collections_Generic_IEnumerator_T);
+        }
+
+        private static ITypeSymbol? GetLinqExpressionType(ExpressionSyntax expression, SemanticModel semanticModel)
+        {
+            var operation = semanticModel.GetOperation(expression);
+            while (operation is IConversionOperation conversion)
+            {
+                operation = conversion.Operand;
+            }
+
+            return operation?.Type ?? semanticModel.GetTypeInfo(expression).Type;
+        }
+
+        private static void AddConcreteLinqEnumeratorType(
+            ITypeSymbol? type,
+            HashSet<INamedTypeSymbol> enumeratorTypes)
+        {
+            if (type is INamedTypeSymbol namedType &&
+                namedType.TypeKind != TypeKind.Interface &&
+                namedType.DeclaringSyntaxReferences.Length > 0)
+            {
+                enumeratorTypes.Add(namedType.OriginalDefinition);
+            }
+        }
+
+        private static IEnumerable<IMethodSymbol> EnumerateLinqEnumeratorRuntimeMembers(INamedTypeSymbol enumeratorType)
+        {
+            foreach (var moveNext in enumeratorType
+                         .GetMembers("MoveNext")
+                         .OfType<IMethodSymbol>()
+                         .Where(method => method.Parameters.Length == 0 && method.DeclaringSyntaxReferences.Length > 0))
+            {
+                yield return moveNext;
+            }
+
+            foreach (var currentGetter in enumeratorType
+                         .GetMembers("Current")
+                         .OfType<IPropertySymbol>()
+                         .Select(property => property.GetMethod)
+                         .Where(method => method != null && method.DeclaringSyntaxReferences.Length > 0))
+            {
+                yield return currentGetter!;
+            }
+
+            foreach (var dispose in enumeratorType
+                         .GetMembers("Dispose")
+                         .OfType<IMethodSymbol>()
+                         .Where(method => method.Parameters.Length == 0 && method.DeclaringSyntaxReferences.Length > 0))
+            {
+                yield return dispose;
+            }
         }
 
         private static PurityAnalysisEngine.PurityAnalysisResult CheckComparerValuePurity(
