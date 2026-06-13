@@ -76,6 +76,19 @@ namespace PurelySharp.Analyzer.Engine.Rules
                             symbol: localSymbol,
                             catalogSource: "owned_local_array_return"));
                 }
+                else if (IsCallerOwnedArraySpanReturn(returnOperation.ReturnedValue, currentState, out var spanMethod))
+                {
+                    PurityAnalysisEngine.LogDebug($"    [ReturnRule] Returned value escapes span view over caller-owned array through '{spanMethod.ToDisplayString()}'. Return statement is Impure.");
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                        returnOperation.ReturnedValue.Syntax,
+                        PurityAnalysisEngine.PurityEvidence.Create(
+                            "mutable_state_escape",
+                            ruleName: nameof(ReturnStatementPurityRule),
+                            operation: returnOperation,
+                            syntaxNode: returnOperation.ReturnedValue.Syntax,
+                            symbol: spanMethod,
+                            catalogSource: "returned_array_span_view"));
+                }
                 else if (TryFindReturnedInitializerArrayEscape(
                              returnOperation.ReturnedValue,
                              currentState,
@@ -172,6 +185,97 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             methodSymbol = null!;
             return false;
+        }
+
+        private static bool IsCallerOwnedArraySpanReturn(
+            IOperation? returnedValue,
+            PurityAnalysisEngine.PurityAnalysisState currentState,
+            out IMethodSymbol methodSymbol)
+        {
+            var unwrappedReturnedValue = PurityAnalysisEngine.UnwrapArrayOwnershipPreservingConversions(returnedValue);
+            if (unwrappedReturnedValue is IInvocationOperation invocationOperation &&
+                IsMemoryExtensionsArrayAsSpan(invocationOperation.TargetMethod.OriginalDefinition) &&
+                TryGetArraySpanSource(invocationOperation, out var sourceOperation) &&
+                !IsAnalyzerOwnedArraySpanSource(sourceOperation, currentState))
+            {
+                methodSymbol = invocationOperation.TargetMethod.OriginalDefinition;
+                return true;
+            }
+
+            if (unwrappedReturnedValue is IConditionalOperation conditionalOperation)
+            {
+                if (TryGetConstantCondition(conditionalOperation, out var conditionValue))
+                {
+                    return IsCallerOwnedArraySpanReturn(
+                        conditionValue ? conditionalOperation.WhenTrue : conditionalOperation.WhenFalse,
+                        currentState,
+                        out methodSymbol);
+                }
+
+                return IsCallerOwnedArraySpanReturn(conditionalOperation.WhenTrue, currentState, out methodSymbol) ||
+                    IsCallerOwnedArraySpanReturn(conditionalOperation.WhenFalse, currentState, out methodSymbol);
+            }
+
+            if (unwrappedReturnedValue is ICoalesceOperation coalesceOperation)
+            {
+                return IsCallerOwnedArraySpanReturn(coalesceOperation.Value, currentState, out methodSymbol) ||
+                    IsCallerOwnedArraySpanReturn(coalesceOperation.WhenNull, currentState, out methodSymbol);
+            }
+
+            methodSymbol = null!;
+            return false;
+        }
+
+        private static bool TryGetArraySpanSource(
+            IInvocationOperation invocationOperation,
+            out IOperation sourceOperation)
+        {
+            foreach (var argument in invocationOperation.Arguments)
+            {
+                if (argument.Parameter?.Type is IArrayTypeSymbol ||
+                    argument.Value.Type is IArrayTypeSymbol)
+                {
+                    sourceOperation = argument.Value;
+                    return true;
+                }
+            }
+
+            if (invocationOperation.Instance != null)
+            {
+                sourceOperation = invocationOperation.Instance;
+                return true;
+            }
+
+            if (invocationOperation.Arguments.Length > 0)
+            {
+                sourceOperation = invocationOperation.Arguments[0].Value;
+                return true;
+            }
+
+            sourceOperation = null!;
+            return false;
+        }
+
+        private static bool IsAnalyzerOwnedArraySpanSource(
+            IOperation? sourceOperation,
+            PurityAnalysisEngine.PurityAnalysisState currentState)
+        {
+            var unwrappedSource = PurityAnalysisEngine.UnwrapArrayOwnershipPreservingConversions(sourceOperation);
+            if (unwrappedSource is ILocalReferenceOperation localReference)
+            {
+                return currentState.IsOwnedLocalArraySymbol(localReference.Local);
+            }
+
+            return PurityAnalysisEngine.IsKnownPureBCLArrayFactoryOperation(unwrappedSource, out var factoryMethod) &&
+                IsArrayEmptyFactory(factoryMethod);
+        }
+
+        private static bool IsMemoryExtensionsArrayAsSpan(IMethodSymbol methodSymbol)
+        {
+            return methodSymbol.Name == "AsSpan" &&
+                methodSymbol.Parameters.Length >= 1 &&
+                methodSymbol.Parameters[0].Type is IArrayTypeSymbol &&
+                methodSymbol.ContainingType?.ToDisplayString() == "System.MemoryExtensions";
         }
 
         private static bool IsArrayEmptyFactory(IMethodSymbol methodSymbol)

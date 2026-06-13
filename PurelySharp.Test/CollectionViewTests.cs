@@ -301,6 +301,45 @@ public class TestClass
         }
 
         [Test]
+        public async Task ArrayAsReadOnlySpan_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public ReadOnlySpan<int> {|PS0002:TestMethod|}(int[] values)
+    {
+        return values.AsSpan();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task OwnedArrayAsReadOnlySpan_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public ReadOnlySpan<int> TestMethod()
+    {
+        var values = new[] { 1, 2, 3 };
+        return values.AsSpan();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task CollectionsMarshalAsSpan_Diagnostic()
         {
             var test = @"
