@@ -360,6 +360,13 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             var keyType = containingType.TypeArguments[0];
+            var receiverComparerResult = CheckDictionaryReceiverComparerPurity(propertyReferenceOperation, context);
+            if (!receiverComparerResult.IsPure)
+            {
+                result = receiverComparerResult;
+                return true;
+            }
+
             result = CheckDictionaryKeyDispatchPurity(keyType, propertyReferenceOperation, context);
             return true;
         }
@@ -421,6 +428,150 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckDictionaryReceiverComparerPurity(
+            IPropertyReferenceOperation propertyReferenceOperation,
+            PurityAnalysisContext context)
+        {
+            var receiverOperation = PurityAnalysisEngine.SkipImplicitConversions(propertyReferenceOperation.Instance) ??
+                propertyReferenceOperation.Instance;
+            if (receiverOperation?.Type is not INamedTypeSymbol receiverType ||
+                receiverType.DeclaringSyntaxReferences.Length == 0)
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            foreach (var constructor in receiverType.InstanceConstructors)
+            {
+                foreach (var syntaxReference in constructor.DeclaringSyntaxReferences)
+                {
+                    if (syntaxReference.GetSyntax(context.CancellationToken) is not ConstructorDeclarationSyntax constructorSyntax ||
+                        constructorSyntax.Initializer == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (var argument in constructorSyntax.Initializer.ArgumentList.Arguments)
+                    {
+                        var argumentOperation = context.SemanticModel.GetOperation(argument.Expression, context.CancellationToken);
+                        var value = PurityAnalysisEngine.SkipImplicitConversions(argumentOperation) ?? argumentOperation;
+                        if (value?.Type == null || !IsComparerOrDerivedInterface(value.Type))
+                        {
+                            continue;
+                        }
+
+                        var comparerResult = CheckComparerValuePurity(value, propertyReferenceOperation, context);
+                        if (!comparerResult.IsPure)
+                        {
+                            return comparerResult;
+                        }
+                    }
+                }
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckComparerValuePurity(
+            IOperation value,
+            IPropertyReferenceOperation propertyReferenceOperation,
+            PurityAnalysisContext context)
+        {
+            var foundImplementation = false;
+            foreach (var comparerMethod in EnumerateComparerImplementations(value.Type!))
+            {
+                foundImplementation = true;
+                var comparerPurity = PurityAnalysisEngine.GetCalleePurity(comparerMethod.OriginalDefinition, context);
+                if (!comparerPurity.IsPure)
+                {
+                    return comparerPurity.WithCallee(comparerMethod.OriginalDefinition, propertyReferenceOperation.Syntax);
+                }
+            }
+
+            if (!foundImplementation && IsUnresolvedComparerDispatch(value.Type!))
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                    propertyReferenceOperation.Syntax,
+                    PurityAnalysisEngine.PurityEvidence.Create(
+                        "unknown_external_call",
+                        nameof(PropertyReferencePurityRule),
+                        propertyReferenceOperation,
+                        symbol: PurityAnalysisEngine.TryResolveSymbol(value)));
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static IEnumerable<IMethodSymbol> EnumerateComparerImplementations(ITypeSymbol comparerType)
+        {
+            if (comparerType is not INamedTypeSymbol namedComparerType)
+            {
+                yield break;
+            }
+
+            var seen = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+            foreach (var interfaceType in namedComparerType.AllInterfaces)
+            {
+                if (!IsComparerInterface(interfaceType))
+                {
+                    continue;
+                }
+
+                foreach (var interfaceMethod in interfaceType.GetMembers().OfType<IMethodSymbol>())
+                {
+                    var implementation = namedComparerType.FindImplementationForInterfaceMember(interfaceMethod) as IMethodSymbol;
+                    if (implementation == null || implementation.DeclaringSyntaxReferences.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    if (seen.Add(implementation.OriginalDefinition))
+                    {
+                        yield return implementation;
+                    }
+                }
+            }
+        }
+
+        private static bool IsComparerInterface(INamedTypeSymbol typeSymbol)
+        {
+            var displayString = typeSymbol.OriginalDefinition.ToDisplayString();
+            return displayString == "System.Collections.Generic.IEqualityComparer<T>" ||
+                displayString == "System.Collections.Generic.IComparer<T>";
+        }
+
+        private static bool IsUnresolvedComparerDispatch(ITypeSymbol comparerType)
+        {
+            if (comparerType is ITypeParameterSymbol typeParameter)
+            {
+                return typeParameter.ConstraintTypes
+                    .OfType<INamedTypeSymbol>()
+                    .Any(IsComparerOrDerivedInterface);
+            }
+
+            if (comparerType is not INamedTypeSymbol namedComparerType)
+            {
+                return false;
+            }
+
+            if (IsComparerInterface(namedComparerType))
+            {
+                return true;
+            }
+
+            if (namedComparerType.TypeKind != TypeKind.Interface && !namedComparerType.IsAbstract)
+            {
+                return false;
+            }
+
+            return IsComparerOrDerivedInterface(namedComparerType);
+        }
+
+        private static bool IsComparerOrDerivedInterface(ITypeSymbol typeSymbol)
+        {
+            return typeSymbol is INamedTypeSymbol namedType &&
+                (IsComparerInterface(namedType) || namedType.AllInterfaces.Any(IsComparerInterface));
         }
 
         private static PurityAnalysisEngine.PurityAnalysisResult CheckSortedDictionaryKeyDispatchPurity(

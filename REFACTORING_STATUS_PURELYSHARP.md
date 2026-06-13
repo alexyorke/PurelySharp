@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1658/1658` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1659/1659` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -55,6 +55,7 @@
 - constant conditional delegate target selection now has direct regression coverage showing dead impure targets do not taint pure delegate invocation
 - `await foreach` over a source-defined async enumerator with an impure `MoveNextAsync` now has direct regression coverage for existing diagnostics
 - deterministic `System.DateTime.Date` access now has direct regression coverage through `Date.Ticks`
+- dictionary indexer reads now inspect source-defined receiver constructors for custom comparer instances before trusting builtin-key equality dispatch
 - return escape analysis now inspects coalesce expressions so fresh owned arrays cannot escape through `??` arms without `PS0002`
 - generic static abstract interface operator dispatch is now conservative, matching static interface method dispatch when no concrete target is known
 - unused local function declarations no longer taint enclosing pure methods; invoked local functions are still checked through callee purity

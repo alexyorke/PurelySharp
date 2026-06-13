@@ -124,6 +124,7 @@ public class TestClass
         public async Task EqualityComparerDefaultGetHashCodeDispatchToImpureOverride_Diagnostic()
         {
             var test = @"
+#pragma warning disable PS0004
 using System;
 using System.Collections.Generic;
 using PurelySharp.Attributes;
@@ -774,6 +775,43 @@ public class TestClass
 {
     [EnforcePure]
     public int TestMethod(Dictionary<string, int> values, string key)
+    {
+        return values[key];
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task DictionaryIndexerWithBuiltinKeyAndImpureComparer_Diagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    private sealed class ImpureStringComparer : IEqualityComparer<string>
+    {
+        bool IEqualityComparer<string>.Equals(string x, string y) => x == y;
+
+        int IEqualityComparer<string>.GetHashCode(string obj)
+        {
+            Console.WriteLine(""hash"");
+            return obj.GetHashCode();
+        }
+    }
+
+    public sealed class ImpureStringDictionary : Dictionary<string, int>
+    {
+        [EnforcePure]
+        public ImpureStringDictionary() : base(new ImpureStringComparer()) { }
+    }
+
+    [EnforcePure]
+    public int {|PS0002:TestMethod|}(ImpureStringDictionary values, string key)
     {
         return values[key];
     }
