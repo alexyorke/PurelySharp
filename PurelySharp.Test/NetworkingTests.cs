@@ -35,7 +35,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task HttpResponseMessageIsSuccessStatusCode_Diagnostic()
+        public async Task HttpResponseMessageIsSuccessStatusCode_NoDiagnostic()
         {
             var test = @"
 using System.Net.Http;
@@ -44,7 +44,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public bool {|PS0002:TestMethod|}(HttpResponseMessage response)
+    public bool TestMethod(HttpResponseMessage response)
     {
         return response.IsSuccessStatusCode;
     }

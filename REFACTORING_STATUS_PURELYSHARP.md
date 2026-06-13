@@ -52,6 +52,7 @@
 - `System.Uri.EscapeDataString(string)` and `System.Uri.UnescapeDataString(string)` now have direct regression coverage for deterministic URI string transformations
 - `System.Text.RegularExpressions.Regex.Escape(string)` and `Regex.Unescape(string)` now have direct regression coverage for deterministic regex string transformations
 - `System.Collections.Generic.List<T>.Sort(Comparison<T>)` is now cataloged as impure, closing a false negative for mutating list sorts with delegate comparers
+- `System.Net.Http.HttpResponseMessage.IsSuccessStatusCode.get` is now treated as a deterministic pure status-code-derived getter while broader networking APIs remain conservative
 - `await using` now prefers `DisposeAsync()` over `Dispose()` when both are available, so impure async cleanup is reported instead of hidden by a pure synchronous disposer
 - configured impure types/namespaces now take precedence over hardcoded known-pure BCL heuristics, while exact configured pure member overrides remain narrow
 - custom awaiter analysis now includes source-defined `OnCompleted` and `UnsafeOnCompleted` continuation scheduling methods in addition to `GetAwaiter`, `IsCompleted`, and `GetResult`
