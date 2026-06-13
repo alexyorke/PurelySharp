@@ -233,6 +233,49 @@ public class TestClass
         }
 
         [Test]
+        public async Task ReturnedLambdaMutatesCapturedLocal_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public Func<int> {|PS0002:CreateCounter|}()
+    {
+        int counter = 0;
+        return () => ++counter;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ReturnedLambdaMutatesLambdaLocal_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public Func<int> CreateCounter()
+    {
+        return () =>
+        {
+            int counter = 0;
+            return ++counter;
+        };
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task CombiningPureDelegates_InvocationReportsPS0002()
         {
             var test = @"

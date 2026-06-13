@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.FlowAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using PurelySharp.Analyzer.Engine;
 
 namespace PurelySharp.Analyzer.Engine.Rules
@@ -37,6 +38,22 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     var bodyResult = PurityAnalysisEngine.GetCalleePurity(lambdaSymbol, context);
 
                     PurityAnalysisEngine.LogDebug($"    [DelegateCreationRule] Lambda body analysis result: IsPure={bodyResult.IsPure}");
+                    if (bodyResult.IsPure &&
+                        IsEscapingDelegateCreation(delegateCreation) &&
+                        TryFindCapturedLocalMutation(anonymousFunction, out var mutationSyntax, out var mutatedLocal))
+                    {
+                        PurityAnalysisEngine.LogDebug($"    [DelegateCreationRule] Escaping lambda mutates captured local '{mutatedLocal.Name}'. Treating as impure.");
+                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                            mutationSyntax,
+                            PurityAnalysisEngine.PurityEvidence.Create(
+                                "mutable_state_escape",
+                                nameof(DelegateCreationPurityRule),
+                                delegateCreation,
+                                syntaxNode: mutationSyntax,
+                                symbol: mutatedLocal,
+                                catalogSource: "escaping_closure_mutation"));
+                    }
+
                     return bodyResult.IsPure
                         ? PurityAnalysisEngine.PurityAnalysisResult.Pure
                         : bodyResult.WithCallee(lambdaSymbol, delegateCreation.Syntax);
@@ -59,6 +76,22 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     var bodyResult = PurityAnalysisEngine.GetCalleePurity(lambdaSymbol, context);
 
                     PurityAnalysisEngine.LogDebug($"    [DelegateCreationRule] Flow lambda body analysis result: IsPure={bodyResult.IsPure}");
+                    if (bodyResult.IsPure &&
+                        IsEscapingDelegateCreation(delegateCreation) &&
+                        TryFindCapturedLocalMutation(flowAnonymousFunction, out var mutationSyntax, out var mutatedLocal))
+                    {
+                        PurityAnalysisEngine.LogDebug($"    [DelegateCreationRule] Escaping flow lambda mutates captured local '{mutatedLocal.Name}'. Treating as impure.");
+                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                            mutationSyntax,
+                            PurityAnalysisEngine.PurityEvidence.Create(
+                                "mutable_state_escape",
+                                nameof(DelegateCreationPurityRule),
+                                delegateCreation,
+                                syntaxNode: mutationSyntax,
+                                symbol: mutatedLocal,
+                                catalogSource: "escaping_closure_mutation"));
+                    }
+
                     return bodyResult.IsPure
                         ? PurityAnalysisEngine.PurityAnalysisResult.Pure
                         : bodyResult.WithCallee(lambdaSymbol, delegateCreation.Syntax);
@@ -117,6 +150,114 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 PurityAnalysisEngine.LogDebug($"    [DelegateCreationRule] Unexpected DelegateCreation target kind: {target.Kind}. Assuming impure.");
                 return PurityAnalysisEngine.PurityAnalysisResult.Impure(target.Syntax);
             }
+        }
+
+        private static bool IsEscapingDelegateCreation(IDelegateCreationOperation delegateCreation)
+        {
+            IOperation? parent = delegateCreation.Parent;
+            while (parent is IConversionOperation or IFlowCaptureOperation)
+            {
+                parent = parent.Parent;
+            }
+
+            return parent is IReturnOperation ||
+                parent is IAssignmentOperation assignment && IsNonLocalAssignmentTarget(assignment.Target) ||
+                parent is IVariableInitializerOperation variableInitializer &&
+                variableInitializer.Parent is IVariableDeclaratorOperation variableDeclarator &&
+                variableDeclarator.Symbol is IFieldSymbol;
+        }
+
+        private static bool IsNonLocalAssignmentTarget(IOperation? targetOperation)
+        {
+            var unwrappedTarget = PurityAnalysisEngine.SkipImplicitConversions(targetOperation);
+            return unwrappedTarget is IFieldReferenceOperation or IPropertyReferenceOperation;
+        }
+
+        private static bool TryFindCapturedLocalMutation(
+            IOperation anonymousFunctionOperation,
+            out SyntaxNode mutationSyntax,
+            out ILocalSymbol mutatedLocal)
+        {
+            var lambdaSpan = anonymousFunctionOperation.Syntax.Span;
+            foreach (var operation in anonymousFunctionOperation.DescendantsAndSelf())
+            {
+                switch (operation)
+                {
+                    case IAssignmentOperation assignmentOperation
+                        when TryGetMutatedCapturedLocal(assignmentOperation.Target, lambdaSpan, out mutatedLocal):
+                        mutationSyntax = assignmentOperation.Target.Syntax;
+                        return true;
+
+                    case ICompoundAssignmentOperation compoundAssignmentOperation
+                        when TryGetMutatedCapturedLocal(compoundAssignmentOperation.Target, lambdaSpan, out mutatedLocal):
+                        mutationSyntax = compoundAssignmentOperation.Target.Syntax;
+                        return true;
+
+                    case IIncrementOrDecrementOperation incrementOrDecrementOperation
+                        when TryGetMutatedCapturedLocal(incrementOrDecrementOperation.Target, lambdaSpan, out mutatedLocal):
+                        mutationSyntax = incrementOrDecrementOperation.Target.Syntax;
+                        return true;
+
+                    case IDeconstructionAssignmentOperation deconstructionAssignmentOperation
+                        when TryGetMutatedCapturedLocal(deconstructionAssignmentOperation.Target, lambdaSpan, out mutatedLocal):
+                        mutationSyntax = deconstructionAssignmentOperation.Target.Syntax;
+                        return true;
+
+                    case IInvocationOperation invocationOperation:
+                        foreach (var argument in invocationOperation.Arguments)
+                        {
+                            if (argument.Parameter?.RefKind is RefKind.Ref or RefKind.Out &&
+                                TryGetMutatedCapturedLocal(argument.Value, lambdaSpan, out mutatedLocal))
+                            {
+                                mutationSyntax = argument.Value.Syntax;
+                                return true;
+                            }
+                        }
+
+                        break;
+                }
+            }
+
+            mutationSyntax = null!;
+            mutatedLocal = null!;
+            return false;
+        }
+
+        private static bool TryGetMutatedCapturedLocal(
+            IOperation? targetOperation,
+            Microsoft.CodeAnalysis.Text.TextSpan lambdaSpan,
+            out ILocalSymbol localSymbol)
+        {
+            var unwrappedTarget = PurityAnalysisEngine.SkipImplicitConversions(targetOperation);
+            if (unwrappedTarget is ILocalReferenceOperation localReference &&
+                IsDeclaredOutsideSpan(localReference.Local, lambdaSpan))
+            {
+                localSymbol = localReference.Local;
+                return true;
+            }
+
+            if (unwrappedTarget is ITupleOperation tupleOperation)
+            {
+                foreach (var element in tupleOperation.Elements)
+                {
+                    if (TryGetMutatedCapturedLocal(element, lambdaSpan, out localSymbol))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            localSymbol = null!;
+            return false;
+        }
+
+        private static bool IsDeclaredOutsideSpan(ILocalSymbol localSymbol, Microsoft.CodeAnalysis.Text.TextSpan span)
+        {
+            var syntaxReferences = localSymbol.DeclaringSyntaxReferences;
+            return syntaxReferences.Length > 0 &&
+                syntaxReferences
+                    .Select(reference => reference.GetSyntax().Span)
+                    .All(declarationSpan => declarationSpan.Start < span.Start || declarationSpan.End > span.End);
         }
     }
 }
