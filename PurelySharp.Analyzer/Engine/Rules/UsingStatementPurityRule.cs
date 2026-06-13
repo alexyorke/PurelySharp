@@ -328,7 +328,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             var initializerOperation = semanticModel.GetOperation(initializerSyntax);
-            var unwrappedInitializer = PurityAnalysisEngine.SkipImplicitConversions(initializerOperation);
+            var unwrappedInitializer = UnwrapConversionsForDisposeReceiver(initializerOperation);
             return unwrappedInitializer is IObjectCreationOperation objectCreationOperation
                 ? objectCreationOperation.Type
                 : null;

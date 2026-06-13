@@ -361,6 +361,33 @@ public class PureDisposable : IDisposable
         }
 
         [Test]
+        public async Task UsingStatementExistingInterfaceLocalExplicitCast_WithPureDispose_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void TestMethod()
+    {
+        IDisposable disposable = (IDisposable)new PureDisposable();
+        using (disposable)
+        {
+        }
+    }
+}
+
+public class PureDisposable : IDisposable
+{
+    public void Dispose() { }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task UsingStatementExistingLocal_WithImpureDispose_Diagnostic()
         {
             var test = @"
