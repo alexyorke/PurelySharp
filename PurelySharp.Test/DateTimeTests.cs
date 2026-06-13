@@ -190,6 +190,25 @@ public class TestClass
         }
 
         [Test]
+        public async Task DateTimeDate_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public long TestMethod(DateTime value)
+    {
+        return value.Date.Ticks;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DateTimeOffsetNow_Diagnostic()
         {
             var test = @"

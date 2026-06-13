@@ -267,7 +267,7 @@ This project is licensed under the MIT License.
 
 ### Collections and Data Structures
 
-- [x] Immutable collections (System.Collections.Immutable) - Creation assumed impure.
+- [x] Immutable collections (System.Collections.Immutable) - Factory/update members are allowed when their element/key equality or comparison work is pure; mutable builders and `ImmutableInterlocked` remain impure.
 - [x] Read-only collections (IReadOnly\* interfaces) - Creation assumed impure.
 - [x] Arrays (when used in a read-only manner)
 - [x] Tuples (creation)

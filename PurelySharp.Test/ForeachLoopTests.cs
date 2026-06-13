@@ -113,5 +113,54 @@ public class TestClass
 
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
+
+        [Test]
+        public async Task AwaitForeachImpureMoveNextAsync_Diagnostic()
+        {
+            var test = @"
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using PurelySharp.Attributes;
+
+public static class GlobalState
+{
+    public static int Count;
+}
+
+public sealed class Sequence : IAsyncEnumerable<int>
+{
+    public IAsyncEnumerator<int> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+    {
+        return new Enumerator();
+    }
+
+    private sealed class Enumerator : IAsyncEnumerator<int>
+    {
+        public int Current => 1;
+
+        public ValueTask<bool> MoveNextAsync()
+        {
+            GlobalState.Count++;
+            return new ValueTask<bool>(false);
+        }
+
+        public ValueTask DisposeAsync() => default;
+    }
+}
+
+public sealed class TestClass
+{
+    [EnforcePure]
+    public async Task {|PS0002:TestMethod|}(Sequence sequence)
+    {
+        await foreach (var value in sequence)
+        {
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
     }
 }
