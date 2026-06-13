@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1725/1725` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1736/1736` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -61,6 +61,7 @@
 - `System.Array.Copy(System.Array, int, System.Array, int, int)` and `System.Array.Clear(System.Array)` are now cataloged as impure, closing false negatives for additional caller-owned array mutation helpers
 - `System.Array.CopyTo(System.Array, int)` is now cataloged as impure, closing the instance array-copy false negative where the destination array is mutated
 - common `System.Span<T>` mutation helpers (`Clear`, `Fill`, `CopyTo`, `TryCopyTo`) and `System.MemoryExtensions.Reverse<T>(System.Span<T>)` are now cataloged as impure
+- integer `System.Buffers.Binary.BinaryPrimitives.Write*` overloads are now cataloged as impure when they write through `System.Span<byte>`
 - `await using` now prefers `DisposeAsync()` over `Dispose()` when both are available, so impure async cleanup is reported instead of hidden by a pure synchronous disposer
 - configured impure types/namespaces now take precedence over hardcoded known-pure BCL heuristics, while exact configured pure member overrides remain narrow
 - custom awaiter analysis now includes source-defined `OnCompleted` and `UnsafeOnCompleted` continuation scheduling methods in addition to `GetAwaiter`, `IsCompleted`, and `GetResult`
