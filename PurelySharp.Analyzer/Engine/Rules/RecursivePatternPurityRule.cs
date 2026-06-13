@@ -14,6 +14,16 @@ namespace PurelySharp.Analyzer.Engine.Rules
             PurityAnalysisContext context,
             PurityAnalysisEngine.PurityAnalysisState currentState)
         {
+            if (operation is IRecursivePatternOperation recursivePatternOperation &&
+                recursivePatternOperation.DeconstructSymbol is IMethodSymbol deconstructMethod)
+            {
+                var deconstructResult = PurityAnalysisEngine.GetCalleePurity(deconstructMethod.OriginalDefinition, context);
+                if (!deconstructResult.IsPure)
+                {
+                    return deconstructResult.WithCallee(deconstructMethod.OriginalDefinition, operation.Syntax);
+                }
+            }
+
             foreach (var child in operation.ChildOperations)
             {
                 var childResult = PurityAnalysisEngine.CheckSingleOperation(child, context, currentState);

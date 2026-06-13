@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1653/1653` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1654/1654` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -50,6 +50,7 @@
 - awaiter continuation scheduling is skipped when a source `IsCompleted` getter is provably constant `true`, avoiding a false positive for synchronously completed awaiters
 - `System.Convert.ToBase64String(byte[], int, int)` is cataloged as a deterministic string-producing overload without relaxing mutable-array escape checks
 - virtual and interface property setter assignments now analyze possible dispatched setter implementations instead of trusting only the declared setter
+- positional recursive patterns now analyze the implicit `Deconstruct` callee instead of treating deconstruction as pure pattern structure
 - return escape analysis now inspects coalesce expressions so fresh owned arrays cannot escape through `??` arms without `PS0002`
 - generic static abstract interface operator dispatch is now conservative, matching static interface method dispatch when no concrete target is known
 - unused local function declarations no longer taint enclosing pure methods; invoked local functions are still checked through callee purity

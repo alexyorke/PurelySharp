@@ -73,6 +73,34 @@ public class TestClass
         }
 
         [Test]
+        public async Task PositionalPatternWithImpureDeconstruct_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public sealed class Probe
+{
+    public void Deconstruct(out int value)
+    {
+        Console.WriteLine(""deconstruct"");
+        value = 1;
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(Probe probe)
+    {
+        return probe is Probe(var value);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task PropertyPatternWithRelationalPattern_NoDiagnostic()
         {
             var test = @"
