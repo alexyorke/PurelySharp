@@ -241,7 +241,7 @@ This project is licensed under the MIT License.
 - [x] Switch expressions (C# 8.0+)
 - [x] Pattern matching
 - [x] Null coalescing operators (`??`, `?.`)
-- [x] Interpolated strings (Assumed impure unless constant.)
+- [x] Interpolated strings - Constant interpolation is pure; `FormattableString.Invariant(...)` is allowed when all interpolation expressions are pure, while impure interpolation expressions still report `PS0002`.
 - [x] Stack allocations and Span operations
 - [x] Indices and ranges (C# 8.0+) - basic range construction is treated as pure when endpoints are pure
 - [x] Bit shift operations and basic binary/unary operators
