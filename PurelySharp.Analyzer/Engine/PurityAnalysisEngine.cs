@@ -3159,13 +3159,31 @@ namespace PurelySharp.Analyzer.Engine
             var targetMethod = invocationOperation.TargetMethod?.OriginalDefinition;
             if (targetMethod == null ||
                 targetMethod.ContainingType?.ToDisplayString() != "System.DateOnly" ||
-                targetMethod.Name != "ParseExact")
+                targetMethod.Name is not ("Parse" or "ParseExact"))
             {
                 return false;
             }
 
+            if (targetMethod.Name == "Parse" &&
+                targetMethod.Parameters.Length == 2 &&
+                invocationOperation.Arguments.Length == 2 &&
+                IsStringOrReadOnlySpanOfChar(targetMethod.Parameters[0].Type))
+            {
+                return IsCultureInfoInvariantCulture(invocationOperation.Arguments[1].Value);
+            }
+
+            if (targetMethod.Name == "Parse" &&
+                targetMethod.Parameters.Length == 3 &&
+                invocationOperation.Arguments.Length == 3 &&
+                IsStringOrReadOnlySpanOfChar(targetMethod.Parameters[0].Type) &&
+                IsDateTimeStylesNone(invocationOperation.Arguments[2].Value))
+            {
+                return IsCultureInfoInvariantCulture(invocationOperation.Arguments[1].Value);
+            }
+
             if (targetMethod.Parameters.Length == 3 &&
                 invocationOperation.Arguments.Length == 3 &&
+                targetMethod.Name == "ParseExact" &&
                 IsStringOrReadOnlySpanOfChar(targetMethod.Parameters[0].Type) &&
                 IsSingleDateOnlyInvariantFormat(invocationOperation.Arguments[1].Value))
             {
@@ -3174,6 +3192,7 @@ namespace PurelySharp.Analyzer.Engine
 
             if (targetMethod.Parameters.Length == 4 &&
                 invocationOperation.Arguments.Length == 4 &&
+                targetMethod.Name == "ParseExact" &&
                 IsStringOrReadOnlySpanOfChar(targetMethod.Parameters[0].Type) &&
                 IsSingleDateOnlyInvariantFormat(invocationOperation.Arguments[1].Value) &&
                 IsDateTimeStylesNone(invocationOperation.Arguments[3].Value))
