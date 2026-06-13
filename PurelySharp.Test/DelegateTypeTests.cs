@@ -276,6 +276,27 @@ public class TestClass
         }
 
         [Test]
+        public async Task ReturnedLocalFunctionMutatesCapturedLocal_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public Func<int> {|PS0002:CreateCounter|}()
+    {
+        int counter = 0;
+        int Next() => ++counter;
+        return Next;
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task CombiningPureDelegates_InvocationReportsPS0002()
         {
             var test = @"

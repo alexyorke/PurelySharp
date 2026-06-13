@@ -140,6 +140,22 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     {
                         return methodResult.WithCallee(targetMethod, delegateCreation.Syntax);
                     }
+
+                    if (IsEscapingDelegateCreation(delegateCreation) &&
+                        targetMethod.MethodKind == MethodKind.LocalFunction &&
+                        TryFindLocalFunctionCapturedLocalMutation(targetMethod, context, out var mutationSyntax, out var mutatedLocal))
+                    {
+                        PurityAnalysisEngine.LogDebug($"    [DelegateCreationRule] Escaping local function delegate mutates captured local '{mutatedLocal.Name}'. Treating as impure.");
+                        return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                            mutationSyntax,
+                            PurityAnalysisEngine.PurityEvidence.Create(
+                                "mutable_state_escape",
+                                nameof(DelegateCreationPurityRule),
+                                delegateCreation,
+                                syntaxNode: mutationSyntax,
+                                symbol: mutatedLocal,
+                                catalogSource: "escaping_closure_mutation"));
+                    }
                 }
 
                 return PurityAnalysisEngine.PurityAnalysisResult.Pure;
@@ -248,6 +264,29 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             localSymbol = null!;
+            return false;
+        }
+
+        private static bool TryFindLocalFunctionCapturedLocalMutation(
+            IMethodSymbol methodSymbol,
+            PurityAnalysisContext context,
+            out SyntaxNode mutationSyntax,
+            out ILocalSymbol mutatedLocal)
+        {
+            foreach (var syntaxReference in methodSymbol.DeclaringSyntaxReferences)
+            {
+                var syntax = syntaxReference.GetSyntax(context.CancellationToken);
+                var semanticModel = context.SemanticModel.Compilation.GetSemanticModel(syntax.SyntaxTree);
+                var operation = semanticModel.GetOperation(syntax, context.CancellationToken);
+                if (operation != null &&
+                    TryFindCapturedLocalMutation(operation, out mutationSyntax, out mutatedLocal))
+                {
+                    return true;
+                }
+            }
+
+            mutationSyntax = null!;
+            mutatedLocal = null!;
             return false;
         }
 
