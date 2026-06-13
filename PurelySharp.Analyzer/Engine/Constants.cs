@@ -889,6 +889,8 @@ public static class Constants
         "System.Array.Clear(System.Array, int, int)",
         "System.Array.ConstrainedCopy(System.Array, int, System.Array, int, int)",
         "System.Array.Copy(System.Array, System.Array, int)",
+        "System.Array.Fill<T>(T[], T)",
+        "System.Array.Fill<T>(T[], T, int, int)",
         "System.Array.Resize<T>(ref T[], int)",
         "System.Array.Reverse<T>(T[])",
         "System.Array.Reverse<T>(T[], int, int)",
