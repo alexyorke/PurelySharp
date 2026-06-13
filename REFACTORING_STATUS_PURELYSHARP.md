@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1661/1661` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1662/1662` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -58,6 +58,7 @@
 - dictionary indexer reads now inspect source-defined receiver constructors for custom comparer instances before trusting builtin-key equality dispatch
 - constant-switch reachability pruning now follows `goto case` and `goto default` edges before treating unmatched sections as dead
 - return escape analysis now rejects owned fresh arrays assigned into returned object initializer members
+- deterministic `System.Version(int, int)` construction now has direct regression coverage for existing constructor handling
 - return escape analysis now inspects coalesce expressions so fresh owned arrays cannot escape through `??` arms without `PS0002`
 - generic static abstract interface operator dispatch is now conservative, matching static interface method dispatch when no concrete target is known
 - unused local function declarations no longer taint enclosing pure methods; invoked local functions are still checked through callee purity
