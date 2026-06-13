@@ -126,6 +126,25 @@ namespace PurelySharp.Analyzer
                 }
             }
 
+            foreach (var propertyAccess in GetPropertyAccessNodes(methodNode, semanticModel, cancellationToken))
+            {
+                if (!(semanticModel.GetSymbolInfo(propertyAccess, cancellationToken).Symbol is IPropertySymbol propertySymbol) ||
+                    propertySymbol.GetMethod == null)
+                {
+                    continue;
+                }
+
+                foreach (var exception in CollectSourceCalleeExceptions(propertySymbol.GetMethod, semanticModel.Compilation, cancellationToken, visitedMethods))
+                {
+                    if (IsCaughtWithinMethod(propertyAccess, exception.Type, methodNode, semanticModel, cancellationToken))
+                    {
+                        continue;
+                    }
+
+                    thrownTypes.Add(exception.DisplayName);
+                }
+            }
+
             return thrownTypes;
         }
 
@@ -148,6 +167,60 @@ namespace PurelySharp.Analyzer
             return methodNode.DescendantNodes(
                     descendIntoChildren: node => ReferenceEquals(node, methodNode) || !IsNestedCallableBoundary(node))
                 .Where(node => node is ObjectCreationExpressionSyntax || node is ImplicitObjectCreationExpressionSyntax);
+        }
+
+        private static IEnumerable<SyntaxNode> GetPropertyAccessNodes(
+            SyntaxNode methodNode,
+            SemanticModel semanticModel,
+            System.Threading.CancellationToken cancellationToken)
+        {
+            foreach (var node in methodNode.DescendantNodes(
+                         descendIntoChildren: candidate => ReferenceEquals(candidate, methodNode) || !IsNestedCallableBoundary(candidate)))
+            {
+                if (node is MemberAccessExpressionSyntax memberAccess)
+                {
+                    if (IsWriteOnlyTarget(memberAccess))
+                    {
+                        continue;
+                    }
+
+                    if (semanticModel.GetSymbolInfo(memberAccess, cancellationToken).Symbol is IPropertySymbol)
+                    {
+                        yield return memberAccess;
+                    }
+                }
+                else if (node is IdentifierNameSyntax identifierName)
+                {
+                    if (identifierName.Parent is MemberAccessExpressionSyntax ||
+                        IsWriteOnlyTarget(identifierName))
+                    {
+                        continue;
+                    }
+
+                    if (semanticModel.GetSymbolInfo(identifierName, cancellationToken).Symbol is IPropertySymbol)
+                    {
+                        yield return identifierName;
+                    }
+                }
+                else if (node is ElementAccessExpressionSyntax elementAccess)
+                {
+                    if (IsWriteOnlyTarget(elementAccess))
+                    {
+                        continue;
+                    }
+
+                    if (semanticModel.GetSymbolInfo(elementAccess, cancellationToken).Symbol is IPropertySymbol)
+                    {
+                        yield return elementAccess;
+                    }
+                }
+            }
+        }
+
+        private static bool IsWriteOnlyTarget(SyntaxNode node)
+        {
+            return node.Parent is AssignmentExpressionSyntax assignment &&
+                ReferenceEquals(assignment.Left, node);
         }
 
         private static bool IsNestedCallableBoundary(SyntaxNode node)

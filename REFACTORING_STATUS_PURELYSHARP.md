@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1768/1768` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1770/1770` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - `Tools/PurelySharp.EffectSummary` now provides an IL-based framework assembly summary prototype for rootward purity evidence.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
@@ -74,6 +74,7 @@
 - optional `PS0010` exception-flow summaries can report source-level uncaught exception types when `purelysharp_report_exceptions = true`
 - `PS0010` now propagates source-level exception summaries through same-compilation method calls and suppresses caller reports when the propagated exception is caught at the call site
 - `PS0010` now propagates source-level constructor exception summaries through object creation and suppresses caller reports when the constructor exception is caught at the creation site
+- `PS0010` now propagates source-level property getter exception summaries through property reads and suppresses caller reports when the getter exception is caught at the read site
 - `await using` now prefers `DisposeAsync()` over `Dispose()` when both are available, so impure async cleanup is reported instead of hidden by a pure synchronous disposer
 - configured impure types/namespaces now take precedence over hardcoded known-pure BCL heuristics, while exact configured pure member overrides remain narrow
 - custom awaiter analysis now includes source-defined `OnCompleted` and `UnsafeOnCompleted` continuation scheduling methods in addition to `GetAwaiter`, `IsCompleted`, and `GetResult`

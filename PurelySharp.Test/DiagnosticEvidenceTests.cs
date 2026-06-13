@@ -1444,6 +1444,81 @@ public class Widget
             Assert.That(exceptionDiagnostics.Single(d => d.GetMessage().Contains("'.ctor'", StringComparison.Ordinal)).Properties[PurelySharpDiagnostics.ExceptionTypesProperty], Is.EqualTo("System.InvalidOperationException"));
         }
 
+        [Test]
+        public async Task Ps0010_SourcePropertyGetterThrow_PropagatesToReader()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+
+public class TestClass
+{
+    public int Read(Widget widget)
+    {
+        return widget.Value;
+    }
+}
+
+public class Widget
+{
+    public int Value
+    {
+        get
+        {
+            throw new InvalidOperationException();
+        }
+    }
+}",
+                ImmutableDictionary<string, string>.Empty.Add("purelysharp_report_exceptions", "true"));
+
+            var exceptionDiagnostics = diagnostics
+                .Where(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId)
+                .ToArray();
+
+            Assert.That(exceptionDiagnostics.Single(d => d.GetMessage().Contains("'Read'", StringComparison.Ordinal)).Properties[PurelySharpDiagnostics.ExceptionTypesProperty], Is.EqualTo("System.InvalidOperationException"));
+            Assert.That(exceptionDiagnostics.Single(d => d.GetMessage().Contains("'get_Value'", StringComparison.Ordinal)).Properties[PurelySharpDiagnostics.ExceptionTypesProperty], Is.EqualTo("System.InvalidOperationException"));
+        }
+
+        [Test]
+        public async Task Ps0010_SourcePropertyGetterThrow_CaughtAtRead_IsSuppressedOnReader()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+
+public class TestClass
+{
+    public int Read(Widget widget)
+    {
+        try
+        {
+            return widget.Value;
+        }
+        catch (InvalidOperationException)
+        {
+            return 0;
+        }
+    }
+}
+
+public class Widget
+{
+    public int Value
+    {
+        get
+        {
+            throw new InvalidOperationException();
+        }
+    }
+}",
+                ImmutableDictionary<string, string>.Empty.Add("purelysharp_report_exceptions", "true"));
+
+            var exceptionDiagnostics = diagnostics
+                .Where(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId)
+                .ToArray();
+
+            Assert.That(exceptionDiagnostics.Any(d => d.GetMessage().Contains("'Read'", StringComparison.Ordinal)), Is.False);
+            Assert.That(exceptionDiagnostics.Single(d => d.GetMessage().Contains("'get_Value'", StringComparison.Ordinal)).Properties[PurelySharpDiagnostics.ExceptionTypesProperty], Is.EqualTo("System.InvalidOperationException"));
+        }
+
         private static Diagnostic SingleDiagnostic(ImmutableArray<Diagnostic> diagnostics, string diagnosticId)
         {
             return diagnostics.Single(d => d.Id == diagnosticId);
