@@ -3095,7 +3095,18 @@ namespace PurelySharp.Analyzer.Engine
             if (targetMethod.Name == "ParseExact" &&
                 targetMethod.Parameters.Length == 3 &&
                 invocationOperation.Arguments.Length == 3 &&
+                targetMethod.Parameters[0].Type.SpecialType == SpecialType.System_String &&
                 IsSingleTimeSpanConstantFormat(invocationOperation.Arguments[1].Value))
+            {
+                return IsCultureInfoInvariantCulture(invocationOperation.Arguments[2].Value);
+            }
+
+            if (targetMethod.Name == "ParseExact" &&
+                targetMethod.Parameters.Length == 4 &&
+                invocationOperation.Arguments.Length == 4 &&
+                targetMethod.Parameters[0].Type.SpecialType == SpecialType.System_String &&
+                IsSingleTimeSpanConstantFormat(invocationOperation.Arguments[1].Value) &&
+                IsTimeSpanStylesNone(invocationOperation.Arguments[3].Value))
             {
                 return IsCultureInfoInvariantCulture(invocationOperation.Arguments[2].Value);
             }
@@ -3109,6 +3120,14 @@ namespace PurelySharp.Analyzer.Engine
             return unwrappedOperation?.ConstantValue.HasValue == true &&
                 unwrappedOperation.ConstantValue.Value is string format &&
                 (format == "c" || format == "g" || format == "G");
+        }
+
+        private static bool IsTimeSpanStylesNone(IOperation? operation)
+        {
+            var unwrappedOperation = SkipImplicitConversions(operation);
+            return unwrappedOperation?.ConstantValue.HasValue == true &&
+                unwrappedOperation.ConstantValue.Value is int styles &&
+                styles == 0;
         }
 
         private static bool IsCultureInfoInvariantCulture(IOperation? operation)
