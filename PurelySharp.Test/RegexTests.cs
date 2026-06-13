@@ -58,6 +58,26 @@ public class TestClass
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
+        [Test]
+        public async Task Regex_EscapeAndUnescape_Static_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+using System.Text.RegularExpressions;
+
+public class TestClass
+{
+    [EnforcePure]
+    public string TestMethod(string input)
+    {
+        return Regex.Unescape(Regex.Escape(input));
+    }
+}
+";
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
 
 
 
