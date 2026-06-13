@@ -171,7 +171,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task DateTimeParseExact_SingleRoundtripInvariantCulture_NoDiagnostic()
+        public async Task DateTimeParseExact_InvariantCulture_Diagnostic()
         {
             var test = @"
 #nullable enable
@@ -182,7 +182,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public DateTime TestMethod(string dateStr)
+    public DateTime {|PS0002:TestMethod|}(string dateStr)
     {
         return DateTime.ParseExact(dateStr, ""O"", CultureInfo.InvariantCulture);
     }
@@ -192,7 +192,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task DateTimeParseExact_WithNoneStylesInvariantCulture_NoDiagnostic()
+        public async Task DateTimeParseExact_WithStyles_InvariantCulture_Diagnostic()
         {
             var test = @"
 #nullable enable
@@ -203,7 +203,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public DateTime TestMethod(string dateStr)
+    public DateTime {|PS0002:TestMethod|}(string dateStr)
     {
         return DateTime.ParseExact(dateStr, ""O"", CultureInfo.InvariantCulture, DateTimeStyles.None);
     }
@@ -2632,7 +2632,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task DateTimeParseExact_SpanSingleRoundtripInvariantCulture_NoDiagnostic()
+        public async Task DateTimeParseExact_SpanSingleFormat_InvariantCulture_Diagnostic()
         {
             var test = @"
 #nullable enable
@@ -2643,7 +2643,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public DateTime TestMethod(string dateStr)
+    public DateTime {|PS0002:TestMethod|}(string dateStr)
     {
         ReadOnlySpan<char> span = dateStr.AsSpan();
         return DateTime.ParseExact(span, ""O"", CultureInfo.InvariantCulture, DateTimeStyles.None);

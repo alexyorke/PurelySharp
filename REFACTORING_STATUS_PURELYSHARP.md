@@ -46,7 +46,7 @@
 - `TimeSpan.Parse` with an explicit `CultureInfo.InvariantCulture` provider is allowed for string and span inputs, while current-culture overloads remain conservative
 - `TimeOnly.Parse` with an explicit `CultureInfo.InvariantCulture` provider and default/`DateTimeStyles.None` is allowed for string and span inputs, while current-culture overloads remain conservative
 - `DateOnly.Parse` with an explicit `CultureInfo.InvariantCulture` provider and default/`DateTimeStyles.None` is allowed for string and span inputs, while current-culture overloads remain conservative
-- deterministic `DateOnly.ParseExact`, `TimeOnly.ParseExact`, `DateTime.ParseExact`, and `DateTimeOffset.ParseExact` single-format string/span overloads with `CultureInfo.InvariantCulture` are allowed while multiple-format overloads remain conservative
+- deterministic `DateOnly.ParseExact`, `TimeOnly.ParseExact`, and `DateTimeOffset.ParseExact` single-format string/span overloads with `CultureInfo.InvariantCulture` are allowed while multiple-format overloads remain conservative
 - `await using` now prefers `DisposeAsync()` over `Dispose()` when both are available, so impure async cleanup is reported instead of hidden by a pure synchronous disposer
 - configured impure types/namespaces now take precedence over hardcoded known-pure BCL heuristics, while exact configured pure member overrides remain narrow
 - custom awaiter analysis now includes source-defined `OnCompleted` and `UnsafeOnCompleted` continuation scheduling methods in addition to `GetAwaiter`, `IsCompleted`, and `GetResult`
