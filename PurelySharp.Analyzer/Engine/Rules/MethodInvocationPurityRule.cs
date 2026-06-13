@@ -1,6 +1,7 @@
 using System;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using PurelySharp.Analyzer.Engine;
 using System.Collections.Generic;
@@ -830,6 +831,13 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 return false;
             }
 
+            var receiverComparerResult = CheckHashSetReceiverComparerPurity(invocationOperation, context);
+            if (!receiverComparerResult.IsPure)
+            {
+                result = receiverComparerResult;
+                return true;
+            }
+
             if (IsHashSetRelationMethod(methodSymbol) &&
                 invocationOperation.Arguments.Length > 0)
             {
@@ -842,6 +850,196 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             result = CheckDefaultEqualityDispatchPurity(elementType, invocationOperation, context, requiresHashCode);
             return true;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckHashSetReceiverComparerPurity(
+            IInvocationOperation invocationOperation,
+            PurityAnalysisContext context)
+        {
+            var methodSymbol = invocationOperation.TargetMethod;
+            if (methodSymbol.ContainingType?.OriginalDefinition.ToDisplayString() != "System.Collections.Generic.HashSet<T>")
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            var receiverOperation = PurityAnalysisEngine.SkipImplicitConversions(invocationOperation.Instance) ??
+                invocationOperation.Instance;
+            var constructionResult = CheckKnownHashSetConstructionComparerPurity(
+                receiverOperation,
+                invocationOperation,
+                context);
+            if (!constructionResult.IsPure)
+            {
+                return constructionResult;
+            }
+
+            if (receiverOperation?.Type is INamedTypeSymbol receiverType)
+            {
+                return CheckHashSetSubtypeConstructorComparerPurity(receiverType, invocationOperation, context);
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckKnownHashSetConstructionComparerPurity(
+            IOperation? receiverOperation,
+            IInvocationOperation invocationOperation,
+            PurityAnalysisContext context)
+        {
+            var unwrappedReceiver = PurityAnalysisEngine.SkipImplicitConversions(receiverOperation) ?? receiverOperation;
+            if (unwrappedReceiver is IObjectCreationOperation objectCreationOperation)
+            {
+                return CheckHashSetObjectCreationComparerPurity(objectCreationOperation, invocationOperation, context);
+            }
+
+            if (TryGetReceiverInitializerOperation(unwrappedReceiver, context, out var initializerOperation) &&
+                PurityAnalysisEngine.SkipImplicitConversions(initializerOperation) is IObjectCreationOperation initializerObjectCreation)
+            {
+                return CheckHashSetObjectCreationComparerPurity(initializerObjectCreation, invocationOperation, context);
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static bool TryGetReceiverInitializerOperation(
+            IOperation? receiverOperation,
+            PurityAnalysisContext context,
+            out IOperation initializerOperation)
+        {
+            ISymbol? receiverSymbol = receiverOperation switch
+            {
+                IFieldReferenceOperation fieldReference => fieldReference.Field,
+                IPropertyReferenceOperation propertyReference => propertyReference.Property,
+                _ => null
+            };
+
+            if (receiverSymbol == null)
+            {
+                initializerOperation = null!;
+                return false;
+            }
+
+            foreach (var syntaxReference in receiverSymbol.DeclaringSyntaxReferences)
+            {
+                SyntaxNode? initializerSyntax = syntaxReference.GetSyntax(context.CancellationToken) switch
+                {
+                    VariableDeclaratorSyntax variableDeclarator => variableDeclarator.Initializer?.Value,
+                    PropertyDeclarationSyntax propertyDeclaration => propertyDeclaration.Initializer?.Value,
+                    _ => null
+                };
+
+                if (initializerSyntax == null)
+                {
+                    continue;
+                }
+
+                var semanticModel = context.SemanticModel.Compilation.GetSemanticModel(initializerSyntax.SyntaxTree);
+                var operation = semanticModel.GetOperation(initializerSyntax, context.CancellationToken);
+                if (operation != null)
+                {
+                    initializerOperation = operation;
+                    return true;
+                }
+            }
+
+            initializerOperation = null!;
+            return false;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckHashSetObjectCreationComparerPurity(
+            IObjectCreationOperation objectCreationOperation,
+            IInvocationOperation invocationOperation,
+            PurityAnalysisContext context)
+        {
+            if (objectCreationOperation.Type is not INamedTypeSymbol objectType ||
+                objectType.OriginalDefinition.ToDisplayString() != "System.Collections.Generic.HashSet<T>")
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            foreach (var argument in objectCreationOperation.Arguments)
+            {
+                var value = PurityAnalysisEngine.SkipImplicitConversions(argument.Value) ?? argument.Value;
+                if (value?.Type == null ||
+                    argument.Parameter?.Type is not INamedTypeSymbol parameterType ||
+                    !IsEqualityComparerType(parameterType) &&
+                    (value.Type is not INamedTypeSymbol namedValueType ||
+                     !IsComparerOrDerivedInterface(namedValueType)))
+                {
+                    continue;
+                }
+
+                var comparerArgumentResult = PurityAnalysisEngine.CheckSingleOperation(value, context, PurityAnalysisEngine.PurityAnalysisState.Pure);
+                if (!comparerArgumentResult.IsPure)
+                {
+                    return comparerArgumentResult;
+                }
+
+                var comparerResult = CheckComparerValuePurity(value, invocationOperation, context);
+                if (!comparerResult.IsPure)
+                {
+                    return comparerResult;
+                }
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckHashSetSubtypeConstructorComparerPurity(
+            INamedTypeSymbol receiverType,
+            IInvocationOperation invocationOperation,
+            PurityAnalysisContext context)
+        {
+            if (receiverType.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.HashSet<T>" ||
+                !DerivesFromHashSet(receiverType))
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            foreach (var constructor in receiverType.InstanceConstructors)
+            {
+                foreach (var syntaxReference in constructor.DeclaringSyntaxReferences)
+                {
+                    if (syntaxReference.GetSyntax(context.CancellationToken) is not ConstructorDeclarationSyntax constructorSyntax ||
+                        constructorSyntax.Initializer == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (var argument in constructorSyntax.Initializer.ArgumentList.Arguments)
+                    {
+                        var semanticModel = context.SemanticModel.Compilation.GetSemanticModel(argument.SyntaxTree);
+                        var argumentOperation = semanticModel.GetOperation(argument.Expression, context.CancellationToken);
+                        var value = PurityAnalysisEngine.SkipImplicitConversions(argumentOperation) ?? argumentOperation;
+                        if (value?.Type is not INamedTypeSymbol namedValueType ||
+                            !IsComparerOrDerivedInterface(namedValueType))
+                        {
+                            continue;
+                        }
+
+                        var comparerResult = CheckComparerValuePurity(value, invocationOperation, context);
+                        if (!comparerResult.IsPure)
+                        {
+                            return comparerResult;
+                        }
+                    }
+                }
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static bool DerivesFromHashSet(INamedTypeSymbol typeSymbol)
+        {
+            for (var baseType = typeSymbol.BaseType; baseType != null; baseType = baseType.BaseType)
+            {
+                if (baseType.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.HashSet<T>")
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static bool TryCheckCollectionComparisonDispatchPurity(
@@ -2440,6 +2638,43 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 {
                     return enumeratorPurity.WithCallee(getEnumerator, unwrappedSource.Syntax);
                 }
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckComparerValuePurity(
+            IOperation value,
+            IInvocationOperation invocationOperation,
+            PurityAnalysisContext context)
+        {
+            value = PurityAnalysisEngine.SkipImplicitConversions(value) ?? value;
+            if (value.Type == null || IsNullOrDefaultComparerValue(value))
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            var foundImplementation = false;
+            foreach (var comparisonMethod in EnumerateComparerImplementations(value.Type))
+            {
+                foundImplementation = true;
+                var comparisonPurity = PurityAnalysisEngine.GetCalleePurity(comparisonMethod.OriginalDefinition, context);
+                if (!comparisonPurity.IsPure)
+                {
+                    return comparisonPurity.WithCallee(comparisonMethod, invocationOperation.Syntax);
+                }
+            }
+
+            if (!foundImplementation && IsUnresolvedComparerDispatch(value.Type))
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                    invocationOperation.Syntax,
+                    PurityAnalysisEngine.PurityEvidence.Create(
+                        "unknown_external_call",
+                        nameof(MethodInvocationPurityRule),
+                        invocationOperation,
+                        syntaxNode: invocationOperation.Syntax,
+                        symbol: PurityAnalysisEngine.TryResolveSymbol(value) ?? invocationOperation.TargetMethod));
             }
 
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;

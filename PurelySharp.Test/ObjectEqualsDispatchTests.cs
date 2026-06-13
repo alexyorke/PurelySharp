@@ -886,6 +886,43 @@ public class TestClass
         }
 
         [Test]
+        public async Task HashSetContainsWithReceiverSubtypeImpureComparer_Diagnostic()
+        {
+            var test = @"
+#pragma warning disable PS0004
+using System;
+using System.Collections.Generic;
+using PurelySharp.Attributes;
+
+public sealed class ImpureStringComparer : IEqualityComparer<string>
+{
+    public bool Equals(string x, string y) => x == y;
+
+    public int GetHashCode(string obj)
+    {
+        Console.WriteLine(obj);
+        return obj.GetHashCode();
+    }
+}
+
+public sealed class ImpureStringSet : HashSet<string>
+{
+    public ImpureStringSet() : base(new ImpureStringComparer()) { }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool {|PS0002:TestMethod|}(ImpureStringSet values)
+    {
+        return values.Contains(""x"");
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task LinqSequenceEqualDispatchToImpureEquatableImplementation_Diagnostic()
         {
             var test = @"
