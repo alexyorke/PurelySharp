@@ -271,6 +271,38 @@ public class TestClass
         }
 
         [Test]
+        public async Task DelegateCombineWithImpureTarget_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public static void PureTarget()
+    {
+    }
+
+    public static void ImpureTarget()
+    {
+        Console.WriteLine();
+    }
+
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}()
+    {
+        Action first = PureTarget;
+        Action second = ImpureTarget;
+        var combined = (Action)Delegate.Combine(first, second);
+        combined();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DelegateCompoundAddPreservesUnknownTarget_Diagnostic()
         {
             var testCode = @"
