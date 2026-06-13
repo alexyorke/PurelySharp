@@ -108,6 +108,24 @@ namespace PurelySharp.Analyzer
                 }
             }
 
+            foreach (var creation in GetObjectCreationNodes(methodNode))
+            {
+                if (!(semanticModel.GetSymbolInfo(creation, cancellationToken).Symbol is IMethodSymbol constructorSymbol))
+                {
+                    continue;
+                }
+
+                foreach (var exception in CollectSourceCalleeExceptions(constructorSymbol, semanticModel.Compilation, cancellationToken, visitedMethods))
+                {
+                    if (IsCaughtWithinMethod(creation, exception.Type, methodNode, semanticModel, cancellationToken))
+                    {
+                        continue;
+                    }
+
+                    thrownTypes.Add(exception.DisplayName);
+                }
+            }
+
             return thrownTypes;
         }
 
@@ -123,6 +141,13 @@ namespace PurelySharp.Analyzer
             return methodNode.DescendantNodes(
                     descendIntoChildren: node => ReferenceEquals(node, methodNode) || !IsNestedCallableBoundary(node))
                 .OfType<InvocationExpressionSyntax>();
+        }
+
+        private static IEnumerable<SyntaxNode> GetObjectCreationNodes(SyntaxNode methodNode)
+        {
+            return methodNode.DescendantNodes(
+                    descendIntoChildren: node => ReferenceEquals(node, methodNode) || !IsNestedCallableBoundary(node))
+                .Where(node => node is ObjectCreationExpressionSyntax || node is ImplicitObjectCreationExpressionSyntax);
         }
 
         private static bool IsNestedCallableBoundary(SyntaxNode node)

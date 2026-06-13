@@ -1375,6 +1375,75 @@ public class TestClass
             Assert.That(exceptionDiagnostics.Single(d => d.GetMessage().Contains("'Callee'", StringComparison.Ordinal)).Properties[PurelySharpDiagnostics.ExceptionTypesProperty], Is.EqualTo("System.InvalidOperationException"));
         }
 
+        [Test]
+        public async Task Ps0010_SourceConstructorThrow_PropagatesToFactory()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+
+public class TestClass
+{
+    public Widget Create()
+    {
+        return new Widget();
+    }
+}
+
+public class Widget
+{
+    public Widget()
+    {
+        throw new InvalidOperationException();
+    }
+}",
+                ImmutableDictionary<string, string>.Empty.Add("purelysharp_report_exceptions", "true"));
+
+            var exceptionDiagnostics = diagnostics
+                .Where(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId)
+                .ToArray();
+
+            Assert.That(exceptionDiagnostics.Single(d => d.GetMessage().Contains("'Create'", StringComparison.Ordinal)).Properties[PurelySharpDiagnostics.ExceptionTypesProperty], Is.EqualTo("System.InvalidOperationException"));
+            Assert.That(exceptionDiagnostics.Single(d => d.GetMessage().Contains("'.ctor'", StringComparison.Ordinal)).Properties[PurelySharpDiagnostics.ExceptionTypesProperty], Is.EqualTo("System.InvalidOperationException"));
+        }
+
+        [Test]
+        public async Task Ps0010_SourceConstructorThrow_CaughtAtCreation_IsSuppressedOnFactory()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+
+public class TestClass
+{
+    public Widget? Create()
+    {
+        try
+        {
+            return new Widget();
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+    }
+}
+
+public class Widget
+{
+    public Widget()
+    {
+        throw new InvalidOperationException();
+    }
+}",
+                ImmutableDictionary<string, string>.Empty.Add("purelysharp_report_exceptions", "true"));
+
+            var exceptionDiagnostics = diagnostics
+                .Where(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId)
+                .ToArray();
+
+            Assert.That(exceptionDiagnostics.Any(d => d.GetMessage().Contains("'Create'", StringComparison.Ordinal)), Is.False);
+            Assert.That(exceptionDiagnostics.Single(d => d.GetMessage().Contains("'.ctor'", StringComparison.Ordinal)).Properties[PurelySharpDiagnostics.ExceptionTypesProperty], Is.EqualTo("System.InvalidOperationException"));
+        }
+
         private static Diagnostic SingleDiagnostic(ImmutableArray<Diagnostic> diagnostics, string diagnosticId)
         {
             return diagnostics.Single(d => d.Id == diagnosticId);
