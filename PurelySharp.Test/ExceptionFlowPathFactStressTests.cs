@@ -179,6 +179,136 @@ public class TestClass
             Assert.That(diagnostics.Any(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId), Is.False);
         }
 
+        [Test]
+        public async Task Ps0010_NegatedNotEqualZero_ReportsDivideByZeroException()
+        {
+            var diagnostic = await SingleExceptionDiagnosticAsync(@"
+public class TestClass
+{
+    public int TestMethod(int value, int divisor)
+    {
+        if (!(divisor != 0))
+        {
+            return value / divisor;
+        }
+
+        return 0;
+    }
+}");
+
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ExceptionTypesProperty], Is.EqualTo("System.DivideByZeroException"));
+        }
+
+        [Test]
+        public async Task Ps0010_NegatedEqualsZero_DoesNotReport()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+public class TestClass
+{
+    public int TestMethod(int value, int divisor)
+    {
+        if (!(divisor == 0))
+        {
+            return value / divisor;
+        }
+
+        return 0;
+    }
+}");
+
+            Assert.That(diagnostics.Any(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId), Is.False);
+        }
+
+        [Test]
+        public async Task Ps0010_NegatedIsNotNull_ReportsNullReferenceException()
+        {
+            var diagnostic = await SingleExceptionDiagnosticAsync(@"
+public class TestClass
+{
+    public int TestMethod(string value)
+    {
+        if (!(value is not null))
+        {
+            return value.Length;
+        }
+
+        return 0;
+    }
+}");
+
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ExceptionTypesProperty], Is.EqualTo("System.NullReferenceException"));
+        }
+
+        [Test]
+        public async Task Ps0010_AndConditionNonZeroDivisor_DoesNotReport()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+public class TestClass
+{
+    public int TestMethod(int value, int divisor, bool enabled)
+    {
+        if (enabled && divisor != 0)
+        {
+            return value / divisor;
+        }
+
+        return 0;
+    }
+}");
+
+            Assert.That(diagnostics.Any(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId), Is.False);
+        }
+
+        [Test]
+        public async Task Ps0010_GuardFalsePathReassignedBeforeUse_DoesNotReport()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+public class TestClass
+{
+    public int TestMethod(int value, int divisor)
+    {
+        if (divisor != 0)
+        {
+            return 0;
+        }
+
+        divisor = 1;
+        return value / divisor;
+    }
+}");
+
+            Assert.That(diagnostics.Any(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId), Is.False);
+        }
+
+        [Test]
+        public async Task Ps0010_BranchFactDivideByZeroCaught_IsSuppressed()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+
+public class TestClass
+{
+    public int TestMethod(int value, int divisor)
+    {
+        try
+        {
+            if (divisor == 0)
+            {
+                return value / divisor;
+            }
+
+            return 0;
+        }
+        catch (DivideByZeroException)
+        {
+            return 0;
+        }
+    }
+}");
+
+            Assert.That(diagnostics.Any(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId), Is.False);
+        }
+
         private static async Task<Diagnostic> SingleExceptionDiagnosticAsync(string source)
         {
             var diagnostics = await GetAnalyzerDiagnosticsAsync(source);
