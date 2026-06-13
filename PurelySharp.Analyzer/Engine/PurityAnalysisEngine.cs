@@ -2971,9 +2971,21 @@ namespace PurelySharp.Analyzer.Engine
                 return false;
             }
 
-            var argumentValue = SkipImplicitConversions(invocationOperation.Arguments[0].Value);
+            var argumentValue = UnwrapArrayOwnershipPreservingConversions(invocationOperation.Arguments[0].Value);
+            if (IsArrayEmptyInvocation(argumentValue))
+            {
+                return true;
+            }
+
             return argumentValue is ILocalReferenceOperation localReference &&
                    currentState.IsOwnedLocalArraySymbol(localReference.Local);
+        }
+
+        private static bool IsArrayEmptyInvocation(IOperation? operation)
+        {
+            var unwrappedOperation = UnwrapArrayOwnershipPreservingConversions(operation);
+            return unwrappedOperation is IInvocationOperation invocation &&
+                IsArrayEmptyFactory(invocation.TargetMethod.OriginalDefinition);
         }
 
         internal static bool IsTimeSpanInvariantCultureParseInvocation(IInvocationOperation invocationOperation)

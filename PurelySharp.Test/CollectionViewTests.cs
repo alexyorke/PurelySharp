@@ -223,6 +223,26 @@ public class TestClass
         }
 
         [Test]
+        public async Task ArrayAsReadOnlyArrayEmpty_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using System.Collections.ObjectModel;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public ReadOnlyCollection<int> TestMethod()
+    {
+        return Array.AsReadOnly(Array.Empty<int>());
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task CollectionsMarshalAsSpan_Diagnostic()
         {
             var test = @"
