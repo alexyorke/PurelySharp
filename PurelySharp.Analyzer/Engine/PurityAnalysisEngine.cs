@@ -3118,12 +3118,12 @@ namespace PurelySharp.Analyzer.Engine
         internal static bool IsInvariantCultureDeterministicParseInvocation(IInvocationOperation invocationOperation)
         {
             return IsTimeSpanInvariantCultureParseInvocation(invocationOperation) ||
-                IsDateOnlyInvariantCultureParseExactInvocation(invocationOperation) ||
-                IsTimeOnlyInvariantCultureParseExactInvocation(invocationOperation) ||
+                IsDateOnlyInvariantCultureParseInvocation(invocationOperation) ||
+                IsTimeOnlyInvariantCultureParseInvocation(invocationOperation) ||
                 IsDateTimeOffsetInvariantCultureParseExactInvocation(invocationOperation);
         }
 
-        private static bool IsTimeOnlyInvariantCultureParseExactInvocation(IInvocationOperation invocationOperation)
+        private static bool IsTimeOnlyInvariantCultureParseInvocation(IInvocationOperation invocationOperation)
         {
             var targetMethod = invocationOperation.TargetMethod?.OriginalDefinition;
             if (targetMethod == null ||
@@ -3172,7 +3172,7 @@ namespace PurelySharp.Analyzer.Engine
             return false;
         }
 
-        private static bool IsDateOnlyInvariantCultureParseExactInvocation(IInvocationOperation invocationOperation)
+        private static bool IsDateOnlyInvariantCultureParseInvocation(IInvocationOperation invocationOperation)
         {
             var targetMethod = invocationOperation.TargetMethod?.OriginalDefinition;
             if (targetMethod == null ||
