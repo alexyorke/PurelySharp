@@ -148,6 +148,17 @@ namespace PurelySharp.Analyzer
                 }
             }
 
+            foreach (var divideByZeroNode in GetDefiniteDivideByZeroNodes(methodNode, semanticModel, cancellationToken))
+            {
+                var exceptionType = semanticModel.Compilation.GetTypeByMetadataName("System.DivideByZeroException");
+                if (IsCaughtWithinMethod(divideByZeroNode, exceptionType, methodNode, semanticModel, cancellationToken))
+                {
+                    continue;
+                }
+
+                thrownTypes.Add("System.DivideByZeroException");
+            }
+
             return thrownTypes;
         }
 
@@ -170,6 +181,37 @@ namespace PurelySharp.Analyzer
             return methodNode.DescendantNodes(
                     descendIntoChildren: node => ReferenceEquals(node, methodNode) || !IsNestedCallableBoundary(node))
                 .Where(node => node is ObjectCreationExpressionSyntax || node is ImplicitObjectCreationExpressionSyntax);
+        }
+
+        private static IEnumerable<BinaryExpressionSyntax> GetDefiniteDivideByZeroNodes(
+            SyntaxNode methodNode,
+            SemanticModel semanticModel,
+            System.Threading.CancellationToken cancellationToken)
+        {
+            foreach (var binaryExpression in methodNode.DescendantNodes(
+                         descendIntoChildren: node => ReferenceEquals(node, methodNode) || !IsNestedCallableBoundary(node))
+                         .OfType<BinaryExpressionSyntax>())
+            {
+                if (!binaryExpression.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.DivideExpression) &&
+                    !binaryExpression.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.ModuloExpression))
+                {
+                    continue;
+                }
+
+                var rightConstant = semanticModel.GetConstantValue(binaryExpression.Right, cancellationToken);
+                if (!rightConstant.HasValue || !IsIntegralOrDecimalZero(rightConstant.Value))
+                {
+                    continue;
+                }
+
+                var rightType = semanticModel.GetTypeInfo(binaryExpression.Right, cancellationToken).ConvertedType;
+                if (!IsThrowingDivideByZeroType(rightType))
+                {
+                    continue;
+                }
+
+                yield return binaryExpression;
+            }
         }
 
         private static IEnumerable<SyntaxNode> GetPropertyAccessNodes(
@@ -259,6 +301,57 @@ namespace PurelySharp.Analyzer
 
             var typeInfo = semanticModel.GetTypeInfo(exceptionExpression, cancellationToken);
             return typeInfo.Type ?? typeInfo.ConvertedType;
+        }
+
+        private static bool IsIntegralOrDecimalZero(object? value)
+        {
+            switch (value)
+            {
+                case byte byteValue:
+                    return byteValue == 0;
+                case sbyte sbyteValue:
+                    return sbyteValue == 0;
+                case short shortValue:
+                    return shortValue == 0;
+                case ushort ushortValue:
+                    return ushortValue == 0;
+                case int intValue:
+                    return intValue == 0;
+                case uint uintValue:
+                    return uintValue == 0;
+                case long longValue:
+                    return longValue == 0L;
+                case ulong ulongValue:
+                    return ulongValue == 0UL;
+                case decimal decimalValue:
+                    return decimalValue == 0m;
+                default:
+                    return false;
+            }
+        }
+
+        private static bool IsThrowingDivideByZeroType(ITypeSymbol? typeSymbol)
+        {
+            if (typeSymbol == null)
+            {
+                return false;
+            }
+
+            switch (typeSymbol.SpecialType)
+            {
+                case SpecialType.System_Byte:
+                case SpecialType.System_SByte:
+                case SpecialType.System_Int16:
+                case SpecialType.System_UInt16:
+                case SpecialType.System_Int32:
+                case SpecialType.System_UInt32:
+                case SpecialType.System_Int64:
+                case SpecialType.System_UInt64:
+                case SpecialType.System_Decimal:
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         private static ITypeSymbol? GetRethrownExceptionType(
