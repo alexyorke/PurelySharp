@@ -16,3 +16,4 @@
 - `PS0010` emits structured exception evidence properties for categories and sources.
 - Corpus reports aggregate `PS0010` counts plus exception categories and sources.
 - Effect summary IL exception extraction recognizes constructed exception objects stored to and reloaded from locals before `throw`.
+- Effect summary output includes assembly SHA-256, per-method IL SHA-256, and method cache keys for self-validating generated indexes.

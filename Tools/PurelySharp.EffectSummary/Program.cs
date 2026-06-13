@@ -4,6 +4,7 @@ using System.Reflection.Emit;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Reflection.PortableExecutable;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -235,6 +236,7 @@ internal static class AssemblyEffectSummarizer
         int maxDepth,
         bool includeTransitiveRoots)
     {
+        var assemblySha256 = ComputeFileSha256(assemblyPath);
         using var stream = File.OpenRead(assemblyPath);
         using var peReader = new PEReader(stream);
         if (!peReader.HasMetadata)
@@ -247,11 +249,12 @@ internal static class AssemblyEffectSummarizer
         var assemblyName = reader.IsAssembly
             ? reader.GetString(reader.GetAssemblyDefinition().Name)
             : Path.GetFileNameWithoutExtension(assemblyPath);
+        var moduleVersionId = reader.GetGuid(module.Mvid).ToString("D");
 
         var allSummaries = new List<MethodEffectSummary>();
         foreach (var handle in reader.MethodDefinitions)
         {
-            allSummaries.Add(SummarizeMethod(peReader, reader, handle));
+            allSummaries.Add(SummarizeMethod(peReader, reader, handle, moduleVersionId));
         }
 
         if (includeTransitiveRoots)
@@ -264,7 +267,8 @@ internal static class AssemblyEffectSummarizer
         return new AssemblyEffectReport(
             AssemblyName: assemblyName,
             AssemblyPath: assemblyPath,
-            ModuleVersionId: reader.GetGuid(module.Mvid).ToString("D"),
+            AssemblySha256: assemblySha256,
+            ModuleVersionId: moduleVersionId,
             MethodCount: reader.MethodDefinitions.Count,
             EmittedMethodCount: summaries.Length,
             Methods: summaries);
@@ -343,13 +347,15 @@ internal static class AssemblyEffectSummarizer
     private static MethodEffectSummary SummarizeMethod(
         PEReader peReader,
         MetadataReader reader,
-        MethodDefinitionHandle handle)
+        MethodDefinitionHandle handle,
+        string moduleVersionId)
     {
         var definition = reader.GetMethodDefinition(handle);
         var effects = new SortedSet<string>(StringComparer.Ordinal);
         var calls = new SortedSet<string>(StringComparer.Ordinal);
         var fields = new SortedSet<string>(StringComparer.Ordinal);
         var thrownExceptionTypes = new SortedSet<string>(StringComparer.Ordinal);
+        string? methodBodySha256 = null;
 
         if ((definition.Attributes & MethodAttributes.Abstract) != 0)
         {
@@ -377,14 +383,19 @@ internal static class AssemblyEffectSummarizer
             var il = body.GetILBytes();
             if (il is not null)
             {
+                methodBodySha256 = ComputeSha256(il);
                 AnalyzeIl(reader, il, effects, calls, fields, thrownExceptionTypes);
             }
         }
 
+        var metadataToken = $"0x{MetadataTokens.GetToken(handle):X8}";
+        var cacheKey = $"mvid:{moduleVersionId}|token:{metadataToken}|il:{methodBodySha256 ?? "no-il"}";
         return new MethodEffectSummary(
             Symbol: GetMethodSymbol(reader, handle),
-            MetadataToken: $"0x{MetadataTokens.GetToken(handle):X8}",
+            MetadataToken: metadataToken,
             RelativeVirtualAddress: definition.RelativeVirtualAddress,
+            MethodBodySha256: methodBodySha256,
+            CacheKey: cacheKey,
             Effects: effects.ToArray(),
             RootCandidates: GetRootCandidates(effects).ToArray(),
             TransitiveRootCandidates: Array.Empty<string>(),
@@ -392,6 +403,19 @@ internal static class AssemblyEffectSummarizer
             TransitiveThrownExceptionTypes: Array.Empty<string>(),
             Calls: calls.ToArray(),
             Fields: fields.ToArray());
+    }
+
+    private static string ComputeFileSha256(string path)
+    {
+        using var stream = File.OpenRead(path);
+        using var sha256 = SHA256.Create();
+        return Convert.ToHexString(sha256.ComputeHash(stream)).ToLowerInvariant();
+    }
+
+    private static string ComputeSha256(byte[] bytes)
+    {
+        using var sha256 = SHA256.Create();
+        return Convert.ToHexString(sha256.ComputeHash(bytes)).ToLowerInvariant();
     }
 
     private static List<MethodEffectSummary> AddTransitiveRootCandidates(IReadOnlyList<MethodEffectSummary> summaries)
@@ -1117,6 +1141,7 @@ internal sealed record EffectSummaryDocument(
 internal sealed record AssemblyEffectReport(
     string AssemblyName,
     string AssemblyPath,
+    string AssemblySha256,
     string ModuleVersionId,
     int MethodCount,
     int EmittedMethodCount,
@@ -1126,6 +1151,8 @@ internal sealed record MethodEffectSummary(
     string Symbol,
     string MetadataToken,
     int RelativeVirtualAddress,
+    string? MethodBodySha256,
+    string CacheKey,
     string[] Effects,
     string[] RootCandidates,
     string[] TransitiveRootCandidates,

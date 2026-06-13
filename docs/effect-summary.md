@@ -101,12 +101,20 @@ dotnet run --project Tools\PurelySharp.EffectSummary -- --assembly "C:\Program F
 
 The output schema is versioned and includes the assembly module version ID so generated summaries can be tied to the exact runtime build.
 
+Summary files are also self-validating enough to cache and share:
+
+- each assembly report includes `AssemblySha256`
+- each IL-backed method includes `MethodBodySha256`
+- each method includes a stable `CacheKey` made from module version ID, metadata token, and IL hash
+
+Consumers can use those fields to reject summaries generated from a different runtime, SDK, package build, or project assembly. For source or project-specific libraries, regenerate the summary after rebuilds and compare the cache key before trusting a row.
+
 ## Next steps
 
 The durable path from here is:
 
 1. Add a fixed-point classifier over the emitted call/effect graph.
 2. Add explicit root seed files for native/runtime/OS/environment/reflection/threading categories.
-3. Generate checked-in summaries for supported target frameworks.
+3. Add cache/index validation commands that compare `AssemblySha256`, `ModuleVersionId`, `MetadataToken`, and `MethodBodySha256` against local assemblies before analyzer consumption.
 4. Generate and version checked-in framework summaries for supported target frameworks.
 5. Optionally clone `dotnet/runtime` or the unified .NET source tree to map IL summaries back to source files and comments for review.
