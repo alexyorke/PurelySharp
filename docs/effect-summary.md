@@ -55,6 +55,12 @@ Inspect a specific API family such as `System.String.Format`:
 dotnet run --project Tools\PurelySharp.EffectSummary -- --framework net8.0 --symbol-prefix System.String.Format --limit 20
 ```
 
+Include same-assembly callees from the matched symbols:
+
+```powershell
+dotnet run --project Tools\PurelySharp.EffectSummary -- --framework net8.0 --symbol-prefix System.String.Format --include-callees --max-depth 1 --limit 50
+```
+
 Run against a specific assembly:
 
 ```powershell

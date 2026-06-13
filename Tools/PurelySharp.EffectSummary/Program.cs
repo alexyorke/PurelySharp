@@ -25,7 +25,12 @@ internal static class EffectSummaryCli
             : options.AssemblyPaths.Select(Path.GetFullPath).ToArray();
 
         var reports = assemblies
-            .Select(path => AssemblyEffectSummarizer.Summarize(path, options.Limit, options.SymbolPrefixes))
+            .Select(path => AssemblyEffectSummarizer.Summarize(
+                path,
+                options.Limit,
+                options.SymbolPrefixes,
+                options.IncludeCallees,
+                options.MaxDepth))
             .ToArray();
 
         var document = new EffectSummaryDocument(
@@ -66,6 +71,8 @@ internal static class EffectSummaryCli
         Console.Error.WriteLine("  --framework <net8.0>       Runtime framework to inspect when --assembly is omitted.");
         Console.Error.WriteLine("  --runtime-assembly <name>  Runtime assembly name when --assembly is omitted. Default: System.Private.CoreLib.dll");
         Console.Error.WriteLine("  --symbol-prefix <prefix>   Emit only methods whose decoded symbol starts with this prefix. Can be repeated.");
+        Console.Error.WriteLine("  --include-callees          Also emit same-assembly callees reachable from matched symbols.");
+        Console.Error.WriteLine("  --max-depth <count>        Maximum same-assembly callee depth when --include-callees is used. Default: 1.");
         Console.Error.WriteLine("  --output <path>            Write JSON to a file instead of stdout.");
         Console.Error.WriteLine("  --limit <count>            Limit emitted method summaries for smoke testing.");
         Console.Error.WriteLine("  --help                     Show this help.");
@@ -85,6 +92,10 @@ internal sealed class CliOptions
     public string? OutputPath { get; private set; }
 
     public int? Limit { get; private set; }
+
+    public bool IncludeCallees { get; private set; }
+
+    public int MaxDepth { get; private set; } = 1;
 
     public bool ShowHelp { get; private set; }
 
@@ -107,6 +118,12 @@ internal sealed class CliOptions
                     break;
                 case "--symbol-prefix":
                     options.SymbolPrefixes.Add(ReadRequiredValue(args, ref i, arg));
+                    break;
+                case "--include-callees":
+                    options.IncludeCallees = true;
+                    break;
+                case "--max-depth":
+                    options.MaxDepth = int.Parse(ReadRequiredValue(args, ref i, arg));
                     break;
                 case "--output":
                     options.OutputPath = ReadRequiredValue(args, ref i, arg);
@@ -203,7 +220,12 @@ internal static class AssemblyEffectSummarizer
             .Select(field => (OpCode)field.GetValue(null)!)
             .ToDictionary(opCode => opCode.Value);
 
-    public static AssemblyEffectReport Summarize(string assemblyPath, int? limit, IReadOnlyList<string> symbolPrefixes)
+    public static AssemblyEffectReport Summarize(
+        string assemblyPath,
+        int? limit,
+        IReadOnlyList<string> symbolPrefixes,
+        bool includeCallees,
+        int maxDepth)
     {
         using var stream = File.OpenRead(assemblyPath);
         using var peReader = new PEReader(stream);
@@ -218,34 +240,91 @@ internal static class AssemblyEffectSummarizer
             ? reader.GetString(reader.GetAssemblyDefinition().Name)
             : Path.GetFileNameWithoutExtension(assemblyPath);
 
-        var summaries = new List<MethodEffectSummary>();
+        var allSummaries = new List<MethodEffectSummary>();
         foreach (var handle in reader.MethodDefinitions)
         {
-            if (limit is not null && summaries.Count >= limit.Value)
-            {
-                break;
-            }
-
-            var summary = SummarizeMethod(peReader, reader, handle);
-            if (MatchesSymbolPrefix(summary.Symbol, symbolPrefixes))
-            {
-                summaries.Add(summary);
-            }
+            allSummaries.Add(SummarizeMethod(peReader, reader, handle));
         }
+
+        var summaries = SelectSummaries(allSummaries, symbolPrefixes, includeCallees, maxDepth, limit);
 
         return new AssemblyEffectReport(
             AssemblyName: assemblyName,
             AssemblyPath: assemblyPath,
             ModuleVersionId: reader.GetGuid(module.Mvid).ToString("D"),
             MethodCount: reader.MethodDefinitions.Count,
-            EmittedMethodCount: summaries.Count,
-            Methods: summaries.ToArray());
+            EmittedMethodCount: summaries.Length,
+            Methods: summaries);
     }
 
     private static bool MatchesSymbolPrefix(string symbol, IReadOnlyList<string> symbolPrefixes)
     {
         return symbolPrefixes.Count == 0 ||
             symbolPrefixes.Any(prefix => symbol.StartsWith(prefix, StringComparison.Ordinal));
+    }
+
+    private static MethodEffectSummary[] SelectSummaries(
+        IReadOnlyList<MethodEffectSummary> allSummaries,
+        IReadOnlyList<string> symbolPrefixes,
+        bool includeCallees,
+        int maxDepth,
+        int? limit)
+    {
+        IEnumerable<MethodEffectSummary> selected;
+        if (!includeCallees || symbolPrefixes.Count == 0)
+        {
+            selected = allSummaries.Where(summary => MatchesSymbolPrefix(summary.Symbol, symbolPrefixes));
+        }
+        else
+        {
+            selected = SelectWithCallees(allSummaries, symbolPrefixes, maxDepth);
+        }
+
+        if (limit is not null)
+        {
+            selected = selected.Take(limit.Value);
+        }
+
+        return selected.ToArray();
+    }
+
+    private static IEnumerable<MethodEffectSummary> SelectWithCallees(
+        IReadOnlyList<MethodEffectSummary> allSummaries,
+        IReadOnlyList<string> symbolPrefixes,
+        int maxDepth)
+    {
+        var bySymbol = allSummaries
+            .GroupBy(summary => summary.Symbol, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+
+        var included = new HashSet<string>(StringComparer.Ordinal);
+        var queue = new Queue<(string Symbol, int Depth)>();
+        foreach (var summary in allSummaries.Where(summary => MatchesSymbolPrefix(summary.Symbol, symbolPrefixes)))
+        {
+            if (included.Add(summary.Symbol))
+            {
+                queue.Enqueue((summary.Symbol, 0));
+            }
+        }
+
+        while (queue.Count > 0)
+        {
+            var (symbol, depth) = queue.Dequeue();
+            if (depth >= maxDepth || !bySymbol.TryGetValue(symbol, out var summary))
+            {
+                continue;
+            }
+
+            foreach (var call in summary.Calls)
+            {
+                if (bySymbol.ContainsKey(call) && included.Add(call))
+                {
+                    queue.Enqueue((call, depth + 1));
+                }
+            }
+        }
+
+        return allSummaries.Where(summary => included.Contains(summary.Symbol));
     }
 
     private static MethodEffectSummary SummarizeMethod(
