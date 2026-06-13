@@ -184,6 +184,7 @@ public class TestClass
     [EnforcePure]
     public DateTime {|PS0002:TestMethod|}(string dateStr)
     {
+        // DateTime exact parsing can normalize offset-bearing input to local time.
         return DateTime.ParseExact(dateStr, ""O"", CultureInfo.InvariantCulture);
     }
 }";
@@ -205,6 +206,7 @@ public class TestClass
     [EnforcePure]
     public DateTime {|PS0002:TestMethod|}(string dateStr)
     {
+        // DateTime exact parsing can normalize offset-bearing input to local time.
         return DateTime.ParseExact(dateStr, ""O"", CultureInfo.InvariantCulture, DateTimeStyles.None);
     }
 }";
@@ -2646,6 +2648,7 @@ public class TestClass
     public DateTime {|PS0002:TestMethod|}(string dateStr)
     {
         ReadOnlySpan<char> span = dateStr.AsSpan();
+        // DateTime exact parsing can normalize offset-bearing input to local time.
         return DateTime.ParseExact(span, ""O"", CultureInfo.InvariantCulture, DateTimeStyles.None);
     }
 }";
