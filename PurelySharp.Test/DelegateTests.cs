@@ -303,6 +303,41 @@ public class TestClass
         }
 
         [Test]
+        public async Task DelegateMethodGroupFromVirtualReceiver_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class BaseWorker
+{
+    public virtual void Work()
+    {
+    }
+}
+
+public class ImpureWorker : BaseWorker
+{
+    public override void Work()
+    {
+        Console.WriteLine();
+    }
+}
+
+public class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}(BaseWorker worker)
+    {
+        Action action = worker.Work;
+        action();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DelegateCompoundAddPreservesUnknownTarget_Diagnostic()
         {
             var testCode = @"

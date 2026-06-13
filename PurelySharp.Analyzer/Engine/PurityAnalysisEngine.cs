@@ -2986,6 +2986,11 @@ namespace PurelySharp.Analyzer.Engine
 
             if (unwrapped is IMethodReferenceOperation methodRef)
             {
+                if (IsPotentiallyDispatchedDelegateTarget(methodRef))
+                {
+                    return PurityAnalysisEngine.PotentialTargets.Unresolved;
+                }
+
                 return PurityAnalysisEngine.PotentialTargets.FromSingle(methodRef.Method.OriginalDefinition);
             }
 
@@ -3003,6 +3008,11 @@ namespace PurelySharp.Analyzer.Engine
                 var target = SkipImplicitConversions(delegateCreation.Target);
                 if (target is IMethodReferenceOperation lambdaRef)
                 {
+                    if (IsPotentiallyDispatchedDelegateTarget(lambdaRef))
+                    {
+                        return PurityAnalysisEngine.PotentialTargets.Unresolved;
+                    }
+
                     return PurityAnalysisEngine.PotentialTargets.FromSingle(lambdaRef.Method.OriginalDefinition);
                 }
                 if (target is IAnonymousFunctionOperation anonymousTarget && anonymousTarget.Symbol != null)
@@ -3033,6 +3043,31 @@ namespace PurelySharp.Analyzer.Engine
             }
 
             return null;
+        }
+
+        private static bool IsPotentiallyDispatchedDelegateTarget(IMethodReferenceOperation methodReference)
+        {
+            var method = methodReference.Method;
+            if (method.IsSealed || method.ContainingType?.IsSealed == true)
+            {
+                return false;
+            }
+
+            if (method.ContainingType?.TypeKind != TypeKind.Interface &&
+                !method.IsAbstract &&
+                !method.IsVirtual &&
+                !method.IsOverride)
+            {
+                return false;
+            }
+
+            if (methodReference.Instance == null)
+            {
+                return false;
+            }
+
+            return methodReference.Instance.Type is not INamedTypeSymbol receiverType ||
+                !receiverType.IsSealed;
         }
 
         private static bool CanTrustDelegateInitializerSymbol(ISymbol symbol, SemanticModel semanticModel)
