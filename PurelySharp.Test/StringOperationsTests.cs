@@ -28,7 +28,7 @@ public class TestClass
     [EnforcePure]
     public string TestMethod(string input)
     {
-        // Split and the subsequent string/LINQ pipeline are treated as pure by the analyzer.
+        // Split is allowed here because the mutable array result is consumed locally.
         var words = input.Split(' ')
             .Where(w => !string.IsNullOrEmpty(w))
             .Select(w => w.Trim().ToLower())
@@ -38,6 +38,25 @@ public class TestClass
         return string.Join("" "", words);
     }
 }";
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task StringSplitReturnedArray_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public string[] {|PS0002:TestMethod|}(string input)
+    {
+        return input.Split(' ');
+    }
+}";
+
             await VerifyCS.VerifyAnalyzerAsync(test);
         }
 

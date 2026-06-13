@@ -49,6 +49,19 @@ namespace PurelySharp.Analyzer.Engine.Rules
                             symbol: factoryMethod,
                             catalogSource: "returned_array_factory"));
                 }
+                else if (IsPureArrayReturningInvocationReturn(returnOperation.ReturnedValue, out var arrayReturningMethod))
+                {
+                    PurityAnalysisEngine.LogDebug($"    [ReturnRule] Returned value escapes mutable array from known-pure method '{arrayReturningMethod.ToDisplayString()}'. Return statement is Impure.");
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                        returnOperation.ReturnedValue.Syntax,
+                        PurityAnalysisEngine.PurityEvidence.Create(
+                            "mutable_state_escape",
+                            ruleName: nameof(ReturnStatementPurityRule),
+                            operation: returnOperation,
+                            syntaxNode: returnOperation.ReturnedValue.Syntax,
+                            symbol: arrayReturningMethod,
+                            catalogSource: "returned_known_pure_array"));
+                }
                 else if (IsOwnedLocalArrayReturn(returnOperation.ReturnedValue, currentState, out var localSymbol))
                 {
                     PurityAnalysisEngine.LogDebug($"    [ReturnRule] Returned value escapes owned fresh local array '{localSymbol.Name}'. Return statement is Impure.");
@@ -121,6 +134,49 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             factoryMethod = null!;
             return false;
+        }
+
+        private static bool IsPureArrayReturningInvocationReturn(
+            IOperation? returnedValue,
+            out IMethodSymbol methodSymbol)
+        {
+            var unwrappedReturnedValue = PurityAnalysisEngine.UnwrapArrayOwnershipPreservingConversions(returnedValue);
+            if (unwrappedReturnedValue is IInvocationOperation invocationOperation &&
+                invocationOperation.Type is IArrayTypeSymbol &&
+                !IsArrayEmptyFactory(invocationOperation.TargetMethod.OriginalDefinition))
+            {
+                methodSymbol = invocationOperation.TargetMethod.OriginalDefinition;
+                return true;
+            }
+
+            if (unwrappedReturnedValue is IConditionalOperation conditionalOperation)
+            {
+                if (TryGetConstantCondition(conditionalOperation, out var conditionValue))
+                {
+                    return IsPureArrayReturningInvocationReturn(
+                        conditionValue ? conditionalOperation.WhenTrue : conditionalOperation.WhenFalse,
+                        out methodSymbol);
+                }
+
+                return IsPureArrayReturningInvocationReturn(conditionalOperation.WhenTrue, out methodSymbol) ||
+                    IsPureArrayReturningInvocationReturn(conditionalOperation.WhenFalse, out methodSymbol);
+            }
+
+            if (unwrappedReturnedValue is ICoalesceOperation coalesceOperation)
+            {
+                return IsPureArrayReturningInvocationReturn(coalesceOperation.Value, out methodSymbol) ||
+                    IsPureArrayReturningInvocationReturn(coalesceOperation.WhenNull, out methodSymbol);
+            }
+
+            methodSymbol = null!;
+            return false;
+        }
+
+        private static bool IsArrayEmptyFactory(IMethodSymbol methodSymbol)
+        {
+            return methodSymbol.Name == "Empty" &&
+                methodSymbol.Parameters.Length == 0 &&
+                methodSymbol.ContainingType?.SpecialType == SpecialType.System_Array;
         }
 
         private static bool IsOwnedLocalArrayReturn(
