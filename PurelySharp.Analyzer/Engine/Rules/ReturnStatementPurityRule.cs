@@ -62,6 +62,24 @@ namespace PurelySharp.Analyzer.Engine.Rules
                             symbol: localSymbol,
                             catalogSource: "owned_local_array_return"));
                 }
+                else if (TryFindReturnedInitializerArrayEscape(
+                             returnOperation.ReturnedValue,
+                             currentState,
+                             out var escapeSyntax,
+                             out var escapeSymbol,
+                             out var catalogSource))
+                {
+                    PurityAnalysisEngine.LogDebug($"    [ReturnRule] Returned initializer escapes mutable array through '{escapeSyntax}'. Return statement is Impure.");
+                    return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                        escapeSyntax,
+                        PurityAnalysisEngine.PurityEvidence.Create(
+                            "mutable_state_escape",
+                            ruleName: nameof(ReturnStatementPurityRule),
+                            operation: returnOperation,
+                            syntaxNode: escapeSyntax,
+                            symbol: escapeSymbol,
+                            catalogSource: catalogSource));
+                }
                 else
                 {
                     PurityAnalysisEngine.LogDebug($"    [ReturnRule] Returned value is pure. Return statement is Pure.");
@@ -139,6 +157,38 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             localSymbol = null!;
+            return false;
+        }
+
+        private static bool TryFindReturnedInitializerArrayEscape(
+            IOperation returnedValue,
+            PurityAnalysisEngine.PurityAnalysisState currentState,
+            out SyntaxNode escapeSyntax,
+            out ISymbol escapeSymbol,
+            out string catalogSource)
+        {
+            foreach (var assignment in returnedValue.DescendantsAndSelf().OfType<ISimpleAssignmentOperation>())
+            {
+                if (IsOwnedLocalArrayReturn(assignment.Value, currentState, out var localSymbol))
+                {
+                    escapeSyntax = assignment.Value.Syntax;
+                    escapeSymbol = localSymbol;
+                    catalogSource = "owned_local_array_initializer_escape";
+                    return true;
+                }
+
+                if (IsKnownPureArrayFactoryReturn(assignment.Value, out var factoryMethod))
+                {
+                    escapeSyntax = assignment.Value.Syntax;
+                    escapeSymbol = factoryMethod;
+                    catalogSource = "array_factory_initializer_escape";
+                    return true;
+                }
+            }
+
+            escapeSyntax = null!;
+            escapeSymbol = null!;
+            catalogSource = string.Empty;
             return false;
         }
 
