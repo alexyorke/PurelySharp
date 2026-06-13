@@ -105,6 +105,27 @@ public class TestClass
         }
 
         [Test]
+        public async Task CryptographicOperations_FixedTimeEquals_NoDiagnostic()
+        {
+            var test = @"
+#nullable enable
+using System;
+using System.Security.Cryptography;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public bool TestMethod(ReadOnlySpan<byte> left, ReadOnlySpan<byte> right)
+    {
+        return CryptographicOperations.FixedTimeEquals(left, right);
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task SignedCms_Decode_Diagnostic()
         {
             var test = @"

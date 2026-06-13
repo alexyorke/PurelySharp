@@ -45,6 +45,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Security.Cryptography;
 
 public sealed class NameCollection : KeyedCollection<string, string>
 {
@@ -62,6 +63,9 @@ public static class CatalogSignatureSamples
         _ = IPAddress.Loopback;
         _ = names.Contains(""alpha"");
         _ = new FileNotFoundException(""missing.txt"");
+        ReadOnlySpan<byte> left = stackalloc byte[1];
+        ReadOnlySpan<byte> right = stackalloc byte[1];
+        _ = CryptographicOperations.FixedTimeEquals(left, right);
         return Array.Empty<int>().Length + list.Count + now.Day;
     }
 }";
@@ -92,6 +96,9 @@ public static class CatalogSignatureSamples
 
             Assert.That(GetObjectCreationSignature(compilation, syntaxTree, "new FileNotFoundException(\"missing.txt\")"), Is.EqualTo("System.IO.FileNotFoundException.FileNotFoundException(string?)"));
             Assert.That(Constants.KnownPureBCLMembers, Does.Contain(GetObjectCreationSignature(compilation, syntaxTree, "new FileNotFoundException(\"missing.txt\")")));
+
+            Assert.That(GetInvocationSignature(compilation, syntaxTree, "CryptographicOperations.FixedTimeEquals(left, right)"), Is.EqualTo("System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(System.ReadOnlySpan<byte>, System.ReadOnlySpan<byte>)"));
+            Assert.That(Constants.KnownPureBCLMembers, Does.Contain(GetInvocationSignature(compilation, syntaxTree, "CryptographicOperations.FixedTimeEquals(left, right)")));
         }
 
         [Test]
