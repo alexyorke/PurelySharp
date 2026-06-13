@@ -17,6 +17,7 @@ The summary tool can inspect those assemblies directly and emit JSON facts such 
 - static and instance field writes
 - indirect memory writes through spans, pointers, refs, arrays, or block operations
 - throws
+- direct thrown exception types for simple IL patterns such as `new SomeException(...); throw`
 - P/Invoke, native, internal-call, abstract, and no-IL-body roots
 
 Those facts are intentionally lower-level than `pure` or `impure`. Final purity decisions should be made by a later fixed-point classifier that applies PurelySharp policy profiles to the evidence.
@@ -81,6 +82,8 @@ Propagate root candidate labels through same-assembly calls:
 ```powershell
 dotnet run --project Tools\PurelySharp.EffectSummary -- --framework net8.0 --symbol-prefix System.String.Format --include-callees --max-depth 2 --transitive-roots --limit 50
 ```
+
+When transitive roots are enabled, the JSON also includes `TransitiveThrownExceptionTypes`. For example, `System.ArgumentNullException.ThrowIfNull(...)` can surface `System.ArgumentNullException` from its helper callee even when the public guard method does not directly contain the `throw` instruction.
 
 Run against a specific assembly:
 

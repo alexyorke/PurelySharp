@@ -71,6 +71,7 @@
 - the effect-summary CLI can include same-assembly callees from matched symbols, enabling bounded rootward call-chain inspection before fixed-point classification
 - effect-summary JSON now includes explicit root candidate labels for P/Invoke, native/internal calls, metadata-only methods, static state, indirect memory writes, dynamic dispatch, throws, and block memory writes
 - effect-summary JSON can optionally propagate root candidate labels through same-assembly calls, creating the first fixed-point-style evidence layer for later policy classification
+- effect-summary JSON now includes direct and transitive thrown exception type evidence for simple IL throw patterns such as guard helpers
 - optional `PS0010` exception-flow summaries can report source-level uncaught exception types when `purelysharp_report_exceptions = true`
 - `PS0010` now propagates source-level exception summaries through same-compilation method calls and suppresses caller reports when the propagated exception is caught at the call site
 - `PS0010` now propagates source-level constructor exception summaries through object creation and suppresses caller reports when the constructor exception is caught at the creation site

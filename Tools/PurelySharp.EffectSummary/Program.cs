@@ -349,6 +349,7 @@ internal static class AssemblyEffectSummarizer
         var effects = new SortedSet<string>(StringComparer.Ordinal);
         var calls = new SortedSet<string>(StringComparer.Ordinal);
         var fields = new SortedSet<string>(StringComparer.Ordinal);
+        var thrownExceptionTypes = new SortedSet<string>(StringComparer.Ordinal);
 
         if ((definition.Attributes & MethodAttributes.Abstract) != 0)
         {
@@ -376,7 +377,7 @@ internal static class AssemblyEffectSummarizer
             var il = body.GetILBytes();
             if (il is not null)
             {
-                AnalyzeIl(reader, il, effects, calls, fields);
+                AnalyzeIl(reader, il, effects, calls, fields, thrownExceptionTypes);
             }
         }
 
@@ -387,6 +388,8 @@ internal static class AssemblyEffectSummarizer
             Effects: effects.ToArray(),
             RootCandidates: GetRootCandidates(effects).ToArray(),
             TransitiveRootCandidates: Array.Empty<string>(),
+            ThrownExceptionTypes: thrownExceptionTypes.ToArray(),
+            TransitiveThrownExceptionTypes: Array.Empty<string>(),
             Calls: calls.ToArray(),
             Fields: fields.ToArray());
     }
@@ -397,18 +400,21 @@ internal static class AssemblyEffectSummarizer
             .GroupBy(summary => summary.Symbol, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
 
-        var memo = new Dictionary<string, string[]>(StringComparer.Ordinal);
-        var visiting = new HashSet<string>(StringComparer.Ordinal);
+        var rootMemo = new Dictionary<string, string[]>(StringComparer.Ordinal);
+        var rootVisiting = new HashSet<string>(StringComparer.Ordinal);
+        var exceptionMemo = new Dictionary<string, string[]>(StringComparer.Ordinal);
+        var exceptionVisiting = new HashSet<string>(StringComparer.Ordinal);
 
         return summaries
             .Select(summary => summary with
             {
-                TransitiveRootCandidates = Visit(summary.Symbol, bySymbol, memo, visiting)
+                TransitiveRootCandidates = VisitRootCandidates(summary.Symbol, bySymbol, rootMemo, rootVisiting),
+                TransitiveThrownExceptionTypes = VisitThrownExceptionTypes(summary.Symbol, bySymbol, exceptionMemo, exceptionVisiting)
             })
             .ToList();
     }
 
-    private static string[] Visit(
+    private static string[] VisitRootCandidates(
         string symbol,
         IReadOnlyDictionary<string, MethodEffectSummary> bySymbol,
         Dictionary<string, string[]> memo,
@@ -434,12 +440,48 @@ internal static class AssemblyEffectSummarizer
         {
             if (bySymbol.ContainsKey(call))
             {
-                roots.UnionWith(Visit(call, bySymbol, memo, visiting));
+                roots.UnionWith(VisitRootCandidates(call, bySymbol, memo, visiting));
             }
         }
 
         visiting.Remove(symbol);
         var result = roots.ToArray();
+        memo[symbol] = result;
+        return result;
+    }
+
+    private static string[] VisitThrownExceptionTypes(
+        string symbol,
+        IReadOnlyDictionary<string, MethodEffectSummary> bySymbol,
+        Dictionary<string, string[]> memo,
+        HashSet<string> visiting)
+    {
+        if (memo.TryGetValue(symbol, out var cached))
+        {
+            return cached;
+        }
+
+        if (!bySymbol.TryGetValue(symbol, out var summary))
+        {
+            return Array.Empty<string>();
+        }
+
+        var thrownTypes = new SortedSet<string>(summary.ThrownExceptionTypes, StringComparer.Ordinal);
+        if (!visiting.Add(symbol))
+        {
+            return thrownTypes.ToArray();
+        }
+
+        foreach (var call in summary.Calls)
+        {
+            if (bySymbol.ContainsKey(call))
+            {
+                thrownTypes.UnionWith(VisitThrownExceptionTypes(call, bySymbol, memo, visiting));
+            }
+        }
+
+        visiting.Remove(symbol);
+        var result = thrownTypes.ToArray();
         memo[symbol] = result;
         return result;
     }
@@ -493,9 +535,11 @@ internal static class AssemblyEffectSummarizer
         byte[] il,
         SortedSet<string> effects,
         SortedSet<string> calls,
-        SortedSet<string> fields)
+        SortedSet<string> fields,
+        SortedSet<string> thrownExceptionTypes)
     {
         var offset = 0;
+        string? lastConstructedExceptionType = null;
         while (offset < il.Length)
         {
             var instructionOffset = offset;
@@ -510,6 +554,7 @@ internal static class AssemblyEffectSummarizer
 
             if (opCode == OpCodes.Call || opCode == OpCodes.Callvirt || opCode == OpCodes.Newobj)
             {
+                string? calledSymbol = null;
                 if (opCode == OpCodes.Newobj)
                 {
                     effects.Add("allocates_object");
@@ -526,7 +571,13 @@ internal static class AssemblyEffectSummarizer
 
                 if (operandToken is not null)
                 {
-                    calls.Add(ResolveMethodToken(reader, operandToken.Value));
+                    calledSymbol = ResolveMethodToken(reader, operandToken.Value);
+                    calls.Add(calledSymbol);
+                }
+
+                if (opCode == OpCodes.Newobj)
+                {
+                    lastConstructedExceptionType = TryGetConstructedExceptionType(calledSymbol);
                 }
             }
             else if (opCode == OpCodes.Calli)
@@ -564,6 +615,10 @@ internal static class AssemblyEffectSummarizer
             else if (opCode == OpCodes.Throw || opCode == OpCodes.Rethrow)
             {
                 effects.Add("throws");
+                if (lastConstructedExceptionType != null)
+                {
+                    thrownExceptionTypes.Add(lastConstructedExceptionType);
+                }
             }
             else if (IsIndirectWrite(opCode))
             {
@@ -587,7 +642,29 @@ internal static class AssemblyEffectSummarizer
                 effects.Add($"unknown_opcode_at_{instructionOffset}");
                 break;
             }
+
+            if (opCode != OpCodes.Newobj && opCode != OpCodes.Dup)
+            {
+                lastConstructedExceptionType = null;
+            }
         }
+    }
+
+    private static string? TryGetConstructedExceptionType(string? constructorSymbol)
+    {
+        if (string.IsNullOrWhiteSpace(constructorSymbol))
+        {
+            return null;
+        }
+
+        var ctorIndex = constructorSymbol.IndexOf("..ctor(", StringComparison.Ordinal);
+        if (ctorIndex <= 0)
+        {
+            return null;
+        }
+
+        var typeName = constructorSymbol.Substring(0, ctorIndex);
+        return typeName.EndsWith("Exception", StringComparison.Ordinal) ? typeName : null;
     }
 
     private static OpCode ReadOpCode(byte[] il, ref int offset)
@@ -938,5 +1015,7 @@ internal sealed record MethodEffectSummary(
     string[] Effects,
     string[] RootCandidates,
     string[] TransitiveRootCandidates,
+    string[] ThrownExceptionTypes,
+    string[] TransitiveThrownExceptionTypes,
     string[] Calls,
     string[] Fields);
