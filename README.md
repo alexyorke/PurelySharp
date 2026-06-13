@@ -252,7 +252,7 @@ This project is licensed under the MIT License.
 ### Statements
 
 - [x] Local declarations (with pure initializers)
-- [x] Return statements (only as the last statement, requires pure expression)
+- [x] Return statements - CFG analysis supports pure return expressions across reachable branches.
 - [x] Expression statements (Pure callees ok; assignments to locals ok; instance field / property writes impure.)
 - [x] If statements
 - [x] Switch statements
