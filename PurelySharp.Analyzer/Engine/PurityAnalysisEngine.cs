@@ -3119,7 +3119,38 @@ namespace PurelySharp.Analyzer.Engine
         {
             return IsTimeSpanInvariantCultureParseInvocation(invocationOperation) ||
                 IsDateTimeInvariantCultureParseExactInvocation(invocationOperation) ||
+                IsDateOnlyInvariantCultureParseExactInvocation(invocationOperation) ||
                 IsDateTimeOffsetInvariantCultureParseExactInvocation(invocationOperation);
+        }
+
+        private static bool IsDateOnlyInvariantCultureParseExactInvocation(IInvocationOperation invocationOperation)
+        {
+            var targetMethod = invocationOperation.TargetMethod?.OriginalDefinition;
+            if (targetMethod == null ||
+                targetMethod.ContainingType?.ToDisplayString() != "System.DateOnly" ||
+                targetMethod.Name != "ParseExact")
+            {
+                return false;
+            }
+
+            if (targetMethod.Parameters.Length == 3 &&
+                invocationOperation.Arguments.Length == 3 &&
+                targetMethod.Parameters[0].Type.SpecialType == SpecialType.System_String &&
+                IsSingleDateOnlyInvariantFormat(invocationOperation.Arguments[1].Value))
+            {
+                return IsCultureInfoInvariantCulture(invocationOperation.Arguments[2].Value);
+            }
+
+            if (targetMethod.Parameters.Length == 4 &&
+                invocationOperation.Arguments.Length == 4 &&
+                targetMethod.Parameters[0].Type.SpecialType == SpecialType.System_String &&
+                IsSingleDateOnlyInvariantFormat(invocationOperation.Arguments[1].Value) &&
+                IsDateTimeStylesNone(invocationOperation.Arguments[3].Value))
+            {
+                return IsCultureInfoInvariantCulture(invocationOperation.Arguments[2].Value);
+            }
+
+            return false;
         }
 
         private static bool IsDateTimeInvariantCultureParseExactInvocation(IInvocationOperation invocationOperation)
@@ -3196,6 +3227,14 @@ namespace PurelySharp.Analyzer.Engine
             return unwrappedOperation?.ConstantValue.HasValue == true &&
                 unwrappedOperation.ConstantValue.Value is string format &&
                 (format == "O" || format == "o");
+        }
+
+        private static bool IsSingleDateOnlyInvariantFormat(IOperation? operation)
+        {
+            var unwrappedOperation = SkipImplicitConversions(operation);
+            return unwrappedOperation?.ConstantValue.HasValue == true &&
+                unwrappedOperation.ConstantValue.Value is string format &&
+                format == "d";
         }
 
         private static bool IsSingleDateTimeOffsetRoundtripFormat(IOperation? operation)
