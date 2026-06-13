@@ -241,6 +241,36 @@ public class TestClass
         }
 
         [Test]
+        public async Task DelegateInvocation_ConstantConditionalDeadImpureTarget_NoDiagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public static void PureTarget()
+    {
+    }
+
+    public static void ImpureTarget()
+    {
+        Console.WriteLine();
+    }
+
+    [EnforcePure]
+    public void TestMethod()
+    {
+        Action action = true ? new Action(PureTarget) : new Action(ImpureTarget);
+        action();
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task DelegateCompoundAddPreservesUnknownTarget_Diagnostic()
         {
             var testCode = @"
