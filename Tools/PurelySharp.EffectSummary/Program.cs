@@ -696,79 +696,77 @@ internal static class AssemblyEffectSummarizer
 
     private static bool TryGetStoreLocalIndex(OpCode opCode, byte[] il, int operandOffset, out int localIndex)
     {
-        if (opCode == OpCodes.Stloc_0)
-        {
-            localIndex = 0;
-            return true;
-        }
-
-        if (opCode == OpCodes.Stloc_1)
-        {
-            localIndex = 1;
-            return true;
-        }
-
-        if (opCode == OpCodes.Stloc_2)
-        {
-            localIndex = 2;
-            return true;
-        }
-
-        if (opCode == OpCodes.Stloc_3)
-        {
-            localIndex = 3;
-            return true;
-        }
-
-        if (opCode == OpCodes.Stloc_S)
-        {
-            localIndex = il[operandOffset];
-            return true;
-        }
-
-        if (opCode == OpCodes.Stloc)
-        {
-            localIndex = BitConverter.ToUInt16(il, operandOffset);
-            return true;
-        }
-
-        localIndex = -1;
-        return false;
+        return TryGetLocalIndex(
+            opCode,
+            il,
+            operandOffset,
+            OpCodes.Stloc_0,
+            OpCodes.Stloc_1,
+            OpCodes.Stloc_2,
+            OpCodes.Stloc_3,
+            OpCodes.Stloc_S,
+            OpCodes.Stloc,
+            out localIndex);
     }
 
     private static bool TryGetLoadLocalIndex(OpCode opCode, byte[] il, int operandOffset, out int localIndex)
     {
-        if (opCode == OpCodes.Ldloc_0)
+        return TryGetLocalIndex(
+            opCode,
+            il,
+            operandOffset,
+            OpCodes.Ldloc_0,
+            OpCodes.Ldloc_1,
+            OpCodes.Ldloc_2,
+            OpCodes.Ldloc_3,
+            OpCodes.Ldloc_S,
+            OpCodes.Ldloc,
+            out localIndex);
+    }
+
+    private static bool TryGetLocalIndex(
+        OpCode opCode,
+        byte[] il,
+        int operandOffset,
+        OpCode index0,
+        OpCode index1,
+        OpCode index2,
+        OpCode index3,
+        OpCode shortForm,
+        OpCode wideForm,
+        out int localIndex)
+    {
+        if (opCode == index0)
         {
             localIndex = 0;
             return true;
         }
 
-        if (opCode == OpCodes.Ldloc_1)
+        if (opCode == index1)
         {
             localIndex = 1;
             return true;
         }
 
-        if (opCode == OpCodes.Ldloc_2)
+        if (opCode == index2)
         {
             localIndex = 2;
             return true;
         }
 
-        if (opCode == OpCodes.Ldloc_3)
+        if (opCode == index3)
         {
             localIndex = 3;
             return true;
         }
 
-        if (opCode == OpCodes.Ldloc_S)
+        if (opCode == shortForm)
         {
             localIndex = il[operandOffset];
             return true;
         }
 
-        if (opCode == OpCodes.Ldloc)
+        if (opCode == wideForm)
         {
             localIndex = BitConverter.ToUInt16(il, operandOffset);
             return true;
