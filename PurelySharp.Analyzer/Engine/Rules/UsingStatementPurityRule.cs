@@ -172,6 +172,18 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Implicit Dispose() call on '{local.Name}' ({disposeMethod.Name}) was analyzed as Pure.");
 
                 }
+
+                if (isAwaitUsing)
+                {
+                    var awaitPatternResult = AwaitPurityRule.CheckAwaitablePatternMembers(
+                        disposeMethod.ReturnType,
+                        impureSyntaxNode ?? operation.Syntax,
+                        context);
+                    if (!awaitPatternResult.IsPure)
+                    {
+                        return awaitPatternResult;
+                    }
+                }
             }
 
             if (declaredLocals.Count == 0)
@@ -199,6 +211,18 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     }
 
                     PurityAnalysisEngine.LogDebug($" UsingStatementPurityRule: Implicit Dispose() call on expression resource ({disposeMethod.Name}) was analyzed as Pure.");
+
+                    if (isAwaitUsing)
+                    {
+                        var awaitPatternResult = AwaitPurityRule.CheckAwaitablePatternMembers(
+                            disposeMethod.ReturnType,
+                            impureSyntaxNode ?? operation.Syntax,
+                            context);
+                        if (!awaitPatternResult.IsPure)
+                        {
+                            return awaitPatternResult;
+                        }
+                    }
                 }
             }
 

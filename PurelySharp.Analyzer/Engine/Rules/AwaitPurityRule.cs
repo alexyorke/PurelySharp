@@ -42,6 +42,54 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
         }
 
+        internal static PurityAnalysisEngine.PurityAnalysisResult CheckAwaitablePatternMembers(
+            ITypeSymbol? awaitableType,
+            SyntaxNode awaitSyntax,
+            PurityAnalysisContext context)
+        {
+            var getAwaiterMethod = awaitableType?
+                .GetMembers("GetAwaiter")
+                .OfType<IMethodSymbol>()
+                .FirstOrDefault(method => method.Parameters.Length == 0);
+
+            var getAwaiterResult = CheckAwaitPatternMethod(getAwaiterMethod, awaitSyntax, context);
+            if (!getAwaiterResult.IsPure)
+            {
+                return getAwaiterResult;
+            }
+
+            var awaiterType = getAwaiterMethod?.ReturnType;
+            var isCompletedProperty = awaiterType?
+                .GetMembers("IsCompleted")
+                .OfType<IPropertySymbol>()
+                .FirstOrDefault(property => property.Type.SpecialType == SpecialType.System_Boolean);
+
+            var isCompletedResult = CheckAwaitPatternMethod(isCompletedProperty?.GetMethod, awaitSyntax, context);
+            if (!isCompletedResult.IsPure)
+            {
+                return isCompletedResult;
+            }
+
+            if (!IsKnownConstantTrueIsCompletedGetter(isCompletedProperty?.GetMethod, context.SemanticModel))
+            {
+                var continuationSchedulingResult = CheckAwaitContinuationSchedulingMethods(
+                    awaiterType,
+                    awaitSyntax,
+                    context);
+                if (!continuationSchedulingResult.IsPure)
+                {
+                    return continuationSchedulingResult;
+                }
+            }
+
+            var getResultMethod = awaiterType?
+                .GetMembers("GetResult")
+                .OfType<IMethodSymbol>()
+                .FirstOrDefault(method => method.Parameters.Length == 0);
+
+            return CheckAwaitPatternMethod(getResultMethod, awaitSyntax, context);
+        }
+
         private static PurityAnalysisEngine.PurityAnalysisResult CheckAwaitPatternMembers(
             IAwaitOperation awaitOperation,
             PurityAnalysisContext context)
