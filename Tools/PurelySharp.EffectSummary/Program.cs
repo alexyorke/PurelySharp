@@ -30,7 +30,8 @@ internal static class EffectSummaryCli
                 options.Limit,
                 options.SymbolPrefixes,
                 options.IncludeCallees,
-                options.MaxDepth))
+                options.MaxDepth,
+                options.IncludeTransitiveRoots))
             .ToArray();
 
         var document = new EffectSummaryDocument(
@@ -73,6 +74,7 @@ internal static class EffectSummaryCli
         Console.Error.WriteLine("  --symbol-prefix <prefix>   Emit only methods whose decoded symbol starts with this prefix. Can be repeated.");
         Console.Error.WriteLine("  --include-callees          Also emit same-assembly callees reachable from matched symbols.");
         Console.Error.WriteLine("  --max-depth <count>        Maximum same-assembly callee depth when --include-callees is used. Default: 1.");
+        Console.Error.WriteLine("  --transitive-roots         Propagate root candidate labels through same-assembly calls.");
         Console.Error.WriteLine("  --output <path>            Write JSON to a file instead of stdout.");
         Console.Error.WriteLine("  --limit <count>            Limit emitted method summaries for smoke testing.");
         Console.Error.WriteLine("  --help                     Show this help.");
@@ -96,6 +98,8 @@ internal sealed class CliOptions
     public bool IncludeCallees { get; private set; }
 
     public int MaxDepth { get; private set; } = 1;
+
+    public bool IncludeTransitiveRoots { get; private set; }
 
     public bool ShowHelp { get; private set; }
 
@@ -124,6 +128,9 @@ internal sealed class CliOptions
                     break;
                 case "--max-depth":
                     options.MaxDepth = int.Parse(ReadRequiredValue(args, ref i, arg));
+                    break;
+                case "--transitive-roots":
+                    options.IncludeTransitiveRoots = true;
                     break;
                 case "--output":
                     options.OutputPath = ReadRequiredValue(args, ref i, arg);
@@ -225,7 +232,8 @@ internal static class AssemblyEffectSummarizer
         int? limit,
         IReadOnlyList<string> symbolPrefixes,
         bool includeCallees,
-        int maxDepth)
+        int maxDepth,
+        bool includeTransitiveRoots)
     {
         using var stream = File.OpenRead(assemblyPath);
         using var peReader = new PEReader(stream);
@@ -244,6 +252,11 @@ internal static class AssemblyEffectSummarizer
         foreach (var handle in reader.MethodDefinitions)
         {
             allSummaries.Add(SummarizeMethod(peReader, reader, handle));
+        }
+
+        if (includeTransitiveRoots)
+        {
+            allSummaries = AddTransitiveRootCandidates(allSummaries);
         }
 
         var summaries = SelectSummaries(allSummaries, symbolPrefixes, includeCallees, maxDepth, limit);
@@ -373,8 +386,62 @@ internal static class AssemblyEffectSummarizer
             RelativeVirtualAddress: definition.RelativeVirtualAddress,
             Effects: effects.ToArray(),
             RootCandidates: GetRootCandidates(effects).ToArray(),
+            TransitiveRootCandidates: Array.Empty<string>(),
             Calls: calls.ToArray(),
             Fields: fields.ToArray());
+    }
+
+    private static List<MethodEffectSummary> AddTransitiveRootCandidates(IReadOnlyList<MethodEffectSummary> summaries)
+    {
+        var bySymbol = summaries
+            .GroupBy(summary => summary.Symbol, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+
+        var memo = new Dictionary<string, string[]>(StringComparer.Ordinal);
+        var visiting = new HashSet<string>(StringComparer.Ordinal);
+
+        return summaries
+            .Select(summary => summary with
+            {
+                TransitiveRootCandidates = Visit(summary.Symbol, bySymbol, memo, visiting)
+            })
+            .ToList();
+    }
+
+    private static string[] Visit(
+        string symbol,
+        IReadOnlyDictionary<string, MethodEffectSummary> bySymbol,
+        Dictionary<string, string[]> memo,
+        HashSet<string> visiting)
+    {
+        if (memo.TryGetValue(symbol, out var cached))
+        {
+            return cached;
+        }
+
+        if (!bySymbol.TryGetValue(symbol, out var summary))
+        {
+            return Array.Empty<string>();
+        }
+
+        var roots = new SortedSet<string>(summary.RootCandidates, StringComparer.Ordinal);
+        if (!visiting.Add(symbol))
+        {
+            return roots.ToArray();
+        }
+
+        foreach (var call in summary.Calls)
+        {
+            if (bySymbol.ContainsKey(call))
+            {
+                roots.UnionWith(Visit(call, bySymbol, memo, visiting));
+            }
+        }
+
+        visiting.Remove(symbol);
+        var result = roots.ToArray();
+        memo[symbol] = result;
+        return result;
     }
 
     private static IEnumerable<string> GetRootCandidates(IEnumerable<string> effects)
@@ -870,5 +937,6 @@ internal sealed record MethodEffectSummary(
     int RelativeVirtualAddress,
     string[] Effects,
     string[] RootCandidates,
+    string[] TransitiveRootCandidates,
     string[] Calls,
     string[] Fields);

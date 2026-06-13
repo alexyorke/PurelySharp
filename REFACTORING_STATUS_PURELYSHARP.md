@@ -70,6 +70,7 @@
 - the effect-summary CLI can filter by decoded symbol prefix, enabling targeted review of BCL families such as `System.String.Format`
 - the effect-summary CLI can include same-assembly callees from matched symbols, enabling bounded rootward call-chain inspection before fixed-point classification
 - effect-summary JSON now includes explicit root candidate labels for P/Invoke, native/internal calls, metadata-only methods, static state, indirect memory writes, dynamic dispatch, throws, and block memory writes
+- effect-summary JSON can optionally propagate root candidate labels through same-assembly calls, creating the first fixed-point-style evidence layer for later policy classification
 - `await using` now prefers `DisposeAsync()` over `Dispose()` when both are available, so impure async cleanup is reported instead of hidden by a pure synchronous disposer
 - configured impure types/namespaces now take precedence over hardcoded known-pure BCL heuristics, while exact configured pure member overrides remain narrow
 - custom awaiter analysis now includes source-defined `OnCompleted` and `UnsafeOnCompleted` continuation scheduling methods in addition to `GetAwaiter`, `IsCompleted`, and `GetResult`

@@ -76,6 +76,12 @@ Include same-assembly callees from the matched symbols:
 dotnet run --project Tools\PurelySharp.EffectSummary -- --framework net8.0 --symbol-prefix System.String.Format --include-callees --max-depth 1 --limit 50
 ```
 
+Propagate root candidate labels through same-assembly calls:
+
+```powershell
+dotnet run --project Tools\PurelySharp.EffectSummary -- --framework net8.0 --symbol-prefix System.String.Format --include-callees --max-depth 2 --transitive-roots --limit 50
+```
+
 Run against a specific assembly:
 
 ```powershell
