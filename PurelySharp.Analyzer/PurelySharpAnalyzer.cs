@@ -25,7 +25,8 @@ namespace PurelySharp.Analyzer
                                   PurelySharpDiagnostics.AllowSynchronizationWithoutPurityAttributeRule,
                                   PurelySharpDiagnostics.MisplacedAllowSynchronizationAttributeRule,
                                   PurelySharpDiagnostics.RedundantAllowSynchronizationRule,
-                                  PurelySharpDiagnostics.PurityExplanationRule);
+                                  PurelySharpDiagnostics.PurityExplanationRule,
+                                  PurelySharpDiagnostics.ExceptionSummaryRule);
 
         public override void Initialize(AnalysisContext context)
         {
@@ -45,6 +46,7 @@ namespace PurelySharp.Analyzer
                     using (Engine.ImpurityCatalog.UseConfiguredOverrides(config))
                     {
                         MethodPurityAnalyzer.AnalyzeSymbolForPurity(c, purityService, missingPuritySuggestions, emitExplanations, baseline);
+                        ExceptionFlowAnalyzer.AnalyzeSymbolForExceptions(c, config.ReportExceptions);
                     }
                 },
                     SyntaxKind.MethodDeclaration,

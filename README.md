@@ -2,7 +2,7 @@
 
 A Roslyn analyzer designed to help enforce method purity in C# projects.
 
-**Note:** PurelySharp **v1** ships a full diagnostic surface (`PS0002`-`PS0009`), code fixes, editor/MSBuild configuration, CFG-based method-body analysis, and the feature matrix below. It is **conservative by design**: it may report `PS0002` when it cannot prove purity. **Perfect** purity verification for arbitrary C# and the whole BCL is **not possible** (undecidable in the general case); this tool implements practical, bounded rules and catalogs instead.
+**Note:** PurelySharp **v1** ships a full diagnostic surface (`PS0002`-`PS0010`), code fixes, editor/MSBuild configuration, CFG-based method-body analysis, and the feature matrix below. It is **conservative by design**: it may report `PS0002` when it cannot prove purity. **Perfect** purity verification for arbitrary C# and the whole BCL is **not possible** (undecidable in the general case); this tool implements practical, bounded rules and catalogs instead.
 
 ## Goal
 
@@ -33,6 +33,7 @@ The analyzer provides the following checks:
 
 - **Code fixes** (`PurelySharp.CodeFixes`) for `PS0002`-`PS0008` (remove/add attributes, resolve conflicts). The demo and tests reference the code-fix project where applicable.
 - **Configuration** via `.editorconfig` / MSBuild `global analyzerconfig`: `purelysharp_known_impure_methods`, `purelysharp_known_pure_methods`, `purelysharp_known_impure_namespaces`, `purelysharp_known_impure_types`, `purelysharp_purity_profile` (`balanced`, `strict`, `pragmatic`; default `balanced`), `purelysharp_enable_debug_logging`, `purelysharp_suggest_missing_enforce_pure` (`true`/`false`, default `true`), and `purelysharp_suggest_missing_enforce_pure_scope` (`all`, `public`, `internal`, `off`, default `all`) to tune `PS0004` suggestions. The `strict` profile currently tightens mutable `this` field reads; `balanced` preserves the default adoption behavior. Optional PS0004 filters include `purelysharp_suggest_missing_enforce_pure_exclude_generated`, `purelysharp_suggest_missing_enforce_pure_exclude_tests`, `purelysharp_suggest_missing_enforce_pure_min_complexity`, and `purelysharp_suggest_missing_enforce_pure_namespace_filters`; these PS0004 controls honor per-file `.editorconfig` sections. Adoption baselines are supported through an additional file named `PurelySharp.Baseline.json`, matching diagnostics by ID, symbol documentation ID, and relative path. Boundary attributes `[PureExternal]` and `[Impure]` let teams explicitly trust or reject boundary methods, properties, constructors, or whole assemblies without broad catalog changes.
+- **Exception-flow summaries** are available as opt-in `PS0010` diagnostics with `purelysharp_report_exceptions = true`. The first implementation reports source-level uncaught `throw` / throw-expression exception types, suppresses simple caught throws, and keeps nested lambdas/local functions separate. Library-call exception propagation is planned to build on the effect-summary tooling.
 - **`[AllowSynchronization]`** is supported alongside `[EnforcePure]`/`[Pure]` (`PS0006`-`PS0008`).
 
 ## How It Works
@@ -135,6 +136,13 @@ Note: Diagnostic messages refer to `[EnforcePure]` and `[Pure]` interchangeably.
   - **Severity:** Error (default; can be overridden in `.editorconfig` / ruleset)
   - **Meaning:** The method is marked for purity analysis, but the engine found at least one operation it treats as impure or could not classify as proven pure.
   - Note: Triggered for methods marked with either `[EnforcePure]` or `[Pure]`.
+
+- **PS0010: Method May Throw Exceptions**
+
+  - **Message:** `Method '{0}' can throw: {1}`
+  - **Severity:** Info
+  - **Enabled by:** `.editorconfig` option `purelysharp_report_exceptions = true`
+  - **Meaning:** The analyzer found uncaught source-level `throw` or throw-expression paths and reports the exception type list in the diagnostic message and `purelysharp.exceptions.types` property.
 
 - **PS0003: Misplaced Attribute**
   - **Message:** `The [EnforcePure] attribute can only be applied to method declarations.`

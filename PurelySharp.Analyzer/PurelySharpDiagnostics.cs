@@ -58,6 +58,21 @@ namespace PurelySharp.Analyzer
             isEnabledByDefault: true,
             description: PurityExplanationDescription);
 
+        public const string ExceptionSummaryId = "PS0010";
+        public const string ExceptionTypesProperty = "purelysharp.exceptions.types";
+        private static readonly LocalizableString ExceptionSummaryTitle = "Method May Throw Exceptions";
+        private static readonly LocalizableString ExceptionSummaryMessageFormat = "Method '{0}' can throw: {1}";
+        private static readonly LocalizableString ExceptionSummaryDescription = "Reports exception types that can escape a method. Enable with purelysharp_report_exceptions = true.";
+
+        public static readonly DiagnosticDescriptor ExceptionSummaryRule = new DiagnosticDescriptor(
+            id: ExceptionSummaryId,
+            title: ExceptionSummaryTitle,
+            messageFormat: ExceptionSummaryMessageFormat,
+            category: "ExceptionFlow",
+            defaultSeverity: DiagnosticSeverity.Info,
+            isEnabledByDefault: true,
+            description: ExceptionSummaryDescription);
+
 
         public const string MisplacedAttributeId = "PS0003";
         private static readonly LocalizableString MisplacedAttributeTitle = "Misplaced [EnforcePure] Attribute";

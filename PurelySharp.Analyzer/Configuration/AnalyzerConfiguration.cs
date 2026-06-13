@@ -16,6 +16,7 @@ namespace PurelySharp.Analyzer.Configuration
         public bool SuggestMissingEnforcePure { get; }
         public MissingPuritySuggestionOptions MissingPuritySuggestions { get; }
         public bool EmitExplanations { get; }
+        public bool ReportExceptions { get; }
         public string PurityProfile { get; }
 
         private AnalyzerConfiguration(
@@ -27,6 +28,7 @@ namespace PurelySharp.Analyzer.Configuration
             bool suggestMissingEnforcePure,
             MissingPuritySuggestionOptions missingPuritySuggestions,
             bool emitExplanations,
+            bool reportExceptions,
             string purityProfile)
         {
             ExtraKnownImpureMethods = extraImpureMethods;
@@ -37,6 +39,7 @@ namespace PurelySharp.Analyzer.Configuration
             SuggestMissingEnforcePure = suggestMissingEnforcePure;
             MissingPuritySuggestions = missingPuritySuggestions;
             EmitExplanations = emitExplanations;
+            ReportExceptions = reportExceptions;
             PurityProfile = purityProfile;
         }
 
@@ -56,7 +59,8 @@ namespace PurelySharp.Analyzer.Configuration
                 GetNonNegativeInt(options, ConfigKeys.SuggestMissingEnforcePureMinComplexity),
                 GetValues(options, ConfigKeys.SuggestMissingEnforcePureNamespaceFilters));
             bool emitExplanations = GetBool(options, ConfigKeys.EmitExplanations);
-            return new AnalyzerConfiguration(impureMethods, pureMethods, impureNamespaces, impureTypes, debug, suggestMissing, missingPuritySuggestions, emitExplanations, GetPurityProfile(options));
+            bool reportExceptions = GetBool(options, ConfigKeys.ReportExceptions);
+            return new AnalyzerConfiguration(impureMethods, pureMethods, impureNamespaces, impureTypes, debug, suggestMissing, missingPuritySuggestions, emitExplanations, reportExceptions, GetPurityProfile(options));
         }
 
         public static MissingPuritySuggestionOptions GetMissingPuritySuggestionOptions(
@@ -91,6 +95,22 @@ namespace PurelySharp.Analyzer.Configuration
             {
                 var treeOptions = options.AnalyzerConfigOptionsProvider.GetOptions(syntaxTree);
                 return GetBoolOrDefault(treeOptions, ConfigKeys.EmitExplanations, fallback);
+            }
+            catch
+            {
+                return fallback;
+            }
+        }
+
+        public static bool GetReportExceptions(
+            AnalyzerOptions options,
+            SyntaxTree syntaxTree,
+            bool fallback)
+        {
+            try
+            {
+                var treeOptions = options.AnalyzerConfigOptionsProvider.GetOptions(syntaxTree);
+                return GetBoolOrDefault(treeOptions, ConfigKeys.ReportExceptions, fallback);
             }
             catch
             {

@@ -1220,6 +1220,98 @@ public class TestClass
             Assert.That(explanationDiagnostics.Any(d => d.Id == PurelySharpDiagnostics.PurityExplanationId), Is.True);
         }
 
+        [Test]
+        public async Task Ps0010_ExceptionSummary_IsOptIn()
+        {
+            var source = @"
+using System;
+
+public class TestClass
+{
+    public void TestMethod()
+    {
+        throw new InvalidOperationException();
+    }
+}";
+
+            var defaultDiagnostics = await GetAnalyzerDiagnosticsAsync(source);
+            var exceptionDiagnostics = await GetAnalyzerDiagnosticsAsync(
+                source,
+                ImmutableDictionary<string, string>.Empty.Add("purelysharp_report_exceptions", "true"));
+
+            Assert.That(defaultDiagnostics.Any(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId), Is.False);
+            Assert.That(exceptionDiagnostics.Any(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId), Is.True);
+        }
+
+        [Test]
+        public async Task Ps0010_DirectThrows_ReportsExceptionTypes()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+
+public class TestClass
+{
+    public string TestMethod(string? value)
+    {
+        if (value == null)
+        {
+            throw new ArgumentNullException(nameof(value));
+        }
+
+        return value.Length > 0 ? value : throw new InvalidOperationException();
+    }
+}",
+                ImmutableDictionary<string, string>.Empty.Add("purelysharp_report_exceptions", "true"));
+
+            var diagnostic = SingleDiagnostic(diagnostics, PurelySharpDiagnostics.ExceptionSummaryId);
+
+            Assert.That(diagnostic.GetMessage(), Does.Contain("System.ArgumentNullException"));
+            Assert.That(diagnostic.GetMessage(), Does.Contain("System.InvalidOperationException"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ExceptionTypesProperty], Is.EqualTo("System.ArgumentNullException;System.InvalidOperationException"));
+        }
+
+        [Test]
+        public async Task Ps0010_CaughtThrow_IsSuppressed()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+
+public class TestClass
+{
+    public void TestMethod()
+    {
+        try
+        {
+            throw new InvalidOperationException();
+        }
+        catch (InvalidOperationException)
+        {
+        }
+    }
+}",
+                ImmutableDictionary<string, string>.Empty.Add("purelysharp_report_exceptions", "true"));
+
+            Assert.That(diagnostics.Any(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId), Is.False);
+        }
+
+        [Test]
+        public async Task Ps0010_NestedLambdaThrow_IsNotReportedOnOuterMethod()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+
+public class TestClass
+{
+    public Func<int> TestMethod()
+    {
+        return () => throw new InvalidOperationException();
+    }
+}",
+                ImmutableDictionary<string, string>.Empty.Add("purelysharp_report_exceptions", "true"));
+
+            Assert.That(diagnostics.Any(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId), Is.False);
+        }
+
         private static Diagnostic SingleDiagnostic(ImmutableArray<Diagnostic> diagnostics, string diagnosticId)
         {
             return diagnostics.Single(d => d.Id == diagnosticId);
