@@ -372,8 +372,53 @@ internal static class AssemblyEffectSummarizer
             MetadataToken: $"0x{MetadataTokens.GetToken(handle):X8}",
             RelativeVirtualAddress: definition.RelativeVirtualAddress,
             Effects: effects.ToArray(),
+            RootCandidates: GetRootCandidates(effects).ToArray(),
             Calls: calls.ToArray(),
             Fields: fields.ToArray());
+    }
+
+    private static IEnumerable<string> GetRootCandidates(IEnumerable<string> effects)
+    {
+        var roots = new SortedSet<string>(StringComparer.Ordinal);
+        foreach (var effect in effects)
+        {
+            switch (effect)
+            {
+                case "pinvoke":
+                    roots.Add("pinvoke");
+                    break;
+                case "native_or_internal_call":
+                    roots.Add("runtime_native_or_internal");
+                    break;
+                case "no_il_body":
+                    roots.Add("metadata_only_or_external");
+                    break;
+                case "reads_static_field":
+                    roots.Add("global_state_read");
+                    break;
+                case "writes_static_field":
+                    roots.Add("global_state_write");
+                    break;
+                case "writes_instance_field":
+                    roots.Add("object_state_write");
+                    break;
+                case "writes_indirect_memory":
+                    roots.Add("caller_visible_memory_write");
+                    break;
+                case "indirect_call":
+                case "virtual_call":
+                    roots.Add("dynamic_dispatch");
+                    break;
+                case "throws":
+                    roots.Add("throw");
+                    break;
+                case "block_memory_write":
+                    roots.Add("unsafe_or_block_memory_write");
+                    break;
+            }
+        }
+
+        return roots;
     }
 
     private static void AnalyzeIl(
@@ -824,5 +869,6 @@ internal sealed record MethodEffectSummary(
     string MetadataToken,
     int RelativeVirtualAddress,
     string[] Effects,
+    string[] RootCandidates,
     string[] Calls,
     string[] Fields);

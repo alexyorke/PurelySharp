@@ -21,6 +21,21 @@ The summary tool can inspect those assemblies directly and emit JSON facts such 
 
 Those facts are intentionally lower-level than `pure` or `impure`. Final purity decisions should be made by a later fixed-point classifier that applies PurelySharp policy profiles to the evidence.
 
+Each method also emits `RootCandidates`, which are explicit review categories derived from low-level effects:
+
+- `pinvoke`
+- `runtime_native_or_internal`
+- `metadata_only_or_external`
+- `global_state_read`
+- `global_state_write`
+- `object_state_write`
+- `caller_visible_memory_write`
+- `dynamic_dispatch`
+- `throw`
+- `unsafe_or_block_memory_write`
+
+These are not final purity verdicts. They are evidence labels used to seed later policy-aware fixed-point classification.
+
 ## Root seed policy
 
 Some roots cannot be proven from managed IL alone:
