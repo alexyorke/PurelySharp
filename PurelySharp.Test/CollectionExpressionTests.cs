@@ -36,6 +36,25 @@ public class CollectionExpressionExample
         }
 
         [Test]
+        public async Task PureMethod_CreateImmutableArrayRangeFromFreshArray_NoDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System.Collections.Immutable;
+
+public class CollectionExpressionExample
+{
+    [EnforcePure]
+    public ImmutableArray<int> GetNumbers()
+    {
+        return ImmutableArray.CreateRange(new[] { 1, 2, 3 });
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task PureMethod_CreateImmutableList_NoDiagnostic()
         {
             var test = @"

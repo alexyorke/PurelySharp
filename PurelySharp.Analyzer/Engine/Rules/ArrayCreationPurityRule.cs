@@ -67,6 +67,12 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     return PurityAnalysisResult.Pure;
                 }
 
+                if (IsTransientImmutableArrayFactoryArgument(arrayCreation))
+                {
+                    LogDebug($"    [ArrCreateRule] Array creation '{arrayCreation.Syntax}' is a transient immutable-array factory source. Treating as PURE.");
+                    return PurityAnalysisResult.Pure;
+                }
+
                 LogDebug($"    [ArrCreateRule] Array creation '{arrayCreation.Syntax}' is IMPURE (mutable allocation, not for params).");
                 return PurityAnalysisResult.Impure(
                     arrayCreation.Syntax,
@@ -104,6 +110,26 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             return false;
+        }
+
+        private static bool IsTransientImmutableArrayFactoryArgument(IArrayCreationOperation arrayCreation)
+        {
+            IOperation? current = arrayCreation.Parent;
+
+            while (current is IConversionOperation conversionOperation)
+            {
+                current = conversionOperation.Parent;
+            }
+
+            if (current is not IArgumentOperation argumentOperation ||
+                argumentOperation.Parent is not IInvocationOperation invocationOperation)
+            {
+                return false;
+            }
+
+            var method = invocationOperation.TargetMethod?.OriginalDefinition;
+            return method?.Name == "CreateRange" &&
+                method.ContainingType?.OriginalDefinition.ToDisplayString() == "System.Collections.Immutable.ImmutableArray";
         }
 
         private static PurityAnalysisResult CheckDimensionSizes(
