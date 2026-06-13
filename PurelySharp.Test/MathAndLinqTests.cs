@@ -173,7 +173,7 @@ public class TestClass
     [EnforcePure]
     public IEnumerable<int> TestMethod(IEnumerable<int> numbers)
     {
-        // Impure due to DelegateCreation
+        // Pure deferred LINQ delegate chain should stay diagnostic-free.
         return numbers.Where(x => x > 0)
                      .Select(x => x * x)
                      .OrderBy(x => x);
