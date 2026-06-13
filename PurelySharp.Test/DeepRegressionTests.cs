@@ -131,6 +131,63 @@ public class TestClass
         }
 
         [Test]
+        public async Task ConstantSwitchStatementPatternWhenTrue_ReachesImpureSection_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:Run|}()
+    {
+        switch (1)
+        {
+            case 1 when true:
+                Console.WriteLine(""reachable"");
+                return;
+            default:
+                return;
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ConstantSwitchStatementPatternWhenUnknown_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public class TestClass
+{
+    private static bool ImpureCondition()
+    {
+        Console.WriteLine(""condition"");
+        return true;
+    }
+
+    [EnforcePure]
+    public void {|PS0002:Run|}()
+    {
+        switch (1)
+        {
+            case 1 when ImpureCondition():
+                return;
+            default:
+                return;
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task ConstantSwitchGotoDefault_ReachesThrow_Diagnostic()
         {
             var test = @"

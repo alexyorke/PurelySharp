@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1701/1701` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1703/1703` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -61,6 +61,7 @@
 - dictionary indexer reads now inspect source-defined receiver constructors for custom comparer instances before trusting builtin-key equality dispatch
 - sorted collection lookups now inspect source-defined receiver constructors for custom comparer instances before trusting builtin-key comparison dispatch
 - constant-switch reachability pruning now follows `goto case` and `goto default` edges before treating unmatched sections as dead
+- constant-switch reachability pruning now includes matching pattern labels with constant `when` guards and stays conservative for runtime guards
 - return escape analysis now rejects owned fresh arrays assigned into returned object initializer members
 - deterministic `System.Version(int, int)` construction now has direct regression coverage for existing constructor handling
 - explicit conversions from `dynamic` now report conservative `dynamic_dispatch` impurity instead of being treated as ordinary pure conversions

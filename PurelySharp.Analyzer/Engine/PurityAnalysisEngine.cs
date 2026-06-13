@@ -1764,6 +1764,20 @@ namespace PurelySharp.Analyzer.Engine
                             break;
                         }
                     }
+                    else if (label is Microsoft.CodeAnalysis.CSharp.Syntax.CasePatternSwitchLabelSyntax patternLabel &&
+                             MatchesConstantSwitchPattern(patternLabel.Pattern, governingValue.Value, semanticModel))
+                    {
+                        if (IsUnknownWhenClause(patternLabel.WhenClause, semanticModel))
+                        {
+                            return false;
+                        }
+
+                        if (IsConstantTrueWhenClause(patternLabel.WhenClause, semanticModel))
+                        {
+                            matchedSection = section;
+                            break;
+                        }
+                    }
                 }
 
                 if (matchedSection != null)
