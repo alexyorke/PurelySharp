@@ -49,6 +49,12 @@ Smoke run against the latest installed .NET 8 `System.Private.CoreLib.dll`:
 dotnet run --project Tools\PurelySharp.EffectSummary -- --framework net8.0 --limit 20
 ```
 
+Inspect a specific API family such as `System.String.Format`:
+
+```powershell
+dotnet run --project Tools\PurelySharp.EffectSummary -- --framework net8.0 --symbol-prefix System.String.Format --limit 20
+```
+
 Run against a specific assembly:
 
 ```powershell

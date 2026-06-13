@@ -25,7 +25,7 @@ internal static class EffectSummaryCli
             : options.AssemblyPaths.Select(Path.GetFullPath).ToArray();
 
         var reports = assemblies
-            .Select(path => AssemblyEffectSummarizer.Summarize(path, options.Limit))
+            .Select(path => AssemblyEffectSummarizer.Summarize(path, options.Limit, options.SymbolPrefixes))
             .ToArray();
 
         var document = new EffectSummaryDocument(
@@ -65,6 +65,7 @@ internal static class EffectSummaryCli
         Console.Error.WriteLine("  --assembly <path>          Assembly to summarize. Can be repeated.");
         Console.Error.WriteLine("  --framework <net8.0>       Runtime framework to inspect when --assembly is omitted.");
         Console.Error.WriteLine("  --runtime-assembly <name>  Runtime assembly name when --assembly is omitted. Default: System.Private.CoreLib.dll");
+        Console.Error.WriteLine("  --symbol-prefix <prefix>   Emit only methods whose decoded symbol starts with this prefix. Can be repeated.");
         Console.Error.WriteLine("  --output <path>            Write JSON to a file instead of stdout.");
         Console.Error.WriteLine("  --limit <count>            Limit emitted method summaries for smoke testing.");
         Console.Error.WriteLine("  --help                     Show this help.");
@@ -74,6 +75,8 @@ internal static class EffectSummaryCli
 internal sealed class CliOptions
 {
     public List<string> AssemblyPaths { get; } = new();
+
+    public List<string> SymbolPrefixes { get; } = new();
 
     public string Framework { get; private set; } = "net8.0";
 
@@ -101,6 +104,9 @@ internal sealed class CliOptions
                     break;
                 case "--runtime-assembly":
                     options.RuntimeAssemblyName = ReadRequiredValue(args, ref i, arg);
+                    break;
+                case "--symbol-prefix":
+                    options.SymbolPrefixes.Add(ReadRequiredValue(args, ref i, arg));
                     break;
                 case "--output":
                     options.OutputPath = ReadRequiredValue(args, ref i, arg);
@@ -197,7 +203,7 @@ internal static class AssemblyEffectSummarizer
             .Select(field => (OpCode)field.GetValue(null)!)
             .ToDictionary(opCode => opCode.Value);
 
-    public static AssemblyEffectReport Summarize(string assemblyPath, int? limit)
+    public static AssemblyEffectReport Summarize(string assemblyPath, int? limit, IReadOnlyList<string> symbolPrefixes)
     {
         using var stream = File.OpenRead(assemblyPath);
         using var peReader = new PEReader(stream);
@@ -220,7 +226,11 @@ internal static class AssemblyEffectSummarizer
                 break;
             }
 
-            summaries.Add(SummarizeMethod(peReader, reader, handle));
+            var summary = SummarizeMethod(peReader, reader, handle);
+            if (MatchesSymbolPrefix(summary.Symbol, symbolPrefixes))
+            {
+                summaries.Add(summary);
+            }
         }
 
         return new AssemblyEffectReport(
@@ -230,6 +240,12 @@ internal static class AssemblyEffectSummarizer
             MethodCount: reader.MethodDefinitions.Count,
             EmittedMethodCount: summaries.Count,
             Methods: summaries.ToArray());
+    }
+
+    private static bool MatchesSymbolPrefix(string symbol, IReadOnlyList<string> symbolPrefixes)
+    {
+        return symbolPrefixes.Count == 0 ||
+            symbolPrefixes.Any(prefix => symbol.StartsWith(prefix, StringComparison.Ordinal));
     }
 
     private static MethodEffectSummary SummarizeMethod(
