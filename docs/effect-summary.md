@@ -17,7 +17,7 @@ The summary tool can inspect those assemblies directly and emit JSON facts such 
 - static and instance field writes
 - indirect memory writes through spans, pointers, refs, arrays, or block operations
 - throws
-- direct thrown exception types for simple IL patterns such as `new SomeException(...); throw`
+- direct thrown exception types for simple IL patterns such as `new SomeException(...); throw` and `new SomeException(...); stloc; ldloc; throw`
 - P/Invoke, native, internal-call, abstract, and no-IL-body roots
 
 Those facts are intentionally lower-level than `pure` or `impure`. Final purity decisions should be made by a later fixed-point classifier that applies PurelySharp policy profiles to the evidence.

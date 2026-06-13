@@ -540,6 +540,7 @@ internal static class AssemblyEffectSummarizer
     {
         var offset = 0;
         string? lastConstructedExceptionType = null;
+        var localExceptionTypes = new Dictionary<int, string?>();
         while (offset < il.Length)
         {
             var instructionOffset = offset;
@@ -579,6 +580,23 @@ internal static class AssemblyEffectSummarizer
                 {
                     lastConstructedExceptionType = TryGetConstructedExceptionType(calledSymbol);
                 }
+            }
+            else if (TryGetStoreLocalIndex(opCode, il, operandOffset, out var storeLocalIndex))
+            {
+                if (lastConstructedExceptionType == null)
+                {
+                    localExceptionTypes.Remove(storeLocalIndex);
+                }
+                else
+                {
+                    localExceptionTypes[storeLocalIndex] = lastConstructedExceptionType;
+                }
+            }
+            else if (TryGetLoadLocalIndex(opCode, il, operandOffset, out var loadLocalIndex))
+            {
+                lastConstructedExceptionType = localExceptionTypes.TryGetValue(loadLocalIndex, out var localExceptionType)
+                    ? localExceptionType
+                    : null;
             }
             else if (opCode == OpCodes.Calli)
             {
@@ -643,11 +661,107 @@ internal static class AssemblyEffectSummarizer
                 break;
             }
 
-            if (opCode != OpCodes.Newobj && opCode != OpCodes.Dup)
+            if (opCode != OpCodes.Newobj &&
+                opCode != OpCodes.Dup &&
+                !IsLoadLocal(opCode))
             {
                 lastConstructedExceptionType = null;
             }
         }
+    }
+
+    private static bool TryGetStoreLocalIndex(OpCode opCode, byte[] il, int operandOffset, out int localIndex)
+    {
+        if (opCode == OpCodes.Stloc_0)
+        {
+            localIndex = 0;
+            return true;
+        }
+
+        if (opCode == OpCodes.Stloc_1)
+        {
+            localIndex = 1;
+            return true;
+        }
+
+        if (opCode == OpCodes.Stloc_2)
+        {
+            localIndex = 2;
+            return true;
+        }
+
+        if (opCode == OpCodes.Stloc_3)
+        {
+            localIndex = 3;
+            return true;
+        }
+
+        if (opCode == OpCodes.Stloc_S)
+        {
+            localIndex = il[operandOffset];
+            return true;
+        }
+
+        if (opCode == OpCodes.Stloc)
+        {
+            localIndex = BitConverter.ToUInt16(il, operandOffset);
+            return true;
+        }
+
+        localIndex = -1;
+        return false;
+    }
+
+    private static bool TryGetLoadLocalIndex(OpCode opCode, byte[] il, int operandOffset, out int localIndex)
+    {
+        if (opCode == OpCodes.Ldloc_0)
+        {
+            localIndex = 0;
+            return true;
+        }
+
+        if (opCode == OpCodes.Ldloc_1)
+        {
+            localIndex = 1;
+            return true;
+        }
+
+        if (opCode == OpCodes.Ldloc_2)
+        {
+            localIndex = 2;
+            return true;
+        }
+
+        if (opCode == OpCodes.Ldloc_3)
+        {
+            localIndex = 3;
+            return true;
+        }
+
+        if (opCode == OpCodes.Ldloc_S)
+        {
+            localIndex = il[operandOffset];
+            return true;
+        }
+
+        if (opCode == OpCodes.Ldloc)
+        {
+            localIndex = BitConverter.ToUInt16(il, operandOffset);
+            return true;
+        }
+
+        localIndex = -1;
+        return false;
+    }
+
+    private static bool IsLoadLocal(OpCode opCode)
+    {
+        return opCode == OpCodes.Ldloc_0 ||
+            opCode == OpCodes.Ldloc_1 ||
+            opCode == OpCodes.Ldloc_2 ||
+            opCode == OpCodes.Ldloc_3 ||
+            opCode == OpCodes.Ldloc_S ||
+            opCode == OpCodes.Ldloc;
     }
 
     private static string? TryGetConstructedExceptionType(string? constructorSymbol)

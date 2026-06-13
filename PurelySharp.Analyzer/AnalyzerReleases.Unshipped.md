@@ -15,3 +15,4 @@
 - `PS0010` reports definite null dereferences on literal/default-null receivers and suppresses them when caught.
 - `PS0010` emits structured exception evidence properties for categories and sources.
 - Corpus reports aggregate `PS0010` counts plus exception categories and sources.
+- Effect summary IL exception extraction recognizes constructed exception objects stored to and reloaded from locals before `throw`.
