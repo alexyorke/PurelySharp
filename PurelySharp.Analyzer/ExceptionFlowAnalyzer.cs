@@ -252,11 +252,36 @@ namespace PurelySharp.Analyzer
 
             if (exceptionExpression == null)
             {
-                return null;
+                return throwNode is ThrowStatementSyntax statement
+                    ? GetRethrownExceptionType(statement, semanticModel, cancellationToken)
+                    : null;
             }
 
             var typeInfo = semanticModel.GetTypeInfo(exceptionExpression, cancellationToken);
             return typeInfo.Type ?? typeInfo.ConvertedType;
+        }
+
+        private static ITypeSymbol? GetRethrownExceptionType(
+            ThrowStatementSyntax throwStatement,
+            SemanticModel semanticModel,
+            System.Threading.CancellationToken cancellationToken)
+        {
+            foreach (var catchClause in throwStatement.Ancestors().OfType<CatchClauseSyntax>())
+            {
+                if (!catchClause.Block.Span.Contains(throwStatement.SpanStart))
+                {
+                    continue;
+                }
+
+                if (catchClause.Declaration == null)
+                {
+                    return null;
+                }
+
+                return semanticModel.GetTypeInfo(catchClause.Declaration.Type, cancellationToken).Type;
+            }
+
+            return null;
         }
 
         private static IEnumerable<ExceptionCandidate> CollectSourceCalleeExceptions(

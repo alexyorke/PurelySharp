@@ -1598,6 +1598,73 @@ public class TestClass
             Assert.That(diagnostics.Any(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId), Is.False);
         }
 
+        [Test]
+        public async Task Ps0010_RethrowTypedCatch_ReportsCaughtExceptionType()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+
+public class TestClass
+{
+    public void TestMethod()
+    {
+        try
+        {
+            Dangerous();
+        }
+        catch (InvalidOperationException)
+        {
+            throw;
+        }
+    }
+
+    private void Dangerous()
+    {
+    }
+}",
+                ImmutableDictionary<string, string>.Empty.Add("purelysharp_report_exceptions", "true"));
+
+            var diagnostic = SingleDiagnostic(diagnostics.Where(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId).ToImmutableArray(), PurelySharpDiagnostics.ExceptionSummaryId);
+
+            Assert.That(diagnostic.GetMessage(), Does.Contain("'TestMethod'"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ExceptionTypesProperty], Is.EqualTo("System.InvalidOperationException"));
+        }
+
+        [Test]
+        public async Task Ps0010_RethrowTypedCatch_CaughtByOuterTry_IsSuppressed()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using System;
+
+public class TestClass
+{
+    public void TestMethod()
+    {
+        try
+        {
+            try
+            {
+                Dangerous();
+            }
+            catch (InvalidOperationException)
+            {
+                throw;
+            }
+        }
+        catch (InvalidOperationException)
+        {
+        }
+    }
+
+    private void Dangerous()
+    {
+    }
+}",
+                ImmutableDictionary<string, string>.Empty.Add("purelysharp_report_exceptions", "true"));
+
+            Assert.That(diagnostics.Any(d => d.Id == PurelySharpDiagnostics.ExceptionSummaryId), Is.False);
+        }
+
         private static Diagnostic SingleDiagnostic(ImmutableArray<Diagnostic> diagnostics, string diagnosticId)
         {
             return diagnostics.Single(d => d.Id == diagnosticId);

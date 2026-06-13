@@ -10,3 +10,4 @@
 ### Enhancements
 
 - `PS0010` can consume generated `PurelySharp.EffectSummary.json` additional files and propagate summarized metadata/library exception types through source callers.
+- `PS0010` infers typed `throw;` rethrows from enclosing catch clauses and still suppresses them when an outer catch handles the same exception type.
