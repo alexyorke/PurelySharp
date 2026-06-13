@@ -3118,7 +3118,38 @@ namespace PurelySharp.Analyzer.Engine
         internal static bool IsInvariantCultureDeterministicParseInvocation(IInvocationOperation invocationOperation)
         {
             return IsTimeSpanInvariantCultureParseInvocation(invocationOperation) ||
+                IsDateTimeInvariantCultureParseExactInvocation(invocationOperation) ||
                 IsDateTimeOffsetInvariantCultureParseExactInvocation(invocationOperation);
+        }
+
+        private static bool IsDateTimeInvariantCultureParseExactInvocation(IInvocationOperation invocationOperation)
+        {
+            var targetMethod = invocationOperation.TargetMethod?.OriginalDefinition;
+            if (targetMethod == null ||
+                targetMethod.ContainingType?.ToDisplayString() != "System.DateTime" ||
+                targetMethod.Name != "ParseExact")
+            {
+                return false;
+            }
+
+            if (targetMethod.Parameters.Length == 3 &&
+                invocationOperation.Arguments.Length == 3 &&
+                targetMethod.Parameters[0].Type.SpecialType == SpecialType.System_String &&
+                IsSingleDateTimeRoundtripFormat(invocationOperation.Arguments[1].Value))
+            {
+                return IsCultureInfoInvariantCulture(invocationOperation.Arguments[2].Value);
+            }
+
+            if (targetMethod.Parameters.Length == 4 &&
+                invocationOperation.Arguments.Length == 4 &&
+                targetMethod.Parameters[0].Type.SpecialType == SpecialType.System_String &&
+                IsSingleDateTimeRoundtripFormat(invocationOperation.Arguments[1].Value) &&
+                IsDateTimeStylesNone(invocationOperation.Arguments[3].Value))
+            {
+                return IsCultureInfoInvariantCulture(invocationOperation.Arguments[2].Value);
+            }
+
+            return false;
         }
 
         private static bool IsDateTimeOffsetInvariantCultureParseExactInvocation(IInvocationOperation invocationOperation)
@@ -3157,6 +3188,14 @@ namespace PurelySharp.Analyzer.Engine
             return unwrappedOperation?.ConstantValue.HasValue == true &&
                 unwrappedOperation.ConstantValue.Value is string format &&
                 (format == "c" || format == "g" || format == "G");
+        }
+
+        private static bool IsSingleDateTimeRoundtripFormat(IOperation? operation)
+        {
+            var unwrappedOperation = SkipImplicitConversions(operation);
+            return unwrappedOperation?.ConstantValue.HasValue == true &&
+                unwrappedOperation.ConstantValue.Value is string format &&
+                (format == "O" || format == "o");
         }
 
         private static bool IsSingleDateTimeOffsetRoundtripFormat(IOperation? operation)

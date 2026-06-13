@@ -44,6 +44,7 @@
 - unannotated non-framework metadata-only method calls now report unknown external call impurity instead of being treated as pure, while framework reference-assembly calls preserve the existing catalog/namespace policy
 - post-CFG throw scanning now skips statically unreachable throws, preserving reachable throw diagnostics without tainting constant-dead branches
 - `TimeSpan.Parse` with an explicit `CultureInfo.InvariantCulture` provider is allowed for string and span inputs, while current-culture overloads remain conservative
+- deterministic `DateTime.ParseExact` and `DateTimeOffset.ParseExact` roundtrip string overloads with `CultureInfo.InvariantCulture` are allowed while span and multiple-format overloads remain conservative
 - `await using` now prefers `DisposeAsync()` over `Dispose()` when both are available, so impure async cleanup is reported instead of hidden by a pure synchronous disposer
 - configured impure types/namespaces now take precedence over hardcoded known-pure BCL heuristics, while exact configured pure member overrides remain narrow
 - custom awaiter analysis now includes source-defined `OnCompleted` and `UnsafeOnCompleted` continuation scheduling methods in addition to `GetAwaiter`, `IsCompleted`, and `GetResult`

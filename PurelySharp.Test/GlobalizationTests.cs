@@ -172,7 +172,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task DateTimeParseExact_InvariantCulture_Diagnostic()
+        public async Task DateTimeParseExact_SingleRoundtripInvariantCulture_NoDiagnostic()
         {
             var test = @"
 #nullable enable
@@ -183,7 +183,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public DateTime {|PS0002:TestMethod|}(string dateStr)
+    public DateTime TestMethod(string dateStr)
     {
         return DateTime.ParseExact(dateStr, ""O"", CultureInfo.InvariantCulture);
     }
@@ -193,7 +193,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task DateTimeParseExact_WithStyles_InvariantCulture_Diagnostic()
+        public async Task DateTimeParseExact_WithNoneStylesInvariantCulture_NoDiagnostic()
         {
             var test = @"
 #nullable enable
@@ -204,7 +204,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public DateTime {|PS0002:TestMethod|}(string dateStr)
+    public DateTime TestMethod(string dateStr)
     {
         return DateTime.ParseExact(dateStr, ""O"", CultureInfo.InvariantCulture, DateTimeStyles.None);
     }
