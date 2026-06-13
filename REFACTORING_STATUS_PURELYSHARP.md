@@ -2,7 +2,7 @@
 
 ### Current state
 
-- Full analyzer suite is green: `1713/1713` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- Full analyzer suite is green: `1715/1715` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -56,6 +56,7 @@
 - LINQ source enumerator analysis now inspects source-defined returned enumerator runtime members such as `MoveNext`, closing a false negative where pure `GetEnumerator()` hid impure deferred enumeration
 - nullable-comparer `System.Collections.Generic.List<T>.Sort` overloads are now cataloged as impure, closing adjacent false negatives for mutating list sorts with `IComparer<T>?`
 - nullable-comparer `System.Array.Sort<T>` overloads are now cataloged as impure, closing adjacent false negatives for mutating caller-owned arrays with `IComparer<T>?`
+- generic `System.Array.Reverse<T>` overloads are now cataloged as impure, closing false negatives for mutating caller-owned arrays through generic reverse helpers
 - `await using` now prefers `DisposeAsync()` over `Dispose()` when both are available, so impure async cleanup is reported instead of hidden by a pure synchronous disposer
 - configured impure types/namespaces now take precedence over hardcoded known-pure BCL heuristics, while exact configured pure member overrides remain narrow
 - custom awaiter analysis now includes source-defined `OnCompleted` and `UnsafeOnCompleted` continuation scheduling methods in addition to `GetAwaiter`, `IsCompleted`, and `GetResult`
