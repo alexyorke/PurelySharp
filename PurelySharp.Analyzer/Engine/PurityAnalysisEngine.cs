@@ -2854,6 +2854,29 @@ namespace PurelySharp.Analyzer.Engine
                     }
                 }
 
+                  else if (operationToTrack is IInvocationOperation invocationOperation)
+                {
+                    foreach (var argument in invocationOperation.Arguments)
+                    {
+                        if (argument.Parameter?.RefKind is not (RefKind.Ref or RefKind.Out))
+                        {
+                            continue;
+                        }
+
+                        if (TryResolveSymbol(SkipImplicitConversions(argument.Value)) is ILocalSymbol localSymbol)
+                        {
+                            nextState = nextState
+                                .WithoutLocalConcreteType(localSymbol)
+                                .WithoutOwnedLocalArray(localSymbol);
+
+                            if (localSymbol.Type?.TypeKind == TypeKind.Delegate)
+                            {
+                                nextState = nextState.WithDelegateTarget(localSymbol, PotentialTargets.Unresolved);
+                            }
+                        }
+                    }
+                }
+
                   else if (operationToTrack is IFlowCaptureOperation flowCaptureOperation)
                 {
                     PurityAnalysisEngine.PotentialTargets? valueTargets = ResolvePotentialTargets(flowCaptureOperation.Value, currentState);

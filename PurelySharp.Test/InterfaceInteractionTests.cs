@@ -1116,6 +1116,56 @@ public class TestClass
         }
 
         [Test]
+        public async Task InterfaceMethod_OnLocalReassignedByRefCall_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+using System;
+
+public interface IRefCounter
+{
+    int Increment(int value);
+}
+
+public sealed class SealedRefCounter : IRefCounter
+{
+    public int Increment(int value)
+    {
+        return value + 1;
+    }
+}
+
+public class ImpureRefCounter : IRefCounter
+{
+    public int Increment(int value)
+    {
+        Console.WriteLine(value);
+        return value + 1;
+    }
+}
+
+public class TestClass
+{
+    [PureExternal]
+    private static void Replace(ref IRefCounter counter)
+    {
+        counter = new ImpureRefCounter();
+    }
+
+    [EnforcePure]
+    public int {|PS0002:Process|}(int value)
+    {
+        IRefCounter counter = new SealedRefCounter();
+        Replace(ref counter);
+        return counter.Increment(value);
+    }
+}
+";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
         public async Task InterfaceMethod_OnSealedImplementation_ThroughAsCast_NoConservativeDiagnostic()
         {
             var test = @"
