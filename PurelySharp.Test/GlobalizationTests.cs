@@ -4231,7 +4231,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task TimeOnlyParseExact_InvariantCultureWithStyles_Diagnostic()
+        public async Task TimeOnlyParseExact_WithNoneStylesInvariantCulture_NoDiagnostic()
         {
             var test = @"
 #nullable enable
@@ -4242,7 +4242,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public TimeOnly {|PS0002:TestMethod|}(string value)
+    public TimeOnly TestMethod(string value)
     {
         return TimeOnly.ParseExact(value, ""t"", CultureInfo.InvariantCulture, DateTimeStyles.None);
     }
@@ -4252,7 +4252,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task TimeOnlyParseExact_InvariantCulture_Diagnostic()
+        public async Task TimeOnlyParseExact_SingleFormatInvariantCulture_NoDiagnostic()
         {
             var test = @"
 #nullable enable
@@ -4263,7 +4263,7 @@ using PurelySharp.Attributes;
 public class TestClass
 {
     [EnforcePure]
-    public TimeOnly {|PS0002:TestMethod|}(string value)
+    public TimeOnly TestMethod(string value)
     {
         return TimeOnly.ParseExact(value, ""t"", CultureInfo.InvariantCulture);
     }
