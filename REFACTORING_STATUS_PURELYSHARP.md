@@ -3,6 +3,7 @@
 ### Current state
 
 - Full analyzer suite is green: `1760/1760` tests in `PurelySharp.Test` targeting .NET 8 with the repo-pinned .NET SDK `9.0.315`.
+- `Tools/PurelySharp.EffectSummary` now provides an IL-based framework assembly summary prototype for rootward purity evidence.
 - The analyzer is operating on the current dataflow-first architecture:
   - compilation-scoped purity service
   - call-graph + worklist solver
@@ -65,6 +66,7 @@
 - floating-point `System.Buffers.Binary.BinaryPrimitives.Write*` overloads are now cataloged as impure when they write through `System.Span<byte>`
 - integer `System.Buffers.Binary.BinaryPrimitives.TryWrite*` overloads are now cataloged as impure when they write through `System.Span<byte>`
 - floating-point `System.Buffers.Binary.BinaryPrimitives.TryWrite*` overloads are now cataloged as impure when they write through `System.Span<byte>`
+- the first effect-summary CLI can inspect installed .NET implementation assemblies and emit JSON evidence for calls, allocations, field reads/writes, indirect memory writes, throws, P/Invoke, native/internal-call, abstract, and no-IL-body roots
 - `await using` now prefers `DisposeAsync()` over `Dispose()` when both are available, so impure async cleanup is reported instead of hidden by a pure synchronous disposer
 - configured impure types/namespaces now take precedence over hardcoded known-pure BCL heuristics, while exact configured pure member overrides remain narrow
 - custom awaiter analysis now includes source-defined `OnCompleted` and `UnsafeOnCompleted` continuation scheduling methods in addition to `GetAwaiter`, `IsCompleted`, and `GetResult`

@@ -1,0 +1,733 @@
+using System.Collections.Immutable;
+using System.Reflection;
+using System.Reflection.Emit;
+using System.Reflection.Metadata;
+using System.Reflection.Metadata.Ecma335;
+using System.Reflection.PortableExecutable;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+return EffectSummaryCli.Run(args);
+
+internal static class EffectSummaryCli
+{
+    public static int Run(string[] args)
+    {
+        var options = CliOptions.Parse(args);
+        if (options.ShowHelp)
+        {
+            PrintHelp();
+            return 0;
+        }
+
+        var assemblies = options.AssemblyPaths.Count == 0
+            ? new[] { RuntimeAssemblyResolver.Resolve(options.Framework, options.RuntimeAssemblyName) }
+            : options.AssemblyPaths.Select(Path.GetFullPath).ToArray();
+
+        var reports = assemblies
+            .Select(path => AssemblyEffectSummarizer.Summarize(path, options.Limit))
+            .ToArray();
+
+        var document = new EffectSummaryDocument(
+            SchemaVersion: 1,
+            GeneratedAtUtc: DateTimeOffset.UtcNow,
+            Assemblies: reports);
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            WriteIndented = true,
+        };
+
+        var json = JsonSerializer.Serialize(document, jsonOptions);
+        if (string.IsNullOrWhiteSpace(options.OutputPath))
+        {
+            Console.WriteLine(json);
+        }
+        else
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(options.OutputPath))!);
+            File.WriteAllText(options.OutputPath, json);
+        }
+
+        return 0;
+    }
+
+    private static void PrintHelp()
+    {
+        Console.Error.WriteLine("PurelySharp.EffectSummary");
+        Console.Error.WriteLine("Summarizes IL effects from .NET assemblies for evidence-based purity catalog work.");
+        Console.Error.WriteLine();
+        Console.Error.WriteLine("Usage:");
+        Console.Error.WriteLine("  dotnet run --project Tools/PurelySharp.EffectSummary -- [options]");
+        Console.Error.WriteLine();
+        Console.Error.WriteLine("Options:");
+        Console.Error.WriteLine("  --assembly <path>          Assembly to summarize. Can be repeated.");
+        Console.Error.WriteLine("  --framework <net8.0>       Runtime framework to inspect when --assembly is omitted.");
+        Console.Error.WriteLine("  --runtime-assembly <name>  Runtime assembly name when --assembly is omitted. Default: System.Private.CoreLib.dll");
+        Console.Error.WriteLine("  --output <path>            Write JSON to a file instead of stdout.");
+        Console.Error.WriteLine("  --limit <count>            Limit emitted method summaries for smoke testing.");
+        Console.Error.WriteLine("  --help                     Show this help.");
+    }
+}
+
+internal sealed class CliOptions
+{
+    public List<string> AssemblyPaths { get; } = new();
+
+    public string Framework { get; private set; } = "net8.0";
+
+    public string RuntimeAssemblyName { get; private set; } = "System.Private.CoreLib.dll";
+
+    public string? OutputPath { get; private set; }
+
+    public int? Limit { get; private set; }
+
+    public bool ShowHelp { get; private set; }
+
+    public static CliOptions Parse(string[] args)
+    {
+        var options = new CliOptions();
+        for (var i = 0; i < args.Length; i++)
+        {
+            var arg = args[i];
+            switch (arg)
+            {
+                case "--assembly":
+                    options.AssemblyPaths.Add(ReadRequiredValue(args, ref i, arg));
+                    break;
+                case "--framework":
+                    options.Framework = ReadRequiredValue(args, ref i, arg);
+                    break;
+                case "--runtime-assembly":
+                    options.RuntimeAssemblyName = ReadRequiredValue(args, ref i, arg);
+                    break;
+                case "--output":
+                    options.OutputPath = ReadRequiredValue(args, ref i, arg);
+                    break;
+                case "--limit":
+                    options.Limit = int.Parse(ReadRequiredValue(args, ref i, arg));
+                    break;
+                case "--help":
+                case "-h":
+                case "/?":
+                    options.ShowHelp = true;
+                    break;
+                default:
+                    throw new ArgumentException($"Unknown option '{arg}'.");
+            }
+        }
+
+        return options;
+    }
+
+    private static string ReadRequiredValue(string[] args, ref int index, string option)
+    {
+        if (index + 1 >= args.Length)
+        {
+            throw new ArgumentException($"Missing value for {option}.");
+        }
+
+        index++;
+        return args[index];
+    }
+}
+
+internal static class RuntimeAssemblyResolver
+{
+    public static string Resolve(string framework, string assemblyName)
+    {
+        var major = ParseMajorFrameworkVersion(framework);
+        var runtimeRoot = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+            "dotnet",
+            "shared",
+            "Microsoft.NETCore.App");
+
+        if (!Directory.Exists(runtimeRoot))
+        {
+            throw new DirectoryNotFoundException($"Runtime root not found: {runtimeRoot}");
+        }
+
+        var versionDirectory = Directory
+            .EnumerateDirectories(runtimeRoot)
+            .Select(path => (Path: path, Version: TryParseVersion(Path.GetFileName(path))))
+            .Where(item => item.Version is not null && item.Version.Major == major)
+            .OrderByDescending(item => item.Version)
+            .Select(item => item.Path)
+            .FirstOrDefault();
+
+        if (versionDirectory is null)
+        {
+            throw new DirectoryNotFoundException($"No Microsoft.NETCore.App runtime found for {framework} under {runtimeRoot}.");
+        }
+
+        var assemblyPath = Path.Combine(versionDirectory, assemblyName);
+        if (!File.Exists(assemblyPath))
+        {
+            throw new FileNotFoundException($"Runtime assembly not found: {assemblyPath}", assemblyPath);
+        }
+
+        return assemblyPath;
+    }
+
+    private static int ParseMajorFrameworkVersion(string framework)
+    {
+        if (!framework.StartsWith("net", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException($"Unsupported framework moniker '{framework}'. Expected netX.Y.");
+        }
+
+        var digits = new string(framework.Skip(3).TakeWhile(char.IsDigit).ToArray());
+        return int.Parse(digits);
+    }
+
+    private static Version? TryParseVersion(string text)
+    {
+        return Version.TryParse(text, out var version) ? version : null;
+    }
+}
+
+internal static class AssemblyEffectSummarizer
+{
+    private static readonly IReadOnlyDictionary<short, OpCode> OpCodesByValue =
+        typeof(OpCodes)
+            .GetFields(BindingFlags.Public | BindingFlags.Static)
+            .Where(field => field.FieldType == typeof(OpCode))
+            .Select(field => (OpCode)field.GetValue(null)!)
+            .ToDictionary(opCode => opCode.Value);
+
+    public static AssemblyEffectReport Summarize(string assemblyPath, int? limit)
+    {
+        using var stream = File.OpenRead(assemblyPath);
+        using var peReader = new PEReader(stream);
+        if (!peReader.HasMetadata)
+        {
+            throw new InvalidOperationException($"Assembly does not contain managed metadata: {assemblyPath}");
+        }
+
+        var reader = peReader.GetMetadataReader();
+        var module = reader.GetModuleDefinition();
+        var assemblyName = reader.IsAssembly
+            ? reader.GetString(reader.GetAssemblyDefinition().Name)
+            : Path.GetFileNameWithoutExtension(assemblyPath);
+
+        var summaries = new List<MethodEffectSummary>();
+        foreach (var handle in reader.MethodDefinitions)
+        {
+            if (limit is not null && summaries.Count >= limit.Value)
+            {
+                break;
+            }
+
+            summaries.Add(SummarizeMethod(peReader, reader, handle));
+        }
+
+        return new AssemblyEffectReport(
+            AssemblyName: assemblyName,
+            AssemblyPath: assemblyPath,
+            ModuleVersionId: reader.GetGuid(module.Mvid).ToString("D"),
+            MethodCount: reader.MethodDefinitions.Count,
+            EmittedMethodCount: summaries.Count,
+            Methods: summaries.ToArray());
+    }
+
+    private static MethodEffectSummary SummarizeMethod(
+        PEReader peReader,
+        MetadataReader reader,
+        MethodDefinitionHandle handle)
+    {
+        var definition = reader.GetMethodDefinition(handle);
+        var effects = new SortedSet<string>(StringComparer.Ordinal);
+        var calls = new SortedSet<string>(StringComparer.Ordinal);
+        var fields = new SortedSet<string>(StringComparer.Ordinal);
+
+        if ((definition.Attributes & MethodAttributes.Abstract) != 0)
+        {
+            effects.Add("abstract");
+        }
+
+        if ((definition.Attributes & MethodAttributes.PinvokeImpl) != 0)
+        {
+            effects.Add("pinvoke");
+        }
+
+        if ((definition.ImplAttributes & MethodImplAttributes.InternalCall) != 0 ||
+            (definition.ImplAttributes & MethodImplAttributes.Native) != 0)
+        {
+            effects.Add("native_or_internal_call");
+        }
+
+        if (definition.RelativeVirtualAddress == 0)
+        {
+            effects.Add("no_il_body");
+        }
+        else
+        {
+            var body = peReader.GetMethodBody(definition.RelativeVirtualAddress);
+            var il = body.GetILBytes();
+            if (il is not null)
+            {
+                AnalyzeIl(reader, il, effects, calls, fields);
+            }
+        }
+
+        return new MethodEffectSummary(
+            Symbol: GetMethodSymbol(reader, handle),
+            MetadataToken: $"0x{MetadataTokens.GetToken(handle):X8}",
+            RelativeVirtualAddress: definition.RelativeVirtualAddress,
+            Effects: effects.ToArray(),
+            Calls: calls.ToArray(),
+            Fields: fields.ToArray());
+    }
+
+    private static void AnalyzeIl(
+        MetadataReader reader,
+        byte[] il,
+        SortedSet<string> effects,
+        SortedSet<string> calls,
+        SortedSet<string> fields)
+    {
+        var offset = 0;
+        while (offset < il.Length)
+        {
+            var instructionOffset = offset;
+            var opCode = ReadOpCode(il, ref offset);
+            var operandOffset = offset;
+            var operandSize = GetOperandSize(opCode.OperandType, il, operandOffset);
+            var operandToken = operandSize == 4 && IsMetadataTokenOperand(opCode.OperandType)
+                ? BitConverter.ToInt32(il, operandOffset)
+                : (int?)null;
+
+            offset += operandSize;
+
+            if (opCode == OpCodes.Call || opCode == OpCodes.Callvirt || opCode == OpCodes.Newobj)
+            {
+                if (opCode == OpCodes.Newobj)
+                {
+                    effects.Add("allocates_object");
+                }
+                else
+                {
+                    effects.Add("calls_method");
+                }
+
+                if (opCode == OpCodes.Callvirt)
+                {
+                    effects.Add("virtual_call");
+                }
+
+                if (operandToken is not null)
+                {
+                    calls.Add(ResolveMethodToken(reader, operandToken.Value));
+                }
+            }
+            else if (opCode == OpCodes.Calli)
+            {
+                effects.Add("indirect_call");
+            }
+            else if (opCode == OpCodes.Newarr)
+            {
+                effects.Add("allocates_array");
+            }
+            else if (opCode == OpCodes.Box)
+            {
+                effects.Add("allocates_box");
+            }
+            else if (opCode == OpCodes.Ldfld || opCode == OpCodes.Ldflda)
+            {
+                effects.Add("reads_instance_field");
+                AddField(reader, operandToken, fields);
+            }
+            else if (opCode == OpCodes.Ldsfld || opCode == OpCodes.Ldsflda)
+            {
+                effects.Add("reads_static_field");
+                AddField(reader, operandToken, fields);
+            }
+            else if (opCode == OpCodes.Stfld)
+            {
+                effects.Add("writes_instance_field");
+                AddField(reader, operandToken, fields);
+            }
+            else if (opCode == OpCodes.Stsfld)
+            {
+                effects.Add("writes_static_field");
+                AddField(reader, operandToken, fields);
+            }
+            else if (opCode == OpCodes.Throw || opCode == OpCodes.Rethrow)
+            {
+                effects.Add("throws");
+            }
+            else if (IsIndirectWrite(opCode))
+            {
+                effects.Add("writes_indirect_memory");
+            }
+            else if (opCode == OpCodes.Cpblk || opCode == OpCodes.Initblk)
+            {
+                effects.Add("writes_indirect_memory");
+                effects.Add("block_memory_write");
+            }
+            else if (opCode == OpCodes.Ldftn || opCode == OpCodes.Ldvirtftn)
+            {
+                effects.Add("loads_method_pointer");
+                if (operandToken is not null)
+                {
+                    calls.Add(ResolveMethodToken(reader, operandToken.Value));
+                }
+            }
+            else if (opCode.Size == 0)
+            {
+                effects.Add($"unknown_opcode_at_{instructionOffset}");
+                break;
+            }
+        }
+    }
+
+    private static OpCode ReadOpCode(byte[] il, ref int offset)
+    {
+        var value = il[offset++];
+        short key;
+        if (value == 0xFE)
+        {
+            key = unchecked((short)(0xFE00 | il[offset++]));
+        }
+        else
+        {
+            key = value;
+        }
+
+        return OpCodesByValue.TryGetValue(key, out var opCode) ? opCode : default;
+    }
+
+    private static int GetOperandSize(OperandType operandType, byte[] il, int operandOffset)
+    {
+        return operandType switch
+        {
+            OperandType.InlineNone => 0,
+            OperandType.ShortInlineBrTarget => 1,
+            OperandType.ShortInlineI => 1,
+            OperandType.ShortInlineVar => 1,
+            OperandType.InlineVar => 2,
+            OperandType.InlineBrTarget => 4,
+            OperandType.InlineField => 4,
+            OperandType.InlineI => 4,
+            OperandType.InlineMethod => 4,
+            OperandType.InlineSig => 4,
+            OperandType.InlineString => 4,
+            OperandType.InlineTok => 4,
+            OperandType.InlineType => 4,
+            OperandType.ShortInlineR => 4,
+            OperandType.InlineI8 => 8,
+            OperandType.InlineR => 8,
+            OperandType.InlineSwitch => 4 + (BitConverter.ToInt32(il, operandOffset) * 4),
+            _ => 0,
+        };
+    }
+
+    private static bool IsMetadataTokenOperand(OperandType operandType)
+    {
+        return operandType is OperandType.InlineField
+            or OperandType.InlineMethod
+            or OperandType.InlineTok
+            or OperandType.InlineType;
+    }
+
+    private static bool IsIndirectWrite(OpCode opCode)
+    {
+        return opCode == OpCodes.Stind_I ||
+            opCode == OpCodes.Stind_I1 ||
+            opCode == OpCodes.Stind_I2 ||
+            opCode == OpCodes.Stind_I4 ||
+            opCode == OpCodes.Stind_I8 ||
+            opCode == OpCodes.Stind_R4 ||
+            opCode == OpCodes.Stind_R8 ||
+            opCode == OpCodes.Stind_Ref ||
+            opCode == OpCodes.Stobj ||
+            opCode == OpCodes.Initobj ||
+            opCode == OpCodes.Stelem ||
+            opCode == OpCodes.Stelem_I ||
+            opCode == OpCodes.Stelem_I1 ||
+            opCode == OpCodes.Stelem_I2 ||
+            opCode == OpCodes.Stelem_I4 ||
+            opCode == OpCodes.Stelem_I8 ||
+            opCode == OpCodes.Stelem_R4 ||
+            opCode == OpCodes.Stelem_R8 ||
+            opCode == OpCodes.Stelem_Ref;
+    }
+
+    private static void AddField(MetadataReader reader, int? operandToken, SortedSet<string> fields)
+    {
+        if (operandToken is not null)
+        {
+            fields.Add(ResolveFieldToken(reader, operandToken.Value));
+        }
+    }
+
+    private static string ResolveMethodToken(MetadataReader reader, int token)
+    {
+        var handle = MetadataTokens.Handle(token);
+        return handle.Kind switch
+        {
+            HandleKind.MethodDefinition => GetMethodSymbol(reader, (MethodDefinitionHandle)handle),
+            HandleKind.MemberReference => GetMemberReferenceSymbol(reader, (MemberReferenceHandle)handle),
+            HandleKind.MethodSpecification => ResolveMethodSpecification(reader, (MethodSpecificationHandle)handle),
+            _ => $"metadata-token:0x{token:X8}",
+        };
+    }
+
+    private static string ResolveMethodSpecification(MetadataReader reader, MethodSpecificationHandle handle)
+    {
+        var specification = reader.GetMethodSpecification(handle);
+        var method = specification.Method;
+        return method.Kind switch
+        {
+            HandleKind.MethodDefinition => GetMethodSymbol(reader, (MethodDefinitionHandle)method),
+            HandleKind.MemberReference => GetMemberReferenceSymbol(reader, (MemberReferenceHandle)method),
+            _ => $"method-spec:0x{MetadataTokens.GetToken(handle):X8}",
+        };
+    }
+
+    private static string ResolveFieldToken(MetadataReader reader, int token)
+    {
+        var handle = MetadataTokens.Handle(token);
+        return handle.Kind switch
+        {
+            HandleKind.FieldDefinition => GetFieldDefinitionSymbol(reader, (FieldDefinitionHandle)handle),
+            HandleKind.MemberReference => GetMemberReferenceSymbol(reader, (MemberReferenceHandle)handle),
+            _ => $"metadata-token:0x{token:X8}",
+        };
+    }
+
+    private static string GetMethodSymbol(MetadataReader reader, MethodDefinitionHandle handle)
+    {
+        var definition = reader.GetMethodDefinition(handle);
+        var typeName = GetTypeName(reader, definition.GetDeclaringType());
+        var methodName = reader.GetString(definition.Name);
+        var signature = DecodeMethodSignature(reader, definition);
+        return $"{typeName}.{methodName}{signature}";
+    }
+
+    private static string GetFieldDefinitionSymbol(MetadataReader reader, FieldDefinitionHandle handle)
+    {
+        var definition = reader.GetFieldDefinition(handle);
+        return reader.GetString(definition.Name);
+    }
+
+    private static string GetMemberReferenceSymbol(MetadataReader reader, MemberReferenceHandle handle)
+    {
+        var memberReference = reader.GetMemberReference(handle);
+        var parentName = GetMemberReferenceParentName(reader, memberReference.Parent);
+        var name = reader.GetString(memberReference.Name);
+        var signature = DecodeMemberReferenceSignature(reader, memberReference);
+        return $"{parentName}.{name}{signature}";
+    }
+
+    private static string GetMemberReferenceParentName(MetadataReader reader, EntityHandle handle)
+    {
+        return handle.Kind switch
+        {
+            HandleKind.TypeDefinition => GetTypeName(reader, (TypeDefinitionHandle)handle),
+            HandleKind.TypeReference => GetTypeReferenceName(reader, (TypeReferenceHandle)handle),
+            HandleKind.TypeSpecification => DecodeTypeSpecification(reader, (TypeSpecificationHandle)handle),
+            HandleKind.MethodDefinition => GetMethodSymbol(reader, (MethodDefinitionHandle)handle),
+            HandleKind.ModuleReference => reader.GetString(reader.GetModuleReference((ModuleReferenceHandle)handle).Name),
+            _ => $"metadata-parent:0x{MetadataTokens.GetToken(handle):X8}",
+        };
+    }
+
+    public static string GetTypeName(MetadataReader reader, TypeDefinitionHandle handle)
+    {
+        if (handle.IsNil)
+        {
+            return "<module>";
+        }
+
+        var definition = reader.GetTypeDefinition(handle);
+        var name = reader.GetString(definition.Name);
+        var declaringType = definition.GetDeclaringType();
+        if (!declaringType.IsNil)
+        {
+            return $"{GetTypeName(reader, declaringType)}+{name}";
+        }
+
+        var ns = reader.GetString(definition.Namespace);
+        return string.IsNullOrEmpty(ns) ? name : $"{ns}.{name}";
+    }
+
+    public static string GetTypeReferenceName(MetadataReader reader, TypeReferenceHandle handle)
+    {
+        var reference = reader.GetTypeReference(handle);
+        var name = reader.GetString(reference.Name);
+        var ns = reader.GetString(reference.Namespace);
+        return string.IsNullOrEmpty(ns) ? name : $"{ns}.{name}";
+    }
+
+    private static string DecodeMethodSignature(MetadataReader reader, MethodDefinition definition)
+    {
+        try
+        {
+            var signature = definition.DecodeSignature(new TypeNameProvider(reader), genericContext: null);
+            return $"({string.Join(", ", signature.ParameterTypes)})";
+        }
+        catch (BadImageFormatException)
+        {
+            return "(?)";
+        }
+    }
+
+    private static string DecodeMemberReferenceSignature(MetadataReader reader, MemberReference memberReference)
+    {
+        try
+        {
+            var signature = memberReference.DecodeMethodSignature(new TypeNameProvider(reader), genericContext: null);
+            return $"({string.Join(", ", signature.ParameterTypes)})";
+        }
+        catch (BadImageFormatException)
+        {
+            return string.Empty;
+        }
+        catch (InvalidOperationException)
+        {
+            return string.Empty;
+        }
+    }
+
+    private static string DecodeTypeSpecification(MetadataReader reader, TypeSpecificationHandle handle)
+    {
+        try
+        {
+            return reader.GetTypeSpecification(handle).DecodeSignature(new TypeNameProvider(reader), genericContext: null);
+        }
+        catch (BadImageFormatException)
+        {
+            return "type-spec";
+        }
+    }
+}
+
+internal sealed class TypeNameProvider : ISignatureTypeProvider<string, object?>
+{
+    private readonly MetadataReader reader;
+
+    public TypeNameProvider(MetadataReader reader)
+    {
+        this.reader = reader;
+    }
+
+    public string GetArrayType(string elementType, ArrayShape shape)
+    {
+        var rank = Math.Max(shape.Rank, 1);
+        return $"{elementType}[{new string(',', rank - 1)}]";
+    }
+
+    public string GetByReferenceType(string elementType)
+    {
+        return $"ref {elementType}";
+    }
+
+    public string GetFunctionPointerType(MethodSignature<string> signature)
+    {
+        return "delegate*";
+    }
+
+    public string GetGenericInstantiation(string genericType, ImmutableArray<string> typeArguments)
+    {
+        return $"{genericType}<{string.Join(", ", typeArguments)}>";
+    }
+
+    public string GetGenericMethodParameter(object? genericContext, int index)
+    {
+        return $"!!{index}";
+    }
+
+    public string GetGenericTypeParameter(object? genericContext, int index)
+    {
+        return $"!{index}";
+    }
+
+    public string GetModifiedType(string modifier, string unmodifiedType, bool isRequired)
+    {
+        return unmodifiedType;
+    }
+
+    public string GetPinnedType(string elementType)
+    {
+        return elementType;
+    }
+
+    public string GetPointerType(string elementType)
+    {
+        return $"{elementType}*";
+    }
+
+    public string GetPrimitiveType(PrimitiveTypeCode typeCode)
+    {
+        return typeCode switch
+        {
+            PrimitiveTypeCode.Boolean => "bool",
+            PrimitiveTypeCode.Byte => "byte",
+            PrimitiveTypeCode.Char => "char",
+            PrimitiveTypeCode.Double => "double",
+            PrimitiveTypeCode.Int16 => "short",
+            PrimitiveTypeCode.Int32 => "int",
+            PrimitiveTypeCode.Int64 => "long",
+            PrimitiveTypeCode.IntPtr => "nint",
+            PrimitiveTypeCode.Object => "object",
+            PrimitiveTypeCode.SByte => "sbyte",
+            PrimitiveTypeCode.Single => "float",
+            PrimitiveTypeCode.String => "string",
+            PrimitiveTypeCode.TypedReference => "typedref",
+            PrimitiveTypeCode.UInt16 => "ushort",
+            PrimitiveTypeCode.UInt32 => "uint",
+            PrimitiveTypeCode.UInt64 => "ulong",
+            PrimitiveTypeCode.UIntPtr => "nuint",
+            PrimitiveTypeCode.Void => "void",
+            _ => typeCode.ToString(),
+        };
+    }
+
+    public string GetSZArrayType(string elementType)
+    {
+        return $"{elementType}[]";
+    }
+
+    public string GetTypeFromDefinition(MetadataReader metadataReader, TypeDefinitionHandle handle, byte rawTypeKind)
+    {
+        return AssemblyEffectSummarizer.GetTypeName(metadataReader, handle);
+    }
+
+    public string GetTypeFromReference(MetadataReader metadataReader, TypeReferenceHandle handle, byte rawTypeKind)
+    {
+        return AssemblyEffectSummarizer.GetTypeReferenceName(metadataReader, handle);
+    }
+
+    public string GetTypeFromSpecification(
+        MetadataReader metadataReader,
+        object? genericContext,
+        TypeSpecificationHandle handle,
+        byte rawTypeKind)
+    {
+        return metadataReader.GetTypeSpecification(handle).DecodeSignature(this, genericContext);
+    }
+}
+
+internal sealed record EffectSummaryDocument(
+    int SchemaVersion,
+    DateTimeOffset GeneratedAtUtc,
+    AssemblyEffectReport[] Assemblies);
+
+internal sealed record AssemblyEffectReport(
+    string AssemblyName,
+    string AssemblyPath,
+    string ModuleVersionId,
+    int MethodCount,
+    int EmittedMethodCount,
+    MethodEffectSummary[] Methods);
+
+internal sealed record MethodEffectSummary(
+    string Symbol,
+    string MetadataToken,
+    int RelativeVirtualAddress,
+    string[] Effects,
+    string[] Calls,
+    string[] Fields);

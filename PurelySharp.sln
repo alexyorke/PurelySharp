@@ -25,6 +25,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{07C2787E
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PurelySharp.CorpusReport", "Tools\PurelySharp.CorpusReport\PurelySharp.CorpusReport.csproj", "{2B89B251-6E3F-4F49-BCF5-3977B609660A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PurelySharp.EffectSummary", "Tools\PurelySharp.EffectSummary\PurelySharp.EffectSummary.csproj", "{99335EB1-376D-46A1-B528-E3AEA74F5991}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -155,12 +157,25 @@ Global
 		{2B89B251-6E3F-4F49-BCF5-3977B609660A}.Release|x64.Build.0 = Release|Any CPU
 		{2B89B251-6E3F-4F49-BCF5-3977B609660A}.Release|x86.ActiveCfg = Release|Any CPU
 		{2B89B251-6E3F-4F49-BCF5-3977B609660A}.Release|x86.Build.0 = Release|Any CPU
+		{99335EB1-376D-46A1-B528-E3AEA74F5991}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{99335EB1-376D-46A1-B528-E3AEA74F5991}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{99335EB1-376D-46A1-B528-E3AEA74F5991}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{99335EB1-376D-46A1-B528-E3AEA74F5991}.Debug|x64.Build.0 = Debug|Any CPU
+		{99335EB1-376D-46A1-B528-E3AEA74F5991}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{99335EB1-376D-46A1-B528-E3AEA74F5991}.Debug|x86.Build.0 = Debug|Any CPU
+		{99335EB1-376D-46A1-B528-E3AEA74F5991}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{99335EB1-376D-46A1-B528-E3AEA74F5991}.Release|Any CPU.Build.0 = Release|Any CPU
+		{99335EB1-376D-46A1-B528-E3AEA74F5991}.Release|x64.ActiveCfg = Release|Any CPU
+		{99335EB1-376D-46A1-B528-E3AEA74F5991}.Release|x64.Build.0 = Release|Any CPU
+		{99335EB1-376D-46A1-B528-E3AEA74F5991}.Release|x86.ActiveCfg = Release|Any CPU
+		{99335EB1-376D-46A1-B528-E3AEA74F5991}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{2B89B251-6E3F-4F49-BCF5-3977B609660A} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
+		{99335EB1-376D-46A1-B528-E3AEA74F5991} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {4A1AC67A-F693-4406-8377-D9F03947D973}
