@@ -119,7 +119,7 @@ public class CollectionExpressionExample
     [EnforcePure]
     public List<string> GetNames()
     {
-        // List initialization with collection expression syntax
+        // List initialization with collection initializer syntax
         return new List<string> { ""Alice"", ""Bob"", ""Charlie"" };
     }
 }";
