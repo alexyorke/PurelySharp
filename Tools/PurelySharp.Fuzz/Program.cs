@@ -1,7 +1,10 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -28,7 +31,7 @@ public static class Program
 
             if (!options.Quiet)
             {
-                Console.WriteLine($"PurelySharp fuzz run complete: {summary.CasesAnalyzed} cases, {summary.FindingCount} findings, {summary.AnalyzerExceptionCount} analyzer exceptions.");
+                Console.WriteLine($"PurelySharp fuzz run complete: {summary.CasesAnalyzed} cases, {summary.FindingCount} findings ({summary.UniqueFindingCount} unique), {summary.AnalyzerExceptionCount} analyzer exceptions.");
                 Console.WriteLine($"Artifacts: {summary.OutputDirectory}");
             }
 
@@ -56,6 +59,9 @@ Options:
   --seed <n>               Deterministic random seed. Default: 12345.
   --out <path>             Output directory. Default: artifacts/fuzz/<timestamp>.
   --max-interesting <n>    Maximum source files saved for findings. Default: 100.
+  --max-interesting-per-family <n>
+                           Maximum saved interesting cases per family. Default: 10.
+  --checkpoint-every <n>   Write summary.partial.json and coverage.partial.json every N analyzed cases. Default: 100. Use 0 to disable.
   --quiet                  Suppress progress output.
   --fail-on-findings       Exit with code 2 when findings are found.
   --no-repeat              Do not run repeated analyzer determinism checks.
@@ -70,6 +76,10 @@ Options:
     public string OutputDirectory { get; init; } = DefaultOutputDirectory();
 
     public int MaxInterestingCases { get; init; } = 100;
+
+    public int MaxInterestingCasesPerFamily { get; init; } = 10;
+
+    public int CheckpointEvery { get; init; } = 100;
 
     public bool Quiet { get; init; }
 
@@ -106,6 +116,12 @@ Options:
                 case "--max-interesting":
                     options = options with { MaxInterestingCases = ReadInt(args, ref i, arg) };
                     break;
+                case "--max-interesting-per-family":
+                    options = options with { MaxInterestingCasesPerFamily = ReadInt(args, ref i, arg) };
+                    break;
+                case "--checkpoint-every":
+                    options = options with { CheckpointEvery = ReadInt(args, ref i, arg) };
+                    break;
                 case "--quiet":
                     options = options with { Quiet = true };
                     break;
@@ -128,6 +144,16 @@ Options:
         if (options.MaxInterestingCases < 0)
         {
             throw new ArgumentException("--max-interesting must be non-negative.");
+        }
+
+        if (options.MaxInterestingCasesPerFamily < 0)
+        {
+            throw new ArgumentException("--max-interesting-per-family must be non-negative.");
+        }
+
+        if (options.CheckpointEvery < 0)
+        {
+            throw new ArgumentException("--checkpoint-every must be non-negative.");
         }
 
         if (options.Iterations == 0 && options.Duration is null)
@@ -180,6 +206,9 @@ public static class FuzzRunner
     private static readonly CSharpParseOptions ParseOptions =
         CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
 
+    private static readonly Regex GeneratedTypeNameRegex =
+        new(@"\bI?FuzzCase\d+_[A-Za-z0-9_]+(?:Value)?\b", RegexOptions.Compiled);
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
@@ -188,17 +217,54 @@ public static class FuzzRunner
 
     public static async Task<FuzzRunSummary> RunAsync(FuzzOptions options, CancellationToken cancellationToken = default)
     {
+        var startedUtc = DateTimeOffset.UtcNow;
+        var generator = new FuzzCaseGenerator(options.Seed);
+        var maxIterations = options.Iterations is > 0 ? options.Iterations.Value : (int?)null;
+        var deadline = options.Duration is { } duration ? startedUtc + duration : (DateTimeOffset?)null;
+
+        return await RunCoreAsync(
+            options,
+            startedUtc,
+            index => generator.Next(index),
+            maxIterations,
+            deadline,
+            cancellationToken);
+    }
+
+    public static async Task<FuzzRunSummary> RunCasesAsync(
+        IEnumerable<FuzzCase> fuzzCases,
+        FuzzOptions options,
+        CancellationToken cancellationToken = default)
+    {
+        var cases = fuzzCases.ToImmutableArray();
+        var startedUtc = DateTimeOffset.UtcNow;
+
+        return await RunCoreAsync(
+            options,
+            startedUtc,
+            index => cases[index],
+            cases.Length,
+            deadline: null,
+            cancellationToken);
+    }
+
+    private static async Task<FuzzRunSummary> RunCoreAsync(
+        FuzzOptions options,
+        DateTimeOffset startedUtc,
+        Func<int, FuzzCase> createCase,
+        int? maxIterations,
+        DateTimeOffset? deadline,
+        CancellationToken cancellationToken)
+    {
         Directory.CreateDirectory(options.OutputDirectory);
         var interestingDirectory = Path.Combine(options.OutputDirectory, "interesting-cases");
         Directory.CreateDirectory(interestingDirectory);
 
-        var startedUtc = DateTimeOffset.UtcNow;
         var stopwatch = Stopwatch.StartNew();
-        var generator = new FuzzCaseGenerator(options.Seed);
         var builder = new FuzzRunSummaryBuilder(options, startedUtc);
-        var maxIterations = options.Iterations is > 0 ? options.Iterations.Value : (int?)null;
-        var deadline = options.Duration is { } duration ? startedUtc + duration : (DateTimeOffset?)null;
         var savedInterestingCases = 0;
+        var savedInterestingCaseKeys = new HashSet<string>(StringComparer.Ordinal);
+        var savedInterestingCasesByFamily = new Dictionary<string, int>(StringComparer.Ordinal);
 
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -212,32 +278,45 @@ public static class FuzzRunner
                 break;
             }
 
-            var fuzzCase = generator.Next(builder.CasesAnalyzed);
+            var fuzzCase = createCase(builder.CasesAnalyzed);
             var analysis = await AnalyzeCaseAsync(fuzzCase, options.RepeatAnalyzer, cancellationToken);
 
-            if (analysis.Findings.Length > 0 && savedInterestingCases < options.MaxInterestingCases)
+            if (analysis.Findings.Length > 0)
             {
-                var fileName = $"{savedInterestingCases + 1:0000}-{SanitizeFileName(fuzzCase.Name)}.cs";
-                var sourcePath = Path.Combine(interestingDirectory, fileName);
-                await File.WriteAllTextAsync(sourcePath, fuzzCase.Source, cancellationToken);
-                analysis = analysis with
+                var interestingCaseKey = CreateInterestingCaseKey(analysis);
+                var savedForFamily = savedInterestingCasesByFamily.TryGetValue(analysis.Case.Family, out var count)
+                    ? count
+                    : 0;
+                if (savedInterestingCases < options.MaxInterestingCases &&
+                    savedForFamily < options.MaxInterestingCasesPerFamily &&
+                    savedInterestingCaseKeys.Add(interestingCaseKey))
                 {
-                    Findings = analysis.Findings
-                        .Select(finding => finding with { SourcePath = sourcePath })
-                        .ToImmutableArray()
-                };
-                savedInterestingCases++;
+                    var fileName = $"{savedInterestingCases + 1:0000}-{SanitizeFileName(analysis.Case.Family)}-{analysis.NormalizedSourceHash[..12]}.cs";
+                    var sourcePath = Path.Combine(interestingDirectory, fileName);
+                    await File.WriteAllTextAsync(sourcePath, fuzzCase.Source, cancellationToken);
+                    analysis = analysis with
+                    {
+                        Findings = analysis.Findings
+                            .Select(finding => finding with { SourcePath = sourcePath })
+                            .ToImmutableArray()
+                    };
+                    savedInterestingCases++;
+                    savedInterestingCasesByFamily[analysis.Case.Family] = savedForFamily + 1;
+                }
             }
 
             builder.Add(analysis);
+
+            if (options.CheckpointEvery > 0 && builder.CasesAnalyzed % options.CheckpointEvery == 0)
+            {
+                var checkpointSummary = builder.Build(DateTimeOffset.UtcNow, stopwatch.Elapsed, options.OutputDirectory, savedInterestingCases);
+                await WriteArtifactsAsync(checkpointSummary, options.OutputDirectory, isPartial: true, cancellationToken);
+            }
         }
 
         stopwatch.Stop();
-        var summary = builder.Build(DateTimeOffset.UtcNow, stopwatch.Elapsed, options.OutputDirectory);
-        var summaryJson = JsonSerializer.Serialize(summary, JsonOptions);
-        await File.WriteAllTextAsync(Path.Combine(options.OutputDirectory, "summary.json"), summaryJson, cancellationToken);
-        await File.WriteAllTextAsync(Path.Combine(options.OutputDirectory, "coverage.json"), CreateCoverageJson(summary), cancellationToken);
-
+        var summary = builder.Build(DateTimeOffset.UtcNow, stopwatch.Elapsed, options.OutputDirectory, savedInterestingCases);
+        await WriteArtifactsAsync(summary, options.OutputDirectory, isPartial: false, cancellationToken);
         return summary;
     }
 
@@ -248,6 +327,7 @@ public static class FuzzRunner
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(fuzzCase.Source, ParseOptions, cancellationToken: cancellationToken);
         var compilation = CreateCompilation(fuzzCase.Name, syntaxTree, fuzzCase.AllowUnsafe);
+        var normalizedSourceHash = ComputeStableHash(NormalizeSource(fuzzCase.Source));
         var compilerErrors = compilation.GetDiagnostics(cancellationToken)
             .Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
             .Select(diagnostic => diagnostic.ToString())
@@ -262,6 +342,7 @@ public static class FuzzRunner
                 ImmutableArray<Diagnostic>.Empty,
                 ImmutableArray<string>.Empty,
                 compilerErrors,
+                normalizedSourceHash,
                 ImmutableArray.Create(new FuzzFinding(
                     fuzzCase.Name,
                     fuzzCase.Family,
@@ -311,6 +392,7 @@ public static class FuzzRunner
             firstDiagnostics.Diagnostics,
             diagnosticSignatures,
             ImmutableArray<string>.Empty,
+            normalizedSourceHash,
             findings.ToImmutable());
     }
 
@@ -534,6 +616,9 @@ public static class FuzzRunner
             summary.SchemaVersion,
             summary.Seed,
             summary.CasesAnalyzed,
+            summary.FindingCount,
+            summary.UniqueFindingCount,
+            summary.InterestingCasesSaved,
             summary.OperationKinds,
             summary.SyntaxKinds,
             summary.UnobservedOperationKinds,
@@ -541,6 +626,52 @@ public static class FuzzRunner
         };
 
         return JsonSerializer.Serialize(coverage, JsonOptions);
+    }
+
+    private static async Task WriteArtifactsAsync(
+        FuzzRunSummary summary,
+        string outputDirectory,
+        bool isPartial,
+        CancellationToken cancellationToken)
+    {
+        var summaryPath = Path.Combine(outputDirectory, isPartial ? "summary.partial.json" : "summary.json");
+        var coveragePath = Path.Combine(outputDirectory, isPartial ? "coverage.partial.json" : "coverage.json");
+        var summaryJson = JsonSerializer.Serialize(summary, JsonOptions);
+        await File.WriteAllTextAsync(summaryPath, summaryJson, cancellationToken);
+        await File.WriteAllTextAsync(coveragePath, CreateCoverageJson(summary), cancellationToken);
+    }
+
+    private static string CreateInterestingCaseKey(FuzzCaseAnalysis analysis)
+    {
+        var findingIdentity = string.Join(
+            "||",
+            analysis.Findings
+                .OrderBy(finding => finding.Category, StringComparer.Ordinal)
+                .ThenBy(finding => finding.Description, StringComparer.Ordinal)
+                .Select(CreateFindingIdentity));
+
+        return analysis.NormalizedSourceHash + "|" + findingIdentity;
+    }
+
+    private static string CreateFindingIdentity(FuzzFinding finding)
+    {
+        return finding.Family + "|" +
+               finding.Category + "|" +
+               finding.Description + "|" +
+               string.Join("||", finding.Details.OrderBy(detail => detail, StringComparer.Ordinal));
+    }
+
+    private static string NormalizeSource(string source)
+    {
+        var normalized = source.Replace("\r\n", "\n", StringComparison.Ordinal).Trim();
+        return GeneratedTypeNameRegex.Replace(normalized, "GeneratedTypeX");
+    }
+
+    private static string ComputeStableHash(string text)
+    {
+        using var sha = SHA256.Create();
+        var bytes = Encoding.UTF8.GetBytes(text);
+        return Convert.ToHexString(sha.ComputeHash(bytes));
     }
 
     private static string SanitizeFileName(string value)
@@ -697,7 +828,7 @@ public sealed class FuzzCaseGenerator
                 [EnforcePure]
                 public int TestMethod()
                 {
-                    return throw new InvalidOperationException("fuzz");
+                    throw new InvalidOperationException("fuzz");
                 }
             """);
     }
@@ -850,6 +981,7 @@ public sealed record FuzzCaseAnalysis(
     ImmutableArray<Diagnostic> Diagnostics,
     ImmutableArray<string> DiagnosticSignatures,
     ImmutableArray<string> CompilationErrors,
+    string NormalizedSourceHash,
     ImmutableArray<FuzzFinding> Findings);
 
 public sealed record FuzzFinding(
@@ -858,7 +990,8 @@ public sealed record FuzzFinding(
     string Category,
     string Description,
     string? SourcePath,
-    ImmutableArray<string> Details);
+    ImmutableArray<string> Details,
+    int OccurrenceCount = 1);
 
 public sealed record FuzzRunSummary
 {
@@ -885,6 +1018,10 @@ public sealed record FuzzRunSummary
     public int AnalyzerExceptionCount { get; init; }
 
     public int FindingCount { get; init; }
+
+    public int UniqueFindingCount { get; init; }
+
+    public int InterestingCasesSaved { get; init; }
 
     public int Ps0002Count { get; init; }
 
@@ -918,6 +1055,7 @@ internal sealed class FuzzRunSummaryBuilder
     private readonly SortedDictionary<string, int> _operationKinds = new(StringComparer.Ordinal);
     private readonly SortedDictionary<string, int> _syntaxKinds = new(StringComparer.Ordinal);
     private readonly ImmutableArray<FuzzFinding>.Builder _findings = ImmutableArray.CreateBuilder<FuzzFinding>();
+    private readonly Dictionary<string, int> _findingIndices = new(StringComparer.Ordinal);
 
     private int _compilationErrorCount;
     private int _ps0002Count;
@@ -940,7 +1078,10 @@ internal sealed class FuzzRunSummaryBuilder
         AddAll(_operationKinds, analysis.OperationKinds);
         AddAll(_syntaxKinds, analysis.SyntaxKinds);
         _compilationErrorCount += analysis.CompilationErrors.Length > 0 ? 1 : 0;
-        _findings.AddRange(analysis.Findings);
+        foreach (var finding in analysis.Findings)
+        {
+            AddFinding(analysis.NormalizedSourceHash, finding);
+        }
 
         foreach (var diagnostic in analysis.Diagnostics)
         {
@@ -963,10 +1104,17 @@ internal sealed class FuzzRunSummaryBuilder
         }
     }
 
-    public FuzzRunSummary Build(DateTimeOffset completedUtc, TimeSpan elapsed, string outputDirectory)
+    public FuzzRunSummary Build(DateTimeOffset completedUtc, TimeSpan elapsed, string outputDirectory, int interestingCasesSaved)
     {
-        var findings = _findings.ToImmutable();
-        var analyzerExceptionCount = findings.Count(finding => finding.Category == "analyzer_exception");
+        var findings = _findings
+            .OrderByDescending(finding => finding.OccurrenceCount)
+            .ThenBy(finding => finding.Category, StringComparer.Ordinal)
+            .ThenBy(finding => finding.Family, StringComparer.Ordinal)
+            .ToImmutableArray();
+        var analyzerExceptionCount = findings
+            .Where(finding => finding.Category == "analyzer_exception")
+            .Sum(finding => finding.OccurrenceCount);
+        var totalFindingCount = findings.Sum(finding => finding.OccurrenceCount);
         var observedOperationKinds = _operationKinds.Keys.ToImmutableHashSet(StringComparer.Ordinal);
         var unobservedOperationKinds = Enum.GetNames<OperationKind>()
             .Where(kind => !observedOperationKinds.Contains(kind))
@@ -985,7 +1133,9 @@ internal sealed class FuzzRunSummaryBuilder
             CasesAnalyzed = CasesAnalyzed,
             CompilationErrorCount = _compilationErrorCount,
             AnalyzerExceptionCount = analyzerExceptionCount,
-            FindingCount = findings.Length,
+            FindingCount = totalFindingCount,
+            UniqueFindingCount = findings.Length,
+            InterestingCasesSaved = interestingCasesSaved,
             Ps0002Count = _ps0002Count,
             Ps0004Count = _ps0004Count,
             Ps0009Count = _ps0009Count,
@@ -996,6 +1146,25 @@ internal sealed class FuzzRunSummaryBuilder
             UnobservedOperationKinds = unobservedOperationKinds,
             Findings = findings
         };
+    }
+
+    private void AddFinding(string normalizedSourceHash, FuzzFinding finding)
+    {
+        var aggregationKey = normalizedSourceHash + "|" + finding.Family + "|" + finding.Category + "|" + finding.Description + "|" +
+                             string.Join("||", finding.Details.OrderBy(detail => detail, StringComparer.Ordinal));
+        if (_findingIndices.TryGetValue(aggregationKey, out var index))
+        {
+            var existing = _findings[index];
+            _findings[index] = existing with
+            {
+                OccurrenceCount = existing.OccurrenceCount + finding.OccurrenceCount,
+                SourcePath = existing.SourcePath ?? finding.SourcePath
+            };
+            return;
+        }
+
+        _findingIndices.Add(aggregationKey, _findings.Count);
+        _findings.Add(finding);
     }
 
     private static void AddAll(SortedDictionary<string, int> target, IReadOnlyDictionary<string, int> source)
