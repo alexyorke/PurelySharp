@@ -18,6 +18,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
 				new EventAssignmentPurityRule(),
 				
 				// Assignments/References
+				new DeconstructionAssignmentPurityRule(),
 				new AssignmentPurityRule(),
 				new ExpressionStatementPurityRule(),
 				new ParameterReferencePurityRule(),

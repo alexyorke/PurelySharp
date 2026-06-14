@@ -359,6 +359,14 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     }
 
                     if (argument.Parameter.RefKind == RefKind.Out &&
+                        IsDeclarationOrDiscardOutArgumentTarget(argument.Value) &&
+                        IsDeconstructOutArgumentMethod(invokedMethodSymbol))
+                    {
+                        PurityAnalysisEngine.LogDebug($"  [MIR]   Skipping declaration/discard Deconstruct out argument target '{argument.Syntax}'. Callee purity is checked separately.");
+                        continue;
+                    }
+
+                    if (argument.Parameter.RefKind == RefKind.Out &&
                         (PurityAnalysisEngine.IsKnownPureBCLMember(originalDefinitionSymbol) ||
                          IsDispatchAnalyzedOutArgumentMethod(invokedMethodSymbol)))
                     {
@@ -573,6 +581,44 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return operation is ILocalReferenceOperation ||
                 operation is IDeclarationExpressionOperation ||
                 operation is IDiscardOperation;
+        }
+
+        private static bool IsDeclarationOrDiscardOutArgumentTarget(IOperation? operation)
+        {
+            operation = PurityAnalysisEngine.SkipImplicitConversions(operation);
+
+            if (operation is IConversionOperation conversionOperation)
+            {
+                return IsDeclarationOrDiscardOutArgumentTarget(conversionOperation.Operand);
+            }
+
+            return operation is IDeclarationExpressionOperation ||
+                operation is IDiscardOperation;
+        }
+
+        private static bool IsDeconstructOutArgumentMethod(IMethodSymbol methodSymbol)
+        {
+            if (methodSymbol.Name != "Deconstruct")
+            {
+                return false;
+            }
+
+            var parameters = methodSymbol.ReducedFrom?.Parameters ?? methodSymbol.Parameters;
+            var startIndex = methodSymbol.ReducedFrom?.IsExtensionMethod == true ? 1 : 0;
+            if (parameters.Length <= startIndex)
+            {
+                return false;
+            }
+
+            for (var index = startIndex; index < parameters.Length; index++)
+            {
+                if (parameters[index].RefKind != RefKind.Out)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private static bool IsDispatchAnalyzedOutArgumentMethod(IMethodSymbol methodSymbol)
