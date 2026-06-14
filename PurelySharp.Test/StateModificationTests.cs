@@ -124,7 +124,7 @@ public class TestClass
 
 
 
-        public async Task MethodWithMutableStructFieldAssignment_Diagnostic()
+        public async Task MethodWithMutableStructFieldAssignment_NoDiagnostic()
         {
             var test = @"
 using System;
@@ -144,10 +144,7 @@ public class TestClass
     }
 }";
 
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedRule)
-                                 .WithSpan(13, 17, 13, 27)
-                                 .WithArguments("TestMethod");
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]
