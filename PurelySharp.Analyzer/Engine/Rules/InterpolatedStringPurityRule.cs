@@ -46,6 +46,10 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     PurityAnalysisEngine.LogDebug($"    [InterpStrRule] Checking Interpolation Expression: {interpolation.Expression.Syntax}");
                     partResult = PurityAnalysisEngine.CheckSingleOperation(interpolation.Expression, context, currentState);
 
+                    if (partResult.IsPure)
+                    {
+                        partResult = CheckImplicitFormattingPurity(interpolation, context);
+                    }
 
                     if (partResult.IsPure && interpolation.Alignment != null)
                     {
@@ -99,6 +103,147 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckImplicitFormattingPurity(
+            IInterpolationOperation interpolation,
+            PurityAnalysisContext context)
+        {
+            var expression = PurityAnalysisEngine.SkipImplicitConversions(interpolation.Expression);
+            if (expression == null)
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            var expressionType = expression.Type;
+            if (expressionType == null ||
+                expressionType.SpecialType == SpecialType.System_String)
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            if (expressionType.TypeKind == TypeKind.Dynamic ||
+                expressionType.TypeKind == TypeKind.TypeParameter ||
+                expressionType.SpecialType == SpecialType.System_Object)
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                    interpolation.Syntax,
+                    PurityAnalysisEngine.PurityEvidence.Create(
+                        "dynamic_dispatch",
+                        nameof(InterpolatedStringPurityRule),
+                        interpolation,
+                        syntaxNode: interpolation.Syntax,
+                        symbol: PurityAnalysisEngine.TryResolveSymbol(expression)));
+            }
+
+            if (IsFrameworkType(expressionType))
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            if (expressionType is not INamedTypeSymbol namedType)
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            var toStringMethod = FindParameterlessToString(namedType);
+            if (toStringMethod == null)
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                    interpolation.Syntax,
+                    PurityAnalysisEngine.PurityEvidence.Create(
+                        "unknown_external_call",
+                        nameof(InterpolatedStringPurityRule),
+                        interpolation,
+                        syntaxNode: interpolation.Syntax,
+                        symbol: expressionType));
+            }
+
+            if (namedType.TypeKind == TypeKind.Class &&
+                !namedType.IsSealed &&
+                toStringMethod.IsVirtual &&
+                !toStringMethod.IsSealed)
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                    interpolation.Syntax,
+                    PurityAnalysisEngine.PurityEvidence.Create(
+                        "dynamic_dispatch",
+                        nameof(InterpolatedStringPurityRule),
+                        interpolation,
+                        syntaxNode: interpolation.Syntax,
+                        symbol: toStringMethod));
+            }
+
+            var originalDefinition = toStringMethod.OriginalDefinition;
+            if (PurityAnalysisEngine.HasPureExternalAttribute(originalDefinition))
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            if (PurityAnalysisEngine.IsKnownImpure(originalDefinition))
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                    interpolation.Syntax,
+                    PurityAnalysisEngine.PurityEvidence.Create(
+                        "catalog_hit",
+                        nameof(InterpolatedStringPurityRule),
+                        interpolation,
+                        syntaxNode: interpolation.Syntax,
+                        symbol: originalDefinition,
+                        catalogSource: PurityAnalysisEngine.GetKnownImpureMemberSource(originalDefinition) ?? "known_impure"));
+            }
+
+            if (PurityAnalysisEngine.IsKnownPureBCLMember(originalDefinition))
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            if (originalDefinition.DeclaringSyntaxReferences.Length == 0)
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                    interpolation.Syntax,
+                    PurityAnalysisEngine.PurityEvidence.Create(
+                        "unknown_external_call",
+                        nameof(InterpolatedStringPurityRule),
+                        interpolation,
+                        syntaxNode: interpolation.Syntax,
+                        symbol: originalDefinition,
+                        catalogSource: "metadata"));
+            }
+
+            var calleePurity = PurityAnalysisEngine.GetCalleePurity(originalDefinition, context);
+            return calleePurity.IsPure
+                ? PurityAnalysisEngine.PurityAnalysisResult.Pure
+                : calleePurity.WithCallee(originalDefinition, interpolation.Syntax);
+        }
+
+        private static IMethodSymbol? FindParameterlessToString(INamedTypeSymbol type)
+        {
+            var current = type;
+            while (current != null)
+            {
+                foreach (var member in current.GetMembers(nameof(ToString)))
+                {
+                    if (member is IMethodSymbol method &&
+                        !method.IsStatic &&
+                        method.Parameters.Length == 0 &&
+                        method.ReturnType.SpecialType == SpecialType.System_String)
+                    {
+                        return method;
+                    }
+                }
+
+                current = current.BaseType;
+            }
+
+            return null;
+        }
+
+        private static bool IsFrameworkType(ITypeSymbol type)
+        {
+            var namespaceName = type.ContainingNamespace?.ToDisplayString();
+            return namespaceName == "System" ||
+                namespaceName?.StartsWith("System.", System.StringComparison.Ordinal) == true;
         }
 
         private static bool IsFormattableStringInvariantArgument(IInterpolatedStringOperation interpolatedString)

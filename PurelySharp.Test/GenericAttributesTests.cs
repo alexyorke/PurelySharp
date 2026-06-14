@@ -141,7 +141,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task GenericAttributeWithMultipleTypeParameters_PureMethod_ReportsMissingAttributeDiagnostics()
+        public async Task GenericAttributeWithMultipleTypeParameters_GenericInterpolation_ReportsPurityAndMissingAttributeDiagnostics()
         {
             var test = @"
 using System;
@@ -167,12 +167,11 @@ namespace TestNamespace
 {
     public class GenericAttributeMultipleParamsTest
     {
-        // Pure method with generic attribute that has multiple type parameters
+        // Generic interpolation is conservative because TKey/TValue.ToString() can dispatch to user code.
         [EnforcePure]
         [Pair<int, string>(1, ""one"")]
-        public string FormatPair<TKey, TValue>(TKey key, TValue value)
+        public string {|PS0002:FormatPair|}<TKey, TValue>(TKey key, TValue value)
         {
-            // String interpolation - pure operation
             return $""{key}: {value}"";
         }
     }
