@@ -588,6 +588,7 @@ public static class Constants
         "System.Threading.SemaphoreSlim.Wait()",
         "System.Threading.Tasks.Task.Delay(int)",
         "System.Threading.Tasks.Task.Delay(System.TimeSpan)",
+        "System.Threading.Tasks.Task.IsCompleted.get",
         "System.Threading.Tasks.Task.Run(System.Action)",
 
 
@@ -650,6 +651,7 @@ public static class Constants
         "System.Security.Principal.WindowsIdentity.GetCurrent()",
         "System.Security.SecureString.AppendChar(char)",
         "System.Security.SecureString.Dispose()",
+        "System.Threading.CancellationToken.IsCancellationRequested.get",
         "System.Threading.CancellationToken.Register(System.Action)",
         "System.Threading.CancellationToken.ThrowIfCancellationRequested()",
         "System.Threading.CancellationTokenSource.Cancel()",
