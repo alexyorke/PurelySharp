@@ -24,6 +24,7 @@ namespace PurelySharp.Test
                     Seed = 20260614,
                     OutputDirectory = outputDirectory,
                     CheckpointEvery = 5,
+                    Parallelism = 4,
                     Quiet = true
                 });
 
@@ -32,6 +33,7 @@ namespace PurelySharp.Test
                 Assert.That(summary.OperationKinds, Is.Not.Empty);
                 Assert.That(summary.SyntaxKinds, Is.Not.Empty);
                 Assert.That(summary.FamilyCounts, Is.Not.Empty);
+                Assert.That(summary.Parallelism, Is.EqualTo(4));
                 Assert.That(File.Exists(Path.Combine(outputDirectory, "summary.json")), Is.True);
                 Assert.That(File.Exists(Path.Combine(outputDirectory, "coverage.json")), Is.True);
                 Assert.That(File.Exists(Path.Combine(outputDirectory, "summary.partial.json")), Is.True);
@@ -94,6 +96,7 @@ public class KnownImpureConsoleCase
                         MaxInterestingCases = 10,
                         MaxInterestingCasesPerFamily = 1,
                         CheckpointEvery = 2,
+                        Parallelism = 4,
                         Quiet = true
                     });
 
@@ -116,6 +119,28 @@ public class KnownImpureConsoleCase
             {
                 DeleteOutputDirectory(outputDirectory);
             }
+        }
+
+        [Test]
+        public void FuzzCaseGenerator_DeterministicSample_IncludesExpandedFamilies()
+        {
+            var generator = new FuzzCaseGenerator(20260614);
+            var families = Enumerable.Range(0, 400)
+                .Select(index => generator.Next(index).Family)
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+
+            Assert.That(families, Does.Contain("ImpureAwaitTaskDelay"));
+            Assert.That(families, Does.Contain("ImpureLockSection"));
+            Assert.That(families, Does.Contain("ImpureUsingStandardOutput"));
+            Assert.That(families, Does.Contain("PureInterpolatedString"));
+            Assert.That(families, Does.Contain("PureUtf8String"));
+            Assert.That(families, Does.Contain("PureArrayCreation"));
+            Assert.That(families, Does.Contain("ConservativeSwitchExpression"));
+            Assert.That(families, Does.Contain("ConservativeRangeSlice"));
+            Assert.That(families, Does.Contain("ConservativeWithExpression"));
+            Assert.That(families, Does.Contain("ConservativeImplicitIndexerReference"));
+            Assert.That(families, Does.Contain("ConservativeInterpolatedStringHandler"));
         }
 
         private static string CreateOutputDirectory()

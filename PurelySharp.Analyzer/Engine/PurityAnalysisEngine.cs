@@ -102,7 +102,7 @@ namespace PurelySharp.Analyzer.Engine
                 {
                     throw new ArgumentNullException(nameof(impureSyntaxNode), "Use ImpureUnknownLocation for impurity without a specific node.");
                 }
-                return new PurityAnalysisResult(false, impureSyntaxNode, PurityEvidence.Create("unsupported_operation", syntaxNode: impureSyntaxNode));
+                return new PurityAnalysisResult(false, impureSyntaxNode, PurityEvidence.Create("unsupported_operation", ruleName: "UnsupportedOperation", syntaxNode: impureSyntaxNode));
             }
 
             public static PurityAnalysisResult Impure(SyntaxNode impureSyntaxNode, PurityEvidence evidence)
@@ -114,7 +114,7 @@ namespace PurelySharp.Analyzer.Engine
 
                 if (evidence.IsEmpty)
                 {
-                    evidence = PurityEvidence.Create("unsupported_operation", syntaxNode: impureSyntaxNode);
+                    evidence = PurityEvidence.Create("unsupported_operation", ruleName: "UnsupportedOperation", syntaxNode: impureSyntaxNode);
                 }
 
                 return new PurityAnalysisResult(false, impureSyntaxNode, evidence.WithSyntax(impureSyntaxNode));
@@ -2105,6 +2105,13 @@ namespace PurelySharp.Analyzer.Engine
             }
 
 
+            if (operation.Kind == OperationKind.InterpolatedStringText ||
+                operation.Kind == OperationKind.Interpolation)
+            {
+                LogDebug($"    [CSO] {operation.Kind} is parent-handled by InterpolatedStringPurityRule.");
+                return PurityAnalysisResult.Pure;
+            }
+
             _firstRuleByOperationKind.TryGetValue(operation.Kind, out var applicableRule);
 
             if (applicableRule != null)
@@ -2433,7 +2440,7 @@ namespace PurelySharp.Analyzer.Engine
         {
             return IsUnsafePointerOperation(operation)
                 ? PurityEvidence.Create("unsafe_pointer", ruleName: "UnsupportedOperation", operation: operation)
-                : PurityEvidence.Create("unsupported_operation", operation: operation);
+                : PurityEvidence.Create("unsupported_operation", ruleName: "UnsupportedOperation", operation: operation);
         }
 
         private static bool IsUnsafePointerOperation(IOperation operation)

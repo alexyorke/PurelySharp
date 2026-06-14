@@ -62,6 +62,7 @@ Options:
   --max-interesting-per-family <n>
                            Maximum saved interesting cases per family. Default: 10.
   --checkpoint-every <n>   Write summary.partial.json and coverage.partial.json every N analyzed cases. Default: 100. Use 0 to disable.
+  --parallelism <n>        Maximum concurrent analyzer tasks. Default: 4 or processor count if lower.
   --quiet                  Suppress progress output.
   --fail-on-findings       Exit with code 2 when findings are found.
   --no-repeat              Do not run repeated analyzer determinism checks.
@@ -80,6 +81,8 @@ Options:
     public int MaxInterestingCasesPerFamily { get; init; } = 10;
 
     public int CheckpointEvery { get; init; } = 100;
+
+    public int Parallelism { get; init; } = DefaultParallelism();
 
     public bool Quiet { get; init; }
 
@@ -122,6 +125,9 @@ Options:
                 case "--checkpoint-every":
                     options = options with { CheckpointEvery = ReadInt(args, ref i, arg) };
                     break;
+                case "--parallelism":
+                    options = options with { Parallelism = ReadInt(args, ref i, arg) };
+                    break;
                 case "--quiet":
                     options = options with { Quiet = true };
                     break;
@@ -154,6 +160,11 @@ Options:
         if (options.CheckpointEvery < 0)
         {
             throw new ArgumentException("--checkpoint-every must be non-negative.");
+        }
+
+        if (options.Parallelism <= 0)
+        {
+            throw new ArgumentException("--parallelism must be positive.");
         }
 
         if (options.Iterations == 0 && options.Duration is null)
@@ -198,6 +209,11 @@ Options:
             "artifacts",
             "fuzz",
             DateTimeOffset.UtcNow.ToString("yyyyMMdd-HHmmss"));
+    }
+
+    private static int DefaultParallelism()
+    {
+        return Math.Max(1, Math.Min(Environment.ProcessorCount, 4));
     }
 }
 
@@ -265,6 +281,7 @@ public static class FuzzRunner
         var savedInterestingCases = 0;
         var savedInterestingCaseKeys = new HashSet<string>(StringComparer.Ordinal);
         var savedInterestingCasesByFamily = new Dictionary<string, int>(StringComparer.Ordinal);
+        var nextCheckpointAt = options.CheckpointEvery > 0 ? options.CheckpointEvery : int.MaxValue;
 
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -278,39 +295,54 @@ public static class FuzzRunner
                 break;
             }
 
-            var fuzzCase = createCase(builder.CasesAnalyzed);
-            var analysis = await AnalyzeCaseAsync(fuzzCase, options.RepeatAnalyzer, cancellationToken);
+            var remainingCases = maxIterations is { } maximum
+                ? maximum - builder.CasesAnalyzed
+                : options.Parallelism * 8;
+            var batchSize = Math.Max(1, Math.Min(options.Parallelism * 8, remainingCases));
+            var startIndex = builder.CasesAnalyzed;
+            var cases = Enumerable.Range(startIndex, batchSize)
+                .Select(createCase)
+                .ToImmutableArray();
+            var analyses = await AnalyzeCasesAsync(cases, options.RepeatAnalyzer, options.Parallelism, cancellationToken);
 
-            if (analysis.Findings.Length > 0)
+            foreach (var analysis in analyses)
             {
-                var interestingCaseKey = CreateInterestingCaseKey(analysis);
-                var savedForFamily = savedInterestingCasesByFamily.TryGetValue(analysis.Case.Family, out var count)
-                    ? count
-                    : 0;
-                if (savedInterestingCases < options.MaxInterestingCases &&
-                    savedForFamily < options.MaxInterestingCasesPerFamily &&
-                    savedInterestingCaseKeys.Add(interestingCaseKey))
+                var updatedAnalysis = analysis;
+                if (analysis.Findings.Length > 0)
                 {
-                    var fileName = $"{savedInterestingCases + 1:0000}-{SanitizeFileName(analysis.Case.Family)}-{analysis.NormalizedSourceHash[..12]}.cs";
-                    var sourcePath = Path.Combine(interestingDirectory, fileName);
-                    await File.WriteAllTextAsync(sourcePath, fuzzCase.Source, cancellationToken);
-                    analysis = analysis with
+                    var interestingCaseKey = CreateInterestingCaseKey(analysis);
+                    var savedForFamily = savedInterestingCasesByFamily.TryGetValue(analysis.Case.Family, out var count)
+                        ? count
+                        : 0;
+                    if (savedInterestingCases < options.MaxInterestingCases &&
+                        savedForFamily < options.MaxInterestingCasesPerFamily &&
+                        savedInterestingCaseKeys.Add(interestingCaseKey))
                     {
-                        Findings = analysis.Findings
+                        var fileName = $"{savedInterestingCases + 1:0000}-{SanitizeFileName(analysis.Case.Family)}-{analysis.NormalizedSourceHash[..12]}.cs";
+                        var sourcePath = Path.Combine(interestingDirectory, fileName);
+                        await File.WriteAllTextAsync(sourcePath, analysis.Case.Source, cancellationToken);
+                        updatedAnalysis = analysis with
+                        {
+                            Findings = analysis.Findings
                             .Select(finding => finding with { SourcePath = sourcePath })
                             .ToImmutableArray()
-                    };
-                    savedInterestingCases++;
-                    savedInterestingCasesByFamily[analysis.Case.Family] = savedForFamily + 1;
+                        };
+                        savedInterestingCases++;
+                        savedInterestingCasesByFamily[analysis.Case.Family] = savedForFamily + 1;
+                    }
                 }
-            }
 
-            builder.Add(analysis);
+                builder.Add(updatedAnalysis);
 
-            if (options.CheckpointEvery > 0 && builder.CasesAnalyzed % options.CheckpointEvery == 0)
-            {
-                var checkpointSummary = builder.Build(DateTimeOffset.UtcNow, stopwatch.Elapsed, options.OutputDirectory, savedInterestingCases);
-                await WriteArtifactsAsync(checkpointSummary, options.OutputDirectory, isPartial: true, cancellationToken);
+                if (options.CheckpointEvery > 0 && builder.CasesAnalyzed >= nextCheckpointAt)
+                {
+                    var checkpointSummary = builder.Build(DateTimeOffset.UtcNow, stopwatch.Elapsed, options.OutputDirectory, savedInterestingCases);
+                    await WriteArtifactsAsync(checkpointSummary, options.OutputDirectory, isPartial: true, cancellationToken);
+                    while (builder.CasesAnalyzed >= nextCheckpointAt)
+                    {
+                        nextCheckpointAt += options.CheckpointEvery;
+                    }
+                }
             }
         }
 
@@ -318,6 +350,30 @@ public static class FuzzRunner
         var summary = builder.Build(DateTimeOffset.UtcNow, stopwatch.Elapsed, options.OutputDirectory, savedInterestingCases);
         await WriteArtifactsAsync(summary, options.OutputDirectory, isPartial: false, cancellationToken);
         return summary;
+    }
+
+    private static async Task<ImmutableArray<FuzzCaseAnalysis>> AnalyzeCasesAsync(
+        ImmutableArray<FuzzCase> fuzzCases,
+        bool repeatAnalyzer,
+        int parallelism,
+        CancellationToken cancellationToken)
+    {
+        var analyses = new FuzzCaseAnalysis[fuzzCases.Length];
+        var parallelOptions = new ParallelOptions
+        {
+            MaxDegreeOfParallelism = parallelism,
+            CancellationToken = cancellationToken
+        };
+
+        await Parallel.ForEachAsync(
+            Enumerable.Range(0, fuzzCases.Length),
+            parallelOptions,
+            async (index, ct) =>
+            {
+                analyses[index] = await AnalyzeCaseAsync(fuzzCases[index], repeatAnalyzer, ct);
+            });
+
+        return analyses.ToImmutableArray();
     }
 
     public static async Task<FuzzCaseAnalysis> AnalyzeCaseAsync(
@@ -689,32 +745,44 @@ public static class FuzzRunner
 
 public sealed class FuzzCaseGenerator
 {
-    private readonly Random _random;
+    private readonly int _seed;
 
     private static readonly ImmutableArray<CaseFamily> Families = ImmutableArray.Create(
         new CaseFamily("PureArithmetic", FuzzExpectation.DefinitelyPure(), BuildPureArithmetic),
         new CaseFamily("PureStringConcat", FuzzExpectation.DefinitelyPure(), BuildPureStringConcat),
         new CaseFamily("PureListPattern", FuzzExpectation.DefinitelyPure(), BuildPureListPattern),
         new CaseFamily("PureCollectionExpression", FuzzExpectation.DefinitelyPure(), BuildPureCollectionExpression),
+        new CaseFamily("PureInterpolatedString", FuzzExpectation.DefinitelyPure(), BuildPureInterpolatedString),
+        new CaseFamily("PureUtf8String", FuzzExpectation.DefinitelyPure(), BuildPureUtf8String),
+        new CaseFamily("PureArrayCreation", FuzzExpectation.DefinitelyPure(), BuildPureArrayCreation),
         new CaseFamily("ImpureConsoleWrite", FuzzExpectation.DefinitelyImpure(), BuildImpureConsoleWrite),
         new CaseFamily("ImpureDynamicDispatch", FuzzExpectation.DefinitelyImpure(), BuildImpureDynamicDispatch),
         new CaseFamily("ImpureDelegateInvoke", FuzzExpectation.DefinitelyImpure(), BuildImpureDelegateInvoke),
         new CaseFamily("ImpureThrowExpression", FuzzExpectation.DefinitelyImpure(), BuildImpureThrowExpression),
         new CaseFamily("ImpureFieldWrite", FuzzExpectation.DefinitelyImpure(), BuildImpureFieldWrite),
         new CaseFamily("ImpureAmbientDateTime", FuzzExpectation.DefinitelyImpure(), BuildImpureAmbientDateTime),
+        new CaseFamily("ImpureAwaitTaskDelay", FuzzExpectation.DefinitelyImpure(), BuildImpureAwaitTaskDelay),
+        new CaseFamily("ImpureLockSection", FuzzExpectation.DefinitelyImpure(), BuildImpureLockSection),
+        new CaseFamily("ImpureUsingStandardOutput", FuzzExpectation.DefinitelyImpure(), BuildImpureUsingStandardOutput),
         new CaseFamily("ConservativeInterfaceGetter", FuzzExpectation.Conservative(), BuildConservativeInterfaceGetter),
+        new CaseFamily("ConservativeSwitchExpression", FuzzExpectation.Conservative(), BuildConservativeSwitchExpression),
+        new CaseFamily("ConservativeRangeSlice", FuzzExpectation.Conservative(), BuildConservativeRangeSlice),
+        new CaseFamily("ConservativeWithExpression", FuzzExpectation.Conservative(), BuildConservativeWithExpression),
+        new CaseFamily("ConservativeImplicitIndexerReference", FuzzExpectation.Conservative(), BuildConservativeImplicitIndexerReference),
+        new CaseFamily("ConservativeInterpolatedStringHandler", FuzzExpectation.Conservative(), BuildConservativeInterpolatedStringHandler),
         new CaseFamily("ConservativeFunctionPointer", FuzzExpectation.Conservative(), BuildConservativeFunctionPointer));
 
     public FuzzCaseGenerator(int seed)
     {
-        _random = new Random(seed);
+        _seed = seed;
     }
 
     public FuzzCase Next(int index)
     {
-        var family = Families[_random.Next(Families.Length)];
+        var random = CreateRandom(index);
+        var family = Families[random.Next(Families.Length)];
         var className = $"FuzzCase{index}_{family.Name}";
-        var source = family.Build(index, _random, className);
+        var source = family.Build(index, random, className);
         return new FuzzCase(
             Name: $"{index:000000}-{family.Name}",
             Family: family.Name,
@@ -752,6 +820,44 @@ public sealed class FuzzCaseGenerator
                 public int TestMethod(string left, string right)
                 {
             {{Indent(BuildReturnBody(expression, random), 8)}}
+                }
+            """);
+    }
+
+    private static string BuildPureInterpolatedString(int index, Random random, string className)
+    {
+        var expression = random.Next(2) == 0
+            ? "$\"value={x}\".Length"
+            : "$\"sum={x + 1}\".Length";
+
+        return BuildClass(
+            className,
+            BuildIntMethodFromExpression(expression, random));
+    }
+
+    private static string BuildPureUtf8String(int index, Random random, string className)
+    {
+        return BuildClass(
+            className,
+            """
+                [EnforcePure]
+                public int TestMethod()
+                {
+                    return "abc"u8.Length;
+                }
+            """);
+    }
+
+    private static string BuildPureArrayCreation(int index, Random random, string className)
+    {
+        return BuildClass(
+            className,
+            """
+                [EnforcePure]
+                public int TestMethod(int x)
+                {
+                    var values = new int[] { 1, x, 3 };
+                    return values[1];
                 }
             """);
     }
@@ -855,6 +961,57 @@ public sealed class FuzzCaseGenerator
             BuildIntMethodFromExpression("DateTime.Now.Day", random));
     }
 
+    private static string BuildImpureAwaitTaskDelay(int index, Random random, string className)
+    {
+        return $$"""
+using System;
+using System.Threading.Tasks;
+using PurelySharp.Attributes;
+
+public class {{className}}
+{
+    [EnforcePure]
+    public async Task<int> TestMethod()
+    {
+        await Task.Delay(1);
+        return 1;
+    }
+}
+""";
+    }
+
+    private static string BuildImpureLockSection(int index, Random random, string className)
+    {
+        return BuildClass(
+            className,
+            """
+                private readonly object _gate = new object();
+
+                [EnforcePure]
+                public int TestMethod()
+                {
+                    lock (_gate)
+                    {
+                        return 1;
+                    }
+                }
+            """);
+    }
+
+    private static string BuildImpureUsingStandardOutput(int index, Random random, string className)
+    {
+        return BuildClass(
+            className,
+            """
+                [EnforcePure]
+                public int TestMethod()
+                {
+                    using var stream = Console.OpenStandardOutput();
+                    return 1;
+                }
+            """);
+    }
+
     private static string BuildConservativeInterfaceGetter(int index, Random random, string className)
     {
         return $$"""
@@ -876,6 +1033,108 @@ public class {{className}}
 """;
     }
 
+    private static string BuildConservativeSwitchExpression(int index, Random random, string className)
+    {
+        return BuildClass(
+            className,
+            """
+                [EnforcePure]
+                public int TestMethod(int x)
+                {
+                    return x switch
+                    {
+                        < 0 => -1,
+                        0 => 0,
+                        _ => 1
+                    };
+                }
+            """);
+    }
+
+    private static string BuildConservativeRangeSlice(int index, Random random, string className)
+    {
+        return BuildClass(
+            className,
+            """
+                [EnforcePure]
+                public int TestMethod(string text)
+                {
+                    return text[1..^1].Length;
+                }
+            """);
+    }
+
+    private static string BuildConservativeWithExpression(int index, Random random, string className)
+    {
+        return $$"""
+using System;
+using PurelySharp.Attributes;
+
+public record {{className}}Data(int Value, int Other);
+
+public class {{className}}
+{
+    [EnforcePure]
+    public int TestMethod({{className}}Data data, int x)
+    {
+        var updated = data with { Value = x };
+        return updated.Value;
+    }
+}
+""";
+    }
+
+    private static string BuildConservativeImplicitIndexerReference(int index, Random random, string className)
+    {
+        return $$"""
+using System;
+using PurelySharp.Attributes;
+
+public sealed class {{className}}Bag
+{
+    public int Length => 3;
+    public int this[int index] => index + 10;
+}
+
+public class {{className}}
+{
+    [EnforcePure]
+    public int TestMethod({{className}}Bag bag)
+    {
+        return bag[^1];
+    }
+}
+""";
+    }
+
+    private static string BuildConservativeInterpolatedStringHandler(int index, Random random, string className)
+    {
+        return $$"""
+using System;
+using System.Runtime.CompilerServices;
+using PurelySharp.Attributes;
+
+[InterpolatedStringHandler]
+public ref struct {{className}}Handler
+{
+    public {{className}}Handler(int literalLength, int formattedCount) { }
+    public void AppendLiteral(string value) { }
+    public void AppendFormatted<T>(T value) { }
+}
+
+public class {{className}}
+{
+    [EnforcePure]
+    public void TestMethod(int value)
+    {
+        Log($"value={value}");
+    }
+
+    private void Log({{className}}Handler handler) { }
+}
+""";
+    }
+
     private static string BuildConservativeFunctionPointer(int index, Random random, string className)
     {
         return $$"""
@@ -890,6 +1149,11 @@ public unsafe class {{className}}
     }
 }
 """;
+    }
+
+    private Random CreateRandom(int index)
+    {
+        return new Random(HashCode.Combine(_seed, index, 0x51ED270B));
     }
 
     private static string BuildIntMethodFromExpression(string expression, Random random, string parameterList = "int x")
@@ -1002,6 +1266,8 @@ public sealed record FuzzRunSummary
     public int? IterationsRequested { get; init; }
 
     public double? DurationSecondsRequested { get; init; }
+
+    public int Parallelism { get; init; }
 
     public string OutputDirectory { get; init; } = "";
 
@@ -1126,6 +1392,7 @@ internal sealed class FuzzRunSummaryBuilder
             Seed = _options.Seed,
             IterationsRequested = _options.Iterations,
             DurationSecondsRequested = _options.Duration?.TotalSeconds,
+            Parallelism = _options.Parallelism,
             OutputDirectory = outputDirectory,
             StartedUtc = _startedUtc,
             CompletedUtc = completedUtc,

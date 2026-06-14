@@ -599,6 +599,34 @@ public class TestClass
         }
 
         [Test]
+        public async Task Ps0002_ImplicitIndexerUnsupportedOperation_IncludesStructuredEvidence()
+        {
+            var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
+using PurelySharp.Attributes;
+
+public sealed class Bag
+{
+    public int Length => 3;
+    public int this[int index] => index + 10;
+}
+
+public sealed class TestClass
+{
+    [EnforcePure]
+    public int TestMethod(Bag bag)
+    {
+        return bag[^1];
+    }
+}");
+
+            var diagnostic = SingleDiagnostic(diagnostics, PurelySharpDiagnostics.PurityNotVerifiedId);
+
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityCategoryProperty], Is.EqualTo("unsupported_operation"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityRuleProperty], Is.EqualTo("UnsupportedOperation"));
+            Assert.That(diagnostic.Properties[PurelySharpDiagnostics.ImpurityOperationKindProperty], Is.EqualTo("ImplicitIndexerReference"));
+        }
+
+        [Test]
         public async Task Ps0002_MutualRecursionWithRealImpurity_PreservesRealCalleeEvidence()
         {
             var diagnostics = await GetAnalyzerDiagnosticsAsync(@"
