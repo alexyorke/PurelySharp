@@ -251,6 +251,8 @@ namespace PurelySharp.Analyzer.Engine.Rules
             {
                 IObjectCreationOperation => true,
                 IDefaultValueOperation => true,
+                ILocalReferenceOperation localReference => localReference.Local.RefKind == RefKind.None,
+                IParameterReferenceOperation parameterReference => parameterReference.Parameter.RefKind == RefKind.None,
                 _ => false
             };
         }

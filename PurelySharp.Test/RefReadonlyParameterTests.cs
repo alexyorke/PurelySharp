@@ -71,7 +71,7 @@ public class TestClass
         }
 
         [Test]
-        public async Task PureMethodWithRefReadonlyParameter_AssigningLocally_Diagnostic()
+        public async Task PureMethodWithRefReadonlyParameter_AssigningLocally_NoDiagnostic()
         {
 
 
@@ -91,8 +91,7 @@ public class TestClass
     public int GetMax(ref readonly LargeStruct data)
     {{
         LargeStruct localCopy = data;
-        // Reading from the local mutable copy IS considered impure
-        // The diagnostic should be on localCopy.Value1
+        // Reading fields from a by-value local struct copy is pure.
         int max = localCopy.Value1;
         if (localCopy.Value2 > max) max = localCopy.Value2;
         if (localCopy.Value3 > max) max = localCopy.Value3;
@@ -100,11 +99,7 @@ public class TestClass
     }}
 }}";
 
-            var expected = VerifyCS.Diagnostic(PurelySharpDiagnostics.PurityNotVerifiedId)
-                                   .WithSpan(14, 16, 14, 22)
-                                   .WithArguments("GetMax");
-
-            await VerifyCS.VerifyAnalyzerAsync(test, expected);
+            await VerifyCS.VerifyAnalyzerAsync(test);
         }
 
         [Test]

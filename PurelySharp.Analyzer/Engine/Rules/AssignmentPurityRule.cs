@@ -524,6 +524,13 @@ namespace PurelySharp.Analyzer.Engine.Rules
             switch (targetOperation.Kind)
             {
                 case OperationKind.LocalReference:
+                    if (targetOperation is ILocalReferenceOperation localRef &&
+                        IsRefLocalAliasToExternallyVisibleStorage(localRef.Local, context, currentState))
+                    {
+                        PurityAnalysisEngine.LogDebug($"    [AssignRule-Target] Target: Ref LocalReference '{targetSymbol?.Name ?? "Unknown"}' aliases caller-visible storage - Impure Target");
+                        return false;
+                    }
+
                     PurityAnalysisEngine.LogDebug($"    [AssignRule-Target] Target: LocalReference '{targetSymbol?.Name ?? "Unknown"}' - Pure Target Location");
                     return true;
 
@@ -647,6 +654,103 @@ namespace PurelySharp.Analyzer.Engine.Rules
 
             return operation is ILocalReferenceOperation localReference &&
                    currentState.IsOwnedLocalArraySymbol(localReference.Local);
+        }
+
+        private static bool IsRefLocalAliasToExternallyVisibleStorage(
+            ILocalSymbol local,
+            PurityAnalysisContext context,
+            PurityAnalysisEngine.PurityAnalysisState currentState)
+        {
+            if (local.RefKind != RefKind.Ref && local.RefKind != RefKind.Out)
+            {
+                return false;
+            }
+
+            var visited = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
+            return IsRefLocalAliasToExternallyVisibleStorage(local, context, currentState, visited);
+        }
+
+        private static bool IsRefLocalAliasToExternallyVisibleStorage(
+            ILocalSymbol local,
+            PurityAnalysisContext context,
+            PurityAnalysisEngine.PurityAnalysisState currentState,
+            HashSet<ISymbol> visited)
+        {
+            if ((local.RefKind != RefKind.Ref && local.RefKind != RefKind.Out) || !visited.Add(local))
+            {
+                return false;
+            }
+
+            foreach (var syntaxReference in local.DeclaringSyntaxReferences)
+            {
+                if (syntaxReference.GetSyntax(context.CancellationToken) is not VariableDeclaratorSyntax declarator ||
+                    declarator.Initializer?.Value == null)
+                {
+                    continue;
+                }
+
+                ExpressionSyntax initializerSyntax = declarator.Initializer.Value;
+                if (initializerSyntax is RefExpressionSyntax refExpression)
+                {
+                    initializerSyntax = refExpression.Expression;
+                }
+
+                var initializerOperation = context.SemanticModel.GetOperation(initializerSyntax, context.CancellationToken);
+                if (IsExternallyVisibleRefTarget(initializerOperation, context, currentState, visited))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsExternallyVisibleRefTarget(
+            IOperation? operation,
+            PurityAnalysisContext context,
+            PurityAnalysisEngine.PurityAnalysisState currentState,
+            HashSet<ISymbol> visited)
+        {
+            operation = PurityAnalysisEngine.SkipImplicitConversions(operation);
+
+            return operation switch
+            {
+                IParameterReferenceOperation parameterReference =>
+                    parameterReference.Parameter.RefKind == RefKind.Ref ||
+                    parameterReference.Parameter.RefKind == RefKind.Out ||
+                    parameterReference.Parameter.RefKind == RefKind.In ||
+                    parameterReference.Parameter.RefKind == RefKind.RefReadOnly,
+
+                ILocalReferenceOperation localReference =>
+                    IsRefLocalAliasToExternallyVisibleStorage(localReference.Local, context, currentState, visited),
+
+                IArrayElementReferenceOperation arrayElementReference =>
+                    !IsOwnedLocalArrayReference(arrayElementReference.ArrayReference, currentState),
+
+                IFieldReferenceOperation fieldReference =>
+                    !IsPureLocalValueTypeFieldRefTarget(fieldReference),
+
+                IPropertyReferenceOperation => true,
+
+                _ => false
+            };
+        }
+
+        private static bool IsPureLocalValueTypeFieldRefTarget(IFieldReferenceOperation fieldReference)
+        {
+            var instance = PurityAnalysisEngine.SkipImplicitConversions(fieldReference.Instance);
+            return instance switch
+            {
+                ILocalReferenceOperation localReference =>
+                    localReference.Local.RefKind == RefKind.None &&
+                    localReference.Local.Type.IsValueType,
+
+                IParameterReferenceOperation parameterReference =>
+                    parameterReference.Parameter.RefKind == RefKind.None &&
+                    parameterReference.Parameter.Type.IsValueType,
+
+                _ => false
+            };
         }
 
         private static bool IsFreshObjectInitializerFieldAssignment(
