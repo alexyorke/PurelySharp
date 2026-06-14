@@ -935,6 +935,19 @@ namespace PurelySharp.Analyzer.Engine
                         }
                         LogDebug($"{indent}  Post-CFG: UsingOperations check complete (result still pure).");
 
+                        LogDebug($"{indent}  Post-CFG: Checking ForEach enumerator runtime purity...");
+                        foreach (var forEachOp in methodBodyIOperation.DescendantsAndSelf().OfType<IForEachLoopOperation>())
+                        {
+                            var forEachResult = LoopPurityRule.CheckForEachEnumeratorPurity(forEachOp.Collection, postCfgContext);
+                            if (!forEachResult.IsPure)
+                            {
+                                LogDebug($"{indent}    Post-CFG: Foreach enumerator runtime is IMPURE: {forEachOp.Syntax}");
+                                result = forEachResult;
+                                goto PostCfgChecksDone;
+                            }
+                        }
+                        LogDebug($"{indent}  Post-CFG: ForEach enumerator runtime checks complete (result still pure).");
+
 
                         LogDebug($"{indent}  Post-CFG: Checking ThrowOperations...");
                         foreach (var firstThrowOp in methodBodyIOperation.DescendantsAndSelf().OfType<IThrowOperation>())

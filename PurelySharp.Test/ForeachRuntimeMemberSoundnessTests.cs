@@ -1,0 +1,177 @@
+using System.Threading.Tasks;
+using NUnit.Framework;
+using VerifyCS = PurelySharp.Test.CSharpAnalyzerVerifier<
+    PurelySharp.Analyzer.PurelySharpAnalyzer>;
+
+namespace PurelySharp.Test
+{
+    [TestFixture]
+    public class ForeachRuntimeMemberSoundnessTests
+    {
+        [Test]
+        public async Task ForeachImpureMoveNext_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public static class GlobalState
+{
+    public static int Count;
+}
+
+public sealed class Sequence
+{
+    [EnforcePure]
+    public Enumerator GetEnumerator() => new Enumerator();
+
+    public sealed class Enumerator
+    {
+        public int Current => 1;
+
+        public bool MoveNext()
+        {
+            GlobalState.Count++;
+            return false;
+        }
+    }
+}
+
+public sealed class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}(Sequence values)
+    {
+        foreach (var value in values)
+        {
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ForeachImpureCurrentGetter_Diagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public static class GlobalState
+{
+    public static int Count;
+}
+
+public sealed class Sequence
+{
+    [EnforcePure]
+    public Enumerator GetEnumerator() => new Enumerator();
+
+    public sealed class Enumerator
+    {
+        public int Current
+        {
+            get
+            {
+                GlobalState.Count++;
+                return 1;
+            }
+        }
+
+        [EnforcePure]
+        public bool MoveNext() => true;
+    }
+}
+
+public sealed class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}(Sequence values)
+    {
+        foreach (var value in values)
+        {
+            break;
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ForeachImpureDispose_Diagnostic()
+        {
+            var test = @"
+using System;
+using PurelySharp.Attributes;
+
+public static class GlobalState
+{
+    public static int Count;
+}
+
+public sealed class Sequence
+{
+    [EnforcePure]
+    public Enumerator GetEnumerator() => new Enumerator();
+
+    public sealed class Enumerator : IDisposable
+    {
+        public int Current => 1;
+        [EnforcePure]
+        public bool MoveNext() => false;
+
+        public void Dispose()
+        {
+            GlobalState.Count++;
+        }
+    }
+}
+
+public sealed class TestClass
+{
+    [EnforcePure]
+    public void {|PS0002:TestMethod|}(Sequence values)
+    {
+        foreach (var value in values)
+        {
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+
+        [Test]
+        public async Task ForeachPureCustomEnumerator_NoDiagnostic()
+        {
+            var test = @"
+using PurelySharp.Attributes;
+
+public sealed class Sequence
+{
+    [EnforcePure]
+    public Enumerator GetEnumerator() => new Enumerator();
+
+    public sealed class Enumerator
+    {
+        public int Current => 1;
+        [EnforcePure]
+        public bool MoveNext() => false;
+    }
+}
+
+public sealed class TestClass
+{
+    [EnforcePure]
+    public void TestMethod(Sequence values)
+    {
+        foreach (var value in values)
+        {
+        }
+    }
+}";
+
+            await VerifyCS.VerifyAnalyzerAsync(test);
+        }
+    }
+}

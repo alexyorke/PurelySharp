@@ -136,7 +136,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                    !boolValue;
         }
 
-        private static PurityAnalysisEngine.PurityAnalysisResult CheckForEachEnumeratorPurity(
+        internal static PurityAnalysisEngine.PurityAnalysisResult CheckForEachEnumeratorPurity(
             IOperation collectionOperation,
             PurityAnalysisContext context)
         {
@@ -153,9 +153,145 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 {
                     return enumeratorPurity.WithCallee(getEnumerator, unwrappedCollection.Syntax);
                 }
+
+                var runtimeMemberPurity = CheckForEachEnumeratorRuntimeMemberPurity(
+                    getEnumerator.ReturnType,
+                    unwrappedCollection.Syntax,
+                    context);
+                if (!runtimeMemberPurity.IsPure)
+                {
+                    return runtimeMemberPurity;
+                }
             }
 
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckForEachEnumeratorRuntimeMemberPurity(
+            ITypeSymbol enumeratorType,
+            SyntaxNode foreachSyntax,
+            PurityAnalysisContext context)
+        {
+            if (enumeratorType.TypeKind == TypeKind.Interface ||
+                enumeratorType.DeclaringSyntaxReferences.Length == 0)
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            foreach (var runtimeMember in EnumerateEnumeratorRuntimeMembers(enumeratorType))
+            {
+                var memberPurity = PurityAnalysisEngine.GetCalleePurity(runtimeMember.OriginalDefinition, context);
+                if (!memberPurity.IsPure)
+                {
+                    return memberPurity.WithCallee(runtimeMember, foreachSyntax);
+                }
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static IEnumerable<IMethodSymbol> EnumerateEnumeratorRuntimeMembers(ITypeSymbol enumeratorType)
+        {
+            var seen = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+
+            foreach (var method in EnumerateInstanceMethods(enumeratorType, "MoveNext", parameterCount: 0))
+            {
+                if (seen.Add(method.OriginalDefinition))
+                {
+                    yield return method;
+                }
+            }
+
+            foreach (var getter in EnumerateCurrentGetters(enumeratorType))
+            {
+                if (seen.Add(getter.OriginalDefinition))
+                {
+                    yield return getter;
+                }
+            }
+
+            foreach (var dispose in EnumerateDisposeImplementations(enumeratorType))
+            {
+                if (seen.Add(dispose.OriginalDefinition))
+                {
+                    yield return dispose;
+                }
+            }
+        }
+
+        private static IEnumerable<IMethodSymbol> EnumerateInstanceMethods(
+            ITypeSymbol type,
+            string methodName,
+            int parameterCount)
+        {
+            var current = type as INamedTypeSymbol;
+            while (current != null)
+            {
+                foreach (var method in current
+                             .GetMembers(methodName)
+                             .OfType<IMethodSymbol>()
+                             .Where(method =>
+                                 !method.IsStatic &&
+                                 method.Parameters.Length == parameterCount &&
+                                 method.DeclaringSyntaxReferences.Length > 0))
+                {
+                    yield return method;
+                }
+
+                current = current.BaseType;
+            }
+        }
+
+        private static IEnumerable<IMethodSymbol> EnumerateCurrentGetters(ITypeSymbol type)
+        {
+            var current = type as INamedTypeSymbol;
+            while (current != null)
+            {
+                foreach (var property in current
+                             .GetMembers("Current")
+                             .OfType<IPropertySymbol>())
+                {
+                    if (property.GetMethod is { DeclaringSyntaxReferences.Length: > 0 } getter)
+                    {
+                        yield return getter;
+                    }
+                }
+
+                current = current.BaseType;
+            }
+        }
+
+        private static IEnumerable<IMethodSymbol> EnumerateDisposeImplementations(ITypeSymbol type)
+        {
+            foreach (var dispose in EnumerateInstanceMethods(type, "Dispose", parameterCount: 0))
+            {
+                yield return dispose;
+            }
+
+            if (type is not INamedTypeSymbol namedType)
+            {
+                yield break;
+            }
+
+            foreach (var interfaceType in namedType.AllInterfaces)
+            {
+                if (interfaceType.SpecialType != SpecialType.System_IDisposable)
+                {
+                    continue;
+                }
+
+                foreach (var interfaceDispose in interfaceType
+                             .GetMembers(nameof(System.IDisposable.Dispose))
+                             .OfType<IMethodSymbol>()
+                             .Where(method => method.Parameters.Length == 0))
+                {
+                    var implementation = namedType.FindImplementationForInterfaceMember(interfaceDispose) as IMethodSymbol;
+                    if (implementation?.DeclaringSyntaxReferences.Length > 0)
+                    {
+                        yield return implementation;
+                    }
+                }
+            }
         }
 
         private static IEnumerable<IMethodSymbol> EnumerateGetEnumeratorImplementations(ITypeSymbol collectionType)
