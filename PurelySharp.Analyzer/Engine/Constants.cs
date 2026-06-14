@@ -1153,6 +1153,7 @@ public static class Constants
 
 
         "System.Globalization.CultureInfo.InvariantCulture.get",
+        "System.Globalization.CultureInfo.Name.get",
 
 
         "System.Guid.Guid(byte[])",

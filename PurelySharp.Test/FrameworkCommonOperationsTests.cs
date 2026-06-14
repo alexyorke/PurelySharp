@@ -88,7 +88,7 @@ public class TestClass
 
 
         [Test]
-        public async Task PureMethod_ReadConfiguration_PureContractReadsRemainPure()
+        public async Task PureMethod_ReadConfiguration_UnannotatedInterfaceReadsDiagnostic()
         {
             var test = @"
 #nullable enable
@@ -114,15 +114,15 @@ namespace MockFramework
 public class TestClass
 {
     [EnforcePure]
-    public string? ReadConfigIndexer(IConfiguration config)
+    public string? {|PS0002:ReadConfigIndexer|}(IConfiguration config)
     {
-        return config[""MyKey:MyValue""]; // Pure contract read should keep the wrapper pure.
+        return config[""MyKey:MyValue""]; // Unannotated interface dispatch remains conservative.
     }
 
     [EnforcePure]
-    public string? ReadConfigGetSection(IConfiguration config)
+    public string? {|PS0002:ReadConfigGetSection|}(IConfiguration config)
     {
-        return config.GetSection(""MyKey"").Value; // Pure contract chaining should keep the wrapper pure.
+        return config.GetSection(""MyKey"").Value; // Unannotated interface dispatch remains conservative.
     }
 }";
 

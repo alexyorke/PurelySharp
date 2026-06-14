@@ -58,7 +58,7 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 context.PureAttributeSymbol);
             var getterSymbol = propertySymbol.GetMethod;
             var requiresDispatchCheck = getterSymbol != null &&
-                IsPotentiallyDispatchedGetter(getterSymbol) &&
+                IsPotentiallyDispatchedProperty(propertySymbol) &&
                 !PurityAnalysisEngine.IsKnownPureBCLMember(propertySymbol);
 
             if (isPureEnforcedProperty && !requiresDispatchCheck)
@@ -922,17 +922,46 @@ namespace PurelySharp.Analyzer.Engine.Rules
                    getterSymbol.IsOverride;
         }
 
+        private static bool IsPotentiallyDispatchedProperty(IPropertySymbol propertySymbol)
+        {
+            return propertySymbol.ContainingType?.TypeKind == TypeKind.Interface ||
+                   propertySymbol.IsVirtual ||
+                   propertySymbol.IsAbstract ||
+                   propertySymbol.IsOverride ||
+                   (propertySymbol.GetMethod != null && IsPotentiallyDispatchedGetter(propertySymbol.GetMethod));
+        }
+
         private static PurityAnalysisEngine.PurityAnalysisResult CheckDispatchedGetterPurity(
             IPropertyReferenceOperation propertyReferenceOperation,
             PurityAnalysisContext context,
             PurityAnalysisEngine.PurityAnalysisState currentState,
             bool trustContractWhenNoTargets)
         {
+            var hasExactReceiverType = PurityAnalysisEngine.TryResolveKnownConcreteType(
+                propertyReferenceOperation.Instance,
+                currentState,
+                out var exactReceiverType);
+
+            var knownReceiverType = hasExactReceiverType
+                ? exactReceiverType
+                : GetKnownReceiverType(propertyReferenceOperation.Instance);
+
+            if (!hasExactReceiverType &&
+                CanDispatchToUnknownGetterTarget(propertyReferenceOperation.Property, knownReceiverType))
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                    propertyReferenceOperation.Syntax,
+                    PurityAnalysisEngine.PurityEvidence.Create(
+                        "dynamic_dispatch",
+                        nameof(PropertyReferencePurityRule),
+                        propertyReferenceOperation,
+                        symbol: propertyReferenceOperation.Property.GetMethod));
+            }
+
             var candidates = ResolvePotentialGetterTargets(
                 propertyReferenceOperation.Property,
                 context.SemanticModel,
-                GetTrackedLocalReceiverType(propertyReferenceOperation.Instance, currentState) ??
-                    GetKnownReceiverType(propertyReferenceOperation.Instance));
+                knownReceiverType);
 
             if (candidates.IsDefaultOrEmpty)
             {
@@ -960,6 +989,30 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
 
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static bool CanDispatchToUnknownGetterTarget(
+            IPropertySymbol propertySymbol,
+            INamedTypeSymbol? knownReceiverType)
+        {
+            if (knownReceiverType == null)
+            {
+                return true;
+            }
+
+            if (knownReceiverType.TypeKind == TypeKind.Interface)
+            {
+                return true;
+            }
+
+            if (knownReceiverType.TypeKind == TypeKind.Class &&
+                !knownReceiverType.IsSealed &&
+                IsPotentiallyDispatchedProperty(propertySymbol))
+            {
+                return true;
+            }
+
+            return false;
         }
 
         private static PurityAnalysisEngine.PurityAnalysisResult GetterResultOrPure(
@@ -1091,7 +1144,10 @@ namespace PurelySharp.Analyzer.Engine.Rules
             ISymbol? implementation = null;
             if (targetProperty.ContainingType?.TypeKind == TypeKind.Interface)
             {
-                implementation = receiverType.FindImplementationForInterfaceMember(targetProperty);
+                implementation = receiverType.FindImplementationForInterfaceMember(targetProperty) ??
+                    (targetProperty.GetMethod == null
+                        ? null
+                        : receiverType.FindImplementationForInterfaceMember(targetProperty.GetMethod));
             }
             else
             {
