@@ -167,6 +167,37 @@ namespace PurelySharp.Analyzer.Engine.Rules
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
         }
 
+        internal static PurityAnalysisEngine.PurityAnalysisResult CheckForEachAsyncEnumeratorPurity(
+            IOperation collectionOperation,
+            PurityAnalysisContext context)
+        {
+            var unwrappedCollection = PurityAnalysisEngine.SkipImplicitConversions(collectionOperation) ?? collectionOperation;
+            if (unwrappedCollection.Type == null)
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            foreach (var getAsyncEnumerator in EnumerateGetAsyncEnumeratorImplementations(unwrappedCollection.Type))
+            {
+                var enumeratorPurity = PurityAnalysisEngine.GetCalleePurity(getAsyncEnumerator.OriginalDefinition, context);
+                if (!enumeratorPurity.IsPure)
+                {
+                    return enumeratorPurity.WithCallee(getAsyncEnumerator, unwrappedCollection.Syntax);
+                }
+
+                var runtimeMemberPurity = CheckForEachAsyncEnumeratorRuntimeMemberPurity(
+                    getAsyncEnumerator.ReturnType,
+                    unwrappedCollection.Syntax,
+                    context);
+                if (!runtimeMemberPurity.IsPure)
+                {
+                    return runtimeMemberPurity;
+                }
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
         private static PurityAnalysisEngine.PurityAnalysisResult CheckForEachEnumeratorRuntimeMemberPurity(
             ITypeSymbol enumeratorType,
             SyntaxNode foreachSyntax,
@@ -215,6 +246,70 @@ namespace PurelySharp.Analyzer.Engine.Rules
                 if (seen.Add(dispose.OriginalDefinition))
                 {
                     yield return dispose;
+                }
+            }
+        }
+
+        private static PurityAnalysisEngine.PurityAnalysisResult CheckForEachAsyncEnumeratorRuntimeMemberPurity(
+            ITypeSymbol enumeratorType,
+            SyntaxNode foreachSyntax,
+            PurityAnalysisContext context)
+        {
+            if (enumeratorType.TypeKind == TypeKind.Interface ||
+                enumeratorType.DeclaringSyntaxReferences.Length == 0)
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+            }
+
+            foreach (var runtimeMember in EnumerateAsyncEnumeratorRuntimeMembers(enumeratorType))
+            {
+                var memberPurity = PurityAnalysisEngine.GetCalleePurity(runtimeMember.OriginalDefinition, context);
+                if (!memberPurity.IsPure)
+                {
+                    return memberPurity.WithCallee(runtimeMember, foreachSyntax);
+                }
+
+                if (runtimeMember.Name is "MoveNextAsync" or "DisposeAsync")
+                {
+                    var awaitablePurity = AwaitPurityRule.CheckAwaitablePatternMembers(
+                        runtimeMember.ReturnType,
+                        foreachSyntax,
+                        context);
+                    if (!awaitablePurity.IsPure)
+                    {
+                        return awaitablePurity;
+                    }
+                }
+            }
+
+            return PurityAnalysisEngine.PurityAnalysisResult.Pure;
+        }
+
+        private static IEnumerable<IMethodSymbol> EnumerateAsyncEnumeratorRuntimeMembers(ITypeSymbol enumeratorType)
+        {
+            var seen = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+
+            foreach (var method in EnumerateInstanceMethods(enumeratorType, "MoveNextAsync", parameterCount: 0))
+            {
+                if (seen.Add(method.OriginalDefinition))
+                {
+                    yield return method;
+                }
+            }
+
+            foreach (var getter in EnumerateCurrentGetters(enumeratorType))
+            {
+                if (seen.Add(getter.OriginalDefinition))
+                {
+                    yield return getter;
+                }
+            }
+
+            foreach (var disposeAsync in EnumerateDisposeAsyncImplementations(enumeratorType))
+            {
+                if (seen.Add(disposeAsync.OriginalDefinition))
+                {
+                    yield return disposeAsync;
                 }
             }
         }
@@ -294,6 +389,39 @@ namespace PurelySharp.Analyzer.Engine.Rules
             }
         }
 
+        private static IEnumerable<IMethodSymbol> EnumerateDisposeAsyncImplementations(ITypeSymbol type)
+        {
+            foreach (var disposeAsync in EnumerateInstanceMethods(type, "DisposeAsync", parameterCount: 0))
+            {
+                yield return disposeAsync;
+            }
+
+            if (type is not INamedTypeSymbol namedType)
+            {
+                yield break;
+            }
+
+            foreach (var interfaceType in namedType.AllInterfaces)
+            {
+                if (interfaceType.ToDisplayString() != "System.IAsyncDisposable")
+                {
+                    continue;
+                }
+
+                foreach (var interfaceDisposeAsync in interfaceType
+                             .GetMembers("DisposeAsync")
+                             .OfType<IMethodSymbol>()
+                             .Where(method => method.Parameters.Length == 0))
+                {
+                    var implementation = namedType.FindImplementationForInterfaceMember(interfaceDisposeAsync) as IMethodSymbol;
+                    if (implementation?.DeclaringSyntaxReferences.Length > 0)
+                    {
+                        yield return implementation;
+                    }
+                }
+            }
+        }
+
         private static IEnumerable<IMethodSymbol> EnumerateGetEnumeratorImplementations(ITypeSymbol collectionType)
         {
             var seen = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
@@ -338,6 +466,64 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     }
                 }
             }
+        }
+
+        private static IEnumerable<IMethodSymbol> EnumerateGetAsyncEnumeratorImplementations(ITypeSymbol collectionType)
+        {
+            var seen = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+
+            foreach (var getAsyncEnumerator in collectionType
+                         .GetMembers("GetAsyncEnumerator")
+                         .OfType<IMethodSymbol>()
+                         .Where(IsGetAsyncEnumeratorPatternMethod))
+            {
+                if (seen.Add(getAsyncEnumerator.OriginalDefinition))
+                {
+                    yield return getAsyncEnumerator;
+                }
+            }
+
+            if (collectionType is not INamedTypeSymbol namedCollectionType)
+            {
+                yield break;
+            }
+
+            foreach (var interfaceType in namedCollectionType.AllInterfaces)
+            {
+                if (interfaceType.OriginalDefinition.ToDisplayString() != "System.Collections.Generic.IAsyncEnumerable<T>")
+                {
+                    continue;
+                }
+
+                foreach (var interfaceGetAsyncEnumerator in interfaceType
+                             .GetMembers("GetAsyncEnumerator")
+                             .OfType<IMethodSymbol>()
+                             .Where(IsGetAsyncEnumeratorPatternMethod))
+                {
+                    var implementation = namedCollectionType.FindImplementationForInterfaceMember(interfaceGetAsyncEnumerator) as IMethodSymbol;
+                    if (implementation == null || implementation.DeclaringSyntaxReferences.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    if (seen.Add(implementation.OriginalDefinition))
+                    {
+                        yield return implementation;
+                    }
+                }
+            }
+        }
+
+        private static bool IsGetAsyncEnumeratorPatternMethod(IMethodSymbol method)
+        {
+            if (method.IsStatic ||
+                method.DeclaringSyntaxReferences.Length == 0)
+            {
+                return false;
+            }
+
+            return method.Parameters.Length == 0 ||
+                method.Parameters.Length == 1 && method.Parameters[0].IsOptional;
         }
 
         private static bool IsEnumerableInterface(INamedTypeSymbol typeSymbol)

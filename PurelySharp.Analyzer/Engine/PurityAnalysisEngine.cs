@@ -945,6 +945,14 @@ namespace PurelySharp.Analyzer.Engine
                                 result = forEachResult;
                                 goto PostCfgChecksDone;
                             }
+
+                            var asyncForEachResult = LoopPurityRule.CheckForEachAsyncEnumeratorPurity(forEachOp.Collection, postCfgContext);
+                            if (!asyncForEachResult.IsPure)
+                            {
+                                LogDebug($"{indent}    Post-CFG: Async foreach enumerator runtime is IMPURE: {forEachOp.Syntax}");
+                                result = asyncForEachResult;
+                                goto PostCfgChecksDone;
+                            }
                         }
                         LogDebug($"{indent}  Post-CFG: ForEach enumerator runtime checks complete (result still pure).");
 
