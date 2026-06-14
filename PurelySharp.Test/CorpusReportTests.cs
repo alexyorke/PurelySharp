@@ -74,7 +74,7 @@ namespace PurelySharp.Test
             Assert.That(report.Diagnostics[2].RuleId, Is.EqualTo("PS0004"));
 
             var json = JsonSerializer.Serialize(report);
-            Assert.That(json, Does.Contain(@"""SchemaVersion"":""1.1"""));
+            Assert.That(json, Does.Contain(@"""SchemaVersion"":""1.2"""));
         }
 
         [Test]

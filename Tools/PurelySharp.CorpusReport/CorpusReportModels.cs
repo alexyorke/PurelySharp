@@ -21,7 +21,7 @@ public sealed record CorpusReportSummary(
     ImmutableArray<RankedItem> CatalogMisses,
     ImmutableArray<RankedItem> FalsePositiveCandidates)
 {
-    public const string CurrentSchemaVersion = "1.1";
+    public const string CurrentSchemaVersion = "1.2";
 
     public string SchemaVersion { get; init; } = CurrentSchemaVersion;
 
