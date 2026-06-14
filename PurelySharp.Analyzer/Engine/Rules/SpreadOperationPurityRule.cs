@@ -32,6 +32,14 @@ namespace PurelySharp.Analyzer.Engine.Rules
                     operandResult.Evidence);
             }
 
+            var enumerationResult = LoopPurityRule.CheckForEachEnumeratorPurity(spreadOperation.Operand, context);
+            if (!enumerationResult.IsPure)
+            {
+                return PurityAnalysisEngine.PurityAnalysisResult.Impure(
+                    enumerationResult.ImpureSyntaxNode ?? spreadOperation.Syntax,
+                    enumerationResult.Evidence);
+            }
+
             return PurityAnalysisEngine.PurityAnalysisResult.Pure;
         }
     }
