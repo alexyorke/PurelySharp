@@ -25,46 +25,47 @@ namespace PurelySharp.Analyzer
                 return;
             }
 
-            if (IsAllowedPurityTarget(attributeList.Parent))
-            {
-                return;
-            }
-
-            Location? attributeLocation = null;
+            var attributeTarget = attributeList.Parent;
 
             if (enforcePureAttributeSymbol != null)
             {
-                attributeLocation = FindAttributeLocation(attributeList, enforcePureAttributeSymbol, context.SemanticModel);
-            }
-
-            if (attributeLocation == null && pureAttributeSymbol != null)
-            {
-                attributeLocation = FindAttributeLocation(attributeList, pureAttributeSymbol, context.SemanticModel);
-            }
-
-            if (attributeLocation == null && allowSynchronizationAttributeSymbol != null)
-            {
-                attributeLocation = FindAttributeLocation(attributeList, allowSynchronizationAttributeSymbol, context.SemanticModel);
-                if (attributeLocation != null)
+                var enforcePureAttributeLocation = FindAttributeLocation(attributeList, enforcePureAttributeSymbol, context.SemanticModel);
+                if (enforcePureAttributeLocation != null && !IsAllowedPurityTarget(attributeTarget))
                 {
-                    var diag = Diagnostic.Create(
-                        PurelySharpDiagnostics.MisplacedAllowSynchronizationAttributeRule,
-                        attributeLocation);
-                    context.ReportDiagnostic(diag);
+                    var diagnostic = Diagnostic.Create(
+                        PurelySharpDiagnostics.MisplacedAttributeRule,
+                        enforcePureAttributeLocation
+                    );
+                    context.ReportDiagnostic(diagnostic);
                     return;
                 }
             }
 
-
-            if (attributeLocation != null)
+            if (pureAttributeSymbol != null)
             {
-                var diagnostic = Diagnostic.Create(
-                    PurelySharpDiagnostics.MisplacedAttributeRule,
-                    attributeLocation
-                );
-                context.ReportDiagnostic(diagnostic);
+                var pureAttributeLocation = FindAttributeLocation(attributeList, pureAttributeSymbol, context.SemanticModel);
+                if (pureAttributeLocation != null && !IsAllowedPureAttributeTarget(attributeTarget))
+                {
+                    var diagnostic = Diagnostic.Create(
+                        PurelySharpDiagnostics.MisplacedAttributeRule,
+                        pureAttributeLocation
+                    );
+                    context.ReportDiagnostic(diagnostic);
+                    return;
+                }
+            }
 
-
+            if (allowSynchronizationAttributeSymbol != null)
+            {
+                var allowSynchronizationAttributeLocation = FindAttributeLocation(attributeList, allowSynchronizationAttributeSymbol, context.SemanticModel);
+                if (allowSynchronizationAttributeLocation != null && !IsAllowedPurityTarget(attributeTarget))
+                {
+                    var diag = Diagnostic.Create(
+                        PurelySharpDiagnostics.MisplacedAllowSynchronizationAttributeRule,
+                        allowSynchronizationAttributeLocation);
+                    context.ReportDiagnostic(diag);
+                    return;
+                }
             }
         }
 
@@ -112,6 +113,13 @@ namespace PurelySharp.Analyzer
                    node is ConstructorDeclarationSyntax ||
                    node is OperatorDeclarationSyntax ||
                    node is LocalFunctionStatementSyntax;
+        }
+
+        private static bool IsAllowedPureAttributeTarget(SyntaxNode? node)
+        {
+            return IsAllowedPurityTarget(node) ||
+                   node is PropertyDeclarationSyntax ||
+                   node is IndexerDeclarationSyntax;
         }
 
         private static INamedTypeSymbol? ResolveAttributeSymbol(Compilation compilation, string qualifiedMetadataName, string fallbackMetadataName)
