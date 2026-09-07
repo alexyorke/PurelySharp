@@ -98,6 +98,23 @@ public sealed class BuildSchedulingTests
     }
 
     [Test]
+    public void IndependentBuildTaskShardUsesTimingPriority()
+    {
+        var packageTests = File.ReadAllText(Path.Combine(
+            TestRepository.FindRoot(),
+            "scripts",
+            "Invoke-SharpProofPackageTests.ps1"));
+        var main = Regex.Match(packageTests,
+            @"(?s)Name = 'postflight-buildtask-main'(?<body>.*?)Slots = 1");
+
+        Assert.That(main.Success, Is.True);
+        Assert.That(main.Groups["body"].Value,
+            Does.Contain("$priorFilterMilliseconds[$remainingBuildTaskFilter]"));
+        Assert.That(main.Groups["body"].Value,
+            Does.Not.Contain("EstimatedMilliseconds = -1L"));
+    }
+
+    [Test]
     public void PackageBuildsReuseOutputsAndUseScopedCompilerServers()
     {
         var root = TestRepository.FindRoot();

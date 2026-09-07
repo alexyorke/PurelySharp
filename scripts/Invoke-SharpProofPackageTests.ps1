@@ -566,10 +566,16 @@ try {
         $shards.Add([pscustomobject]@{
             Name = 'postflight-buildtask-main'
             Filter = $remainingBuildTaskFilter
-            EstimatedMilliseconds = -1L
+            EstimatedMilliseconds =
+                $(if ($priorFilterMilliseconds.ContainsKey($remainingBuildTaskFilter)) {
+                    [long]$priorFilterMilliseconds[$remainingBuildTaskFilter]
+                }
+                else {
+                    10000L
+                })
             # Keep the fresh dotnet test host required by BuildTaskTests, but
-            # do not reserve the whole wave while this independent process
-            # runs.
+            # schedule this independent process by duration, not as a tail
+            # after every integration shard has started.
             Slots = 1
             Exclusive = $true
         })

@@ -2662,7 +2662,7 @@ public sealed class WorkerMsBuildIntegrationTests
     }
 
     [Test]
-    public async Task AssumptionSeverityIncludesUsedAndDeclaredEvidence()
+    public async Task AssumptionSeverityIncludesUsedEvidence()
     {
         RequireContainerWorker();
         using var project = ConsumerProject.Create(
@@ -2697,7 +2697,12 @@ public sealed class WorkerMsBuildIntegrationTests
         Assert.That(
             error.Output,
             Does.Not.Contain("SharpProof verifier failed with exit code"));
+    }
 
+    [Test]
+    public async Task AssumptionSeverityIncludesDeclaredEvidence()
+    {
+        RequireContainerWorker();
         using var trusted = ConsumerProject.Create(
             """
             using SharpProof.Attributes;
