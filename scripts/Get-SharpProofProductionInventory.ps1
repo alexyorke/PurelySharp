@@ -379,7 +379,7 @@ foreach ($result in Get-MsBuildQueries -ProjectRelativePaths @(Get-SolutionProje
         $nameGenerated = $path -match '\.(g|generated)\.cs$'
         $generated = $manifestGenerated -or $headerGenerated -or $nameGenerated
         if ($generated -and -not $manifestGenerated) { throw "Evaluated generated Compile item is not approved by the generated-output manifest: '$path'." }
-        $reason = if ($manifestGenerated) { 'approved-manifest' } elseif ($headerGenerated) { 'auto-generated-header' } elseif ($nameGenerated) { 'generated-name' } else { '' }
+        $reason = if ($manifestGenerated) { 'approved-manifest' } else { '' }
         Get-CanonicalFileRecord -RelativePath $path -Generated $generated -GeneratedReason $reason
     }
     $constants = @((Get-PropertyValue -Properties $query.Properties -Name 'DefineConstants').Split(';') | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)

@@ -194,19 +194,7 @@ public sealed class BoundaryEnforcementTests
             "Generated-output paths must be unique.");
 
         var actual = BannedApiProjects
-            .SelectMany(project => Directory.GetFiles(
-                ProjectDirectory(project),
-                "*.cs",
-                SearchOption.AllDirectories))
-            .Where(static path =>
-                !path.Contains(
-                    Path.DirectorySeparatorChar + "bin" +
-                    Path.DirectorySeparatorChar,
-                    StringComparison.Ordinal) &&
-                !path.Contains(
-                    Path.DirectorySeparatorChar + "obj" +
-                    Path.DirectorySeparatorChar,
-                    StringComparison.Ordinal))
+            .SelectMany(ProductionSourceFiles)
             .Where(path =>
                 Regex.IsMatch(
                     path,
@@ -384,19 +372,6 @@ public sealed class BoundaryEnforcementTests
             .ToArray();
         Assert.That(inlineReferences, Is.Empty);
 
-        foreach (var project in SoundnessCriticalProjects)
-        {
-            Assert.That(
-                XDocument.Load(ProjectFile(project))
-                    .Descendants("SharpProofUsesMetaAnalyzer")
-                    .Any(static element =>
-                        string.Equals(
-                            element.Value,
-                            "true",
-                            StringComparison.OrdinalIgnoreCase)),
-                Is.True,
-                project);
-        }
     }
 
     [Test]

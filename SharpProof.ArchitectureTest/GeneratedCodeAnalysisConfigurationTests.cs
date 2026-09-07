@@ -11,28 +11,17 @@ public sealed class GeneratedCodeAnalysisConfigurationTests
     {
         var analyzers = ArchitectureRepository.ProductionProjects
             .Append("SharpProof.CompilerProbe.TestAsset")
-            .Select(ArchitectureRepository.ProjectFile)
-            .Where(File.Exists)
-            .Where(static path => XDocument.Load(path)
+            .Where(static project => File.Exists(
+                ArchitectureRepository.ProjectFile(project)))
+            .Where(static project => XDocument.Load(
+                    ArchitectureRepository.ProjectFile(project))
                 .Descendants("IsRoslynAnalyzer")
                 .Any(static element =>
                     string.Equals(
                         element.Value.Trim(),
                         "true",
                         StringComparison.OrdinalIgnoreCase)))
-            .SelectMany(static project => Directory.EnumerateFiles(
-                Path.GetDirectoryName(project)!,
-                "*.cs",
-                SearchOption.AllDirectories))
-            .Where(static path =>
-                !path.Contains(
-                    Path.DirectorySeparatorChar + "bin" +
-                    Path.DirectorySeparatorChar,
-                    StringComparison.Ordinal) &&
-                !path.Contains(
-                    Path.DirectorySeparatorChar + "obj" +
-                    Path.DirectorySeparatorChar,
-                    StringComparison.Ordinal))
+            .SelectMany(ArchitectureRepository.ProductionSourceFiles)
             .Select(static path => new
             {
                 Path = path,

@@ -81,7 +81,6 @@ $timingStartedUtc = [DateTime]::UtcNow
 $timingStopwatch = [Diagnostics.Stopwatch]::StartNew()
 $timingPhases = [Collections.Generic.List[object]]::new()
 $activeTimingName = $null
-$activeTimingStopwatch = $null
 $activeTimingStartedMilliseconds = $null
 $timingWritten = $false
 
@@ -130,13 +129,12 @@ function Add-AcceptanceTimingPhase {
 function Start-AcceptanceTimingPhase {
     param([Parameter(Mandatory = $true)][string]$Name)
 
-    if ($null -ne $script:activeTimingStopwatch) {
+    if ($null -ne $script:activeTimingName) {
         throw "Acceptance timing phase '$script:activeTimingName' is still active."
     }
     $script:activeTimingName = $Name
     $script:activeTimingStartedMilliseconds =
         [long]$timingStopwatch.Elapsed.TotalMilliseconds
-    $script:activeTimingStopwatch = [Diagnostics.Stopwatch]::StartNew()
 }
 
 function Complete-AcceptanceTimingPhase {
@@ -145,10 +143,9 @@ function Complete-AcceptanceTimingPhase {
         [string]$Status = 'passed'
     )
 
-    if ($null -eq $script:activeTimingStopwatch) {
+    if ($null -eq $script:activeTimingName) {
         throw 'No acceptance timing phase is active.'
     }
-    $script:activeTimingStopwatch.Stop()
     $completedMilliseconds = [long]$timingStopwatch.Elapsed.TotalMilliseconds
     $elapsedMilliseconds =
         $completedMilliseconds - $activeTimingStartedMilliseconds
@@ -159,7 +156,6 @@ function Complete-AcceptanceTimingPhase {
         -StartedMilliseconds $activeTimingStartedMilliseconds `
         -CompletedMilliseconds $completedMilliseconds
     $script:activeTimingName = $null
-    $script:activeTimingStopwatch = $null
     $script:activeTimingStartedMilliseconds = $null
 }
 
@@ -218,7 +214,7 @@ function Write-AcceptanceTimingEvidence {
 
 trap {
     $activePhase = Get-Variable `
-        -Name activeTimingStopwatch `
+        -Name activeTimingName `
         -Scope Script `
         -ErrorAction SilentlyContinue
     if ($null -ne $activePhase -and $null -ne $activePhase.Value) {

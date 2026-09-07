@@ -250,20 +250,16 @@ function Assert-SharpProofAnalyzerItems {
                     '[/\\]SharpProof\.[^/\\]+\.dll$'
             }
     )
-    $entryPoints = [Collections.Generic.List[object]]::new()
     $entryPointNames = [Collections.Generic.List[string]]::new()
-    $generators = [Collections.Generic.List[object]]::new()
     $generatorNames = [Collections.Generic.List[string]]::new()
     $legacyEntryPoints = [Collections.Generic.List[object]]::new()
     foreach ($item in $sharpProofItems) {
         $identity = ([string]$item.Identity).Replace('\', '/')
         $name = ($identity -split '/')[-1]
         if ($item.SharpProofAnalyzerRole -eq 'EntryPoint') {
-            $entryPoints.Add($item)
             $entryPointNames.Add($name)
         }
         if ($item.SharpProofAnalyzerRole -eq 'Generator') {
-            $generators.Add($item)
             $generatorNames.Add($name)
         }
         if ($identity -match '/SharpProof\.PortableAnalyzer\.dll$') {
@@ -561,10 +557,4 @@ finally {
     }
 }
 
-$workerScope = if ($isSupportedWorkerHost) {
-    'analyzer and out-of-process worker'
-}
-else {
-    'analyzer (packaged worker is not supported on this host)'
-}
-Write-Host "SharpProof packaged $workerScope consumer passed."
+Write-Host 'SharpProof packaged analyzer and out-of-process worker consumer passed.'

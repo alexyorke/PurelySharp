@@ -717,11 +717,6 @@ internal sealed class ManagedAbstractFlow
     private ManagedAbstractValue ConvertValue(IConversionOperation conversion, ManagedFlowState state)
     {
         var operand = EvaluateCore(conversion.Operand, state);
-        if (ValuePreserving(conversion))
-        {
-            return operand;
-        }
-
         if (string.Equals(
                 conversion.Syntax.Language,
                 LanguageNames.CSharp,
