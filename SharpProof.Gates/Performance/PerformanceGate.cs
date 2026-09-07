@@ -913,13 +913,9 @@ internal static class PerformanceGate
         for (var index = 0; index < contract.Warmups; index++)
         {
             var allocates = !currentlyAllocates;
-            var currentMarker = currentlyAllocates
-                ? "return new object();"
-                : marker;
             var transition = await ApplyIdeEditAsync(
                     marker,
                     markerStart,
-                    currentMarker,
                     allocates,
                     measureLatency: false,
                     currentTree,
@@ -929,12 +925,12 @@ internal static class PerformanceGate
                 .ConfigureAwait(false);
             ValidateIdeDiagnostics(
                 transition.Diagnostics,
-                transition.Allocates,
+                allocates,
                 index,
                 "warmup");
             currentTree = transition.Tree;
             currentCompilation = transition.Compilation;
-            currentlyAllocates = transition.Allocates;
+            currentlyAllocates = allocates;
         }
 
         var latencies = new double[contract.IdeEdits];
@@ -943,13 +939,9 @@ internal static class PerformanceGate
         {
             cancellationToken.ThrowIfCancellationRequested();
             var allocates = !currentlyAllocates;
-            var currentMarker = currentlyAllocates
-                ? "return new object();"
-                : marker;
             var transition = await ApplyIdeEditAsync(
                     marker,
                     markerStart,
-                    currentMarker,
                     allocates,
                     measureLatency: true,
                     currentTree,
@@ -962,7 +954,7 @@ internal static class PerformanceGate
             {
                 ValidateIdeDiagnostics(
                     transition.Diagnostics,
-                    transition.Allocates,
+                    allocates,
                     index,
                     "measured");
             }
@@ -972,7 +964,7 @@ internal static class PerformanceGate
             }
             currentTree = transition.Tree;
             currentCompilation = transition.Compilation;
-            currentlyAllocates = transition.Allocates;
+            currentlyAllocates = allocates;
         }
         return new IdeEditMeasurement(
             latencies,
@@ -982,7 +974,6 @@ internal static class PerformanceGate
     private static async Task<IdeEditTransition> ApplyIdeEditAsync(
         string marker,
         int markerStart,
-        string currentMarker,
         bool allocates,
         bool measureLatency,
         SyntaxTree currentTree,
@@ -990,6 +981,7 @@ internal static class PerformanceGate
         DiagnosticAnalyzer analyzer,
         CancellationToken cancellationToken)
     {
+        var currentMarker = allocates ? marker : "return new object();";
         var stopwatch = measureLatency
             ? Stopwatch.StartNew()
             : null;
@@ -1015,7 +1007,6 @@ internal static class PerformanceGate
             changedTree,
             changedCompilation,
             diagnostics,
-            allocates,
             stopwatch?.Elapsed.TotalMilliseconds ?? 0d);
     }
 
@@ -1811,7 +1802,6 @@ internal static class PerformanceGate
         SyntaxTree Tree,
         CSharpCompilation Compilation,
         ImmutableArray<Diagnostic> Diagnostics,
-        bool Allocates,
         double ElapsedMilliseconds);
 
     private sealed class CountingSessionFactory : IAnalyzerSessionFactory
