@@ -294,29 +294,6 @@
       ]
     },
     {
-      "path": "SharpProof.Frontend/OperationSupportProjections.generated.cs",
-      "namespace": "SharpProof.Frontend",
-      "accessibility": "internal",
-      "modifiers": ["static"],
-      "name": "OperationSupportProjections",
-      "methods": [
-        {
-          "accessibility": "internal",
-          "static": true,
-          "returnType": "OperationKind[]",
-          "name": "GetSupported",
-          "parameters": [{"type": "OperationSupportStage", "name": "stage"}],
-          "switchMode": "expression",
-          "target": "stage",
-          "cases": [
-            {"pattern": "OperationSupportStage.ContractExpressionLowering", "expression": "OperationSupportCatalogData.ContractExpression"},
-            {"pattern": "OperationSupportStage.EffectDiscovery", "expression": "OperationSupportCatalogData.EffectDiscovery"}
-          ],
-          "fallback": "throw new ArgumentOutOfRangeException(nameof(stage), stage, \"Unknown operation support stage.\")"
-        }
-      ]
-    },
-    {
       "path": "SharpProof.Worker.Launcher/LauncherProjections.generated.cs",
       "namespace": "SharpProof.Worker.Launcher",
       "accessibility": "internal",

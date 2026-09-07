@@ -92,18 +92,19 @@ $source.Add('namespace SharpProof.Specs.Test;')
 $source.Add('')
 $source.Add('public sealed partial class ApiSpecRuntimeOracleTests {')
 $source.Add(
-    '    private static ImmutableArray<RuntimeWitnessDescriptor> ' +
-    'GeneratedRuntimeWitnesses =>')
-$source.Add('    [')
+    '    private static ImmutableDictionary<string, RowWitness> CreateWitnesses()')
+$source.Add('    {')
+$source.Add('        var witnesses = ImmutableDictionary.CreateBuilder<string, RowWitness>(StringComparer.Ordinal);')
 foreach ($descriptor in $descriptors) {
     $source.Add(
-        '        new(' +
+        '        witnesses.Add(' +
         (ConvertTo-CSharpString $descriptor.Identifier) +
         ', ' +
         $descriptor.Factory +
-        '),')
+        '());')
 }
-$source.Add('    ];')
+$source.Add('        return witnesses.ToImmutable();')
+$source.Add('    }')
 $source.Add('}')
 $sourceText = $source -join "`n"
 
@@ -119,4 +120,4 @@ Update-SharpProofGeneratedFile `
     -Verify:$Verify
 
 $verb = if ($Verify) { 'Verified' } else { 'Generated' }
-Write-Host "$verb catalog-derived API-spec runtime-witness descriptors."
+Write-Host "$verb catalog-derived API-spec runtime witnesses."

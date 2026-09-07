@@ -142,13 +142,6 @@ public sealed partial class ApiSpecRuntimeOracleTests
         }
     }
 
-    private static ImmutableDictionary<string, RowWitness> CreateWitnesses()
-    {
-        return GeneratedRuntimeWitnesses.ToImmutableDictionary(
-            static descriptor => descriptor.Identifier,
-            static descriptor => descriptor.Factory(),
-            StringComparer.Ordinal);
-    }
 
     private static RowWitness CreateBclArrayEmptyWitness()
     {
@@ -1687,10 +1680,6 @@ public sealed partial class ApiSpecRuntimeOracleTests
     private sealed record RowWitness(
         ImmutableArray<IFacetWitness> Facets,
         ImmutableArray<PostconditionWitness> Postconditions);
-
-    private sealed record RuntimeWitnessDescriptor(
-        string Identifier,
-        Func<RowWitness> Factory);
 
     private sealed record PostconditionWitness(
         int Index,

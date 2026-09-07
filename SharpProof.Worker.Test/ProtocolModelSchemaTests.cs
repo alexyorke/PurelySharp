@@ -97,46 +97,52 @@ public sealed class ProtocolModelSchemaTests
     }
 
     [Test]
-    public void GeneratedManifestIdentityCatalogIsCompleteAndOrdered()
+    public void ManifestIdentitySchemaIsCompleteAndOrdered()
     {
-        var rootFields = WorkerManifestIdentityCatalog.RootFields;
-        var collections = WorkerManifestIdentityCatalog.Collections;
+        using var schema = ReadSchema();
+        var identity = schema.RootElement.GetProperty("manifestIdentity");
+        var rootFields = identity.GetProperty("rootFields").EnumerateArray().ToArray();
+        var collections = identity.GetProperty("collections").EnumerateArray().ToArray();
 
         using (Assert.EnterMultipleScope())
         {
             Assert.That(rootFields, Has.Length.EqualTo(1));
             Assert.That(collections, Has.Length.EqualTo(2));
             Assert.That(
-                (rootFields[0].Label, rootFields[0].Property,
-                    rootFields[0].Kind, rootFields[0].DefaultMember),
+                (rootFields[0].GetProperty("label").GetString(),
+                    rootFields[0].GetProperty("property").GetString(),
+                    rootFields[0].GetProperty("kind").GetString()),
                 Is.EqualTo((
-                    "manifest.schemaVersion", "SchemaVersion",
-                    WorkerManifestIdentityFieldKind.Int, (string?)null)));
+                    "manifest.schemaVersion", "SchemaVersion", "int")));
+            Assert.That(WorkerManifestIdentityCatalog.Domain,
+                Is.EqualTo(identity.GetProperty("domain").GetString()));
             Assert.That(
-                collections.Select(static collection => collection.Property).ToArray(),
+                collections.Select(static collection => collection.GetProperty("property").GetString()).ToArray(),
                 Is.EqualTo(s_manifestIdentityCollections));
         }
 
         foreach (var collection in collections)
         {
-            Assert.That(collection.LengthLabel, Does.StartWith("manifest."));
-            Assert.That(collection.EntryLabel, Does.Not.EndWith("."));
-            Assert.That(collection.Order, Is.Not.Empty);
-            Assert.That(collection.Fields, Is.Not.Empty);
-            foreach (var order in collection.Order)
+            Assert.That(collection.GetProperty("lengthLabel").GetString(), Does.StartWith("manifest."));
+            Assert.That(collection.GetProperty("entryLabel").GetString(), Does.Not.EndWith("."));
+            var orders = collection.GetProperty("order").EnumerateArray().ToArray();
+            var fields = collection.GetProperty("fields").EnumerateArray().ToArray();
+            Assert.That(orders, Is.Not.Empty);
+            Assert.That(fields, Is.Not.Empty);
+            foreach (var order in orders)
             {
-                Assert.That(order.Property, Is.Not.Empty);
-                Assert.That(order.Kind, Is.Not.Empty);
+                Assert.That(order.GetProperty("property").GetString(), Is.Not.Empty);
+                Assert.That(order.GetProperty("kind").GetString(), Is.Not.Empty);
             }
 
-            foreach (var field in collection.Fields)
+            foreach (var field in fields)
             {
-                Assert.That(field.Label, Is.Not.Empty);
-                Assert.That(field.Property, Is.Not.Empty);
+                Assert.That(field.GetProperty("label").GetString(), Is.Not.Empty);
+                Assert.That(field.GetProperty("property").GetString(), Is.Not.Empty);
                 Assert.That(
-                    Enum.IsDefined(field.Kind),
-                    Is.True);
-                _ = field.DefaultMember;
+                    field.GetProperty("kind").GetString(),
+                    Is.AnyOf("string", "int", "enum", "location", "enumArray",
+                        "ordinalStringArray", "assumptionArray"));
             }
         }
 

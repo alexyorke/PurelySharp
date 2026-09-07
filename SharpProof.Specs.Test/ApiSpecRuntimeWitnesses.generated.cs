@@ -9,23 +9,25 @@ namespace SharpProof.Specs.Test;
 
 public sealed partial class ApiSpecRuntimeOracleTests
 {
-    private static ImmutableArray<RuntimeWitnessDescriptor> GeneratedRuntimeWitnesses =>
-    [
-        new("bcl.array.empty", CreateBclArrayEmptyWitness),
-        new("bcl.enumerable.empty", CreateBclEnumerableEmptyWitness),
-        new("bcl.exception.ctor", CreateBclExceptionCtorWitness),
-        new("bcl.exception.ctor.string", CreateBclExceptionCtorStringWitness),
-        new("bcl.invalid-operation-exception.ctor", CreateBclInvalidOperationExceptionCtorWitness),
-        new("bcl.invalid-operation-exception.ctor.string", CreateBclInvalidOperationExceptionCtorStringWitness),
-        new("bcl.list.add", CreateBclListAddWitness),
-        new("bcl.math.abs.int32", CreateBclMathAbsInt32Witness),
-        new("bcl.object.ctor", CreateBclObjectCtorWitness),
-        new("bcl.string.concat.string-string", CreateBclStringConcatStringStringWitness),
-        new("bcl.string.length", CreateBclStringLengthWitness),
-        new("contract.assume", CreateContractAssumeWitness),
-        new("contract.ensures", CreateContractEnsuresWitness),
-        new("contract.old", CreateContractOldWitness),
-        new("contract.requires", CreateContractRequiresWitness),
-        new("contract.result", CreateContractResultWitness),
-    ];
+    private static ImmutableDictionary<string, RowWitness> CreateWitnesses()
+    {
+        var witnesses = ImmutableDictionary.CreateBuilder<string, RowWitness>(StringComparer.Ordinal);
+        witnesses.Add("bcl.array.empty", CreateBclArrayEmptyWitness());
+        witnesses.Add("bcl.enumerable.empty", CreateBclEnumerableEmptyWitness());
+        witnesses.Add("bcl.exception.ctor", CreateBclExceptionCtorWitness());
+        witnesses.Add("bcl.exception.ctor.string", CreateBclExceptionCtorStringWitness());
+        witnesses.Add("bcl.invalid-operation-exception.ctor", CreateBclInvalidOperationExceptionCtorWitness());
+        witnesses.Add("bcl.invalid-operation-exception.ctor.string", CreateBclInvalidOperationExceptionCtorStringWitness());
+        witnesses.Add("bcl.list.add", CreateBclListAddWitness());
+        witnesses.Add("bcl.math.abs.int32", CreateBclMathAbsInt32Witness());
+        witnesses.Add("bcl.object.ctor", CreateBclObjectCtorWitness());
+        witnesses.Add("bcl.string.concat.string-string", CreateBclStringConcatStringStringWitness());
+        witnesses.Add("bcl.string.length", CreateBclStringLengthWitness());
+        witnesses.Add("contract.assume", CreateContractAssumeWitness());
+        witnesses.Add("contract.ensures", CreateContractEnsuresWitness());
+        witnesses.Add("contract.old", CreateContractOldWitness());
+        witnesses.Add("contract.requires", CreateContractRequiresWitness());
+        witnesses.Add("contract.result", CreateContractResultWitness());
+        return witnesses.ToImmutable();
+    }
 }

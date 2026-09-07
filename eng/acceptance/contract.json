@@ -386,7 +386,6 @@
           "SharpProof.Contracts/ContractProjections.generated.cs",
           "SharpProof.Ir/IrPrinterProjections.generated.cs",
           "SharpProof.Effects/EffectProjections.generated.cs",
-          "SharpProof.Frontend/OperationSupportProjections.generated.cs",
           "SharpProof.Worker.Launcher/LauncherProjections.generated.cs",
           "SharpProof.CompilerCollector/CompilerArtifact/CompilerCallableProjections.generated.cs",
           "SharpProof.Frontend/CompilerIdentityProjections.generated.cs"

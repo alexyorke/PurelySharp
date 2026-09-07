@@ -27,7 +27,6 @@
     "SharpProof.Frontend/CSharpScalarSemantics.generated.cs",
     "SharpProof.Frontend/DeclarativeModels.generated.cs",
     "SharpProof.Frontend/OperationSupportCatalog.generated.cs",
-    "SharpProof.Frontend/OperationSupportProjections.generated.cs",
     "SharpProof.Ir/IrIdentifierAliases.cs",
     "SharpProof.Ir/IrModel.generated.cs",
     "SharpProof.Ir/IrOperatorCatalog.generated.cs",
