@@ -466,15 +466,9 @@ try {
             $packageLayoutClass = 'package-layout'
         }
     $workerMethods = @($discoveredMethods[$workerClass])
-    # Smaller work items let free slots pick up remaining methods instead of
-    # waiting for a long, preassigned bucket. The scheduler still enforces the
-    # same process limit; keep coverage's instrumented-copy count unchanged.
-    $workerShardCount = if ($coverageEnabled) {
-        $parallelism
-    }
-    else {
-        [Math]::Min($workerMethods.Count, 2 * $parallelism)
-    }
+    # Additional buckets add a second wave of test-host startup without
+    # increasing the available concurrency.
+    $workerShardCount = [Math]::Min($workerMethods.Count, $parallelism)
     $workerBuckets = @(New-SharpProofWeightedBuckets `
         -Methods $workerMethods `
         -HistoricalMilliseconds $priorMethodMilliseconds `
