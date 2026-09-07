@@ -15,7 +15,6 @@
           "returnType": "AbstentionReason",
           "name": "MapFailure",
           "parameters": [{"type": "BackendFailureReason", "name": "reason"}],
-          "switchMode": "expression",
           "target": "reason",
           "cases": [
             {"pattern": "BackendFailureReason.UnsupportedEncoding", "expression": "AbstentionReason.UnsupportedEncoding"},
@@ -48,7 +47,6 @@
             {"type": "bool", "name": "trusted"},
             {"type": "EffectEvaluationReason", "name": "incompleteReason"}
           ],
-          "switchMode": "expression",
           "target": "(established, violated, valid, complete, trusted)",
           "cases": [
             {"pattern": "(true, _, _, _, true)", "expression": "(EffectEvaluationOutcome.Proven, EffectEvaluationReason.None, EffectEvaluationCertainty.TrustedCompleteBoundary)"},
@@ -68,7 +66,6 @@
           "parameters": [
             {"type": "EffectAnalysisIncompleteReason", "name": "reason"}
           ],
-          "switchMode": "expression",
           "target": "((reason & (EffectAnalysisIncompleteReason.BlockBudgetExceeded | EffectAnalysisIncompleteReason.OperationBudgetExceeded)) != 0, (reason & EffectAnalysisIncompleteReason.CyclicControlFlow) != 0)",
           "cases": [
             {"pattern": "(true, _)", "expression": "EffectEvaluationReason.ResourceLimit"},
@@ -91,7 +88,6 @@
           "returnType": "(string Kind, string Value)",
           "name": "FormatValue",
           "parameters": [{"type": "IrValue", "name": "value"}],
-          "switchMode": "expression",
           "target": "value.Kind",
           "cases": [
             {"pattern": "IrValueKind.Boolean", "expression": "(nameof(IrValueKind.Boolean), value.Boolean ? \"true\" : \"false\")"},
@@ -109,7 +105,6 @@
           "returnType": "WorkerClaimReason",
           "name": "MapAbstention",
           "parameters": [{"type": "AbstentionReason", "name": "reason"}],
-          "switchMode": "expression",
           "target": "reason",
           "cases": [
             {"pattern": "AbstentionReason.ResourceLimit", "expression": "WorkerClaimReason.ResourceLimit"},
@@ -128,7 +123,6 @@
           "returnType": "string",
           "name": "ClauseLabel",
           "parameters": [{"type": "CompilerContractKind", "name": "kind"}],
-          "switchMode": "expression",
           "target": "kind",
           "cases": [
             {"pattern": "CompilerContractKind.Requires", "expression": "\"requires\""},
@@ -143,7 +137,6 @@
           "returnType": "NullnessValue",
           "name": "MapNullness",
           "parameters": [{"type": "SpecNullness", "name": "value"}],
-          "switchMode": "expression",
           "target": "value",
           "cases": [
             {"pattern": "SpecNullness.NonNull", "expression": "NullnessValue.NonNull"},
@@ -161,7 +154,6 @@
             {"type": "SpecCardinality", "name": "value"},
             {"type": "long?", "name": "count"}
           ],
-          "switchMode": "expression",
           "target": "value",
           "cases": [
             {"pattern": "SpecCardinality.Empty", "expression": "SequenceCardinalityDomain.Instance.Empty"},
@@ -186,7 +178,6 @@
           "returnType": "Microsoft.CodeAnalysis.CSharp.Syntax.ExpressionSyntax?",
           "name": "GetInitializerExpression",
           "parameters": [{"type": "Microsoft.CodeAnalysis.SyntaxNode", "name": "declaration"}],
-          "switchMode": "type",
           "target": "declaration",
           "cases": [
             {"pattern": "Microsoft.CodeAnalysis.CSharp.Syntax.VariableDeclaratorSyntax variable", "expression": "variable.Initializer?.Value"},
@@ -200,7 +191,6 @@
           "returnType": "EffectAllocationKind",
           "name": "MapAllocation",
           "parameters": [{"type": "SpecAllocationBehavior", "name": "behavior"}],
-          "switchMode": "expression",
           "target": "behavior",
           "cases": [
             {"pattern": "SpecAllocationBehavior.None", "expression": "EffectAllocationKind.None"},
@@ -215,7 +205,6 @@
           "returnType": "EffectThrowSet",
           "name": "MapNonResolvedThrowBehavior",
           "parameters": [{"type": "SpecThrowBehavior", "name": "behavior"}],
-          "switchMode": "expression",
           "target": "behavior",
           "cases": [
             {"pattern": "SpecThrowBehavior.DoesNotThrow", "expression": "EffectThrowSet.Empty"}
@@ -228,7 +217,6 @@
           "returnType": "EffectTermination",
           "name": "MapTermination",
           "parameters": [{"type": "SpecTerminationBehavior?", "name": "behavior"}],
-          "switchMode": "expression",
           "target": "behavior",
           "cases": [
             {"pattern": "SpecTerminationBehavior.Terminates", "expression": "EffectTermination.Terminates"}
@@ -250,7 +238,6 @@
           "returnType": "string",
           "name": "ClosedAttributeName",
           "parameters": [{"type": "ClosedContractAttributeKind", "name": "kind"}],
-          "switchMode": "expression",
           "target": "kind",
           "cases": [
             {"pattern": "ClosedContractAttributeKind.NotNull", "expression": "\"[NotNull]\""},
@@ -273,7 +260,6 @@
           "returnType": "string",
           "name": "Format",
           "parameters": [{"type": "IrTerm", "name": "term"}],
-          "switchMode": "type",
           "target": "term",
           "cases": [
             {"pattern": "IrBooleanTerm value", "expression": "value.Value ? \"true\" : \"false\""},
@@ -306,7 +292,6 @@
           "returnType": "int",
           "name": "ExitCode",
           "parameters": [{"type": "SharpProof.Worker.Protocol.WorkerRunStatus", "name": "status"}],
-          "switchMode": "expression",
           "target": "status",
           "cases": [
             {"pattern": "SharpProof.Worker.Protocol.WorkerRunStatus.TimedOut", "expression": "124"},
@@ -320,7 +305,6 @@
           "returnType": "Program.LauncherFailure",
           "name": "NoResultFailure",
           "parameters": [{"type": "int", "name": "exitCode"}],
-          "switchMode": "expression",
           "target": "exitCode",
           "cases": [
             {"pattern": "124", "expression": "new Program.LauncherFailure(124, SharpProof.Worker.Protocol.WorkerRunStatus.TimedOut, SharpProof.Worker.Protocol.WorkerRunFailureReason.None, \"worker.timeout\", \"The worker exceeded its project time budget.\", string.Empty)"},
@@ -334,7 +318,6 @@
           "returnType": "string",
           "name": "ClaimKind",
           "parameters": [{"type": "SharpProof.Worker.Protocol.WorkerClaimManifestEntry", "name": "claim"}],
-          "switchMode": "expression",
           "target": "claim.Kind",
           "cases": [
             {"pattern": "SharpProof.Worker.Protocol.WorkerClaimKind.Postcondition", "expression": "\"Postcondition\""},
@@ -348,7 +331,6 @@
           "returnType": "string",
           "name": "EffectKind",
           "parameters": [{"type": "SharpProof.Worker.Protocol.WorkerEffectContractKind", "name": "kind"}],
-          "switchMode": "expression",
           "target": "kind",
           "cases": [
             {"pattern": "SharpProof.Worker.Protocol.WorkerEffectContractKind.EnforcePure", "expression": "\"EnforcePure\""},
@@ -369,7 +351,6 @@
             {"type": "object", "name": "policy"},
             {"type": "string", "name": "advisory"}
           ],
-          "switchMode": "type",
           "target": "policy",
           "cases": [
             {"pattern": "SharpProof.Worker.Protocol.WorkerVerifyPolicy.Advisory or SharpProof.Worker.Protocol.WorkerAssumptionPolicy.Allow", "expression": "advisory"},
@@ -384,7 +365,6 @@
           "returnType": "SharpProof.Worker.Protocol.WorkerVerifyPolicy",
           "name": "ParseVerifyPolicy",
           "parameters": [{"type": "string", "name": "value"}],
-          "switchMode": "expression",
           "target": "value.ToUpperInvariant()",
           "cases": [
             {"pattern": "\"ADVISORY\"", "expression": "SharpProof.Worker.Protocol.WorkerVerifyPolicy.Advisory"},
@@ -399,7 +379,6 @@
           "returnType": "SharpProof.Worker.Protocol.WorkerAssumptionPolicy",
           "name": "ParseAssumptionPolicy",
           "parameters": [{"type": "string", "name": "value"}],
-          "switchMode": "expression",
           "target": "value.ToUpperInvariant()",
           "cases": [
             {"pattern": "\"ALLOW\"", "expression": "SharpProof.Worker.Protocol.WorkerAssumptionPolicy.Allow"},
@@ -426,7 +405,6 @@
             {"type": "BoundContractVariable", "name": "variable"},
             {"type": "BoundMethodContracts", "name": "contracts"}
           ],
-          "switchMode": "expression",
           "target": "variable.Role",
           "cases": [
             {"pattern": "BoundContractVariableRole.Parameter when variable.Symbol is IParameterSymbol parameter", "expression": "parameter.Type"},
@@ -441,7 +419,6 @@
           "returnType": "string",
           "name": "GetModelLabel",
           "parameters": [{"type": "BoundContractVariable", "name": "variable"}],
-          "switchMode": "expression",
           "target": "variable.Role",
           "cases": [
             {"pattern": "BoundContractVariableRole.Parameter", "expression": "\"parameter:\" + variable.Ordinal.ToString(CultureInfo.InvariantCulture)"},
@@ -466,7 +443,6 @@
           "returnType": "bool",
           "name": "IsChecked",
           "parameters": [{"type": "IOperation", "name": "operation"}],
-          "switchMode": "type",
           "target": "operation",
           "cases": [
             {"pattern": "IBinaryOperation binary", "expression": "binary.IsChecked"},
@@ -481,7 +457,6 @@
           "returnType": "bool",
           "name": "IsLifted",
           "parameters": [{"type": "IOperation", "name": "operation"}],
-          "switchMode": "type",
           "target": "operation",
           "cases": [
             {"pattern": "IBinaryOperation binary", "expression": "binary.IsLifted"},
@@ -495,7 +470,6 @@
           "returnType": "bool",
           "name": "IsTryCast",
           "parameters": [{"type": "IOperation", "name": "operation"}],
-          "switchMode": "type",
           "target": "operation",
           "cases": [
             {"pattern": "IConversionOperation conversion", "expression": "conversion.IsTryCast"}

@@ -77,10 +77,6 @@ foreach ($output in @(Required $catalog 'outputs' 'Projection catalog')) {
         }
         $lines.Add('    )')
         $lines.Add('    {')
-        $mode = [string](Required $method 'switchMode' "method '$methodName'")
-        if ($mode -notin @('expression', 'type')) {
-            throw "Method '$methodName' has unsupported switch mode '$mode'."
-        }
         $target = Snippet ([string](Required $method 'target' "method '$methodName'") ) "method '$methodName' target"
         $lines.Add("        return $target switch")
         $lines.Add('        {')
