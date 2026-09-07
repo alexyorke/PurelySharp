@@ -53,9 +53,8 @@ public sealed class AnalyzerModeAndEffectTests
     {
         var factory = new ThrowingSessionFactory();
         var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
-            ModeFixture,
+            ProfileFeaturesCompilation,
             mode: null,
-            ["SP0045", "SP0027"],
             new SharpProofAnalyzer(factory),
             profile: "off");
 
@@ -212,9 +211,8 @@ public sealed class AnalyzerModeAndEffectTests
     {
         var factory = new ThrowingSessionFactory();
         var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
-            ModeFixture,
+            ConfigurationFailureCompilation,
             mode,
-            ["SP0045", "SP0025"],
             new SharpProofAnalyzer(factory),
             profile: profile,
             features: features);

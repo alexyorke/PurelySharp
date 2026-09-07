@@ -1121,7 +1121,7 @@ public sealed class RequiresCallSiteDiscoveryTests
     [Test]
     public async Task LiftedNullConversionDoesNotInvokeItsOperator()
     {
-        var compilation = AnalyzerTestHost.CreateCompilation(
+        var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
             """
             using SharpProof.Attributes;
 
@@ -1140,11 +1140,8 @@ public sealed class RequiresCallSiteDiscoveryTests
                 }
             }
             """,
-            ["SP0027"]);
-
-        var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
-            compilation,
-            mode: "CONTRACTS");
+            mode: "CONTRACTS",
+            enabledIds: ["SP0027"]);
 
         Assert.That(diagnostics, Is.Empty);
     }
@@ -1152,7 +1149,7 @@ public sealed class RequiresCallSiteDiscoveryTests
     [Test]
     public async Task LiftedNonNullConversionInvokesItsOperator()
     {
-        var compilation = AnalyzerTestHost.CreateCompilation(
+        var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
             """
             using SharpProof.Attributes;
 
@@ -1171,11 +1168,8 @@ public sealed class RequiresCallSiteDiscoveryTests
                 }
             }
             """,
-            ["SP0027"]);
-
-        var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
-            compilation,
-            mode: "CONTRACTS");
+            mode: "CONTRACTS",
+            enabledIds: ["SP0027"]);
 
         Assert.That(
             diagnostics.Select(static diagnostic => diagnostic.Id),
@@ -1301,7 +1295,7 @@ public sealed class RequiresCallSiteDiscoveryTests
     [Test]
     public async Task NullableDisposableStructUsesItsUnderlyingDisposeMethod()
     {
-        var compilation = AnalyzerTestHost.CreateCompilation(
+        var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
             """
             using System;
             using SharpProof.Attributes;
@@ -1317,11 +1311,8 @@ public sealed class RequiresCallSiteDiscoveryTests
                 }
             }
             """,
-            ["SP0027"]);
-
-        var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
-            compilation,
-            mode: "CONTRACTS");
+            mode: "CONTRACTS",
+            enabledIds: ["SP0027"]);
 
         Assert.That(
             diagnostics.Select(static diagnostic => diagnostic.Id),
@@ -1331,7 +1322,7 @@ public sealed class RequiresCallSiteDiscoveryTests
     [Test]
     public async Task NullNullableDisposableStructSkipsDispose()
     {
-        var compilation = AnalyzerTestHost.CreateCompilation(
+        var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
             """
             using System;
             using SharpProof.Attributes;
@@ -1347,11 +1338,8 @@ public sealed class RequiresCallSiteDiscoveryTests
                 }
             }
             """,
-            ["SP0027"]);
-
-        var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
-            compilation,
-            mode: "CONTRACTS");
+            mode: "CONTRACTS",
+            enabledIds: ["SP0027"]);
 
         Assert.That(diagnostics, Is.Empty);
     }

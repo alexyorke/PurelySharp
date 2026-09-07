@@ -1614,45 +1614,19 @@ public sealed class ContractForValidatorGeneratorTests
     [Test]
     public void SourceDefinedContractForAttributeIsRejected()
     {
-        var compilation =
-            GeneratorTestHost.CreateCompilationWithoutAttributes(
-                ("Subject.cs",
-                """
-                using System;
-                using SharpProof.Attributes;
-
-                namespace SharpProof.Attributes {
-                    [AttributeUsage(AttributeTargets.Class)]
-                    public sealed class ContractForAttribute(Type target)
-                        : Attribute {
-                    }
-                }
-
-                public interface ITarget {
-                    void Invoke();
-                }
-
-                [ContractFor(typeof(ITarget))]
-                public static class TargetContracts {
-                    public static void Invoke(ITarget receiver) {
-                    }
-                }
-                """));
-
-        var diagnostic = AssertSingle(
-            GeneratorTestHost.RunAnalyzer(compilation),
-            "SPCF0001");
-        Assert.That(
-            diagnostic.GetMessage(
-                System.Globalization.CultureInfo.InvariantCulture),
-            Does.Contain("TargetContracts"));
+        AssertShadowedContractForAttributeRejected(includeAttributes: false);
     }
 
     [Test]
     public void ProjectShadowedContractForAttributeIsRejected()
     {
-        var compilation = GeneratorTestHost.CreateCompilation(
-            ("Subject.cs",
+        AssertShadowedContractForAttributeRejected(includeAttributes: true);
+    }
+
+    private static void AssertShadowedContractForAttributeRejected(
+        bool includeAttributes)
+    {
+        var source = ("Subject.cs",
             """
             using System;
             using SharpProof.Attributes;
@@ -1673,7 +1647,10 @@ public sealed class ContractForValidatorGeneratorTests
                 public static void Invoke(ITarget receiver) {
                 }
             }
-            """));
+            """);
+        var compilation = includeAttributes
+            ? GeneratorTestHost.CreateCompilation(source)
+            : GeneratorTestHost.CreateCompilationWithoutAttributes(source);
 
         var diagnostic = AssertSingle(
             GeneratorTestHost.RunAnalyzer(compilation),
