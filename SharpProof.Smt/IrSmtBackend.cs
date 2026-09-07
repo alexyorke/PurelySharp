@@ -511,8 +511,6 @@ public sealed class IrSmtBackend : ISmtBackend, IDisposable
                 IrUnaryTerm unary => EncodeUnary(unary),
                 IrBinaryTerm binary => EncodeBinary(binary),
                 IrConditionalTerm conditional => EncodeConditional(conditional),
-                IrCastTerm cast when cast.Type == cast.Operand.Type => Encode(cast.Operand),
-                IrLengthTerm length => EncodeLength(length),
                 _ => throw new UnsupportedIrEncodingException()
             };
             _encoded.Add(term.Id, encoded);
@@ -548,18 +546,6 @@ public sealed class IrSmtBackend : ISmtBackend, IDisposable
         private EncodedValue EncodeBinary(IrBinaryTerm binary)
         {
             var left = Encode(binary.Left);
-            if (binary.Operator == IrBinaryOperator.AndAlso &&
-                left.Value is BoolExpr leftAnd &&
-                binary.Left is IrBooleanTerm { Value: false })
-            {
-                return new EncodedValue(leftAnd, left.Defined);
-            }
-            if (binary.Operator == IrBinaryOperator.OrElse &&
-                left.Value is BoolExpr leftOr &&
-                binary.Left is IrBooleanTerm { Value: true })
-            {
-                return new EncodedValue(leftOr, left.Defined);
-            }
             var right = Encode(binary.Right);
             if (binary.Operator == IrBinaryOperator.AndAlso &&
                 left.Value is BoolExpr leftBoolean &&
@@ -631,12 +617,6 @@ public sealed class IrSmtBackend : ISmtBackend, IDisposable
         private EncodedValue EncodeConditional(IrConditionalTerm conditional)
         {
             var condition = EncodeBoolean(conditional.Condition);
-            if (conditional.Condition is IrBooleanTerm constant)
-            {
-                return constant.Value
-                    ? Encode(conditional.WhenTrue)
-                    : Encode(conditional.WhenFalse);
-            }
             var whenTrue = Encode(conditional.WhenTrue);
             var whenFalse = Encode(conditional.WhenFalse);
             // Expr.Sort creates a fresh managed wrapper over the native sort.
@@ -659,22 +639,6 @@ public sealed class IrSmtBackend : ISmtBackend, IDisposable
                 whenFalse.Defined));
             var defined = _owner.Own(_context.MkAnd(condition.Defined, branchDefined));
             return new EncodedValue(value, defined);
-        }
-
-        private EncodedValue EncodeLength(IrLengthTerm length)
-        {
-            if (length.Value.Type == _factory.StringType)
-            {
-                throw new UnsupportedIrEncodingException();
-            }
-
-            var value = Encode(length.Value);
-            if (value.Value is not SeqExpr sequence)
-            {
-                throw new UnsupportedIrEncodingException();
-            }
-
-            return Bounded(_owner.Own(_context.MkLength(sequence)), value.Defined);
         }
 
         private EncodedValue Defined(Expr expression)

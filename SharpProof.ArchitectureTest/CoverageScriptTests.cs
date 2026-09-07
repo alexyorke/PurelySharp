@@ -791,25 +791,11 @@ public sealed class CoverageScriptTests
 
             await PrepareCoverageFixtureAsync(repository);
 
-            var result = await RunAsync(
+            var result = await RunCoverageScriptOnlyAsync(
                 repository,
-                "pwsh",
-                "-NoLogo",
-                "-NoProfile",
-                "-NonInteractive",
-                "-File",
-                Path.Combine(
-                    repository,
-                    "scripts",
-                    "Test-SharpProofCoverage.ps1"),
-                "-CoverageRoot",
-                Path.Combine(repository, "coverage"),
-                "-BaselinePath",
-                Path.Combine(repository, "baseline.json"),
-                "-ComparisonRef",
-                "comparison",
-                "-IncludeWorkingTree",
-                "-ReportOnly");
+                comparisonRef: "comparison",
+                reportOnly: true,
+                includeWorkingTree: true);
             Assert.That(result.ExitCode, Is.Zero, result.Error);
             using var document = JsonDocument.Parse(result.Output);
             Assert.That(
@@ -852,24 +838,10 @@ public sealed class CoverageScriptTests
 
             await PrepareCoverageFixtureAsync(repository);
 
-            return await RunAsync(
+            return await RunCoverageScriptOnlyAsync(
                 repository,
-                "pwsh",
-                "-NoLogo",
-                "-NoProfile",
-                "-NonInteractive",
-                "-File",
-                Path.Combine(
-                    repository,
-                    "scripts",
-                    "Test-SharpProofCoverage.ps1"),
-                "-CoverageRoot",
-                Path.Combine(repository, "coverage"),
-                "-BaselinePath",
-                Path.Combine(repository, "baseline.json"),
-                "-ComparisonRef",
-                "comparison",
-                "-ReportOnly");
+                comparisonRef: "comparison",
+                reportOnly: true);
         }
         finally
         {

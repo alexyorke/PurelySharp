@@ -102,27 +102,22 @@ function Assert-DockerfileAuthority {
         [pscustomobject]@{
             Argument = 'POWERSHELL_IMAGE'
             Image = "$($ToolchainCatalog.powershell.image)@$($ToolchainCatalog.powershell.imageDigest)"
-            Stage = 'powershell'
         },
         [pscustomobject]@{
             Argument = 'DOTNET_TEST_RUNTIME_IMAGE'
             Image = "$($ToolchainCatalog.dotnet.testRuntimeImage)@$($ToolchainCatalog.dotnet.testRuntimeImageDigest)"
-            Stage = 'test-runtime'
         },
         [pscustomobject]@{
             Argument = 'DOTNET_MINIMUM_SDK_IMAGE'
             Image = "$($ToolchainCatalog.dotnet.minimumSdkImage)@$($ToolchainCatalog.dotnet.minimumSdkImageDigest)"
-            Stage = 'minimum-sdk'
         },
         [pscustomobject]@{
             Argument = 'DOTNET_MINIMUM_FRAMEWORK_IMAGE'
             Image = "$($ToolchainCatalog.dotnet.minimumSdkFrameworkImage)@$($ToolchainCatalog.dotnet.minimumSdkFrameworkImageDigest)"
-            Stage = 'minimum-framework'
         },
         [pscustomobject]@{
             Argument = 'DOTNET_SDK_IMAGE'
             Image = "$($ToolchainCatalog.dotnet.baseImage)@$($ToolchainCatalog.dotnet.baseImageDigest)"
-            Stage = 'toolchain'
         })
 
     $firstFrom = -1
@@ -209,42 +204,31 @@ function Assert-DockerfileAuthority {
         }
     }
 
-    $stageContracts = @(
-        [pscustomobject]@{
-            From = 'FROM ${DOTNET_SDK_IMAGE} AS toolchain'
-            Root = '/workspace/SharpProof'
-            Command = 'dev'
-        })
-    foreach ($stage in $stageContracts) {
-        $stageLines = Get-DockerfileStageLines `
-            -Lines $lines `
-            -FromLine $stage.From
-        Assert-SingleMatchingLine `
-            $stageLines `
+    Assert-SingleMatchingLine `
+            $toolchainLines `
             '^ENV SHARPPROOF_REPO_ROOT=' `
-            "ENV SHARPPROOF_REPO_ROOT=$($stage.Root)" `
-            "$($stage.Command) repository root"
-        Assert-SingleMatchingLine `
-            $stageLines `
+            'ENV SHARPPROOF_REPO_ROOT=/workspace/SharpProof' `
+            'dev repository root'
+    Assert-SingleMatchingLine `
+            $toolchainLines `
             '^WORKDIR ' `
-            "WORKDIR $($stage.Root)" `
-            "$($stage.Command) working directory"
-        Assert-SingleMatchingLine `
-            $stageLines `
+            'WORKDIR /workspace/SharpProof' `
+            'dev working directory'
+    Assert-SingleMatchingLine `
+            $toolchainLines `
             '^USER ' `
             'USER sharpproof' `
-            "$($stage.Command) user"
-        Assert-SingleMatchingLine `
-            $stageLines `
+            'dev user'
+    Assert-SingleMatchingLine `
+            $toolchainLines `
             '^ENTRYPOINT ' `
             'ENTRYPOINT ["/usr/local/bin/sharpproof-container"]' `
-            "$($stage.Command) entrypoint"
-        Assert-SingleMatchingLine `
-            $stageLines `
+            'dev entrypoint'
+    Assert-SingleMatchingLine `
+            $toolchainLines `
             '^CMD ' `
-            "CMD [`"$($stage.Command)`"]" `
-            "$($stage.Command) default command"
-    }
+            'CMD ["dev"]' `
+            'dev default command'
 }
 
 function Assert-ComposeAuthority {

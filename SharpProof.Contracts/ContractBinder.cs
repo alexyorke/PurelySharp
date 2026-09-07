@@ -239,13 +239,12 @@ public sealed class ContractBinder
                 clause.Kind, condition, clause.SourceOperation, clause.Evidence));
         }
 
-        var attributeResult = BindClosedAttributes(target, canonical, requiresOnly);
-        if (attributeResult.Failure != ContractBindingFailure.None)
+        var attributeFailure = BindClosedAttributes(
+            target, canonical, requiresOnly, clauses);
+        if (attributeFailure != ContractBindingFailure.None)
         {
-            return ContractBindingResult.Fail(attributeResult.Failure);
+            return ContractBindingResult.Fail(attributeFailure);
         }
-
-        clauses.AddRange(attributeResult.Clauses);
 
         return ContractBindingResult.Success(new BoundMethodContracts(
             target, source, clauses.ToImmutable(), canonical.ToBoundVariables(), usesCompanion));
@@ -338,12 +337,12 @@ public sealed class ContractBinder
         return ContractBindingFailure.None;
     }
 
-    private ClauseBindingResult BindClosedAttributes(
+    private ContractBindingFailure BindClosedAttributes(
         IMethodSymbol target,
         ContractCanonicalVariables variables,
-        bool requiresOnly)
+        bool requiresOnly,
+        ImmutableArray<BoundContractClause>.Builder clauses)
     {
-        var clauses = ImmutableArray.CreateBuilder<BoundContractClause>();
         for (var index = 0; index < target.Parameters.Length; index++)
         {
             var result = BindValueAttributes(
@@ -352,7 +351,7 @@ public sealed class ContractBinder
                 BoundContractKind.Requires, clauses);
             if (result != ContractBindingFailure.None)
             {
-                return ClauseBindingResult.Fail(result);
+                return result;
             }
         }
         if (!requiresOnly)
@@ -365,10 +364,10 @@ public sealed class ContractBinder
                 BoundContractKind.Ensures, clauses);
             if (result != ContractBindingFailure.None)
             {
-                return ClauseBindingResult.Fail(result);
+                return result;
             }
         }
-        return new ClauseBindingResult(clauses.ToImmutable(), ContractBindingFailure.None);
+        return ContractBindingFailure.None;
     }
 
     private ContractBindingFailure BindValueAttributes(
