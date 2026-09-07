@@ -443,16 +443,12 @@ public sealed class RoslynProgramLowerer(
             OperationId operation,
             IInvocationOperation invocation)
         {
-            var isDirect = invocation.TargetMethod.ReducedFrom == null &&
-                invocation.Arguments.Length ==
-                invocation.TargetMethod.Parameters.Length;
-            var ordinals = isDirect ? new HashSet<int>() : null;
+            var isDirect = IsDirectInvocation(invocation);
             HashSet<IrVarId>? mutated = null;
             var lowered = new List<(
                 int Ordinal, IrTerm Value)>(invocation.Arguments.Length);
             foreach (var argument in invocation.Arguments)
             {
-                var ordinal = argument.Parameter?.Ordinal ?? -1;
                 var value = LowerValue(block, operation, argument.Value);
                 lowered.Add((argument.Parameter?.Ordinal ?? int.MaxValue, value));
                 if (argument.Parameter?.RefKind is RefKind.Ref or RefKind.Out &&
@@ -460,20 +456,6 @@ public sealed class RoslynProgramLowerer(
                 {
                     (mutated ??= []).Add(variable);
                 }
-                if (isDirect &&
-                    (argument.ArgumentKind != ArgumentKind.Explicit ||
-                     ordinal < 0 ||
-                     ordinal >= invocation.TargetMethod.Parameters.Length ||
-                     !ordinals!.Add(ordinal)))
-                {
-                    isDirect = false;
-                }
-            }
-
-            if (isDirect &&
-                ordinals!.Count != invocation.TargetMethod.Parameters.Length)
-            {
-                isDirect = false;
             }
 
             return ([.. lowered

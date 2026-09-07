@@ -22,7 +22,9 @@ public sealed class EffectCounterexampleReplayTests
             var fixture = CreateFixture(kind);
             var result = EffectClaimResultAssembler.Assemble(
                 fixture.Target,
-                fixture.Evidence);
+                fixture.Evidence,
+                CallableEntryFeasibility.Feasible,
+                CancellationToken.None);
 
             AssertRefuted(
                 fixture.Evidence.Witness!,
@@ -97,7 +99,9 @@ public sealed class EffectCounterexampleReplayTests
         Assert.Throws<InvalidDataException>((Action)(() =>
             EffectClaimResultAssembler.Assemble(
                 fixture.Target,
-                fixture.Evidence)));
+                fixture.Evidence,
+                CallableEntryFeasibility.Feasible,
+                CancellationToken.None)));
     }
 
     [TestCase("kind")]
@@ -146,7 +150,9 @@ public sealed class EffectCounterexampleReplayTests
 
         var result = EffectClaimResultAssembler.Assemble(
             fixture.Target,
-            fixture.Evidence);
+            fixture.Evidence,
+            CallableEntryFeasibility.Feasible,
+            CancellationToken.None);
 
         using (Assert.EnterMultipleScope())
         {
@@ -205,7 +211,9 @@ public sealed class EffectCounterexampleReplayTests
 
         var result = EffectClaimResultAssembler.Assemble(
             fixture.Target,
-            fixture.Evidence);
+            fixture.Evidence,
+            CallableEntryFeasibility.Feasible,
+            CancellationToken.None);
 
         using (Assert.EnterMultipleScope())
         {
@@ -270,7 +278,9 @@ public sealed class EffectCounterexampleReplayTests
 
         var result = EffectClaimResultAssembler.Assemble(
             fixture.Target,
-            fixture.Evidence);
+            fixture.Evidence,
+            CallableEntryFeasibility.Feasible,
+            CancellationToken.None);
 
         using (Assert.EnterMultipleScope())
         {
@@ -305,7 +315,9 @@ public sealed class EffectCounterexampleReplayTests
 
             var result = EffectClaimResultAssembler.Assemble(
                 fixture.Target,
-                fixture.Evidence);
+                fixture.Evidence,
+                CallableEntryFeasibility.Feasible,
+                CancellationToken.None);
 
             AssertRefuted(fixture.Evidence.Witness!, result);
         }
@@ -326,7 +338,9 @@ public sealed class EffectCounterexampleReplayTests
 
         var result = EffectClaimResultAssembler.Assemble(
             fixture.Target,
-            fixture.Evidence);
+            fixture.Evidence,
+            CallableEntryFeasibility.Feasible,
+            CancellationToken.None);
 
         AssertRefuted(fixture.Evidence.Witness!, result);
     }
@@ -408,7 +422,9 @@ public sealed class EffectCounterexampleReplayTests
 
             var recovered = EffectClaimResultAssembler.Assemble(
                 fixture.Target,
-                fixture.Evidence);
+                fixture.Evidence,
+                CallableEntryFeasibility.Feasible,
+                CancellationToken.None);
             Assert.That(
                 recovered.Outcome,
                 Is.EqualTo(WorkerClaimOutcome.Refuted),
@@ -484,7 +500,9 @@ public sealed class EffectCounterexampleReplayTests
                 var fixture = CreateFixture(kind);
                 return EffectClaimResultAssembler.Assemble(
                     fixture.Target,
-                    fixture.Evidence);
+                    fixture.Evidence,
+                    CallableEntryFeasibility.Feasible,
+                    CancellationToken.None);
             })));
 
         using (Assert.EnterMultipleScope())
@@ -529,7 +547,9 @@ public sealed class EffectCounterexampleReplayTests
         WorkerProtocolJson.SealManifest(manifest);
         var result = EffectClaimResultAssembler.Assemble(
             fixture.Target,
-            fixture.Evidence);
+            fixture.Evidence,
+            CallableEntryFeasibility.Feasible,
+            CancellationToken.None);
         var response = WorkerResultAssembler.Create(
             new string('a', 64),
             manifest,

@@ -1176,7 +1176,8 @@ public sealed class CompilerManifestArtifactTests
         var artifact = CreateContractArtifact(ZeroAllocationInlineSource);
         var target = CompilerManifestArtifactJson.DecodeCallables(artifact).Single();
         var result = EffectClaimResultAssembler.Assemble(
-            target, target.EffectClaims.Single());
+            target, target.EffectClaims.Single(),
+            CallableEntryFeasibility.Feasible, CancellationToken.None);
 
         using (Assert.EnterMultipleScope())
         {
@@ -1616,7 +1617,9 @@ public sealed class CompilerManifestArtifactTests
         var target = CompilerManifestArtifactJson.DecodeCallables(artifact)
             .Single();
         var hydrated = target.EffectClaims.Single();
-        var result = EffectClaimResultAssembler.Assemble(target, hydrated);
+        var result = EffectClaimResultAssembler.Assemble(
+            target, hydrated, CallableEntryFeasibility.Feasible,
+            CancellationToken.None);
 
         using (Assert.EnterMultipleScope())
         {
@@ -1912,7 +1915,9 @@ public sealed class CompilerManifestArtifactTests
             """);
         var target = CompilerManifestArtifactJson.DecodeCallables(artifact).Single();
         var evidence = target.EffectClaims.Single();
-        var result = EffectClaimResultAssembler.Assemble(target, evidence);
+        var result = EffectClaimResultAssembler.Assemble(
+            target, evidence, CallableEntryFeasibility.Feasible,
+            CancellationToken.None);
 
         using (Assert.EnterMultipleScope())
         {

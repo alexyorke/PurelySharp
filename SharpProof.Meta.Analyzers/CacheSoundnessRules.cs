@@ -1885,8 +1885,6 @@ internal static class CacheSoundnessRules
 
     private sealed class LocalResolution
     {
-        private readonly HashSet<ILocalSymbol> _locals = new(
-            SymbolEqualityComparer.Default);
         private readonly Dictionary<ILocalSymbol, HashSet<TextSpan>> _points =
             new(SymbolEqualityComparer.Default);
 
@@ -1906,17 +1904,6 @@ internal static class CacheSoundnessRules
         internal Compilation? Compilation
         {
             get;
-        }
-
-        internal bool Add(ILocalSymbol local)
-        {
-            CancellationToken.ThrowIfCancellationRequested();
-            return _locals.Add(local);
-        }
-
-        internal void Remove(ILocalSymbol local)
-        {
-            _locals.Remove(local);
         }
 
         internal bool Add(ILocalReferenceOperation reference)

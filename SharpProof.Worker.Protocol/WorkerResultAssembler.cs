@@ -124,7 +124,10 @@ internal static class WorkerResultAssembler
         return summary.Assumptions;
     }
 
-    private static SummarySnapshot Summarize(
+    private static (
+        WorkerClaimOutcomeCount[] OutcomeCounts,
+        WorkerClaimReasonCount[] ReasonCounts,
+        WorkerAssumptionSummary Assumptions) Summarize(
         WorkerCallableResult[] callables,
         WorkerClaimResult[] claims)
     {
@@ -161,11 +164,14 @@ internal static class WorkerResultAssembler
             AddAssumptionEvidence(_assumptions, assumptions);
         }
 
-        internal SummarySnapshot CreateSnapshot()
+        internal (
+            WorkerClaimOutcomeCount[] OutcomeCounts,
+            WorkerClaimReasonCount[] ReasonCounts,
+            WorkerAssumptionSummary Assumptions) CreateSnapshot()
         {
             var assumptionSummary = CreateAssumptionSummary(_assumptions);
 
-            return new SummarySnapshot(
+            return (
                 [.. _outcomes.Select(static pair => new WorkerClaimOutcomeCount
                 {
                     Outcome = pair.Key,
@@ -176,8 +182,7 @@ internal static class WorkerResultAssembler
                     Reason = pair.Key,
                     Count = pair.Value
                 })],
-                assumptionSummary.Assumptions,
-                assumptionSummary.ConflictingAssumptionKinds);
+                assumptionSummary.Assumptions);
         }
 
         private static void Increment<TKey>(Dictionary<TKey, int> counts, TKey key)
@@ -237,18 +242,6 @@ internal static class WorkerResultAssembler
         internal bool ConflictingKinds;
     }
 
-    private sealed class SummarySnapshot(
-        WorkerClaimOutcomeCount[] outcomeCounts,
-        WorkerClaimReasonCount[] reasonCounts,
-        WorkerAssumptionSummary assumptions,
-        bool conflictingAssumptionKinds)
-    {
-        internal WorkerClaimOutcomeCount[] OutcomeCounts { get; } = outcomeCounts;
-        internal WorkerClaimReasonCount[] ReasonCounts { get; } = reasonCounts;
-        internal WorkerAssumptionSummary Assumptions { get; } = assumptions;
-        internal bool ConflictingAssumptionKinds { get; } = conflictingAssumptionKinds;
-    }
-
     internal static WorkerClaimManifest EmptyManifest()
     {
         var manifest = new WorkerClaimManifest();
@@ -256,8 +249,7 @@ internal static class WorkerResultAssembler
         return manifest;
     }
 
-    internal static (WorkerRunStatus Status, WorkerRunFailureReason Failure,
-        bool FatalCallable, bool FatalClaim, bool TimedOut, bool Canceled) Classify(
+    internal static (WorkerRunStatus Status, WorkerRunFailureReason Failure) Classify(
         IEnumerable<WorkerCallableResult>? callables, IEnumerable<WorkerClaimResult>? claims)
     {
         var callableSummary = SummarizeCallableReasons(callables);
@@ -276,9 +268,7 @@ internal static class WorkerResultAssembler
             : canceled ? WorkerRunStatus.Canceled
             : timedOut ? WorkerRunStatus.TimedOut
             : WorkerRunStatus.Complete;
-        return (status, failure,
-            callableFailure != WorkerRunFailureReason.None, claimFailure != WorkerRunFailureReason.None,
-            timedOut, canceled);
+        return (status, failure);
     }
 
     private static (WorkerRunFailureReason Failure, bool Canceled, bool TimedOut) SummarizeCallableReasons(

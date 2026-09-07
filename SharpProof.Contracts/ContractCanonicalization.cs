@@ -6,7 +6,7 @@ internal sealed class ContractCanonicalization(
 {
     private readonly Compilation _compilation =
         ArgumentNullGuard.NotNull(compilation, nameof(compilation));
-    private readonly RoslynOperationLowerer _types = new(factory);
+    private readonly RoslynTypeMapper _types = new(factory);
 
     internal Func<ITypeSymbol?, ITypeSymbol?> CreateTypeSpecializer(
         IMethodSymbol source)

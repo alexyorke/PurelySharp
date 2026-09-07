@@ -4,17 +4,6 @@ internal static class EffectClaimResultAssembler
 {
     internal static WorkerClaimResult Assemble(
         CompilerCallablePreparation target,
-        CompilerEffectClaimArtifact evidence)
-    {
-        return Assemble(
-            target,
-            evidence,
-            CallableEntryFeasibility.Feasible,
-            CancellationToken.None);
-    }
-
-    internal static WorkerClaimResult Assemble(
-        CompilerCallablePreparation target,
         CompilerEffectClaimArtifact evidence,
         CallableEntryFeasibility entryFeasibility,
         CancellationToken cancellationToken)

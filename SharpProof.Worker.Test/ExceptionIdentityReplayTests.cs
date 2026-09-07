@@ -206,7 +206,9 @@ public sealed class ExceptionIdentityReplayTests
             EffectClaims = [evidence]
         };
 
-        var result = EffectClaimResultAssembler.Assemble(target, evidence);
+        var result = EffectClaimResultAssembler.Assemble(
+            target, evidence, CallableEntryFeasibility.Feasible,
+            CancellationToken.None);
 
         using (Assert.EnterMultipleScope())
         {
@@ -385,7 +387,9 @@ public sealed class ExceptionIdentityReplayTests
             {
                 EffectClaims = [evidence]
             };
-            return EffectClaimResultAssembler.Assemble(target, evidence);
+            return EffectClaimResultAssembler.Assemble(
+                target, evidence, CallableEntryFeasibility.Feasible,
+                CancellationToken.None);
         }
     }
 

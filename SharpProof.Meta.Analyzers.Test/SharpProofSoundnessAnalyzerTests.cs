@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Globalization;
+using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -13,6 +14,41 @@ public sealed class SharpProofSoundnessAnalyzerTests
 {
     private static readonly ImmutableArray<MetadataReference> PlatformReferences =
         CreatePlatformReferences();
+
+    [TestCase("\"ir_literal\"", false, "ir_literal")]
+    [TestCase("parameter", false, null)]
+    [TestCase("alias", true, "ir_literal")]
+    public void SemanticLiteralResolutionIndexesAssignmentsOnlyForLocals(
+        string expression, bool indexed, string? expected)
+    {
+        var tree = CSharpSyntaxTree.ParseText(
+            "static class C { static string M(string parameter) { " +
+            "var alias = \"ir_literal\"; return " + expression + "; } }");
+        var compilation = CSharpCompilation.Create(
+            "LiteralResolution", [tree], PlatformReferences,
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+        var returned = tree.GetRoot().DescendantNodes()
+            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.ReturnStatementSyntax>()
+            .Single().Expression!;
+        var operation = compilation.GetSemanticModel(tree).GetOperation(returned)!;
+        var type = typeof(SharpProofSoundnessAnalyzer).GetNestedType(
+            "SemanticLiteralResolver", BindingFlags.NonPublic)!;
+        var resolver = Activator.CreateInstance(
+            type, BindingFlags.Instance | BindingFlags.NonPublic,
+            binder: null, args: [operation, CancellationToken.None], culture: null)!;
+        var assignments = type.GetField(
+            "_assignments", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(resolver)!;
+        var created = assignments.GetType().GetProperty("IsValueCreated")!;
+        Assert.That(created.GetValue(assignments), Is.False);
+        var resolve = type.GetMethod(
+            "Resolve", BindingFlags.Instance | BindingFlags.NonPublic,
+            binder: null, types: [typeof(IOperation)], modifiers: null)!;
+
+        Assert.That(resolve.Invoke(resolver, [operation]), Is.EqualTo(expected));
+        Assert.That(created.GetValue(assignments), Is.EqualTo(indexed));
+        Assert.That(resolve.Invoke(resolver, [operation]), Is.EqualTo(expected));
+    }
 
     private static string SemanticCacheWriteFixture(string body)
     {

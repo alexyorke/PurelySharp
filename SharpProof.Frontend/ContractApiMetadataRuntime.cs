@@ -17,26 +17,6 @@ internal static partial class ContractApiMetadata
         return ContractMethodCandidateNameSet.Contains(name);
     }
 
-    internal static bool TryGetMethod(
-        string name,
-        out ContractApiMethodDescriptor descriptor)
-    {
-        foreach (var candidate in Methods)
-        {
-            if (string.Equals(
-                    candidate.Name,
-                    name,
-                    StringComparison.Ordinal))
-            {
-                descriptor = candidate;
-                return true;
-            }
-        }
-
-        descriptor = default;
-        return false;
-    }
-
     internal static bool TryGetAttribute(
         string metadataName,
         out ContractApiAttributeDescriptor descriptor)

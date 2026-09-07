@@ -536,20 +536,10 @@ public sealed class SharpProofSoundnessAnalyzer : DiagnosticAnalyzer
         };
     }
 
-    private static string? GetSemanticLiteral(
-        IOperation operation,
-        CancellationToken cancellationToken)
-    {
-        return new SemanticLiteralResolver(
-            operation,
-            cancellationToken).Resolve(operation);
-    }
-
     private sealed class SemanticLiteralResolver
     {
         private readonly CancellationToken _cancellationToken;
-        private readonly Dictionary<ILocalSymbol, List<IOperation>> _assignments =
-            new(SymbolEqualityComparer.Default);
+        private readonly Lazy<Dictionary<ILocalSymbol, List<IOperation>>> _assignments;
         private readonly Dictionary<ILocalSymbol, string> _literalCache =
             new(SymbolEqualityComparer.Default);
 
@@ -558,30 +548,41 @@ public sealed class SharpProofSoundnessAnalyzer : DiagnosticAnalyzer
             CancellationToken cancellationToken)
         {
             _cancellationToken = cancellationToken;
+            _assignments = new(() => IndexAssignments(operation, cancellationToken));
+        }
+
+        private static Dictionary<ILocalSymbol, List<IOperation>> IndexAssignments(
+            IOperation operation,
+            CancellationToken cancellationToken)
+        {
+            var assignments = new Dictionary<ILocalSymbol, List<IOperation>>(
+                SymbolEqualityComparer.Default);
             var root = operation;
             while (root.Parent != null)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 root = root.Parent;
             }
 
             foreach (var candidate in root.DescendantsAndSelf())
             {
-                _cancellationToken.ThrowIfCancellationRequested();
+                cancellationToken.ThrowIfCancellationRequested();
                 switch (candidate)
                 {
                     case IVariableDeclaratorOperation declaration
                         when declaration.Initializer?.Value is { } value:
-                        AddAssignment(declaration.Symbol, value);
+                        AddAssignment(assignments, declaration.Symbol, value);
                         break;
                     case ISimpleAssignmentOperation
                     {
                         Target: ILocalReferenceOperation target,
                         Value: { } value
                     }:
-                        AddAssignment(target.Local, value);
+                        AddAssignment(assignments, target.Local, value);
                         break;
                 }
             }
+            return assignments;
         }
 
         internal string? Resolve(IOperation operation)
@@ -620,7 +621,7 @@ public sealed class SharpProofSoundnessAnalyzer : DiagnosticAnalyzer
                 return cached;
             }
 
-            if (!_assignments.TryGetValue(localReference.Local, out var values))
+            if (!_assignments.Value.TryGetValue(localReference.Local, out var values))
             {
                 return null;
             }
@@ -637,12 +638,15 @@ public sealed class SharpProofSoundnessAnalyzer : DiagnosticAnalyzer
             return null;
         }
 
-        private void AddAssignment(ILocalSymbol local, IOperation value)
+        private static void AddAssignment(
+            Dictionary<ILocalSymbol, List<IOperation>> assignments,
+            ILocalSymbol local,
+            IOperation value)
         {
-            if (!_assignments.TryGetValue(local, out var values))
+            if (!assignments.TryGetValue(local, out var values))
             {
                 values = [];
-                _assignments.Add(local, values);
+                assignments.Add(local, values);
             }
 
             values.Add(value);

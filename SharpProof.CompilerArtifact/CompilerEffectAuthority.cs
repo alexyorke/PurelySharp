@@ -204,9 +204,26 @@ internal static class CompilerEffectAuthority
             return left == null && right == null;
         }
 
-        return left.PathKind == right.PathKind &&
-            left.ConstraintSha256 == right.ConstraintSha256 &&
-            left.Events.SequenceEqual(right.Events, ReplayEventComparer.Instance);
+        if (left.PathKind != right.PathKind ||
+            left.ConstraintSha256 != right.ConstraintSha256)
+        {
+            return false;
+        }
+
+        var leftEvents = ArgumentNullGuard.NotNull(left.Events, "first");
+        var rightEvents = ArgumentNullGuard.NotNull(right.Events, "second");
+        if (leftEvents.Length != rightEvents.Length)
+        {
+            return false;
+        }
+        for (var index = 0; index < leftEvents.Length; index++)
+        {
+            if (!ReplayEventsEqual(leftEvents[index], rightEvents[index]))
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static CompilerEffectConstraintArtifact CopyConstraint(
@@ -280,99 +297,39 @@ internal static class CompilerEffectAuthority
         };
     }
 
-    private sealed class ReplayEventComparer : IEqualityComparer<CompilerEffectReplayEventArtifact>
+    private static bool ReplayEventsEqual(
+        CompilerEffectReplayEventArtifact? left,
+        CompilerEffectReplayEventArtifact? right)
     {
-        internal static readonly ReplayEventComparer Instance = new();
-
-        public bool Equals(
-            CompilerEffectReplayEventArtifact? left,
-            CompilerEffectReplayEventArtifact? right)
+        if (left == null || right == null)
         {
-            if (left == null || right == null)
-            {
-                return left == null && right == null;
-            }
-
-            return left.Ordinal == right.Ordinal &&
-                left.Kind == right.Kind &&
-                left.SyntaxTreeOrdinal == right.SyntaxTreeOrdinal &&
-                left.SyntaxTreeSha256 == right.SyntaxTreeSha256 &&
-                left.SyntaxTreeSnapshotSha256 == right.SyntaxTreeSnapshotSha256 &&
-                left.SyntaxTreeLineMapSha256 == right.SyntaxTreeLineMapSha256 &&
-                left.SyntaxStart == right.SyntaxStart &&
-                left.SyntaxLength == right.SyntaxLength &&
-                left.OperationIdentitySha256 == right.OperationIdentitySha256 &&
-                left.MemberIdentity == right.MemberIdentity &&
-                left.MemberDocumentationId == right.MemberDocumentationId &&
-                left.TypeIdentity == right.TypeIdentity &&
-                left.TypeDocumentationId == right.TypeDocumentationId &&
-                left.SpecWitnessIdentifier == right.SpecWitnessIdentifier &&
-                left.ScalarOperands.SequenceEqual(right.ScalarOperands) &&
-                left.ExactExceptionTypeHierarchy.SequenceEqual(
-                    right.ExactExceptionTypeHierarchy,
-                    StringComparer.Ordinal) &&
-                left.SourceTreeOrdinal == right.SourceTreeOrdinal &&
-                left.SourceTreePath == right.SourceTreePath &&
-                left.SourceTreeSha256 == right.SourceTreeSha256 &&
-                left.SourceLineMapSha256 == right.SourceLineMapSha256 &&
-                CompilerSourceLocationAuthority.LocationsEqual(
-                    left.Location,
-                    right.Location);
+            return left == null && right == null;
         }
 
-        public int GetHashCode(
-            CompilerEffectReplayEventArtifact value)
-        {
-            unchecked
-            {
-                var hash = 17;
-                hash = hash * 31 + value.Ordinal;
-                hash = hash * 31 + (int)value.Kind;
-                hash = hash * 31 + value.SyntaxTreeOrdinal;
-                hash = hash * 31 + StringComparer.Ordinal.GetHashCode(
-                    value.SyntaxTreeSha256 ?? string.Empty);
-                hash = hash * 31 + StringComparer.Ordinal.GetHashCode(
-                    value.SyntaxTreeSnapshotSha256 ?? string.Empty);
-                hash = hash * 31 + StringComparer.Ordinal.GetHashCode(
-                    value.SyntaxTreeLineMapSha256 ?? string.Empty);
-                hash = hash * 31 + value.SyntaxStart;
-                hash = hash * 31 + value.SyntaxLength;
-                hash = hash * 31 + StringComparer.Ordinal.GetHashCode(
-                    value.OperationIdentitySha256 ?? string.Empty);
-                hash = hash * 31 + StringComparer.Ordinal.GetHashCode(
-                    value.MemberIdentity ?? string.Empty);
-                hash = hash * 31 + StringComparer.Ordinal.GetHashCode(
-                    value.MemberDocumentationId ?? string.Empty);
-                hash = hash * 31 + StringComparer.Ordinal.GetHashCode(
-                    value.TypeIdentity ?? string.Empty);
-                hash = hash * 31 + StringComparer.Ordinal.GetHashCode(
-                    value.TypeDocumentationId ?? string.Empty);
-                hash = hash * 31 + StringComparer.Ordinal.GetHashCode(
-                    value.SpecWitnessIdentifier ?? string.Empty);
-                hash = hash * 31 + value.SourceTreeOrdinal;
-                hash = hash * 31 + StringComparer.Ordinal.GetHashCode(
-                    value.SourceTreePath ?? string.Empty);
-                hash = hash * 31 + StringComparer.Ordinal.GetHashCode(
-                    value.SourceTreeSha256 ?? string.Empty);
-                hash = hash * 31 + StringComparer.Ordinal.GetHashCode(
-                    value.SourceLineMapSha256 ?? string.Empty);
-                foreach (var operand in value.ScalarOperands ?? [])
-                {
-                    hash = hash * 31 + operand.GetHashCode();
-                }
-                foreach (var type in value.ExactExceptionTypeHierarchy ?? [])
-                {
-                    hash = hash * 31 + StringComparer.Ordinal.GetHashCode(type);
-                }
-                var location = value.Location;
-                hash = hash * 31 + StringComparer.Ordinal.GetHashCode(
-                    location?.Path ?? string.Empty);
-                hash = hash * 31 + (location?.Start ?? 0);
-                hash = hash * 31 + (location?.Length ?? 0);
-                hash = hash * 31 + (location?.Line ?? 0);
-                hash = hash * 31 + (location?.Column ?? 0);
-                return hash;
-            }
-        }
+        return left.Ordinal == right.Ordinal &&
+            left.Kind == right.Kind &&
+            left.SyntaxTreeOrdinal == right.SyntaxTreeOrdinal &&
+            left.SyntaxTreeSha256 == right.SyntaxTreeSha256 &&
+            left.SyntaxTreeSnapshotSha256 == right.SyntaxTreeSnapshotSha256 &&
+            left.SyntaxTreeLineMapSha256 == right.SyntaxTreeLineMapSha256 &&
+            left.SyntaxStart == right.SyntaxStart &&
+            left.SyntaxLength == right.SyntaxLength &&
+            left.OperationIdentitySha256 == right.OperationIdentitySha256 &&
+            left.MemberIdentity == right.MemberIdentity &&
+            left.MemberDocumentationId == right.MemberDocumentationId &&
+            left.TypeIdentity == right.TypeIdentity &&
+            left.TypeDocumentationId == right.TypeDocumentationId &&
+            left.SpecWitnessIdentifier == right.SpecWitnessIdentifier &&
+            left.ScalarOperands.SequenceEqual(right.ScalarOperands) &&
+            left.ExactExceptionTypeHierarchy.SequenceEqual(
+                right.ExactExceptionTypeHierarchy,
+                StringComparer.Ordinal) &&
+            left.SourceTreeOrdinal == right.SourceTreeOrdinal &&
+            left.SourceTreePath == right.SourceTreePath &&
+            left.SourceTreeSha256 == right.SourceTreeSha256 &&
+            left.SourceLineMapSha256 == right.SourceLineMapSha256 &&
+            CompilerSourceLocationAuthority.LocationsEqual(
+                left.Location,
+                right.Location);
     }
 }
