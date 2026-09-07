@@ -207,23 +207,16 @@ function Add-Properties {
         if ($setter -notin 'set', 'init', 'none') {
             throw "Property '$TypeName.$name' has invalid setter."
         }
-        $jsonMember = $property.PSObject.Properties['jsonName']
+        if ($null -ne $property.PSObject.Properties['jsonName']) {
+            throw "Property '$TypeName.$name' cannot define an explicit JSON name."
+        }
         if ($accessibility -eq 'public') {
-            if ($null -eq $jsonMember -or [string]::IsNullOrWhiteSpace(
-                    [string]$jsonMember.Value)) {
-                throw "Public property '$TypeName.$name' must define its JSON name."
-            }
-            $jsonName = [string]$jsonMember.Value
-            $expected = $name.Substring(0, 1).ToLowerInvariant() +
+            $jsonName = $name.Substring(0, 1).ToLowerInvariant() +
                 $name.Substring(1)
             if ($JsonNamingPolicy -ne 'camelCase' -or
-                $jsonName -ne $expected -or
                 -not $jsonNames.Add($jsonName)) {
                 throw "Property '$TypeName.$name' has an invalid JSON name."
             }
-        }
-        elseif ($null -ne $jsonMember) {
-            throw "Internal property '$TypeName.$name' cannot define a JSON name."
         }
         $default = Get-RequiredMember $property 'default' "property '$TypeName.$name'"
         $initializer = Get-InitializerSource `

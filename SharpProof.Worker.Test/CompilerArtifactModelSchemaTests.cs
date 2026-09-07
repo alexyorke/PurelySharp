@@ -562,7 +562,7 @@ public sealed class CompilerArtifactModelSchemaTests
         }
 
         if (specifications.Any(static specification =>
-                !specification.TryGetProperty("jsonName", out _)))
+                specification.GetProperty("accessibility").GetString() != "public"))
         {
             return;
         }
@@ -572,10 +572,14 @@ public sealed class CompilerArtifactModelSchemaTests
             instance,
             type,
             WorkerProtocolJson.Options));
-        SchemaModelTestHelpers.AssertJsonPropertyOrder(
-            wire,
-            specifications,
-            type.Name);
+        var expectedNames = specifications.Select(static specification =>
+        {
+            var name = specification.GetProperty("name").GetString()!;
+            return char.ToLowerInvariant(name[0]) + name[1..];
+        }).ToArray();
+        Assert.That(expectedNames, Is.Unique, type.Name);
+        Assert.That(wire.RootElement.EnumerateObject().Select(static property =>
+            property.Name), Is.EqualTo(expectedNames), type.Name);
         for (var index = 0; index < properties.Length; index++)
         {
             AssertDefault(

@@ -12,7 +12,6 @@
       "properties": [
         {
           "name": "SourceTreeOrdinal",
-          "jsonName": "sourceTreeOrdinal",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -23,7 +22,6 @@
         },
         {
           "name": "SourceTreePath",
-          "jsonName": "sourceTreePath",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -33,7 +31,6 @@
         },
         {
           "name": "SourceTreeSha256",
-          "jsonName": "sourceTreeSha256",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -43,7 +40,6 @@
         },
         {
           "name": "SourceLineMapSha256",
-          "jsonName": "sourceLineMapSha256",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -58,7 +54,6 @@
       "properties": [
         {
           "name": "SpecificationPackIds",
-          "jsonName": "specificationPackIds",
           "type": "string[]",
           "accessibility": "public",
           "set": "set",
@@ -68,7 +63,6 @@
         },
         {
           "name": "SpecificationPackCatalogVersion",
-          "jsonName": "specificationPackCatalogVersion",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -79,7 +73,6 @@
         },
         {
           "name": "SpecificationPackCatalogSha256",
-          "jsonName": "specificationPackCatalogSha256",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -95,7 +88,6 @@
       "properties": [
         {
           "name": "ClaimId",
-          "jsonName": "claimId",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -105,7 +97,6 @@
         },
         {
           "name": "ContractKind",
-          "jsonName": "contractKind",
           "type": "WorkerEffectContractKind",
           "accessibility": "public",
           "set": "set",
@@ -115,7 +106,6 @@
         },
         {
           "name": "Outcome",
-          "jsonName": "outcome",
           "type": "WorkerClaimOutcome",
           "accessibility": "public",
           "set": "set",
@@ -125,7 +115,6 @@
         },
         {
           "name": "Reason",
-          "jsonName": "reason",
           "type": "WorkerClaimReason",
           "accessibility": "public",
           "set": "set",
@@ -135,7 +124,6 @@
         },
         {
           "name": "Certainty",
-          "jsonName": "certainty",
           "type": "WorkerEffectEvidenceCertainty",
           "accessibility": "public",
           "set": "set",
@@ -145,7 +133,6 @@
         },
         {
           "name": "Constraint",
-          "jsonName": "constraint",
           "type": "CompilerEffectConstraintArtifact",
           "accessibility": "public",
           "set": "set",
@@ -155,7 +142,6 @@
         },
         {
           "name": "Witness",
-          "jsonName": "witness",
           "type": "WorkerEffectViolationWitness?",
           "accessibility": "public",
           "set": "set",
@@ -165,7 +151,6 @@
         },
         {
           "name": "Replay",
-          "jsonName": "replay",
           "type": "CompilerEffectReplayArtifact?",
           "accessibility": "public",
           "set": "set",
@@ -175,7 +160,6 @@
         },
         {
           "name": "Evidence",
-          "jsonName": "evidence",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -190,7 +174,6 @@
       "properties": [
         {
           "name": "Path",
-          "jsonName": "path",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -200,7 +183,6 @@
         },
         {
           "name": "Sha256",
-          "jsonName": "sha256",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -215,7 +197,6 @@
       "properties": [
         {
           "name": "EvidenceSha256",
-          "jsonName": "evidenceSha256",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -225,7 +206,6 @@
         },
         {
           "name": "EvidenceIdentity",
-          "jsonName": "evidenceIdentity",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -738,7 +718,6 @@
       "properties": [
         {
           "name": "HasProgram",
-          "jsonName": "hasProgram",
           "type": "bool",
           "accessibility": "public",
           "set": "set",
@@ -748,7 +727,6 @@
         },
         {
           "name": "Types",
-          "jsonName": "types",
           "type": "PortableIrType[]",
           "accessibility": "public",
           "set": "set",
@@ -758,7 +736,6 @@
         },
         {
           "name": "Identities",
-          "jsonName": "identities",
           "type": "int[]",
           "accessibility": "public",
           "set": "set",
@@ -768,7 +745,6 @@
         },
         {
           "name": "Variables",
-          "jsonName": "variables",
           "type": "PortableIrVariable[]",
           "accessibility": "public",
           "set": "set",
@@ -778,7 +754,6 @@
         },
         {
           "name": "Members",
-          "jsonName": "members",
           "type": "PortableIrMember[]",
           "accessibility": "public",
           "set": "set",
@@ -788,7 +763,6 @@
         },
         {
           "name": "Operations",
-          "jsonName": "operations",
           "type": "PortableIrOperation[]",
           "accessibility": "public",
           "set": "set",
@@ -798,7 +772,6 @@
         },
         {
           "name": "Terms",
-          "jsonName": "terms",
           "type": "PortableIrTerm[]",
           "accessibility": "public",
           "set": "set",
@@ -808,7 +781,6 @@
         },
         {
           "name": "Blocks",
-          "jsonName": "blocks",
           "type": "PortableIrBlock[]",
           "accessibility": "public",
           "set": "set",
@@ -818,7 +790,6 @@
         },
         {
           "name": "Entry",
-          "jsonName": "entry",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -829,7 +800,6 @@
         },
         {
           "name": "Roots",
-          "jsonName": "roots",
           "type": "int[]",
           "accessibility": "public",
           "set": "set",
@@ -862,7 +832,6 @@
       "properties": [
         {
           "name": "Kind",
-          "jsonName": "kind",
           "type": "IrTypeKind",
           "accessibility": "public",
           "set": "set",
@@ -873,7 +842,6 @@
         },
         {
           "name": "Name",
-          "jsonName": "name",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -884,7 +852,6 @@
         },
         {
           "name": "Element",
-          "jsonName": "element",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -913,7 +880,6 @@
       "properties": [
         {
           "name": "Name",
-          "jsonName": "name",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -924,7 +890,6 @@
         },
         {
           "name": "Type",
-          "jsonName": "type",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -973,7 +938,6 @@
       "properties": [
         {
           "name": "Identity",
-          "jsonName": "identity",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -984,7 +948,6 @@
         },
         {
           "name": "DeclaringType",
-          "jsonName": "declaringType",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -995,7 +958,6 @@
         },
         {
           "name": "Name",
-          "jsonName": "name",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -1006,7 +968,6 @@
         },
         {
           "name": "ReturnType",
-          "jsonName": "returnType",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -1017,7 +978,6 @@
         },
         {
           "name": "IsStatic",
-          "jsonName": "isStatic",
           "type": "bool",
           "accessibility": "public",
           "set": "set",
@@ -1028,7 +988,6 @@
         },
         {
           "name": "ParameterTypes",
-          "jsonName": "parameterTypes",
           "type": "int[]",
           "accessibility": "public",
           "set": "set",
@@ -1039,7 +998,6 @@
         },
         {
           "name": "DocumentationCommentId",
-          "jsonName": "documentationCommentId",
           "type": "string?",
           "accessibility": "public",
           "set": "set",
@@ -1062,7 +1020,6 @@
       "properties": [
         {
           "name": "Description",
-          "jsonName": "description",
           "type": "string?",
           "accessibility": "public",
           "set": "set",
@@ -1126,7 +1083,6 @@
       "properties": [
         {
           "name": "Kind",
-          "jsonName": "kind",
           "type": "IrTermKind",
           "accessibility": "public",
           "set": "set",
@@ -1137,7 +1093,6 @@
         },
         {
           "name": "Type",
-          "jsonName": "type",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -1148,7 +1103,6 @@
         },
         {
           "name": "A",
-          "jsonName": "a",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -1159,7 +1113,6 @@
         },
         {
           "name": "B",
-          "jsonName": "b",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -1170,7 +1123,6 @@
         },
         {
           "name": "C",
-          "jsonName": "c",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -1181,7 +1133,6 @@
         },
         {
           "name": "D",
-          "jsonName": "d",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -1192,7 +1143,6 @@
         },
         {
           "name": "Number",
-          "jsonName": "number",
           "type": "long",
           "accessibility": "public",
           "set": "set",
@@ -1203,7 +1153,6 @@
         },
         {
           "name": "Text",
-          "jsonName": "text",
           "type": "string?",
           "accessibility": "public",
           "set": "set",
@@ -1214,7 +1163,6 @@
         },
         {
           "name": "Items",
-          "jsonName": "items",
           "type": "int[]",
           "accessibility": "public",
           "set": "set",
@@ -1258,7 +1206,6 @@
       "properties": [
         {
           "name": "Kind",
-          "jsonName": "kind",
           "type": "IrLocationKind",
           "accessibility": "public",
           "set": "set",
@@ -1269,7 +1216,6 @@
         },
         {
           "name": "Type",
-          "jsonName": "type",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -1280,7 +1226,6 @@
         },
         {
           "name": "A",
-          "jsonName": "a",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -1291,7 +1236,6 @@
         },
         {
           "name": "B",
-          "jsonName": "b",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -1302,7 +1246,6 @@
         },
         {
           "name": "Items",
-          "jsonName": "items",
           "type": "int[]",
           "accessibility": "public",
           "set": "set",
@@ -1356,7 +1299,6 @@
       "properties": [
         {
           "name": "Kind",
-          "jsonName": "kind",
           "type": "IrInstructionKind",
           "accessibility": "public",
           "set": "set",
@@ -1367,7 +1309,6 @@
         },
         {
           "name": "Operation",
-          "jsonName": "operation",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -1378,7 +1319,6 @@
         },
         {
           "name": "A",
-          "jsonName": "a",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -1389,7 +1329,6 @@
         },
         {
           "name": "B",
-          "jsonName": "b",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -1400,7 +1339,6 @@
         },
         {
           "name": "C",
-          "jsonName": "c",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -1411,7 +1349,6 @@
         },
         {
           "name": "Items",
-          "jsonName": "items",
           "type": "int[]",
           "accessibility": "public",
           "set": "set",
@@ -1422,7 +1359,6 @@
         },
         {
           "name": "Location",
-          "jsonName": "location",
           "type": "PortableIrLocation?",
           "accessibility": "public",
           "set": "set",
@@ -1451,7 +1387,6 @@
       "properties": [
         {
           "name": "Name",
-          "jsonName": "name",
           "type": "string?",
           "accessibility": "public",
           "set": "set",
@@ -1462,7 +1397,6 @@
         },
         {
           "name": "Instructions",
-          "jsonName": "instructions",
           "type": "PortableIrInstruction[]",
           "accessibility": "public",
           "set": "set",
@@ -1628,7 +1562,6 @@
       "properties": [
         {
           "name": "OwnerKind",
-          "jsonName": "ownerKind",
           "type": "CompilerSourceLocationOwnerKind",
           "accessibility": "public",
           "set": "set",
@@ -1638,7 +1571,6 @@
         },
         {
           "name": "OwnerId",
-          "jsonName": "ownerId",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -1648,7 +1580,6 @@
         },
         {
           "name": "Location",
-          "jsonName": "location",
           "type": "WorkerSourceLocation",
           "accessibility": "public",
           "set": "set",
@@ -1665,7 +1596,6 @@
       "properties": [
         {
           "name": "CallableId",
-          "jsonName": "callableId",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -1675,7 +1605,6 @@
         },
         {
           "name": "FailureReason",
-          "jsonName": "failureReason",
           "type": "WorkerClaimReason",
           "accessibility": "public",
           "set": "set",
@@ -1685,7 +1614,6 @@
         },
         {
           "name": "Graph",
-          "jsonName": "graph",
           "type": "PortableIrGraph?",
           "accessibility": "public",
           "set": "set",
@@ -1695,7 +1623,6 @@
         },
         {
           "name": "Clauses",
-          "jsonName": "clauses",
           "type": "CompilerClauseArtifact[]",
           "accessibility": "public",
           "set": "set",
@@ -1705,7 +1632,6 @@
         },
         {
           "name": "Variables",
-          "jsonName": "variables",
           "type": "CompilerVariableArtifact[]",
           "accessibility": "public",
           "set": "set",
@@ -1715,7 +1641,6 @@
         },
         {
           "name": "Body",
-          "jsonName": "body",
           "type": "CompilerBodyArtifact?",
           "accessibility": "public",
           "set": "set",
@@ -1725,7 +1650,6 @@
         },
         {
           "name": "EffectClaims",
-          "jsonName": "effectClaims",
           "type": "CompilerEffectClaimArtifact[]",
           "accessibility": "public",
           "set": "set",
@@ -1735,7 +1659,6 @@
         },
         {
           "name": "EffectAuthorities",
-          "jsonName": "effectAuthorities",
           "type": "CompilerEffectAuthorityArtifact[]",
           "accessibility": "public",
           "set": "set",
@@ -1752,7 +1675,6 @@
         { "group": "EffectClaim" },
         {
           "name": "EvidenceSha256",
-          "jsonName": "evidenceSha256",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -1769,7 +1691,6 @@
         { "group": "EffectClaim" },
         {
           "name": "Source",
-          "jsonName": "source",
           "type": "WorkerSourceLocation",
           "accessibility": "public",
           "set": "set",
@@ -1786,7 +1707,6 @@
       "properties": [
         {
           "name": "AllowedEffects",
-          "jsonName": "allowedEffects",
           "type": "WorkerEffectSet",
           "accessibility": "public",
           "set": "set",
@@ -1796,7 +1716,6 @@
         },
         {
           "name": "AllowedCapabilities",
-          "jsonName": "allowedCapabilities",
           "type": "WorkerEffectCapabilitySet",
           "accessibility": "public",
           "set": "set",
@@ -1806,7 +1725,6 @@
         },
         {
           "name": "AllowedExceptionTypes",
-          "jsonName": "allowedExceptionTypes",
           "type": "string[]",
           "accessibility": "public",
           "set": "set",
@@ -1874,7 +1792,6 @@
       "properties": [
         {
           "name": "PathKind",
-          "jsonName": "pathKind",
           "type": "CompilerEffectReplayPathKind",
           "accessibility": "public",
           "set": "set",
@@ -1884,7 +1801,6 @@
         },
         {
           "name": "ConstraintSha256",
-          "jsonName": "constraintSha256",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -1894,7 +1810,6 @@
         },
         {
           "name": "Events",
-          "jsonName": "events",
           "type": "CompilerEffectReplayEventArtifact[]",
           "accessibility": "public",
           "set": "set",
@@ -1910,7 +1825,6 @@
       "properties": [
         {
           "name": "Ordinal",
-          "jsonName": "ordinal",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -1921,7 +1835,6 @@
         },
         {
           "name": "Kind",
-          "jsonName": "kind",
           "type": "CompilerEffectReplayEventKind",
           "accessibility": "public",
           "set": "set",
@@ -1931,7 +1844,6 @@
         },
         {
           "name": "SyntaxTreeOrdinal",
-          "jsonName": "syntaxTreeOrdinal",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -1942,7 +1854,6 @@
         },
         {
           "name": "SyntaxTreeSha256",
-          "jsonName": "syntaxTreeSha256",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -1952,7 +1863,6 @@
         },
         {
           "name": "SyntaxTreeSnapshotSha256",
-          "jsonName": "syntaxTreeSnapshotSha256",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -1962,7 +1872,6 @@
         },
         {
           "name": "SyntaxTreeLineMapSha256",
-          "jsonName": "syntaxTreeLineMapSha256",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -1972,7 +1881,6 @@
         },
         {
           "name": "SyntaxStart",
-          "jsonName": "syntaxStart",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -1983,7 +1891,6 @@
         },
         {
           "name": "SyntaxLength",
-          "jsonName": "syntaxLength",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -1994,7 +1901,6 @@
         },
         {
           "name": "OperationIdentitySha256",
-          "jsonName": "operationIdentitySha256",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -2004,7 +1910,6 @@
         },
         {
           "name": "MemberIdentity",
-          "jsonName": "memberIdentity",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -2014,7 +1919,6 @@
         },
         {
           "name": "MemberDocumentationId",
-          "jsonName": "memberDocumentationId",
           "type": "string?",
           "accessibility": "public",
           "set": "set",
@@ -2024,7 +1928,6 @@
         },
         {
           "name": "TypeIdentity",
-          "jsonName": "typeIdentity",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -2034,7 +1937,6 @@
         },
         {
           "name": "TypeDocumentationId",
-          "jsonName": "typeDocumentationId",
           "type": "string?",
           "accessibility": "public",
           "set": "set",
@@ -2044,7 +1946,6 @@
         },
         {
           "name": "SpecWitnessIdentifier",
-          "jsonName": "specWitnessIdentifier",
           "type": "string?",
           "accessibility": "public",
           "set": "set",
@@ -2054,7 +1955,6 @@
         },
         {
           "name": "ScalarOperands",
-          "jsonName": "scalarOperands",
           "type": "long[]",
           "accessibility": "public",
           "set": "set",
@@ -2064,7 +1964,6 @@
         },
         {
           "name": "ExactExceptionTypeHierarchy",
-          "jsonName": "exactExceptionTypeHierarchy",
           "type": "string[]",
           "accessibility": "public",
           "set": "set",
@@ -2074,7 +1973,6 @@
         },
         {
           "name": "Location",
-          "jsonName": "location",
           "type": "WorkerSourceLocation",
           "accessibility": "public",
           "set": "set",
@@ -2091,7 +1989,6 @@
       "properties": [
         {
           "name": "Kind",
-          "jsonName": "kind",
           "type": "CompilerContractKind",
           "accessibility": "public",
           "set": "set",
@@ -2101,7 +1998,6 @@
         },
         {
           "name": "Evidence",
-          "jsonName": "evidence",
           "type": "CompilerContractEvidence",
           "accessibility": "public",
           "set": "set",
@@ -2111,7 +2007,6 @@
         },
         {
           "name": "Root",
-          "jsonName": "root",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -2122,7 +2017,6 @@
         },
         {
           "name": "ClaimId",
-          "jsonName": "claimId",
           "type": "string?",
           "accessibility": "public",
           "set": "set",
@@ -2132,7 +2026,6 @@
         },
         {
           "name": "AssumptionId",
-          "jsonName": "assumptionId",
           "type": "string?",
           "accessibility": "public",
           "set": "set",
@@ -2142,7 +2035,6 @@
         },
         {
           "name": "PredicateSha256",
-          "jsonName": "predicateSha256",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -2158,7 +2050,6 @@
       "properties": [
         {
           "name": "Role",
-          "jsonName": "role",
           "type": "CompilerVariableRole",
           "accessibility": "public",
           "set": "set",
@@ -2168,7 +2059,6 @@
         },
         {
           "name": "Ordinal",
-          "jsonName": "ordinal",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -2178,7 +2068,6 @@
         },
         {
           "name": "Variable",
-          "jsonName": "variable",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -2189,7 +2078,6 @@
         },
         {
           "name": "CurrentStateVariable",
-          "jsonName": "currentStateVariable",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -2200,7 +2088,6 @@
         },
         {
           "name": "SourceOrdinal",
-          "jsonName": "sourceOrdinal",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -2211,7 +2098,6 @@
         },
         {
           "name": "Minimum",
-          "jsonName": "minimum",
           "type": "long?",
           "accessibility": "public",
           "set": "set",
@@ -2221,7 +2107,6 @@
         },
         {
           "name": "Maximum",
-          "jsonName": "maximum",
           "type": "long?",
           "accessibility": "public",
           "set": "set",
@@ -2231,7 +2116,6 @@
         },
         {
           "name": "ScalarDomain",
-          "jsonName": "scalarDomain",
           "type": "CompilerScalarDomain",
           "accessibility": "public",
           "set": "set",
@@ -2241,7 +2125,6 @@
         },
         {
           "name": "ModelLabel",
-          "jsonName": "modelLabel",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -2257,7 +2140,6 @@
       "properties": [
         {
           "name": "Kind",
-          "jsonName": "kind",
           "type": "CompilerPreparedBodyKind",
           "accessibility": "public",
           "set": "set",
@@ -2267,7 +2149,6 @@
         },
         {
           "name": "ParameterBindings",
-          "jsonName": "parameterBindings",
           "type": "CompilerVariableMappingArtifact[]",
           "accessibility": "public",
           "set": "set",
@@ -2277,7 +2158,6 @@
         },
         {
           "name": "Calls",
-          "jsonName": "calls",
           "type": "CompilerCallIdentityArtifact[]",
           "accessibility": "public",
           "set": "set",
@@ -2287,7 +2167,6 @@
         },
         {
           "name": "SpecCalls",
-          "jsonName": "specCalls",
           "type": "CompilerSpecCallArtifact[]",
           "accessibility": "public",
           "set": "set",
@@ -2297,7 +2176,6 @@
         },
         {
           "name": "SummaryCalls",
-          "jsonName": "summaryCalls",
           "type": "CompilerSummaryCallArtifact[]",
           "accessibility": "public",
           "set": "set",
@@ -2313,7 +2191,6 @@
       "properties": [
         {
           "name": "Source",
-          "jsonName": "source",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -2324,7 +2201,6 @@
         },
         {
           "name": "SourceOrdinal",
-          "jsonName": "sourceOrdinal",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -2335,7 +2211,6 @@
         },
         {
           "name": "SourceType",
-          "jsonName": "sourceType",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -2346,7 +2221,6 @@
         },
         {
           "name": "SourceName",
-          "jsonName": "sourceName",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -2356,7 +2230,6 @@
         },
         {
           "name": "Target",
-          "jsonName": "target",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -2373,7 +2246,6 @@
       "properties": [
         {
           "name": "Instruction",
-          "jsonName": "instruction",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -2384,7 +2256,6 @@
         },
         {
           "name": "Identity",
-          "jsonName": "identity",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -2400,7 +2271,6 @@
       "properties": [
         {
           "name": "Instruction",
-          "jsonName": "instruction",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -2411,7 +2281,6 @@
         },
         {
           "name": "WitnessIdentifier",
-          "jsonName": "witnessIdentifier",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -2421,7 +2290,6 @@
         },
         {
           "name": "ConsumesMemoryHavoc",
-          "jsonName": "consumesMemoryHavoc",
           "type": "bool",
           "accessibility": "public",
           "set": "set",
@@ -2437,7 +2305,6 @@
       "properties": [
         {
           "name": "Origin",
-          "jsonName": "origin",
           "type": "CompilerSummaryOrigin",
           "accessibility": "public",
           "set": "set",
@@ -2447,7 +2314,6 @@
         },
         {
           "name": "CallIdentity",
-          "jsonName": "callIdentity",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -2464,7 +2330,6 @@
       "properties": [
         {
           "name": "Origin",
-          "jsonName": "origin",
           "type": "CompilerSummaryOrigin",
           "accessibility": "public",
           "set": "set",
@@ -2474,7 +2339,6 @@
         },
         {
           "name": "CallIdentity",
-          "jsonName": "callIdentity",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -2485,7 +2349,6 @@
         { "group": "SummaryEvidenceIdentity" },
         {
           "name": "SourcePath",
-          "jsonName": "sourcePath",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -2495,7 +2358,6 @@
         },
         {
           "name": "SourceTreeSha256",
-          "jsonName": "sourceTreeSha256",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -2505,7 +2367,6 @@
         },
         {
           "name": "SourceStart",
-          "jsonName": "sourceStart",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -2516,7 +2377,6 @@
         },
         {
           "name": "SourceLength",
-          "jsonName": "sourceLength",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -2527,7 +2387,6 @@
         },
         {
           "name": "OwningModuleName",
-          "jsonName": "owningModuleName",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -2537,7 +2396,6 @@
         },
         {
           "name": "OwningModuleMvid",
-          "jsonName": "owningModuleMvid",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -2547,7 +2405,6 @@
         },
         {
           "name": "OwningModuleSha256",
-          "jsonName": "owningModuleSha256",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -2557,7 +2414,6 @@
         },
         {
           "name": "MethodMetadataToken",
-          "jsonName": "methodMetadataToken",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -2574,7 +2430,6 @@
       "properties": [
         {
           "name": "Instruction",
-          "jsonName": "instruction",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -2585,7 +2440,6 @@
         },
         {
           "name": "Identity",
-          "jsonName": "identity",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -2595,7 +2449,6 @@
         },
         {
           "name": "Origin",
-          "jsonName": "origin",
           "type": "CompilerSummaryOrigin",
           "accessibility": "public",
           "set": "set",
@@ -2605,7 +2458,6 @@
         },
         {
           "name": "Result",
-          "jsonName": "result",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -2616,7 +2468,6 @@
         },
         {
           "name": "ExistentialVariables",
-          "jsonName": "existentialVariables",
           "type": "int[]",
           "accessibility": "public",
           "set": "set",
@@ -2626,7 +2477,6 @@
         },
         {
           "name": "NormalRelationRoot",
-          "jsonName": "normalRelationRoot",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -2638,7 +2488,6 @@
         { "group": "SummaryEvidenceIdentity" },
         {
           "name": "DependencyEvidence",
-          "jsonName": "dependencyEvidence",
           "type": "CompilerSummaryEvidenceArtifact[]",
           "accessibility": "public",
           "set": "set",
@@ -2648,7 +2497,6 @@
         },
         {
           "name": "InstantiationSha256",
-          "jsonName": "instantiationSha256",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -2664,7 +2512,6 @@
       "properties": [
         {
           "name": "ProjectDirectory",
-          "jsonName": "projectDirectory",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -2674,7 +2521,6 @@
         },
         {
           "name": "AssemblyName",
-          "jsonName": "assemblyName",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -2684,7 +2530,6 @@
         },
         {
           "name": "AssemblyIdentity",
-          "jsonName": "assemblyIdentity",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -2694,7 +2539,6 @@
         },
         {
           "name": "TargetFramework",
-          "jsonName": "targetFramework",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -2704,7 +2548,6 @@
         },
         {
           "name": "CompilerVersion",
-          "jsonName": "compilerVersion",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -2714,7 +2557,6 @@
         },
         {
           "name": "CompilerMvid",
-          "jsonName": "compilerMvid",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -2724,7 +2566,6 @@
         },
         {
           "name": "CSharpCompilerVersion",
-          "jsonName": "cSharpCompilerVersion",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -2734,7 +2575,6 @@
         },
         {
           "name": "CSharpCompilerMvid",
-          "jsonName": "cSharpCompilerMvid",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -2745,7 +2585,6 @@
         { "group": "SpecificationPack" },
         {
           "name": "Options",
-          "jsonName": "options",
           "type": "CompilerCompilationOptionsSnapshot",
           "accessibility": "public",
           "set": "set",
@@ -2755,7 +2594,6 @@
         },
         {
           "name": "SyntaxTrees",
-          "jsonName": "syntaxTrees",
           "type": "CompilerSyntaxTreeSnapshot[]",
           "accessibility": "public",
           "set": "set",
@@ -2765,7 +2603,6 @@
         },
         {
           "name": "References",
-          "jsonName": "references",
           "type": "CompilerReferenceSnapshot[]",
           "accessibility": "public",
           "set": "set",
@@ -2775,7 +2612,6 @@
         },
         {
           "name": "AdditionalFiles",
-          "jsonName": "additionalFiles",
           "type": "CompilerAdditionalFileSnapshot[]",
           "accessibility": "public",
           "set": "set",
@@ -2785,7 +2621,6 @@
         },
         {
           "name": "SummaryEvidence",
-          "jsonName": "summaryEvidence",
           "type": "CompilerSummaryEvidenceSnapshot[]",
           "accessibility": "public",
           "set": "set",
@@ -2880,7 +2715,6 @@
       "properties": [
         {
           "name": "OutputKind",
-          "jsonName": "outputKind",
           "type": "CompilerOutputKind",
           "accessibility": "public",
           "set": "set",
@@ -2890,7 +2724,6 @@
         },
         {
           "name": "MainTypeName",
-          "jsonName": "mainTypeName",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -2900,7 +2733,6 @@
         },
         {
           "name": "OptimizationLevel",
-          "jsonName": "optimizationLevel",
           "type": "CompilerOptimizationLevel",
           "accessibility": "public",
           "set": "set",
@@ -2910,7 +2742,6 @@
         },
         {
           "name": "Platform",
-          "jsonName": "platform",
           "type": "CompilerPlatform",
           "accessibility": "public",
           "set": "set",
@@ -2920,7 +2751,6 @@
         },
         {
           "name": "NullableContext",
-          "jsonName": "nullableContext",
           "type": "CompilerNullableContext",
           "accessibility": "public",
           "set": "set",
@@ -2930,7 +2760,6 @@
         },
         {
           "name": "MetadataImportOptions",
-          "jsonName": "metadataImportOptions",
           "type": "CompilerMetadataImportOptions",
           "accessibility": "public",
           "set": "set",
@@ -2940,7 +2769,6 @@
         },
         {
           "name": "WarningLevel",
-          "jsonName": "warningLevel",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -2950,7 +2778,6 @@
         },
         {
           "name": "GeneralDiagnosticOption",
-          "jsonName": "generalDiagnosticOption",
           "type": "CompilerReportDiagnostic",
           "accessibility": "public",
           "set": "set",
@@ -2960,7 +2787,6 @@
         },
         {
           "name": "SpecificDiagnosticOptions",
-          "jsonName": "specificDiagnosticOptions",
           "type": "CompilerDiagnosticOptionSnapshot[]",
           "accessibility": "public",
           "set": "set",
@@ -2970,7 +2796,6 @@
         },
         {
           "name": "ReportSuppressedDiagnostics",
-          "jsonName": "reportSuppressedDiagnostics",
           "type": "bool",
           "accessibility": "public",
           "set": "set",
@@ -2980,7 +2805,6 @@
         },
         {
           "name": "CheckOverflow",
-          "jsonName": "checkOverflow",
           "type": "bool",
           "accessibility": "public",
           "set": "set",
@@ -2990,7 +2814,6 @@
         },
         {
           "name": "AllowUnsafe",
-          "jsonName": "allowUnsafe",
           "type": "bool",
           "accessibility": "public",
           "set": "set",
@@ -3000,7 +2823,6 @@
         },
         {
           "name": "Deterministic",
-          "jsonName": "deterministic",
           "type": "bool",
           "accessibility": "public",
           "set": "set",
@@ -3010,7 +2832,6 @@
         },
         {
           "name": "ReferencesSupersedeLowerVersions",
-          "jsonName": "referencesSupersedeLowerVersions",
           "type": "bool",
           "accessibility": "public",
           "set": "set",
@@ -3020,7 +2841,6 @@
         },
         {
           "name": "AssemblyIdentityComparer",
-          "jsonName": "assemblyIdentityComparer",
           "type": "CompilerAssemblyIdentityComparer",
           "accessibility": "public",
           "set": "set",
@@ -3030,7 +2850,6 @@
         },
         {
           "name": "Usings",
-          "jsonName": "usings",
           "type": "string[]",
           "accessibility": "public",
           "set": "set",
@@ -3040,7 +2859,6 @@
         },
         {
           "name": "ResolverPolicy",
-          "jsonName": "resolverPolicy",
           "type": "CompilerResolverPolicy",
           "accessibility": "public",
           "set": "set",
@@ -3056,7 +2874,6 @@
       "properties": [
         {
           "name": "Id",
-          "jsonName": "id",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -3066,7 +2883,6 @@
         },
         {
           "name": "ReportDiagnostic",
-          "jsonName": "reportDiagnostic",
           "type": "CompilerReportDiagnostic",
           "accessibility": "public",
           "set": "set",
@@ -3082,7 +2898,6 @@
       "properties": [
         {
           "name": "SourceStart",
-          "jsonName": "sourceStart",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -3092,7 +2907,6 @@
         },
         {
           "name": "SourceLength",
-          "jsonName": "sourceLength",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -3102,7 +2916,6 @@
         },
         {
           "name": "MappedPath",
-          "jsonName": "mappedPath",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -3112,7 +2925,6 @@
         },
         {
           "name": "MappedLine",
-          "jsonName": "mappedLine",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -3122,7 +2934,6 @@
         },
         {
           "name": "MappedColumn",
-          "jsonName": "mappedColumn",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -3132,7 +2943,6 @@
         },
         {
           "name": "CharacterOffset",
-          "jsonName": "characterOffset",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -3149,7 +2959,6 @@
         { "group": "FileIdentity" },
         {
           "name": "Encoding",
-          "jsonName": "encoding",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -3159,7 +2968,6 @@
         },
         {
           "name": "ChecksumAlgorithm",
-          "jsonName": "checksumAlgorithm",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -3169,7 +2977,6 @@
         },
         {
           "name": "RoslynChecksum",
-          "jsonName": "roslynChecksum",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -3179,7 +2986,6 @@
         },
         {
           "name": "LineMapSha256",
-          "jsonName": "lineMapSha256",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -3189,7 +2995,6 @@
         },
         {
           "name": "TextLength",
-          "jsonName": "textLength",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -3199,7 +3004,6 @@
         },
         {
           "name": "LineMap",
-          "jsonName": "lineMap",
           "type": "CompilerSourceLineMapEntry[]",
           "accessibility": "public",
           "set": "set",
@@ -3209,7 +3013,6 @@
         },
         {
           "name": "LanguageVersion",
-          "jsonName": "languageVersion",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -3219,7 +3022,6 @@
         },
         {
           "name": "DocumentationMode",
-          "jsonName": "documentationMode",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -3229,7 +3031,6 @@
         },
         {
           "name": "Kind",
-          "jsonName": "kind",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -3239,7 +3040,6 @@
         },
         {
           "name": "PreprocessorSymbols",
-          "jsonName": "preprocessorSymbols",
           "type": "string[]",
           "accessibility": "public",
           "set": "set",
@@ -3249,7 +3049,6 @@
         },
         {
           "name": "EffectivePreprocessorSymbols",
-          "jsonName": "effectivePreprocessorSymbols",
           "type": "string[]",
           "accessibility": "public",
           "set": "set",
@@ -3259,7 +3058,6 @@
         },
         {
           "name": "Features",
-          "jsonName": "features",
           "type": "CompilerFeatureSnapshot[]",
           "accessibility": "public",
           "set": "set",
@@ -3275,7 +3073,6 @@
       "properties": [
         {
           "name": "Kind",
-          "jsonName": "kind",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -3285,7 +3082,6 @@
         },
         {
           "name": "EmbedInteropTypes",
-          "jsonName": "embedInteropTypes",
           "type": "bool",
           "accessibility": "public",
           "set": "set",
@@ -3295,7 +3091,6 @@
         },
         {
           "name": "HasRecursiveAliases",
-          "jsonName": "hasRecursiveAliases",
           "type": "bool",
           "accessibility": "public",
           "set": "set",
@@ -3305,7 +3100,6 @@
         },
         {
           "name": "Aliases",
-          "jsonName": "aliases",
           "type": "string[]",
           "accessibility": "public",
           "set": "set",
@@ -3315,7 +3109,6 @@
         },
         {
           "name": "Identity",
-          "jsonName": "identity",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -3325,7 +3118,6 @@
         },
         {
           "name": "Modules",
-          "jsonName": "modules",
           "type": "CompilerReferenceModuleSnapshot[]",
           "accessibility": "public",
           "set": "set",
@@ -3341,7 +3133,6 @@
       "properties": [
         {
           "name": "Name",
-          "jsonName": "name",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -3351,7 +3142,6 @@
         },
         {
           "name": "Mvid",
-          "jsonName": "mvid",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -3362,7 +3152,6 @@
         { "group": "FileIdentity" },
         {
           "name": "SizeBytes",
-          "jsonName": "sizeBytes",
           "type": "long",
           "accessibility": "public",
           "set": "set",
@@ -3385,7 +3174,6 @@
       "properties": [
         {
           "name": "Key",
-          "jsonName": "key",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -3395,7 +3183,6 @@
         },
         {
           "name": "Value",
-          "jsonName": "value",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -3411,7 +3198,6 @@
       "properties": [
         {
           "name": "Code",
-          "jsonName": "code",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -3421,7 +3207,6 @@
         },
         {
           "name": "Message",
-          "jsonName": "message",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -3431,7 +3216,6 @@
         },
         {
           "name": "IsSource",
-          "jsonName": "isSource",
           "type": "bool",
           "accessibility": "public",
           "set": "set",
@@ -3441,7 +3225,6 @@
         },
         {
           "name": "Location",
-          "jsonName": "location",
           "type": "WorkerSourceLocation",
           "accessibility": "public",
           "set": "set",
@@ -3458,7 +3241,6 @@
       "properties": [
         {
           "name": "Schema",
-          "jsonName": "schema",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -3469,7 +3251,6 @@
         },
         {
           "name": "SchemaVersion",
-          "jsonName": "schemaVersion",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -3480,7 +3261,6 @@
         },
         {
           "name": "ProtocolVersion",
-          "jsonName": "protocolVersion",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -3491,7 +3271,6 @@
         },
         {
           "name": "RelationalSummarySchemaVersion",
-          "jsonName": "relationalSummarySchemaVersion",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -3502,7 +3281,6 @@
         },
         {
           "name": "SpecificationPackSchemaVersion",
-          "jsonName": "specificationPackSchemaVersion",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -3514,7 +3292,6 @@
         { "group": "SpecificationPack" },
         {
           "name": "Features",
-          "jsonName": "features",
           "type": "WorkerFeatureSet",
           "accessibility": "public",
           "set": "set",
@@ -3524,7 +3301,6 @@
         },
         {
           "name": "FeatureScopeSha256",
-          "jsonName": "featureScopeSha256",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -3534,7 +3310,6 @@
         },
         {
           "name": "CompilationSha256",
-          "jsonName": "compilationSha256",
           "type": "string",
           "accessibility": "public",
           "set": "set",
@@ -3544,7 +3319,6 @@
         },
         {
           "name": "Compilation",
-          "jsonName": "compilation",
           "type": "CompilerCompilationSnapshot",
           "accessibility": "public",
           "set": "set",
@@ -3554,7 +3328,6 @@
         },
         {
           "name": "Manifest",
-          "jsonName": "manifest",
           "type": "WorkerClaimManifest",
           "accessibility": "public",
           "set": "set",
@@ -3564,7 +3337,6 @@
         },
         {
           "name": "MaximumExpressionDepth",
-          "jsonName": "maximumExpressionDepth",
           "type": "int",
           "accessibility": "public",
           "set": "set",
@@ -3575,7 +3347,6 @@
         },
         {
           "name": "LocationAuthorities",
-          "jsonName": "locationAuthorities",
           "type": "CompilerLocationAuthorityArtifact[]",
           "accessibility": "public",
           "set": "set",
@@ -3585,7 +3356,6 @@
         },
         {
           "name": "CompilerDiagnostics",
-          "jsonName": "compilerDiagnostics",
           "type": "CompilerDiagnosticArtifact[]",
           "accessibility": "public",
           "set": "set",
@@ -3595,7 +3365,6 @@
         },
         {
           "name": "Callables",
-          "jsonName": "callables",
           "type": "CompilerCallableArtifact[]",
           "accessibility": "public",
           "set": "set",

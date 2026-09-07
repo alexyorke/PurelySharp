@@ -199,6 +199,47 @@ try {
     $sourceLocationGroup = Get-PropertyGroup `
         -SchemaObject $canonicalObject -Name 'SourceLocation'
 
+    $explicitJsonNameSchema = Copy-JsonObject $canonicalObject
+    $explicitJsonNameGroup = Get-PropertyGroup `
+        -SchemaObject $explicitJsonNameSchema -Name 'SourceLocation'
+    $explicitJsonNameProperty = @($explicitJsonNameGroup.properties)[0]
+    $explicitJsonNameProperty | Add-Member `
+        -MemberType NoteProperty `
+        -Name 'jsonName' `
+        -Value 'explicitName' `
+        -Force
+    Invoke-GeneratorCase `
+        -Name 'explicit-json-name' `
+        -Schema ($explicitJsonNameSchema | ConvertTo-Json -Depth 100) `
+        -ShouldPass $false `
+        -ExpectedMessage 'cannot define an explicit JSON name'
+
+    $jsonNameCollisionSchema = Copy-JsonObject $canonicalObject
+    Add-SchemaDeclaration `
+        -SchemaObject $jsonNameCollisionSchema `
+        -Declaration (New-PropertyGroupTestClass `
+            -Name 'JsonNameCollisionCase' `
+            -Properties @(
+                [pscustomobject]@{
+                    name = 'Foo'
+                    type = 'string'
+                    accessibility = 'public'
+                    set = 'set'
+                    default = [pscustomobject]@{ kind = 'stringEmpty' }
+                }
+                [pscustomobject]@{
+                    name = 'foo'
+                    type = 'string'
+                    accessibility = 'public'
+                    set = 'set'
+                    default = [pscustomobject]@{ kind = 'stringEmpty' }
+                }))
+    Invoke-GeneratorCase `
+        -Name 'json-name-collision' `
+        -Schema ($jsonNameCollisionSchema | ConvertTo-Json -Depth 100) `
+        -ShouldPass $false `
+        -ExpectedMessage 'invalid JSON name'
+
     $unknownGroupSchema = Copy-JsonObject $canonicalObject
     Add-SchemaDeclaration `
         -SchemaObject $unknownGroupSchema `
