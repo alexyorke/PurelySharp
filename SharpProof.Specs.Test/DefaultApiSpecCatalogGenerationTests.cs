@@ -334,6 +334,49 @@ public sealed class DefaultApiSpecCatalogGenerationTests
         Assert.That(result.Output, Does.Contain(expectedError));
     }
 
+    [TestCase("empty", "must contain at least one declaration")]
+    [TestCase("missing", "must contain at least one declaration")]
+    [TestCase("factory-collision", "produce colliding factory names")]
+    [TestCase("no-name-segments", "has no name segments")]
+    public async Task GeneratorRejectsMalformedRuntimeWitnessInputs(
+        string mutation,
+        string expectedError)
+    {
+        using var workspace = GenerationWorkspace.Create();
+        var root = JsonNode.Parse(
+            await File.ReadAllTextAsync(CatalogPath()))!.AsObject();
+        var declarations = root["declarations"]!.AsArray();
+        switch (mutation)
+        {
+            case "empty":
+                declarations.Clear();
+                break;
+            case "missing":
+                root.Remove("declarations");
+                break;
+            case "factory-collision":
+                declarations[0]!["target"]!["witnessIdentifier"] = "a-b";
+                declarations[1]!["target"]!["witnessIdentifier"] = "a_b";
+                break;
+            case "no-name-segments":
+                declarations[0]!["target"]!["witnessIdentifier"] = "---";
+                break;
+        }
+        await File.WriteAllTextAsync(
+            workspace.CatalogInputPath,
+            root.ToJsonString(),
+            new UTF8Encoding(false));
+
+        var result = await RunGeneratorAsync(
+            "-CatalogPath", workspace.CatalogInputPath,
+            "-SourceOutputPath", workspace.FirstSourcePath,
+            "-DocumentationOutputPath", workspace.FirstDocumentationPath,
+            "-RuntimeWitnessOutputPath", workspace.FirstRuntimeWitnessPath);
+
+        Assert.That(result.ExitCode, Is.Not.Zero, result.Output);
+        Assert.That(result.Output, Does.Contain(expectedError));
+    }
+
     private static void AssertDeclaration(
         JsonElement declaration,
         ApiSpecTemplate template,

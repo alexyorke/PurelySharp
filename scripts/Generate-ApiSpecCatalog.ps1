@@ -35,6 +35,20 @@ if (-not [IO.File]::Exists($CatalogPath)) {
     throw "API-spec catalog not found: $CatalogPath"
 }
 
+function ConvertTo-WitnessFactoryName {
+    param([Parameter(Mandatory = $true)][string]$WitnessIdentifier)
+
+    $segments = @($WitnessIdentifier -split '[^A-Za-z0-9]+' |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    if ($segments.Count -eq 0) {
+        throw "Witness identifier '$WitnessIdentifier' has no name segments."
+    }
+    $suffix = $segments | ForEach-Object {
+        $_.Substring(0, 1).ToUpperInvariant() + $_.Substring(1)
+    }
+    return 'Create' + ($suffix -join '') + 'Witness'
+}
+
 $allowedEnums = @{
     SpecEvidenceKind = @('Documented', 'Observed')
     SpecEffect = @(
@@ -639,11 +653,15 @@ foreach ($profile in @(Get-RequiredArrayProperty $catalog 'profiles' 'catalog'))
     $profiles.Add($id, $profile)
 }
 $usedProfiles = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+$declarationValues = Get-OptionalProperty $catalog 'declarations'
 $declarations = @(
-    $catalog.declarations |
+    $declarationValues |
         Sort-Object {
             [string]$_.target.witnessIdentifier
         })
+if ($declarations.Count -eq 0) {
+    throw 'The API-spec catalog must contain at least one declaration.'
+}
 $witnesses = @($declarations | ForEach-Object {
     Assert-Text `
         -Value $_.target.witnessIdentifier `
@@ -651,6 +669,16 @@ $witnesses = @($declarations | ForEach-Object {
 })
 if (@($witnesses | Sort-Object -Unique).Count -ne $witnesses.Count) {
     throw 'API-spec witness identifiers must be unique.'
+}
+$witnessDescriptors = @($witnesses | ForEach-Object {
+    [pscustomobject]@{
+        Identifier = $_
+        Factory = ConvertTo-WitnessFactoryName $_
+    }
+})
+if (@($witnessDescriptors.Factory | Sort-Object -Unique).Count -ne
+    $witnessDescriptors.Count) {
+    throw 'API-spec witness identifiers produce colliding factory names.'
 }
 foreach ($declaration in $declarations) {
     $witness = [string]$declaration.target.witnessIdentifier
@@ -1212,10 +1240,36 @@ foreach ($declaration in $declarations) {
 }
 $documentationText = $documentation -join "`n"
 
+$runtimeWitnessSource = New-SharpProofGeneratedHeader `
+    -Generator 'scripts/Generate-ApiSpecCatalog.ps1' `
+    -Source 'SharpProof.Specs/DefaultApiSpecCatalog.json.'
+$runtimeWitnessSource.Add('using System.Collections.Immutable;')
+$runtimeWitnessSource.Add('')
+$runtimeWitnessSource.Add('namespace SharpProof.Specs.Test;')
+$runtimeWitnessSource.Add('')
+$runtimeWitnessSource.Add('public sealed partial class ApiSpecRuntimeOracleTests {')
+$runtimeWitnessSource.Add(
+    '    private static ImmutableDictionary<string, RowWitness> CreateWitnesses()')
+$runtimeWitnessSource.Add('    {')
+$runtimeWitnessSource.Add(
+    '        var witnesses = ImmutableDictionary.CreateBuilder<string, RowWitness>(StringComparer.Ordinal);')
+foreach ($descriptor in $witnessDescriptors) {
+    $runtimeWitnessSource.Add(
+        '        witnesses.Add(' +
+        (ConvertTo-CSharpString $descriptor.Identifier) + ', ' +
+        $descriptor.Factory + '());')
+}
+$runtimeWitnessSource.Add('        return witnesses.ToImmutable();')
+$runtimeWitnessSource.Add('    }')
+$runtimeWitnessSource.Add('}')
+$runtimeWitnessText = $runtimeWitnessSource -join "`n"
+
 [IO.Directory]::CreateDirectory(
     [IO.Path]::GetDirectoryName($SourceOutputPath)) | Out-Null
 [IO.Directory]::CreateDirectory(
     [IO.Path]::GetDirectoryName($DocumentationOutputPath)) | Out-Null
+[IO.Directory]::CreateDirectory(
+    [IO.Path]::GetDirectoryName($RuntimeWitnessOutputPath)) | Out-Null
 $generatorCommand = '.\scripts\Generate-ApiSpecCatalog.ps1'
 Update-SharpProofGeneratedFile `
     -Path $SourceOutputPath `
@@ -1229,10 +1283,13 @@ Update-SharpProofGeneratedFile `
     -DisplayPath $DocumentationOutputPath `
     -GeneratorCommand $generatorCommand `
     -Verify:$Verify
-
-& (Join-Path $repositoryRoot 'SharpProof.Specs.Test\Generate-ApiSpecRuntimeWitnesses.ps1') `
-    -CatalogPath $CatalogPath `
-    -OutputPath $RuntimeWitnessOutputPath `
+Update-SharpProofGeneratedFile `
+    -Path $RuntimeWitnessOutputPath `
+    -Content $runtimeWitnessText `
+    -DisplayPath $RuntimeWitnessOutputPath `
+    -GeneratorCommand $generatorCommand `
     -Verify:$Verify
 $verb = if ($Verify) { 'Verified' } else { 'Generated' }
-Write-Host "$verb deterministic API-spec catalog source and documentation."
+Write-Host (
+    "$verb deterministic API-spec catalog source, documentation, " +
+    'and runtime witnesses.')
