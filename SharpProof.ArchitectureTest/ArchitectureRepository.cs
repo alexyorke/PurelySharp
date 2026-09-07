@@ -1,10 +1,29 @@
 using System.Diagnostics;
 using System.Xml.Linq;
+using NUnit.Framework;
 
 namespace SharpProof.ArchitectureTest;
 
 internal static class ArchitectureRepository
 {
+    internal static Task<ProcessRunnerResult> RunScriptAsync(
+        string workingDirectory,
+        string scriptName,
+        params string[] arguments) => RunProcessAsync(
+            workingDirectory, "pwsh",
+            ["-NoLogo", "-NoProfile", "-File",
+                Path.Combine(TestRepository.FindRoot(), "scripts", scriptName), .. arguments]);
+
+    internal static async Task<ProcessRunnerResult> AssertSuccessAsync(
+        Task<ProcessRunnerResult> operation,
+        bool includeOutput = false)
+    {
+        var result = await operation;
+        Assert.That(result.ExitCode, Is.Zero,
+            includeOutput ? result.Error + result.Output : result.Error);
+        return result;
+    }
+
     internal static Task<ProcessRunnerResult> RunProcessAsync(
         string workingDirectory,
         string fileName,

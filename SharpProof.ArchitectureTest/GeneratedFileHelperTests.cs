@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using NUnit.Framework;
 
 namespace SharpProof.ArchitectureTest;
@@ -55,37 +54,11 @@ public sealed class GeneratedFileHelperTests
             throw 'Generated-file verification accepted CRLF byte drift.'
             """);
 
-        var info = new ProcessStartInfo
-        {
-            FileName = "pwsh",
-            WorkingDirectory = fixture,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-        };
-        foreach (var argument in new[]
-        {
-            "-NoLogo",
-            "-NoProfile",
-            "-File",
-            probe,
-            "-Helper",
-            Path.Combine(TestRepository.FindRoot(), "scripts", "GeneratedFileHelpers.ps1"),
-            "-Output",
-            output
-        })
-        {
-            info.ArgumentList.Add(argument);
-        }
-
-        using var process = Process.Start(info)!;
-        var stdout = process.StandardOutput.ReadToEndAsync();
-        var stderr = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
-        Assert.That(
-            process.ExitCode,
-            Is.Zero,
-            await stdout + Environment.NewLine + await stderr);
+        var result = await ArchitectureRepository.RunProcessAsync(
+            fixture, "pwsh", "-NoLogo", "-NoProfile", "-File", probe,
+            "-Helper", Path.Combine(TestRepository.FindRoot(), "scripts", "GeneratedFileHelpers.ps1"),
+            "-Output", output);
+        Assert.That(result.ExitCode, Is.Zero, result.CombinedOutput);
     }
 
     [Test]

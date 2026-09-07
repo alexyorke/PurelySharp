@@ -81,4 +81,7 @@ internal static class ProcessRunner
 internal readonly record struct ProcessRunnerResult(
     int ExitCode,
     string Output,
-    string Error);
+    string Error)
+{
+    internal string CombinedOutput => Output + Environment.NewLine + Error;
+}

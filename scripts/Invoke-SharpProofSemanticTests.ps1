@@ -171,6 +171,7 @@ $architectureFixtures = @(
     'OpenCodePluginDependencyTests',
     'PackageDependencyAuthorityTests',
     'PilotAuthorityTests',
+    'ProcessRunnerTests',
     'ProductionInventoryAuthorityTests',
     'PublicationDestinationAuthorityTests',
     'PublicationPlanIdentityTests',

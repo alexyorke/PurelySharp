@@ -286,14 +286,10 @@ public sealed class ProductionInventoryAuthorityTests
 
     private static async Task CommitAllAsync(string repository, string message)
     {
-        await AssertSuccessAsync(RunAsync(repository, "git", "add", "--", "."));
-        await AssertSuccessAsync(RunAsync(repository, "git", "commit", "-m", message));
-    }
-
-    private static async Task AssertSuccessAsync(Task<ProcessRunnerResult> operation)
-    {
-        var result = await operation;
-        Assert.That(result.ExitCode, Is.Zero, result.Error + result.Output);
+        await ArchitectureRepository.AssertSuccessAsync(
+            RunAsync(repository, "git", "add", "--", "."), includeOutput: true);
+        await ArchitectureRepository.AssertSuccessAsync(
+            RunAsync(repository, "git", "commit", "-m", message), includeOutput: true);
     }
 
     private static Task<ProcessRunnerResult> RunAsync(

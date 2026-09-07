@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using NUnit.Framework;
 
 namespace SharpProof.ArchitectureTest;
@@ -7,32 +6,12 @@ namespace SharpProof.ArchitectureTest;
 public sealed class StandaloneGateEvidenceTests
 {
     [Test]
-    public void StandaloneGateDecoderRejectsUnauthenticatedEvidence()
+    public async Task StandaloneGateDecoderRejectsUnauthenticatedEvidence()
     {
         var root = TestRepository.FindRoot();
-        var start = new ProcessStartInfo
-        {
-            FileName = "pwsh",
-            WorkingDirectory = root,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-        };
-        start.ArgumentList.Add("-NoLogo");
-        start.ArgumentList.Add("-NoProfile");
-        start.ArgumentList.Add("-File");
-        start.ArgumentList.Add(Path.Combine(
-            root,
-            "scripts",
-            "Test-SharpProofStandaloneGateEvidence.ps1"));
-        using var process = Process.Start(start)!;
-        var output = process.StandardOutput.ReadToEnd();
-        var error = process.StandardError.ReadToEnd();
-        process.WaitForExit();
-        Assert.That(
-            process.ExitCode,
-            Is.Zero,
-            output + Environment.NewLine + error);
+        var result = await ArchitectureRepository.RunScriptAsync(
+            root, "Test-SharpProofStandaloneGateEvidence.ps1");
+        Assert.That(result.ExitCode, Is.Zero, result.CombinedOutput);
     }
 
     [Test]

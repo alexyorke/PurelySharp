@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.Json;
 using NUnit.Framework;
 
@@ -81,27 +80,10 @@ public sealed class DevCheckCommandPlanTests
     private static async Task<JsonDocument> ReadPlan(string configuration)
     {
         var root = TestRepository.FindRoot();
-        var info = new ProcessStartInfo
-        {
-            FileName = "pwsh",
-            WorkingDirectory = root,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-        };
-        info.ArgumentList.Add("-NoLogo");
-        info.ArgumentList.Add("-NoProfile");
-        info.ArgumentList.Add("-File");
-        info.ArgumentList.Add(Path.Combine(
-            root, "scripts", "Get-SharpProofDevCheckPlan.ps1"));
-        info.ArgumentList.Add("-Configuration");
-        info.ArgumentList.Add(configuration);
-        using var process = Process.Start(info)!;
-        var output = process.StandardOutput.ReadToEndAsync();
-        var error = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
-        Assert.That(process.ExitCode, Is.Zero, await error);
-        return JsonDocument.Parse(await output);
+        var result = await ArchitectureRepository.AssertSuccessAsync(
+            ArchitectureRepository.RunScriptAsync(root, "Get-SharpProofDevCheckPlan.ps1",
+                "-Configuration", configuration));
+        return JsonDocument.Parse(result.Output);
     }
 
 }

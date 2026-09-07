@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using NUnit.Framework;
 
 namespace SharpProof.ArchitectureTest;
@@ -48,11 +47,13 @@ public sealed class PublicationDestinationAuthorityTests
         string mutation,
         bool expectedSuccess)
     {
-        var result = await RunFixtureAsync(mutation);
+        var result = await ArchitectureRepository.RunScriptAsync(
+            TestRepository.FindRoot(), "Test-SharpProofPublicationDestinationFixtures.ps1",
+            "-Mutation", mutation);
         Assert.That(
             result.ExitCode == 0,
             Is.EqualTo(expectedSuccess),
-            result.Output);
+            result.CombinedOutput);
     }
 
     [Test]
@@ -70,31 +71,4 @@ public sealed class PublicationDestinationAuthorityTests
         Assert.That(text, Does.Contain("$remote.symbolsState"));
         Assert.That(text, Does.Not.Contain("source = if ("));
     }
-
-    private static async Task<(int ExitCode, string Output)> RunFixtureAsync(
-        string mutation)
-    {
-        var root = TestRepository.FindRoot();
-        var info = new ProcessStartInfo
-        {
-            FileName = "pwsh",
-            WorkingDirectory = root,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-        };
-        info.ArgumentList.Add("-NoLogo");
-        info.ArgumentList.Add("-NoProfile");
-        info.ArgumentList.Add("-File");
-        info.ArgumentList.Add(Path.Combine(
-            root, "scripts", "Test-SharpProofPublicationDestinationFixtures.ps1"));
-        info.ArgumentList.Add("-Mutation");
-        info.ArgumentList.Add(mutation);
-        using var process = Process.Start(info)!;
-        var output = process.StandardOutput.ReadToEndAsync();
-        var error = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
-        return (process.ExitCode, await output + Environment.NewLine + await error);
-    }
-
 }

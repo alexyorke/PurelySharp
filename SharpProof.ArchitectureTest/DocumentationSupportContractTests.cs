@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using NUnit.Framework;
 
 namespace SharpProof.ArchitectureTest;
@@ -33,32 +32,13 @@ public sealed class DocumentationSupportContractTests
         string mutation,
         bool expectedSuccess)
     {
-        var root = TestRepository.FindRoot();
-        var info = new ProcessStartInfo
-        {
-            FileName = "pwsh",
-            WorkingDirectory = root,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-        };
-        info.ArgumentList.Add("-NoLogo");
-        info.ArgumentList.Add("-NoProfile");
-        info.ArgumentList.Add("-File");
-        info.ArgumentList.Add(Path.Combine(
-            root,
-            "scripts",
-            "Test-SharpProofDocumentationSupportFixtures.ps1"));
-        info.ArgumentList.Add("-Mutation");
-        info.ArgumentList.Add(mutation);
-        using var process = Process.Start(info)!;
-        var output = process.StandardOutput.ReadToEndAsync();
-        var error = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
+        var result = await ArchitectureRepository.RunScriptAsync(
+            TestRepository.FindRoot(), "Test-SharpProofDocumentationSupportFixtures.ps1",
+            "-Mutation", mutation);
         Assert.That(
-            process.ExitCode == 0,
+            result.ExitCode == 0,
             Is.EqualTo(expectedSuccess),
-            await output + Environment.NewLine + await error);
+            result.CombinedOutput);
     }
 
     [Test]

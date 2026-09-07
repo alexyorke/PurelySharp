@@ -223,26 +223,18 @@ public sealed class AcceptanceScriptTests
         await File.WriteAllTextAsync(
             Path.Combine(repository, "fixture.txt"),
             "fixture\n");
-        await AssertSuccessAsync(RunAsync(
+        await ArchitectureRepository.AssertSuccessAsync(RunAsync(
             repository,
             "git",
             "add",
             "--",
             "fixture.txt"));
-        await AssertSuccessAsync(RunAsync(
+        await ArchitectureRepository.AssertSuccessAsync(RunAsync(
             repository,
             "git",
             "commit",
             "-m",
             "fixture"));
-    }
-
-    private static async Task<ProcessRunnerResult> AssertSuccessAsync(
-        Task<ProcessRunnerResult> operation)
-    {
-        var result = await operation;
-        Assert.That(result.ExitCode, Is.Zero, result.Error);
-        return result;
     }
 
     private static Task<ProcessRunnerResult> RunAsync(

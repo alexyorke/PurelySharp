@@ -12,21 +12,9 @@ public sealed class FuzzRunnerEvidenceTests
     public async Task FuzzRunnerEvidenceUsesStrictSchemaFourDecoder()
     {
         var root = TestRepository.FindRoot();
-        var start = new ProcessStartInfo
-        {
-            FileName = "pwsh",
-            WorkingDirectory = root,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-        };
-        start.ArgumentList.Add("-NoLogo");
-        start.ArgumentList.Add("-NoProfile");
-        start.ArgumentList.Add("-File");
-        start.ArgumentList.Add(Path.Combine(
-            root,
-            "scripts",
-            "Test-SharpProofFuzzRunnerResult.ps1"));
+        var start = ProcessRunner.CreateStartInfo(root, "pwsh",
+            ["-NoLogo", "-NoProfile", "-File",
+                Path.Combine(root, "scripts", "Test-SharpProofFuzzRunnerResult.ps1")]);
         var result = await RunAsync(start);
         Assert.That(
             result.ExitCode,
@@ -50,21 +38,9 @@ public sealed class FuzzRunnerEvidenceTests
     public async Task FuzzCampaignEvidenceLifecycleIsFailClosedAndAtomic()
     {
         var root = TestRepository.FindRoot();
-        var start = new ProcessStartInfo
-        {
-            FileName = "pwsh",
-            WorkingDirectory = root,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-        };
-        start.ArgumentList.Add("-NoLogo");
-        start.ArgumentList.Add("-NoProfile");
-        start.ArgumentList.Add("-File");
-        start.ArgumentList.Add(Path.Combine(
-            root,
-            "scripts",
-            "Test-SharpProofFuzzEvidenceLifecycle.ps1"));
+        var start = ProcessRunner.CreateStartInfo(root, "pwsh",
+            ["-NoLogo", "-NoProfile", "-File",
+                Path.Combine(root, "scripts", "Test-SharpProofFuzzEvidenceLifecycle.ps1")]);
         var result = await RunAsync(start);
         Assert.That(
             result.ExitCode,

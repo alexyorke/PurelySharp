@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.Json;
 using NUnit.Framework;
 
@@ -11,25 +10,10 @@ public sealed class ReleaseJsonAuthorityTests
     public async Task ReleaseJsonFixturesRejectNoncanonicalStructures()
     {
         var root = TestRepository.FindRoot();
-        var start = new ProcessStartInfo("pwsh")
-        {
-            WorkingDirectory = root,
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true
-        };
-        start.ArgumentList.Add("-NoLogo");
-        start.ArgumentList.Add("-NoProfile");
-        start.ArgumentList.Add("-File");
-        start.ArgumentList.Add(Path.Combine(
-            root, "scripts", "Test-SharpProofReleaseJsonFixtures.ps1"));
-        using var process = Process.Start(start)!;
-        var output = process.StandardOutput.ReadToEndAsync();
-        var error = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
-        var stdout = await output;
-        Assert.That(process.ExitCode, Is.Zero, stdout + Environment.NewLine + await error);
-        using var result = JsonDocument.Parse(stdout);
+        var process = await ArchitectureRepository.RunScriptAsync(
+            root, "Test-SharpProofReleaseJsonFixtures.ps1");
+        Assert.That(process.ExitCode, Is.Zero, process.CombinedOutput);
+        using var result = JsonDocument.Parse(process.Output);
         Assert.That(result.RootElement.GetProperty("passed").GetInt32(),
             Is.EqualTo(result.RootElement.GetProperty("total").GetInt32()));
         Assert.That(result.RootElement.GetProperty("total").GetInt32(),

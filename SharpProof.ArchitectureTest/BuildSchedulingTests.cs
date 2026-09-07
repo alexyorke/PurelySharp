@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -406,26 +405,10 @@ public sealed class BuildSchedulingTests
             } | ConvertTo-Json -Compress
             """;
 
-        var info = new ProcessStartInfo
-        {
-            FileName = "pwsh",
-            WorkingDirectory = root,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-        };
-        info.ArgumentList.Add("-NoLogo");
-        info.ArgumentList.Add("-NoProfile");
-        info.ArgumentList.Add("-Command");
-        info.ArgumentList.Add(command);
-
-        using var process = Process.Start(info)!;
-        var output = process.StandardOutput.ReadToEndAsync();
-        var error = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
-        Assert.That(process.ExitCode, Is.Zero, await error);
-
-        using var document = JsonDocument.Parse(await output);
+        var process = await ArchitectureRepository.AssertSuccessAsync(
+            ArchitectureRepository.RunProcessAsync(root, "pwsh",
+                "-NoLogo", "-NoProfile", "-Command", command));
+        using var document = JsonDocument.Parse(process.Output);
         var rootElement = document.RootElement;
         Assert.That(Read(rootElement, "buildSolution"),
             Is.EqualTo(BuildSolution));
@@ -474,26 +457,10 @@ public sealed class BuildSchedulingTests
             } | ConvertTo-Json -Compress
             """;
 
-        var info = new ProcessStartInfo
-        {
-            FileName = "pwsh",
-            WorkingDirectory = root,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-        };
-        info.ArgumentList.Add("-NoLogo");
-        info.ArgumentList.Add("-NoProfile");
-        info.ArgumentList.Add("-Command");
-        info.ArgumentList.Add(command);
-
-        using var process = Process.Start(info)!;
-        var output = process.StandardOutput.ReadToEndAsync();
-        var error = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
-        Assert.That(process.ExitCode, Is.Zero, await error);
-
-        using var document = JsonDocument.Parse(await output);
+        var process = await ArchitectureRepository.AssertSuccessAsync(
+            ArchitectureRepository.RunProcessAsync(root, "pwsh",
+                "-NoLogo", "-NoProfile", "-Command", command));
+        using var document = JsonDocument.Parse(process.Output);
         var result = document.RootElement;
         var semantic = await File.ReadAllTextAsync(Path.Combine(
             root,
@@ -540,26 +507,10 @@ public sealed class BuildSchedulingTests
             } | ConvertTo-Json -Compress
             """;
 
-        var info = new ProcessStartInfo
-        {
-            FileName = "pwsh",
-            WorkingDirectory = root,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-        };
-        info.ArgumentList.Add("-NoLogo");
-        info.ArgumentList.Add("-NoProfile");
-        info.ArgumentList.Add("-Command");
-        info.ArgumentList.Add(command);
-
-        using var process = Process.Start(info)!;
-        var output = process.StandardOutput.ReadToEndAsync();
-        var error = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
-        Assert.That(process.ExitCode, Is.Zero, await error);
-
-        using var document = JsonDocument.Parse(await output);
+        var process = await ArchitectureRepository.AssertSuccessAsync(
+            ArchitectureRepository.RunProcessAsync(root, "pwsh",
+                "-NoLogo", "-NoProfile", "-Command", command));
+        using var document = JsonDocument.Parse(process.Output);
         var result = document.RootElement;
         var visible = result.GetProperty("visible").GetInt32();
         var package = await File.ReadAllTextAsync(Path.Combine(
