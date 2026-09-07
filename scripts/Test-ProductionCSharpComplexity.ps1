@@ -135,6 +135,9 @@ try {
     $decisionPoints = 0
     $members = 0
     $handwrittenFiles = 0
+    $parseOptionsBySignature =
+        [Collections.Generic.Dictionary[string, object]]::new(
+            [StringComparer]::Ordinal)
     foreach ($path in $files) {
         if ($path.Replace('\', '/') -in $approvedGeneratedFiles) {
             continue
@@ -147,7 +150,17 @@ try {
         $fileDecisionPoints = 0
         $fileMembers = 0
         foreach ($options in $fileOptions[$path]) {
-            $parseOptions = New-SharpProofCSharpParseOptions -LanguageVersion ([string]$options.languageVersion) -PreprocessorSymbols @($options.preprocessorSymbols | ForEach-Object { [string]$_ })
+            $signature = $options | ConvertTo-Json -Compress
+            $parseOptions = $null
+            if (-not $parseOptionsBySignature.TryGetValue(
+                    $signature,
+                    [ref]$parseOptions)) {
+                $parseOptions = New-SharpProofCSharpParseOptions `
+                    -LanguageVersion ([string]$options.languageVersion) `
+                    -PreprocessorSymbols @($options.preprocessorSymbols |
+                        ForEach-Object { [string]$_ })
+                $parseOptionsBySignature.Add($signature, $parseOptions)
+            }
             $metrics = Measure-CSharpSourceText `
                 -Source $source -Path $path -ParseOptions $parseOptions
             $fileSyntaxTokens = [Math]::Max(
