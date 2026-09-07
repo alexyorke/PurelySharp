@@ -449,51 +449,6 @@ try {
         'SharpProof.Package.Test.WorkerMsBuildIntegrationTests'
     $packageLayoutClass =
         'SharpProof.Package.Test.PackageLayoutSmokeTests'
-    if ([string]::IsNullOrWhiteSpace($testAssembly)) {
-        $testAssembly = Get-SharpProofTestAssemblyPath `
-            -ProjectPath $testProject `
-            -Configuration $Configuration
-    }
-    $discoveredMethods = Get-DiscoveredTestMethods `
-        -Assembly $testAssembly `
-        -ClassNames @($workerClass, $packageLayoutClass) `
-        -MinimumCounts @{
-            $workerClass = 40
-            $packageLayoutClass = 15
-        } `
-        -Descriptions @{
-            $workerClass = 'Worker MSBuild integration'
-            $packageLayoutClass = 'package-layout'
-        }
-    $workerMethods = @($discoveredMethods[$workerClass])
-    # Additional buckets add a second wave of test-host startup without
-    # increasing the available concurrency.
-    $workerShardCount = [Math]::Min($workerMethods.Count, $parallelism)
-    $workerBuckets = @(New-SharpProofWeightedBuckets `
-        -Methods $workerMethods `
-        -HistoricalMilliseconds $priorMethodMilliseconds `
-        -DefaultMilliseconds 1L `
-        -BucketCount $workerShardCount)
-    $packageLayoutMethods = @($discoveredMethods[$packageLayoutClass])
-    $packageLayoutFilter =
-        "FullyQualifiedName~$packageLayoutClass"
-    $defaultPackageLayoutMethodMilliseconds =
-        if ($priorFilterMilliseconds.ContainsKey($packageLayoutFilter)) {
-            [long][Math]::Max(
-                1,
-                [Math]::Ceiling(
-                    [long]$priorFilterMilliseconds[$packageLayoutFilter] /
-                        [double]$packageLayoutMethods.Count))
-        }
-        else {
-            1L
-        }
-    $packageLayoutBuckets = @(New-SharpProofWeightedBuckets `
-        -Methods $packageLayoutMethods `
-        -HistoricalMilliseconds $priorPackageLayoutMethodMilliseconds `
-        -DefaultMilliseconds $defaultPackageLayoutMethodMilliseconds `
-        -BucketCount ([Math]::Min(4, $parallelism)))
-
     $canonicalPackageFilter =
         'TestCategory!=Performance&TestCategory!=Coverage&TestCategory!=Corpus'
     $useDefaultShardPlan = [string]::IsNullOrWhiteSpace($TestFilter) -or
@@ -513,6 +468,49 @@ try {
         })
     }
     else {
+        if ([string]::IsNullOrWhiteSpace($testAssembly)) {
+            $testAssembly = Get-SharpProofTestAssemblyPath `
+                -ProjectPath $testProject `
+                -Configuration $Configuration
+        }
+        $discoveredMethods = Get-DiscoveredTestMethods `
+            -Assembly $testAssembly `
+            -ClassNames @($workerClass, $packageLayoutClass) `
+            -MinimumCounts @{
+                $workerClass = 40
+                $packageLayoutClass = 15
+            } `
+            -Descriptions @{
+                $workerClass = 'Worker MSBuild integration'
+                $packageLayoutClass = 'package-layout'
+            }
+        $workerMethods = @($discoveredMethods[$workerClass])
+        # Additional buckets add a second wave of test-host startup without
+        # increasing the available concurrency.
+        $workerShardCount = [Math]::Min($workerMethods.Count, $parallelism)
+        $workerBuckets = @(New-SharpProofWeightedBuckets `
+            -Methods $workerMethods `
+            -HistoricalMilliseconds $priorMethodMilliseconds `
+            -DefaultMilliseconds 1L `
+            -BucketCount $workerShardCount)
+        $packageLayoutMethods = @($discoveredMethods[$packageLayoutClass])
+        $packageLayoutFilter = "FullyQualifiedName~$packageLayoutClass"
+        $defaultPackageLayoutMethodMilliseconds =
+            if ($priorFilterMilliseconds.ContainsKey($packageLayoutFilter)) {
+                [long][Math]::Max(
+                    1,
+                    [Math]::Ceiling(
+                        [long]$priorFilterMilliseconds[$packageLayoutFilter] /
+                            [double]$packageLayoutMethods.Count))
+            }
+            else {
+                1L
+            }
+        $packageLayoutBuckets = @(New-SharpProofWeightedBuckets `
+            -Methods $packageLayoutMethods `
+            -HistoricalMilliseconds $priorPackageLayoutMethodMilliseconds `
+            -DefaultMilliseconds $defaultPackageLayoutMethodMilliseconds `
+            -BucketCount ([Math]::Min(4, $parallelism)))
         $fixtureClasses = @(
             'CompilerProbeInputConsistencyTests',
             'CompilerProbeSnapshotTests',
@@ -613,6 +611,13 @@ try {
                 EstimatedMilliseconds = $bucket.EstimatedMilliseconds
             })
         }
+    }
+
+    if ([string]::IsNullOrWhiteSpace($testAssembly) -and
+        -not $coverageEnabled) {
+        $testAssembly = Get-SharpProofTestAssemblyPath `
+            -ProjectPath $testProject `
+            -Configuration $Configuration
     }
 
     if ($TestFilter -ceq $canonicalPackageFilter) {
