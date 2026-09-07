@@ -592,6 +592,12 @@ try {
             Name = 'postflight-buildtask-containment'
             Filter = $isolatedBuildTaskFilter
             EstimatedMilliseconds = -1L
+            # These deadline-sensitive tests need headroom, but reserving the
+            # entire machine makes their six-second run an unavoidable tail.
+            # Keep half the lanes idle while overlapping independent shards.
+            Slots = [Math]::Max(
+                1,
+                [Math]::Ceiling($parallelism / 2.0))
             Exclusive = $true
         })
         foreach ($bucket in $packageLayoutBuckets) {

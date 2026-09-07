@@ -1304,15 +1304,16 @@ public sealed class WorkerMsBuildIntegrationTests
             ("SharpProofVerifyPolicy", "advisory"));
         Assert.That(advisory.ExitCode, Is.Zero, advisory.Output);
         Assert.That(advisory.Output, Does.Contain("info SP0047"));
+        var invocationManifest = project.CopyCompilerManifestForInvocation();
 
-        var warning = await project.BuildAsync(
-            verify: true,
+        var warning = await project.RunVerificationTargetAsync(
+            ("_SharpProofCompilerManifestPath", invocationManifest),
             ("SharpProofVerifyPolicy", "warn-on-unknown"));
         Assert.That(warning.ExitCode, Is.Zero, warning.Output);
         Assert.That(warning.Output, Does.Contain("warning SP0047"));
 
-        var promotedWarning = await project.BuildAsync(
-            verify: true,
+        var promotedWarning = await project.RunVerificationTargetAsync(
+            ("_SharpProofCompilerManifestPath", invocationManifest),
             ("SharpProofVerifyPolicy", "warn-on-unknown"),
             ("MSBuildWarningsAsErrors", "SP0047"));
         Assert.That(
@@ -1321,8 +1322,8 @@ public sealed class WorkerMsBuildIntegrationTests
             promotedWarning.Output);
         Assert.That(promotedWarning.Output, Does.Contain("SP0047"));
 
-        var required = await project.BuildAsync(
-            verify: true,
+        var required = await project.RunVerificationTargetAsync(
+            ("_SharpProofCompilerManifestPath", invocationManifest),
             ("SharpProofVerifyPolicy", "require-proven"));
         Assert.That(required.ExitCode, Is.Not.Zero);
         Assert.That(required.Output, Does.Contain("error SP0047"));
@@ -2688,15 +2689,16 @@ public sealed class WorkerMsBuildIntegrationTests
             ("SharpProofAssumptionPolicy", "allow"));
         Assert.That(allowed.ExitCode, Is.Zero, allowed.Output);
         Assert.That(allowed.Output, Does.Contain("info SP0048"));
+        var invocationManifest = project.CopyCompilerManifestForInvocation();
 
-        var warning = await project.BuildAsync(
-            verify: true,
+        var warning = await project.RunVerificationTargetAsync(
+            ("_SharpProofCompilerManifestPath", invocationManifest),
             ("SharpProofAssumptionPolicy", "warn"));
         Assert.That(warning.ExitCode, Is.Zero, warning.Output);
         Assert.That(warning.Output, Does.Contain("warning SP0048"));
 
-        var error = await project.BuildAsync(
-            verify: true,
+        var error = await project.RunVerificationTargetAsync(
+            ("_SharpProofCompilerManifestPath", invocationManifest),
             ("SharpProofAssumptionPolicy", "error"));
         Assert.That(error.ExitCode, Is.Not.Zero);
         Assert.That(error.Output, Does.Contain("error SP0048"));
@@ -3324,7 +3326,10 @@ public sealed class WorkerMsBuildIntegrationTests
             response.ClaimResults.Single().Outcome,
             Is.EqualTo(WorkerClaimOutcome.Refuted));
 
-        var repeatedRefutation = await refuted.BuildAsync(verify: true);
+        var refutedInvocationManifest =
+            refuted.CopyCompilerManifestForInvocation();
+        var repeatedRefutation = await refuted.RunVerificationTargetAsync(
+            ("_SharpProofCompilerManifestPath", refutedInvocationManifest));
         Assert.That(
             repeatedRefutation.ExitCode,
             Is.Not.Zero,
@@ -4135,6 +4140,15 @@ public sealed class WorkerMsBuildIntegrationTests
             return RunVerificationTargetCoreAsync(
                 Guid.NewGuid().ToString("N"),
                 properties);
+        }
+
+        internal string CopyCompilerManifestForInvocation()
+        {
+            var invocationManifest =
+                CompilerManifestPath + "." + Guid.NewGuid().ToString("N") +
+                ".invocation";
+            File.Copy(CompilerManifestPath, invocationManifest);
+            return invocationManifest;
         }
 
         internal Task<BuildResult> RunVerificationTargetWithInvocationIdAsync(

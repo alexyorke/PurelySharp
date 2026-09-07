@@ -66,7 +66,7 @@ public sealed class BuildSchedulingTests
     }
 
     [Test]
-    public void ContainmentTestsUseExclusiveFreshProcesses()
+    public void ContainmentTestsUseFreshProcessesWithReservedCapacity()
     {
         var packageTests = File.ReadAllText(Path.Combine(
             TestRepository.FindRoot(),
@@ -93,6 +93,12 @@ public sealed class BuildSchedulingTests
                 Does.Contain("Exclusive = $true"));
             Assert.That(packageTests,
                 Does.Contain("$nextIsExclusive"));
+            Assert.That(packageTests,
+                Does.Match(
+                    "Name = 'postflight-buildtask-containment'" +
+                    "[\\s\\S]*?Slots = \\[Math\\]::Max\\("));
+            Assert.That(packageTests,
+                Does.Contain("[Math]::Ceiling($parallelism / 2.0)"));
         }
     }
 
