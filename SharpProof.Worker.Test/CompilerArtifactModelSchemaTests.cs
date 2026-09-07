@@ -445,20 +445,26 @@ public sealed class CompilerArtifactModelSchemaTests
                 var sourceMembers = Enum.GetNames(types.Source)
                     .ToDictionary(
                         static member => member,
-                        member => Convert.ToInt64(Enum.Parse(types.Source, member)),
+                        member => Convert.ToInt64(
+                            Enum.Parse(types.Source, member),
+                            CultureInfo.InvariantCulture),
                         StringComparer.Ordinal);
                 var targetMembers = Enum.GetNames(types.Target)
                     .Where(static member => member != "AllKnown")
                     .ToDictionary(
                         static member => member,
-                        member => Convert.ToInt64(Enum.Parse(types.Target, member)),
+                        member => Convert.ToInt64(
+                            Enum.Parse(types.Target, member),
+                            CultureInfo.InvariantCulture),
                         StringComparer.Ordinal);
                 Assert.That(targetMembers, Is.EqualTo(sourceMembers), name);
                 var sourceMask = sourceMembers.Values.Aggregate(
                     0L,
                     static (mask, value) => mask | value);
                 Assert.That(
-                    Convert.ToInt64(Enum.Parse(types.Target, "AllKnown")),
+                    Convert.ToInt64(
+                        Enum.Parse(types.Target, "AllKnown"),
+                        CultureInfo.InvariantCulture),
                     Is.EqualTo(sourceMask),
                     name + " AllKnown");
                 continue;
