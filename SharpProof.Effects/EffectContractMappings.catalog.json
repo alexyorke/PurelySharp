@@ -192,7 +192,6 @@
     {"event":"VolatileFieldAccess","wireName":"volatile-field-access"}
   ],
   "referenceFamilyMarkers": [
-    {"marker":"/PACKS/MICROSOFT.NETCORE.APP.REF/","family":"MicrosoftNetCoreReferencePack"},
     {"marker":"/MICROSOFT.NETCORE.APP.REF/","family":"MicrosoftNetCoreReferencePack"},
     {"marker":"/PACKS/NETSTANDARD.LIBRARY.REF/","family":"NetStandardReferencePack"},
     {"marker":"/PACKAGES/NETSTANDARD.LIBRARY/","family":"NetStandardReferencePack"},
