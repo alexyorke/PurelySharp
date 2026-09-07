@@ -1191,6 +1191,8 @@ public sealed class CompilerManifestArtifactTests
         CompilerEffectClaimArtifact source,
         CompilerEffectClaimArtifact destination)
     {
+        Assert.That(source.Witness, Is.Null);
+        Assert.That(source.Replay, Is.Null);
         destination.ContractKind = source.ContractKind;
         destination.Outcome = source.Outcome;
         destination.Reason = source.Reason;
@@ -1201,67 +1203,8 @@ public sealed class CompilerManifestArtifactTests
             AllowedCapabilities = source.Constraint.AllowedCapabilities,
             AllowedExceptionTypes = [.. source.Constraint.AllowedExceptionTypes]
         };
-        destination.Witness = source.Witness == null
-            ? null
-            : new WorkerEffectViolationWitness
-            {
-                Kind = source.Witness.Kind,
-                Detail = source.Witness.Detail,
-                Effects = source.Witness.Effects,
-                Capabilities = source.Witness.Capabilities,
-                ExactExceptionTypeHierarchy =
-                    [.. source.Witness.ExactExceptionTypeHierarchy],
-                Location = new WorkerSourceLocation
-                {
-                    Path = source.Witness.Location.Path,
-                    Start = source.Witness.Location.Start,
-                    Length = source.Witness.Location.Length,
-                    Line = source.Witness.Location.Line,
-                    Column = source.Witness.Location.Column
-                }
-            };
-        destination.Replay = source.Replay == null
-            ? null
-            : new CompilerEffectReplayArtifact
-            {
-                PathKind = source.Replay.PathKind,
-                ConstraintSha256 = source.Replay.ConstraintSha256,
-                Events = [.. source.Replay.Events.Select(static value =>
-                    new CompilerEffectReplayEventArtifact
-                    {
-                        Ordinal = value.Ordinal,
-                        Kind = value.Kind,
-                        SyntaxTreeOrdinal = value.SyntaxTreeOrdinal,
-                        SyntaxTreeSha256 = value.SyntaxTreeSha256,
-                        SyntaxTreeSnapshotSha256 =
-                            value.SyntaxTreeSnapshotSha256,
-                        SyntaxTreeLineMapSha256 =
-                            value.SyntaxTreeLineMapSha256,
-                        SyntaxStart = value.SyntaxStart,
-                        SyntaxLength = value.SyntaxLength,
-                        OperationIdentitySha256 = value.OperationIdentitySha256,
-                        MemberIdentity = value.MemberIdentity,
-                        MemberDocumentationId = value.MemberDocumentationId,
-                        TypeIdentity = value.TypeIdentity,
-                        TypeDocumentationId = value.TypeDocumentationId,
-                        SpecWitnessIdentifier = value.SpecWitnessIdentifier,
-                        ScalarOperands = [.. value.ScalarOperands],
-                        ExactExceptionTypeHierarchy =
-                            [.. value.ExactExceptionTypeHierarchy],
-                        SourceTreeOrdinal = value.SourceTreeOrdinal,
-                        SourceTreePath = value.SourceTreePath,
-                        SourceTreeSha256 = value.SourceTreeSha256,
-                        SourceLineMapSha256 = value.SourceLineMapSha256,
-                        Location = new WorkerSourceLocation
-                        {
-                            Path = value.Location.Path,
-                            Start = value.Location.Start,
-                            Length = value.Location.Length,
-                            Line = value.Location.Line,
-                            Column = value.Location.Column
-                        }
-                    })]
-            };
+        destination.Witness = null;
+        destination.Replay = null;
         destination.Evidence = source.Evidence;
     }
 
