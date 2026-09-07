@@ -10,26 +10,21 @@ public sealed class CompilerEffectAuthorityTests
 {
     private static readonly Func<CompilerEffectReplayArtifact?,
         CompilerEffectReplayArtifact?, bool> s_replaysEqual =
-        (Func<CompilerEffectReplayArtifact?, CompilerEffectReplayArtifact?, bool>)
         typeof(CompilerEffectAuthority)
             .GetMethod(
                 "ReplaysEqual",
                 BindingFlags.NonPublic | BindingFlags.Static)!
-            .CreateDelegate(
-                typeof(Func<CompilerEffectReplayArtifact?,
-                    CompilerEffectReplayArtifact?, bool>));
+            .CreateDelegate<Func<CompilerEffectReplayArtifact?,
+                CompilerEffectReplayArtifact?, bool>>();
 
     private static readonly Func<CompilerEffectReplayEventArtifact?,
         CompilerEffectReplayEventArtifact?, bool> s_replayEventsEqual =
-        (Func<CompilerEffectReplayEventArtifact?,
-            CompilerEffectReplayEventArtifact?, bool>)
         typeof(CompilerEffectAuthority)
             .GetMethod(
                 "ReplayEventsEqual",
                 BindingFlags.NonPublic | BindingFlags.Static)!
-            .CreateDelegate(
-                typeof(Func<CompilerEffectReplayEventArtifact?,
-                    CompilerEffectReplayEventArtifact?, bool>));
+            .CreateDelegate<Func<CompilerEffectReplayEventArtifact?,
+                CompilerEffectReplayEventArtifact?, bool>>();
 
     [Test]
     public void ReplaysEqualPreservesOrderAndHandlesNullReplaysAndEntries()

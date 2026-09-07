@@ -605,11 +605,11 @@ public sealed class SharpProofWorker : IDisposable
     }
 
     private static (WorkerCallableResult[] Callables, WorkerClaimResult[] Claims)
-        ProjectResults(IReadOnlyList<CallableVerificationResult> results)
+        ProjectResults(CallableVerificationResult[] results)
     {
-        var callables = new WorkerCallableResult[results.Count];
+        var callables = new WorkerCallableResult[results.Length];
         var claims = new List<WorkerClaimResult>();
-        for (var index = 0; index < results.Count; index++)
+        for (var index = 0; index < results.Length; index++)
         {
             var result = results[index];
             callables[index] = result.Callable;

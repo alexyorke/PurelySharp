@@ -910,12 +910,7 @@ internal static class CompilerImplementationIlSummaryLowerer
             {
                 _cancellationToken.ThrowIfCancellationRequested();
                 var offset = reader.Offset;
-                if (!TryReadOpCode(ref reader, out var opCode))
-                {
-                    instructions = [];
-                    return false;
-                }
-
+                var opCode = ReadOpCode(ref reader);
                 if (!OperandSizes.TryGetValue(opCode, out var operandSize))
                 {
                     instructions = [];
@@ -1598,16 +1593,13 @@ internal static class CompilerImplementationIlSummaryLowerer
                     CultureInfo.InvariantCulture));
         }
 
-        private static bool TryReadOpCode(
-            ref BlobReader reader,
-            out ILOpCode opCode)
+        private static ILOpCode ReadOpCode(ref BlobReader reader)
         {
             var first = reader.ReadByte();
             var value = first == 0xfe
                 ? 0xfe00 | reader.ReadByte()
                 : first;
-            opCode = (ILOpCode)value;
-            return Enum.IsDefined(typeof(ILOpCode), opCode);
+            return (ILOpCode)value;
         }
 
         private static bool TryPop(
