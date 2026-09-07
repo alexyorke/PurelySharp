@@ -67,6 +67,11 @@ $datedEvidenceDocuments = @(
 $maintainedDocuments = @(
     $currentMaintainedDocuments + $datedEvidenceDocuments
 )
+$textByPath = [Collections.Generic.Dictionary[string, string]]::new(
+    [StringComparer]::Ordinal)
+$anchorsByPath = [Collections.Generic.Dictionary[
+    string,
+    Collections.Generic.HashSet[string]]]::new([StringComparer]::Ordinal)
 
 function Get-RepositoryPath {
     param([Parameter(Mandatory)][string]$RelativePath)
@@ -87,7 +92,22 @@ function Get-RequiredText {
             $normalizedTextOverrideRelativePath) {
         return Get-Content -LiteralPath $resolvedTextOverridePath -Raw
     }
-    return Get-Content -LiteralPath $path -Raw
+    return Get-TextByPath $path
+}
+
+function Get-TextByPath {
+    param([Parameter(Mandatory)][string]$Path)
+
+    $content = $null
+    if (-not $hasTextOverridePath -and
+        $textByPath.TryGetValue($Path, [ref]$content)) {
+        return $content
+    }
+    $content = Get-Content -LiteralPath $Path -Raw
+    if (-not $hasTextOverridePath) {
+        $textByPath.Add($Path, $content)
+    }
+    return $content
 }
 
 function Assert-LfUtf8Document {
@@ -150,6 +170,21 @@ function Get-MarkdownAnchors {
     return $anchors
 }
 
+function Get-MarkdownAnchorsForPath {
+    param([Parameter(Mandatory)][string]$Path)
+
+    $anchors = $null
+    if (-not $hasTextOverridePath -and
+        $anchorsByPath.TryGetValue($Path, [ref]$anchors)) {
+        return $anchors
+    }
+    $anchors = Get-MarkdownAnchors (Get-TextByPath $Path)
+    if (-not $hasTextOverridePath) {
+        $anchorsByPath.Add($Path, $anchors)
+    }
+    return $anchors
+}
+
 function Assert-RepositoryDocumentLink {
     param(
         [Parameter(Mandatory)][string]$SourceRelativePath,
@@ -184,8 +219,7 @@ function Assert-RepositoryDocumentLink {
     }
 
     if ($parts.Length -eq 2 -and $parts[1].Length -ne 0) {
-        $targetContent = Get-Content -LiteralPath $targetPath -Raw
-        $anchors = Get-MarkdownAnchors $targetContent
+        $anchors = Get-MarkdownAnchorsForPath $targetPath
         $fragment = [Uri]::UnescapeDataString($parts[1])
         if (-not $anchors.Contains($fragment)) {
             throw "Broken repository documentation anchor in ${SourceRelativePath}: $Target"
@@ -197,7 +231,7 @@ function Assert-MarkdownLinks {
     param([Parameter(Mandatory)][string]$RelativePath)
 
     $sourcePath = Get-RepositoryPath $RelativePath
-    $content = Get-Content -LiteralPath $sourcePath -Raw
+    $content = Get-TextByPath $sourcePath
     foreach ($match in [regex]::Matches(
         $content,
         '(?<!!)\[[^\]]+\]\((?<target><[^>]+>|[^)\s]+)(?:\s+"[^"]*")?\)')) {
@@ -228,8 +262,7 @@ function Assert-MarkdownLinks {
         }
 
         if ($parts.Length -eq 2 -and $parts[1].Length -ne 0) {
-            $targetContent = Get-Content -LiteralPath $targetPath -Raw
-            $anchors = Get-MarkdownAnchors $targetContent
+            $anchors = Get-MarkdownAnchorsForPath $targetPath
             $fragment = [Uri]::UnescapeDataString($parts[1])
             if (-not $anchors.Contains($fragment)) {
                 throw "Broken Markdown anchor in ${RelativePath}: $target"
