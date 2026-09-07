@@ -3765,28 +3765,11 @@ public sealed class WorkerMsBuildIntegrationTests
                 Path.Combine(root, "Program.cs"),
                 """
                 using System;
-                using System.IO;
-                using System.Runtime.CompilerServices;
                 if (!string.Equals(
                         Console.ReadLine(),
                         "SharpProof.Start/1",
                         StringComparison.Ordinal))
                     return;
-
-                internal static class PreMainProbe
-                {
-                    [ModuleInitializer]
-                    internal static void Initialize()
-                    {
-                        var arguments = Environment.GetCommandLineArgs();
-                        var markerIndex = Array.IndexOf(
-                            arguments, "--pre-main-marker");
-                        if (markerIndex >= 0)
-                        {
-                            File.WriteAllText(arguments[markerIndex + 1], "started");
-                        }
-                    }
-                }
                 """,
                 new System.Text.UTF8Encoding(false));
             var build = await RunDotNetAsync([

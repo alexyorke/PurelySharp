@@ -838,12 +838,21 @@ public static partial class WorkerProtocolJson
             errors.Add("response.summary");
             return;
         }
+        var outcomeCounts = new Dictionary<WorkerClaimOutcome, int>();
+        var reasonCounts = new Dictionary<WorkerClaimReason, int>();
+        foreach (var claim in claims)
+        {
+            outcomeCounts.TryGetValue(claim.Outcome, out var outcomeCount);
+            outcomeCounts[claim.Outcome] = outcomeCount + 1;
+            reasonCounts.TryGetValue(claim.Reason, out var reasonCount);
+            reasonCounts[claim.Reason] = reasonCount + 1;
+        }
         errors.Check(summary.CallableCount == callables.Length &&
                 summary.ClaimCount == claims.Length, "summary.totals")
-            .Check(CountsMatch(summary.OutcomeCounts, claims.Select(static value => value.Outcome),
+            .Check(CountsMatch(summary.OutcomeCounts, outcomeCounts,
                 static value => value.Outcome, static value => value.Count,
                 WorkerClaimOutcome.Unspecified), "summary.outcomes")
-            .Check(CountsMatch(summary.ReasonCounts, claims.Select(static value => value.Reason),
+            .Check(CountsMatch(summary.ReasonCounts, reasonCounts,
                 static value => value.Reason, static value => value.Count,
                 WorkerClaimReason.Unspecified), "summary.reasons");
         var assumptions = WorkerResultAssembler.SummarizeAssumptions(
@@ -865,13 +874,11 @@ public static partial class WorkerProtocolJson
                (expected.Total, expected.Used, expected.User, expected.Trusted);
     }
 
-    private static bool CountsMatch<TCount, TKind>(TCount[]? actual, IEnumerable<TKind> values,
+    private static bool CountsMatch<TCount, TKind>(TCount[]? actual,
+        Dictionary<TKind, int> expected,
         Func<TCount, TKind> kind, Func<TCount, int> count, TKind unspecified)
         where TCount : class where TKind : struct, Enum
     {
-        var expected = values.GroupBy(static value => value)
-            .ToDictionary(static group => group.Key, static group => group.Count());
-        var seen = new HashSet<TKind>();
         if (actual == null || actual.Length != expected.Count)
         {
             return false;
@@ -890,15 +897,15 @@ public static partial class WorkerProtocolJson
             }
             var itemKind = kind(value);
             if (!IsDefined(itemKind, unspecified) ||
-                !seen.Add(itemKind) ||
                 !expected.TryGetValue(itemKind, out var expectedCount) ||
                 itemCount != expectedCount)
             {
                 return false;
             }
+            expected.Remove(itemKind);
         }
 
-        return true;
+        return expected.Count == 0;
     }
     private static WorkerProtocolError[] ValidateProtocolErrors(WorkerProtocolError[]? values, Validator errors)
     {

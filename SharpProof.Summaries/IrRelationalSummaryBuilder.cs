@@ -693,7 +693,7 @@ public static class IrRelationalSummaryBuilder
                 var merged = first;
                 var hasMissing = false;
                 var hasDifferentValue = false;
-                for (var index = 0; index < values.Count; index++)
+                for (var index = 1; index < values.Count; index++)
                 {
                     if (!values[index].Environment.TryGetValue(
                             variable,
