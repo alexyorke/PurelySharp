@@ -952,14 +952,7 @@ public sealed class WorkerMsBuildIntegrationTests
         var incremental = await project.BuildAsync(
             verify: true,
             ("SharpProofVerifySarifFile", configured));
-        var clean = await project.CleanAsync(
-            ("SharpProofVerifySarifFile", configured));
-        Assert.That(clean.ExitCode, Is.Zero, clean.Output);
-        Assert.That(
-            File.Exists(Path.Combine(project.Root, "obj", "project.assets.json")),
-            Is.True,
-            "Clean must preserve the restored dependency graph.");
-        var rebuilt = await project.BuildAsync(
+        var rebuilt = await project.RebuildAsync(
             verify: true,
             ("SharpProofVerifySarifFile", configured));
 
@@ -968,6 +961,10 @@ public sealed class WorkerMsBuildIntegrationTests
             Assert.That(first.ExitCode, Is.Zero, first.Output);
             Assert.That(incremental.ExitCode, Is.Zero, incremental.Output);
             Assert.That(rebuilt.ExitCode, Is.Zero, rebuilt.Output);
+            Assert.That(
+                File.Exists(Path.Combine(project.Root, "obj", "project.assets.json")),
+                Is.True,
+                "Rebuild must preserve and reuse the restored dependency graph.");
             Assert.That(rebuilt.Output,
                 Does.Not.Contain("Determining projects to restore"));
         }
@@ -4069,26 +4066,29 @@ public sealed class WorkerMsBuildIntegrationTests
                 name.StartsWith("Package", StringComparison.OrdinalIgnoreCase);
         }
 
-        internal Task<BuildResult> CleanAsync(
+        internal Task<BuildResult> RebuildAsync(
+            bool? verify,
             params (string Name, string Value)[] properties)
         {
-            // Clean removes build outputs, not the restored dependency graph.
-            // BuildAsync still restores if the assets file no longer exists.
-            if (properties.Any(
-                    static property => IsRestoreSensitiveProperty(property.Name)))
-            {
-                _defaultRestoreCompleted = false;
-            }
             var arguments = new List<string>
             {
-                "clean",
+                "build",
                 ProjectPath,
+                "-t:Rebuild",
                 "-c",
                 "Release",
+                "--no-restore",
                 "--nologo",
+                "/m:1",
                 "/nodeReuse:false",
-                "-p:SharpProofVerify=false"
+                "-p:GeneratePackageOnBuild=false"
             };
+            if (verify.HasValue)
+            {
+                arguments.Add(
+                    "-p:SharpProofVerify=" +
+                    (verify.Value ? "true" : "false"));
+            }
             arguments.AddRange(properties.Select(static property =>
                 "-p:" + property.Name + "=" + property.Value));
             return RunDotNetAsync(arguments);
