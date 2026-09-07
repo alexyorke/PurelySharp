@@ -34,7 +34,6 @@ internal static partial class RequiresCallSiteTreeAnalyzer
                     reportDiagnostic,
                     graph: null,
                     operationRoot: null,
-                    screenForPotentialCalls: false,
                     cancellationToken:
                         cancellationToken)
                 : AnalyzerSemanticOutcome.NotApplicable;
@@ -191,7 +190,6 @@ internal static partial class RequiresCallSiteTreeAnalyzer
                             reportDiagnostic,
                             graph,
                             operationRoot,
-                            screenForPotentialCalls: false,
                             cancellationToken:
                                 cancellationToken);
                 }

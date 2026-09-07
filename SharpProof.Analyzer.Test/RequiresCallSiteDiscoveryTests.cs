@@ -209,11 +209,15 @@ public sealed class RequiresCallSiteDiscoveryTests
         var discovery = CreateDiscovery(compilation, declaration);
         var kinds = new HashSet<MethodKind>();
 
-        var hasPotential = discovery.HasPotentialCallSite(target =>
+        var owners = discovery.GetPotentialCallOwners(target =>
         {
             kinds.Add(target.MethodKind);
             return true;
         });
+        var caller = (IMethodSymbol)compilation.GetSemanticModel(tree)
+            .GetDeclaredSymbol(declaration)!;
+        var hasPotential = owners == null || owners.Contains(
+            caller.PartialImplementationPart ?? caller);
 
         using (Assert.EnterMultipleScope())
         {
@@ -584,10 +588,15 @@ public sealed class RequiresCallSiteDiscoveryTests
                 .Single(method =>
                     method.Identifier.ValueText == methodName);
             var discovery = CreateDiscovery(compilation, declaration);
-            return discovery.HasPotentialCallSite(
+            var owners = discovery.GetPotentialCallOwners(
                 static target =>
                     target.Name == "Contracted" ||
                     target.MethodKind == MethodKind.Constructor);
+            var caller = (IMethodSymbol)compilation
+                .GetSemanticModel(declaration.SyntaxTree)
+                .GetDeclaredSymbol(declaration)!;
+            return owners == null || owners.Contains(
+                caller.PartialImplementationPart ?? caller);
         }
     }
 
@@ -1625,8 +1634,8 @@ public sealed class RequiresCallSiteDiscoveryTests
             CancellationToken.None);
 
         Assert.That(
-            discovery.HasPotentialCallSite(static _ => false),
-            Is.True);
+            discovery.GetPotentialCallOwners(static _ => false),
+            Is.Null);
     }
 
     private static RequiresCallSiteDiscovery CreateDiscovery(

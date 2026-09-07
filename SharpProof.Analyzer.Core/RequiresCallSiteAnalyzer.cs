@@ -12,7 +12,6 @@ internal static partial class RequiresCallSiteAnalyzer
         Action<Diagnostic> reportDiagnostic,
         ControlFlowGraph? graph,
         IOperation? operationRoot,
-        bool screenForPotentialCalls,
         CancellationToken cancellationToken)
     {
         return new Analysis(
@@ -24,7 +23,7 @@ internal static partial class RequiresCallSiteAnalyzer
                 graph,
                 operationRoot,
                 cancellationToken)
-            .Run(screenForPotentialCalls);
+            .Run();
     }
 
     internal static AnalyzerSemanticOutcome AnalyzePrimaryConstructorInitializer(
@@ -226,9 +225,7 @@ internal static partial class RequiresCallSiteAnalyzer
                 constructor, initializer, semanticModel, session,
                 reportDiagnostic, graph: null, operationRoot: root,
                 cancellationToken)
-            .Run(
-                screenForPotentialCalls: false,
-                requireCallerOwnership: false);
+            .Run(requireCallerOwnership: false);
     }
 
     private sealed class Analysis(
@@ -252,16 +249,8 @@ internal static partial class RequiresCallSiteAnalyzer
                 operationRoot);
 
         internal AnalyzerSemanticOutcome Run(
-            bool screenForPotentialCalls,
             bool requireCallerOwnership = true)
         {
-            if (screenForPotentialCalls &&
-                !_discovery.HasPotentialCallSite(
-                    session.HasPotentialCallPreconditions))
-            {
-                return AnalyzerSemanticOutcome.NotApplicable;
-            }
-
             var binding = session.BindRequires(caller);
             var callSites = _discovery.Get(
                 binding.IsSuccess ? binding.Contracts : null,

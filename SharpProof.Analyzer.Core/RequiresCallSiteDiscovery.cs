@@ -13,17 +13,6 @@ internal sealed partial class RequiresCallSiteDiscovery(
     private readonly InvocationEmissionPolicy _invocationEmission =
         new(semanticModel.Compilation);
 
-    internal bool HasPotentialCallSite(
-        Func<IMethodSymbol, bool> hasPotentialPreconditions)
-    {
-        var owners = GetPotentialCallOwners(
-            hasPotentialPreconditions);
-        return owners == null ||
-            owners.Contains(
-                ContractClauseInventoryBuilder
-                    .NormalizeCallable(caller));
-    }
-
     internal ImmutableHashSet<IMethodSymbol>?
         GetPotentialCallOwners(
             Func<IMethodSymbol, bool>
