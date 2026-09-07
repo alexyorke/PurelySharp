@@ -54,10 +54,8 @@ public sealed class EffectAnalysisTests
             }
             """);
         var method = EffectTestHost.SampleMethod(compilation, "Run");
-        var syntax = method.DeclaringSyntaxReferences.Single().GetSyntax();
-        var operation = compilation.GetSemanticModel(syntax.SyntaxTree)
-            .GetOperation(syntax);
-        var @lock = operation!.DescendantsAndSelf()
+        var operation = EffectTestHost.RootOperation(compilation, method);
+        var @lock = operation.DescendantsAndSelf()
             .OfType<ILockOperation>()
             .Single();
         var evaluator = new OperationNullnessEvaluator(
@@ -1225,9 +1223,7 @@ public sealed class EffectAnalysisTests
             }
             """);
         var method = Method(compilation, "Convert");
-        var syntax = method.DeclaringSyntaxReferences.Single().GetSyntax();
-        var operation = compilation.GetSemanticModel(syntax.SyntaxTree)
-            .GetOperation(syntax)!;
+        var operation = EffectTestHost.RootOperation(compilation, method);
         var conversion = operation.DescendantsAndSelf()
             .OfType<IConversionOperation>()
             .Single(static value => value.OperatorMethod != null);

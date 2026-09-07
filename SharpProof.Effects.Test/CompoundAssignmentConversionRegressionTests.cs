@@ -138,8 +138,10 @@ public sealed class CompoundAssignmentConversionRegressionTests
             }
             """);
         var session = new EffectAnalysisSession(compilation);
-        var effectsMethod = Method(compilation, "Effects");
-        var catchMethod = Method(compilation, "CatchEffects");
+        var effectsMethod = EffectTestHost.SampleMethod(compilation, "Effects");
+        var catchMethod = EffectTestHost.SampleMethod(
+            compilation,
+            "CatchEffects");
         var effectsOperation = Compound(compilation, effectsMethod);
         var effects = session.Analyze(effectsMethod).Summary;
         var catches = session.Analyze(catchMethod).Summary;
@@ -183,7 +185,7 @@ public sealed class CompoundAssignmentConversionRegressionTests
         CSharpCompilation compilation,
         string methodName)
     {
-        var method = Method(compilation, methodName);
+        var method = EffectTestHost.SampleMethod(compilation, methodName);
         var evaluator = EffectTestHost.CreateCompletionEvaluator(
             compilation,
             method);
@@ -194,18 +196,9 @@ public sealed class CompoundAssignmentConversionRegressionTests
         Compilation compilation,
         IMethodSymbol method)
     {
-        var syntax = method.DeclaringSyntaxReferences.Single().GetSyntax();
-        return compilation.GetSemanticModel(syntax.SyntaxTree)
-            .GetOperation(syntax)!
+        return EffectTestHost.RootOperation(compilation, method)
             .DescendantsAndSelf()
             .OfType<ICompoundAssignmentOperation>()
             .Single();
-    }
-
-    private static IMethodSymbol Method(
-        Compilation compilation,
-        string methodName)
-    {
-        return EffectTestHost.SampleMethod(compilation, methodName);
     }
 }

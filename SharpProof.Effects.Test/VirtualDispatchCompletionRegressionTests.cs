@@ -110,10 +110,7 @@ public sealed class VirtualDispatchCompletionRegressionTests
         Compilation compilation,
         IMethodSymbol method)
     {
-        var declaration = method.DeclaringSyntaxReferences.Single()
-            .GetSyntax();
-        return compilation.GetSemanticModel(declaration.SyntaxTree)
-            .GetOperation(declaration)!
+        return EffectTestHost.RootOperation(compilation, method)
             .DescendantsAndSelf()
             .OfType<IInvocationOperation>()
             .Single();
