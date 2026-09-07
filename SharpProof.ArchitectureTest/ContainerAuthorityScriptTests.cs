@@ -27,28 +27,10 @@ public sealed class ContainerAuthorityScriptTests
         var imageLine = compose.Split('\n').Single(static line =>
             line.StartsWith("  image: ", StringComparison.Ordinal));
 
-        using (Assert.EnterMultipleScope())
-        {
-            Assert.That(
-                imageLine,
-                Is.EqualTo(
-                    "  image: ${SHARPPROOF_TOOLING_IMAGE:-${COMPOSE_PROJECT_NAME}-tooling:local}"));
-            Assert.That(
-                ResolveComposeImage(imageLine, "audit-one", null),
-                Is.EqualTo("audit-one-tooling:local"));
-            Assert.That(
-                ResolveComposeImage(imageLine, "audit-two", null),
-                Is.EqualTo("audit-two-tooling:local"));
-            Assert.That(
-                ResolveComposeImage(imageLine, "audit-one", null),
-                Is.EqualTo(ResolveComposeImage(imageLine, "audit-one", null)));
-            Assert.That(
-                ResolveComposeImage(
-                    imageLine,
-                    "audit-two",
-                    "reviewed/tooling:candidate"),
-                Is.EqualTo("reviewed/tooling:candidate"));
-        }
+        Assert.That(
+            imageLine,
+            Is.EqualTo(
+                "  image: ${SHARPPROOF_TOOLING_IMAGE:-${COMPOSE_PROJECT_NAME}-tooling:local}"));
     }
 
     [Test]
@@ -246,22 +228,6 @@ public sealed class ContainerAuthorityScriptTests
             "-ComposePath",
             compose,
             "-AuthorityOnly");
-    }
-
-    private static string ResolveComposeImage(
-        string imageLine,
-        string projectName,
-        string? image)
-    {
-        const string prefix = "  image: ${SHARPPROOF_TOOLING_IMAGE:-";
-        var fallback = imageLine.Substring(
-            prefix.Length,
-            imageLine.Length - prefix.Length - 1);
-        fallback = fallback.Replace(
-            "${COMPOSE_PROJECT_NAME}",
-            projectName,
-            StringComparison.Ordinal);
-        return image ?? fallback;
     }
 
 }
