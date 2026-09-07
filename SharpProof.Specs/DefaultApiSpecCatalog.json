@@ -1,6 +1,6 @@
 {
   "schema": "SharpProof.ApiSpecCatalog",
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "tableIdentity": "SharpProof.ApiSpec.Default",
   "tableVersion": "5",
   "assemblySets": [
@@ -75,6 +75,104 @@
       "id": "typeInitialization",
       "kind": "Documented",
       "source": "dotnet-generic-cache-type-initialization-boundary"
+    }
+  ],
+  "profiles": [
+    {
+      "id": "ObservedExceptionConstruction",
+      "facets": {
+        "effects": {
+          "values": [
+            "WritesReceiverState"
+          ],
+          "evidence": "observed"
+        },
+        "allocation": {
+          "behavior": "None",
+          "evidence": "observed"
+        },
+        "throws": {
+          "behavior": "DoesNotThrow",
+          "exceptionMetadataNames": [],
+          "evidence": "observed"
+        },
+        "termination": {
+          "behavior": "Terminates",
+          "evidence": "observed"
+        },
+        "nullness": {
+          "result": "NotApplicable",
+          "evidence": "documented"
+        },
+        "cardinality": {
+          "result": "NotApplicable",
+          "exactCount": null,
+          "evidence": "documented"
+        }
+      },
+      "postconditions": []
+    },
+    {
+      "id": "ContractSemantics",
+      "facets": {
+        "effects": {
+          "values": [
+            "None"
+          ],
+          "evidence": "contractSemantics"
+        },
+        "allocation": {
+          "behavior": "None",
+          "evidence": "contractSemantics"
+        },
+        "throws": {
+          "behavior": "DoesNotThrow",
+          "exceptionMetadataNames": [],
+          "evidence": "contractSemantics"
+        },
+        "nullness": {
+          "result": "NotApplicable",
+          "evidence": "contractSemantics"
+        },
+        "cardinality": {
+          "result": "NotApplicable",
+          "exactCount": null,
+          "evidence": "contractSemantics"
+        }
+      },
+      "postconditions": []
+    },
+    {
+      "id": "ContractOldResult",
+      "facets": {
+        "effects": {
+          "values": [
+            "None"
+          ],
+          "evidence": "contractSemantics"
+        },
+        "allocation": {
+          "behavior": "MayAllocate",
+          "evidence": "contractSemantics"
+        },
+        "throws": {
+          "behavior": "MayThrow",
+          "exceptionMetadataNames": [
+            "System.InvalidOperationException"
+          ],
+          "evidence": "contractSemantics"
+        },
+        "nullness": {
+          "result": "NotApplicable",
+          "evidence": "contractSemantics"
+        },
+        "cardinality": {
+          "result": "NotApplicable",
+          "exactCount": null,
+          "evidence": "contractSemantics"
+        }
+      },
+      "postconditions": []
     }
   ],
   "declarations": [
@@ -286,37 +384,7 @@
         "resultType": null,
         "approvedAssemblySet": "framework"
       },
-      "facets": {
-        "effects": {
-          "values": [
-            "WritesReceiverState"
-          ],
-          "evidence": "observed"
-        },
-        "allocation": {
-          "behavior": "None",
-          "evidence": "observed"
-        },
-        "throws": {
-          "behavior": "DoesNotThrow",
-          "exceptionMetadataNames": [],
-          "evidence": "observed"
-        },
-        "termination": {
-          "behavior": "Terminates",
-          "evidence": "observed"
-        },
-        "nullness": {
-          "result": "NotApplicable",
-          "evidence": "documented"
-        },
-        "cardinality": {
-          "result": "NotApplicable",
-          "exactCount": null,
-          "evidence": "documented"
-        }
-      },
-      "postconditions": []
+      "profile": "ObservedExceptionConstruction"
     },
     {
       "target": {
@@ -334,37 +402,7 @@
         "resultType": null,
         "approvedAssemblySet": "framework"
       },
-      "facets": {
-        "effects": {
-          "values": [
-            "WritesReceiverState"
-          ],
-          "evidence": "observed"
-        },
-        "allocation": {
-          "behavior": "None",
-          "evidence": "observed"
-        },
-        "throws": {
-          "behavior": "DoesNotThrow",
-          "exceptionMetadataNames": [],
-          "evidence": "observed"
-        },
-        "termination": {
-          "behavior": "Terminates",
-          "evidence": "observed"
-        },
-        "nullness": {
-          "result": "NotApplicable",
-          "evidence": "documented"
-        },
-        "cardinality": {
-          "result": "NotApplicable",
-          "exactCount": null,
-          "evidence": "documented"
-        }
-      },
-      "postconditions": []
+      "profile": "ObservedExceptionConstruction"
     },
     {
       "target": {
@@ -380,37 +418,7 @@
         "resultType": null,
         "approvedAssemblySet": "framework"
       },
-      "facets": {
-        "effects": {
-          "values": [
-            "WritesReceiverState"
-          ],
-          "evidence": "observed"
-        },
-        "allocation": {
-          "behavior": "None",
-          "evidence": "observed"
-        },
-        "throws": {
-          "behavior": "DoesNotThrow",
-          "exceptionMetadataNames": [],
-          "evidence": "observed"
-        },
-        "termination": {
-          "behavior": "Terminates",
-          "evidence": "observed"
-        },
-        "nullness": {
-          "result": "NotApplicable",
-          "evidence": "documented"
-        },
-        "cardinality": {
-          "result": "NotApplicable",
-          "exactCount": null,
-          "evidence": "documented"
-        }
-      },
-      "postconditions": []
+      "profile": "ObservedExceptionConstruction"
     },
     {
       "target": {
@@ -428,37 +436,7 @@
         "resultType": null,
         "approvedAssemblySet": "framework"
       },
-      "facets": {
-        "effects": {
-          "values": [
-            "WritesReceiverState"
-          ],
-          "evidence": "observed"
-        },
-        "allocation": {
-          "behavior": "None",
-          "evidence": "observed"
-        },
-        "throws": {
-          "behavior": "DoesNotThrow",
-          "exceptionMetadataNames": [],
-          "evidence": "observed"
-        },
-        "termination": {
-          "behavior": "Terminates",
-          "evidence": "observed"
-        },
-        "nullness": {
-          "result": "NotApplicable",
-          "evidence": "documented"
-        },
-        "cardinality": {
-          "result": "NotApplicable",
-          "exactCount": null,
-          "evidence": "documented"
-        }
-      },
-      "postconditions": []
+      "profile": "ObservedExceptionConstruction"
     },
     {
       "target": {
@@ -634,33 +612,7 @@
         "resultType": null,
         "approvedAssemblySet": "sharpProofAttributes"
       },
-      "facets": {
-        "effects": {
-          "values": [
-            "None"
-          ],
-          "evidence": "contractSemantics"
-        },
-        "allocation": {
-          "behavior": "None",
-          "evidence": "contractSemantics"
-        },
-        "throws": {
-          "behavior": "DoesNotThrow",
-          "exceptionMetadataNames": [],
-          "evidence": "contractSemantics"
-        },
-        "nullness": {
-          "result": "NotApplicable",
-          "evidence": "contractSemantics"
-        },
-        "cardinality": {
-          "result": "NotApplicable",
-          "exactCount": null,
-          "evidence": "contractSemantics"
-        }
-      },
-      "postconditions": []
+      "profile": "ContractSemantics"
     },
     {
       "target": {
@@ -678,33 +630,7 @@
         "resultType": null,
         "approvedAssemblySet": "sharpProofAttributes"
       },
-      "facets": {
-        "effects": {
-          "values": [
-            "None"
-          ],
-          "evidence": "contractSemantics"
-        },
-        "allocation": {
-          "behavior": "None",
-          "evidence": "contractSemantics"
-        },
-        "throws": {
-          "behavior": "DoesNotThrow",
-          "exceptionMetadataNames": [],
-          "evidence": "contractSemantics"
-        },
-        "nullness": {
-          "result": "NotApplicable",
-          "evidence": "contractSemantics"
-        },
-        "cardinality": {
-          "result": "NotApplicable",
-          "exactCount": null,
-          "evidence": "contractSemantics"
-        }
-      },
-      "postconditions": []
+      "profile": "ContractSemantics"
     },
     {
       "target": {
@@ -722,35 +648,7 @@
         "resultType": "Reference",
         "approvedAssemblySet": "sharpProofAttributes"
       },
-      "facets": {
-        "effects": {
-          "values": [
-            "None"
-          ],
-          "evidence": "contractSemantics"
-        },
-        "allocation": {
-          "behavior": "MayAllocate",
-          "evidence": "contractSemantics"
-        },
-        "throws": {
-          "behavior": "MayThrow",
-          "exceptionMetadataNames": [
-            "System.InvalidOperationException"
-          ],
-          "evidence": "contractSemantics"
-        },
-        "nullness": {
-          "result": "NotApplicable",
-          "evidence": "contractSemantics"
-        },
-        "cardinality": {
-          "result": "NotApplicable",
-          "exactCount": null,
-          "evidence": "contractSemantics"
-        }
-      },
-      "postconditions": []
+      "profile": "ContractOldResult"
     },
     {
       "target": {
@@ -768,33 +666,7 @@
         "resultType": null,
         "approvedAssemblySet": "sharpProofAttributes"
       },
-      "facets": {
-        "effects": {
-          "values": [
-            "None"
-          ],
-          "evidence": "contractSemantics"
-        },
-        "allocation": {
-          "behavior": "None",
-          "evidence": "contractSemantics"
-        },
-        "throws": {
-          "behavior": "DoesNotThrow",
-          "exceptionMetadataNames": [],
-          "evidence": "contractSemantics"
-        },
-        "nullness": {
-          "result": "NotApplicable",
-          "evidence": "contractSemantics"
-        },
-        "cardinality": {
-          "result": "NotApplicable",
-          "exactCount": null,
-          "evidence": "contractSemantics"
-        }
-      },
-      "postconditions": []
+      "profile": "ContractSemantics"
     },
     {
       "target": {
@@ -810,35 +682,7 @@
         "resultType": "Reference",
         "approvedAssemblySet": "sharpProofAttributes"
       },
-      "facets": {
-        "effects": {
-          "values": [
-            "None"
-          ],
-          "evidence": "contractSemantics"
-        },
-        "allocation": {
-          "behavior": "MayAllocate",
-          "evidence": "contractSemantics"
-        },
-        "throws": {
-          "behavior": "MayThrow",
-          "exceptionMetadataNames": [
-            "System.InvalidOperationException"
-          ],
-          "evidence": "contractSemantics"
-        },
-        "nullness": {
-          "result": "NotApplicable",
-          "evidence": "contractSemantics"
-        },
-        "cardinality": {
-          "result": "NotApplicable",
-          "exactCount": null,
-          "evidence": "contractSemantics"
-        }
-      },
-      "postconditions": []
+      "profile": "ContractOldResult"
     }
   ]
 }

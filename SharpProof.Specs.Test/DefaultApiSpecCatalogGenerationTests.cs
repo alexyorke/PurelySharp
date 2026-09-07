@@ -24,7 +24,7 @@ public sealed class DefaultApiSpecCatalogGenerationTests
             Is.EqualTo("SharpProof.ApiSpecCatalog"));
         Assert.That(
             root.GetProperty("schemaVersion").GetInt32(),
-            Is.EqualTo(1));
+            Is.EqualTo(2));
         Assert.That(
             ApiSpecTable.DefaultTableIdentity,
             Is.EqualTo(root.GetProperty("tableIdentity").GetString()));
@@ -34,6 +34,12 @@ public sealed class DefaultApiSpecCatalogGenerationTests
 
         var assemblies = ReadAssemblySets(root);
         var evidence = ReadEvidence(root);
+        var profiles = root.GetProperty("profiles")
+            .EnumerateArray()
+            .ToDictionary(
+                static profile => profile.GetProperty("id").GetString()!,
+                static profile => profile,
+                StringComparer.Ordinal);
         var reviewed = root.GetProperty("declarations")
             .EnumerateArray()
             .OrderBy(static declaration =>
@@ -55,7 +61,8 @@ public sealed class DefaultApiSpecCatalogGenerationTests
                 reviewed[index],
                 templates[index],
                 assemblies,
-                evidence);
+                evidence,
+                profiles);
         }
         Assert.That(
             ApiSpecTable.Default.ContentSha256,
@@ -163,8 +170,8 @@ public sealed class DefaultApiSpecCatalogGenerationTests
     }
 
     [TestCase(
-        "\"schemaVersion\": 1",
-        "\"schemaVersion\": \"1\"")]
+        "\"schemaVersion\": 2",
+        "\"schemaVersion\": \"2\"")]
     [TestCase(
         "\"isStatic\": false",
         "\"isStatic\": \"false\"")]
@@ -234,6 +241,7 @@ public sealed class DefaultApiSpecCatalogGenerationTests
         var declaration = root["declarations"]?.AsArray()
             .Select(static node => node?.AsObject())
             .FirstOrDefault(static node =>
+                node?["profile"] is null &&
                 node?["postconditions"]?.AsArray().Count > 0) ??
             throw new InvalidDataException(
                 "The API-spec catalog has no declaration with postconditions.");
@@ -281,11 +289,57 @@ public sealed class DefaultApiSpecCatalogGenerationTests
                 .And.Contain(expectedProperty));
     }
 
+    [TestCase("unknown-reference", "Unknown API-spec profile 'missing-profile'.")]
+    [TestCase("duplicate-profile", "Duplicate API-spec profile")]
+    [TestCase("unused-profile", "Every API-spec profile must be used by a declaration.")]
+    [TestCase("mixed-declaration", "contains unexpected property 'facets'.")]
+    [TestCase("profile-postconditions-type", "postconditions must be a JSON array.")]
+    [TestCase("missing-profile-id", "missing required property 'id'.")]
+    [TestCase("missing-profile-facets", "missing required property 'facets'.")]
+    [TestCase("missing-profile-postconditions", "missing required property 'postconditions'.")]
+    public async Task GeneratorRejectsMalformedProfiles(string mutation, string expectedError)
+    {
+        using var workspace = GenerationWorkspace.Create();
+        var root = JsonNode.Parse(await File.ReadAllTextAsync(CatalogPath()))!.AsObject();
+        var profiles = root["profiles"]!.AsArray();
+        var firstProfile = profiles[0]!.AsObject();
+        var declaration = root["declarations"]!.AsArray()
+            .Select(static node => node!.AsObject())
+            .First(static node => node["profile"] is not null);
+
+        switch (mutation)
+        {
+            case "unknown-reference": declaration["profile"] = "missing-profile"; break;
+            case "duplicate-profile": profiles.Add(firstProfile.DeepClone()); break;
+            case "unused-profile":
+                var unused = firstProfile.DeepClone().AsObject();
+                unused["id"] = "unused-profile";
+                profiles.Add(unused);
+                break;
+            case "mixed-declaration": declaration["facets"] = new JsonObject(); break;
+            case "profile-postconditions-type": firstProfile["postconditions"] = new JsonObject(); break;
+            case "missing-profile-id": firstProfile.Remove("id"); break;
+            case "missing-profile-facets": firstProfile.Remove("facets"); break;
+            case "missing-profile-postconditions": firstProfile.Remove("postconditions"); break;
+        }
+
+        await File.WriteAllTextAsync(workspace.CatalogInputPath, root.ToJsonString(), new UTF8Encoding(false));
+        var result = await RunGeneratorAsync(
+            "-CatalogPath", workspace.CatalogInputPath,
+            "-SourceOutputPath", workspace.FirstSourcePath,
+            "-DocumentationOutputPath", workspace.FirstDocumentationPath,
+            "-RuntimeWitnessOutputPath", workspace.FirstRuntimeWitnessPath);
+
+        Assert.That(result.ExitCode, Is.Not.Zero, result.Output);
+        Assert.That(result.Output, Does.Contain(expectedError));
+    }
+
     private static void AssertDeclaration(
         JsonElement declaration,
         ApiSpecTemplate template,
         Dictionary<string, ApiSpecAssemblyIdentity[]> assemblies,
-        Dictionary<string, SpecEvidence> evidence)
+        Dictionary<string, SpecEvidence> evidence,
+        Dictionary<string, JsonElement> profiles)
     {
         var expected = declaration.GetProperty("target");
         var actual = template.Target;
@@ -357,12 +411,15 @@ public sealed class DefaultApiSpecCatalogGenerationTests
                 witness);
         }
 
+        var profile = declaration.TryGetProperty("profile", out var reference)
+            ? profiles[reference.GetString()!]
+            : declaration;
         AssertFacets(
-            declaration.GetProperty("facets"),
+            profile.GetProperty("facets"),
             template.Facets,
             evidence,
             witness);
-        var postconditions = declaration.GetProperty("postconditions")
+        var postconditions = profile.GetProperty("postconditions")
             .EnumerateArray()
             .ToArray();
         Assert.That(

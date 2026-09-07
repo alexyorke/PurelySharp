@@ -550,8 +550,8 @@ $schemaVersion = Assert-JsonInt32 `
     -Value (Get-RequiredProperty $catalog 'schemaVersion' 'catalog') `
     -Context 'schemaVersion'
 if ($catalog.schema -ne 'SharpProof.ApiSpecCatalog' -or
-    $schemaVersion -ne 1) {
-    throw 'The API-spec catalog schema must be SharpProof.ApiSpecCatalog v1.'
+    $schemaVersion -ne 2) {
+    throw 'The API-spec catalog schema must be SharpProof.ApiSpecCatalog v2.'
 }
 $tableIdentity = Assert-Text -Value $catalog.tableIdentity -Context 'tableIdentity'
 $tableVersion = Assert-Text -Value $catalog.tableVersion -Context 'tableVersion'
@@ -628,6 +628,17 @@ foreach ($evidence in @($catalog.evidence)) {
         (ConvertTo-PascalIdentifier $id "Evidence id")
 }
 
+$profiles = [Collections.Generic.Dictionary[string, object]]::new(
+    [StringComparer]::Ordinal)
+foreach ($profile in @(Get-RequiredArrayProperty $catalog 'profiles' 'catalog')) {
+    Assert-ExactProperties $profile @('id', 'facets', 'postconditions') 'profile'
+    $id = Assert-Text $profile.id 'profile.id'
+    if ($profiles.ContainsKey($id)) {
+        throw "Duplicate API-spec profile '$id'."
+    }
+    $profiles.Add($id, $profile)
+}
+$usedProfiles = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 $declarations = @(
     $catalog.declarations |
         Sort-Object {
@@ -643,10 +654,24 @@ if (@($witnesses | Sort-Object -Unique).Count -ne $witnesses.Count) {
 }
 foreach ($declaration in $declarations) {
     $witness = [string]$declaration.target.witnessIdentifier
+    if ($null -ne $declaration.PSObject.Properties['profile']) {
+        Assert-ExactProperties $declaration @('target', 'profile') "declarations[$witness]"
+        $id = Assert-Text $declaration.profile "declarations[$witness].profile"
+        if (-not $profiles.ContainsKey($id)) {
+            throw "Unknown API-spec profile '$id'."
+        }
+        [void]$usedProfiles.Add($id)
+        $declaration.PSObject.Properties.Remove('profile')
+        $declaration | Add-Member facets $profiles[$id].facets
+        $declaration | Add-Member postconditions $profiles[$id].postconditions
+    }
     Assert-ExactProperties `
         -Object $declaration `
         -Names @('target', 'facets', 'postconditions') `
         -Context "declarations[$witness]"
+}
+if ($usedProfiles.Count -ne $profiles.Count) {
+    throw 'Every API-spec profile must be used by a declaration.'
 }
 
 $source = New-SharpProofGeneratedHeader `

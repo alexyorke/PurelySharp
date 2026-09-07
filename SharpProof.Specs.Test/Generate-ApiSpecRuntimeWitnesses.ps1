@@ -53,8 +53,8 @@ function ConvertTo-FactoryName {
 $catalog = [IO.File]::ReadAllText($CatalogPath) |
     ConvertFrom-Json -Depth 100
 if ($catalog.schema -ne 'SharpProof.ApiSpecCatalog' -or
-    [int]$catalog.schemaVersion -ne 1) {
-    throw 'The API-spec catalog schema must be SharpProof.ApiSpecCatalog v1.'
+    [int]$catalog.schemaVersion -ne 2) {
+    throw 'The API-spec catalog schema must be SharpProof.ApiSpecCatalog v2.'
 }
 $declarations = @(
     $catalog.declarations |
