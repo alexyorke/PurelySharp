@@ -1184,15 +1184,8 @@ internal sealed class OperationCompletionEvaluator
     internal bool CanCompleteConstructorCall(
         IObjectCreationOperation creation)
     {
-        if (creation.Constructor is not { } constructor ||
-            !StaticInitializationMayComplete(constructor) ||
-            DefiniteOperationFacts.HasSourceCompletionFlow(constructor) &&
-            !_completionFacts.MethodCanCompleteNormally(constructor))
-        {
-            return false;
-        }
-
-        return true;
+        return creation.Constructor is { } constructor &&
+            CanMethodCompleteNormally(constructor);
     }
 
     private bool CanCompleteArrayCreation(IArrayCreationOperation array)
