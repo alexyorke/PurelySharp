@@ -283,6 +283,12 @@ public sealed partial class ApiSpecRuntimeOracleTests
 
     private static RowWitness CreateBclObjectCtorWitness()
     {
+        var edges = ImmutableArray.Create(
+            new RuntimeEdge(
+                PrepareObjectConstructorReceiver,
+                InvokePreparedObjectConstructor));
+        var observedThrows = new Lazy<ThrowObservation>(
+            () => ObserveThrows(edges));
         return Row(
             effects: Effect(
                 "an already allocated receiver",
@@ -290,27 +296,15 @@ public sealed partial class ApiSpecRuntimeOracleTests
                 SpecEffect.WritesAmbientState),
             allocation: Allocation(
                 "an already allocated receiver, excluding newobj",
-                [
-                    new RuntimeEdge(
-                        PrepareObjectConstructorReceiver,
-                        InvokePreparedObjectConstructor)
-                ],
+                edges,
                 SpecAllocationBehavior.MayAllocate),
             throws: Throws(
                 "an already allocated receiver",
-                [
-                    new RuntimeEdge(
-                        PrepareObjectConstructorReceiver,
-                        InvokePreparedObjectConstructor)
-                ],
+                observedThrows,
                 DoesNotThrowMutation),
             termination: Termination(
                 "an already allocated receiver",
-                [
-                    new RuntimeEdge(
-                        PrepareObjectConstructorReceiver,
-                        InvokePreparedObjectConstructor)
-                ],
+                observedThrows,
                 SpecTerminationBehavior.Unknown));
     }
 
@@ -604,19 +598,6 @@ public sealed partial class ApiSpecRuntimeOracleTests
 
     private static FacetWitness<SpecTerminationBehavior> Termination(
         string edgeInputs,
-        ImmutableArray<RuntimeEdge> edges,
-        SpecTerminationBehavior mutation)
-    {
-        return new(
-            FacetKind.Termination,
-            edgeInputs,
-            static template => template.Facets.Termination!.Behavior,
-            claim => ObserveTermination(edges) == claim,
-            mutation);
-    }
-
-    private static FacetWitness<SpecTerminationBehavior> Termination(
-        string edgeInputs,
         Lazy<ThrowObservation> observed,
         SpecTerminationBehavior mutation)
     {
@@ -899,29 +880,6 @@ public sealed partial class ApiSpecRuntimeOracleTests
             edges.Length,
             normalCompletions,
             exceptionTypes.ToImmutable());
-    }
-
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Design",
-        "CA1031:Do not catch general exception types",
-        Justification = "The runtime oracle classifies every exceptional constructor exit as non-terminating evidence.")]
-    private static SpecTerminationBehavior ObserveTermination(
-        ImmutableArray<RuntimeEdge> edges)
-    {
-        foreach (var edge in edges)
-        {
-            edge.Prepare();
-            try
-            {
-                edge.Invoke();
-            }
-            catch (Exception)
-            {
-                return SpecTerminationBehavior.Unknown;
-            }
-        }
-
-        return SpecTerminationBehavior.Terminates;
     }
 
     private static SpecTerminationBehavior ObserveTermination(
