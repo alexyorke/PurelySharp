@@ -32,9 +32,6 @@ internal static class CompilerEffectReplayLowerer
             return false;
         }
 
-        @event.OperationIdentitySha256 =
-            CompilerEffectClaimArtifactCodec.ComputeReplayOperationSha256(
-                @event);
         replay = new CompilerEffectReplayArtifact
         {
             PathKind = CompilerEffectReplayPathKind.Unconditional,

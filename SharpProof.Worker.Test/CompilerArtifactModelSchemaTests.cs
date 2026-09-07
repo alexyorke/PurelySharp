@@ -278,74 +278,30 @@ public sealed class CompilerArtifactModelSchemaTests
             .. schema.RootElement.GetProperty("collectorWireMappings")
                 .EnumerateArray()
         ];
-        var expectedTypes = new Dictionary<string, (Type Source, Type Target)>(
-            StringComparer.Ordinal)
-        {
-            [nameof(OutputKind)] =
-                (typeof(OutputKind), typeof(CompilerOutputKind)),
-            [nameof(OptimizationLevel)] =
-                (typeof(OptimizationLevel), typeof(CompilerOptimizationLevel)),
-            [nameof(Platform)] =
-                (typeof(Platform), typeof(CompilerPlatform)),
-            [nameof(NullableContextOptions)] =
-                (typeof(NullableContextOptions), typeof(CompilerNullableContext)),
-            [nameof(MetadataImportOptions)] =
-                (typeof(MetadataImportOptions), typeof(CompilerMetadataImportOptions)),
-            [nameof(ReportDiagnostic)] =
-                (typeof(ReportDiagnostic), typeof(CompilerReportDiagnostic)),
-            [nameof(AssemblyIdentityComparer)] =
-                (typeof(AssemblyIdentityComparer),
-                    typeof(CompilerAssemblyIdentityComparer)),
-            [nameof(EffectEvaluationContractKind)] =
-                (typeof(EffectEvaluationContractKind),
-                    typeof(WorkerEffectContractKind)),
-            [nameof(EffectEvaluationOutcome)] =
-                (typeof(EffectEvaluationOutcome), typeof(WorkerClaimOutcome)),
-            [nameof(EffectEvaluationReason)] =
-                (typeof(EffectEvaluationReason), typeof(WorkerClaimReason)),
-            [nameof(EffectEvaluationCertainty)] =
-                (typeof(EffectEvaluationCertainty),
-                    typeof(WorkerEffectEvidenceCertainty)),
-            [nameof(EffectContractKind)] =
-                (typeof(EffectContractKind), typeof(WorkerEffectSet)),
-            [nameof(EffectContractCapabilityKind)] =
-                (typeof(EffectContractCapabilityKind),
-                    typeof(WorkerEffectCapabilitySet)),
-            [nameof(BoundContractKind)] =
-                (typeof(BoundContractKind), typeof(CompilerContractKind)),
-            [nameof(BoundContractEvidence)] =
-                (typeof(BoundContractEvidence), typeof(CompilerContractEvidence)),
-            [nameof(BoundContractVariableRole)] =
-                (typeof(BoundContractVariableRole), typeof(CompilerVariableRole)),
-            ["BoundContractEvidenceWorker"] =
-                (typeof(BoundContractEvidence), typeof(WorkerClaimEvidence)),
-            [nameof(ContractBindingFailure)] =
-                (typeof(ContractBindingFailure), typeof(WorkerClaimReason))
-        };
-        string[] expectedNames = [
-            nameof(OutputKind),
-            nameof(OptimizationLevel),
-            nameof(Platform),
-            nameof(NullableContextOptions),
-            nameof(MetadataImportOptions),
-            nameof(ReportDiagnostic),
-            nameof(AssemblyIdentityComparer),
-            nameof(EffectEvaluationContractKind),
-            nameof(EffectEvaluationOutcome),
-            nameof(EffectEvaluationReason),
-            nameof(EffectEvaluationCertainty),
-            nameof(EffectContractKind),
-            nameof(EffectContractCapabilityKind),
-            nameof(BoundContractKind),
-            nameof(BoundContractEvidence),
-            nameof(BoundContractVariableRole),
-            "BoundContractEvidenceWorker",
-            nameof(ContractBindingFailure)
+        (string Name, Type Source, Type Target)[] expected = [
+            (nameof(OutputKind), typeof(OutputKind), typeof(CompilerOutputKind)),
+            (nameof(OptimizationLevel), typeof(OptimizationLevel), typeof(CompilerOptimizationLevel)),
+            (nameof(Platform), typeof(Platform), typeof(CompilerPlatform)),
+            (nameof(NullableContextOptions), typeof(NullableContextOptions), typeof(CompilerNullableContext)),
+            (nameof(MetadataImportOptions), typeof(MetadataImportOptions), typeof(CompilerMetadataImportOptions)),
+            (nameof(ReportDiagnostic), typeof(ReportDiagnostic), typeof(CompilerReportDiagnostic)),
+            (nameof(AssemblyIdentityComparer), typeof(AssemblyIdentityComparer), typeof(CompilerAssemblyIdentityComparer)),
+            (nameof(EffectEvaluationContractKind), typeof(EffectEvaluationContractKind), typeof(WorkerEffectContractKind)),
+            (nameof(EffectEvaluationOutcome), typeof(EffectEvaluationOutcome), typeof(WorkerClaimOutcome)),
+            (nameof(EffectEvaluationReason), typeof(EffectEvaluationReason), typeof(WorkerClaimReason)),
+            (nameof(EffectEvaluationCertainty), typeof(EffectEvaluationCertainty), typeof(WorkerEffectEvidenceCertainty)),
+            (nameof(EffectContractKind), typeof(EffectContractKind), typeof(WorkerEffectSet)),
+            (nameof(EffectContractCapabilityKind), typeof(EffectContractCapabilityKind), typeof(WorkerEffectCapabilitySet)),
+            (nameof(BoundContractKind), typeof(BoundContractKind), typeof(CompilerContractKind)),
+            (nameof(BoundContractEvidence), typeof(BoundContractEvidence), typeof(CompilerContractEvidence)),
+            (nameof(BoundContractVariableRole), typeof(BoundContractVariableRole), typeof(CompilerVariableRole)),
+            ("BoundContractEvidenceWorker", typeof(BoundContractEvidence), typeof(WorkerClaimEvidence)),
+            (nameof(ContractBindingFailure), typeof(ContractBindingFailure), typeof(WorkerClaimReason))
         ];
         Assert.That(
             mappings.Select(static mapping =>
                 mapping.GetProperty("name").GetString()),
-            Is.EqualTo(expectedNames));
+            Is.EqualTo(expected.Select(static item => item.Name)));
         Assert.That(
             mappings.Select(static mapping =>
                 mapping.GetProperty("owner").GetString() + "." +
@@ -355,24 +311,23 @@ public sealed class CompilerArtifactModelSchemaTests
                 .Count(),
             Is.EqualTo(mappings.Length));
 
-        foreach (var mapping in mappings)
+        for (var index = 0; index < mappings.Length; index++)
         {
-            var name = mapping.GetProperty("name").GetString()!;
-            var types = expectedTypes[name];
-            var isOption = Array.IndexOf(expectedNames, name) < 7;
-            var isEvaluation =
-                Array.IndexOf(expectedNames, name) is >= 7 and < 11;
-            var isLowering =
-                Array.IndexOf(expectedNames, name) is >= 13 and < 18;
+            var mapping = mappings[index];
+            var item = expected[index];
+            var name = item.Name;
+            var isOption = index < 7;
+            var isEvaluation = index is >= 7 and < 11;
+            var isLowering = index is >= 13 and < 18;
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(
                     mapping.GetProperty("sourceType").GetString(),
-                    Is.EqualTo(types.Source.Name),
+                    Is.EqualTo(item.Source.Name),
                     name + " source type");
                 Assert.That(
                     mapping.GetProperty("targetType").GetString(),
-                    Is.EqualTo(types.Target.Name),
+                    Is.EqualTo(item.Target.Name),
                     name + " target type");
                 Assert.That(
                     mapping.GetProperty("owner").GetString(),
@@ -424,8 +379,8 @@ public sealed class CompilerArtifactModelSchemaTests
                 Assert.That(identityByName.GetBoolean(), Is.True, name);
                 Assert.That(mapping.TryGetProperty("rows", out _), Is.False, name);
                 Assert.That(
-                    Enum.GetNames(types.Source).All(source =>
-                        Enum.GetNames(types.Target).Contains(
+                    Enum.GetNames(item.Source).All(source =>
+                        Enum.GetNames(item.Target).Contains(
                             source,
                             StringComparer.Ordinal)),
                     Is.True,
@@ -439,22 +394,22 @@ public sealed class CompilerArtifactModelSchemaTests
                 Assert.That(identityFlagsByValue.GetBoolean(), Is.True, name);
                 Assert.That(mapping.TryGetProperty("rows", out _), Is.False, name);
                 Assert.That(
-                    Enum.GetUnderlyingType(types.Source),
-                    Is.EqualTo(Enum.GetUnderlyingType(types.Target)),
+                    Enum.GetUnderlyingType(item.Source),
+                    Is.EqualTo(Enum.GetUnderlyingType(item.Target)),
                     name + " underlying type");
-                var sourceMembers = Enum.GetNames(types.Source)
+                var sourceMembers = Enum.GetNames(item.Source)
                     .ToDictionary(
                         static member => member,
                         member => Convert.ToInt64(
-                            Enum.Parse(types.Source, member),
+                            Enum.Parse(item.Source, member),
                             CultureInfo.InvariantCulture),
                         StringComparer.Ordinal);
-                var targetMembers = Enum.GetNames(types.Target)
+                var targetMembers = Enum.GetNames(item.Target)
                     .Where(static member => member != "AllKnown")
                     .ToDictionary(
                         static member => member,
                         member => Convert.ToInt64(
-                            Enum.Parse(types.Target, member),
+                            Enum.Parse(item.Target, member),
                             CultureInfo.InvariantCulture),
                         StringComparer.Ordinal);
                 Assert.That(targetMembers, Is.EqualTo(sourceMembers), name);
@@ -463,7 +418,7 @@ public sealed class CompilerArtifactModelSchemaTests
                     static (mask, value) => mask | value);
                 Assert.That(
                     Convert.ToInt64(
-                        Enum.Parse(types.Target, "AllKnown"),
+                        Enum.Parse(item.Target, "AllKnown"),
                         CultureInfo.InvariantCulture),
                     Is.EqualTo(sourceMask),
                     name + " AllKnown");
@@ -505,11 +460,11 @@ public sealed class CompilerArtifactModelSchemaTests
 
             Assert.That(
                 sources,
-                Is.EquivalentTo(Enum.GetNames(types.Source)),
+                Is.EquivalentTo(Enum.GetNames(item.Source)),
                 name + " source completeness");
             Assert.That(
                 targets.All(target =>
-                    Enum.GetNames(types.Target).Contains(
+                    Enum.GetNames(item.Target).Contains(
                         target,
                         StringComparer.Ordinal)),
                 Is.True,

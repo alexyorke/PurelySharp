@@ -594,19 +594,7 @@ public sealed class CompilerManifestArtifactTests
 
         foreach (var corrupt in corruptions)
         {
-            var artifact = CreateArtifact();
-            corrupt(artifact.Compilation);
-            artifact.CompilationSha256 =
-                CompilationFingerprint.ComputeSha256(
-                    artifact.Compilation, []);
-            var json = JsonSerializer.Serialize(
-                    artifact,
-                    WorkerProtocolJson.Options) +
-                "\n";
-
-            Assert.Throws<JsonException>(
-                (Action)(() =>
-                    CompilerManifestArtifactJson.Deserialize(json)));
+            AssertMalformedCapture(corrupt);
         }
     }
 

@@ -54,7 +54,7 @@ internal static class EffectCounterexampleReplayer
 
         cancellationToken.ThrowIfCancellationRequested();
         return violation != null &&
-            WitnessesEqual(violation, evidence.Witness)
+            CompilerEffectAuthority.WitnessesEqual(violation, evidence.Witness)
                 ? violation
                 : null;
     }
@@ -162,9 +162,7 @@ internal static class EffectCounterexampleReplayer
                     FirstNonblank(
                         effectEvent.TypeDocumentationId,
                         effectEvent.TypeIdentity),
-                    WorkerEffectSet.Throws,
-                    exceptions:
-                        effectEvent.ExactExceptionTypeHierarchy),
+                    WorkerEffectSet.Throws),
             CompilerEffectReplayEventKind.MonitorCall when
                 !string.IsNullOrWhiteSpace(effectEvent.MemberIdentity) &&
                 effectEvent.ExactExceptionTypeHierarchy.Length == 0 =>
@@ -192,60 +190,34 @@ internal static class EffectCounterexampleReplayer
         };
     }
 
-    private static WorkerEffectViolationWitness? CreateWitness(
+    private static WorkerEffectViolationWitness CreateWitness(
         CompilerEffectReplayEventArtifact effectEvent,
         string kind,
-        string? detail,
+        string detail,
         WorkerEffectSet effects,
         WorkerEffectCapabilitySet capabilities =
-            WorkerEffectCapabilitySet.None,
-        string[]? exceptions = null)
+            WorkerEffectCapabilitySet.None)
     {
-        return detail == null
-            ? null
-            : new WorkerEffectViolationWitness
-            {
-                Kind = kind,
-                Detail = detail,
-                Effects = effects,
-                Capabilities = capabilities,
-                ExactExceptionTypeHierarchy = exceptions == null
-                    ? []
-                    : [.. exceptions],
-                Location = CompilerSourceLocationAuthority.CopyLocation(effectEvent.Location)
-            };
-    }
-
-    private static bool WitnessesEqual(
-        WorkerEffectViolationWitness actual,
-        WorkerEffectViolationWitness? claimed)
-    {
-        if (claimed == null)
+        return new WorkerEffectViolationWitness
         {
-            return false;
-        }
-
-        return (actual.Kind, actual.Detail, actual.Effects,
-                   actual.Capabilities) ==
-               (claimed.Kind, claimed.Detail, claimed.Effects,
-                   claimed.Capabilities) &&
-               actual.ExactExceptionTypeHierarchy.SequenceEqual(
-                claimed.ExactExceptionTypeHierarchy,
-                StringComparer.Ordinal) &&
-               CompilerSourceLocationAuthority.LocationsEqual(
-                   actual.Location,
-                   claimed.Location);
+            Kind = kind,
+            Detail = detail,
+            Effects = effects,
+            Capabilities = capabilities,
+            ExactExceptionTypeHierarchy =
+                [.. effectEvent.ExactExceptionTypeHierarchy],
+            Location = CompilerSourceLocationAuthority.CopyLocation(
+                effectEvent.Location)
+        };
     }
 
-    private static string? FirstNonblank(
+    private static string FirstNonblank(
         string? preferred,
         string fallback)
     {
         return !string.IsNullOrWhiteSpace(preferred)
             ? preferred
-            : !string.IsNullOrWhiteSpace(fallback)
-                ? fallback
-                : null;
+            : fallback;
     }
 
     internal static string ComputeConstraintIdentity(

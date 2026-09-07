@@ -402,8 +402,9 @@ function Update-SharpProofGeneratedFile
         $encoding = [System.Text.UTF8Encoding]::new($false)
         $expectedBytes = $encoding.GetBytes($normalizedContent)
         $actualBytes = [System.IO.File]::ReadAllBytes($Path)
-        if ([Convert]::ToBase64String($actualBytes) -cne
-            [Convert]::ToBase64String($expectedBytes))
+        if (-not ([System.Collections.StructuralComparisons]::StructuralEqualityComparer).Equals(
+                $actualBytes,
+                $expectedBytes))
         {
             throw "$DisplayPath is stale. Run $GeneratorCommand."
         }
