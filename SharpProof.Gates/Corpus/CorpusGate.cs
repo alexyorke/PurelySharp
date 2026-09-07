@@ -209,11 +209,7 @@ internal static class CorpusGate
             observation.Verdict is
                 CorpusVerdict.Unknown or CorpusVerdict.SilentUnknown);
         failures.AddRange(
-            ValidateSupportedOutcomes(
-                cases,
-                [.. observations.Select(static observation =>
-                    (observation.CaseId, observation.Verdict))],
-                supportedUnknownCount));
+            ValidateSupportedUnknownCount(supportedUnknownCount));
 
         var unknownReasons = CountUnknownReasons(observations);
         ValidateUnknownReasonRatchet(
@@ -259,12 +255,15 @@ internal static class CorpusGate
 
     internal static ImmutableArray<string> ValidateSupportedOutcomes(
         ImmutableArray<CorpusCase> cases,
-        ImmutableArray<(string CaseId, CorpusVerdict Verdict)> observations,
-        int? supportedUnknownCount = null)
+        ImmutableArray<(string CaseId, CorpusVerdict Verdict)> observations)
     {
-        var count = supportedUnknownCount ?? CountSupportedUnknown(
-            cases,
-            observations);
+        return ValidateSupportedUnknownCount(
+            CountSupportedUnknown(cases, observations));
+    }
+
+    private static ImmutableArray<string> ValidateSupportedUnknownCount(
+        int count)
+    {
         return count == 0
             ? []
             : [
