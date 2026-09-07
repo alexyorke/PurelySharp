@@ -132,30 +132,34 @@ internal sealed class ConversionEffectClassifier(
         IOperation operation,
         ManagedFlowResult? flow)
     {
-        var operands = operation switch
+        return operation switch
         {
             IConversionOperation conversion when
                 IsLiftedNullableUserConversion(conversion) =>
-                [conversion.Operand],
+                IsDefinitelyNull(operation, conversion.Operand, flow),
             IBinaryOperation { IsLifted: true } binary =>
-                [binary.LeftOperand, binary.RightOperand],
+                IsDefinitelyNull(operation, binary.LeftOperand, flow) ||
+                IsDefinitelyNull(operation, binary.RightOperand, flow),
             IUnaryOperation { IsLifted: true } unary =>
-                [unary.Operand],
+                IsDefinitelyNull(operation, unary.Operand, flow),
             IIncrementOrDecrementOperation { IsLifted: true } increment =>
-                [increment.Target],
+                IsDefinitelyNull(operation, increment.Target, flow),
             ICompoundAssignmentOperation { IsLifted: true } assignment =>
-                [assignment.Target, assignment.Value],
-            _ => Array.Empty<IOperation>()
+                IsDefinitelyNull(operation, assignment.Target, flow) ||
+                IsDefinitelyNull(operation, assignment.Value, flow),
+            _ => false
         };
+    }
 
-        return operands.Any(operand =>
-            ManagedAbstractValue.IsNullableType(operand.Type) &&
+    private static bool IsDefinitelyNull(
+        IOperation origin,
+        IOperation operand,
+        ManagedFlowResult? flow)
+    {
+        return ManagedAbstractValue.IsNullableType(operand.Type) &&
             (operand.ConstantValue is { HasValue: true, Value: null } ||
-                flow?.TryEvaluate(
-                    operation,
-                    operand,
-                    out var value) == true &&
-                value.IsDefinitelyNull));
+            flow?.TryEvaluate(origin, operand, out var value) == true &&
+            value.IsDefinitelyNull);
     }
 
     internal static bool IsLiftedNullableUserConversion(
