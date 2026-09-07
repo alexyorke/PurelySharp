@@ -64,9 +64,10 @@ internal sealed class EffectMethodNodeBuilder
             cancellationToken);
         var preBodyInitializers = method.MethodKind ==
             MethodKind.StaticConstructor
-                ? ScanConstructorMemberInitializers(
+                ? ScanMemberInitializers(
                     method,
                     scanner,
+                    staticInitializers: true,
                     cancellationToken)
                 : EffectStep.Empty;
         var constructorPlan = CreateConstructorInitializationPlan(
@@ -218,24 +219,6 @@ internal sealed class EffectMethodNodeBuilder
             constructorNode.Calls,
             []);
         return true;
-    }
-
-    private EffectStep ScanConstructorMemberInitializers(
-        IMethodSymbol method,
-        OperationEffectScanner scanner,
-        CancellationToken cancellationToken)
-    {
-        var staticInitializers = method.MethodKind == MethodKind.StaticConstructor;
-        if (!staticInitializers && method.MethodKind != MethodKind.Constructor)
-        {
-            return EffectStep.Empty;
-        }
-
-        return ScanMemberInitializers(
-            method,
-            scanner,
-            staticInitializers,
-            cancellationToken);
     }
 
     private void EnsureBeforeFieldInitNode(
