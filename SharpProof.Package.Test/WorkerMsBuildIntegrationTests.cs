@@ -954,6 +954,11 @@ public sealed class WorkerMsBuildIntegrationTests
             ("SharpProofVerifySarifFile", configured));
         var clean = await project.CleanAsync(
             ("SharpProofVerifySarifFile", configured));
+        Assert.That(clean.ExitCode, Is.Zero, clean.Output);
+        Assert.That(
+            File.Exists(Path.Combine(project.Root, "obj", "project.assets.json")),
+            Is.True,
+            "Clean must preserve the restored dependency graph.");
         var rebuilt = await project.BuildAsync(
             verify: true,
             ("SharpProofVerifySarifFile", configured));
@@ -962,8 +967,9 @@ public sealed class WorkerMsBuildIntegrationTests
         {
             Assert.That(first.ExitCode, Is.Zero, first.Output);
             Assert.That(incremental.ExitCode, Is.Zero, incremental.Output);
-            Assert.That(clean.ExitCode, Is.Zero, clean.Output);
             Assert.That(rebuilt.ExitCode, Is.Zero, rebuilt.Output);
+            Assert.That(rebuilt.Output,
+                Does.Not.Contain("Determining projects to restore"));
         }
         var markerIdentities = new List<string>();
         foreach (var framework in new[]
@@ -4061,7 +4067,13 @@ public sealed class WorkerMsBuildIntegrationTests
         internal Task<BuildResult> CleanAsync(
             params (string Name, string Value)[] properties)
         {
-            _defaultRestoreCompleted = false;
+            // Clean removes build outputs, not the restored dependency graph.
+            // BuildAsync still restores if the assets file no longer exists.
+            if (properties.Any(
+                    static property => IsRestoreSensitiveProperty(property.Name)))
+            {
+                _defaultRestoreCompleted = false;
+            }
             var arguments = new List<string>
             {
                 "clean",
