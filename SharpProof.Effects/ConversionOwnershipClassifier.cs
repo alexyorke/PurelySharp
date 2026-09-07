@@ -257,17 +257,10 @@ internal sealed class ConversionOwnershipClassifier
                         out var refSource))
                 {
                     var discoveredStorage = ClassifyRefAliasSource(refSource);
-                    var previousStorage = _refLocalStorageRegions.TryGetValue(
+                    changed |= Merge(
+                        _refLocalStorageRegions,
                         refLocal,
-                        out var existingStorage)
-                            ? existingStorage
-                            : EffectRegionSet.Empty;
-                    var joinedStorage = previousStorage.Union(discoveredStorage);
-                    if (joinedStorage != previousStorage)
-                    {
-                        _refLocalStorageRegions[refLocal] = joinedStorage;
-                        changed = true;
-                    }
+                        discoveredStorage);
                 }
 
                 if (operation is IInvocationOperation invocation)
@@ -321,20 +314,10 @@ internal sealed class ConversionOwnershipClassifier
 
                     foreach (var refLikeTarget in refLikeTargets)
                     {
-                        var previousReceiverRegions =
-                            _localRegions.TryGetValue(
-                                refLikeTarget,
-                                out var receiverRegions)
-                                ? receiverRegions
-                                : EffectRegionSet.Empty;
-                        var joinedReceiverRegions =
-                            previousReceiverRegions.Union(argumentRegions);
-                        if (joinedReceiverRegions != previousReceiverRegions)
-                        {
-                            _localRegions[refLikeTarget] =
-                                joinedReceiverRegions;
-                            changed = true;
-                        }
+                        changed |= Merge(
+                            _localRegions,
+                            refLikeTarget,
+                            argumentRegions);
                     }
                 }
 
@@ -384,17 +367,10 @@ internal sealed class ConversionOwnershipClassifier
                             EffectRegionSet.Unknown);
                     }
 
-                    var previousRegions = _localRegions.TryGetValue(
+                    changed |= Merge(
+                        _localRegions,
                         propertyReceiver,
-                        out var existingRegions)
-                            ? existingRegions
-                            : EffectRegionSet.Empty;
-                    var joinedRegions = previousRegions.Union(setterRegions);
-                    if (joinedRegions != previousRegions)
-                    {
-                        _localRegions[propertyReceiver] = joinedRegions;
-                        changed = true;
-                    }
+                        setterRegions);
                 }
 
                 if (operation is IPropertyReferenceOperation
@@ -427,17 +403,10 @@ internal sealed class ConversionOwnershipClassifier
                             EffectRegionSet.Unknown);
                     }
 
-                    var previousRegions = _localRegions.TryGetValue(
+                    changed |= Merge(
+                        _localRegions,
                         getterReceiver,
-                        out var existingRegions)
-                            ? existingRegions
-                            : EffectRegionSet.Empty;
-                    var joinedRegions = previousRegions.Union(getterRegions);
-                    if (joinedRegions != previousRegions)
-                    {
-                        _localRegions[getterReceiver] = joinedRegions;
-                        changed = true;
-                    }
+                        getterRegions);
                 }
 
                 (ISymbol? Target, IOperation? Value) source = operation switch
@@ -499,19 +468,27 @@ internal sealed class ConversionOwnershipClassifier
                     targetRefKind == RefKind.None
                     ? EffectRegionSet.Empty
                     : ClassifyRegion(source.Value, aliasSource: true);
-                var previous = _localRegions.TryGetValue(source.Target, out var existing)
-                    ? existing
-                    : EffectRegionSet.Empty;
-                var joined = previous.Union(discovered);
-                if (joined == previous)
-                {
-                    continue;
-                }
-
-                _localRegions[source.Target] = joined;
-                changed = true;
+                changed |= Merge(_localRegions, source.Target, discovered);
             }
         }
+    }
+
+    private static bool Merge(
+        Dictionary<ISymbol, EffectRegionSet> regionsBySymbol,
+        ISymbol symbol,
+        EffectRegionSet discovered)
+    {
+        var previous = regionsBySymbol.TryGetValue(symbol, out var existing)
+            ? existing
+            : EffectRegionSet.Empty;
+        var joined = previous.Union(discovered);
+        if (joined == previous)
+        {
+            return false;
+        }
+
+        regionsBySymbol[symbol] = joined;
+        return true;
     }
 
     private EffectRegionSet ClassifyRefAliasSource(IOperation? operation)

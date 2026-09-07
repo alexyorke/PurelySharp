@@ -26,7 +26,6 @@ public sealed class EffectAnalysisTests
                 }
             }
             """,
-            "Sample",
             "Run");
 
         using (Assert.EnterMultipleScope())
@@ -106,7 +105,6 @@ public sealed class EffectAnalysisTests
                 }
             }
             """,
-            "Sample",
             "Run");
 
         Assert.That(
@@ -153,7 +151,6 @@ public sealed class EffectAnalysisTests
                 }
             }
             """,
-            "Sample",
             "Run");
 
         using (Assert.EnterMultipleScope())
@@ -210,7 +207,6 @@ public sealed class EffectAnalysisTests
                 }
             }
             """,
-            "Sample",
             "Run");
 
         using (Assert.EnterMultipleScope())
@@ -321,7 +317,6 @@ public sealed class EffectAnalysisTests
                     source with { };
             }
             """,
-            "Sample",
             "Copy");
 
         using (Assert.EnterMultipleScope())
@@ -500,7 +495,6 @@ public sealed class EffectAnalysisTests
                 }
             }
             """,
-            "Sample",
             "Caller");
 
         Assert.That(
@@ -522,7 +516,6 @@ public sealed class EffectAnalysisTests
                 }
             }
             """,
-            "Sample",
             "Example");
 
         using (Assert.EnterMultipleScope())
@@ -549,7 +542,6 @@ public sealed class EffectAnalysisTests
                 }
             }
             """,
-            "Sample",
             "Example");
 
         Assert.That(
@@ -566,7 +558,6 @@ public sealed class EffectAnalysisTests
                 public static int Add(int left, int right) => left + right;
             }
             """,
-            "Sample",
             "Add");
 
         Assert.That(result.Summary.Reads.IsEmpty, Is.True);
@@ -588,7 +579,6 @@ public sealed class EffectAnalysisTests
                 public static string Name() => nameof(Sample);
             }
             """,
-            "Sample",
             "Name");
 
         Assert.That(result.Summary.Allocation, Is.EqualTo(EffectAllocationKind.None));
@@ -737,7 +727,6 @@ public sealed class EffectAnalysisTests
                     $"{value}";
             }
             """,
-            "Sample",
             "Format");
 
         using (Assert.EnterMultipleScope())
@@ -883,7 +872,6 @@ public sealed class EffectAnalysisTests
                     "value=" + value;
             }
             """,
-            "Sample",
             "Format");
 
         using (Assert.EnterMultipleScope())
@@ -923,7 +911,6 @@ public sealed class EffectAnalysisTests
                     left + right;
             }
             """,
-            "Sample",
             "Combine");
 
         Assert.That(
@@ -1587,7 +1574,6 @@ public sealed class EffectAnalysisTests
                 public static object Create() => new object();
             }
             """,
-            "Sample",
             "Create");
 
         Assert.That(result.Summary.Allocation, Is.EqualTo(EffectAllocationKind.Managed));
@@ -1738,7 +1724,6 @@ public sealed class EffectAnalysisTests
                 public void Increment() => Value++;
             }
             """,
-            "Sample",
             "Increment");
 
         using (Assert.EnterMultipleScope())
@@ -1918,7 +1903,6 @@ public sealed class EffectAnalysisTests
                 public static Token Create() => new Token(1);
             }
             """,
-            "Sample",
             "Create");
 
         Assert.That(result.Summary.Allocation, Is.EqualTo(EffectAllocationKind.None));
@@ -3155,7 +3139,6 @@ public sealed class EffectAnalysisTests
                 }
             }
             """,
-            "Sample",
             "Mutate");
 
         Assert.That(
@@ -3180,7 +3163,6 @@ public sealed class EffectAnalysisTests
                 }
             }
             """,
-            "Sample",
             "Mutate");
 
         AssertFreshContainerAlias(result);
@@ -3205,7 +3187,6 @@ public sealed class EffectAnalysisTests
                 }
             }
             """,
-            "Sample",
             "Mutate");
 
         AssertFreshContainerAlias(result);
@@ -3228,7 +3209,6 @@ public sealed class EffectAnalysisTests
                 }
             }
             """,
-            "Sample",
             "Mutate");
 
         AssertFreshContainerAlias(result);
@@ -3246,7 +3226,6 @@ public sealed class EffectAnalysisTests
                 }
             }
             """,
-            "Sample",
             "Mutate");
 
         using (Assert.EnterMultipleScope())
@@ -4264,7 +4243,6 @@ public sealed class EffectAnalysisTests
                 public static int Absolute(int value) => System.Math.Abs(value);
             }
             """,
-            "Sample",
             "Absolute");
 
         Assert.That(result.Summary.Completeness, Is.EqualTo(EffectCompleteness.Complete));
@@ -4364,7 +4342,6 @@ public sealed class EffectAnalysisTests
                 public static System.Guid CreateGuid() => System.Guid.NewGuid();
             }
             """,
-            "Sample",
             "CreateGuid");
 
         Assert.That(result.Summary.Completeness, Is.EqualTo(EffectCompleteness.Incomplete));
@@ -4880,7 +4857,6 @@ public sealed class EffectAnalysisTests
                 public static void Recur() => Recur();
             }
             """,
-            "Sample",
             "Recur");
 
         Assert.That(result.Summary.Completeness, Is.EqualTo(EffectCompleteness.Incomplete));
@@ -4904,7 +4880,6 @@ public sealed class EffectAnalysisTests
                 }
             }
             """,
-            "Sample",
             "Loop");
 
         Assert.That(
@@ -5043,7 +5018,6 @@ public sealed class EffectAnalysisTests
                 }
             }
             """,
-            "Sample",
             "Allocate");
 
         using (Assert.EnterMultipleScope())
@@ -5068,7 +5042,6 @@ public sealed class EffectAnalysisTests
                     values[0] = value;
             }
             """,
-            "Sample",
             "Store");
 
         AssertThrows(
@@ -5091,7 +5064,6 @@ public sealed class EffectAnalysisTests
                     values[0] = value;
             }
             """,
-            "Sample",
             "Store");
 
         AssertThrows(
@@ -5118,7 +5090,6 @@ public sealed class EffectAnalysisTests
                 }
             }
             """,
-            "Sample",
             "Store");
 
         AssertThrows(
@@ -5193,7 +5164,6 @@ public sealed class EffectAnalysisTests
                 public static string Invoke(object value) => value.ToString();
             }
             """,
-            "Sample",
             "Invoke");
 
         Assert.That(result.Summary.Throws.IncludesUnknown, Is.True);
@@ -5213,7 +5183,6 @@ public sealed class EffectAnalysisTests
                 public static int Invoke() => new object().GetHashCode();
             }
             """,
-            "Sample",
             "Invoke");
 
         Assert.That(
@@ -5231,7 +5200,6 @@ public sealed class EffectAnalysisTests
                     (new object() as string)!.Length;
             }
             """,
-            "Sample",
             "Invoke");
 
         Assert.That(
@@ -5253,7 +5221,6 @@ public sealed class EffectAnalysisTests
                 public static void Write() => s_value = 1;
             }
             """,
-            "Sample",
             "Write");
 
         Assert.That(
@@ -5468,7 +5435,6 @@ public sealed class EffectAnalysisTests
                 public static object? Invoke(dynamic value) => value();
             }
             """,
-            "Sample",
             "Invoke");
 
         Assert.That(result.Summary.Completeness, Is.EqualTo(EffectCompleteness.Incomplete));
@@ -8248,15 +8214,10 @@ public sealed class EffectAnalysisTests
 
     private static EffectMethodResult Analyze(
         string source,
-        string typeMetadataName,
         string methodName)
     {
         var compilation = EffectTestHost.CreateCompilation(source);
-        return new EffectAnalysisSession(compilation).Analyze(
-            EffectTestHost.RequireMethod(
-                compilation,
-                typeMetadataName,
-                methodName));
+        return EffectTestHost.AnalyzeSample(compilation, methodName);
     }
 
     private static void AssertFreshContainerAlias(EffectMethodResult result)
@@ -8390,7 +8351,6 @@ public sealed class EffectAnalysisTests
                     throw new System.InvalidOperationException();
             }
             """,
-            "Sample",
             "Assign");
 
         using (Assert.EnterMultipleScope())
@@ -8429,7 +8389,6 @@ public sealed class EffectAnalysisTests
                     throw new System.InvalidOperationException();
             }
             """,
-            "Sample",
             "Assign");
 
         using (Assert.EnterMultipleScope())
@@ -8465,7 +8424,6 @@ public sealed class EffectAnalysisTests
                 }
             }
             """,
-            "Sample",
             "Evaluate");
 
         using (Assert.EnterMultipleScope())
