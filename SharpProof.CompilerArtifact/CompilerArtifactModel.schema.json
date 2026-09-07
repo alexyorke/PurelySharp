@@ -6,6 +6,236 @@
     "schema": "SharpProof.CompilerManifest",
     "version": 18
   },
+  "propertyGroups": [
+    {
+      "name": "SourceLocation",
+      "properties": [
+        {
+          "name": "SourceTreeOrdinal",
+          "jsonName": "sourceTreeOrdinal",
+          "type": "int",
+          "accessibility": "public",
+          "set": "set",
+          "default": {
+            "kind": "literal",
+            "value": "-1"
+          }
+        },
+        {
+          "name": "SourceTreePath",
+          "jsonName": "sourceTreePath",
+          "type": "string",
+          "accessibility": "public",
+          "set": "set",
+          "default": {
+            "kind": "stringEmpty"
+          }
+        },
+        {
+          "name": "SourceTreeSha256",
+          "jsonName": "sourceTreeSha256",
+          "type": "string",
+          "accessibility": "public",
+          "set": "set",
+          "default": {
+            "kind": "stringEmpty"
+          }
+        },
+        {
+          "name": "SourceLineMapSha256",
+          "jsonName": "sourceLineMapSha256",
+          "type": "string",
+          "accessibility": "public",
+          "set": "set",
+          "default": {
+            "kind": "stringEmpty"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SpecificationPack",
+      "properties": [
+        {
+          "name": "SpecificationPackIds",
+          "jsonName": "specificationPackIds",
+          "type": "string[]",
+          "accessibility": "public",
+          "set": "set",
+          "default": {
+            "kind": "emptyArray"
+          }
+        },
+        {
+          "name": "SpecificationPackCatalogVersion",
+          "jsonName": "specificationPackCatalogVersion",
+          "type": "int",
+          "accessibility": "public",
+          "set": "set",
+          "default": {
+            "kind": "member",
+            "value": "CompilerSpecificationPackCatalogVersions.Current"
+          }
+        },
+        {
+          "name": "SpecificationPackCatalogSha256",
+          "jsonName": "specificationPackCatalogSha256",
+          "type": "string",
+          "accessibility": "public",
+          "set": "set",
+          "default": {
+            "kind": "member",
+            "value": "CompilerSpecificationPackCatalogVersions.Sha256"
+          }
+        }
+      ]
+    },
+    {
+      "name": "EffectClaim",
+      "properties": [
+        {
+          "name": "ClaimId",
+          "jsonName": "claimId",
+          "type": "string",
+          "accessibility": "public",
+          "set": "set",
+          "default": {
+            "kind": "stringEmpty"
+          }
+        },
+        {
+          "name": "ContractKind",
+          "jsonName": "contractKind",
+          "type": "WorkerEffectContractKind",
+          "accessibility": "public",
+          "set": "set",
+          "default": {
+            "kind": "implicit"
+          }
+        },
+        {
+          "name": "Outcome",
+          "jsonName": "outcome",
+          "type": "WorkerClaimOutcome",
+          "accessibility": "public",
+          "set": "set",
+          "default": {
+            "kind": "implicit"
+          }
+        },
+        {
+          "name": "Reason",
+          "jsonName": "reason",
+          "type": "WorkerClaimReason",
+          "accessibility": "public",
+          "set": "set",
+          "default": {
+            "kind": "implicit"
+          }
+        },
+        {
+          "name": "Certainty",
+          "jsonName": "certainty",
+          "type": "WorkerEffectEvidenceCertainty",
+          "accessibility": "public",
+          "set": "set",
+          "default": {
+            "kind": "implicit"
+          }
+        },
+        {
+          "name": "Constraint",
+          "jsonName": "constraint",
+          "type": "CompilerEffectConstraintArtifact",
+          "accessibility": "public",
+          "set": "set",
+          "default": {
+            "kind": "new"
+          }
+        },
+        {
+          "name": "Witness",
+          "jsonName": "witness",
+          "type": "WorkerEffectViolationWitness?",
+          "accessibility": "public",
+          "set": "set",
+          "default": {
+            "kind": "implicit"
+          }
+        },
+        {
+          "name": "Replay",
+          "jsonName": "replay",
+          "type": "CompilerEffectReplayArtifact?",
+          "accessibility": "public",
+          "set": "set",
+          "default": {
+            "kind": "implicit"
+          }
+        },
+        {
+          "name": "Evidence",
+          "jsonName": "evidence",
+          "type": "string",
+          "accessibility": "public",
+          "set": "set",
+          "default": {
+            "kind": "stringEmpty"
+          }
+        }
+      ]
+    },
+    {
+      "name": "FileIdentity",
+      "properties": [
+        {
+          "name": "Path",
+          "jsonName": "path",
+          "type": "string",
+          "accessibility": "public",
+          "set": "set",
+          "default": {
+            "kind": "stringEmpty"
+          }
+        },
+        {
+          "name": "Sha256",
+          "jsonName": "sha256",
+          "type": "string",
+          "accessibility": "public",
+          "set": "set",
+          "default": {
+            "kind": "stringEmpty"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SummaryEvidenceIdentity",
+      "properties": [
+        {
+          "name": "EvidenceSha256",
+          "jsonName": "evidenceSha256",
+          "type": "string",
+          "accessibility": "public",
+          "set": "set",
+          "default": {
+            "kind": "stringEmpty"
+          }
+        },
+        {
+          "name": "EvidenceIdentity",
+          "jsonName": "evidenceIdentity",
+          "type": "string",
+          "accessibility": "public",
+          "set": "set",
+          "default": {
+            "kind": "stringEmpty"
+          }
+        }
+      ]
+    }
+  ],
   "declarations": [
     {
       "kind": "staticClass",
@@ -1389,38 +1619,7 @@
       "kind": "class",
       "name": "CompilerSpecificationPackAuthority",
       "properties": [
-        {
-          "name": "SpecificationPackIds",
-          "jsonName": "specificationPackIds",
-          "type": "string[]",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "emptyArray"
-          }
-        },
-        {
-          "name": "SpecificationPackCatalogVersion",
-          "jsonName": "specificationPackCatalogVersion",
-          "type": "int",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "member",
-            "value": "CompilerSpecificationPackCatalogVersions.Current"
-          }
-        },
-        {
-          "name": "SpecificationPackCatalogSha256",
-          "jsonName": "specificationPackCatalogSha256",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "member",
-            "value": "CompilerSpecificationPackCatalogVersions.Sha256"
-          }
-        }
+        { "group": "SpecificationPack" }
       ]
     },
     {
@@ -1457,47 +1656,7 @@
             "kind": "new"
           }
         },
-        {
-          "name": "SourceTreeOrdinal",
-          "jsonName": "sourceTreeOrdinal",
-          "type": "int",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "literal",
-            "value": "-1"
-          }
-        },
-        {
-          "name": "SourceTreePath",
-          "jsonName": "sourceTreePath",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        },
-        {
-          "name": "SourceTreeSha256",
-          "jsonName": "sourceTreeSha256",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        },
-        {
-          "name": "SourceLineMapSha256",
-          "jsonName": "sourceLineMapSha256",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        }
+        { "group": "SourceLocation" }
       ]
     },
     {
@@ -1590,96 +1749,7 @@
       "kind": "class",
       "name": "CompilerEffectClaimArtifact",
       "properties": [
-        {
-          "name": "ClaimId",
-          "jsonName": "claimId",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        },
-        {
-          "name": "ContractKind",
-          "jsonName": "contractKind",
-          "type": "WorkerEffectContractKind",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "implicit"
-          }
-        },
-        {
-          "name": "Outcome",
-          "jsonName": "outcome",
-          "type": "WorkerClaimOutcome",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "implicit"
-          }
-        },
-        {
-          "name": "Reason",
-          "jsonName": "reason",
-          "type": "WorkerClaimReason",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "implicit"
-          }
-        },
-        {
-          "name": "Certainty",
-          "jsonName": "certainty",
-          "type": "WorkerEffectEvidenceCertainty",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "implicit"
-          }
-        },
-        {
-          "name": "Constraint",
-          "jsonName": "constraint",
-          "type": "CompilerEffectConstraintArtifact",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "new"
-          }
-        },
-        {
-          "name": "Witness",
-          "jsonName": "witness",
-          "type": "WorkerEffectViolationWitness?",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "implicit"
-          }
-        },
-        {
-          "name": "Replay",
-          "jsonName": "replay",
-          "type": "CompilerEffectReplayArtifact?",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "implicit"
-          }
-        },
-        {
-          "name": "Evidence",
-          "jsonName": "evidence",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        },
+        { "group": "EffectClaim" },
         {
           "name": "EvidenceSha256",
           "jsonName": "evidenceSha256",
@@ -1696,96 +1766,7 @@
       "kind": "class",
       "name": "CompilerEffectAuthorityArtifact",
       "properties": [
-        {
-          "name": "ClaimId",
-          "jsonName": "claimId",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        },
-        {
-          "name": "ContractKind",
-          "jsonName": "contractKind",
-          "type": "WorkerEffectContractKind",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "implicit"
-          }
-        },
-        {
-          "name": "Outcome",
-          "jsonName": "outcome",
-          "type": "WorkerClaimOutcome",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "implicit"
-          }
-        },
-        {
-          "name": "Reason",
-          "jsonName": "reason",
-          "type": "WorkerClaimReason",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "implicit"
-          }
-        },
-        {
-          "name": "Certainty",
-          "jsonName": "certainty",
-          "type": "WorkerEffectEvidenceCertainty",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "implicit"
-          }
-        },
-        {
-          "name": "Constraint",
-          "jsonName": "constraint",
-          "type": "CompilerEffectConstraintArtifact",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "new"
-          }
-        },
-        {
-          "name": "Witness",
-          "jsonName": "witness",
-          "type": "WorkerEffectViolationWitness?",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "implicit"
-          }
-        },
-        {
-          "name": "Replay",
-          "jsonName": "replay",
-          "type": "CompilerEffectReplayArtifact?",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "implicit"
-          }
-        },
-        {
-          "name": "Evidence",
-          "jsonName": "evidence",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        },
+        { "group": "EffectClaim" },
         {
           "name": "Source",
           "jsonName": "source",
@@ -1796,47 +1777,7 @@
             "kind": "new"
           }
         },
-        {
-          "name": "SourceTreeOrdinal",
-          "jsonName": "sourceTreeOrdinal",
-          "type": "int",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "literal",
-            "value": "-1"
-          }
-        },
-        {
-          "name": "SourceTreePath",
-          "jsonName": "sourceTreePath",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        },
-        {
-          "name": "SourceTreeSha256",
-          "jsonName": "sourceTreeSha256",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        },
-        {
-          "name": "SourceLineMapSha256",
-          "jsonName": "sourceLineMapSha256",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        }
+        { "group": "SourceLocation" }
       ]
     },
     {
@@ -2141,47 +2082,7 @@
             "kind": "new"
           }
         },
-        {
-          "name": "SourceTreeOrdinal",
-          "jsonName": "sourceTreeOrdinal",
-          "type": "int",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "literal",
-            "value": "-1"
-          }
-        },
-        {
-          "name": "SourceTreePath",
-          "jsonName": "sourceTreePath",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        },
-        {
-          "name": "SourceTreeSha256",
-          "jsonName": "sourceTreeSha256",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        },
-        {
-          "name": "SourceLineMapSha256",
-          "jsonName": "sourceLineMapSha256",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        }
+        { "group": "SourceLocation" }
       ]
     },
     {
@@ -2554,26 +2455,7 @@
             "kind": "stringEmpty"
           }
         },
-        {
-          "name": "EvidenceSha256",
-          "jsonName": "evidenceSha256",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        },
-        {
-          "name": "EvidenceIdentity",
-          "jsonName": "evidenceIdentity",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        }
+        { "group": "SummaryEvidenceIdentity" }
       ]
     },
     {
@@ -2600,26 +2482,7 @@
             "kind": "stringEmpty"
           }
         },
-        {
-          "name": "EvidenceSha256",
-          "jsonName": "evidenceSha256",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        },
-        {
-          "name": "EvidenceIdentity",
-          "jsonName": "evidenceIdentity",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        },
+        { "group": "SummaryEvidenceIdentity" },
         {
           "name": "SourcePath",
           "jsonName": "sourcePath",
@@ -2772,26 +2635,7 @@
             "value": "-1"
           }
         },
-        {
-          "name": "EvidenceSha256",
-          "jsonName": "evidenceSha256",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        },
-        {
-          "name": "EvidenceIdentity",
-          "jsonName": "evidenceIdentity",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        },
+        { "group": "SummaryEvidenceIdentity" },
         {
           "name": "DependencyEvidence",
           "jsonName": "dependencyEvidence",
@@ -2898,38 +2742,7 @@
             "kind": "stringEmpty"
           }
         },
-        {
-          "name": "SpecificationPackIds",
-          "jsonName": "specificationPackIds",
-          "type": "string[]",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "emptyArray"
-          }
-        },
-        {
-          "name": "SpecificationPackCatalogVersion",
-          "jsonName": "specificationPackCatalogVersion",
-          "type": "int",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "member",
-            "value": "CompilerSpecificationPackCatalogVersions.Current"
-          }
-        },
-        {
-          "name": "SpecificationPackCatalogSha256",
-          "jsonName": "specificationPackCatalogSha256",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "member",
-            "value": "CompilerSpecificationPackCatalogVersions.Sha256"
-          }
-        },
+        { "group": "SpecificationPack" },
         {
           "name": "Options",
           "jsonName": "options",
@@ -3333,33 +3146,16 @@
       "kind": "class",
       "name": "CompilerSyntaxTreeSnapshot",
       "properties": [
-        {
-          "name": "Path",
-          "jsonName": "path",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        },
-        {
-          "name": "Sha256",
-          "jsonName": "sha256",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        },
+        { "group": "FileIdentity" },
         {
           "name": "Encoding",
           "jsonName": "encoding",
           "type": "string",
           "accessibility": "public",
           "set": "set",
-          "default": { "kind": "stringEmpty" }
+          "default": {
+            "kind": "stringEmpty"
+          }
         },
         {
           "name": "ChecksumAlgorithm",
@@ -3367,7 +3163,9 @@
           "type": "string",
           "accessibility": "public",
           "set": "set",
-          "default": { "kind": "stringEmpty" }
+          "default": {
+            "kind": "stringEmpty"
+          }
         },
         {
           "name": "RoslynChecksum",
@@ -3375,7 +3173,9 @@
           "type": "string",
           "accessibility": "public",
           "set": "set",
-          "default": { "kind": "stringEmpty" }
+          "default": {
+            "kind": "stringEmpty"
+          }
         },
         {
           "name": "LineMapSha256",
@@ -3559,26 +3359,7 @@
             "kind": "stringEmpty"
           }
         },
-        {
-          "name": "Path",
-          "jsonName": "path",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        },
-        {
-          "name": "Sha256",
-          "jsonName": "sha256",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        },
+        { "group": "FileIdentity" },
         {
           "name": "SizeBytes",
           "jsonName": "sizeBytes",
@@ -3595,26 +3376,7 @@
       "kind": "class",
       "name": "CompilerAdditionalFileSnapshot",
       "properties": [
-        {
-          "name": "Path",
-          "jsonName": "path",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        },
-        {
-          "name": "Sha256",
-          "jsonName": "sha256",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        }
+        { "group": "FileIdentity" }
       ]
     },
     {
@@ -3687,47 +3449,7 @@
             "kind": "new"
           }
         },
-        {
-          "name": "SourceTreeOrdinal",
-          "jsonName": "sourceTreeOrdinal",
-          "type": "int",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "literal",
-            "value": "-1"
-          }
-        },
-        {
-          "name": "SourceTreePath",
-          "jsonName": "sourceTreePath",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        },
-        {
-          "name": "SourceTreeSha256",
-          "jsonName": "sourceTreeSha256",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        },
-        {
-          "name": "SourceLineMapSha256",
-          "jsonName": "sourceLineMapSha256",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "stringEmpty"
-          }
-        }
+        { "group": "SourceLocation" }
       ]
     },
     {
@@ -3789,38 +3511,7 @@
             "value": "CompilerSpecificationPackVersions.Current"
           }
         },
-        {
-          "name": "SpecificationPackIds",
-          "jsonName": "specificationPackIds",
-          "type": "string[]",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "emptyArray"
-          }
-        },
-        {
-          "name": "SpecificationPackCatalogVersion",
-          "jsonName": "specificationPackCatalogVersion",
-          "type": "int",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "member",
-            "value": "CompilerSpecificationPackCatalogVersions.Current"
-          }
-        },
-        {
-          "name": "SpecificationPackCatalogSha256",
-          "jsonName": "specificationPackCatalogSha256",
-          "type": "string",
-          "accessibility": "public",
-          "set": "set",
-          "default": {
-            "kind": "member",
-            "value": "CompilerSpecificationPackCatalogVersions.Sha256"
-          }
-        },
+        { "group": "SpecificationPack" },
         {
           "name": "Features",
           "jsonName": "features",

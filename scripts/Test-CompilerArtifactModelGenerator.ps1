@@ -81,6 +81,66 @@ function Invoke-GeneratorCase {
     }
 }
 
+function Copy-JsonObject {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$Object
+    )
+
+    $json = $Object | ConvertTo-Json -Depth 100
+    return ($json | ConvertFrom-Json -Depth 100)
+}
+
+function Get-PropertyGroup {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$SchemaObject,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Name
+    )
+
+    $groupsMember = $SchemaObject.PSObject.Properties['propertyGroups']
+    if ($null -eq $groupsMember -or $null -eq $groupsMember.Value) {
+        throw "Canonical schema must define property group '$Name'."
+    }
+    $group = @($groupsMember.Value) |
+        Where-Object { [string]$_.name -eq $Name } |
+        Select-Object -First 1
+    if ($null -eq $group) {
+        throw "Canonical schema must define property group '$Name'."
+    }
+    return $group
+}
+
+function New-PropertyGroupTestClass {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Name,
+
+        [Parameter(Mandatory = $true)]
+        [object[]]$Properties
+    )
+
+    return [pscustomobject]@{
+        kind = 'class'
+        name = $Name
+        properties = @($Properties)
+    }
+}
+
+function Add-SchemaDeclaration {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$SchemaObject,
+
+        [Parameter(Mandatory = $true)]
+        [object]$Declaration
+    )
+
+    $SchemaObject.declarations = @($SchemaObject.declarations) + $Declaration
+}
+
 try {
     $canonical = [IO.File]::ReadAllText($schemaPath)
     if (-not $SkipCanonical) {
@@ -135,7 +195,104 @@ try {
         -ShouldPass $false `
         -ExpectedMessage 'at least one argument'
 
-    Write-Host 'Compiler-artifact metadata-row generator validation passed.'
+    $canonicalObject = $canonical | ConvertFrom-Json -Depth 100
+    $sourceLocationGroup = Get-PropertyGroup `
+        -SchemaObject $canonicalObject -Name 'SourceLocation'
+
+    $unknownGroupSchema = Copy-JsonObject $canonicalObject
+    Add-SchemaDeclaration `
+        -SchemaObject $unknownGroupSchema `
+        -Declaration (New-PropertyGroupTestClass `
+            -Name 'PropertyGroupUnknownReferenceCase' `
+            -Properties @(
+                [pscustomobject]@{ group = 'MissingGroup' }))
+    Invoke-GeneratorCase `
+        -Name 'unknown-property-group' `
+        -Schema ($unknownGroupSchema | ConvertTo-Json -Depth 100) `
+        -ShouldPass $false `
+        -ExpectedMessage "Unknown property group 'MissingGroup'."
+
+    $groupReferenceWithMembersSchema = Copy-JsonObject $canonicalObject
+    Add-SchemaDeclaration `
+        -SchemaObject $groupReferenceWithMembersSchema `
+        -Declaration (New-PropertyGroupTestClass `
+            -Name 'PropertyGroupReferenceWithMembersCase' `
+            -Properties @(
+                [pscustomobject]@{
+                    group = 'SourceLocation'
+                    name = 'Unexpected'
+                }))
+    Invoke-GeneratorCase `
+        -Name 'property-group-reference-with-members' `
+        -Schema ($groupReferenceWithMembersSchema | ConvertTo-Json -Depth 100) `
+        -ShouldPass $false `
+        -ExpectedMessage "Property group reference 'SourceLocation' cannot define other members."
+
+    $duplicateGroupSchema = Copy-JsonObject $canonicalObject
+    $duplicateGroup = Copy-JsonObject $sourceLocationGroup
+    $duplicateGroupSchema.propertyGroups = @(
+        $duplicateGroupSchema.propertyGroups) + $duplicateGroup
+    Invoke-GeneratorCase `
+        -Name 'duplicate-property-group' `
+        -Schema ($duplicateGroupSchema | ConvertTo-Json -Depth 100) `
+        -ShouldPass $false `
+        -ExpectedMessage "Duplicate property group 'SourceLocation'."
+
+    $nestedGroupSchema = Copy-JsonObject $canonicalObject
+    $nestedGroup = Get-PropertyGroup `
+        -SchemaObject $nestedGroupSchema -Name 'SourceLocation'
+    $nestedProperty = @($nestedGroup.properties)[0]
+    $nestedProperty | Add-Member `
+        -MemberType NoteProperty `
+        -Name 'group' `
+        -Value 'SourceLocation' `
+        -Force
+    Invoke-GeneratorCase `
+        -Name 'nested-property-group' `
+        -Schema ($nestedGroupSchema | ConvertTo-Json -Depth 100) `
+        -ShouldPass $false `
+        -ExpectedMessage "Property group 'SourceLocation' cannot contain group references."
+
+    $duplicateExpandedSchema = Copy-JsonObject $canonicalObject
+    $duplicateExpandedGroup = Get-PropertyGroup `
+        -SchemaObject $duplicateExpandedSchema -Name 'SourceLocation'
+    $duplicateExpandedProperty = Copy-JsonObject `
+        (@($duplicateExpandedGroup.properties)[0])
+    Add-SchemaDeclaration `
+        -SchemaObject $duplicateExpandedSchema `
+        -Declaration (New-PropertyGroupTestClass `
+            -Name 'PropertyGroupDuplicateExpandedPropertyCase' `
+            -Properties @(
+                [pscustomobject]@{ group = 'SourceLocation' }
+                $duplicateExpandedProperty))
+    Invoke-GeneratorCase `
+        -Name 'duplicate-expanded-property' `
+        -Schema ($duplicateExpandedSchema | ConvertTo-Json -Depth 100) `
+        -ShouldPass $false `
+        -ExpectedMessage 'repeats property'
+
+    $malformedGroupSchema = Copy-JsonObject $canonicalObject
+    $malformedSourceGroup = Get-PropertyGroup `
+        -SchemaObject $malformedGroupSchema -Name 'SourceLocation'
+    $malformedGroup = Copy-JsonObject $malformedSourceGroup
+    $malformedGroup.name = 'MalformedOrdinaryProperty'
+    $malformedProperty = @($malformedGroup.properties)[0]
+    $malformedProperty.PSObject.Properties.Remove('type')
+    $malformedGroupSchema.propertyGroups = @(
+        $malformedGroupSchema.propertyGroups) + $malformedGroup
+    Add-SchemaDeclaration `
+        -SchemaObject $malformedGroupSchema `
+        -Declaration (New-PropertyGroupTestClass `
+            -Name 'PropertyGroupMalformedOrdinaryPropertyCase' `
+            -Properties @(
+                [pscustomobject]@{ group = 'MalformedOrdinaryProperty' }))
+    Invoke-GeneratorCase `
+        -Name 'malformed-property-group-member' `
+        -Schema ($malformedGroupSchema | ConvertTo-Json -Depth 100) `
+        -ShouldPass $false `
+        -ExpectedMessage "must define 'type'"
+
+    Write-Host 'Compiler-artifact generator validation passed.'
 }
 finally {
     $resolvedBase = [IO.Path]::GetFullPath($temporaryBase)

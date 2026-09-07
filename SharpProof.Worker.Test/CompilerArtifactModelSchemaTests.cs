@@ -62,7 +62,7 @@ public sealed class CompilerArtifactModelSchemaTests
                     break;
                 case "class":
                     Assert.That(type.IsSealed, Is.True, name);
-                    AssertClass(type, declaration);
+                    AssertClass(type, declaration, schema.RootElement);
                     break;
                 case "record":
                 case "preparedBodyRecord":
@@ -513,10 +513,17 @@ public sealed class CompilerArtifactModelSchemaTests
 
     }
 
-    private static void AssertClass(Type type, JsonElement declaration)
+    private static void AssertClass(
+        Type type, JsonElement declaration, JsonElement schema)
     {
         JsonElement[] specifications = [
             .. declaration.GetProperty("properties").EnumerateArray()
+                .SelectMany(property => property.TryGetProperty("group", out var name)
+                    ? schema.GetProperty("propertyGroups").EnumerateArray()
+                        .Single(group => group.GetProperty("name").GetString() ==
+                            name.GetString())
+                        .GetProperty("properties").EnumerateArray().ToArray()
+                    : new[] { property })
         ];
         PropertyInfo[] properties = [
             .. type.GetProperties(

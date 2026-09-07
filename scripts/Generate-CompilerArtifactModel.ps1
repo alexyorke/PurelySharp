@@ -302,6 +302,45 @@ $schema = Read-SharpProofSchema `
 $namespace = [string]$schema.namespace
 $jsonNamingPolicy = [string]$schema.jsonNamingPolicy
 $declarations = @(Get-RequiredMember $schema 'declarations' 'schema')
+$propertyGroups = [Collections.Generic.Dictionary[string, object[]]]::new(
+    [StringComparer]::Ordinal)
+$groupsMember = $schema.PSObject.Properties['propertyGroups']
+if ($null -ne $groupsMember) {
+    foreach ($group in $groupsMember.Value) {
+        $name = [string](Get-RequiredMember $group 'name' 'property group')
+        Assert-Identifier $name 'Property group name'
+        $properties = @(Get-RequiredMember $group 'properties' "property group '$name'")
+        if (-not $propertyGroups.TryAdd($name, $properties)) {
+            throw "Duplicate property group '$name'."
+        }
+        foreach ($property in $properties) {
+            if ($null -ne $property.PSObject.Properties['group']) {
+                throw "Property group '$name' cannot contain group references."
+            }
+        }
+    }
+}
+foreach ($declaration in $declarations) {
+    $propertiesMember = $declaration.PSObject.Properties['properties']
+    if ($null -eq $propertiesMember) { continue }
+    $propertiesMember.Value = @(
+        foreach ($property in $propertiesMember.Value) {
+            $reference = $property.PSObject.Properties['group']
+            if ($null -eq $reference) {
+                $property
+                continue
+            }
+            $name = [string]$reference.Value
+            if (@($property.PSObject.Properties).Count -ne 1) {
+                throw "Property group reference '$name' cannot define other members."
+            }
+            if (-not $propertyGroups.ContainsKey($name)) {
+                throw "Unknown property group '$name'."
+            }
+            $propertyGroups[$name]
+        }
+    )
+}
 $declarationNames = [Collections.Generic.HashSet[string]]::new(
     [StringComparer]::Ordinal)
 $modelLines = New-GeneratedOutput `
