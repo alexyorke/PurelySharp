@@ -95,8 +95,7 @@ public sealed class SequenceCardinalityDomain : ClosedAbstractDomain<SequenceCar
             return false;
         }
 
-        return KindLessThanOrEqual(left.Kind, right.Kind) &&
-               _intervals.LessThanOrEqual(left.Length, right.Length);
+        return _intervals.LessThanOrEqual(left.Length, right.Length);
     }
 
     public override SequenceCardinalityValue Join(
@@ -115,7 +114,7 @@ public sealed class SequenceCardinalityDomain : ClosedAbstractDomain<SequenceCar
         }
 
         return Create(
-            JoinKind(left.Kind, right.Kind),
+            SequenceCardinalityKind.Top,
             _intervals.Join(left.Length, right.Length));
     }
 
@@ -145,33 +144,10 @@ public sealed class SequenceCardinalityDomain : ClosedAbstractDomain<SequenceCar
         return value.IsBottom ? Bottom : Top;
     }
 
-    private static bool KindLessThanOrEqual(
-        SequenceCardinalityKind left, SequenceCardinalityKind right)
-    {
-        return left == right ||
-        left == SequenceCardinalityKind.Bottom ||
-        right == SequenceCardinalityKind.Top;
-    }
-
     private static SequenceCardinalityKind JoinKind(
         SequenceCardinalityKind left, SequenceCardinalityKind right)
     {
-        if (left == right)
-        {
-            return left;
-        }
-
-        if (left == SequenceCardinalityKind.Bottom)
-        {
-            return right;
-        }
-
-        if (right == SequenceCardinalityKind.Bottom)
-        {
-            return left;
-        }
-
-        return SequenceCardinalityKind.Top;
+        return left == right ? left : SequenceCardinalityKind.Top;
     }
 
     private static void Validate(SequenceCardinalityKind kind)

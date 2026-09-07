@@ -211,11 +211,6 @@ public sealed class IntervalDomain : ClosedAbstractDomain<IntervalValue>
             return inner.Modulus.IsZero && inner.Remainder == outer.Remainder;
         }
 
-        if (inner.Modulus.IsZero)
-        {
-            return Normalize(inner.Remainder, outer.Modulus) == outer.Remainder;
-        }
-
         return (inner.Modulus % outer.Modulus).IsZero &&
                Normalize(inner.Remainder, outer.Modulus) == outer.Remainder;
     }

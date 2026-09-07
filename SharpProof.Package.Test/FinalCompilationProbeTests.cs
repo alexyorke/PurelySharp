@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using NUnit.Framework;
+using SharpProof.CompilerArtifact;
 using SharpProof.CompilerProbe.TestAsset;
 using SharpProof.Worker.Protocol;
 
@@ -563,7 +564,7 @@ public sealed class FinalCompilationProbeTests
                     path);
                 Assert.That(
                     root.GetProperty("schemaVersion").GetInt32(),
-                    Is.EqualTo(CurrentCompilerArtifactSchemaVersion),
+                    Is.EqualTo(CompilerManifestArtifactVersions.Current),
                     path);
                 Assert.That(
                     compilationSha256,
@@ -576,29 +577,6 @@ public sealed class FinalCompilationProbeTests
                 claimPaths);
         }
 
-        private static int CurrentCompilerArtifactSchemaVersion
-        {
-            get
-            {
-                const string assemblyName = "SharpProof.CompilerArtifact";
-                const string typeName =
-                    assemblyName + ".CompilerManifestArtifactVersions";
-                var assembly = AppDomain.CurrentDomain.GetAssemblies()
-                    .SingleOrDefault(static candidate =>
-                        candidate.GetName().Name == assemblyName) ??
-                    System.Reflection.Assembly.Load(assemblyName);
-                var versionType = assembly.GetType(
-                    typeName,
-                    throwOnError: true)!;
-                var current = versionType.GetField(
-                    "Current",
-                    System.Reflection.BindingFlags.Static |
-                    System.Reflection.BindingFlags.NonPublic);
-                return current?.GetRawConstantValue() as int? ??
-                    throw new InvalidDataException(
-                        "The compiler-artifact schema constant was not found.");
-            }
-        }
     }
 
     private sealed class ProbeWorkspace : IDisposable

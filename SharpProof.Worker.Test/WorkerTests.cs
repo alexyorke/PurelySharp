@@ -7035,7 +7035,6 @@ public sealed class WorkerTests
         {
             return TestMetadataReferences.ForFileNames(
                 RequiredReferenceFileNames,
-                includeSharpProof: true,
                 sort: true);
         }
 

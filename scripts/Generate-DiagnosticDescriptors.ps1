@@ -136,7 +136,6 @@ foreach ($output in $outputs) {
     for ($index = 0; $index -lt $diagnostics.Count; $index++) {
         $diagnostic = $diagnostics[$index]
         Assert-ExactMembers $diagnostic @(
-            'order',
             'symbol',
             'id',
             'title',
@@ -148,11 +147,6 @@ foreach ($output in $outputs) {
             'helpLinkUri',
             'customTags'
         ) "Output '$name' diagnostic $index"
-        $order = [int](
-            Get-RequiredMember $diagnostic 'order' "Output '$name' diagnostic")
-        if ($order -ne $index) {
-            throw "Output '$name' diagnostic order must be contiguous at $index."
-        }
         $symbol = [string](
             Get-RequiredMember $diagnostic 'symbol' "Output '$name' diagnostic")
         Assert-Identifier $symbol "Output '$name' diagnostic symbol"

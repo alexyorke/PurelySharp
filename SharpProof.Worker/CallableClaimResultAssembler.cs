@@ -251,10 +251,16 @@ internal static class CallableClaimResultAssembler
     {
         var names = variables.ToDictionary(
             static variable => variable.Variable, static variable => variable.ModelLabel);
-        return [.. outcome.Model.Assignments
-            .Join(names, static assignment => assignment.Key, static name => name.Key,
-                static (assignment, name) => ModelValue(name.Value, assignment.Value))
-            .OrderBy(static value => value.Variable, StringComparer.Ordinal)];
+        var model = new List<WorkerModelValue>();
+        foreach (var assignment in outcome.Model.Assignments)
+        {
+            if (names.TryGetValue(assignment.Key, out var name))
+            {
+                model.Add(ModelValue(name, assignment.Value));
+            }
+        }
+        return [.. model.OrderBy(
+            static value => value.Variable, StringComparer.Ordinal)];
     }
 
     private static WorkerModelValue ModelValue(string variable, IrValue value)

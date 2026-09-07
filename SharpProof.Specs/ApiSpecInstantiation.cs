@@ -209,20 +209,15 @@ public static partial class ApiSpecInstantiator
                 null);
         }
 
-        private TermResult Null(SpecNullDeclaration value, TermResult peer)
+        private TermResult Null(SpecNullDeclaration value, IrTerm peer)
         {
-            if (peer.Failure != null)
-            {
-                return peer;
-            }
-
-            var peerType = factory.GetTypeInfo(peer.Term!.Type);
+            var peerType = factory.GetTypeInfo(peer.Type);
             return peerType.Kind == value.Type &&
                    value.Type is
                        IrTypeKind.String or
                        IrTypeKind.Reference or
                        IrTypeKind.Sequence
-                ? new(factory.Null(peer.Term.Type), null)
+                ? new(factory.Null(peer.Type), null)
                 : Failure(SpecInstantiationFailureKind.TypeMismatch, null,
                     "The exact instantiated null operand type does not match its peer.");
         }
@@ -265,7 +260,7 @@ public static partial class ApiSpecInstantiator
                     return right;
                 }
 
-                left = Null(leftNull, right);
+                left = Null(leftNull, right.Term!);
             }
             else
             {
@@ -283,7 +278,7 @@ public static partial class ApiSpecInstantiator
                 right = inferNulls &&
                         rightDeclaration is SpecNullDeclaration rightNull &&
                         leftDeclaration is not SpecNullDeclaration
-                    ? Null(rightNull, left)
+                    ? Null(rightNull, left.Term!)
                     : Term(rightDeclaration);
             }
 

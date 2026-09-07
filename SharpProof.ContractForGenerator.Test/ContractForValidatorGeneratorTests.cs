@@ -1950,7 +1950,7 @@ public sealed class ContractForValidatorGeneratorTests
     }
 
     private static Diagnostic AssertSingle(
-        IDiagnosticRun run,
+        AnalyzerRun run,
         string diagnosticId)
     {
         Assert.That(

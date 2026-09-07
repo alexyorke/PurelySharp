@@ -38,7 +38,7 @@ internal static partial class RequiresCallSiteAnalyzer
             .OfType<PrimaryConstructorBaseTypeSyntax>()
             .SingleOrDefault();
         IMethodSymbol? target;
-        ImmutableArray<IArgumentOperation?> arguments;
+        ImmutableArray<IArgumentOperation> arguments;
         IOperation? origin;
         SyntaxNode callSiteSyntax;
         if (initializer == null)
@@ -53,18 +53,33 @@ internal static partial class RequiresCallSiteAnalyzer
             var initializerOperation = semanticModel.GetOperation(
                 initializer,
                 cancellationToken);
-            target = initializerOperation is IInvocationOperation invocation
-                ? invocation.TargetMethod
-                : semanticModel.GetSymbolInfo(initializer, cancellationToken)
+            if (initializerOperation is IInvocationOperation invocation)
+            {
+                target = invocation.TargetMethod;
+                arguments = invocation.Arguments;
+            }
+            else
+            {
+                target = semanticModel.GetSymbolInfo(initializer, cancellationToken)
                     .Symbol as IMethodSymbol;
-            arguments = initializerOperation is IInvocationOperation baseCallOperation
-                ? baseCallOperation.Arguments.Cast<IArgumentOperation?>()
-                    .ToImmutableArray()
-                : initializer.ArgumentList.Arguments
+                var recoveredArguments = initializer.ArgumentList.Arguments
                     .Select(argument => semanticModel.GetOperation(
                         argument,
                         cancellationToken) as IArgumentOperation)
                     .ToImmutableArray();
+                var argumentsBuilder =
+                    ImmutableArray.CreateBuilder<IArgumentOperation>(
+                        recoveredArguments.Length);
+                foreach (var argument in recoveredArguments)
+                {
+                    if (argument == null)
+                    {
+                        return AnalyzerSemanticOutcome.Unknown;
+                    }
+                    argumentsBuilder.Add(argument);
+                }
+                arguments = argumentsBuilder.MoveToImmutable();
+            }
             origin = initializerOperation ??
                 (arguments.IsDefaultOrEmpty ? null : arguments[0]);
             callSiteSyntax = initializer;
@@ -73,25 +88,12 @@ internal static partial class RequiresCallSiteAnalyzer
         {
             return AnalyzerSemanticOutcome.Unknown;
         }
-        var validatedArgumentsBuilder =
-            ImmutableArray.CreateBuilder<IArgumentOperation>(arguments.Length);
-        foreach (var argument in arguments)
-        {
-            if (argument is not IArgumentOperation validatedArgument)
-            {
-                return AnalyzerSemanticOutcome.Unknown;
-            }
-
-            validatedArgumentsBuilder.Add(validatedArgument);
-        }
-        var validatedArguments = validatedArgumentsBuilder.MoveToImmutable();
-
         var baseCall = new RequiresCallSiteCandidate(
             origin,
             callSiteSyntax,
             target,
             Instance: null,
-            validatedArguments,
+            arguments,
             ImmutableDictionary<int, IOperation>.Empty,
             ImmutableDictionary<int, long>.Empty,
             CanReplay: true,
@@ -113,7 +115,7 @@ internal static partial class RequiresCallSiteAnalyzer
             semanticModel.Compilation,
             cancellationToken);
         var argumentsMayComplete = true;
-        foreach (var argument in validatedArguments)
+        foreach (var argument in arguments)
         {
             foreach (var operation in RequiresCallSiteDiscovery
                          .ExecutableUnflowedDescendantsAndSelf(

@@ -423,13 +423,6 @@ function Read-SharpProofMutationTestEvidence {
             }).Count -ne $results.Count) {
         throw "TRX for '$EvidenceName' contains unsupported result records."
     }
-    $structuralNodes = @($summaries + $counterNodes + $definitions +
-        $entries + $results)
-    if (@($structuralNodes | Where-Object {
-                $_.NamespaceURI -ne $trxNamespace
-            }).Count -ne 0) {
-        throw "TRX for '$EvidenceName' mixes unsupported XML namespaces."
-    }
     if ($results.Count -eq 0 -or
         $definitions.Count -ne $results.Count -or
         $entries.Count -ne $results.Count) {

@@ -15,7 +15,6 @@ internal static class TestMetadataReferences
 
     internal static ImmutableArray<MetadataReference> ForFileNames(
         IEnumerable<string> fileNames,
-        bool includeSharpProof,
         bool sort)
     {
         var names = new HashSet<string>(
@@ -26,12 +25,8 @@ internal static class TestMetadataReferences
             .Where(path => path != null &&
                 names.Contains(Path.GetFileName(path)!))
             .Select(static path => path!);
-        if (includeSharpProof)
-        {
-            paths = paths.Append(typeof(Contract).Assembly.Location);
-        }
-
-        paths = paths.Distinct(StringComparer.OrdinalIgnoreCase);
+        paths = paths.Append(typeof(Contract).Assembly.Location)
+            .Distinct(StringComparer.OrdinalIgnoreCase);
         if (sort)
         {
             paths = paths.OrderBy(static path => path, StringComparer.Ordinal);

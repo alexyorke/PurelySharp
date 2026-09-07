@@ -1964,7 +1964,6 @@ public sealed class ProtocolJsonTests
                 "System.Runtime.dll",
                 "netstandard.dll"
             ],
-            includeSharpProof: true,
             sort: false);
         return CSharpCompilation.Create(
             "ProtocolTest",

@@ -64,10 +64,6 @@ internal static class DiagnosticDescriptorCatalogAssertions
             name);
         for (var index = 0; index < fields.Length; index++)
         {
-            Assert.That(
-                specifications[index].GetProperty("order").GetInt32(),
-                Is.EqualTo(index),
-                fields[index].Name);
             AssertDescriptor(
                 (DiagnosticDescriptor)fields[index].GetValue(null)!,
                 specifications[index]);

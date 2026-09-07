@@ -8,6 +8,8 @@ public static class DifferentialFormatting
 {
     public static string Describe(IrEvaluationResult result)
     {
+        ArgumentNullException.ThrowIfNull(result);
+
         return result.Status switch
         {
             IrEvaluationStatus.Value => "a value",

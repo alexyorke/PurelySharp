@@ -992,7 +992,6 @@ public sealed class ScalarDifferentialMatrixTests
         {
             return TestMetadataReferences.ForFileNames(
                 RequiredReferenceFileNames,
-                includeSharpProof: true,
                 sort: true);
         }
 

@@ -10,7 +10,6 @@
       "supportedDiagnosticsMember": "SupportedDiagnostics",
       "diagnostics": [
         {
-          "order": 0,
           "symbol": "PurityNotVerifiedRule",
           "id": "SP0002",
           "title": "Purity Not Proven",
@@ -23,7 +22,6 @@
           "customTags": []
         },
         {
-          "order": 1,
           "symbol": "AllocationInZeroAllocationMethodRule",
           "id": "SP0013",
           "title": "Allocation In [ZeroAllocations] Method",
@@ -36,7 +34,6 @@
           "customTags": []
         },
         {
-          "order": 2,
           "symbol": "CapabilityViolationRule",
           "id": "SP0015",
           "title": "Disallowed Capability Use",
@@ -49,7 +46,6 @@
           "customTags": []
         },
         {
-          "order": 3,
           "symbol": "CapabilityUnknownRule",
           "id": "SP0016",
           "title": "Capability Contract Not Proven",
@@ -62,7 +58,6 @@
           "customTags": []
         },
         {
-          "order": 4,
           "symbol": "InvalidContractArgumentRule",
           "id": "SP0024",
           "title": "Invalid SharpProof Contract Argument",
@@ -75,7 +70,6 @@
           "customTags": []
         },
         {
-          "order": 5,
           "symbol": "InvalidAnalyzerConfigurationRule",
           "id": "SP0025",
           "title": "Invalid SharpProof Analyzer Configuration",
@@ -88,7 +82,6 @@
           "customTags": []
         },
         {
-          "order": 6,
           "symbol": "RequiresNotProvenRule",
           "id": "SP0027",
           "title": "Precondition Violated",
@@ -101,7 +94,6 @@
           "customTags": []
         },
         {
-          "order": 7,
           "symbol": "ExceptionContractViolationRule",
           "id": "SP0030",
           "title": "Exception Contract Violated",
@@ -114,7 +106,6 @@
           "customTags": []
         },
         {
-          "order": 8,
           "symbol": "ZeroAllocationsNotVerifiedRule",
           "id": "SP0045",
           "title": "Zero-allocation Contract Not Proven",
@@ -127,7 +118,6 @@
           "customTags": []
         },
         {
-          "order": 9,
           "symbol": "ExceptionContractNotVerifiedRule",
           "id": "SP0046",
           "title": "Exception Contract Not Proven",
@@ -140,7 +130,6 @@
           "customTags": []
         },
         {
-          "order": 10,
           "symbol": "SelectedAnalysisIncompleteRule",
           "id": "SP0047",
           "title": "Selected Analysis Incomplete",
@@ -153,7 +142,6 @@
           "customTags": []
         },
         {
-          "order": 11,
           "symbol": "CompilerManifestFailureRule",
           "id": "SP0049",
           "title": "Compiler Manifest Emission Failed",
@@ -166,7 +154,6 @@
           "customTags": []
         },
         {
-          "order": 12,
           "symbol": "ContractApiUnverifiableRule",
           "id": "SP0050",
           "title": "Contract API Could Not Be Verified",
@@ -189,7 +176,6 @@
       "supportedDiagnosticsMember": "SupportedDiagnostics",
       "diagnostics": [
         {
-          "order": 0,
           "symbol": "InvalidTarget",
           "id": "SPCF0001",
           "title": "Invalid ContractFor target",
@@ -202,7 +188,6 @@
           "customTags": []
         },
         {
-          "order": 1,
           "symbol": "DuplicateCompanion",
           "id": "SPCF0002",
           "title": "Duplicate ContractFor companion",
@@ -215,7 +200,6 @@
           "customTags": []
         },
         {
-          "order": 2,
           "symbol": "InvalidCompanionType",
           "id": "SPCF0003",
           "title": "Invalid ContractFor companion type",
@@ -228,7 +212,6 @@
           "customTags": []
         },
         {
-          "order": 3,
           "symbol": "MissingMember",
           "id": "SPCF0004",
           "title": "Missing ContractFor member",
@@ -241,7 +224,6 @@
           "customTags": []
         },
         {
-          "order": 4,
           "symbol": "SignatureMismatch",
           "id": "SPCF0005",
           "title": "ContractFor member signature mismatch",
@@ -254,7 +236,6 @@
           "customTags": []
         },
         {
-          "order": 5,
           "symbol": "AmbiguousMember",
           "id": "SPCF0006",
           "title": "Ambiguous ContractFor member",
@@ -267,7 +248,6 @@
           "customTags": []
         },
         {
-          "order": 6,
           "symbol": "BodyRequired",
           "id": "SPCF0007",
           "title": "ContractFor member body required",
@@ -280,7 +260,6 @@
           "customTags": []
         },
         {
-          "order": 7,
           "symbol": "InvalidClausePlacement",
           "id": "SPCF0008",
           "title": "Invalid ContractFor clause placement",
@@ -293,7 +272,6 @@
           "customTags": []
         },
         {
-          "order": 8,
           "symbol": "SelfTarget",
           "id": "SPCF0009",
           "title": "ContractFor companion targets itself",
@@ -306,7 +284,6 @@
           "customTags": []
         },
         {
-          "order": 9,
           "symbol": "CyclicRelationship",
           "id": "SPCF0010",
           "title": "Cyclic ContractFor relationship",
@@ -332,7 +309,6 @@
       "supportedDiagnosticsMember": "All",
       "diagnostics": [
         {
-          "order": 0,
           "symbol": "ForbiddenRoslynApi",
           "id": "SPMETA001",
           "title": "Forbidden compiler API",
@@ -345,7 +321,6 @@
           "customTags": []
         },
         {
-          "order": 1,
           "symbol": "MutableStaticState",
           "id": "SPMETA002",
           "title": "Mutable static state",
@@ -358,7 +333,6 @@
           "customTags": []
         },
         {
-          "order": 2,
           "symbol": "SwallowedCancellation",
           "id": "SPMETA003",
           "title": "Cancellation is swallowed",
@@ -371,7 +345,6 @@
           "customTags": []
         },
         {
-          "order": 3,
           "symbol": "SemanticStringControlFlow",
           "id": "SPMETA004",
           "title": "Semantic string controls behavior",
@@ -384,7 +357,6 @@
           "customTags": []
         },
         {
-          "order": 4,
           "symbol": "DescriptorConstruction",
           "id": "SPMETA005",
           "title": "Diagnostic descriptor bypasses the catalog",
@@ -397,7 +369,6 @@
           "customTags": []
         },
         {
-          "order": 5,
           "symbol": "StringFieldInIr",
           "id": "SPMETA006",
           "title": "String field in program IR",
@@ -410,7 +381,6 @@
           "customTags": []
         },
         {
-          "order": 6,
           "symbol": "AssumptionConstruction",
           "id": "SPMETA007",
           "title": "Assumption bypasses the trusted boundary",
@@ -423,7 +393,6 @@
           "customTags": []
         },
         {
-          "order": 7,
           "symbol": "EffectSummaryConstruction",
           "id": "SPMETA008",
           "title": "Effect summary bypasses the trusted boundary",
@@ -436,7 +405,6 @@
           "customTags": []
         },
         {
-          "order": 8,
           "symbol": "CSharpExpressionText",
           "id": "SPMETA009",
           "title": "C# expression text is synthesized",
@@ -449,7 +417,6 @@
           "customTags": []
         },
         {
-          "order": 9,
           "symbol": "NonCacheableSemanticAnswer",
           "id": "SPMETA010",
           "title": "Non-cacheable semantic answer",
@@ -462,7 +429,6 @@
           "customTags": []
         },
         {
-          "order": 10,
           "symbol": "ProofOutcomeConstruction",
           "id": "SPMETA011",
           "title": "Proof outcome bypasses the trusted kernel",

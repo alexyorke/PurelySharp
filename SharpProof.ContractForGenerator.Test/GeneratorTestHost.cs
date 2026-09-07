@@ -107,8 +107,7 @@ internal static class GeneratorTestHost
     private static GeneratorRun RunCore(
         CSharpCompilation compilation,
         GeneratorDriver driver,
-        IReadOnlyDictionary<string, string>? globalOptions,
-        DiagnosticAnalyzer? analyzer = null)
+        IReadOnlyDictionary<string, string>? globalOptions)
     {
         driver = driver.RunGeneratorsAndUpdateCompilation(
             compilation,
@@ -118,7 +117,7 @@ internal static class GeneratorTestHost
         var diagnostics = CollectDiagnostics(
             (CSharpCompilation)outputCompilation,
             globalOptions,
-            analyzer,
+            analyzer: null,
             runResult.Diagnostics.Concat(driverDiagnostics));
         return new GeneratorRun(
             driver,
@@ -248,22 +247,17 @@ internal static class GeneratorTestHost
     }
 }
 
-internal interface IDiagnosticRun
-{
-    ImmutableArray<Diagnostic> Diagnostics { get; }
-}
-
 internal sealed class GeneratorRun(
     GeneratorDriver driver,
     GeneratorDriverRunResult runResult,
-    ImmutableArray<Diagnostic> diagnostics) : IDiagnosticRun
+    ImmutableArray<Diagnostic> diagnostics)
 {
     internal GeneratorDriver Driver { get; } = driver;
     internal GeneratorDriverRunResult RunResult { get; } = runResult;
     public ImmutableArray<Diagnostic> Diagnostics { get; } = diagnostics;
 }
 
-internal sealed class AnalyzerRun(ImmutableArray<Diagnostic> diagnostics) : IDiagnosticRun
+internal sealed class AnalyzerRun(ImmutableArray<Diagnostic> diagnostics)
 {
     public ImmutableArray<Diagnostic> Diagnostics { get; } = diagnostics;
 }

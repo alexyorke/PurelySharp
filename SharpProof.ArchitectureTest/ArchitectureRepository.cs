@@ -9,10 +9,13 @@ internal static class ArchitectureRepository
     internal static Task<ProcessRunnerResult> RunScriptAsync(
         string workingDirectory,
         string scriptName,
-        params string[] arguments) => RunProcessAsync(
+        params string[] arguments)
+    {
+        return RunProcessAsync(
             workingDirectory, "pwsh",
             ["-NoLogo", "-NoProfile", "-File",
                 Path.Combine(TestRepository.FindRoot(), "scripts", scriptName), .. arguments]);
+    }
 
     internal static async Task<ProcessRunnerResult> AssertSuccessAsync(
         Task<ProcessRunnerResult> operation,

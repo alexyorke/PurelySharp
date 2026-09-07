@@ -108,7 +108,6 @@ if ($methods.Count -ne 5 -or
 }
 
 $attributeCategories = @('Companion', 'Closed', 'Effect', 'Control')
-$selectionValues = @('None', 'Contracts', 'Effects', 'All')
 $attributeIds = [Collections.Generic.HashSet[string]]::new(
     [StringComparer]::Ordinal)
 $attributeTypeNames = [Collections.Generic.HashSet[string]]::new(
@@ -117,7 +116,7 @@ $attributes = [Collections.Generic.List[object]]::new()
 foreach ($attribute in @($catalog.attributes)) {
     Assert-Properties `
         -Value $attribute `
-        -Allowed @('id', 'typeName', 'category', 'selection') `
+        -Allowed @('id', 'typeName', 'category') `
         -Context 'contract API attribute'
     $id = Assert-PascalCaseIdentifier -Value $attribute.id -Context 'attribute id'
     $typeName = Assert-PascalCaseIdentifier `
@@ -127,10 +126,6 @@ foreach ($attribute in @($catalog.attributes)) {
         -Value $attribute.category `
         -Allowed $attributeCategories `
         -Context "attribute '$id' category"
-    $selection = Assert-EnumValue `
-        -Value $attribute.selection `
-        -Allowed $selectionValues `
-        -Context "attribute '$id' selection"
     if (-not $typeName.EndsWith('Attribute', [StringComparison]::Ordinal)) {
         throw "Contract API attribute '$id' typeName must end in Attribute."
     }
@@ -138,14 +133,11 @@ foreach ($attribute in @($catalog.attributes)) {
         -not $attributeTypeNames.Add($typeName)) {
         throw "Contract API attribute '$id' or '$typeName' is duplicated."
     }
-    $expectedSelection = switch ($category) {
+    $selection = switch ($category) {
         'Companion' { 'None' }
         'Closed' { 'Contracts' }
         'Effect' { 'Effects' }
         'Control' { 'All' }
-    }
-    if ($selection -ne $expectedSelection) {
-        throw "Attribute '$id' category '$category' requires '$expectedSelection' selection."
     }
     $attributes.Add([pscustomobject]@{
         Id = $id

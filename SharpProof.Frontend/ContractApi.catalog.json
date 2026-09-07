@@ -39,74 +39,62 @@
     {
       "id": "ContractFor",
       "typeName": "ContractForAttribute",
-      "category": "Companion",
-      "selection": "None"
+      "category": "Companion"
     },
     {
       "id": "EnforcePure",
       "typeName": "EnforcePureAttribute",
-      "category": "Effect",
-      "selection": "Effects"
+      "category": "Effect"
     },
     {
       "id": "ZeroAllocations",
       "typeName": "ZeroAllocationsAttribute",
-      "category": "Effect",
-      "selection": "Effects"
+      "category": "Effect"
     },
     {
       "id": "AllowedCapabilities",
       "typeName": "AllowedCapabilitiesAttribute",
-      "category": "Effect",
-      "selection": "Effects"
+      "category": "Effect"
     },
     {
       "id": "DoesNotThrow",
       "typeName": "DoesNotThrowAttribute",
-      "category": "Effect",
-      "selection": "Effects"
+      "category": "Effect"
     },
     {
       "id": "AllowedExceptions",
       "typeName": "AllowedExceptionsAttribute",
-      "category": "Effect",
-      "selection": "Effects"
+      "category": "Effect"
     },
     {
       "id": "EffectContract",
       "typeName": "EffectContractAttribute",
-      "category": "Effect",
-      "selection": "Effects"
+      "category": "Effect"
     },
     {
       "id": "NotNull",
       "typeName": "NotNullAttribute",
-      "category": "Closed",
-      "selection": "Contracts"
+      "category": "Closed"
     },
     {
       "id": "Positive",
       "typeName": "PositiveAttribute",
-      "category": "Closed",
-      "selection": "Contracts"
+      "category": "Closed"
     },
     {
       "id": "InRange",
       "typeName": "InRangeAttribute",
-      "category": "Closed",
-      "selection": "Contracts"
+      "category": "Closed"
     },
     {
       "id": "Suppress",
       "typeName": "SharpProofSuppressAttribute",
-      "category": "Control",
-      "selection": "All"
+      "category": "Control"
     },
     {
       "id": "Trusted",
       "typeName": "SharpProofTrustedAttribute",
-      "category": "Control",
-      "selection": "All"
+      "category": "Control"
     }
   ]
 }
