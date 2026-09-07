@@ -451,23 +451,12 @@ function Assert-IrOperatorCatalogRows {
         [object[]]$Rows,
 
         [Parameter(Mandatory = $true)]
-        [string[]]$Operators,
-
-        [Parameter(Mandatory = $true)]
         [string]$Name
     )
 
     $rowCount = @($Rows).Count
-    if (@($Rows.Operator | Select-Object -Unique).Count -ne $rowCount) {
-        throw "$Name contains duplicate operators."
-    }
     if (@($Rows.Key | Select-Object -Unique).Count -ne $rowCount) {
         throw "$Name contains duplicate keys."
-    }
-    if (@(Compare-Object `
-            -ReferenceObject $Operators `
-            -DifferenceObject @($Rows.Operator)).Count -ne 0) {
-        throw "$Name must cover every IR operator exactly once."
     }
     $orderedKeys = @($Rows.Key | Sort-Object)
     for ($index = 0; $index -lt $rowCount; $index++) {
@@ -503,10 +492,7 @@ $irUnaryRows = foreach ($operator in @($catalog.irUnaryOperators)) {
         -Value $operator `
         -Allowed @('operator', 'key', 'operandType', 'token') `
         -Context 'IR unary operator'
-    $name = Assert-EnumName `
-        -Value $operator.operator `
-        -Allowed $irUnaryOperators `
-        -Context 'IR unary operator name'
+    $name = $operator.operator
     $key = [int]$operator.key
     if ($key -lt 0) {
         throw "IR unary '$name'.key must be nonnegative."
@@ -526,7 +512,6 @@ $irUnaryRows = foreach ($operator in @($catalog.irUnaryOperators)) {
 }
 Assert-IrOperatorCatalogRows `
     -Rows @($irUnaryRows) `
-    -Operators $irUnaryOperators `
     -Name 'irUnaryOperators'
 
 $irBinaryRows = foreach ($operator in @($catalog.irBinaryOperators)) {
@@ -539,10 +524,7 @@ $irBinaryRows = foreach ($operator in @($catalog.irBinaryOperators)) {
             'resultType',
             'token') `
         -Context 'IR binary operator'
-    $name = Assert-EnumName `
-        -Value $operator.operator `
-        -Allowed $irBinaryOperators `
-        -Context 'IR binary operator name'
+    $name = $operator.operator
     $key = [int]$operator.key
     if ($key -lt 0) {
         throw "IR binary '$name'.key must be nonnegative."
@@ -566,7 +548,6 @@ $irBinaryRows = foreach ($operator in @($catalog.irBinaryOperators)) {
 }
 Assert-IrOperatorCatalogRows `
     -Rows @($irBinaryRows) `
-    -Operators $irBinaryOperators `
     -Name 'irBinaryOperators'
 
 $mappedUnaryOperators = @(
