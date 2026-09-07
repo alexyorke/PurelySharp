@@ -896,35 +896,26 @@ internal sealed class ExceptionHandlerReachability(
                 }
                 if (dereferenceCompletes)
                 {
-                    var accessors = GetAccessors(propertyReference).ToArray();
-                    var initializationCompletes = true;
-                    if (accessors.Length != 0)
-                    {
-                        initializationCompletes =
-                            AddStaticInitializationPotential(
+                    var accessor = propertyReference.Property.GetMethod;
+                    if (AddStaticInitializationPotential(
                             propertyReference.Property,
                             propertyReference,
-                            Add);
-                    }
-                    if (initializationCompletes)
+                            Add))
                     {
-                        foreach (var accessor in accessors)
-                        {
-                            Add(
-                                accessor == null || accessor.IsVirtual ||
-                                accessor.IsAbstract
-                                    ? UnknownPotential
-                                    : SwitchExpressionFacts
-                                        .IsCompilerIntrinsicRefLikeMember(
-                                            compilation,
-                                            accessor)
-                                    ? EmptyPotential
-                                    : GetCallableExceptions(
-                                        accessor,
-                                        activeMethods,
-                                        depth + 1),
-                                propertyReference);
-                        }
+                        Add(
+                            accessor == null || accessor.IsVirtual ||
+                            accessor.IsAbstract
+                                ? UnknownPotential
+                                : SwitchExpressionFacts
+                                    .IsCompilerIntrinsicRefLikeMember(
+                                        compilation,
+                                        accessor)
+                                ? EmptyPotential
+                                : GetCallableExceptions(
+                                    accessor,
+                                    activeMethods,
+                                    depth + 1),
+                            propertyReference);
                     }
                 }
                 PushChildren(propertyReference);
@@ -2153,17 +2144,6 @@ internal sealed class ExceptionHandlerReachability(
         return abstractFlow?.ProvesNull(origin, value) == true ||
             value.ConstantValue is { HasValue: true, Value: null } ||
             DefiniteOperationFacts.IsDefinitelyNull(value);
-    }
-
-    private static IEnumerable<IMethodSymbol?> GetAccessors(
-        IPropertyReferenceOperation property)
-    {
-        if (property.Parent is ISimpleAssignmentOperation simple &&
-            ReferenceEquals(simple.Target, property))
-        {
-            yield break;
-        }
-        yield return property.Property.GetMethod;
     }
 
     private bool CanEvaluatePropertyTarget(
