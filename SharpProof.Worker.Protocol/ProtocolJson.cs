@@ -1012,17 +1012,34 @@ public static partial class WorkerProtocolJson
     private static void ValidateManifestAssumptionIdentity(
         WorkerCallableManifestEntry[] callables, string prefix, Validator errors)
     {
-        var groups = callables
-            .Where(static callable => callable != null)
-            .SelectMany(static callable => (callable.Assumptions ?? [])
-                .Where(static assumption => assumption != null &&
-                    !string.IsNullOrWhiteSpace(assumption.Id))
-                .Select(assumption => (CallableId: callable.CallableId, Assumption: assumption)))
-            .GroupBy(static item => item.Assumption.Id, s_ordinal);
-        errors.Check(groups.All(static group => group
-                .Select(static item => (item.CallableId, item.Assumption.Kind))
-                .Distinct()
-                .Count() == 1), prefix + ".assumption_identity");
+        var identities = new Dictionary<string, (string? CallableId,
+            WorkerAssumptionKind Kind)>(s_ordinal);
+        var valid = true;
+        foreach (var callable in callables)
+        {
+            if (callable == null)
+            {
+                continue;
+            }
+            foreach (var assumption in callable.Assumptions ?? [])
+            {
+                if (assumption == null ||
+                    string.IsNullOrWhiteSpace(assumption.Id))
+                {
+                    continue;
+                }
+                var identity = (callable.CallableId, assumption.Kind);
+                if (identities.TryGetValue(assumption.Id, out var existing))
+                {
+                    valid &= existing == identity;
+                }
+                else
+                {
+                    identities.Add(assumption.Id, identity);
+                }
+            }
+        }
+        errors.Check(valid, prefix + ".assumption_identity");
     }
 
     private static T[] ValidateResultSet<T>(T[]? values, IEnumerable<string?> expectedIds,

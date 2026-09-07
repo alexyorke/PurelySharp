@@ -209,39 +209,6 @@ internal sealed partial class OperationEffectScanner
             assignment);
     }
 
-    private EffectSummary ScanReadModifyWrite(
-        IOperation target,
-        Func<EffectStep> scanValue,
-        Func<EffectSummary> scanOperation,
-        Func<bool> canCompleteOperation,
-        IOperation storedValue)
-    {
-        var evaluatedLocation = ScanWriteTargetEvaluation(target);
-        var result = new EffectStep(
-            Scan(target, EffectAccess.Read, evaluatedLocation),
-            _completionEvaluator.CanCompleteNormally(target));
-        if (!result.CompletesNormally)
-        {
-            return result.Summary;
-        }
-
-        result = result.Then(scanValue());
-        if (!result.CompletesNormally)
-        {
-            return result.Summary;
-        }
-
-        result = result.Then(new EffectStep(
-            scanOperation(),
-            canCompleteOperation()));
-        return CommitWrite(
-            result,
-            target,
-            storedValue,
-            evaluatedLocation,
-            valueIsStoredDirectly: false);
-    }
-
     private EffectSummary ScanCoalesceAssignment(
         ICoalesceAssignmentOperation assignment)
     {

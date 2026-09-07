@@ -1974,36 +1974,16 @@ internal sealed partial class RequiresCallSiteDiscovery(
         if (property.Parent is ICoalesceAssignmentOperation coalesce &&
             ReferenceEquals(coalesce.Target, property))
         {
-            var calls = ImmutableArray.CreateBuilder<RequiresCallTarget>(2);
-            if (getter != null)
-            {
-                calls.Add(CreateGetterCall(property, getter));
-            }
-            if (setter != null)
-            {
-                calls.Add(CreateSetterCall(
-                    property,
-                    setter,
-                    coalesce.Value,
-                    canReplay: false));
-            }
-            return calls.ToImmutable();
+            return CreatePropertyReadWriteCalls(
+                property, getter, setter, coalesce.Value);
         }
         if (property.Parent is ICompoundAssignmentOperation compound &&
             ReferenceEquals(compound.Target, property) ||
             property.Parent is IIncrementOrDecrementOperation increment &&
             ReferenceEquals(increment.Target, property))
         {
-            var calls = ImmutableArray.CreateBuilder<RequiresCallTarget>(2);
-            if (getter != null)
-            {
-                calls.Add(CreateGetterCall(property, getter));
-            }
-            if (setter != null)
-            {
-                calls.Add(CreateSetterCall(property, setter, null, false));
-            }
-            return calls.ToImmutable();
+            return CreatePropertyReadWriteCalls(
+                property, getter, setter, null);
         }
         if (getter == null ||
             Ancestors(property).Any(static ancestor =>
@@ -2012,6 +1992,26 @@ internal sealed partial class RequiresCallSiteDiscovery(
             return [];
         }
         return [CreateGetterCall(property, getter)];
+    }
+
+    private static ImmutableArray<RequiresCallTarget>
+        CreatePropertyReadWriteCalls(
+            IPropertyReferenceOperation property,
+            IMethodSymbol? getter,
+            IMethodSymbol? setter,
+            IOperation? setterValue)
+    {
+        var calls = ImmutableArray.CreateBuilder<RequiresCallTarget>(2);
+        if (getter != null)
+        {
+            calls.Add(CreateGetterCall(property, getter));
+        }
+        if (setter != null)
+        {
+            calls.Add(CreateSetterCall(
+                property, setter, setterValue, canReplay: false));
+        }
+        return calls.ToImmutable();
     }
 
     private static RequiresCallTarget CreateGetterCall(

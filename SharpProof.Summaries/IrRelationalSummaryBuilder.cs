@@ -61,10 +61,11 @@ public static class IrRelationalSummaryBuilder
 
         limits ??= IrRelationalSummaryBuildLimits.Default;
         calls ??= ImmutableDictionary<IrInstructionId, IrRelationalSummary>.Empty;
-        if (!ValidateSignature(program.Factory, signature) ||
+        var inputs = ValidateSignature(program.Factory, signature);
+        if (inputs == null ||
             !ValidateEnvironment(
                 program.Factory,
-                signature,
+                inputs,
                 initialEnvironment) ||
             calls.Values.Any(summary =>
                 summary == null ||
@@ -90,7 +91,7 @@ public static class IrRelationalSummaryBuilder
             mayThrow).Execute();
     }
 
-    private static bool ValidateSignature(
+    private static HashSet<IrVarId>? ValidateSignature(
         IrFactory factory,
         IrSummarySignature signature)
     {
@@ -102,14 +103,14 @@ public static class IrRelationalSummaryBuilder
                 member.ParameterTypes.Length != signature.Parameters.Length ||
                 factory.GetVariableInfo(signature.Result).Type != member.ReturnType)
             {
-                return false;
+                return null;
             }
 
             if (signature.Receiver.HasValue &&
                 factory.GetVariableInfo(signature.Receiver.Value).Type !=
                 member.DeclaringType)
             {
-                return false;
+                return null;
             }
 
             for (var index = 0; index < signature.Parameters.Length; index++)
@@ -117,7 +118,7 @@ public static class IrRelationalSummaryBuilder
                 if (factory.GetVariableInfo(signature.Parameters[index]).Type !=
                     member.ParameterTypes[index])
                 {
-                    return false;
+                    return null;
                 }
             }
 
@@ -125,32 +126,28 @@ public static class IrRelationalSummaryBuilder
             if (signature.Receiver is { } receiver &&
                 !variables.Add(receiver))
             {
-                return false;
+                return null;
             }
             foreach (var parameter in signature.Parameters)
             {
                 if (!variables.Add(parameter))
                 {
-                    return false;
+                    return null;
                 }
             }
-            return variables.Add(signature.Result);
+            return variables.Contains(signature.Result) ? null : variables;
         }
         catch (ArgumentException)
         {
-            return false;
+            return null;
         }
     }
 
     private static bool ValidateEnvironment(
         IrFactory factory,
-        IrSummarySignature signature,
+        HashSet<IrVarId> inputs,
         IReadOnlyDictionary<IrVarId, IrTerm> environment)
     {
-        var inputs = new HashSet<IrVarId>(signature.Parameters.Concat(
-            signature.Receiver.HasValue
-                ? [signature.Receiver.Value]
-                : []));
         try
         {
             foreach (var item in environment)

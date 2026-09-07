@@ -3,6 +3,7 @@ using System.Reflection;
 using Microsoft.CodeAnalysis;
 using NUnit.Framework;
 using SharpProof.Analyzer;
+using SharpProof.Frontend;
 
 namespace SharpProof.Analyzer.Test;
 
@@ -187,12 +188,10 @@ public sealed class AnalyzerArchitectureTests
         var runtimeKinds = Enum.GetValues<OperationKind>().Distinct().ToArray();
 
         Assert.That(
-            LanguageSubsetGate.OperationKindDecisions.Keys,
+            OperationSubsetClassifier.GetKnownOperationKinds(),
             Is.EquivalentTo(runtimeKinds));
-        Assert.That(
-            LanguageSubsetGate.OperationKindDecisions.TryGetValue(
-                (OperationKind)int.MaxValue,
-                out _),
+        Assert.That(OperationSubsetClassifier.Classify(
+                (OperationKind)int.MaxValue).IsExact,
             Is.False);
     }
 

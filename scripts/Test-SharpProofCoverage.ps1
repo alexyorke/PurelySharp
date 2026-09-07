@@ -232,19 +232,13 @@ if (($authorityProjectNames -join [Environment]::NewLine) -cne
         'evaluated production inventory.')
 }
 $authorityProjectsByName = [Collections.Generic.Dictionary[string,
-    Collections.Generic.List[object]]]::new([StringComparer]::Ordinal)
+    object]]::new([StringComparer]::Ordinal)
 foreach ($authorityProject in $recomputedAuthority.projects) {
     $authorityProjectName = [string]$authorityProject.name
-    $authorityProjectMatches = $null
-    if (-not $authorityProjectsByName.TryGetValue(
-            $authorityProjectName,
-            [ref]$authorityProjectMatches)) {
-        $authorityProjectMatches = [Collections.Generic.List[object]]::new()
-        $authorityProjectsByName.Add(
-            $authorityProjectName,
-            $authorityProjectMatches)
+    if ($authorityProjectsByName.ContainsKey($authorityProjectName)) {
+        throw "Coverage authority has duplicate project '$authorityProjectName'."
     }
-    $authorityProjectMatches.Add($authorityProject)
+    $authorityProjectsByName.Add($authorityProjectName, $authorityProject)
 }
 $expectedAuthorityModules = @($recomputedAuthority.modules | Sort-Object project)
 $expectedModuleIdentities = @(
@@ -511,21 +505,15 @@ $aggregateCoverable = 0
 foreach ($property in $baseline.projects.PSObject.Properties |
         Sort-Object Name) {
     $projectName = $property.Name
-    $authorityProjects = $null
-    $authorityProjectCount = if ($authorityProjectsByName.TryGetValue(
+    $authorityProject = $null
+    if (-not $authorityProjectsByName.TryGetValue(
             $projectName,
-            [ref]$authorityProjects)) {
-        $authorityProjects.Count
-    }
-    else {
-        0
-    }
-    if ($authorityProjectCount -ne 1) {
+            [ref]$authorityProject)) {
         throw (
             "Coverage authority expected exactly one production project " +
-            "named '$projectName', but found $authorityProjectCount.")
+            "named '$projectName', but found none.")
     }
-    $projectPath = [string]$authorityProjects[0].projectPath
+    $projectPath = [string]$authorityProject.projectPath
     $projectDirectory =
         [IO.Path]::GetDirectoryName($projectPath).Replace('\', '/')
     if ([string]::IsNullOrWhiteSpace($projectDirectory)) {

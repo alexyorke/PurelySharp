@@ -33,14 +33,6 @@ internal readonly partial record struct LanguageSubsetDecision
 
 internal static class LanguageSubsetGate
 {
-    internal static readonly ImmutableDictionary<OperationKind, bool> OperationKindDecisions =
-        Enum.GetValues(typeof(OperationKind)).Cast<OperationKind>().Distinct()
-            .ToImmutableDictionary(
-                static kind => kind,
-                static kind => OperationSupportCatalog.IsSupported(
-                    OperationSupportStage.EffectDiscovery,
-                    kind));
-
     internal static LanguageSubsetDecision ClassifyEffects(
         IMethodSymbol method,
         SyntaxNode declaration,
@@ -76,7 +68,9 @@ internal static class LanguageSubsetGate
                 {
                     continue;
                 }
-                if (!OperationKindDecisions.TryGetValue(operation.Kind, out var supported) || !supported)
+                if (!OperationSubsetClassifier.Classify(
+                        OperationSupportStage.EffectDiscovery,
+                        operation.Kind).IsExact)
                 {
                     return LanguageSubsetDecision.Abstain(
                         LanguageSubsetAbstentionReason.UnsupportedOperationKind,

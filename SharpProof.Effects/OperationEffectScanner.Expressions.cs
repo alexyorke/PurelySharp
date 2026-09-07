@@ -499,10 +499,17 @@ internal sealed partial class OperationEffectScanner
     private EffectSummary ScanIncrementOrDecrement(
         IIncrementOrDecrementOperation increment)
     {
-        return ScanReadModifyWrite(
-            increment.Target,
-            () => EffectStep.Empty,
-            () => _conversionEffects.SkipsLiftedOperator(increment)
+        var evaluatedLocation = ScanWriteTargetEvaluation(increment.Target);
+        var result = new EffectStep(
+            Scan(increment.Target, EffectAccess.Read, evaluatedLocation),
+            _completionEvaluator.CanCompleteNormally(increment.Target));
+        if (!result.CompletesNormally)
+        {
+            return result.Summary;
+        }
+
+        result = result.Then(new EffectStep(
+            _conversionEffects.SkipsLiftedOperator(increment)
                 ? EffectSummary.Empty
                 : EffectSummaryOperations.Join(
                     _conversionEffects.CheckedOverflow(
@@ -512,8 +519,13 @@ internal sealed partial class OperationEffectScanner
                         increment.OperatorMethod,
                         [increment.Target],
                         increment)),
-            () => _completionEvaluator.CanCompleteIncrementValue(increment),
-            increment.Target);
+            _completionEvaluator.CanCompleteIncrementValue(increment)));
+        return CommitWrite(
+            result,
+            increment.Target,
+            increment.Target,
+            evaluatedLocation,
+            valueIsStoredDirectly: false);
     }
 
     private EffectSummary ScanBinary(IBinaryOperation binary)
