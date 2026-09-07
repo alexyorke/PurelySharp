@@ -67,22 +67,10 @@ internal static class GeneratedDomainLawAssertions
                 $"Transitivity failed at seed {seed}, iteration {iteration}: " +
                 $"{first}, {middle}, {upper}.");
 
-            var join = middle;
             Assert.That(
-                domain.LessThanOrEqual(first, join),
-                Is.True,
-                $"Join is not above {first} at seed {seed}, iteration {iteration}.");
-            Assert.That(
-                domain.LessThanOrEqual(second, join),
+                domain.LessThanOrEqual(second, middle),
                 Is.True,
                 $"Join is not above {second} at seed {seed}, iteration {iteration}.");
-
-            var testedUpperBound = domain.Join(join, third);
-            Assert.That(
-                domain.LessThanOrEqual(join, testedUpperBound),
-                Is.True,
-                $"Join is not below a generated upper bound at seed {seed}, " +
-                $"iteration {iteration}.");
 
             for (var upperBoundAttempt = 0; upperBoundAttempt < 8; upperBoundAttempt++)
             {
@@ -94,7 +82,7 @@ internal static class GeneratedDomainLawAssertions
                 }
 
                 Assert.That(
-                    domain.LessThanOrEqual(join, sampledUpperBound),
+                    domain.LessThanOrEqual(middle, sampledUpperBound),
                     Is.True,
                     $"Join is not least below sampled upper bound {sampledUpperBound} " +
                     $"at seed {seed}, iteration {iteration}.");

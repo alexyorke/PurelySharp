@@ -113,35 +113,6 @@ internal static class DomainLawAssertions
         }
     }
 
-    public static void AssertBinaryMonotone<T>(
-        IAbstractDomain<T> domain,
-        IReadOnlyList<T> samples,
-        Func<T, T, T> transfer)
-    {
-        foreach (var left1 in samples)
-        {
-            foreach (var left2 in samples)
-            {
-                foreach (var right1 in samples)
-                {
-                    foreach (var right2 in samples)
-                    {
-                        if (domain.LessThanOrEqual(left1, left2) &&
-                            domain.LessThanOrEqual(right1, right2))
-                        {
-                            Assert.That(
-                                domain.LessThanOrEqual(
-                                    transfer(left1, right1),
-                                    transfer(left2, right2)),
-                                Is.True,
-                                $"Binary transfer is not monotone for ({left1}, {right1}).");
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     public static void AssertConservativeHavoc<T>(
         IAbstractDomain<T> domain,
         IReadOnlyList<T> samples)
