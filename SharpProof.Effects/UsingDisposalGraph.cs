@@ -126,8 +126,9 @@ internal static class UsingDisposalGraph
         IBlockOperation scope,
         int firstActiveOperation)
     {
-        var allTargets = new List<int>();
         var seenTargets = new HashSet<int>();
+        var activeTargets = new List<int>();
+        var leavesActiveLifetime = false;
         var hasUnconditionalGoto = false;
         foreach (var branch in operation.DescendantsAndSelf()
                      .OfType<IBranchOperation>())
@@ -174,22 +175,15 @@ internal static class UsingDisposalGraph
 
                 if (seenTargets.Add(targetIndex))
                 {
-                    allTargets.Add(targetIndex);
+                    if (targetIndex >= firstActiveOperation)
+                    {
+                        activeTargets.Add(targetIndex);
+                    }
+                    else
+                    {
+                        leavesActiveLifetime = true;
+                    }
                 }
-            }
-        }
-
-        var activeTargets = new List<int>();
-        var leavesActiveLifetime = false;
-        foreach (var target in allTargets)
-        {
-            if (target >= firstActiveOperation)
-            {
-                activeTargets.Add(target);
-            }
-            else
-            {
-                leavesActiveLifetime = true;
             }
         }
 
