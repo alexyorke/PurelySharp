@@ -89,6 +89,50 @@ function Invoke-RequiredBuilds {
         -Quiet:$Quiet
 }
 
+function New-SharpProofWeightedBuckets {
+    param(
+        [Parameter(Mandatory = $true)][object[]]$Methods,
+        [Parameter(Mandatory = $true)][hashtable]$HistoricalMilliseconds,
+        [Parameter(Mandatory = $true)][long]$DefaultMilliseconds,
+        [Parameter(Mandatory = $true)][int]$BucketCount
+    )
+
+    $buckets = @(
+        for ($index = 0; $index -lt $BucketCount; $index++) {
+            [pscustomobject]@{
+                Index = $index
+                Methods = [Collections.Generic.List[string]]::new()
+                EstimatedMilliseconds = 0L
+            }
+        })
+    $orderedMethods = @($Methods | Sort-Object `
+        @{ Expression = {
+                if ($HistoricalMilliseconds.ContainsKey($_)) {
+                    [long]$HistoricalMilliseconds[$_]
+                }
+                else {
+                    $DefaultMilliseconds
+                }
+            }; Descending = $true }, `
+        @{ Expression = { $_ }; Descending = $false })
+    foreach ($method in $orderedMethods) {
+        $bucket = $buckets | Sort-Object `
+            EstimatedMilliseconds, `
+            @{ Expression = { $_.Methods.Count } }, `
+            Index | Select-Object -First 1
+        $bucket.Methods.Add($method)
+        $bucket.EstimatedMilliseconds +=
+            $(if ($HistoricalMilliseconds.ContainsKey($method)) {
+                [long]$HistoricalMilliseconds[$method]
+            }
+            else {
+                $DefaultMilliseconds
+            })
+    }
+
+    return $buckets
+}
+
 $script:SharpProofTrxTimingRowsCache = @{}
 
 function Get-TestMethodTimings {
@@ -431,38 +475,11 @@ try {
     else {
         [Math]::Min($workerMethods.Count, 2 * $parallelism)
     }
-    $workerBuckets = @(
-        for ($index = 0; $index -lt $workerShardCount; $index++) {
-            [pscustomobject]@{
-                Index = $index
-                Methods = [Collections.Generic.List[string]]::new()
-                EstimatedMilliseconds = 0L
-            }
-        })
-    $orderedWorkerMethods = @($workerMethods | Sort-Object `
-        @{ Expression = {
-                if ($priorMethodMilliseconds.ContainsKey($_)) {
-                    [long]$priorMethodMilliseconds[$_]
-                }
-                else {
-                    1L
-                }
-            }; Descending = $true }, `
-        @{ Expression = { $_ }; Descending = $false })
-    foreach ($method in $orderedWorkerMethods) {
-        $bucket = $workerBuckets | Sort-Object `
-            EstimatedMilliseconds, `
-            @{ Expression = { $_.Methods.Count } }, `
-            Index | Select-Object -First 1
-        $bucket.Methods.Add($method)
-        $bucket.EstimatedMilliseconds +=
-            $(if ($priorMethodMilliseconds.ContainsKey($method)) {
-                [long]$priorMethodMilliseconds[$method]
-            }
-            else {
-                1L
-            })
-    }
+    $workerBuckets = @(New-SharpProofWeightedBuckets `
+        -Methods $workerMethods `
+        -HistoricalMilliseconds $priorMethodMilliseconds `
+        -DefaultMilliseconds 1L `
+        -BucketCount $workerShardCount)
     $packageLayoutMethods = @($discoveredMethods[$packageLayoutClass])
     $packageLayoutFilter =
         "FullyQualifiedName~$packageLayoutClass"
@@ -477,38 +494,11 @@ try {
         else {
             1L
         }
-    $packageLayoutBuckets = @(
-        for ($index = 0; $index -lt [Math]::Min(4, $parallelism); $index++) {
-            [pscustomobject]@{
-                Index = $index
-                Methods = [Collections.Generic.List[string]]::new()
-                EstimatedMilliseconds = 0L
-            }
-        })
-    $orderedPackageLayoutMethods = @($packageLayoutMethods | Sort-Object `
-        @{ Expression = {
-                if ($priorPackageLayoutMethodMilliseconds.ContainsKey($_)) {
-                    [long]$priorPackageLayoutMethodMilliseconds[$_]
-                }
-                else {
-                    $defaultPackageLayoutMethodMilliseconds
-                }
-            }; Descending = $true }, `
-        @{ Expression = { $_ }; Descending = $false })
-    foreach ($method in $orderedPackageLayoutMethods) {
-        $bucket = $packageLayoutBuckets | Sort-Object `
-            EstimatedMilliseconds, `
-            @{ Expression = { $_.Methods.Count } }, `
-            Index | Select-Object -First 1
-        $bucket.Methods.Add($method)
-        $bucket.EstimatedMilliseconds +=
-            $(if ($priorPackageLayoutMethodMilliseconds.ContainsKey($method)) {
-                [long]$priorPackageLayoutMethodMilliseconds[$method]
-            }
-            else {
-                $defaultPackageLayoutMethodMilliseconds
-            })
-    }
+    $packageLayoutBuckets = @(New-SharpProofWeightedBuckets `
+        -Methods $packageLayoutMethods `
+        -HistoricalMilliseconds $priorPackageLayoutMethodMilliseconds `
+        -DefaultMilliseconds $defaultPackageLayoutMethodMilliseconds `
+        -BucketCount ([Math]::Min(4, $parallelism)))
 
     $canonicalPackageFilter =
         'TestCategory!=Performance&TestCategory!=Coverage&TestCategory!=Corpus'
