@@ -1626,27 +1626,9 @@ internal sealed partial class RequiresCallSiteDiscovery(
     }
 
     internal static IEnumerable<IOperation>
-        ExecutableUnflowedDescendantsAndSelf(IOperation operation)
-    {
-        return ExecutableUnflowedDescendantsAndSelfCore(
-            operation,
-            operationFacts: null);
-    }
-
-    internal static IEnumerable<IOperation>
         ExecutableUnflowedDescendantsAndSelf(
             IOperation operation,
             DefiniteOperationFacts operationFacts)
-    {
-        return ExecutableUnflowedDescendantsAndSelfCore(
-            operation,
-            operationFacts);
-    }
-
-    private static IEnumerable<IOperation>
-        ExecutableUnflowedDescendantsAndSelfCore(
-            IOperation operation,
-            DefiniteOperationFacts? operationFacts)
     {
         if (operation is IAnonymousFunctionOperation or ILocalFunctionOperation)
         {
@@ -1655,7 +1637,7 @@ internal sealed partial class RequiresCallSiteDiscovery(
 
         IEnumerable<IOperation> Descend(IOperation child)
         {
-            return ExecutableUnflowedDescendantsAndSelfCore(
+            return ExecutableUnflowedDescendantsAndSelf(
                 child,
                 operationFacts);
         }
@@ -1683,7 +1665,7 @@ internal sealed partial class RequiresCallSiteDiscovery(
                 {
                     yield return descendant;
                 }
-                if (!operationFacts!.MayCompleteNormally(value))
+                if (!operationFacts.MayCompleteNormally(value))
                 {
                     yield break;
                 }
@@ -1695,14 +1677,14 @@ internal sealed partial class RequiresCallSiteDiscovery(
                 {
                     yield return descendant;
                 }
-                if (!operationFacts!.MayCompleteNormally(argument.Value))
+                if (!operationFacts.MayCompleteNormally(argument.Value))
                 {
                     yield break;
                 }
             }
         }
 
-        if (operationFacts != null && operation is IInvocationOperation invocation)
+        if (operation is IInvocationOperation invocation)
         {
             foreach (var descendant in DescendInputs(
                          invocation.Instance,
@@ -1714,8 +1696,7 @@ internal sealed partial class RequiresCallSiteDiscovery(
             yield break;
         }
 
-        if (operationFacts != null &&
-            operation is IObjectCreationOperation creation)
+        if (operation is IObjectCreationOperation creation)
         {
             foreach (var descendant in DescendInputs(
                          instance: null,
@@ -1740,8 +1721,7 @@ internal sealed partial class RequiresCallSiteDiscovery(
             yield break;
         }
 
-        if (operationFacts != null &&
-            operation is IObjectOrCollectionInitializerOperation initializer)
+        if (operation is IObjectOrCollectionInitializerOperation initializer)
         {
             yield return initializer;
             foreach (var item in initializer.Initializers)
@@ -1759,8 +1739,7 @@ internal sealed partial class RequiresCallSiteDiscovery(
             yield break;
         }
 
-        if (operationFacts != null &&
-            operation is ISimpleAssignmentOperation
+        if (operation is ISimpleAssignmentOperation
             {
                 Target: IPropertyReferenceOperation property
             } assignment)
@@ -1784,8 +1763,7 @@ internal sealed partial class RequiresCallSiteDiscovery(
             yield break;
         }
 
-        if (operationFacts != null &&
-            operation is IPropertyReferenceOperation propertyReference)
+        if (operation is IPropertyReferenceOperation propertyReference)
         {
             foreach (var descendant in DescendInputs(
                          propertyReference.Instance,
@@ -1797,8 +1775,7 @@ internal sealed partial class RequiresCallSiteDiscovery(
             yield break;
         }
 
-        if (operationFacts != null &&
-            operation is IConditionalOperation factConditional)
+        if (operation is IConditionalOperation factConditional)
         {
             yield return factConditional;
             foreach (var descendant in
@@ -1837,7 +1814,7 @@ internal sealed partial class RequiresCallSiteDiscovery(
             yield break;
         }
 
-        if (operationFacts != null && operation is IBinaryOperation
+        if (operation is IBinaryOperation
             {
                 OperatorKind: BinaryOperatorKind.ConditionalAnd or
                     BinaryOperatorKind.ConditionalOr
@@ -1868,7 +1845,7 @@ internal sealed partial class RequiresCallSiteDiscovery(
             yield break;
         }
 
-        if (operationFacts != null && operation is ICoalesceOperation factCoalesce)
+        if (operation is ICoalesceOperation factCoalesce)
         {
             yield return factCoalesce;
             foreach (var descendant in
@@ -1892,8 +1869,7 @@ internal sealed partial class RequiresCallSiteDiscovery(
             yield break;
         }
 
-        if (operationFacts != null &&
-            operation is IConditionalAccessOperation factAccess)
+        if (operation is IConditionalAccessOperation factAccess)
         {
             yield return factAccess;
             foreach (var descendant in
@@ -1917,80 +1893,6 @@ internal sealed partial class RequiresCallSiteDiscovery(
 
         yield return operation;
 
-        if (operation is IConditionalOperation conditional &&
-            conditional.Condition.ConstantValue is
-            { HasValue: true, Value: bool condition })
-        {
-            foreach (var descendant in
-                     Descend(conditional.Condition))
-            {
-                yield return descendant;
-            }
-            var branch = condition
-                ? conditional.WhenTrue
-                : conditional.WhenFalse;
-            foreach (var descendant in DescendOptional(branch))
-            {
-                yield return descendant;
-            }
-            yield break;
-        }
-
-        if (operation is IBinaryOperation binary &&
-            (binary.OperatorKind is
-                BinaryOperatorKind.ConditionalAnd or
-                BinaryOperatorKind.ConditionalOr) &&
-            binary.LeftOperand.ConstantValue is
-            { HasValue: true, Value: bool left })
-        {
-            foreach (var descendant in
-                     Descend(binary.LeftOperand))
-            {
-                yield return descendant;
-            }
-            if (left != (binary.OperatorKind ==
-                    BinaryOperatorKind.ConditionalOr))
-            {
-                foreach (var descendant in
-                         Descend(binary.RightOperand))
-                {
-                    yield return descendant;
-                }
-            }
-            yield break;
-        }
-
-        if (operation is ICoalesceOperation coalesce &&
-            coalesce.Value.ConstantValue.HasValue)
-        {
-            foreach (var descendant in
-                     Descend(coalesce.Value))
-            {
-                yield return descendant;
-            }
-            if (coalesce.Value.ConstantValue.Value == null)
-            {
-                foreach (var descendant in
-                         Descend(coalesce.WhenNull))
-                {
-                    yield return descendant;
-                }
-            }
-            yield break;
-        }
-
-        if (operation is IConditionalAccessOperation access &&
-            access.Operation.ConstantValue is
-            { HasValue: true, Value: null })
-        {
-            foreach (var descendant in
-                     Descend(access.Operation))
-            {
-                yield return descendant;
-            }
-            yield break;
-        }
-
         if (operation is ISwitchExpressionOperation switchExpression &&
             switchExpression.Value.ConstantValue.HasValue)
         {
@@ -1999,8 +1901,7 @@ internal sealed partial class RequiresCallSiteDiscovery(
             {
                 yield return descendant;
             }
-            if (operationFacts != null &&
-                !operationFacts.MayCompleteNormally(switchExpression.Value))
+            if (!operationFacts.MayCompleteNormally(switchExpression.Value))
             {
                 yield break;
             }
@@ -2026,8 +1927,7 @@ internal sealed partial class RequiresCallSiteDiscovery(
                     {
                         yield return descendant;
                     }
-                    if (operationFacts != null &&
-                        !operationFacts.MayCompleteNormally(arm.Guard))
+                    if (!operationFacts.MayCompleteNormally(arm.Guard))
                     {
                         if (match == SwitchExpressionSelection.Always)
                         {
@@ -2063,8 +1963,7 @@ internal sealed partial class RequiresCallSiteDiscovery(
             {
                 yield return descendant;
             }
-            if (operationFacts != null &&
-                !operationFacts.MayCompleteNormally(child))
+            if (!operationFacts.MayCompleteNormally(child))
             {
                 yield break;
             }
