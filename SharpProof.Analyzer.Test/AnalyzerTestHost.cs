@@ -273,18 +273,7 @@ internal static class AnalyzerTestHost
             [tree],
             References.Value,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-        using var stream = new MemoryStream();
-        var result = compilation.Emit(stream);
-        if (!result.Success)
-        {
-            throw new InvalidOperationException(
-                string.Join(
-                    Environment.NewLine,
-                    result.Diagnostics.Select(static diagnostic =>
-                        diagnostic.ToString())));
-        }
-
-        return MetadataReference.CreateFromImage(stream.ToArray());
+        return MetadataReference.CreateFromImage(EmitImage(compilation));
     }
 
     private static ImmutableArray<MetadataReference> CreateReferences()

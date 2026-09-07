@@ -835,7 +835,7 @@ public sealed class FinalCompilationCollectorTests
             .AddReferences(
                 firstReference,
                 secondReference);
-        var manifestImage = EmitImage(manifest);
+        var manifestImage = AnalyzerTestHost.EmitImage(manifest);
         await File.WriteAllBytesAsync(manifestPath, manifestImage);
         using var assemblyMetadata = AssemblyMetadata.Create(
             ModuleMetadata.CreateFromImage(manifestImage),
@@ -1003,7 +1003,7 @@ public sealed class FinalCompilationCollectorTests
                 "public static class StaleLinked { public static int Value => LinkedPart.Value; }")
             .WithAssemblyName("StaleLinked")
             .AddReferences(moduleReference);
-        var manifestImage = EmitImage(manifest);
+        var manifestImage = AnalyzerTestHost.EmitImage(manifest);
         await File.WriteAllBytesAsync(manifestPath, manifestImage);
         using var assemblyMetadata = AssemblyMetadata.Create(
             ModuleMetadata.CreateFromImage(manifestImage),
@@ -1227,24 +1227,10 @@ public sealed class FinalCompilationCollectorTests
         OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary)
     {
         var compilation = CreateCompilation(source);
-        return EmitImage(compilation
+        return AnalyzerTestHost.EmitImage(compilation
             .WithAssemblyName(assemblyName)
             .WithOptions(compilation.Options
                 .WithOutputKind(outputKind)));
-    }
-
-    private static byte[] EmitImage(CSharpCompilation compilation)
-    {
-        using var stream = new MemoryStream();
-        var result = compilation.Emit(stream);
-        if (!result.Success)
-        {
-            throw new InvalidOperationException(string.Join(
-                Environment.NewLine,
-                result.Diagnostics.Select(static diagnostic =>
-                    diagnostic.ToString())));
-        }
-        return stream.ToArray();
     }
 
     private static string NormalizePath(string path)
