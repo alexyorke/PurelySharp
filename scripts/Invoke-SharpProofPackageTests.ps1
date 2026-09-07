@@ -726,30 +726,16 @@ try {
     $packageLayoutMethodTimings = Get-TestMethodTimings `
         -ResultsRoot $results `
         -ClassName $packageLayoutClass
-    $schedulerMethodMilliseconds = @{}
-    foreach ($entry in $priorMethodMilliseconds.GetEnumerator()) {
-        $schedulerMethodMilliseconds[[string]$entry.Key] = [long]$entry.Value
-    }
     foreach ($entry in $workerMethodTimings) {
-        $schedulerMethodMilliseconds[[string]$entry.name] =
+        $priorMethodMilliseconds[[string]$entry.name] =
             [long]$entry.elapsedMilliseconds
-    }
-    $schedulerPackageLayoutMethodMilliseconds = @{}
-    foreach ($entry in
-        $priorPackageLayoutMethodMilliseconds.GetEnumerator()) {
-        $schedulerPackageLayoutMethodMilliseconds[[string]$entry.Key] =
-            [long]$entry.Value
     }
     foreach ($entry in $packageLayoutMethodTimings) {
-        $schedulerPackageLayoutMethodMilliseconds[[string]$entry.name] =
+        $priorPackageLayoutMethodMilliseconds[[string]$entry.name] =
             [long]$entry.elapsedMilliseconds
     }
-    $schedulerFilterMilliseconds = @{}
-    foreach ($entry in $priorFilterMilliseconds.GetEnumerator()) {
-        $schedulerFilterMilliseconds[[string]$entry.Key] = [long]$entry.Value
-    }
     foreach ($entry in $shardTimings) {
-        $schedulerFilterMilliseconds[[string]$entry.filter] =
+        $priorFilterMilliseconds[[string]$entry.filter] =
             [long]$entry.elapsedMilliseconds
     }
     $temporaryTiming =
@@ -767,7 +753,7 @@ try {
         packageLayoutMethods = $packageLayoutMethodTimings
         scheduler = [ordered]@{
             workerMethods = @(
-                $schedulerMethodMilliseconds.GetEnumerator() |
+                $priorMethodMilliseconds.GetEnumerator() |
                     ForEach-Object {
                         [pscustomobject]@{
                             name = [string]$_.Key
@@ -775,7 +761,7 @@ try {
                         }
                     } | Sort-Object name)
             packageLayoutMethods = @(
-                $schedulerPackageLayoutMethodMilliseconds.GetEnumerator() |
+                $priorPackageLayoutMethodMilliseconds.GetEnumerator() |
                     ForEach-Object {
                         [pscustomobject]@{
                             name = [string]$_.Key
@@ -783,7 +769,7 @@ try {
                         }
                     } | Sort-Object name)
             filters = @(
-                $schedulerFilterMilliseconds.GetEnumerator() |
+                $priorFilterMilliseconds.GetEnumerator() |
                     ForEach-Object {
                         [pscustomobject]@{
                             filter = [string]$_.Key

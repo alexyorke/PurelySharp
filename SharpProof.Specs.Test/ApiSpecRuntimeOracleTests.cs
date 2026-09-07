@@ -738,18 +738,8 @@ public sealed partial class ApiSpecRuntimeOracleTests
         params Action[] invokes)
         where TException : Exception
     {
-        return ObserveReceiverWrites(
-            [.. invokes.Select(invoke =>
-                (Func<bool>)(() => ConstructorWritesReceiver(
-                    prepare,
-                    receiver,
-                    invoke)))]);
-    }
-
-    private static SpecEffect ObserveReceiverWrites(
-        params Func<bool>[] edges)
-    {
-        return edges.All(static edge => edge())
+        return invokes.All(invoke =>
+            ConstructorWritesReceiver(prepare, receiver, invoke))
             ? SpecEffect.WritesReceiverState
             : SpecEffect.Unknown;
     }
