@@ -205,8 +205,6 @@ internal static class ContractForSymbolMatcher
             }
         }
 
-        var edges = new Dictionary<INamedTypeSymbol, INamedTypeSymbol>(
-            comparer);
         var incoming = byType.Keys.ToDictionary(
             static type => type,
             static _ => 0,
@@ -220,7 +218,6 @@ internal static class ContractForSymbolMatcher
             {
                 continue;
             }
-            edges.Add(source, relationship.Target);
             incoming[relationship.Target]++;
         }
 
@@ -231,12 +228,14 @@ internal static class ContractForSymbolMatcher
         {
             cancellationToken.ThrowIfCancellationRequested();
             var source = pending.Dequeue();
-            if (!edges.TryGetValue(source, out var target))
+            var target = byType[source].Target;
+            if (!incoming.TryGetValue(target, out var targetIncoming))
             {
                 continue;
             }
-            incoming[target]--;
-            if (incoming[target] == 0)
+            targetIncoming--;
+            incoming[target] = targetIncoming;
+            if (targetIncoming == 0)
             {
                 pending.Enqueue(target);
             }

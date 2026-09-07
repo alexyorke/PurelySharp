@@ -78,7 +78,8 @@ public sealed class DefaultApiSpecCatalogGenerationTests
         Assert.That(
             result.Output,
             Does.Contain(
-                "Verified deterministic API-spec catalog source and documentation."));
+                "Verified deterministic API-spec catalog source, documentation, " +
+                "and runtime witnesses."));
     }
 
     [Test]
@@ -309,21 +310,38 @@ public sealed class DefaultApiSpecCatalogGenerationTests
 
         switch (mutation)
         {
-            case "unknown-reference": declaration["profile"] = "missing-profile"; break;
-            case "duplicate-profile": profiles.Add(firstProfile.DeepClone()); break;
+            case "unknown-reference":
+                declaration["profile"] = "missing-profile";
+                break;
+            case "duplicate-profile":
+                profiles.Add(firstProfile.DeepClone());
+                break;
             case "unused-profile":
                 var unused = firstProfile.DeepClone().AsObject();
                 unused["id"] = "unused-profile";
                 profiles.Add(unused);
                 break;
-            case "mixed-declaration": declaration["facets"] = new JsonObject(); break;
-            case "profile-postconditions-type": firstProfile["postconditions"] = new JsonObject(); break;
-            case "missing-profile-id": firstProfile.Remove("id"); break;
-            case "missing-profile-facets": firstProfile.Remove("facets"); break;
-            case "missing-profile-postconditions": firstProfile.Remove("postconditions"); break;
+            case "mixed-declaration":
+                declaration["facets"] = new JsonObject();
+                break;
+            case "profile-postconditions-type":
+                firstProfile["postconditions"] = new JsonObject();
+                break;
+            case "missing-profile-id":
+                firstProfile.Remove("id");
+                break;
+            case "missing-profile-facets":
+                firstProfile.Remove("facets");
+                break;
+            case "missing-profile-postconditions":
+                firstProfile.Remove("postconditions");
+                break;
         }
 
-        await File.WriteAllTextAsync(workspace.CatalogInputPath, root.ToJsonString(), new UTF8Encoding(false));
+        await File.WriteAllTextAsync(
+            workspace.CatalogInputPath,
+            root.ToJsonString(),
+            new UTF8Encoding(false));
         var result = await RunGeneratorAsync(
             "-CatalogPath", workspace.CatalogInputPath,
             "-SourceOutputPath", workspace.FirstSourcePath,
