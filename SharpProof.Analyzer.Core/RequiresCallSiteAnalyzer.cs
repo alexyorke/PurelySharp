@@ -400,7 +400,8 @@ internal static partial class RequiresCallSiteAnalyzer
                             candidate.Operation,
                             actual,
                             out value)
-                        : candidate.Flow.TryEvaluate(
+                        : TryEvaluateArgumentSnapshot(
+                            candidate.Flow,
                             candidate.Operation,
                             actual,
                             out value)))
@@ -436,6 +437,21 @@ internal static partial class RequiresCallSiteAnalyzer
                         value.TryGetBoolean(out var proven) ? proven : null,
                         clause.Condition);
                 }));
+        }
+
+        private static bool TryEvaluateArgumentSnapshot(
+            ManagedFlowResult flow,
+            IOperation origin,
+            IOperation actual,
+            out ManagedAbstractValue value)
+        {
+            if (actual is ISimpleAssignmentOperation assignment)
+            {
+                // The assignment result is its converted RHS value before the
+                // store. Do not reevaluate it in the later call-entry state.
+                return flow.TryEvaluate(assignment.Value, assignment.Value, out value);
+            }
+            return flow.TryEvaluate(origin, actual, out value);
         }
 
         private static bool CallPrerequisitesComplete(
