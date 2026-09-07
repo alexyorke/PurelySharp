@@ -757,10 +757,6 @@ internal sealed class ExceptionHandlerReachability(
                             binary);
                     }
                 }
-                if (CanThrowUnknownAfterPrerequisites(binary))
-                {
-                    Add(UnknownPotential, binary);
-                }
                 PushChildren(binary);
                 continue;
             }
@@ -791,10 +787,6 @@ internal sealed class ExceptionHandlerReachability(
                                 depth),
                             operation);
                     }
-                }
-                if (CanThrowUnknownAfterPrerequisites(operation))
-                {
-                    Add(UnknownPotential, operation);
                 }
                 PushChildren(operation);
                 continue;
