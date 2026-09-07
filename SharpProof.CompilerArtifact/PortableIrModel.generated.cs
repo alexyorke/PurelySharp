@@ -287,7 +287,6 @@ internal static class PortableIrGraphCodecProjections
 {
     internal static PortableIrTerm EncodeTerm(
         IrTerm term,
-        Func<IrTypeId, int> typeIndex,
         Func<IrStringId, string> stringValue,
         Func<IrVarId, int> variableIndex,
         Func<IrTerm, int> termIndex,
@@ -361,7 +360,6 @@ internal static class PortableIrGraphCodecProjections
 
     internal static PortableIrLocation EncodeLocation(
         IrLocation location,
-        Func<IrTypeId, int> typeIndex,
         Func<IrMemberId, int> memberIndex,
         Func<IrTerm?, int> optionalTermIndex,
         Func<IrTerm, int> termIndex,

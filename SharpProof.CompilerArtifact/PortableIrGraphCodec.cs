@@ -454,7 +454,6 @@ internal static partial class PortableIrGraphCodec
             var term = _factory.GetTerm(id);
             return PortableIrGraphCodecProjections.EncodeTerm(
                 term,
-                TypeIndex,
                 _factory.GetString,
                 VariableIndex,
                 TermIndex,
@@ -480,7 +479,6 @@ internal static partial class PortableIrGraphCodec
         {
             return PortableIrGraphCodecProjections.EncodeLocation(
                 location,
-                TypeIndex,
                 MemberIndex,
                 OptionalTermIndex,
                 TermIndex,
