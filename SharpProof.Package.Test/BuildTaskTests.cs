@@ -61,33 +61,34 @@ public sealed class BuildTaskTests
         }
     }
 
-    [Test]
-    public void SupervisorCleanupReceiptsRequireAnExactNonceAndRecord()
+    [TestCase("SharpProof.Armed/1", "\n", false, true, false)]
+    [TestCase("SharpProof.Armed/1", "\r\n", false, true, false)]
+    [TestCase("SharpProof.Cleanup/1", "\n", false, false, true)]
+    [TestCase("SharpProof.Cleanup/1", "\r\n", false, false, true)]
+    [TestCase("SharpProof.Armed/1", "", false, false, false)]
+    [TestCase("SharpProof.Cleanup/1", "", false, false, false)]
+    [TestCase("SharpProof.Cleanup/1 trailing", "\n", false, false, false)]
+    [TestCase("SharpProof.Armed/1", "\n", true, false, false)]
+    [TestCase("SharpProof.Cleanup/1", "\n", true, false, false)]
+    public async System.Threading.Tasks.Task
+        SupervisorCleanupReceiptsRequireAnExactNonceAndRecord(
+            string record,
+            string terminator,
+            bool wrongNonce,
+            bool expectedArmed,
+            bool expectedCleanup)
     {
         const string nonce = ValidSupervisorNonce;
-        var output = "verifier output\nSharpProof.Armed/1 " + nonce +
-            "\nSharpProof.Cleanup/1 " + nonce + "\n";
+        using var reader = new StringReader("verifier output\n" + record + " " +
+            nonce + terminator);
+        using var signal = new ManualResetEventSlim();
+        var result = await RunVerifier.ReadBoundedOutputAsync(
+            reader, wrongNonce ? "f" + nonce[1..] : nonce, signal);
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(
-                RunVerifier.HasSupervisorProtocolRecord(
-                    output,
-                    "SharpProof.Armed/1",
-                    nonce),
-                Is.True);
-            Assert.That(
-                RunVerifier.HasSupervisorProtocolRecord(
-                    output,
-                    "SharpProof.Cleanup/1",
-                    "f" + nonce[1..]),
-                Is.False);
-            Assert.That(
-                RunVerifier.HasSupervisorProtocolRecord(
-                    output,
-                    "SharpProof.Cleanup/1 trailing",
-                    nonce),
-                Is.False);
+            Assert.That(result.SupervisorArmed, Is.EqualTo(expectedArmed));
+            Assert.That(result.CleanupAuthenticated, Is.EqualTo(expectedCleanup));
         }
     }
 

@@ -478,58 +478,6 @@ public sealed partial class RunVerifier : Microsoft.Build.Utilities.Task,
         }
     }
 
-    internal static bool HasSupervisorProtocolRecord(
-        string output,
-        string message,
-        string nonce)
-    {
-        var expected = message + " " + nonce;
-        return NormalizedSupervisorProtocolLines(output).Contains(
-            expected,
-            StringComparer.Ordinal);
-    }
-
-    internal static (bool Armed, bool Cleanup) FindSupervisorProtocolRecords(
-        string output,
-        string nonce)
-    {
-        var armedExpected = LinuxWorkerProcess.ArmedMessage + " " + nonce;
-        var cleanupExpected = LinuxWorkerProcess.CleanupMessage + " " + nonce;
-        var armed = false;
-        var cleanup = false;
-        foreach (var normalized in NormalizedSupervisorProtocolLines(output))
-        {
-            if (string.Equals(
-                    normalized,
-                    armedExpected,
-                    StringComparison.Ordinal))
-            {
-                armed = true;
-            }
-            else if (string.Equals(
-                         normalized,
-                         cleanupExpected,
-                         StringComparison.Ordinal))
-            {
-                cleanup = true;
-            }
-            if (armed && cleanup)
-            {
-                break;
-            }
-        }
-        return (armed, cleanup);
-    }
-
-    private static IEnumerable<string> NormalizedSupervisorProtocolLines(
-        string output)
-    {
-        foreach (var line in output.Split('\n'))
-        {
-            yield return line.EndsWith('\r') ? line[..^1] : line;
-        }
-    }
-
     internal static bool ShouldDeferSupervisorAuthentication(
         bool authenticationRequired,
         bool outputCompleted)
@@ -689,14 +637,10 @@ public sealed partial class RunVerifier : Microsoft.Build.Utilities.Task,
             string? supervisorNonce)
     {
         var text = await output.ConfigureAwait(false);
-        var records = supervisorNonce == null
-            ? (Armed: false, Cleanup: false)
-            : FindSupervisorProtocolRecords(text, supervisorNonce);
-        return new BoundedProcessOutput(
-            text,
-            LimitExceeded: false,
-            SupervisorArmed: records.Armed,
-            CleanupAuthenticated: records.Cleanup);
+        using var reader = new StringReader(text);
+        using var outputLimitSignal = new ManualResetEventSlim();
+        return await ReadBoundedOutputAsync(
+            reader, supervisorNonce, outputLimitSignal).ConfigureAwait(false);
     }
 
     private static void RetainCleanupAnchor(
