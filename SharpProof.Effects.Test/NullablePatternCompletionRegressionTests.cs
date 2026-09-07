@@ -13,7 +13,6 @@ public sealed class NullablePatternCompletionRegressionTests
     {
         var compilation = SharedCompilation;
         var helper = EffectTestHost.SampleMethod(compilation, helperName);
-        var caller = EffectTestHost.SampleMethod(compilation, callerName);
         var completion = EffectTestHost.CreateCompletionFacts(compilation);
         var result = EffectTestHost.AnalyzeSample(compilation, callerName);
 

@@ -478,14 +478,11 @@ public sealed class FinalCompilationProbeTests
         {
             var trees = root.GetProperty("syntaxTrees")
                 .EnumerateArray()
-                .Select(tree => new
-                {
-                    Path = tree.GetProperty("path").GetString() ?? "",
-                    Ordinal = tree.GetProperty("ordinal").GetInt32(),
-                    TextSha256 = tree.GetProperty("textSha256").GetString() ??
-                        string.Empty,
-                    Raw = tree.GetRawText()
-                })
+                .Select(tree => new SyntaxTreeRow(
+                    tree.GetProperty("path").GetString() ?? "",
+                    tree.GetProperty("ordinal").GetInt32(),
+                    tree.GetProperty("textSha256").GetString() ?? string.Empty,
+                    tree.GetRawText()))
                 .ToArray();
             Assert.That(
                 trees.Select(static tree => (tree.Path, tree.Ordinal)),
@@ -500,11 +497,7 @@ public sealed class FinalCompilationProbeTests
                     .Count(),
                 Is.EqualTo(trees.Length),
                 path + ": syntaxTrees");
-            return [.. trees.Select(static tree => new SyntaxTreeRow(
-                tree.Path,
-                tree.Ordinal,
-                tree.TextSha256,
-                tree.Raw))];
+            return trees;
         }
 
         private static string[] GetCanonicalRawRows(

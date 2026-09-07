@@ -232,17 +232,11 @@ public sealed class EffectContractWireParityTests
             {
                 Assert.That(
                     reads,
-                    Is.EqualTo(
-                        mapping.Read == EffectContractKind.None
-                            ? EffectRegionSet.Empty
-                            : expectedRegions),
+                    Is.EqualTo(expectedRegions),
                     mapping.Region + " read");
                 Assert.That(
                     writes,
-                    Is.EqualTo(
-                        mapping.Write == EffectContractKind.None
-                            ? EffectRegionSet.Empty
-                            : expectedRegions),
+                    Is.EqualTo(expectedRegions),
                     mapping.Region + " write");
             }
         }

@@ -178,10 +178,8 @@ internal static class EffectTestHost
         string typeMetadataName,
         string methodName)
     {
-        var type = compilation.GetTypeByMetadataName(typeMetadataName) ??
-                   throw new InvalidOperationException(
-                       $"Type '{typeMetadataName}' was not found.");
-        return type.GetMembers(methodName)
+        return RequireType(compilation, typeMetadataName)
+                   .GetMembers(methodName)
                    .OfType<IMethodSymbol>()
                    .Single(static method => method.MethodKind == MethodKind.Ordinary);
     }

@@ -149,9 +149,6 @@ public sealed partial class ReleaseQualificationMatrixTests
         File.Copy(
             Path.Combine(sourceRoot, "scripts", "SharpProof.ReleaseJson.ps1"),
             Path.Combine(scripts.FullName, "SharpProof.ReleaseJson.ps1"));
-        File.Copy(
-            Path.Combine(sourceRoot, "scripts", "SharpProof.PackageIdentity.psm1"),
-            Path.Combine(scripts.FullName, "SharpProof.PackageIdentity.psm1"));
         await File.WriteAllTextAsync(
             Path.Combine(scripts.FullName, "Test-SharpProofPilotReport.ps1"),
             "function Test-SharpProofPilotReport { return $true }\n");

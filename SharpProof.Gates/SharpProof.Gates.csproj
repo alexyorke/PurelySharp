@@ -33,10 +33,4 @@
   <ItemGroup>
     <InternalsVisibleTo Include="SharpProof.Gates.Test" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="Corpus\expected.canonical.snapshot"
-          CopyToOutputDirectory="PreserveNewest" />
-    <None Include="Corpus\proven-to-unknown.json"
-          CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
 </Project>
