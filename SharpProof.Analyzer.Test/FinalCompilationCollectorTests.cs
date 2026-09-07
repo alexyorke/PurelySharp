@@ -34,12 +34,7 @@ public sealed class FinalCompilationCollectorTests
             }
             """);
 
-        var diagnostics = await AnalyzeCollectorAsync(
-            compilation,
-            Options(path));
-        Assert.That(diagnostics, Is.Empty);
-        var artifact = CompilerManifestArtifactJson.Deserialize(
-            await File.ReadAllTextAsync(path));
+        var artifact = await EmitArtifact(compilation, path);
 
         Assert.That(artifact.Manifest.Callables, Has.Length.EqualTo(1));
         Assert.That(artifact.Manifest.Claims, Has.Length.EqualTo(1));
@@ -221,12 +216,7 @@ public sealed class FinalCompilationCollectorTests
         var compilation = CreateCompilation(
             "using SharpProof.Attributes;\n[method: DoesNotThrow]\n" + declaration);
 
-        var diagnostics = await AnalyzeCollectorAsync(
-            compilation,
-            Options(path));
-        Assert.That(diagnostics, Is.Empty);
-        var artifact = CompilerManifestArtifactJson.Deserialize(
-            await File.ReadAllTextAsync(path));
+        var artifact = await EmitArtifact(compilation, path);
 
         Assert.That(artifact.Manifest.Callables, Has.Length.EqualTo(1));
         Assert.That(artifact.Manifest.Claims, Has.Length.EqualTo(1));
@@ -261,12 +251,9 @@ public sealed class FinalCompilationCollectorTests
             (CSharpParseOptions)compilation.SyntaxTrees.Single().Options,
             "Generated.PrimaryConstructor.g.cs");
 
-        var diagnostics = await AnalyzeCollectorAsync(
+        var artifact = await EmitArtifact(
             compilation.AddSyntaxTrees(generated),
-            Options(path));
-        Assert.That(diagnostics, Is.Empty);
-        var artifact = CompilerManifestArtifactJson.Deserialize(
-            await File.ReadAllTextAsync(path));
+            path);
 
         using (Assert.EnterMultipleScope())
         {
