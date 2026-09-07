@@ -3690,26 +3690,10 @@
       "sourceType": "EffectContractKind",
       "targetType": "WorkerEffectSet",
       "sourceMask": "EffectContractMetadata.AllEffects",
+      "sourceMaskValue": 65535,
+      "underlyingType": "long",
       "unknownException": "ArgumentOutOfRangeException",
-      "rows": [
-        { "source": "None", "target": "None" },
-        { "source": "ReadsReceiverState", "target": "ReadsReceiverState" },
-        { "source": "ReadsArgumentState", "target": "ReadsArgumentState" },
-        { "source": "ReadsCapturedState", "target": "ReadsCapturedState" },
-        { "source": "ReadsStaticState", "target": "ReadsStaticState" },
-        { "source": "ReadsAmbientState", "target": "ReadsAmbientState" },
-        { "source": "WritesReceiverState", "target": "WritesReceiverState" },
-        { "source": "WritesArgumentState", "target": "WritesArgumentState" },
-        { "source": "WritesCapturedState", "target": "WritesCapturedState" },
-        { "source": "WritesStaticState", "target": "WritesStaticState" },
-        { "source": "WritesAmbientState", "target": "WritesAmbientState" },
-        { "source": "Allocates", "target": "Allocates" },
-        { "source": "Throws", "target": "Throws" },
-        { "source": "Synchronizes", "target": "Synchronizes" },
-        { "source": "UsesNondeterminism", "target": "UsesNondeterminism" },
-        { "source": "UsesNativeCode", "target": "UsesNativeCode" },
-        { "source": "UsesReflection", "target": "UsesReflection" }
-      ]
+      "identityFlagsByValue": true
     },
     {
       "name": "EffectContractCapabilityKind",
@@ -3719,23 +3703,10 @@
       "sourceType": "EffectContractCapabilityKind",
       "targetType": "WorkerEffectCapabilitySet",
       "sourceMask": "EffectContractMetadata.AllCapabilities",
+      "sourceMaskValue": 8191,
+      "underlyingType": "int",
       "unknownException": "ArgumentOutOfRangeException",
-      "rows": [
-        { "source": "None", "target": "None" },
-        { "source": "IO", "target": "IO" },
-        { "source": "FileRead", "target": "FileRead" },
-        { "source": "FileWrite", "target": "FileWrite" },
-        { "source": "Network", "target": "Network" },
-        { "source": "Console", "target": "Console" },
-        { "source": "Process", "target": "Process" },
-        { "source": "Environment", "target": "Environment" },
-        { "source": "Registry", "target": "Registry" },
-        { "source": "Clock", "target": "Clock" },
-        { "source": "Randomness", "target": "Randomness" },
-        { "source": "Reflection", "target": "Reflection" },
-        { "source": "Synchronization", "target": "Synchronization" },
-        { "source": "NativeInterop", "target": "NativeInterop" }
-      ]
+      "identityFlagsByValue": true
     },
     {
       "name": "BoundContractKind",

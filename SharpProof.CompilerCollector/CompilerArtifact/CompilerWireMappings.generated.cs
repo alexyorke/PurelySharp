@@ -126,74 +126,14 @@ internal sealed partial class ClaimManifestBuilder
     {
         if ((source & ~EffectContractMetadata.AllEffects) != 0)
             throw new ArgumentOutOfRangeException(nameof(source));
-        var result = WorkerEffectSet.None;
-        if ((source & EffectContractKind.ReadsReceiverState) != 0)
-            result |= WorkerEffectSet.ReadsReceiverState;
-        if ((source & EffectContractKind.ReadsArgumentState) != 0)
-            result |= WorkerEffectSet.ReadsArgumentState;
-        if ((source & EffectContractKind.ReadsCapturedState) != 0)
-            result |= WorkerEffectSet.ReadsCapturedState;
-        if ((source & EffectContractKind.ReadsStaticState) != 0)
-            result |= WorkerEffectSet.ReadsStaticState;
-        if ((source & EffectContractKind.ReadsAmbientState) != 0)
-            result |= WorkerEffectSet.ReadsAmbientState;
-        if ((source & EffectContractKind.WritesReceiverState) != 0)
-            result |= WorkerEffectSet.WritesReceiverState;
-        if ((source & EffectContractKind.WritesArgumentState) != 0)
-            result |= WorkerEffectSet.WritesArgumentState;
-        if ((source & EffectContractKind.WritesCapturedState) != 0)
-            result |= WorkerEffectSet.WritesCapturedState;
-        if ((source & EffectContractKind.WritesStaticState) != 0)
-            result |= WorkerEffectSet.WritesStaticState;
-        if ((source & EffectContractKind.WritesAmbientState) != 0)
-            result |= WorkerEffectSet.WritesAmbientState;
-        if ((source & EffectContractKind.Allocates) != 0)
-            result |= WorkerEffectSet.Allocates;
-        if ((source & EffectContractKind.Throws) != 0)
-            result |= WorkerEffectSet.Throws;
-        if ((source & EffectContractKind.Synchronizes) != 0)
-            result |= WorkerEffectSet.Synchronizes;
-        if ((source & EffectContractKind.UsesNondeterminism) != 0)
-            result |= WorkerEffectSet.UsesNondeterminism;
-        if ((source & EffectContractKind.UsesNativeCode) != 0)
-            result |= WorkerEffectSet.UsesNativeCode;
-        if ((source & EffectContractKind.UsesReflection) != 0)
-            result |= WorkerEffectSet.UsesReflection;
-        return result;
+        return (WorkerEffectSet)(long)source;
     }
 
     internal static WorkerEffectCapabilitySet ToWorkerCapabilities(EffectContractCapabilityKind source)
     {
         if ((source & ~EffectContractMetadata.AllCapabilities) != 0)
             throw new ArgumentOutOfRangeException(nameof(source));
-        var result = WorkerEffectCapabilitySet.None;
-        if ((source & EffectContractCapabilityKind.IO) != 0)
-            result |= WorkerEffectCapabilitySet.IO;
-        if ((source & EffectContractCapabilityKind.FileRead) != 0)
-            result |= WorkerEffectCapabilitySet.FileRead;
-        if ((source & EffectContractCapabilityKind.FileWrite) != 0)
-            result |= WorkerEffectCapabilitySet.FileWrite;
-        if ((source & EffectContractCapabilityKind.Network) != 0)
-            result |= WorkerEffectCapabilitySet.Network;
-        if ((source & EffectContractCapabilityKind.Console) != 0)
-            result |= WorkerEffectCapabilitySet.Console;
-        if ((source & EffectContractCapabilityKind.Process) != 0)
-            result |= WorkerEffectCapabilitySet.Process;
-        if ((source & EffectContractCapabilityKind.Environment) != 0)
-            result |= WorkerEffectCapabilitySet.Environment;
-        if ((source & EffectContractCapabilityKind.Registry) != 0)
-            result |= WorkerEffectCapabilitySet.Registry;
-        if ((source & EffectContractCapabilityKind.Clock) != 0)
-            result |= WorkerEffectCapabilitySet.Clock;
-        if ((source & EffectContractCapabilityKind.Randomness) != 0)
-            result |= WorkerEffectCapabilitySet.Randomness;
-        if ((source & EffectContractCapabilityKind.Reflection) != 0)
-            result |= WorkerEffectCapabilitySet.Reflection;
-        if ((source & EffectContractCapabilityKind.Synchronization) != 0)
-            result |= WorkerEffectCapabilitySet.Synchronization;
-        if ((source & EffectContractCapabilityKind.NativeInterop) != 0)
-            result |= WorkerEffectCapabilitySet.NativeInterop;
-        return result;
+        return (WorkerEffectCapabilitySet)(int)source;
     }
 }
 

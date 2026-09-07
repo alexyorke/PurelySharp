@@ -432,6 +432,37 @@ public sealed class CompilerArtifactModelSchemaTests
                     name + " identity names");
                 continue;
             }
+            if (mapping.TryGetProperty(
+                    "identityFlagsByValue",
+                    out var identityFlagsByValue))
+            {
+                Assert.That(identityFlagsByValue.GetBoolean(), Is.True, name);
+                Assert.That(mapping.TryGetProperty("rows", out _), Is.False, name);
+                Assert.That(
+                    Enum.GetUnderlyingType(types.Source),
+                    Is.EqualTo(Enum.GetUnderlyingType(types.Target)),
+                    name + " underlying type");
+                var sourceMembers = Enum.GetNames(types.Source)
+                    .ToDictionary(
+                        static member => member,
+                        member => Convert.ToInt64(Enum.Parse(types.Source, member)),
+                        StringComparer.Ordinal);
+                var targetMembers = Enum.GetNames(types.Target)
+                    .Where(static member => member != "AllKnown")
+                    .ToDictionary(
+                        static member => member,
+                        member => Convert.ToInt64(Enum.Parse(types.Target, member)),
+                        StringComparer.Ordinal);
+                Assert.That(targetMembers, Is.EqualTo(sourceMembers), name);
+                var sourceMask = sourceMembers.Values.Aggregate(
+                    0L,
+                    static (mask, value) => mask | value);
+                Assert.That(
+                    Convert.ToInt64(Enum.Parse(types.Target, "AllKnown")),
+                    Is.EqualTo(sourceMask),
+                    name + " AllKnown");
+                continue;
+            }
             string[] sources = [
                 .. mapping.GetProperty("rows").EnumerateArray()
                     .Select(static row =>

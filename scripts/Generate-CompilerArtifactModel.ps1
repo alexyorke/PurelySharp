@@ -2,6 +2,7 @@
 param(
     [Parameter()][string]$SchemaPath,
     [Parameter()][string]$ProtocolSchemaPath,
+    [Parameter()][string]$EffectsCatalogPath,
     [Parameter()][Alias('OutputPath')][string]$ModelOutputPath,
     [Parameter()][string]$PortableOutputPath,
     [Parameter()][string]$CompilationOutputPath,
@@ -19,6 +20,8 @@ $SchemaPath = Resolve-SharpProofPath $SchemaPath (
     Join-Path $repositoryRoot 'SharpProof.CompilerArtifact\CompilerArtifactModel.schema.json')
 $ProtocolSchemaPath = Resolve-SharpProofPath $ProtocolSchemaPath (
     Join-Path $repositoryRoot 'SharpProof.Worker.Protocol\ProtocolModel.schema.json')
+$EffectsCatalogPath = Resolve-SharpProofPath $EffectsCatalogPath (
+    Join-Path $repositoryRoot 'SharpProof.Effects\EffectContractMappings.catalog.json')
 $ModelOutputPath = Resolve-SharpProofPath $ModelOutputPath (
     Join-Path $repositoryRoot 'SharpProof.CompilerArtifact\CompilerArtifactModel.generated.cs')
 $PortableOutputPath = Resolve-SharpProofPath $PortableOutputPath (
@@ -32,6 +35,9 @@ if (-not [IO.File]::Exists($SchemaPath)) {
 }
 if (-not [IO.File]::Exists($ProtocolSchemaPath)) {
     throw "Protocol schema not found: $ProtocolSchemaPath"
+}
+if (-not [IO.File]::Exists($EffectsCatalogPath)) {
+    throw "Effect mappings catalog not found: $EffectsCatalogPath"
 }
 
 function Get-MetadataRowExpression {
@@ -292,6 +298,10 @@ $schema = Read-SharpProofSchema `
     -Path $SchemaPath `
     -Context 'compiler-artifact model' `
     -ExpectedNamespace 'SharpProof.CompilerArtifact'
+$protocolSchema = Get-Content -LiteralPath $ProtocolSchemaPath -Raw |
+    ConvertFrom-Json -Depth 100
+$effectsCatalog = Get-Content -LiteralPath $EffectsCatalogPath -Raw |
+    ConvertFrom-Json -Depth 100
 $namespace = [string]$schema.namespace
 $jsonNamingPolicy = [string]$schema.jsonNamingPolicy
 $declarations = @(Get-RequiredMember $schema 'declarations' 'schema')
@@ -1113,6 +1123,91 @@ foreach ($line in ($portableProjectionSource -split "`r?`n")) {
     $portableLines.Add($line)
 }
 
+function Assert-CollectorFlagIdentityMapping {
+    param(
+        [Parameter(Mandatory = $true)][object]$Mapping,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    $sourceType = [string]$Mapping.sourceType
+    $targetType = [string]$Mapping.targetType
+    $sourceDeclarations = @($effectsCatalog.enums | Where-Object {
+        [string]$_.name -ceq $sourceType
+    })
+    $targetDeclarations = @($protocolSchema.declarations | Where-Object {
+        [string]$_.name -ceq $targetType
+    })
+    if ($sourceDeclarations.Count -ne 1 -or
+        $targetDeclarations.Count -ne 1) {
+        throw "Collector flag identity '$Name' has missing declarations."
+    }
+    $sourceDeclaration = $sourceDeclarations[0]
+    $targetDeclaration = $targetDeclarations[0]
+    if (-not [bool]$sourceDeclaration.flags -or
+        -not [bool]$targetDeclaration.flags) {
+        throw "Collector flag identity '$Name' requires flags enums."
+    }
+    $underlyingType = [string](
+        Get-RequiredMember $Mapping 'underlyingType' "collector mapping '$Name'")
+    $sourceUnderlying = if ($sourceDeclaration.PSObject.Properties['underlyingType']) {
+        [string]$sourceDeclaration.underlyingType
+    }
+    else {
+        'int'
+    }
+    $targetUnderlying = if ($targetDeclaration.PSObject.Properties['underlyingType']) {
+        [string]$targetDeclaration.underlyingType
+    }
+    else {
+        'int'
+    }
+    if ($underlyingType -notin 'int', 'long' -or
+        $sourceUnderlying -cne $underlyingType -or
+        $targetUnderlying -cne $underlyingType) {
+        throw "Collector flag identity '$Name' has an underlying type mismatch."
+    }
+
+    $sourceMembers = @($sourceDeclaration.members)
+    $targetMembers = @($targetDeclaration.members)
+    $sourceByName = [Collections.Generic.Dictionary[string, long]]::new(
+        [StringComparer]::Ordinal)
+    [long]$sourceMaskValue = 0
+    foreach ($member in $sourceMembers) {
+        $memberName = [string]$member.name
+        [long]$value = $member.value
+        if ($sourceByName.ContainsKey($memberName) -or
+            ($memberName -ceq 'None' -and $value -ne 0) -or
+            ($memberName -cne 'None' -and
+             ($value -le 0 -or ($value -band ($value - 1)) -ne 0))) {
+            throw "Collector flag identity '$Name' has invalid source members."
+        }
+        $sourceByName.Add($memberName, $value)
+        $sourceMaskValue = $sourceMaskValue -bor $value
+    }
+    if (-not $sourceByName.ContainsKey('None') -or
+        [long](Get-RequiredMember $Mapping 'sourceMaskValue' "collector mapping '$Name'") -ne
+            $sourceMaskValue) {
+        throw "Collector flag identity '$Name' has an invalid source mask value."
+    }
+
+    $targetByName = [Collections.Generic.Dictionary[string, long]]::new(
+        [StringComparer]::Ordinal)
+    foreach ($member in $targetMembers) {
+        $targetByName.Add([string]$member.name, [long]$member.value)
+    }
+    if ($targetByName.Count -ne $sourceByName.Count + 1 -or
+        -not $targetByName.ContainsKey('AllKnown') -or
+        [long]$targetByName['AllKnown'] -ne $sourceMaskValue) {
+        throw "Collector flag identity '$Name' has an invalid AllKnown aggregate."
+    }
+    foreach ($entry in $sourceByName.GetEnumerator()) {
+        if (-not $targetByName.ContainsKey($entry.Key) -or
+            [long]$targetByName[$entry.Key] -ne [long]$entry.Value) {
+            throw "Collector flag identity '$Name' has a member value mismatch."
+        }
+    }
+}
+
 $collectorMappings = @(
     Get-RequiredMember $schema 'collectorWireMappings' 'schema')
 if ($collectorMappings.Count -eq 0) {
@@ -1187,9 +1282,16 @@ foreach ($mapping in $collectorMappings) {
             throw "Collector mapping '$name' has an invalid identity setting."
         }
     }
-    $rows = if ($identityByName) {
+    $identityFlagsByValue = $false
+    if ($mapping.PSObject.Properties['identityFlagsByValue']) {
+        $identityFlagsByValue = [bool]$mapping.identityFlagsByValue
+        if (-not $identityFlagsByValue -or $kind -ne 'flags') {
+            throw "Collector mapping '$name' has an invalid flags identity setting."
+        }
+        Assert-CollectorFlagIdentityMapping -Mapping $mapping -Name $name
+    }
+    $rows = if ($identityByName -or $identityFlagsByValue) {
         if ($mapping.PSObject.Properties['rows'] -or
-            $mapping.PSObject.Properties['sourceMask'] -or
             $mapping.PSObject.Properties['allowTargetAliases']) {
             throw "Collector identity mapping '$name' has conflicting settings."
         }
@@ -1198,7 +1300,9 @@ foreach ($mapping in $collectorMappings) {
     else {
         @(Get-RequiredMember $mapping 'rows' "collector mapping '$name'")
     }
-    if (-not $identityByName -and $rows.Count -eq 0) {
+    if (-not $identityByName -and
+        -not $identityFlagsByValue -and
+        $rows.Count -eq 0) {
         throw "Collector mapping '$name' cannot be empty."
     }
     $sources = [Collections.Generic.HashSet[string]]::new(
@@ -1242,8 +1346,9 @@ foreach ($mapping in $collectorMappings) {
             '^[A-Za-z_][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*$') {
             throw "Collector mapping '$name' has an invalid source mask."
         }
-        if ([string]$rows[0].source -ne 'None' -or
-            [string]$rows[0].target -ne 'None') {
+        if (-not $identityFlagsByValue -and
+            ([string]$rows[0].source -ne 'None' -or
+             [string]$rows[0].target -ne 'None')) {
             throw "Collector flags mapping '$name' must begin with None -> None."
         }
     }
@@ -1349,6 +1454,15 @@ foreach ($owner in $collectorMappingsByOwner.Keys) {
             $collectorLines.Add(
                 '            "A custom assembly identity comparer is unsupported.");')
         }
+        elseif ($mapping.PSObject.Properties['identityFlagsByValue'] -and
+            [bool]$mapping.identityFlagsByValue) {
+            $collectorLines.Add(
+                "        if (($parameterName & ~$($mapping.sourceMask)) != 0)")
+            $collectorLines.Add(
+                "            throw new ArgumentOutOfRangeException(nameof($parameterName));")
+            $collectorLines.Add(
+                "        return ($targetType)($($mapping.underlyingType))$parameterName;")
+        }
         elseif ($kind -eq 'flags') {
             $collectorLines.Add(
                 "        if (($parameterName & ~$($mapping.sourceMask)) != 0)")
@@ -1414,8 +1528,6 @@ if ($domain -ne 'SharpProof.CompilerEffectClaimEvidence' -or
     $evidenceVersion -ne 9) {
     throw 'Compiler effect evidence must preserve domain version 9.'
 }
-$protocolSchema = Get-Content -LiteralPath $ProtocolSchemaPath -Raw |
-    ConvertFrom-Json -Depth 100
 $effectCertaintyTables = @(
     (Get-MemberArray $protocolSchema 'validationTables') |
         Where-Object { [string]$_.name -ceq 'EffectCertainty' })
