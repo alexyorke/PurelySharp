@@ -47,11 +47,7 @@ public sealed record EffectSummary
         }
 
         if ((analysisIncompleteReason &
-             ~(EffectAnalysisIncompleteReason.BlockBudgetExceeded |
-               EffectAnalysisIncompleteReason.OperationBudgetExceeded |
-               EffectAnalysisIncompleteReason.CyclicControlFlow |
-               EffectAnalysisIncompleteReason
-                   .CallPreconditionNotProven)) != 0)
+             ~EffectContractMetadata.AllIncompleteReasons) != 0)
         {
             throw new ArgumentOutOfRangeException(nameof(analysisIncompleteReason));
         }

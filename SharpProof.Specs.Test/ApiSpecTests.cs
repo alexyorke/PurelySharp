@@ -1120,10 +1120,7 @@ public sealed class ApiSpecTests
             as IAssemblySymbol ??
             throw new InvalidOperationException(
                 "The test reference did not resolve to an assembly.");
-        return string.Concat(symbol.Identity.PublicKeyToken.Select(
-            static value => value.ToString(
-                "x2",
-                System.Globalization.CultureInfo.InvariantCulture)));
+        return HashEncoding.ToLowerHex(symbol.Identity.PublicKeyToken);
     }
 
     private static CSharpCompilation CreatePlatformCompilation()
