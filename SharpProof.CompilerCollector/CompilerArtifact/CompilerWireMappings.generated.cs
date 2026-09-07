@@ -8,82 +8,66 @@
 
 namespace SharpProof.CompilerArtifact;
 
+internal static class CompilerWireIdentityMappings
+{
+    internal static bool TryMap<TSource, TTarget>(
+        TSource source,
+        out TTarget target)
+        where TSource : struct, Enum
+        where TTarget : struct, Enum
+    {
+        target = default;
+        if (!Enum.IsDefined(typeof(TSource), source))
+            return false;
+        var name = Enum.GetName(typeof(TSource), source);
+        return name != null &&
+            Enum.TryParse(name, ignoreCase: false, out target) &&
+            Enum.IsDefined(typeof(TTarget), target);
+    }
+}
+
 internal static partial class CompilerOptionWireMappings
 {
     internal static CompilerOutputKind Map(OutputKind value)
     {
-        return value switch
-        {
-            OutputKind.ConsoleApplication => CompilerOutputKind.ConsoleApplication,
-            OutputKind.WindowsApplication => CompilerOutputKind.WindowsApplication,
-            OutputKind.DynamicallyLinkedLibrary => CompilerOutputKind.DynamicallyLinkedLibrary,
-            OutputKind.NetModule => CompilerOutputKind.NetModule,
-            OutputKind.WindowsRuntimeMetadata => CompilerOutputKind.WindowsRuntimeMetadata,
-            OutputKind.WindowsRuntimeApplication => CompilerOutputKind.WindowsRuntimeApplication,
-            _ => throw Unsupported(nameof(OutputKind), value)
-        };
+        if (CompilerWireIdentityMappings.TryMap<OutputKind, CompilerOutputKind>(value, out var result))
+            return result;
+        throw Unsupported(nameof(OutputKind), value);
     }
 
     internal static CompilerOptimizationLevel Map(OptimizationLevel value)
     {
-        return value switch
-        {
-            OptimizationLevel.Debug => CompilerOptimizationLevel.Debug,
-            OptimizationLevel.Release => CompilerOptimizationLevel.Release,
-            _ => throw Unsupported(nameof(OptimizationLevel), value)
-        };
+        if (CompilerWireIdentityMappings.TryMap<OptimizationLevel, CompilerOptimizationLevel>(value, out var result))
+            return result;
+        throw Unsupported(nameof(OptimizationLevel), value);
     }
 
     internal static CompilerPlatform Map(Platform value)
     {
-        return value switch
-        {
-            Platform.AnyCpu => CompilerPlatform.AnyCpu,
-            Platform.AnyCpu32BitPreferred => CompilerPlatform.AnyCpu32BitPreferred,
-            Platform.Arm => CompilerPlatform.Arm,
-            Platform.Arm64 => CompilerPlatform.Arm64,
-            Platform.Itanium => CompilerPlatform.Itanium,
-            Platform.X64 => CompilerPlatform.X64,
-            Platform.X86 => CompilerPlatform.X86,
-            _ => throw Unsupported(nameof(Platform), value)
-        };
+        if (CompilerWireIdentityMappings.TryMap<Platform, CompilerPlatform>(value, out var result))
+            return result;
+        throw Unsupported(nameof(Platform), value);
     }
 
     internal static CompilerNullableContext Map(NullableContextOptions value)
     {
-        return value switch
-        {
-            NullableContextOptions.Disable => CompilerNullableContext.Disable,
-            NullableContextOptions.Warnings => CompilerNullableContext.Warnings,
-            NullableContextOptions.Annotations => CompilerNullableContext.Annotations,
-            NullableContextOptions.Enable => CompilerNullableContext.Enable,
-            _ => throw Unsupported(nameof(NullableContextOptions), value)
-        };
+        if (CompilerWireIdentityMappings.TryMap<NullableContextOptions, CompilerNullableContext>(value, out var result))
+            return result;
+        throw Unsupported(nameof(NullableContextOptions), value);
     }
 
     internal static CompilerMetadataImportOptions Map(MetadataImportOptions value)
     {
-        return value switch
-        {
-            MetadataImportOptions.Public => CompilerMetadataImportOptions.Public,
-            MetadataImportOptions.Internal => CompilerMetadataImportOptions.Internal,
-            MetadataImportOptions.All => CompilerMetadataImportOptions.All,
-            _ => throw Unsupported(nameof(MetadataImportOptions), value)
-        };
+        if (CompilerWireIdentityMappings.TryMap<MetadataImportOptions, CompilerMetadataImportOptions>(value, out var result))
+            return result;
+        throw Unsupported(nameof(MetadataImportOptions), value);
     }
 
     internal static CompilerReportDiagnostic Map(ReportDiagnostic value)
     {
-        return value switch
-        {
-            ReportDiagnostic.Default => CompilerReportDiagnostic.Default,
-            ReportDiagnostic.Error => CompilerReportDiagnostic.Error,
-            ReportDiagnostic.Warn => CompilerReportDiagnostic.Warn,
-            ReportDiagnostic.Info => CompilerReportDiagnostic.Info,
-            ReportDiagnostic.Hidden => CompilerReportDiagnostic.Hidden,
-            ReportDiagnostic.Suppress => CompilerReportDiagnostic.Suppress,
-            _ => throw Unsupported(nameof(ReportDiagnostic), value)
-        };
+        if (CompilerWireIdentityMappings.TryMap<ReportDiagnostic, CompilerReportDiagnostic>(value, out var result))
+            return result;
+        throw Unsupported(nameof(ReportDiagnostic), value);
     }
 
     internal static CompilerAssemblyIdentityComparer Map(AssemblyIdentityComparer value)
@@ -109,54 +93,30 @@ internal static partial class CompilerEffectEvaluationWireMappings
 {
     internal static WorkerEffectContractKind ToWorker(EffectEvaluationContractKind value)
     {
-        return value switch
-        {
-            EffectEvaluationContractKind.EnforcePure => WorkerEffectContractKind.EnforcePure,
-            EffectEvaluationContractKind.ZeroAllocations => WorkerEffectContractKind.ZeroAllocations,
-            EffectEvaluationContractKind.AllowedCapabilities => WorkerEffectContractKind.AllowedCapabilities,
-            EffectEvaluationContractKind.DoesNotThrow => WorkerEffectContractKind.DoesNotThrow,
-            EffectEvaluationContractKind.AllowedExceptions => WorkerEffectContractKind.AllowedExceptions,
-            EffectEvaluationContractKind.EffectContract => WorkerEffectContractKind.EffectContract,
-            _ => throw new ArgumentOutOfRangeException(nameof(value))
-        };
+        if (CompilerWireIdentityMappings.TryMap<EffectEvaluationContractKind, WorkerEffectContractKind>(value, out var result))
+            return result;
+        throw new ArgumentOutOfRangeException(nameof(value));
     }
 
     internal static WorkerClaimOutcome ToWorker(EffectEvaluationOutcome value)
     {
-        return value switch
-        {
-            EffectEvaluationOutcome.Proven => WorkerClaimOutcome.Proven,
-            EffectEvaluationOutcome.Refuted => WorkerClaimOutcome.Refuted,
-            EffectEvaluationOutcome.Unknown => WorkerClaimOutcome.Unknown,
-            _ => throw new ArgumentOutOfRangeException(nameof(value))
-        };
+        if (CompilerWireIdentityMappings.TryMap<EffectEvaluationOutcome, WorkerClaimOutcome>(value, out var result))
+            return result;
+        throw new ArgumentOutOfRangeException(nameof(value));
     }
 
     internal static WorkerClaimReason ToWorker(EffectEvaluationReason value)
     {
-        return value switch
-        {
-            EffectEvaluationReason.None => WorkerClaimReason.None,
-            EffectEvaluationReason.UnsupportedContract => WorkerClaimReason.UnsupportedContract,
-            EffectEvaluationReason.EffectContractNotEstablished => WorkerClaimReason.EffectContractNotEstablished,
-            EffectEvaluationReason.EffectSummaryIncomplete => WorkerClaimReason.EffectSummaryIncomplete,
-            EffectEvaluationReason.ResourceLimit => WorkerClaimReason.ResourceLimit,
-            EffectEvaluationReason.UnsupportedBody => WorkerClaimReason.UnsupportedBody,
-            _ => throw new ArgumentOutOfRangeException(nameof(value))
-        };
+        if (CompilerWireIdentityMappings.TryMap<EffectEvaluationReason, WorkerClaimReason>(value, out var result))
+            return result;
+        throw new ArgumentOutOfRangeException(nameof(value));
     }
 
     internal static WorkerEffectEvidenceCertainty ToWorker(EffectEvaluationCertainty value)
     {
-        return value switch
-        {
-            EffectEvaluationCertainty.IncompleteMayEffectSummary => WorkerEffectEvidenceCertainty.IncompleteMayEffectSummary,
-            EffectEvaluationCertainty.CompleteMayEffectSummary => WorkerEffectEvidenceCertainty.CompleteMayEffectSummary,
-            EffectEvaluationCertainty.TrustedCompleteBoundary => WorkerEffectEvidenceCertainty.TrustedCompleteBoundary,
-            EffectEvaluationCertainty.DefiniteViolation => WorkerEffectEvidenceCertainty.DefiniteViolation,
-            EffectEvaluationCertainty.Unavailable => WorkerEffectEvidenceCertainty.Unavailable,
-            _ => throw new ArgumentOutOfRangeException(nameof(value))
-        };
+        if (CompilerWireIdentityMappings.TryMap<EffectEvaluationCertainty, WorkerEffectEvidenceCertainty>(value, out var result))
+            return result;
+        throw new ArgumentOutOfRangeException(nameof(value));
     }
 }
 
@@ -241,36 +201,23 @@ internal static partial class CompilerLoweringWireMappings
 {
     internal static CompilerContractKind ToCompiler(BoundContractKind value)
     {
-        return value switch
-        {
-            BoundContractKind.Requires => CompilerContractKind.Requires,
-            BoundContractKind.Ensures => CompilerContractKind.Ensures,
-            BoundContractKind.Assume => CompilerContractKind.Assume,
-            _ => throw new ArgumentOutOfRangeException(nameof(value))
-        };
+        if (CompilerWireIdentityMappings.TryMap<BoundContractKind, CompilerContractKind>(value, out var result))
+            return result;
+        throw new ArgumentOutOfRangeException(nameof(value));
     }
 
     internal static CompilerContractEvidence ToCompiler(BoundContractEvidence value)
     {
-        return value switch
-        {
-            BoundContractEvidence.CompilerBoundInvocation => CompilerContractEvidence.CompilerBoundInvocation,
-            BoundContractEvidence.ClosedAttribute => CompilerContractEvidence.ClosedAttribute,
-            BoundContractEvidence.Companion => CompilerContractEvidence.Companion,
-            _ => throw new ArgumentOutOfRangeException(nameof(value))
-        };
+        if (CompilerWireIdentityMappings.TryMap<BoundContractEvidence, CompilerContractEvidence>(value, out var result))
+            return result;
+        throw new ArgumentOutOfRangeException(nameof(value));
     }
 
     internal static CompilerVariableRole ToCompiler(BoundContractVariableRole value)
     {
-        return value switch
-        {
-            BoundContractVariableRole.Receiver => CompilerVariableRole.Receiver,
-            BoundContractVariableRole.Parameter => CompilerVariableRole.Parameter,
-            BoundContractVariableRole.Result => CompilerVariableRole.Result,
-            BoundContractVariableRole.PreState => CompilerVariableRole.PreState,
-            _ => throw new ArgumentOutOfRangeException(nameof(value))
-        };
+        if (CompilerWireIdentityMappings.TryMap<BoundContractVariableRole, CompilerVariableRole>(value, out var result))
+            return result;
+        throw new ArgumentOutOfRangeException(nameof(value));
     }
 
     internal static WorkerClaimEvidence ToWorkerEvidence(BoundContractEvidence value)

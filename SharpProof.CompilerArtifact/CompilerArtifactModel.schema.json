@@ -3577,14 +3577,7 @@
       "sourceType": "OutputKind",
       "targetType": "CompilerOutputKind",
       "unknownException": "InvalidOperationException",
-      "rows": [
-        { "source": "ConsoleApplication", "target": "ConsoleApplication" },
-        { "source": "WindowsApplication", "target": "WindowsApplication" },
-        { "source": "DynamicallyLinkedLibrary", "target": "DynamicallyLinkedLibrary" },
-        { "source": "NetModule", "target": "NetModule" },
-        { "source": "WindowsRuntimeMetadata", "target": "WindowsRuntimeMetadata" },
-        { "source": "WindowsRuntimeApplication", "target": "WindowsRuntimeApplication" }
-      ]
+      "identityByName": true
     },
     {
       "name": "OptimizationLevel",
@@ -3594,10 +3587,7 @@
       "sourceType": "OptimizationLevel",
       "targetType": "CompilerOptimizationLevel",
       "unknownException": "InvalidOperationException",
-      "rows": [
-        { "source": "Debug", "target": "Debug" },
-        { "source": "Release", "target": "Release" }
-      ]
+      "identityByName": true
     },
     {
       "name": "Platform",
@@ -3607,15 +3597,7 @@
       "sourceType": "Platform",
       "targetType": "CompilerPlatform",
       "unknownException": "InvalidOperationException",
-      "rows": [
-        { "source": "AnyCpu", "target": "AnyCpu" },
-        { "source": "AnyCpu32BitPreferred", "target": "AnyCpu32BitPreferred" },
-        { "source": "Arm", "target": "Arm" },
-        { "source": "Arm64", "target": "Arm64" },
-        { "source": "Itanium", "target": "Itanium" },
-        { "source": "X64", "target": "X64" },
-        { "source": "X86", "target": "X86" }
-      ]
+      "identityByName": true
     },
     {
       "name": "NullableContextOptions",
@@ -3625,12 +3607,7 @@
       "sourceType": "NullableContextOptions",
       "targetType": "CompilerNullableContext",
       "unknownException": "InvalidOperationException",
-      "rows": [
-        { "source": "Disable", "target": "Disable" },
-        { "source": "Warnings", "target": "Warnings" },
-        { "source": "Annotations", "target": "Annotations" },
-        { "source": "Enable", "target": "Enable" }
-      ]
+      "identityByName": true
     },
     {
       "name": "MetadataImportOptions",
@@ -3640,11 +3617,7 @@
       "sourceType": "MetadataImportOptions",
       "targetType": "CompilerMetadataImportOptions",
       "unknownException": "InvalidOperationException",
-      "rows": [
-        { "source": "Public", "target": "Public" },
-        { "source": "Internal", "target": "Internal" },
-        { "source": "All", "target": "All" }
-      ]
+      "identityByName": true
     },
     {
       "name": "ReportDiagnostic",
@@ -3654,14 +3627,7 @@
       "sourceType": "ReportDiagnostic",
       "targetType": "CompilerReportDiagnostic",
       "unknownException": "InvalidOperationException",
-      "rows": [
-        { "source": "Default", "target": "Default" },
-        { "source": "Error", "target": "Error" },
-        { "source": "Warn", "target": "Warn" },
-        { "source": "Info", "target": "Info" },
-        { "source": "Hidden", "target": "Hidden" },
-        { "source": "Suppress", "target": "Suppress" }
-      ]
+      "identityByName": true
     },
     {
       "name": "AssemblyIdentityComparer",
@@ -3684,14 +3650,7 @@
       "sourceType": "EffectEvaluationContractKind",
       "targetType": "WorkerEffectContractKind",
       "unknownException": "ArgumentOutOfRangeException",
-      "rows": [
-        { "source": "EnforcePure", "target": "EnforcePure" },
-        { "source": "ZeroAllocations", "target": "ZeroAllocations" },
-        { "source": "AllowedCapabilities", "target": "AllowedCapabilities" },
-        { "source": "DoesNotThrow", "target": "DoesNotThrow" },
-        { "source": "AllowedExceptions", "target": "AllowedExceptions" },
-        { "source": "EffectContract", "target": "EffectContract" }
-      ]
+      "identityByName": true
     },
     {
       "name": "EffectEvaluationOutcome",
@@ -3701,11 +3660,7 @@
       "sourceType": "EffectEvaluationOutcome",
       "targetType": "WorkerClaimOutcome",
       "unknownException": "ArgumentOutOfRangeException",
-      "rows": [
-        { "source": "Proven", "target": "Proven" },
-        { "source": "Refuted", "target": "Refuted" },
-        { "source": "Unknown", "target": "Unknown" }
-      ]
+      "identityByName": true
     },
     {
       "name": "EffectEvaluationReason",
@@ -3715,14 +3670,7 @@
       "sourceType": "EffectEvaluationReason",
       "targetType": "WorkerClaimReason",
       "unknownException": "ArgumentOutOfRangeException",
-      "rows": [
-        { "source": "None", "target": "None" },
-        { "source": "UnsupportedContract", "target": "UnsupportedContract" },
-        { "source": "EffectContractNotEstablished", "target": "EffectContractNotEstablished" },
-        { "source": "EffectSummaryIncomplete", "target": "EffectSummaryIncomplete" },
-        { "source": "ResourceLimit", "target": "ResourceLimit" },
-        { "source": "UnsupportedBody", "target": "UnsupportedBody" }
-      ]
+      "identityByName": true
     },
     {
       "name": "EffectEvaluationCertainty",
@@ -3732,13 +3680,7 @@
       "sourceType": "EffectEvaluationCertainty",
       "targetType": "WorkerEffectEvidenceCertainty",
       "unknownException": "ArgumentOutOfRangeException",
-      "rows": [
-        { "source": "IncompleteMayEffectSummary", "target": "IncompleteMayEffectSummary" },
-        { "source": "CompleteMayEffectSummary", "target": "CompleteMayEffectSummary" },
-        { "source": "TrustedCompleteBoundary", "target": "TrustedCompleteBoundary" },
-        { "source": "DefiniteViolation", "target": "DefiniteViolation" },
-        { "source": "Unavailable", "target": "Unavailable" }
-      ]
+      "identityByName": true
     },
     {
       "name": "EffectContractKind",
@@ -3803,11 +3745,7 @@
       "sourceType": "BoundContractKind",
       "targetType": "CompilerContractKind",
       "unknownException": "ArgumentOutOfRangeException",
-      "rows": [
-        { "source": "Requires", "target": "Requires" },
-        { "source": "Ensures", "target": "Ensures" },
-        { "source": "Assume", "target": "Assume" }
-      ]
+      "identityByName": true
     },
     {
       "name": "BoundContractEvidence",
@@ -3817,11 +3755,7 @@
       "sourceType": "BoundContractEvidence",
       "targetType": "CompilerContractEvidence",
       "unknownException": "ArgumentOutOfRangeException",
-      "rows": [
-        { "source": "CompilerBoundInvocation", "target": "CompilerBoundInvocation" },
-        { "source": "ClosedAttribute", "target": "ClosedAttribute" },
-        { "source": "Companion", "target": "Companion" }
-      ]
+      "identityByName": true
     },
     {
       "name": "BoundContractVariableRole",
@@ -3831,12 +3765,7 @@
       "sourceType": "BoundContractVariableRole",
       "targetType": "CompilerVariableRole",
       "unknownException": "ArgumentOutOfRangeException",
-      "rows": [
-        { "source": "Receiver", "target": "Receiver" },
-        { "source": "Parameter", "target": "Parameter" },
-        { "source": "Result", "target": "Result" },
-        { "source": "PreState", "target": "PreState" }
-      ]
+      "identityByName": true
     },
     {
       "name": "BoundContractEvidenceWorker",

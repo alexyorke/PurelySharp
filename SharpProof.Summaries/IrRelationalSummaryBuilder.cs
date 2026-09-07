@@ -677,8 +677,10 @@ public static class IrRelationalSummaryBuilder
                 return null;
             }
 
-            var environment =
-                ImmutableDictionary.CreateBuilder<IrVarId, IrTerm>();
+            ImmutableDictionary<IrVarId, IrTerm>.Builder? environment =
+                values.Count == 1
+                    ? null
+                    : ImmutableDictionary.CreateBuilder<IrVarId, IrTerm>();
             foreach (var variable in values[0].Environment.Keys.OrderBy(
                          static value => value.Value))
             {
@@ -726,13 +728,15 @@ public static class IrRelationalSummaryBuilder
                     return null;
                 }
 
-                environment.Add(variable, merged);
+                environment?.Add(variable, merged);
             }
 
             return new FlowState(
                 0,
                 predicate,
-                environment.ToImmutable());
+                environment is null
+                    ? values[0].Environment
+                    : environment.ToImmutable());
         }
 
         private ImmutableArray<IrBlockId> CreateOrder()

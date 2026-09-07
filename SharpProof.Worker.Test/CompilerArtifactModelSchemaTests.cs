@@ -417,6 +417,21 @@ public sealed class CompilerArtifactModelSchemaTests
                         : "ArgumentOutOfRangeException"),
                     name + " unknown exception");
             }
+            if (mapping.TryGetProperty(
+                    "identityByName",
+                    out var identityByName))
+            {
+                Assert.That(identityByName.GetBoolean(), Is.True, name);
+                Assert.That(mapping.TryGetProperty("rows", out _), Is.False, name);
+                Assert.That(
+                    Enum.GetNames(types.Source).All(source =>
+                        Enum.GetNames(types.Target).Contains(
+                            source,
+                            StringComparer.Ordinal)),
+                    Is.True,
+                    name + " identity names");
+                continue;
+            }
             string[] sources = [
                 .. mapping.GetProperty("rows").EnumerateArray()
                     .Select(static row =>

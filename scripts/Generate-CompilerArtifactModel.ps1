@@ -1180,8 +1180,25 @@ foreach ($mapping in $collectorMappings) {
     if (-not $validShape) {
         throw "Collector mapping '$name' has an unsupported owner or shape."
     }
-    $rows = @(Get-RequiredMember $mapping 'rows' "collector mapping '$name'")
-    if ($rows.Count -eq 0) {
+    $identityByName = $false
+    if ($mapping.PSObject.Properties['identityByName']) {
+        $identityByName = [bool]$mapping.identityByName
+        if (-not $identityByName -or $kind -ne 'enum') {
+            throw "Collector mapping '$name' has an invalid identity setting."
+        }
+    }
+    $rows = if ($identityByName) {
+        if ($mapping.PSObject.Properties['rows'] -or
+            $mapping.PSObject.Properties['sourceMask'] -or
+            $mapping.PSObject.Properties['allowTargetAliases']) {
+            throw "Collector identity mapping '$name' has conflicting settings."
+        }
+        @()
+    }
+    else {
+        @(Get-RequiredMember $mapping 'rows' "collector mapping '$name'")
+    }
+    if (-not $identityByName -and $rows.Count -eq 0) {
         throw "Collector mapping '$name' cannot be empty."
     }
     $sources = [Collections.Generic.HashSet[string]]::new(
@@ -1244,6 +1261,27 @@ foreach ($mapping in $collectorMappings) {
     }
     $collectorMappingsByOwner[$owner].Add($mapping)
 }
+if (@($collectorMappings | Where-Object {
+            $_.PSObject.Properties['identityByName'] -and
+            [bool]$_.identityByName
+        }).Count -ne 0) {
+    $collectorLines.Add('')
+    $collectorLines.Add('internal static class CompilerWireIdentityMappings {')
+    $collectorLines.Add('    internal static bool TryMap<TSource, TTarget>(')
+    $collectorLines.Add('        TSource source,')
+    $collectorLines.Add('        out TTarget target)')
+    $collectorLines.Add('        where TSource : struct, Enum')
+    $collectorLines.Add('        where TTarget : struct, Enum {')
+    $collectorLines.Add('        target = default;')
+    $collectorLines.Add('        if (!Enum.IsDefined(typeof(TSource), source))')
+    $collectorLines.Add('            return false;')
+    $collectorLines.Add('        var name = Enum.GetName(typeof(TSource), source);')
+    $collectorLines.Add('        return name != null &&')
+    $collectorLines.Add('            Enum.TryParse(name, ignoreCase: false, out target) &&')
+    $collectorLines.Add('            Enum.IsDefined(typeof(TTarget), target);')
+    $collectorLines.Add('    }')
+    $collectorLines.Add('}')
+}
 foreach ($owner in $collectorMappingsByOwner.Keys) {
     $ownerMappings = $collectorMappingsByOwner[$owner]
     $collectorLines.Add('')
@@ -1259,11 +1297,31 @@ foreach ($owner in $collectorMappingsByOwner.Keys) {
         $kind = [string]$mapping.kind
         $sourceType = [string]$mapping.sourceType
         $targetType = [string]$mapping.targetType
-        $rows = @($mapping.rows)
+        $rows = if ($mapping.PSObject.Properties['rows']) {
+            @($mapping.rows)
+        }
+        else {
+            @()
+        }
         $parameterName = if ($kind -eq 'flags') { 'source' } else { 'value' }
         $collectorLines.Add(
             "    internal static $targetType $method($sourceType $parameterName) {")
-        if ($kind -eq 'enum') {
+        if ($mapping.PSObject.Properties['identityByName'] -and
+            [bool]$mapping.identityByName) {
+            $collectorLines.Add(
+                "        if (CompilerWireIdentityMappings.TryMap<$sourceType, " +
+                "$targetType>($parameterName, out var result))")
+            $collectorLines.Add('            return result;')
+            $throw = if ([string]$mapping.unknownException -eq
+                'InvalidOperationException') {
+                "Unsupported(nameof($sourceType), $parameterName)"
+            }
+            else {
+                "new ArgumentOutOfRangeException(nameof($parameterName))"
+            }
+            $collectorLines.Add("        throw $throw;")
+        }
+        elseif ($kind -eq 'enum') {
             $collectorLines.Add("        return $parameterName switch {")
             foreach ($row in $rows) {
                 $collectorLines.Add(
