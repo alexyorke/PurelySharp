@@ -154,12 +154,14 @@ public sealed class CoverageScriptTests
         var repository = await CreateSingleCommitFixtureAsync();
         try
         {
-            await ArchitectureRepository.AssertSuccessAsync(RunAsync(
+            await ArchitectureRepository.AssertSuccessAsync(
+                ArchitectureRepository.RunProcessAsync(
                 repository,
                 "git",
                 "branch",
                 "comparison"));
-            await ArchitectureRepository.AssertSuccessAsync(RunAsync(
+            await ArchitectureRepository.AssertSuccessAsync(
+                ArchitectureRepository.RunProcessAsync(
                 repository,
                 "git",
                 "switch",
@@ -167,7 +169,8 @@ public sealed class CoverageScriptTests
                 "trusted-change"));
             await WriteTrustedSourceAsync(repository, value: 1);
             await CommitAllAsync(repository, "trusted change");
-            await ArchitectureRepository.AssertSuccessAsync(RunAsync(
+            await ArchitectureRepository.AssertSuccessAsync(
+                ArchitectureRepository.RunProcessAsync(
                 repository,
                 "git",
                 "switch",
@@ -178,7 +181,8 @@ public sealed class CoverageScriptTests
                 Path.Combine(repository, "unrelated.txt"),
                 "unrelated\n");
             await CommitAllAsync(repository, "unrelated change");
-            await ArchitectureRepository.AssertSuccessAsync(RunAsync(
+            await ArchitectureRepository.AssertSuccessAsync(
+                ArchitectureRepository.RunProcessAsync(
                 repository,
                 "git",
                 "merge",
@@ -734,25 +738,29 @@ public sealed class CoverageScriptTests
                 ("core.autocrlf", "false"));
 
             await WriteFixtureAsync(root, repository);
-            await ArchitectureRepository.AssertSuccessAsync(RunAsync(
+            await ArchitectureRepository.AssertSuccessAsync(
+                ArchitectureRepository.RunProcessAsync(
                 repository,
                 "git",
                 "add",
                 "--",
                 "."));
-            await ArchitectureRepository.AssertSuccessAsync(RunAsync(
+            await ArchitectureRepository.AssertSuccessAsync(
+                ArchitectureRepository.RunProcessAsync(
                 repository,
                 "git",
                 "commit",
                 "-m",
                 "root"));
-            await ArchitectureRepository.AssertSuccessAsync(RunAsync(
+            await ArchitectureRepository.AssertSuccessAsync(
+                ArchitectureRepository.RunProcessAsync(
                 repository,
                 "git",
                 "branch",
                 "feature"));
 
-            await ArchitectureRepository.AssertSuccessAsync(RunAsync(
+            await ArchitectureRepository.AssertSuccessAsync(
+                ArchitectureRepository.RunProcessAsync(
                 repository,
                 "git",
                 "switch",
@@ -761,7 +769,8 @@ public sealed class CoverageScriptTests
             await WriteTrustedSourceAsync(repository, value: 1);
             await CommitAllAsync(repository, "comparison TCB change");
 
-            await ArchitectureRepository.AssertSuccessAsync(RunAsync(
+            await ArchitectureRepository.AssertSuccessAsync(
+                ArchitectureRepository.RunProcessAsync(
                 repository,
                 "git",
                 "switch",
@@ -781,7 +790,8 @@ public sealed class CoverageScriptTests
             await File.WriteAllTextAsync(
                 Path.Combine(repository, "README.md"),
                 "unrelated working-tree change\n");
-            var status = await ArchitectureRepository.AssertSuccessAsync(RunAsync(
+            var status = await ArchitectureRepository.AssertSuccessAsync(
+                ArchitectureRepository.RunProcessAsync(
                 repository,
                 "git",
                 "status",
@@ -824,7 +834,8 @@ public sealed class CoverageScriptTests
             await InitializeRepositoryAsync(repository);
             await WriteIdentityFixtureAsync(root, repository, entries);
             await CommitAllAsync(repository, "root");
-            await ArchitectureRepository.AssertSuccessAsync(RunAsync(
+            await ArchitectureRepository.AssertSuccessAsync(
+                ArchitectureRepository.RunProcessAsync(
                 repository,
                 "git",
                 "branch",
@@ -908,7 +919,8 @@ public sealed class CoverageScriptTests
                 original,
                 minimumChangedTcbLinePercent);
             await CommitAllAsync(repository, "root");
-            await ArchitectureRepository.AssertSuccessAsync(RunAsync(
+            await ArchitectureRepository.AssertSuccessAsync(
+                ArchitectureRepository.RunProcessAsync(
                 repository,
                 "git",
                 "branch",
@@ -1048,7 +1060,8 @@ public sealed class CoverageScriptTests
     private static async Task<string> CreateMultiCommitFixtureAsync()
     {
         var repository = await CreateSingleCommitFixtureAsync();
-        await ArchitectureRepository.AssertSuccessAsync(RunAsync(
+        await ArchitectureRepository.AssertSuccessAsync(
+            ArchitectureRepository.RunProcessAsync(
             repository,
             "git",
             "branch",
@@ -1111,7 +1124,10 @@ public sealed class CoverageScriptTests
             arguments.Add("-ReportOnly");
         }
 
-        return RunAsync(repository, "pwsh", [.. arguments]);
+        return ArchitectureRepository.RunProcessAsync(
+            repository,
+            "pwsh",
+            [.. arguments]);
     }
 
     private static async Task WriteIdentityFixtureAsync(
@@ -1269,34 +1285,36 @@ public sealed class CoverageScriptTests
 
     private static async Task PrepareCoverageFixtureAsync(string repository)
     {
-        await ArchitectureRepository.AssertSuccessAsync(RunAsync(
-            repository,
-            "dotnet",
-            "build",
-            "Project/Project.csproj",
-            "--configuration",
-            "Release",
-            "--nologo",
-            "--verbosity",
-            "quiet",
-            "-p:RestoreIgnoreFailedSources=true"));
+        await ArchitectureRepository.AssertSuccessAsync(
+            ArchitectureRepository.RunProcessAsync(
+                repository,
+                "dotnet",
+                "build",
+                "Project/Project.csproj",
+                "--configuration",
+                "Release",
+                "--nologo",
+                "--verbosity",
+                "quiet",
+                "-p:RestoreIgnoreFailedSources=true"));
         var coverage = Path.Combine(repository, "coverage");
         var authorityPath = Path.Combine(coverage, "coverage-authority.json");
-        await ArchitectureRepository.AssertSuccessAsync(RunAsync(
-            repository,
-            "pwsh",
-            "-NoLogo",
-            "-NoProfile",
-            "-NonInteractive",
-            "-File",
-            Path.Combine(repository, "scripts", "Get-SharpProofProductionInventory.ps1"),
-            "-RepositoryRoot",
-            repository,
-            "-Configuration",
-            "Release",
-            "-RequirePdb",
-            "-OutputPath",
-            authorityPath));
+        await ArchitectureRepository.AssertSuccessAsync(
+            ArchitectureRepository.RunProcessAsync(
+                repository,
+                "pwsh",
+                "-NoLogo",
+                "-NoProfile",
+                "-NonInteractive",
+                "-File",
+                Path.Combine(repository, "scripts", "Get-SharpProofProductionInventory.ps1"),
+                "-RepositoryRoot",
+                repository,
+                "-Configuration",
+                "Release",
+                "-RequirePdb",
+                "-OutputPath",
+                authorityPath));
 
         using var authority = JsonDocument.Parse(
             await File.ReadAllTextAsync(authorityPath));
@@ -1528,29 +1546,20 @@ public sealed class CoverageScriptTests
         string repository,
         string message)
     {
-        await ArchitectureRepository.AssertSuccessAsync(RunAsync(
+        await ArchitectureRepository.AssertSuccessAsync(
+            ArchitectureRepository.RunProcessAsync(
             repository,
             "git",
             "add",
             "--",
             "."));
-        await ArchitectureRepository.AssertSuccessAsync(RunAsync(
+        await ArchitectureRepository.AssertSuccessAsync(
+            ArchitectureRepository.RunProcessAsync(
             repository,
             "git",
             "commit",
             "-m",
             message));
-    }
-
-    private static Task<ProcessRunnerResult> RunAsync(
-        string workingDirectory,
-        string fileName,
-        params string[] arguments)
-    {
-        return ProcessRunner.RunCapturedAsync(
-            workingDirectory,
-            fileName,
-            arguments);
     }
 
     private static void DeleteTemporaryRepository(string repository)

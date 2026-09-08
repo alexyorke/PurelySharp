@@ -21,7 +21,7 @@ public sealed class AcceptanceScriptTests
         string mutation,
         bool expectedSuccess)
     {
-        var result = await RunAsync(
+        var result = await ArchitectureRepository.RunProcessAsync(
             TestRepository.FindRoot(),
             "pwsh",
             "-NoLogo",
@@ -104,7 +104,7 @@ public sealed class AcceptanceScriptTests
             arguments.Add("-SkipTests");
         }
 
-        var result = await RunAsync(
+        var result = await ArchitectureRepository.RunProcessAsync(
             fixture,
             "pwsh",
             [.. arguments]);
@@ -223,29 +223,20 @@ public sealed class AcceptanceScriptTests
         await File.WriteAllTextAsync(
             Path.Combine(repository, "fixture.txt"),
             "fixture\n");
-        await ArchitectureRepository.AssertSuccessAsync(RunAsync(
+        await ArchitectureRepository.AssertSuccessAsync(
+            ArchitectureRepository.RunProcessAsync(
             repository,
             "git",
             "add",
             "--",
             "fixture.txt"));
-        await ArchitectureRepository.AssertSuccessAsync(RunAsync(
+        await ArchitectureRepository.AssertSuccessAsync(
+            ArchitectureRepository.RunProcessAsync(
             repository,
             "git",
             "commit",
             "-m",
             "fixture"));
-    }
-
-    private static Task<ProcessRunnerResult> RunAsync(
-        string workingDirectory,
-        string fileName,
-        params string[] arguments)
-    {
-        return ProcessRunner.RunCapturedAsync(
-            workingDirectory,
-            fileName,
-            arguments);
     }
 
 }

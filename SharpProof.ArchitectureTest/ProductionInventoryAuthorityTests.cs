@@ -79,7 +79,7 @@ public sealed class ProductionInventoryAuthorityTests
                 "$authority = Get-Content (Join-Path $PSScriptRoot 'authority.json') -Raw | ConvertFrom-Json\n" +
                 "$contract = Get-Content (Join-Path $PSScriptRoot 'contract.json') -Raw | ConvertFrom-Json\n" +
                 "Get-SharpProofTcbPaths -Contract $contract -ProductionInventory $authority | Out-Null\n");
-            var tcbMutation = await RunAsync(
+            var tcbMutation = await ArchitectureRepository.RunProcessAsync(
                 repository,
                 "pwsh",
                 "-NoLogo",
@@ -176,7 +176,7 @@ public sealed class ProductionInventoryAuthorityTests
     public async Task ProductionComplexityGatePassesAgainstCanonicalInventory()
     {
         var root = TestRepository.FindRoot();
-        var result = await RunAsync(
+        var result = await ArchitectureRepository.RunProcessAsync(
             root,
             "pwsh",
             "-NoLogo",
@@ -258,7 +258,7 @@ public sealed class ProductionInventoryAuthorityTests
 
     private static Task<ProcessRunnerResult> RunInventoryProcessAsync(string repository)
     {
-        return RunAsync(
+        return ArchitectureRepository.RunProcessAsync(
             repository,
             "pwsh",
             "-NoLogo",
@@ -287,20 +287,11 @@ public sealed class ProductionInventoryAuthorityTests
     private static async Task CommitAllAsync(string repository, string message)
     {
         await ArchitectureRepository.AssertSuccessAsync(
-            RunAsync(repository, "git", "add", "--", "."), includeOutput: true);
+            ArchitectureRepository.RunProcessAsync(
+                repository, "git", "add", "--", "."), includeOutput: true);
         await ArchitectureRepository.AssertSuccessAsync(
-            RunAsync(repository, "git", "commit", "-m", message), includeOutput: true);
-    }
-
-    private static Task<ProcessRunnerResult> RunAsync(
-        string workingDirectory,
-        string fileName,
-        params string[] arguments)
-    {
-        return ProcessRunner.RunCapturedAsync(
-            workingDirectory,
-            fileName,
-            arguments);
+            ArchitectureRepository.RunProcessAsync(
+                repository, "git", "commit", "-m", message), includeOutput: true);
     }
 
     private static void DeleteTemporaryRepository(string repository)
