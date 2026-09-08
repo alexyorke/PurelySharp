@@ -26,7 +26,10 @@ internal sealed class ContractIntrinsicValidator
         }
 
         var violations = ImmutableArray.CreateBuilder<ContractIntrinsicViolation>();
-        foreach (var operation in body.DescendantsAndSelf()
+        var operations = includeNestedCallables
+            ? body.DescendantsAndSelf()
+            : WalkCallableBoundary(body);
+        foreach (var operation in operations
                      .Where(static value => value is IInvocationOperation or
                          IMethodReferenceOperation)
                      .OrderBy(static value => value.Syntax.SpanStart))
@@ -65,6 +68,28 @@ internal sealed class ContractIntrinsicValidator
             }
         }
         return violations.ToImmutable();
+    }
+
+    private static IEnumerable<IOperation> WalkCallableBoundary(
+        IOperation root)
+    {
+        var pending = new Stack<IOperation>();
+        pending.Push(root);
+        while (pending.Count != 0)
+        {
+            var operation = pending.Pop();
+            yield return operation;
+            if (operation != root &&
+                (operation is ILocalFunctionOperation or IAnonymousFunctionOperation))
+            {
+                continue;
+            }
+
+            foreach (var child in operation.ChildOperations.Reverse())
+            {
+                pending.Push(child);
+            }
+        }
     }
 
     private static ContractIntrinsicViolationKind? Classify(
