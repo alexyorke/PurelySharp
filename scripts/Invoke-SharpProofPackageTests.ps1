@@ -522,11 +522,13 @@ try {
         else {
             $workerMethods
         }
-        # Additional buckets add a second wave of test-host startup without
-        # increasing the available concurrency.
+        # Keep one worker bucket per available lane even when the dedicated
+        # multi-target test reserves a lane slice. This shortens the final
+        # worker tail without increasing the number of concurrently running
+        # test processes.
         $workerShardCount = [Math]::Min(
             $bucketWorkerMethods.Count,
-            [Math]::Max(1, $parallelism - [int]$isolateThreeTargetWorker))
+            [Math]::Max(1, $parallelism))
         $workerBuckets = @(New-SharpProofWeightedBuckets `
             -Methods $bucketWorkerMethods `
             -HistoricalMilliseconds $priorMethodMilliseconds `
@@ -553,10 +555,8 @@ try {
             -DefaultMilliseconds $defaultPackageLayoutMethodMilliseconds `
             -BucketCount ([Math]::Min(4, $parallelism)))
         $fixtureClasses = @(
-            'CompilerProbeInputConsistencyTests|CompilerProbeSnapshotTests|SarifProjectionTests|VerifierDiagnosticTransportTests|VerifierProcessSupervisorBug202Tests',
-            'DependencyAuditScriptTests',
+            'CompilerProbeInputConsistencyTests|CompilerProbeSnapshotTests|SarifProjectionTests|VerifierDiagnosticTransportTests|VerifierProcessSupervisorBug202Tests|DependencyAuditScriptTests|LauncherArgumentTests',
             'FinalCompilationProbeTests',
-            'LauncherArgumentTests',
             'ReleasePublicationScriptTests')
         foreach ($fixtureClass in $fixtureClasses) {
             $classNames = $fixtureClass -split '\|'

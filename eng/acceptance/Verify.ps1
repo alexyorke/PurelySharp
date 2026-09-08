@@ -486,7 +486,7 @@ foreach ($assertion in @(
         @{ Actual = $contract.analyzer.unsupportedUnannotatedCallableBehavior; Expected = 'silent'; Name = 'analyzer.unsupportedUnannotatedCallableBehavior' },
         @{ Actual = $contract.analyzer.unsupportedSelectedCallableDiagnostic; Expected = 'SP0047'; Name = 'analyzer.unsupportedSelectedCallableDiagnostic' },
         @{ Actual = $contract.automation.solutionBuildWallSeconds; Expected = 600; Name = 'automation.solutionBuildWallSeconds' },
-        @{ Actual = $contract.automation.packageTestCpuPercent; Expected = 88; Name = 'automation.packageTestCpuPercent' },
+        @{ Actual = $contract.automation.packageTestCpuPercent; Expected = 90; Name = 'automation.packageTestCpuPercent' },
         @{ Actual = $contract.mutationEvidence.schemaVersion; Expected = 1; Name = 'mutationEvidence.schemaVersion' })) {
     Assert-Equal $assertion.Actual $assertion.Expected $assertion.Name
 }
