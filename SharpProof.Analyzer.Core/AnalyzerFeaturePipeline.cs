@@ -106,10 +106,12 @@ internal static partial class AnalyzerFeaturePipeline
         if (rejectedCallableApi &&
             session.TryMarkRejectedContractApiReported(method))
         {
-            ReportRejectedContractApi(
-                method,
-                context.ReportDiagnostic,
-                context.CancellationToken);
+            SharpProofControlAttributePolicy.ReportRejectedContractApi(
+                method.Name,
+                AnalyzerSyntaxHelpers.GetCallableDeclarationLocation(
+                    method,
+                    context.CancellationToken),
+                context.ReportDiagnostic);
         }
         var selection = GetSelection(
             method, session, context.ReportDiagnostic, context.CancellationToken);
@@ -366,10 +368,12 @@ internal static partial class AnalyzerFeaturePipeline
         if (rejectedContractApi &&
             session.TryMarkRejectedContractApiReported(method))
         {
-            ReportRejectedContractApi(
-                method,
-                context.ReportDiagnostic,
-                context.CancellationToken);
+            SharpProofControlAttributePolicy.ReportRejectedContractApi(
+                method.Name,
+                AnalyzerSyntaxHelpers.GetCallableDeclarationLocation(
+                    method,
+                    context.CancellationToken),
+                context.ReportDiagnostic);
         }
 
         var selection = GetSelection(
@@ -735,10 +739,12 @@ internal static partial class AnalyzerFeaturePipeline
         if (inventory.HasRejectedContractApiUsage &&
             session.TryMarkRejectedContractApiReported(method))
         {
-            ReportRejectedContractApi(
-                method,
-                reportDiagnostic,
-                cancellationToken);
+            SharpProofControlAttributePolicy.ReportRejectedContractApi(
+                method.Name,
+                AnalyzerSyntaxHelpers.GetCallableDeclarationLocation(
+                    method,
+                    cancellationToken),
+                reportDiagnostic);
         }
         var intrinsicViolations =
             session.GetContractIntrinsicViolations(inventory);
@@ -767,19 +773,6 @@ internal static partial class AnalyzerFeaturePipeline
             method,
             AnalyzerSemanticOutcome.Abstained);
         return true;
-    }
-
-    private static void ReportRejectedContractApi(
-        IMethodSymbol method,
-        Action<Diagnostic> reportDiagnostic,
-        CancellationToken cancellationToken)
-    {
-        SharpProofControlAttributePolicy.ReportRejectedContractApi(
-            method.Name,
-            AnalyzerSyntaxHelpers.GetCallableDeclarationLocation(
-                method,
-                cancellationToken),
-            reportDiagnostic);
     }
 
     private static IEnumerable<IMethodSymbol> GetNestedOwners(
