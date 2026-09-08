@@ -42,8 +42,8 @@ public sealed class CanonicalHashWriterTests
                 Hash(true),
                 Hash(TestEnum.One),
                 Hash(new byte[] { 1 })
-            }.Distinct(StringComparer.Ordinal).Count(),
-            Is.EqualTo(9));
+            },
+            Is.Unique);
     }
 
     [Test]
