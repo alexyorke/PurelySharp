@@ -981,17 +981,17 @@ internal sealed partial class RequiresCallSiteDiscovery(
             }
             else
             {
-                    targets.Add(
-                        declaration.Symbol,
-                        new DirectDelegateTarget(
-                            declaration.Method,
-                            declaration.Instance,
-                            invalidations.TryGetValue(
-                                declaration.Symbol,
-                                out var operations)
-                                ? [.. operations]
-                                : [],
-                            hasGoto));
+                targets.Add(
+                    declaration.Symbol,
+                    new DirectDelegateTarget(
+                        declaration.Method,
+                        declaration.Instance,
+                        invalidations.TryGetValue(
+                            declaration.Symbol,
+                            out var operations)
+                            ? [.. operations]
+                            : [],
+                        hasGoto));
             }
         }
 

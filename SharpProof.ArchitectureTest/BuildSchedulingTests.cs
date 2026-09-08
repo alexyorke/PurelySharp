@@ -114,7 +114,9 @@ public sealed class BuildSchedulingTests
 
         Assert.That(main.Success, Is.True);
         Assert.That(main.Groups["body"].Value,
-            Does.Contain("$priorFilterMilliseconds[$remainingBuildTaskFilter]"));
+            Does.Contain("Get-SharpProofHistoricalFilterMilliseconds"));
+        Assert.That(main.Groups["body"].Value,
+            Does.Contain("$remainingBuildTaskFilter"));
         Assert.That(main.Groups["body"].Value,
             Does.Not.Contain("EstimatedMilliseconds = -1L"));
     }

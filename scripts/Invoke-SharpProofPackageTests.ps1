@@ -453,6 +453,24 @@ try {
         'TestCategory!=Performance&TestCategory!=Coverage&TestCategory!=Corpus'
     $useDefaultShardPlan = [string]::IsNullOrWhiteSpace($TestFilter) -or
         $TestFilter -ceq $canonicalPackageFilter
+
+    function Get-SharpProofHistoricalFilterMilliseconds {
+        param([Parameter(Mandatory = $true)][string]$Filter)
+
+        $historyFilters = if ($TestFilter -ceq $canonicalPackageFilter) {
+            @("($TestFilter)&($Filter)", $Filter)
+        }
+        else {
+            @($Filter)
+        }
+        foreach ($historyFilter in $historyFilters) {
+            if ($priorFilterMilliseconds.ContainsKey($historyFilter)) {
+                return [long]$priorFilterMilliseconds[$historyFilter]
+            }
+        }
+        return $null
+    }
+
     $shards = [Collections.Generic.List[object]]::new()
     if (-not $useDefaultShardPlan) {
         $shards.Add([pscustomobject]@{
@@ -496,11 +514,13 @@ try {
         $packageLayoutMethods = @($discoveredMethods[$packageLayoutClass])
         $packageLayoutFilter = "FullyQualifiedName~$packageLayoutClass"
         $defaultPackageLayoutMethodMilliseconds =
-            if ($priorFilterMilliseconds.ContainsKey($packageLayoutFilter)) {
+            if ($null -ne ($packageLayoutHistoricalMilliseconds =
+                    Get-SharpProofHistoricalFilterMilliseconds `
+                        $packageLayoutFilter)) {
                 [long][Math]::Max(
                     1,
                     [Math]::Ceiling(
-                        [long]$priorFilterMilliseconds[$packageLayoutFilter] /
+                        [long]$packageLayoutHistoricalMilliseconds /
                             [double]$packageLayoutMethods.Count))
             }
             else {
@@ -526,14 +546,21 @@ try {
                     "FullyQualifiedName~SharpProof.Package.Test.$_"
                 })
             $filter = $classFilters -join '|'
-            $estimatedMilliseconds = [long](@($classFilters | ForEach-Object {
-                        if ($priorFilterMilliseconds.ContainsKey($_)) {
-                            [long]$priorFilterMilliseconds[$_]
-                        }
-                        else {
-                            1L
-                        }
-                    } | Measure-Object -Sum).Sum)
+            $estimatedMilliseconds =
+                Get-SharpProofHistoricalFilterMilliseconds $filter
+            if ($null -eq $estimatedMilliseconds) {
+                # Retain the individual-class lookup for timing files written
+                # by older schedulers and fixture-specific test runs.
+                $estimatedMilliseconds = [long](@($classFilters |
+                        ForEach-Object {
+                            if ($priorFilterMilliseconds.ContainsKey($_)) {
+                                [long]$priorFilterMilliseconds[$_]
+                            }
+                            else {
+                                1L
+                            }
+                        } | Measure-Object -Sum).Sum)
+            }
             $shards.Add([pscustomobject]@{
                 Name = 'fixture-' + ($fixtureClass.ToLowerInvariant() -replace
                     '\|', '-and-')
@@ -558,8 +585,10 @@ try {
             Name = 'postflight-buildtask-main'
             Filter = $remainingBuildTaskFilter
             EstimatedMilliseconds =
-                $(if ($priorFilterMilliseconds.ContainsKey($remainingBuildTaskFilter)) {
-                    [long]$priorFilterMilliseconds[$remainingBuildTaskFilter]
+                $(if ($null -ne ($historicalMilliseconds =
+                        Get-SharpProofHistoricalFilterMilliseconds `
+                            $remainingBuildTaskFilter)) {
+                    $historicalMilliseconds
                 }
                 else {
                     10000L
@@ -591,8 +620,9 @@ try {
                     'D2', [Globalization.CultureInfo]::InvariantCulture)
                 Filter = $filter
                 EstimatedMilliseconds =
-                    $(if ($priorFilterMilliseconds.ContainsKey($filter)) {
-                        [long]$priorFilterMilliseconds[$filter]
+                    $(if ($null -ne ($historicalMilliseconds =
+                            Get-SharpProofHistoricalFilterMilliseconds $filter)) {
+                        $historicalMilliseconds
                     }
                     else {
                         $bucket.EstimatedMilliseconds
@@ -707,7 +737,9 @@ try {
         })
     }
     $failures = [Collections.Generic.List[string]]::new()
-    foreach ($failure in @($testRun.Failures)) {
+    foreach ($failure in @($testRun.Completed | Where-Object {
+                $_.ExitCode -ne 0
+            })) {
         $failures.Add(
             "$($failure.Test.Name) exited $($failure.ExitCode): " +
             $failure.Test.Filter)

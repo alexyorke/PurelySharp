@@ -462,7 +462,9 @@ try {
             exitCode = $result.ExitCode
         })
     }
-    foreach ($failure in @($testRun.Failures)) {
+    foreach ($failure in @($testRun.Completed | Where-Object {
+                $_.ExitCode -ne 0
+            })) {
         $failures.Add(
             "$($failure.Test.Name) exited $($failure.ExitCode).")
     }
