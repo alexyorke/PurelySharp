@@ -393,6 +393,7 @@ public sealed class IrSmtBackend : ISmtBackend, IDisposable
         private ArithExpr? _longMax;
         private ArithExpr? _zero;
         private ArithExpr? _minusOne;
+        private BoolExpr? _defined;
 
         internal QueryEncoder(
             Context context,
@@ -641,7 +642,7 @@ public sealed class IrSmtBackend : ISmtBackend, IDisposable
 
         private EncodedValue Defined(Expr expression)
         {
-            return new(expression, _owner.Own(_context.MkTrue()));
+            return new(expression, _defined ??= _owner.Own(_context.MkTrue()));
         }
 
         private EncodedValue Bounded(ArithExpr expression, BoolExpr defined)
