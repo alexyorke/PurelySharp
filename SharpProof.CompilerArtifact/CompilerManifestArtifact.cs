@@ -488,7 +488,7 @@ internal static class CompilerManifestArtifactJson
         cancellationToken.ThrowIfCancellationRequested();
         Validate(artifact, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        if (Serialize(artifact, cancellationToken) != json)
+        if (SerializeValidated(artifact, cancellationToken) != json)
         {
             throw new JsonException("The compiler manifest artifact is not canonical.");
         }
