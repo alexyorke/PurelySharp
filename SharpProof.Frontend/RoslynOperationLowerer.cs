@@ -681,12 +681,6 @@ public sealed class RoslynOperationLowerer
                 return OpaqueOperand(operation, operation.Operand, FrontendAbstention.LiftedOperator);
             }
 
-            var operand = _owner.LowerCore(operation.Operand);
-            if (!operand.Classification.IsExact)
-            {
-                return OpaqueOperand(operation, operation.Operand, operand.Classification.Abstention);
-            }
-
             if (!CSharpScalarSemantics.TryGetUnary(
                     operation.OperatorKind,
                     out var semantics))
@@ -700,6 +694,12 @@ public sealed class RoslynOperationLowerer
             if (CompilerConstantAdmission.IsLiteralIntegerNegation(operation))
             {
                 return _owner.LowerConstant(operation);
+            }
+
+            var operand = _owner.LowerCore(operation.Operand);
+            if (!operand.Classification.IsExact)
+            {
+                return OpaqueOperand(operation, operation.Operand, operand.Classification.Abstention);
             }
 
             if (semantics.IsIdentity)
