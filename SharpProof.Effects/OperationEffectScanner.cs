@@ -1615,23 +1615,28 @@ internal sealed partial class OperationEffectScanner
                 continue;
             }
 
-            if (!hasInvalidOrdinal)
-            {
-                regions[ordinal] = regions[ordinal].Union(
-                    _conversionOwnership.ClassifyCallArgumentRegion(
-                        argument.Value));
-            }
             if (argument.ArgumentKind != ArgumentKind.ParamArray)
             {
                 actualArguments[ordinal] = argument.Value;
             }
         }
-        return new(
-            hasInvalidOrdinal
-                ? [.. Enumerable.Repeat(EffectRegionSet.Unknown, parameterCount)]
-                : [.. regions],
-            actualArguments.MoveToImmutable(),
-            hasParamArray);
+        if (hasInvalidOrdinal)
+        {
+            return new(
+                [.. Enumerable.Repeat(EffectRegionSet.Unknown, parameterCount)],
+                actualArguments.MoveToImmutable(),
+                hasParamArray);
+        }
+
+        foreach (var argument in arguments)
+        {
+            var ordinal = argument.Parameter!.Ordinal;
+            regions[ordinal] = regions[ordinal].Union(
+                _conversionOwnership.ClassifyCallArgumentRegion(
+                    argument.Value));
+        }
+
+        return new([.. regions], actualArguments.MoveToImmutable(), hasParamArray);
     }
 
     internal static bool IsDispatchUncertain(IInvocationOperation invocation)
