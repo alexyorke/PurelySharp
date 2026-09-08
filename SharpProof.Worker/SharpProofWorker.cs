@@ -114,10 +114,10 @@ public sealed class SharpProofWorker : IDisposable
         var ownsInjectedBackendRunGate = false;
         try
         {
-            snapshot = await WorkerInputSnapshot.LoadAsync(
+            snapshot = WorkerInputSnapshot.Load(
                 request,
                 WorkerCacheIdentity.Current,
-                projectBoundary.Token).ConfigureAwait(false);
+                projectBoundary.Token);
         }
         catch (OperationCanceledException) { return Interrupted(); }
         catch (IOException exception) when (exception.Message == WorkerInputSnapshot.ManifestUnavailable)

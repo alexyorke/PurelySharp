@@ -5,7 +5,7 @@ internal sealed partial record WorkerInputSnapshot
     internal const string ManifestUnavailable = "The compiler manifest is unavailable.";
     internal const string ManifestInvalid = "The compiler manifest is invalid.";
     private static ReadOnlySpan<byte> Utf8Preamble => [0xEF, 0xBB, 0xBF];
-    internal static Task<WorkerInputSnapshot> LoadAsync(WorkerVerifyRequest request,
+    internal static WorkerInputSnapshot Load(WorkerVerifyRequest request,
         WorkerCacheIdentity cacheIdentity, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(cacheIdentity);
@@ -52,7 +52,7 @@ internal sealed partial record WorkerInputSnapshot
             cacheIdentity.ToolVersion, cacheIdentity.WorkerBinarySha256, cacheIdentity.ApiSpecIdentity,
             cacheIdentity.ApiSpecVersion, cacheIdentity.ApiSpecContentSha256);
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.FromResult(new WorkerInputSnapshot(manifest, inputHash));
+        return new WorkerInputSnapshot(manifest, inputHash);
     }
     private static string DecodeUtf8(byte[] bytes)
     {

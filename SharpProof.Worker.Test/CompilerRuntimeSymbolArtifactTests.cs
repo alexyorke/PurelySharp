@@ -23,7 +23,7 @@ public sealed class CompilerRuntimeSymbolArtifactTests
         {
             var request = await WriteRequestAsync(path, json);
 
-            var snapshot = await WorkerInputSnapshot.LoadAsync(
+            var snapshot = WorkerInputSnapshot.Load(
                 request,
                 WorkerCacheIdentity.Current,
                 CancellationToken.None);
@@ -72,12 +72,13 @@ public sealed class CompilerRuntimeSymbolArtifactTests
                 Throws.TypeOf<JsonException>());
             var request = await WriteRequestAsync(path, json);
 
-            var exception = Assert.ThrowsAsync<IOException>(
-                (Func<Task>)(async () =>
-                    await WorkerInputSnapshot.LoadAsync(
-                        request,
-                        WorkerCacheIdentity.Current,
-                        CancellationToken.None)));
+            var exception = Assert.Throws<IOException>((Action)(() =>
+            {
+                _ = WorkerInputSnapshot.Load(
+                    request,
+                    WorkerCacheIdentity.Current,
+                    CancellationToken.None);
+            }));
 
             using (Assert.EnterMultipleScope())
             {

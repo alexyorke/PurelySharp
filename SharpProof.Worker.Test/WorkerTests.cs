@@ -1679,7 +1679,7 @@ public sealed class WorkerTests
     }
 
     [Test]
-    public async Task ClosedArtifactRecordsCompilerSemanticOptions()
+    public void ClosedArtifactRecordsCompilerSemanticOptions()
     {
         using var project = TestProject.Create(RefutationSource);
         var request = project.CreateRequest(
@@ -1693,7 +1693,7 @@ public sealed class WorkerTests
                 platform: Platform.X64,
                 nullableContextOptions: NullableContextOptions.Warnings,
                 deterministic: false));
-        var snapshot = await WorkerInputSnapshot.LoadAsync(
+        var snapshot = WorkerInputSnapshot.Load(
             request,
             WorkerCacheIdentity.Current,
             CancellationToken.None);
@@ -1808,23 +1808,23 @@ public sealed class WorkerTests
             baselineIdentity.ApiSpecVersion,
             DifferentHash(baselineIdentity.ApiSpecContentSha256));
 
-        var baseline = await WorkerInputSnapshot.LoadAsync(
+        var baseline = WorkerInputSnapshot.Load(
             request,
             baselineIdentity,
             CancellationToken.None);
-        var tool = await WorkerInputSnapshot.LoadAsync(
+        var tool = WorkerInputSnapshot.Load(
             request,
             changedTool,
             CancellationToken.None);
-        var binary = await WorkerInputSnapshot.LoadAsync(
+        var binary = WorkerInputSnapshot.Load(
             request,
             changedBinary,
             CancellationToken.None);
-        var specs = await WorkerInputSnapshot.LoadAsync(
+        var specs = WorkerInputSnapshot.Load(
             request,
             changedSpecs,
             CancellationToken.None);
-        var specContent = await WorkerInputSnapshot.LoadAsync(
+        var specContent = WorkerInputSnapshot.Load(
             request,
             changedSpecContent,
             CancellationToken.None);
@@ -2168,7 +2168,7 @@ public sealed class WorkerTests
     {
         using var project = TestProject.Create(BoundedIdentitySubjectSource);
         var request = project.CreateRequest(cacheEnabled: false);
-        var snapshot = await WorkerInputSnapshot.LoadAsync(
+        var snapshot = WorkerInputSnapshot.Load(
             request,
             WorkerCacheIdentity.Current,
             CancellationToken.None);
@@ -6622,7 +6622,7 @@ public sealed class WorkerTests
     {
         using var project = TestProject.Create(BoundedIdentitySubjectSource);
         var request = project.CreateRequest(cacheEnabled: false);
-        var snapshot = await WorkerInputSnapshot.LoadAsync(
+        var snapshot = WorkerInputSnapshot.Load(
             request,
             WorkerCacheIdentity.Current,
             CancellationToken.None);
