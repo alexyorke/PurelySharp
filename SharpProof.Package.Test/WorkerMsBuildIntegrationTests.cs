@@ -4243,7 +4243,7 @@ public sealed class WorkerMsBuildIntegrationTests
             IEnumerable<(string Name, string Value)> properties)
         {
             var repository = TestRepository.FindRoot();
-            var nativeZ3 = SecurityElement.Escape(
+            var nativeZ3Path = SecurityElement.Escape(
                 ContainerContract.ResolveZ3LibraryRequired());
             var attributes = SecurityElement.Escape(
                 ProductBuildOutputs.AttributesAssemblyPath());
@@ -4316,17 +4316,6 @@ public sealed class WorkerMsBuildIntegrationTests
                     "    <" + property.Name + ">" +
                     SecurityElement.Escape(property.Value) +
                     "</" + property.Name + ">"));
-            var nativeZ3Path = string.Empty;
-            if (OperatingSystem.IsLinux() &&
-                RuntimeInformation.ProcessArchitecture == Architecture.X64 &&
-                string.Equals(
-                    Environment.GetEnvironmentVariable("SHARPPROOF_CONTAINER"),
-                    "1",
-                    StringComparison.Ordinal))
-            {
-                nativeZ3Path = SecurityElement.Escape(
-                    ContainerContract.ResolveZ3LibraryRequired());
-            }
             var nativeZ3Property = string.IsNullOrEmpty(nativeZ3Path)
                 ? string.Empty
                 : "    <_SharpProofPackageNativeZ3Path>" + nativeZ3Path +
