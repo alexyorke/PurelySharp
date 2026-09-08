@@ -695,38 +695,20 @@ public sealed class DefaultApiSpecCatalogGenerationTests
         var type = term.GetProperty("type").GetString();
         return kind switch
         {
-            "variable" =>
-                "variable:" +
-                term.GetProperty("role").GetString() + ":" +
-                term.GetProperty("ordinal").GetInt32() + ":" + type,
-            "boolean" =>
-                "boolean:" +
-                term.GetProperty("value").GetBoolean() + ":" + type,
-            "integer" =>
-                "integer:" +
-                term.GetProperty("value").GetInt64() + ":" + type,
-            "string" =>
-                "string:" +
-                JsonSerializer.Serialize(
-                    term.GetProperty("value").GetString()) + ":" + type,
-            "null" => "null:" + type,
-            "unary" =>
-                "unary:" +
-                term.GetProperty("operator").GetString() + ":" + type +
-                "(" + Describe(term.GetProperty("operand")) + ")",
-            "binary" =>
-                "binary:" +
-                term.GetProperty("operator").GetString() + ":" + type +
-                "(" + Describe(term.GetProperty("left")) + "," +
-                Describe(term.GetProperty("right")) + ")",
-            "conditional" =>
-                "conditional:" + type +
-                "(" + Describe(term.GetProperty("condition")) + "," +
-                Describe(term.GetProperty("whenTrue")) + "," +
-                Describe(term.GetProperty("whenFalse")) + ")",
-            "length" =>
-                "length:" + type +
-                "(" + Describe(term.GetProperty("value")) + ")",
+            "variable" => FormatTerm("variable:" + term.GetProperty("role").GetString() + ":" +
+                term.GetProperty("ordinal").GetInt32(), type),
+            "boolean" => FormatTerm("boolean:" + term.GetProperty("value").GetBoolean(), type),
+            "integer" => FormatTerm("integer:" + term.GetProperty("value").GetInt64(), type),
+            "string" => FormatTerm("string:" + JsonSerializer.Serialize(term.GetProperty("value").GetString()), type),
+            "null" => FormatTerm("null", type),
+            "unary" => FormatTerm("unary:" + term.GetProperty("operator").GetString(), type,
+                Describe(term.GetProperty("operand"))),
+            "binary" => FormatTerm("binary:" + term.GetProperty("operator").GetString(), type,
+                Describe(term.GetProperty("left")), Describe(term.GetProperty("right"))),
+            "conditional" => FormatTerm("conditional", type,
+                Describe(term.GetProperty("condition")), Describe(term.GetProperty("whenTrue")),
+                Describe(term.GetProperty("whenFalse"))),
+            "length" => FormatTerm("length", type, Describe(term.GetProperty("value"))),
             _ => throw new InvalidDataException(
                 "Unknown catalog term kind: " + kind)
         };
@@ -736,35 +718,24 @@ public sealed class DefaultApiSpecCatalogGenerationTests
     {
         return term switch
         {
-            SpecVariableDeclaration variable =>
-                "variable:" + variable.Role + ":" + variable.Ordinal + ":" + variable.Type,
-            SpecBooleanDeclaration boolean =>
-                "boolean:" + boolean.Value + ":" + boolean.Type,
-            SpecIntegerDeclaration integer =>
-                "integer:" + integer.Value + ":" + integer.Type,
-            SpecStringDeclaration text =>
-                "string:" + JsonSerializer.Serialize(text.Value) +
-                ":" + text.Type,
-            SpecNullDeclaration nullTerm =>
-                "null:" + nullTerm.Type,
-            SpecUnaryDeclaration unary =>
-                "unary:" + unary.Operator + ":" + unary.Type +
-                "(" + Describe(unary.Operand) + ")",
-            SpecBinaryDeclaration binary =>
-                "binary:" + binary.Operator + ":" + binary.Type +
-                "(" + Describe(binary.Left) + "," +
-                Describe(binary.Right) + ")",
-            SpecConditionalDeclaration conditional =>
-                "conditional:" + conditional.Type +
-                "(" + Describe(conditional.Condition) + "," +
-                Describe(conditional.WhenTrue) + "," +
-                Describe(conditional.WhenFalse) + ")",
-            SpecLengthDeclaration length =>
-                "length:" + length.Type +
-                "(" + Describe(length.Value) + ")",
+            SpecVariableDeclaration variable => FormatTerm("variable:" + variable.Role + ":" + variable.Ordinal, variable.Type.ToString()),
+            SpecBooleanDeclaration boolean => FormatTerm("boolean:" + boolean.Value, boolean.Type.ToString()),
+            SpecIntegerDeclaration integer => FormatTerm("integer:" + integer.Value, integer.Type.ToString()),
+            SpecStringDeclaration text => FormatTerm("string:" + JsonSerializer.Serialize(text.Value), text.Type.ToString()),
+            SpecNullDeclaration nullTerm => FormatTerm("null", nullTerm.Type.ToString()),
+            SpecUnaryDeclaration unary => FormatTerm("unary:" + unary.Operator, unary.Type.ToString(), Describe(unary.Operand)),
+            SpecBinaryDeclaration binary => FormatTerm("binary:" + binary.Operator, binary.Type.ToString(),
+                Describe(binary.Left), Describe(binary.Right)),
+            SpecConditionalDeclaration conditional => FormatTerm("conditional", conditional.Type.ToString(),
+                Describe(conditional.Condition), Describe(conditional.WhenTrue), Describe(conditional.WhenFalse)),
+            SpecLengthDeclaration length => FormatTerm("length", length.Type.ToString(), Describe(length.Value)),
             _ => throw new ArgumentOutOfRangeException(nameof(term))
         };
     }
+
+    private static string FormatTerm(string prefix, string? type, params string[] children) =>
+        prefix + ":" + type +
+        (children.Length == 0 ? string.Empty : "(" + string.Join(",", children) + ")");
 
     private static T EnumValue<T>(JsonElement value)
         where T : struct, Enum
