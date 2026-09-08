@@ -91,7 +91,9 @@ function Read-SharpProofRetainedFuzzSeedManifest {
         if ($root.ValueKind -ne [Text.Json.JsonValueKind]::Object) {
             throw 'The retained fuzz seed manifest must be an object.'
         }
-        Assert-ExactJsonObjectProperties -Object $root `
+        Assert-SharpProofExactJsonProperties `
+            -Actual @($root.EnumerateObject() | ForEach-Object { $_.Name }) `
+            -RejectDuplicates `
             -Expected @('schemaVersion', 'casesPerSeed', 'seeds') `
             -Description 'Retained fuzz seed manifest'
 

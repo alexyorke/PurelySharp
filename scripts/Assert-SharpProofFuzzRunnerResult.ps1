@@ -1,4 +1,5 @@
 Set-StrictMode -Version Latest
+. (Join-Path $PSScriptRoot 'Assert-SharpProofJsonProperties.ps1')
 
 function Read-SharpProofBoundedJsonDocument {
     [CmdletBinding()]
@@ -43,25 +44,6 @@ function Read-SharpProofBoundedJsonDocument {
         Document = [Text.Json.JsonDocument]::Parse($json)
         Bytes = $bytes
         Json = $json
-    }
-}
-
-function Assert-ExactJsonObjectProperties {
-    param(
-        [Parameter(Mandatory = $true)]
-        [Text.Json.JsonElement]$Object,
-        [Parameter(Mandatory = $true)][string[]]$Expected,
-        [Parameter(Mandatory = $true)][string]$Description
-    )
-
-    if ($Object.ValueKind -ne [Text.Json.JsonValueKind]::Object) {
-        throw "$Description must be a JSON object."
-    }
-    $actual = @($Object.EnumerateObject() | ForEach-Object { $_.Name })
-    if ($actual.Count -ne $Expected.Count -or
-        @($actual | Select-Object -Unique).Count -ne $actual.Count -or
-        @($actual | Where-Object { $Expected -cnotcontains $_ }).Count -ne 0) {
-        throw "$Description has an unexpected property set."
     }
 }
 
@@ -117,8 +99,13 @@ function Assert-SharpProofFuzzRunnerResult {
         $bytes = $validation.Bytes
         $json = $validation.Json
         $root = $document.RootElement
-        Assert-ExactJsonObjectProperties -Object $root `
+        if ($root.ValueKind -ne [Text.Json.JsonValueKind]::Object) {
+            throw 'Fuzz runner result must be a JSON object.'
+        }
+        Assert-SharpProofExactJsonProperties `
+            -Actual @($root.EnumerateObject() | ForEach-Object { $_.Name }) `
             -Description 'Fuzz runner result' `
+            -RejectDuplicates `
             -Expected @(
                 'SchemaVersion', 'Cases', 'Seed', 'MaximumParallelism',
                 'Agreements', 'Abstentions', 'FrontendAgreements',
@@ -167,7 +154,12 @@ function Assert-SharpProofFuzzRunnerResult {
             'ArrayLengths', 'ArrayIndexes', 'DivideByZeroExceptions',
             'OverflowExceptions', 'NullReferenceExceptions',
             'IndexOutOfRangeExceptions', 'InvalidCastExceptions')
-        Assert-ExactJsonObjectProperties -Object $coverage `
+        if ($coverage.ValueKind -ne [Text.Json.JsonValueKind]::Object) {
+            throw 'Frontend coverage must be a JSON object.'
+        }
+        Assert-SharpProofExactJsonProperties `
+            -Actual @($coverage.EnumerateObject() | ForEach-Object { $_.Name }) `
+            -RejectDuplicates `
             -Expected $coverageProperties -Description 'Frontend coverage'
         [long]$exceptionTotal = 0
         $coverageValues = [ordered]@{}
@@ -193,8 +185,13 @@ function Assert-SharpProofFuzzRunnerResult {
             throw 'Fuzz failures must be a non-null JSON array.'
         }
         foreach ($failure in $failures.EnumerateArray()) {
-            Assert-ExactJsonObjectProperties -Object $failure `
+            if ($failure.ValueKind -ne [Text.Json.JsonValueKind]::Object) {
+                throw 'Fuzz failure must be a JSON object.'
+            }
+            Assert-SharpProofExactJsonProperties `
+                -Actual @($failure.EnumerateObject() | ForEach-Object { $_.Name }) `
                 -Description 'Fuzz failure' `
+                -RejectDuplicates `
                 -Expected @(
                     'Case', 'Seed', 'Oracle', 'Original', 'Minimized',
                     'Detail', 'Term')

@@ -2,20 +2,6 @@ Set-StrictMode -Version Latest
 
 . (Join-Path $PSScriptRoot 'Assert-SharpProofJsonProperties.ps1')
 
-function Assert-ExactJsonProperties {
-    param(
-        [Parameter(Mandatory = $true)][object]$Value,
-        [Parameter(Mandatory = $true)][string[]]$Expected,
-        [Parameter(Mandatory = $true)][string]$Description
-    )
-
-    $actual = @($Value.PSObject.Properties.Name)
-    if ($actual.Count -ne $Expected.Count -or
-        @($actual | Where-Object { $Expected -cnotcontains $_ }).Count -ne 0) {
-        throw "$Description has an unexpected property set."
-    }
-}
-
 function Assert-SharpProofStandaloneGateResult {
     [CmdletBinding()]
     param(
@@ -54,7 +40,8 @@ function Assert-SharpProofStandaloneGateResult {
             $jsonDocument.Dispose()
         }
     }
-    Assert-ExactJsonProperties -Value $document -Description 'Gate envelope' `
+    Assert-SharpProofExactJsonProperties -Actual $document.PSObject.Properties.Name `
+        -Description 'Gate envelope' `
         -Expected @(
             'SchemaVersion', 'Gate', 'Passed', 'SourceCommit',
             'Executable', 'Result')
@@ -73,7 +60,7 @@ function Assert-SharpProofStandaloneGateResult {
         $document.SourceCommit -cne $ExpectedCommit) {
         throw 'The standalone gate result is bound to the wrong source commit.'
     }
-    Assert-ExactJsonProperties -Value $document.Executable `
+    Assert-SharpProofExactJsonProperties -Actual $document.Executable.PSObject.Properties.Name `
         -Description 'Gate executable identity' `
         -Expected @('Mvid')
     if ($document.Executable.Mvid -isnot [string] -or
@@ -112,7 +99,7 @@ function Assert-SharpProofStandaloneGateResult {
     } else {
         $performanceProperties
     }
-    Assert-ExactJsonProperties -Value $document.Result `
+    Assert-SharpProofExactJsonProperties -Actual $document.Result.PSObject.Properties.Name `
         -Description "$ExpectedGate result" `
         -Expected $expectedResultProperties
     foreach ($property in $document.Result.PSObject.Properties) {
@@ -140,7 +127,7 @@ function Assert-SharpProofStandaloneGateResult {
     }
     if ($ExpectedGate -ceq 'corpus') {
         foreach ($reason in @($document.Result.UnknownReasons)) {
-            Assert-ExactJsonProperties -Value $reason `
+            Assert-SharpProofExactJsonProperties -Actual $reason.PSObject.Properties.Name `
                 -Description 'Corpus unknown-reason row' `
                 -Expected @('Reason', 'Count')
         }
@@ -151,12 +138,12 @@ function Assert-SharpProofStandaloneGateResult {
         }
     }
     else {
-            Assert-ExactJsonProperties -Value $document.Result.PackageBuildSdk `
+            Assert-SharpProofExactJsonProperties -Actual $document.Result.PackageBuildSdk.PSObject.Properties.Name `
                 -Description 'Performance SDK identity' `
                 -Expected @(
                 'ConfiguredVersion', 'RollForward', 'ResolvedVersion')
         foreach ($sample in @($document.Result.PackageBuildSamples)) {
-            Assert-ExactJsonProperties -Value $sample `
+            Assert-SharpProofExactJsonProperties -Actual $sample.PSObject.Properties.Name `
                 -Description 'Performance package-build sample' `
                 -Expected @(
                     'Index', 'UnannotatedAdvisoryFirst',

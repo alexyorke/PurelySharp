@@ -35,3 +35,21 @@ function Assert-UniqueJsonProperties
             "$Context.$($property.Name)"
     }
 }
+
+function Assert-SharpProofExactJsonProperties
+{
+    param(
+        [Parameter(Mandatory = $true)][string[]]$Actual,
+        [Parameter(Mandatory = $true)][string[]]$Expected,
+        [Parameter(Mandatory = $true)][string]$Description,
+        [switch]$RejectDuplicates
+    )
+
+    $actual = @($Actual)
+    if (($RejectDuplicates -and
+            @($actual | Select-Object -Unique).Count -ne $actual.Count) -or
+        $actual.Count -ne $Expected.Count -or
+        @($actual | Where-Object { $Expected -cnotcontains $_ }).Count -ne 0) {
+        throw "$Description has an unexpected property set."
+    }
+}
