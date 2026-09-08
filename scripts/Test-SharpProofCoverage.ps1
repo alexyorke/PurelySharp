@@ -639,41 +639,61 @@ if (-not [string]::IsNullOrWhiteSpace($comparisonCommit)) {
     $changedLines = [Collections.Generic.Dictionary[string,
         Collections.Generic.HashSet[int]]]::new(
             [StringComparer]::Ordinal)
-    foreach ($changedPath in $changedTcbFiles) {
-        $patch = Invoke-SharpProofGitText `
+    $patch = if ($changedTcbFiles.Count -eq 0) {
+        ''
+    }
+    else {
+        Invoke-SharpProofGitText `
             -RepositoryRoot $repositoryRoot `
-            -Arguments @(
+            -Arguments (@(
+                '-c',
+                'core.quotePath=false',
                 'diff',
                 '--unified=0',
                 '--no-renames',
                 $diffTarget,
-                '--',
-                $changedPath) `
+                '--'
+            ) + @(ConvertTo-OrdinalSortedArray -Values @($changedTcbFiles))) `
             -FailureMessage (
-                "git diff failed for changed TCB path '$changedPath'.")
-        foreach ($line in $patch.Split([char]10)) {
-            $match = [Text.RegularExpressions.Regex]::Match(
-                $line,
-                '^@@ -\d+(?:,\d+)? \+(?<start>\d+)(?:,(?<count>\d+))? @@')
-            if (-not $match.Success) {
-                continue
-            }
-            $start = [int]$match.Groups['start'].Value
-            $count = if ($match.Groups['count'].Success) {
-                [int]$match.Groups['count'].Value
-            }
-            else {
-                1
-            }
-            for ($number = $start;
-                $number -lt $start + $count;
-                $number++) {
-                if (-not $changedLines.ContainsKey($changedPath)) {
-                    $changedLines[$changedPath] =
-                        [Collections.Generic.HashSet[int]]::new()
-                }
-                [void]$changedLines[$changedPath].Add($number)
-            }
+                "git diff failed for changed TCB paths for comparison ref '$ComparisonRef'.")
+    }
+    $currentPath = $null
+    foreach ($line in $patch.Split([char]10)) {
+        $line = $line.TrimEnd([char]13)
+        if ($line.StartsWith('--- a/', [StringComparison]::Ordinal)) {
+            $currentPath = $line.Substring(6)
+            continue
+        }
+        if ($line.StartsWith('+++ b/', [StringComparison]::Ordinal)) {
+            $currentPath = $line.Substring(6)
+            continue
+        }
+        $match = [Text.RegularExpressions.Regex]::Match(
+            $line,
+            '^@@ -\d+(?:,\d+)? \+(?<start>\d+)(?:,(?<count>\d+))? @@')
+        if (-not $match.Success) {
+            continue
+        }
+        if ($null -eq $currentPath) {
+            throw (
+                "git diff did not identify the changed TCB path for comparison " +
+                "ref '$ComparisonRef'.")
+        }
+        $start = [int]$match.Groups['start'].Value
+        $count = if ($match.Groups['count'].Success) {
+            [int]$match.Groups['count'].Value
+        }
+        else {
+            1
+        }
+        if (-not $changedLines.ContainsKey($currentPath)) {
+            $changedLines[$currentPath] =
+                [Collections.Generic.HashSet[int]]::new()
+        }
+        for ($number = $start;
+            $number -lt $start + $count;
+            $number++) {
+            [void]$changedLines[$currentPath].Add($number)
         }
     }
     $changedCovered = 0
