@@ -81,15 +81,15 @@ public static class ContainerContract
                 $"The SharpProof container contract property '{required.First()}' is missing.");
         }
         RequireInteger(actual, "schemaVersion", 1);
-        RequireInteger(
+        var contractVersion = RequireInteger(
             actual,
             "contractVersion",
             RequireInteger(expected, "containerContractVersion"));
-        RequireString(
+        var platform = RequireString(
             actual,
             "platform",
             RequireString(expected, "platform"));
-        RequireString(
+        var dotNetSdkVersion = RequireString(
             actual,
             "dotnetSdkVersion",
             RequireString(expected.GetProperty("dotnet"), "sdkVersion"));
@@ -100,15 +100,15 @@ public static class ContainerContract
         RequireString(actual, "dotnetBaseImageDigest", RequireString(expected.GetProperty("dotnet"), "baseImageDigest"));
         RequireString(actual, "powershellVersionLine", RequireString(expected.GetProperty("powershell"), "versionLine"));
         RequireString(actual, "powershellImageDigest", RequireString(expected.GetProperty("powershell"), "imageDigest"));
-        RequireString(
+        var z3Version = RequireString(
             actual,
             "z3Version",
             RequireString(expected.GetProperty("z3"), "version"));
-        RequireInteger64(
+        var z3LibraryBytes = RequireInteger64(
             actual,
             "z3LibraryBytes",
             RequireInteger64(expected.GetProperty("z3"), "libraryBytes"));
-        RequireString(
+        var verifierPackageId = RequireString(
             actual,
             "verifierPackageId",
             RequireString(
@@ -116,12 +116,12 @@ public static class ContainerContract
                 "verifierPackageId"));
 
         return new ContainerContractInfo(
-            actual.GetProperty("contractVersion").GetInt32(),
-            actual.GetProperty("platform").GetString()!,
-            actual.GetProperty("dotnetSdkVersion").GetString()!,
-            actual.GetProperty("z3Version").GetString()!,
-            actual.GetProperty("z3LibraryBytes").GetInt64(),
-            actual.GetProperty("verifierPackageId").GetString()!);
+            contractVersion,
+            platform,
+            dotNetSdkVersion,
+            z3Version,
+            z3LibraryBytes,
+            verifierPackageId);
     }
 
     public static string ResolveZ3LibraryRequired()
@@ -236,12 +236,12 @@ public static class ContainerContract
         return value;
     }
 
-    private static void RequireInteger(
+    private static int RequireInteger(
         JsonElement element,
         string name,
         int expected)
     {
-        RequireMatches(element, name, expected, RequireInteger);
+        return RequireMatches(element, name, expected, RequireInteger);
     }
 
     private static long RequireInteger64(JsonElement element, string name)
@@ -255,12 +255,12 @@ public static class ContainerContract
         return value;
     }
 
-    private static void RequireInteger64(
+    private static long RequireInteger64(
         JsonElement element,
         string name,
         long expected)
     {
-        RequireMatches(element, name, expected, RequireInteger64);
+        return RequireMatches(element, name, expected, RequireInteger64);
     }
 
     private static string RequireString(JsonElement element, string name)
@@ -275,12 +275,12 @@ public static class ContainerContract
         return value;
     }
 
-    private static void RequireString(
+    private static string RequireString(
         JsonElement element,
         string name,
         string expected)
     {
-        RequireMatches(
+        return RequireMatches(
             element,
             name,
             expected,
@@ -302,19 +302,19 @@ public static class ContainerContract
         return property;
     }
 
-    private static void RequireMatches<T>(
+    private static T RequireMatches<T>(
         JsonElement element,
         string name,
         T expected,
         Func<JsonElement, string, T> accessor,
         IEqualityComparer<T>? comparer = null)
     {
-        if (!(comparer ?? EqualityComparer<T>.Default).Equals(
-                accessor(element, name),
-                expected))
+        var actual = accessor(element, name);
+        if (!(comparer ?? EqualityComparer<T>.Default).Equals(actual, expected))
         {
             throw new InvalidDataException(
                 $"The SharpProof container contract property '{name}' does not match the toolchain.");
         }
+        return actual;
     }
 }
