@@ -414,6 +414,28 @@ public sealed class FuzzRunnerTests
             factory, satisfiable);
         var unsat = await FiniteDomainSmtDifferentialOracle.CompareAsync(
             factory, unsatisfiable);
+        Assert.That(
+            FiniteDomainSmtDifferentialOracle.TryPrepareForCampaign(
+                factory,
+                satisfiable,
+                CancellationToken.None,
+                out var preparedSat),
+            Is.True);
+        Assert.That(
+            FiniteDomainSmtDifferentialOracle.TryPrepareForCampaign(
+                factory,
+                unsatisfiable,
+                CancellationToken.None,
+                out var preparedUnsat),
+            Is.True);
+        var preparedSatResult =
+            await FiniteDomainSmtDifferentialOracle.ComparePreparedAsync(
+                factory,
+                preparedSat!);
+        var preparedUnsatResult =
+            await FiniteDomainSmtDifferentialOracle.ComparePreparedAsync(
+                factory,
+                preparedUnsat!);
 
         AssertAgreement(
             sat,
@@ -423,6 +445,8 @@ public sealed class FuzzRunnerTests
             unsat,
             FiniteDomainSatisfiability.Unsatisfiable,
             assumptions: 1);
+        Assert.That(preparedSatResult, Is.EqualTo(sat));
+        Assert.That(preparedUnsatResult, Is.EqualTo(unsat));
 
         static void AssertAgreement(
             FiniteDomainDifferentialResult result,

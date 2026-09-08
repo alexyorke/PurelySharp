@@ -192,13 +192,14 @@ public static class FuzzRunner
                 var caseSeed = CreateCaseSeed(options.Seed, index);
 
                 var factory = new IrFactory();
-                var formula = CreateTotalFiniteDomainFormula(
+                var preparedFormula = CreateTotalFiniteDomainFormula(
                     factory,
                     caseSeed,
                     token);
-                var smt = await FiniteDomainSmtDifferentialOracle.CompareAsync(
+                var smt = await FiniteDomainSmtDifferentialOracle
+                    .ComparePreparedAsync(
                         factory,
-                        formula,
+                        preparedFormula,
                         token)
                     .ConfigureAwait(false);
                 smtStatuses[index] = smt.Status;
@@ -291,10 +292,11 @@ public static class FuzzRunner
                     break;
                 case "finite-domain-smt":
                     var factory = new IrFactory();
-                    var formula = CreateTotalFiniteDomainFormula(
+                    var preparedFormula = CreateTotalFiniteDomainFormula(
                         factory,
                         caseSeed,
                         cancellationToken);
+                    var formula = preparedFormula.Formula;
                     var minimizedFormula = await IrStructuralShrinker
                         .MinimizeAsync(
                             factory,
@@ -529,7 +531,7 @@ public static class FuzzRunner
         return coverage.HasExpandedCategories;
     }
 
-    private static IrTerm CreateTotalFiniteDomainFormula(
+    private static FiniteDomainPreparedFormula CreateTotalFiniteDomainFormula(
         IrFactory factory,
         int caseSeed,
         CancellationToken cancellationToken)
@@ -553,16 +555,27 @@ public static class FuzzRunner
                                 FiniteDomainSmtDifferentialOracle
                                     .IntegerDomain
                                     .Length)]));
-            if (FiniteDomainSmtDifferentialOracle
-                .IsDefinedForAllAssignments(
+            if (FiniteDomainSmtDifferentialOracle.TryPrepareForCampaign(
                     factory,
                     formula,
-                    cancellationToken))
+                    cancellationToken,
+                    out var prepared))
             {
-                return formula;
+                return prepared!;
             }
         }
-        return factory.Boolean((caseSeed & 1) == 0);
+        var fallback = factory.Boolean((caseSeed & 1) == 0);
+        if (FiniteDomainSmtDifferentialOracle.TryPrepareForCampaign(
+                factory,
+                fallback,
+                cancellationToken,
+                out var fallbackPrepared))
+        {
+            return fallbackPrepared!;
+        }
+
+        throw new InvalidOperationException(
+            "The finite-domain fallback formula could not be prepared.");
     }
 
     private static int CreateCaseSeed(int seed, int index)
