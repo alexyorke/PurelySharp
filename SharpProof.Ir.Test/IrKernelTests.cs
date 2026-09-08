@@ -515,6 +515,35 @@ public sealed class IrKernelTests
     }
 
     [Test]
+    public void SubstitutionPreservesUnchangedCompositeSubtrees()
+    {
+        var factory = new IrFactory();
+        var first =
+            factory.CreateVariable("first", factory.IntegerType);
+        var second =
+            factory.CreateVariable("second", factory.IntegerType);
+        var unchangedBranch = factory.Binary(
+            IrBinaryOperator.Multiply,
+            factory.Variable(second),
+            factory.Integer(2));
+        var root = factory.Binary(
+            IrBinaryOperator.Add,
+            factory.Variable(first),
+            unchangedBranch);
+
+        var substituted = IrSubstitution.Substitute(
+            factory,
+            root,
+            first,
+            factory.Integer(1));
+
+        Assert.That(substituted, Is.Not.SameAs(root));
+        Assert.That(
+            ((IrBinaryTerm)substituted).Right,
+            Is.SameAs(unchangedBranch));
+    }
+
+    [Test]
     public void SubstitutionRejectsWrongTypesAndForeignTerms()
     {
         var factory = new IrFactory();

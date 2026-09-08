@@ -139,40 +139,112 @@ public static class IrSubstitution
             return child == null ? null : Visit(child);
         }
 
-        IrTerm[] VisitAll(ImmutableArray<IrTerm> children)
-        {
-            return [.. children.Select(Visit)];
-        }
-
         return term switch
         {
             IrBooleanTerm or IrIntegerTerm or IrStringTerm or IrNullTerm or IrVariableTerm => term,
-            IrOpaqueTerm { Purity: IrOpaquePurity.Pure } opaque =>
-                factory.PureOpaque(
-                    opaque.Member,
-                    VisitNullable(opaque.Receiver),
-                    VisitAll(opaque.Arguments)),
-            IrOpaqueTerm opaque =>
-                factory.ImpureOpaque(
-                    opaque.Operation,
-                    opaque.Member,
-                    VisitNullable(opaque.Receiver),
-                    VisitAll(opaque.Arguments)),
-            IrUnaryTerm unary => factory.Unary(unary.Operator, Visit(unary.Operand)),
-            IrBinaryTerm binary => factory.Binary(
-                binary.Operator,
-                Visit(binary.Left),
-                Visit(binary.Right)),
-            IrConditionalTerm conditional => factory.Conditional(
-                Visit(conditional.Condition),
-                Visit(conditional.WhenTrue),
-                Visit(conditional.WhenFalse)),
-            IrCastTerm cast => factory.Cast(cast.Type, Visit(cast.Operand)),
-            IrLengthTerm length => factory.Length(Visit(length.Value)),
-            IrSequenceAccessTerm access => factory.SequenceAccess(
-                Visit(access.Sequence),
-                Visit(access.Index)),
+            IrOpaqueTerm opaque => RewriteOpaque(factory, opaque),
+            IrUnaryTerm unary => RewriteUnary(factory, unary),
+            IrBinaryTerm binary => RewriteBinary(factory, binary),
+            IrConditionalTerm conditional => RewriteConditional(factory, conditional),
+            IrCastTerm cast => RewriteCast(factory, cast),
+            IrLengthTerm length => RewriteLength(factory, length),
+            IrSequenceAccessTerm access => RewriteSequenceAccess(factory, access),
             _ => throw new InvalidOperationException("Unknown IR term kind: " + term.Kind + ".")
         };
+
+        IrTerm RewriteOpaque(IrFactory termFactory, IrOpaqueTerm opaque)
+        {
+            var receiver = VisitNullable(opaque.Receiver);
+            IrTerm[]? arguments = null;
+            for (var index = 0; index < opaque.Arguments.Length; index++)
+            {
+                var argument = Visit(opaque.Arguments[index]);
+                if (ReferenceEquals(argument, opaque.Arguments[index]))
+                {
+                    continue;
+                }
+
+                arguments ??= [.. opaque.Arguments];
+                arguments[index] = argument;
+            }
+
+            if (ReferenceEquals(receiver, opaque.Receiver) &&
+                arguments == null)
+            {
+                return opaque;
+            }
+
+            arguments ??= [.. opaque.Arguments];
+            return opaque.Purity == IrOpaquePurity.Pure
+                ? termFactory.PureOpaque(
+                    opaque.Member,
+                    receiver,
+                    arguments)
+                : termFactory.ImpureOpaque(
+                    opaque.Operation,
+                    opaque.Member,
+                    receiver,
+                    arguments);
+        }
+
+        IrTerm RewriteUnary(IrFactory termFactory, IrUnaryTerm unary)
+        {
+            var operand = Visit(unary.Operand);
+            return ReferenceEquals(operand, unary.Operand)
+                ? unary
+                : termFactory.Unary(unary.Operator, operand);
+        }
+
+        IrTerm RewriteBinary(IrFactory termFactory, IrBinaryTerm binary)
+        {
+            var left = Visit(binary.Left);
+            var right = Visit(binary.Right);
+            return ReferenceEquals(left, binary.Left) &&
+                   ReferenceEquals(right, binary.Right)
+                ? binary
+                : termFactory.Binary(binary.Operator, left, right);
+        }
+
+        IrTerm RewriteConditional(
+            IrFactory termFactory,
+            IrConditionalTerm conditional)
+        {
+            var condition = Visit(conditional.Condition);
+            var whenTrue = Visit(conditional.WhenTrue);
+            var whenFalse = Visit(conditional.WhenFalse);
+            return ReferenceEquals(condition, conditional.Condition) &&
+                   ReferenceEquals(whenTrue, conditional.WhenTrue) &&
+                   ReferenceEquals(whenFalse, conditional.WhenFalse)
+                ? conditional
+                : termFactory.Conditional(condition, whenTrue, whenFalse);
+        }
+
+        IrTerm RewriteCast(IrFactory termFactory, IrCastTerm cast)
+        {
+            var operand = Visit(cast.Operand);
+            return ReferenceEquals(operand, cast.Operand)
+                ? cast
+                : termFactory.Cast(cast.Type, operand);
+        }
+
+        IrTerm RewriteLength(IrFactory termFactory, IrLengthTerm length)
+        {
+            var value = Visit(length.Value);
+            return ReferenceEquals(value, length.Value)
+                ? length
+                : termFactory.Length(value);
+        }
+
+        IrTerm RewriteSequenceAccess(
+            IrFactory termFactory,
+            IrSequenceAccessTerm access)
+        {
+            var sequence = Visit(access.Sequence);
+            var index = Visit(access.Index);
+            return ReferenceEquals(sequence, access.Sequence) &&
+                   ReferenceEquals(index, access.Index)
+                ? access
+                : termFactory.SequenceAccess(sequence, index);
+        }
     }
 }
