@@ -641,7 +641,7 @@ internal static class WorkerPerformanceProbe
             return new()
             {
                 Path = path,
-                Sha256 = LowerSha(File.ReadAllBytes(path))
+                Sha256 = HashEncoding.ComputeSha256Hex(File.ReadAllBytes(path))
             };
         }
 
@@ -677,11 +677,6 @@ internal static class WorkerPerformanceProbe
                 artifactPath,
                 CompilerManifestArtifactJson.SerializeProducerValidated(artifact),
                 Utf8WithoutBom);
-        }
-
-        private static string LowerSha(byte[] bytes)
-        {
-            return HashEncoding.ComputeSha256Hex(bytes);
         }
 
         internal string RequestPath(string runName)
