@@ -132,7 +132,6 @@ public static class IrTermAnalysis
         IrTerm root,
         Dictionary<IrId, int> memo)
     {
-        ArgumentNullGuard.NotNull(root, nameof(root));
         ArgumentNullGuard.NotNull(memo, nameof(memo));
         return IrTraversal.FoldBottomUp(
             root,
