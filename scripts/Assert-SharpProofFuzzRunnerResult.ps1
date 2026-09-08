@@ -170,8 +170,10 @@ function Assert-SharpProofFuzzRunnerResult {
         Assert-ExactJsonObjectProperties -Object $coverage `
             -Expected $coverageProperties -Description 'Frontend coverage'
         [long]$exceptionTotal = 0
+        $coverageValues = [ordered]@{}
         foreach ($name in $coverageProperties) {
             $count = Get-ExactJsonInt32 $coverage $name
+            $coverageValues[$name] = $count
             if ($count -lt 0 -or ($cases -ge 1000 -and $count -eq 0)) {
                 throw "Frontend coverage '$name' is invalid for the executed case count."
             }
@@ -210,6 +212,21 @@ function Assert-SharpProofFuzzRunnerResult {
             -not $coverageSatisfied -or -not $passed) {
             throw 'The fuzz runner did not produce a passing result.'
         }
+        $result = [pscustomobject][ordered]@{
+            SchemaVersion = $schema
+            Cases = $cases
+            Seed = $seed
+            MaximumParallelism = $maximumParallelism
+            Agreements = $agreements
+            Abstentions = $abstentions
+            FrontendAgreements = $frontendAgreements
+            SmtAgreements = $smtAgreements
+            PartialSmtAgreements = $partialSmtAgreements
+            FrontendCoverage = [pscustomobject]$coverageValues
+            CoverageSatisfied = $coverageSatisfied
+            Failures = [object[]]@()
+            Passed = $passed
+        }
     }
     catch {
         throw "Invalid fuzz runner result: $($_.Exception.Message)"
@@ -240,5 +257,5 @@ function Assert-SharpProofFuzzRunnerResult {
         }
     }
 
-    return $json | ConvertFrom-Json -ErrorAction Stop
+    return $result
 }
