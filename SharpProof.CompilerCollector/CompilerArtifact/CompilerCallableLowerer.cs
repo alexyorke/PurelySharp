@@ -571,7 +571,7 @@ internal sealed class CompilerCallableLowerer
             }
 
             instructions += block.Instructions.Length;
-            foreach (var successor in GetSuccessors(block.Terminator))
+            foreach (var successor in IrInstructionFacts.TryGetSuccessors(block.Terminator) ?? [])
             {
                 if (!Visit(successor))
                 {
@@ -581,11 +581,6 @@ internal sealed class CompilerCallableLowerer
             colors[blockId] = 2;
             return true;
         }
-    }
-
-    private static ImmutableArray<IrBlockId> GetSuccessors(IrInstruction terminator)
-    {
-        return IrInstructionFacts.TryGetSuccessors(terminator) ?? [];
     }
 
     private static bool TryCreateParameterBindings(ManifestCallableTarget target, BoundMethodContracts contracts,
