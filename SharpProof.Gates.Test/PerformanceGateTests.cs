@@ -715,77 +715,53 @@ public sealed class PerformanceGateTests
     [Test]
     public void AdvisoryPolicyRejectsSubstitutedAnalyzerEntryPoint()
     {
-        var (portableProps, portableTargets, portableContract, verifierProps, verifierTargets) =
-            LoadPolicyDocuments();
-        var entryPoint = portableTargets.Descendants("Analyzer")
-            .Single(analyzer => string.Equals(
-                analyzer.Element("SharpProofAnalyzerRole")?.Value,
-                "EntryPoint",
-                StringComparison.Ordinal));
-        entryPoint.SetAttributeValue(
-            "Include",
-            "$(_SharpProofContractForGeneratorPath)");
-
-        Assert.Throws<InvalidDataException>(
-            (Action)(() =>
-                PerformanceGate.ValidateAdvisoryPackagePolicy(
-                    portableProps,
-                    portableTargets,
-                    portableContract,
-                    verifierProps,
-                    verifierTargets)));
+        AssertAdvisoryPolicyRejects((portableTargets, _) =>
+        {
+            var entryPoint = portableTargets.Descendants("Analyzer")
+                .Single(analyzer => string.Equals(
+                    analyzer.Element("SharpProofAnalyzerRole")?.Value,
+                    "EntryPoint",
+                    StringComparison.Ordinal));
+            entryPoint.SetAttributeValue(
+                "Include",
+                "$(_SharpProofContractForGeneratorPath)");
+        });
     }
 
     [Test]
     public void AdvisoryPolicyRejectsAWidenedVerifierCondition()
     {
-        var (portableProps, portableTargets, portableContract, verifierProps, verifierTargets) =
-            LoadPolicyDocuments();
-        var verifier = verifierTargets.Descendants("Target").Single(target =>
-            string.Equals(
-                (string?)target.Attribute("Name"),
-                "SharpProofVerify",
-                StringComparison.Ordinal));
-        verifier.SetAttributeValue(
-            "Condition",
-            (string?)verifier.Attribute("Condition") +
-            " OR 'true' == 'true'");
-
-        Assert.Throws<InvalidDataException>(
-            (Action)(() =>
-                PerformanceGate.ValidateAdvisoryPackagePolicy(
-                    portableProps,
-                    portableTargets,
-                    portableContract,
-                    verifierProps,
-                    verifierTargets)));
+        AssertAdvisoryPolicyRejects((_, verifierTargets) =>
+        {
+            var verifier = verifierTargets.Descendants("Target").Single(target =>
+                string.Equals(
+                    (string?)target.Attribute("Name"),
+                    "SharpProofVerify",
+                    StringComparison.Ordinal));
+            verifier.SetAttributeValue(
+                "Condition",
+                (string?)verifier.Attribute("Condition") +
+                " OR 'true' == 'true'");
+        });
     }
 
     [Test]
     public void AdvisoryPolicyRejectsVerifierConditionWithoutOptIn()
     {
-        var (portableProps, portableTargets, portableContract, verifierProps, verifierTargets) =
-            LoadPolicyDocuments();
-        var verifier = verifierTargets.Descendants("Target").Single(target =>
-            string.Equals(
-                (string?)target.Attribute("Name"),
-                "SharpProofVerify",
-                StringComparison.Ordinal));
-        verifier.SetAttributeValue(
-            "Condition",
-            ((string?)verifier.Attribute("Condition"))?.Replace(
-                "'$(_SharpProofVerifyActive)' == 'true' AND ",
-                string.Empty,
-                StringComparison.Ordinal));
-
-        Assert.Throws<InvalidDataException>(
-            (Action)(() =>
-                PerformanceGate.ValidateAdvisoryPackagePolicy(
-                    portableProps,
-                    portableTargets,
-                    portableContract,
-                    verifierProps,
-                    verifierTargets)));
+        AssertAdvisoryPolicyRejects((_, verifierTargets) =>
+        {
+            var verifier = verifierTargets.Descendants("Target").Single(target =>
+                string.Equals(
+                    (string?)target.Attribute("Name"),
+                    "SharpProofVerify",
+                    StringComparison.Ordinal));
+            verifier.SetAttributeValue(
+                "Condition",
+                ((string?)verifier.Attribute("Condition"))?.Replace(
+                    "'$(_SharpProofVerifyActive)' == 'true' AND ",
+                    string.Empty,
+                    StringComparison.Ordinal));
+        });
     }
 
     [Test]
@@ -887,6 +863,21 @@ public sealed class PerformanceGateTests
             Load("SharpProof.Package", "SharpProof.ConsumerContract.props"),
             Load("SharpProof.Verifier", "SharpProof.Verifier.props"),
             Load("SharpProof.Verifier", "SharpProof.Verifier.targets"));
+    }
+
+    private static void AssertAdvisoryPolicyRejects(
+        Action<XDocument, XDocument> mutate)
+    {
+        var documents = LoadPolicyDocuments();
+        mutate(documents.PortableTargets, documents.VerifierTargets);
+        Assert.Throws<InvalidDataException>(
+            (Action)(() =>
+                PerformanceGate.ValidateAdvisoryPackagePolicy(
+                    documents.PortableProps,
+                    documents.PortableTargets,
+                    documents.PortableContract,
+                    documents.VerifierProps,
+                    documents.VerifierTargets)));
     }
 
     private static void AssertProtocolEvidence(
