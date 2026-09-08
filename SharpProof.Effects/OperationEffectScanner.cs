@@ -348,20 +348,7 @@ internal sealed partial class OperationEffectScanner
             return EffectSummary.Empty;
         }
 
-        var instance = evaluatedLocation ?? (field.Instance == null
-            ? EffectStep.Empty
-            : ScanStep(field.Instance));
-        if (!instance.CompletesNormally)
-        {
-            return instance.Summary;
-        }
-
-        var receiverCheck = field.Instance == null
-            ? EffectStep.Empty
-            : new EffectStep(
-                PotentialNullReceiver(field.Instance, field),
-                !_nullnessEvaluator.IsProvenNull(field.Instance, field));
-        var evaluation = instance.Then(receiverCheck);
+        var evaluation = ScanReceiver(field.Instance, field, evaluatedLocation);
         if (!evaluation.CompletesNormally)
         {
             return evaluation.Summary;
@@ -463,22 +450,7 @@ internal sealed partial class OperationEffectScanner
         EffectAccess access,
         EffectStep? evaluatedLocation = null)
     {
-        var instance = evaluatedLocation ?? (property.Instance == null
-            ? EffectStep.Empty
-            : ScanStep(property.Instance));
-        if (!instance.CompletesNormally)
-        {
-            return instance.Summary;
-        }
-
-        var receiverCheck = property.Instance == null
-            ? EffectStep.Empty
-            : new EffectStep(
-                PotentialNullReceiver(property.Instance, property),
-                !_nullnessEvaluator.IsProvenNull(
-                    property.Instance,
-                    property));
-        var evaluation = instance.Then(receiverCheck);
+        var evaluation = ScanReceiver(property.Instance, property, evaluatedLocation);
         if (!evaluation.CompletesNormally)
         {
             return evaluation.Summary;
@@ -491,7 +463,28 @@ internal sealed partial class OperationEffectScanner
             evaluation.Summary,
             access == EffectAccess.Read
                 ? EffectSummaryOperations.Read(region)
-                : EffectSummaryOperations.Write(region));
+            : EffectSummaryOperations.Write(region));
+    }
+
+    private EffectStep ScanReceiver(
+        IOperation? receiver,
+        IOperation access,
+        EffectStep? evaluatedLocation)
+    {
+        var instance = evaluatedLocation ?? (receiver == null
+            ? EffectStep.Empty
+            : ScanStep(receiver));
+        if (!instance.CompletesNormally)
+        {
+            return instance;
+        }
+
+        var receiverCheck = receiver == null
+            ? EffectStep.Empty
+            : new EffectStep(
+                PotentialNullReceiver(receiver, access),
+                !_nullnessEvaluator.IsProvenNull(receiver, access));
+        return instance.Then(receiverCheck);
     }
 
     private EffectSummary ScanMethodReference(
