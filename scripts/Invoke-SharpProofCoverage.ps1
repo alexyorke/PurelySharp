@@ -96,33 +96,21 @@ function New-CoverageSettings {
         [string]$Name,
 
         [Parameter(Mandatory = $true)]
-        [ValidateSet('Include', 'Exclude')]
-        [string]$ModuleSelector,
-
-        [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [string]$ModulePath,
-
-        [Parameter(Mandatory = $true)]
-        [bool]$StaticManagedInstrumentation
+        [string]$ModulePath
     )
 
     [xml]$settings = Get-Content -LiteralPath $managedSettings -Raw
     $modulePaths = $settings.SelectSingleNode('//ModulePaths')
     $modulePaths.RemoveAll()
-    $selector = $settings.CreateElement($ModuleSelector)
+    $selector = $settings.CreateElement('Include')
     $module = $settings.CreateElement('ModulePath')
     $module.InnerText = $ModulePath
     [void]$selector.AppendChild($module)
     [void]$modulePaths.AppendChild($selector)
     $staticManaged = $settings.SelectSingleNode(
         '//EnableStaticManagedInstrumentation')
-    $staticManaged.InnerText = if ($StaticManagedInstrumentation) {
-        'True'
-    }
-    else {
-        'False'
-    }
+    $staticManaged.InnerText = 'False'
 
     $path = Join-Path `
         $resolvedResultsDirectory `
@@ -192,9 +180,7 @@ else {
 # consumes the instrumented assembly.
 $attributesSettings = New-CoverageSettings `
     -Name 'attributes' `
-    -ModuleSelector 'Include' `
-    -ModulePath '.*SharpProof\.Attributes\.dll$' `
-    -StaticManagedInstrumentation $false
+    -ModulePath '.*SharpProof\.Attributes\.dll$'
 & $dotnetWrapper `
     -TimeoutSeconds $TimeoutSeconds `
     test (Join-Path `
@@ -218,9 +204,7 @@ if ($LASTEXITCODE -ne 0) {
 # authoritative threshold gate.
 $gateSettings = New-CoverageSettings `
     -Name 'gates' `
-    -ModuleSelector 'Include' `
-    -ModulePath '.*SharpProof\.Gates\.dll$' `
-    -StaticManagedInstrumentation $false
+    -ModulePath '.*SharpProof\.Gates\.dll$'
 & $dotnetWrapper `
     -TimeoutSeconds $TimeoutSeconds `
     test (Join-Path `

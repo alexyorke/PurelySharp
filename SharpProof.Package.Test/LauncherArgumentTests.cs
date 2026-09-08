@@ -644,12 +644,14 @@ public sealed class LauncherArgumentTests
     [Platform("Linux")]
     public void RequestProjectionRejectsLauncherRuntimeCollisionBeforeManifestRead()
     {
-        var launcher = LauncherArguments.LauncherRuntimePaths[0];
         Assert.That(
             LauncherArguments.LauncherRuntimePaths
                 .Skip(3)
                 .Select(Path.GetFileName),
             Is.EqualTo(LauncherRuntimeCompanionInventory.FileNames));
+        Assert.That(
+            LauncherArguments.LauncherRuntimePaths.Select(Path.GetFileName),
+            Does.Contain("SharpProof.Worker.Protocol.dll"));
         foreach (var resultPath in LauncherArguments.LauncherRuntimePaths)
         {
             var arguments = ProjectionArguments(
@@ -668,28 +670,6 @@ public sealed class LauncherArgumentTests
                 Throws.TypeOf<ArgumentException>(),
                 resultPath);
         }
-    }
-
-    [Test]
-    [Platform("Linux")]
-    public void RequestProjectionRejectsLauncherProtocolRuntimeCollisionBeforeManifestRead()
-    {
-        var launcher = LauncherArguments.LauncherRuntimePaths[0];
-        var protocol = Path.Combine(
-            Path.GetDirectoryName(launcher)!,
-            "SharpProof.Worker.Protocol.dll");
-        var arguments = ProjectionArguments(
-            worker: Path.Combine(
-                Path.GetTempPath(),
-                "SharpProof-isolated-worker-" + Guid.NewGuid().ToString("N"),
-                "worker.dll"),
-            result: protocol);
-        Assert.That(
-            LauncherArguments.TryParse(arguments, out var parsed),
-            Is.True);
-        Assert.That(
-            (Action)(() => parsed.ValidateDistinctPaths(null)),
-            Throws.TypeOf<ArgumentException>());
     }
 
     [Test]

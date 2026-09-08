@@ -232,13 +232,6 @@ $semanticFilter = if ([string]::IsNullOrWhiteSpace($TestFilter)) {
 else {
     $TestFilter
 }
-$semanticProjectFilter = if ($architectureShardingEnabled) {
-    '(FullyQualifiedName!~' + $architectureClassPrefix + ')&(' +
-        $semanticFilter + ')'
-}
-else {
-    $semanticFilter
-}
 $claimTaskFilter = "($claimFilter)&($semanticFilter)"
 $manifestTaskFilter = "($manifestFilter)&($semanticFilter)"
 $workerCoreTaskFilter = "($workerCoreFilter)&($semanticFilter)"
@@ -270,7 +263,7 @@ if (-not $ArchitectureOnly) {
             [pscustomobject]@{
                 Name = 'semantic-projects'
                 Target = Join-Path $repositoryRoot 'SharpProof.Semantic.Tests.slnf'
-                Filter = $semanticProjectFilter
+                Filter = $semanticFilter
                 ProjectParallelism = $mainParallelism
                 IsolateOutput = $false
                 Slots = $mainParallelism

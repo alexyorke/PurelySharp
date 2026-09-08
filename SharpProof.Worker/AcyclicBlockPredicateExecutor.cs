@@ -540,10 +540,15 @@ internal sealed partial class AcyclicBlockPredicateExecutor
                 return null;
             }
 
-            var states = inputs.Variables
-                .Where(static variable => variable.Role == CompilerVariableRole.Parameter)
-                .ToImmutableDictionary(static variable => variable.Variable,
-                    variable => (IrTerm)inputs.Factory.Variable(variable.Variable)).ToBuilder();
+            var states = ImmutableDictionary.CreateBuilder<IrVarId, IrTerm>();
+            foreach (var variable in inputs.Variables.Where(
+                         static variable =>
+                             variable.Role == CompilerVariableRole.Parameter))
+            {
+                states.Add(
+                    variable.Variable,
+                    inputs.Factory.Variable(variable.Variable));
+            }
             foreach (var binding in inputs.ParameterBindings)
             {
                 if (environment.TryGetValue(binding.Key, out var value))

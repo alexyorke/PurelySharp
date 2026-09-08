@@ -1968,7 +1968,7 @@ public sealed class ArchitectureTests
 
         Assert.That(
             collector,
-            Does.Contain("-StaticManagedInstrumentation $false"));
+            Does.Contain("$staticManaged.InnerText = 'False'"));
     }
 
     [Test]

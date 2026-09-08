@@ -22,7 +22,7 @@ internal static class PostconditionObligationBuilder
         foreach (var variable in variables
                      .Where(static variable => variable.Role is CompilerVariableRole.Receiver
                          or CompilerVariableRole.Parameter or CompilerVariableRole.Result)
-                     .OrderBy(static variable => Domain(variable).Order)
+                     .OrderBy(static variable => DomainOrder(variable.Role))
                      .ThenBy(static variable => variable.Ordinal))
         {
             if (variable.SourceIntegerInterval is not { } sourceInterval)
@@ -75,7 +75,7 @@ internal static class PostconditionObligationBuilder
                 return;
             }
 
-            var label = Domain(variable).Label;
+            var label = DomainLabel(variable);
             ProofJustification justification =
                 new LoweredJustification(factory.CreateOperation("source-" + label));
             var assumption = new Assumption(factory, predicate, justification);
@@ -238,15 +238,25 @@ internal static class PostconditionObligationBuilder
         catch (ArgumentException) { return null; }
     }
 
-    private static (int Order, string Label) Domain(
-        CompilerCanonicalVariable variable)
+    private static int DomainOrder(CompilerVariableRole role)
+    {
+        return role switch
+        {
+            CompilerVariableRole.Receiver => 0,
+            CompilerVariableRole.Parameter => 1,
+            CompilerVariableRole.Result => 2,
+            _ => throw new ArgumentOutOfRangeException(nameof(role))
+        };
+    }
+
+    private static string DomainLabel(CompilerCanonicalVariable variable)
     {
         return variable.Role switch
         {
-            CompilerVariableRole.Receiver => (0, "domain:receiver"),
-            CompilerVariableRole.Parameter => (1, "domain:parameter:" +
-                variable.Ordinal.ToString(CultureInfo.InvariantCulture)),
-            CompilerVariableRole.Result => (2, "domain:result"),
+            CompilerVariableRole.Receiver => "domain:receiver",
+            CompilerVariableRole.Parameter => "domain:parameter:" +
+                variable.Ordinal.ToString(CultureInfo.InvariantCulture),
+            CompilerVariableRole.Result => "domain:result",
             _ => throw new ArgumentOutOfRangeException(nameof(variable))
         };
     }

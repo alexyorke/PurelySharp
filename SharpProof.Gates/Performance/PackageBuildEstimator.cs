@@ -172,13 +172,6 @@ internal static class PackageBuildEstimator
             balanced);
     }
 
-    internal static double Median(IEnumerable<double> values)
-    {
-        ArgumentNullException.ThrowIfNull(values);
-        var sorted = ValidateAndSort(values);
-        return MedianSorted(sorted);
-    }
-
     private static double GeometricMean(double first, double second)
     {
         return Math.Sqrt(first) * Math.Sqrt(second);

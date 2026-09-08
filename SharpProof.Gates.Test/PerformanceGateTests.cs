@@ -181,7 +181,12 @@ public sealed class PerformanceGateTests
     [Test]
     public void PackageBuildMedianAveragesTheMiddleEvenSamples()
     {
-        var median = PackageBuildEstimator.Median([1, 9, 3, 5]);
+        var median = PackageBuildEstimator.Estimate([
+            new(0, false, 1, 1),
+            new(1, true, 1, 9),
+            new(2, false, 1, 3),
+            new(3, true, 1, 5)
+        ]).RawMedianRatio;
 
         Assert.That(median, Is.EqualTo(4));
     }
@@ -345,13 +350,6 @@ public sealed class PerformanceGateTests
             Assert.Throws<ArgumentException>(
                 (Action)(() =>
                     _ = PackageBuildEstimator.Estimate(noncontiguous)));
-            Assert.Throws<ArgumentException>(
-                (Action)(() =>
-                    _ = PackageBuildEstimator.Median(
-                        Array.Empty<double>())));
-            Assert.Throws<ArgumentException>(
-                (Action)(() =>
-                    _ = PackageBuildEstimator.Median([0])));
         }
     }
 
