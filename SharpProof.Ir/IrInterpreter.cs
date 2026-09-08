@@ -17,6 +17,18 @@ internal readonly struct IrScalarResult(IrScalarResultKind kind, long value)
 
 internal static class IrScalarOperations
 {
+    internal static bool TryNegate(long value, out long result)
+    {
+        if (value == long.MinValue)
+        {
+            result = 0;
+            return false;
+        }
+
+        result = -value;
+        return true;
+    }
+
     internal static IrScalarResult Evaluate(IrBinaryOperator @operator, long left, long right)
     {
         if (right == 0 &&

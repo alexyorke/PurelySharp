@@ -148,7 +148,7 @@ internal static class ApiSpecTermValidator
             long? integer = null;
             if (unary.Operator == IrUnaryOperator.Negate &&
                 operand.Integer is { } value &&
-                TryNegate(value, out var negated))
+                IrScalarOperations.TryNegate(value, out var negated))
             {
                 integer = negated;
             }
@@ -270,20 +270,6 @@ internal static class ApiSpecTermValidator
                 (left.Boolean == true || right.IsTotal),
             _ => left.IsTotal && right.IsTotal
         };
-    }
-
-    private static bool TryNegate(long value, out long result)
-    {
-        try
-        {
-            result = checked(-value);
-            return true;
-        }
-        catch (OverflowException)
-        {
-            result = 0;
-            return false;
-        }
     }
 
     private static bool TryArithmetic(
