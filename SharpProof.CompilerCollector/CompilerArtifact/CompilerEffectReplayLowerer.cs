@@ -49,13 +49,30 @@ internal static class CompilerEffectReplayLowerer
             {
                 Effects: EffectContractKind.Allocates,
                 Capabilities: EffectContractCapabilityKind.None,
-                ExceptionType: null
+                ExceptionType: null,
+                EventKind: EffectDirectEventKind.ManagedObjectAllocation,
+                Origin: IObjectCreationOperation
+                {
+                    Constructor: { },
+                    Type: INamedTypeSymbol
+                }
+            } || witness is
+            {
+                Effects: EffectContractKind.Allocates,
+                Capabilities: EffectContractCapabilityKind.None,
+                ExceptionType: null,
+                EventKind: EffectDirectEventKind.ManagedArrayAllocation,
+                Origin: IArrayCreationOperation
+                {
+                    Type: IArrayTypeSymbol
+                }
             },
             EffectDirectEventKind.ExplicitThrow => witness is
             {
                 Effects: EffectContractKind.Throws,
                 Capabilities: EffectContractCapabilityKind.None,
-                ExceptionType: not null
+                ExceptionType: not null,
+                Origin: IThrowOperation { Exception: { } }
             },
             EffectDirectEventKind.MonitorCall or
             EffectDirectEventKind.EmptyLock => witness is
@@ -63,7 +80,17 @@ internal static class CompilerEffectReplayLowerer
                 Effects: EffectContractKind.Synchronizes,
                 Capabilities:
                     EffectContractCapabilityKind.Synchronization,
-                ExceptionType: null
+                ExceptionType: null,
+                EventKind: EffectDirectEventKind.MonitorCall,
+                Origin: IInvocationOperation
+            } || witness is
+            {
+                Effects: EffectContractKind.Synchronizes,
+                Capabilities:
+                    EffectContractCapabilityKind.Synchronization,
+                ExceptionType: null,
+                EventKind: EffectDirectEventKind.EmptyLock,
+                Origin: ILockOperation
             },
             _ => false
         };
