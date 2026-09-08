@@ -2124,42 +2124,29 @@ public sealed class BuildTaskTests
         var placeholder = Path.Combine(
             Path.GetTempPath(),
             "SharpProof.CompilerHostGate");
-        var start = new ProcessStartInfo
+        var arguments = new List<string>
         {
-            FileName = Environment.GetEnvironmentVariable(
-                "DOTNET_HOST_PATH") ?? "dotnet",
-            WorkingDirectory = repository,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
+            "msbuild",
+            targets,
+            "-t:_SharpProofValidateConfiguration",
+            "-p:SharpProofAnalyzerDirectory=" + placeholder,
+            "-p:SharpProofCollectorDirectory=" + placeholder,
+            "-p:_SharpProofSharedDirectory=" + placeholder,
+            "--nologo",
+            "--verbosity:minimal"
         };
-        foreach (var argument in new[]
-                 {
-                     "msbuild",
-                     targets,
-                     "-t:_SharpProofValidateConfiguration",
-                     "-p:SharpProofAnalyzerDirectory=" + placeholder,
-                     "-p:SharpProofCollectorDirectory=" + placeholder,
-                     "-p:_SharpProofSharedDirectory=" + placeholder,
-                     "--nologo",
-                     "--verbosity:minimal"
-                 })
-        {
-            start.ArgumentList.Add(argument);
-        }
         if (profile != null)
         {
-            start.ArgumentList.Add("-p:SharpProofProfile=" + profile);
+            arguments.Add("-p:SharpProofProfile=" + profile);
         }
 
-        using var process = Process.Start(start) ??
-            throw new InvalidOperationException(
-                "The compiler-host gate process could not be started.");
-        var standardOutput = process.StandardOutput.ReadToEndAsync();
-        var standardError = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
-        var output = await standardOutput + await standardError;
-        return (process.ExitCode, output);
+        var result = await ProcessRunner.RunCapturedAsync(
+            ProcessRunner.CreateStartInfo(
+                repository,
+                DotNetHost,
+                arguments),
+            CancellationToken.None);
+        return (result.ExitCode, result.Output + result.Error);
     }
 
     private sealed class GatedTextReader(string initialText) : TextReader
