@@ -176,18 +176,26 @@ internal static class CallableProofCore
         return [.. NormalizeLabels(result)];
     }
 
+    internal static ImmutableArray<string> MergeImmutable(
+        IEnumerable<string> left,
+        IEnumerable<string> right)
+    {
+        return [.. NormalizeLabels(left.Concat(right))];
+    }
+
     internal static string[] Merge(
         IEnumerable<string> left,
         IEnumerable<string> right)
     {
-        return NormalizeLabels(left.Concat(right));
+        return [.. NormalizeLabels(left.Concat(right))];
     }
 
-    private static string[] NormalizeLabels(IEnumerable<string> labels)
+    private static IEnumerable<string> NormalizeLabels(
+        IEnumerable<string> labels)
     {
-        return [.. labels
+        return labels
             .Distinct(StringComparer.Ordinal)
-            .OrderBy(static label => label, StringComparer.Ordinal)];
+            .OrderBy(static label => label, StringComparer.Ordinal);
     }
 
     internal static IEnumerable<string> AssumptionIds(

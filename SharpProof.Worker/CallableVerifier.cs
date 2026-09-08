@@ -186,9 +186,9 @@ internal sealed class CallableVerifier(ISmtBackend backend, int maximumExpressio
                 else
                 {
                     normalCompletionProofCore =
-                        [.. CallableProofCore.Merge(
+                        CallableProofCore.MergeImmutable(
                             backendProofCore,
-                            ["body:normal-completion"])];
+                            ["body:normal-completion"]);
                 }
             }
             else if (completionOutcome is UnknownOutcome unknown)
@@ -319,14 +319,12 @@ internal sealed class CallableVerifier(ISmtBackend backend, int maximumExpressio
                 effectClaimIds);
             if (record.Outcome == WorkerClaimOutcome.Proven)
             {
-                record.ProofCore = CallableProofCore.Merge(
-                    record.ProofCore,
-                    vacuity switch
-                    {
-                        WorkerVacuityKind.NoModeledNormalReturn =>
-                            normalCompletionProofCore,
-                        _ => []
-                    });
+                if (vacuity == WorkerVacuityKind.NoModeledNormalReturn)
+                {
+                    record.ProofCore = CallableProofCore.Merge(
+                        record.ProofCore,
+                        normalCompletionProofCore);
+                }
                 if (vacuity != WorkerVacuityKind.None &&
                     record.ProofCore.Length == 0)
                 {
