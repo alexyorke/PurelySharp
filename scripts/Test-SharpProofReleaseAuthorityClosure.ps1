@@ -32,18 +32,16 @@ if ($declared.Count -ne @($declared | Select-Object -Unique).Count -or
     throw "The declared release-authority closure does not equal the independently derived closure: $details"
 }
 $tcb = @(Get-SharpProofTcbPaths -Contract $contract -ProductionInventory $productionInventory)
-$tcbPathCounts = [Collections.Generic.Dictionary[string, int]]::new(
+$tcbPaths = [Collections.Generic.HashSet[string]]::new(
     [StringComparer]::Ordinal)
 foreach ($tcbPath in $tcb) {
     $path = [string]$tcbPath
-    if ($tcbPathCounts.ContainsKey($path)) {
-        $tcbPathCounts[$path]++
-    } else {
-        $tcbPathCounts.Add($path, 1)
+    if (-not $tcbPaths.Add($path)) {
+        throw "Release-authority path must occur exactly once in the TCB: '$path'."
     }
 }
 foreach ($path in $derived) {
-    if (-not $tcbPathCounts.ContainsKey($path) -or $tcbPathCounts[$path] -ne 1) {
+    if (-not $tcbPaths.Contains($path)) {
         throw "Release-authority path must occur exactly once in the TCB: '$path'."
     }
 }
