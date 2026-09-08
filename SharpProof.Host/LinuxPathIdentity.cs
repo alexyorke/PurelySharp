@@ -829,7 +829,7 @@ public static partial class LinuxPathIdentity
                 continue;
             }
             var mount = DecodeMountPath(left[4]);
-            if (!IsPathWithin(canonicalPath, mount) ||
+            if (!IsCanonicalPathWithin(canonicalPath, mount) ||
                 bestMount != null && mount.Length <= bestMount.Length)
             {
                 continue;
@@ -839,11 +839,6 @@ public static partial class LinuxPathIdentity
         }
         return bestType ?? throw new IOException(
             "SharpProof could not identify the publication filesystem.");
-    }
-
-    private static bool IsPathWithin(string path, string directory)
-    {
-        return IsCanonicalPathWithin(path, directory);
     }
 
     private static bool IsCanonicalPathWithin(string path, string directory)
