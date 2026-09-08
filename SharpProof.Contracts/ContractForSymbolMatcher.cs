@@ -131,32 +131,43 @@ internal static class ContractForSymbolMatcher
         INamedTypeSymbol companion,
         (INamedTypeSymbol Target, bool IsOpen) contractTarget)
     {
+        return CompanionTypeMatches(companion, contractTarget, out _);
+    }
+
+    private static bool CompanionTypeMatches(
+        INamedTypeSymbol companion,
+        (INamedTypeSymbol Target, bool IsOpen) contractTarget,
+        out ImmutableArray<INamedTypeSymbol> companionLayers)
+    {
+        companionLayers = [];
         if (companion is not { TypeKind: TypeKind.Class, IsStatic: true })
         {
             return false;
         }
 
-        var companionLayers = GetGenericTypeLayers(companion);
+        companionLayers = GetTypeLayers(companion);
         if (!contractTarget.IsOpen)
         {
             return companionLayers.All(static layer => layer.Arity == 0);
         }
 
         var targetLayers = GetGenericTypeLayers(contractTarget.Target);
-        if (targetLayers.Length != companionLayers.Length)
+        var targetIndex = 0;
+        foreach (var companionLayer in companionLayers)
         {
-            return false;
-        }
-        for (var index = 0; index < targetLayers.Length; index++)
-        {
-            if (!TypeParameterListsMatch(
-                    targetLayers[index].TypeParameters,
-                    companionLayers[index].TypeParameters))
+            if (companionLayer.Arity == 0)
+            {
+                continue;
+            }
+            if (targetIndex == targetLayers.Length ||
+                !TypeParameterListsMatch(
+                    targetLayers[targetIndex++].TypeParameters,
+                    companionLayer.TypeParameters))
             {
                 return false;
             }
         }
-        return true;
+        return targetIndex == targetLayers.Length;
     }
 
     internal static IEnumerable<IMethodSymbol> GetOrdinaryMethods(
@@ -321,7 +332,10 @@ internal static class ContractForSymbolMatcher
         }
 
         var companion = matchingCompanion!;
-        if (!CompanionTypeMatches(companion.Type, companion.ContractTarget))
+        if (!CompanionTypeMatches(
+                companion.Type,
+                companion.ContractTarget,
+                out var companionLayers))
         {
             return CompanionResolution.Fail(ContractBindingFailure.CompanionSignatureMismatch);
         }
@@ -351,7 +365,11 @@ internal static class ContractForSymbolMatcher
         if (matchCount == 1)
         {
             return HasUniqueTarget(signatureTarget, matchingMethod!)
-                ? SpecializeCompanion(companion, matchingMethod!, target)
+                ? SpecializeCompanion(
+                    companion,
+                    matchingMethod!,
+                    target,
+                    companionLayers)
                 : CompanionResolution.Fail(ContractBindingFailure.AmbiguousCompanion);
         }
 
@@ -418,12 +436,13 @@ internal static class ContractForSymbolMatcher
     private static CompanionResolution SpecializeCompanion(
         CompanionDescriptor companion,
         IMethodSymbol definition,
-        IMethodSymbol target)
+        IMethodSymbol target,
+        ImmutableArray<INamedTypeSymbol> companionLayers)
     {
         try
         {
             var type = companion.ContractTarget.IsOpen
-                ? ConstructCompanionType(companion.Type, target.ContainingType)
+                ? ConstructCompanionType(companionLayers, target.ContainingType)
                 : companion.Type;
             var method = type.GetMembers(definition.Name).OfType<IMethodSymbol>()
                 .FirstOrDefault(candidate => SymbolEqualityComparer.Default.Equals(
@@ -452,10 +471,9 @@ internal static class ContractForSymbolMatcher
     }
 
     private static INamedTypeSymbol ConstructCompanionType(
-        INamedTypeSymbol companion,
+        ImmutableArray<INamedTypeSymbol> companionLayers,
         INamedTypeSymbol target)
     {
-        var companionLayers = GetTypeLayers(companion);
         var targetLayers = GetGenericTypeLayers(target);
         if (companionLayers.Count(static layer => layer.Arity > 0) !=
             targetLayers.Length)
