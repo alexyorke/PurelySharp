@@ -672,7 +672,22 @@ try {
         }
     }
 
+    # Start high-resource shards first so reserved lanes overlap their tails
+    # instead of leaving the containment process as the final wave.
     $orderedShards = @($shards | Sort-Object `
+        @{ Expression = {
+                $slots = if ($_.PSObject.Properties.Name -contains 'Slots') {
+                    [long]$_.Slots
+                }
+                elseif ($_.PSObject.Properties.Name -contains 'Exclusive' -and
+                    [bool]$_.Exclusive) {
+                    [long]$parallelism
+                }
+                else {
+                    1L
+                }
+                [long]$_.EstimatedMilliseconds * $slots
+            }; Descending = $true }, `
         @{ Expression = 'EstimatedMilliseconds'; Descending = $true }, `
         @{ Expression = 'Name'; Descending = $false })
     $testPhase = [Diagnostics.Stopwatch]::StartNew()
