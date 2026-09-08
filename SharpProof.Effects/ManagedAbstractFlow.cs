@@ -1142,32 +1142,39 @@ internal sealed class ManagedAbstractFlow
         var cache = CompileTimeUnreachableStatementCache.GetValue(
             compilation,
             static _ => new());
-        if (cache.ContainsKey(key))
+        if (cache.TryGetValue(key, out var statementUnreachable))
         {
-            return true;
+            if (statementUnreachable)
+            {
+                return true;
+            }
+        }
+        else
+        {
+            statementUnreachable = false;
+            var statementModel = SharpProof.Frontend.Host.CompilationModelProvider
+                .GetSemanticModel(compilation, statement.SyntaxTree);
+            try
+            {
+                if (statementModel.AnalyzeControlFlow(statement) is
+                    { Succeeded: true, StartPointIsReachable: false })
+                {
+                    statementUnreachable = true;
+                }
+            }
+            catch (ArgumentException)
+            {
+                // Unsupported statement shapes retain the permissive fallback.
+            }
+
+            cache.TryAdd(key, statementUnreachable);
+            if (statementUnreachable)
+            {
+                return true;
+            }
         }
 
         var unreachable = false;
-        var statementModel = SharpProof.Frontend.Host.CompilationModelProvider
-            .GetSemanticModel(compilation, statement.SyntaxTree);
-        try
-        {
-            if (statementModel.AnalyzeControlFlow(statement) is
-                { Succeeded: true, StartPointIsReachable: false })
-            {
-                unreachable = true;
-            }
-        }
-        catch (ArgumentException)
-        {
-            // Unsupported statement shapes retain the permissive fallback.
-        }
-        if (unreachable)
-        {
-            cache.TryAdd(key, true);
-            return true;
-        }
-
         foreach (var syntax in operation.Syntax.Ancestors())
         {
             SyntaxNode? condition = syntax switch
