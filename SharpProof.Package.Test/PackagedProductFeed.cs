@@ -311,15 +311,12 @@ internal sealed class PackagedProductFeed : IDisposable
         startInfo.Environment["SharedCompilationId"] =
             s_sharedCompilationServerId;
 
-        using var process = Process.Start(startInfo) ??
-            throw new InvalidOperationException("Failed to start dotnet.");
-        var standardOutput = process.StandardOutput.ReadToEndAsync();
-        var standardError = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
+        var result = await ProcessRunner.RunCapturedAsync(
+            startInfo,
+            CancellationToken.None);
         return new PackageProcessResult(
-            process.ExitCode,
-            (await standardOutput) + Environment.NewLine +
-            (await standardError));
+            result.ExitCode,
+            result.CombinedOutput);
     }
 
 }
