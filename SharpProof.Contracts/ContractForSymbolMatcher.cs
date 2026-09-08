@@ -144,10 +144,11 @@ internal static class ContractForSymbolMatcher
         return true;
     }
 
-    internal static ImmutableArray<IMethodSymbol> GetOrdinaryMethods(INamedTypeSymbol type)
+    internal static IEnumerable<IMethodSymbol> GetOrdinaryMethods(
+        INamedTypeSymbol type)
     {
-        return [.. type.GetMembers().OfType<IMethodSymbol>().Where(static method =>
-            method is { MethodKind: MethodKind.Ordinary, IsImplicitlyDeclared: false })];
+        return type.GetMembers().OfType<IMethodSymbol>().Where(static method =>
+            method is { MethodKind: MethodKind.Ordinary, IsImplicitlyDeclared: false });
     }
 
     internal static ImmutableArray<CompanionDescriptor> DiscoverCompanions(
