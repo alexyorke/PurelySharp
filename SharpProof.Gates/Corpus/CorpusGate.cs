@@ -579,16 +579,8 @@ internal static class CorpusGate
         var result = ImmutableDictionary.CreateBuilder<
             string,
             CorpusObservation>(StringComparer.Ordinal);
-        foreach (var rawLine in CorpusSnapshotFormat.ReadDataLines(path))
+        foreach (var expectation in CorpusSnapshotFormat.ReadObservations(path))
         {
-            if (!CorpusSnapshotFormat.TryParseData(
-                    rawLine,
-                    out var expectation))
-            {
-                throw new InvalidDataException(
-                    $"Invalid corpus snapshot line: {rawLine}");
-            }
-
             if (!result.TryAdd(
                     expectation.CaseId,
                     expectation))

@@ -23,10 +23,21 @@ internal static class CorpusSnapshotFormat
 
     internal static string[] ReadDataLines(string path)
     {
-        return Parse(File.ReadAllBytes(path));
+        return ParseDocument(File.ReadAllBytes(path)).DataLines;
+    }
+
+    internal static ImmutableArray<CorpusObservation> ReadObservations(
+        string path)
+    {
+        return ParseDocument(File.ReadAllBytes(path)).Observations;
     }
 
     internal static string[] Parse(byte[] bytes)
+    {
+        return ParseDocument(bytes).DataLines;
+    }
+
+    private static ParsedSnapshot ParseDocument(byte[] bytes)
     {
         if (bytes.Length == 0 || (bytes.Length >= 3 && bytes[0] == 0xEF &&
                 bytes[1] == 0xBB && bytes[2] == 0xBF))
@@ -67,31 +78,45 @@ internal static class CorpusSnapshotFormat
             }
         }
         var data = lines.Skip(Header.Length).ToArray();
-        ValidateCanonicalData(data);
-        return data;
+        return new ParsedSnapshot(data, ParseCanonicalData(data));
     }
 
     private static void ValidateCanonicalData(string[] lines)
     {
+        _ = ParseCanonicalData(lines);
+    }
+
+    private static ImmutableArray<CorpusObservation> ParseCanonicalData(
+        string[] lines)
+    {
+        var observations = ImmutableArray.CreateBuilder<CorpusObservation>(
+            lines.Length);
+        string? previousCanonical = null;
         for (var index = 0; index < lines.Length; index++)
         {
-            if (!IsCanonicalData(lines[index]) ||
-                (index > 0 && StringComparer.Ordinal.Compare(
-                    lines[index - 1],
-                    lines[index]) > 0))
+            if (!TryParseData(lines[index], out var observation) ||
+                previousCanonical != null &&
+                StringComparer.Ordinal.Compare(
+                    previousCanonical,
+                    lines[index]) > 0)
             {
                 throw Invalid();
             }
-        }
-    }
 
-    private static bool IsCanonicalData(string? line)
-    {
-        return TryParseData(line, out var expectation) &&
-            string.Equals(
-                line,
-                expectation.ToCanonicalLine(),
-                StringComparison.Ordinal);
+            var canonical = observation.ToCanonicalLine();
+            if (!string.Equals(
+                    lines[index],
+                    canonical,
+                    StringComparison.Ordinal))
+            {
+                throw Invalid();
+            }
+
+            observations.Add(observation);
+            previousCanonical = canonical;
+        }
+
+        return observations.ToImmutable();
     }
 
     internal static bool TryParseData(
@@ -145,4 +170,8 @@ internal static class CorpusSnapshotFormat
         return new InvalidDataException(
             "Corpus snapshot does not use the canonical schema-3 byte format.");
     }
+
+    private sealed record ParsedSnapshot(
+        string[] DataLines,
+        ImmutableArray<CorpusObservation> Observations);
 }
