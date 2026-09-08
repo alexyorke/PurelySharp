@@ -193,7 +193,10 @@ function New-FrameworkPackageSource {
             'The framework-only package source unexpectedly contains ' +
             'SharpProof packages.')
     }
-    return $frameworkSource
+    return [pscustomobject][ordered]@{
+        Source = $frameworkSource
+        Packages = $frameworkPackages
+    }
 }
 
 function Invoke-ConsumerDotNet {
@@ -319,9 +322,10 @@ function Test-SharpProofFrameworkConsumers {
                 $encoding)
         }
 
-        $frameworkSource = New-FrameworkPackageSource `
+        $frameworkCatalog = New-FrameworkPackageSource `
             -Root $root `
             -RepositoryRoot $RepositoryRoot
+        $frameworkSource = [string]$frameworkCatalog.Source
         $escapedSource = [Security.SecurityElement]::Escape($Source)
         $escapedFrameworkSource =
             [Security.SecurityElement]::Escape($frameworkSource)
@@ -339,7 +343,7 @@ function Test-SharpProofFrameworkConsumers {
             '      <package pattern="SharpProof*" />'
             '    </packageSource>'
             '    <packageSource key="FrameworkOffline">'
-            $frameworkPackages |
+            $frameworkCatalog.Packages |
                 Select-Object -ExpandProperty Pattern -Unique |
                 ForEach-Object {
                     "      <package pattern=`"$_`" />"
