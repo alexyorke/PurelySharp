@@ -40,6 +40,7 @@ internal sealed class CompilerResponseEvidenceAuthority :
 
         internal TargetClaimIndex(CompilerCallablePreparation target)
         {
+            var hasLiteralFalsePrecondition = false;
             foreach (var effect in target.EffectClaims)
             {
                 if (!_effects.ContainsKey(effect.ClaimId))
@@ -50,13 +51,20 @@ internal sealed class CompilerResponseEvidenceAuthority :
 
             foreach (var clause in target.Clauses)
             {
+                hasLiteralFalsePrecondition |=
+                    clause.Kind == CompilerContractKind.Requires &&
+                    clause.Condition is IrBooleanTerm { Value: false };
                 if (clause.Kind == CompilerContractKind.Ensures &&
                     !_postconditions.ContainsKey(clause.ClaimId))
                 {
                     _postconditions.Add(clause.ClaimId, clause);
                 }
             }
+
+            HasLiteralFalsePrecondition = hasLiteralFalsePrecondition;
         }
+
+        internal bool HasLiteralFalsePrecondition { get; }
 
         internal CompilerEffectClaimArtifact? FindEffect(string? claimId)
         {
@@ -209,7 +217,12 @@ internal sealed class CompilerResponseEvidenceAuthority :
         }
         else
         {
-            ValidatePostconditionClaim(target, result, errors, cancellationToken);
+            ValidatePostconditionClaim(
+                target,
+                result,
+                errors,
+                claimIndex.HasLiteralFalsePrecondition,
+                cancellationToken);
         }
     }
 
@@ -404,6 +417,7 @@ internal sealed class CompilerResponseEvidenceAuthority :
         CompilerCallablePreparation target,
         WorkerClaimResult result,
         HashSet<string> errors,
+        bool hasLiteralFalsePrecondition,
         CancellationToken cancellationToken)
     {
         if (!IsCanonicalProofCore(result.ProofCore) ||
@@ -444,7 +458,7 @@ internal sealed class CompilerResponseEvidenceAuthority :
                 errors.Add("response.vacuity_authority");
             }
 
-            if (HasLiteralFalsePrecondition(target) &&
+            if (hasLiteralFalsePrecondition &&
                 result.Vacuity != WorkerVacuityKind.ContradictoryPreconditions)
             {
                 errors.Add("response.vacuity_authority");
@@ -642,14 +656,6 @@ internal sealed class CompilerResponseEvidenceAuthority :
         return CompilerDependencyEvidenceFormatter.Format(
             evidence,
             throwOnUnsupportedOrigin: false);
-    }
-
-    private static bool HasLiteralFalsePrecondition(
-        CompilerCallablePreparation target)
-    {
-        return target.Clauses.Any(static clause =>
-            clause.Kind == CompilerContractKind.Requires &&
-            clause.Condition is IrBooleanTerm { Value: false });
     }
 
     private static bool IsCanonicalProofCore(string[]? values)
