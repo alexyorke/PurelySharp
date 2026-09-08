@@ -250,7 +250,7 @@ internal sealed class ExternalEffectResolver
         var allocation = (effects & EffectContractKind.Allocates) != 0
             ? EffectAllocationKind.Managed
             : EffectAllocationKind.None;
-        var capabilityKinds = ConvertCapabilities(capabilities);
+        var capabilityKinds = EffectContractMappings.ToAnalysisCapabilities(capabilities);
         if ((effects & EffectContractKind.Synchronizes) != 0)
         {
             capabilityKinds |= EffectCapabilityKind.Synchronization;
@@ -388,11 +388,6 @@ internal sealed class ExternalEffectResolver
         return !type.IsUnboundGenericType &&
         _exceptionType != null &&
         EffectTypeFacts.IsDerivedFrom(type, _exceptionType);
-    }
-
-    private static EffectCapabilityKind ConvertCapabilities(EffectContractCapabilityKind capabilities)
-    {
-        return EffectContractMappings.ToAnalysisCapabilities(capabilities);
     }
 
     private static bool TryConvertEffects(object value, out EffectContractKind effects)
