@@ -20,13 +20,7 @@ internal static class ContractForValidationEngine
         {
             foreach (var candidate in candidates
                          .Distinct((IEqualityComparer<INamedTypeSymbol>)
-                             SymbolEqualityComparer.Default)
-                         .OrderBy(static candidate =>
-                             candidate.Locations.FirstOrDefault()?.SourceTree?.FilePath,
-                             StringComparer.Ordinal)
-                         .ThenBy(static candidate =>
-                             candidate.Locations.FirstOrDefault()?.SourceSpan.Start ??
-                             int.MaxValue))
+                             SymbolEqualityComparer.Default))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 diagnostics.Add(Diagnostic.Create(
