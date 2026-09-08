@@ -102,11 +102,17 @@ internal static class EffectDirectEventKinds
 
 public readonly struct EffectThrowSet : IEquatable<EffectThrowSet>
 {
+    private const int MembershipIndexThreshold = 4;
     private readonly ImmutableArray<INamedTypeSymbol> _types;
+    private readonly HashSet<INamedTypeSymbol>? _membership;
 
-    private EffectThrowSet(ImmutableArray<INamedTypeSymbol> types, bool includesUnknown)
+    private EffectThrowSet(
+        ImmutableArray<INamedTypeSymbol> types,
+        bool includesUnknown,
+        HashSet<INamedTypeSymbol>? membership = null)
     {
         (_types, IncludesUnknown) = (types, includesUnknown);
+        _membership = membership;
     }
 
     public static EffectThrowSet Empty => default;
@@ -131,12 +137,19 @@ public readonly struct EffectThrowSet : IEquatable<EffectThrowSet>
                 "Exception type sets cannot contain null.", nameof(types)));
         }
 
-        return distinct.Count == 0
-            ? includesUnknown ? Unknown : Empty
-            : new EffectThrowSet([
-                .. distinct.OrderBy(static type => type, EffectSymbolComparer<INamedTypeSymbol>.Instance)
+        if (distinct.Count == 0)
+        {
+            return includesUnknown ? Unknown : Empty;
+        }
+
+        return new EffectThrowSet(
+            [
+                .. distinct.OrderBy(
+                    static type => type,
+                    EffectSymbolComparer<INamedTypeSymbol>.Instance)
             ],
-                includesUnknown);
+            includesUnknown,
+            distinct.Count > MembershipIndexThreshold ? distinct : null);
     }
 
     public bool Contains(INamedTypeSymbol type)
@@ -144,7 +157,9 @@ public readonly struct EffectThrowSet : IEquatable<EffectThrowSet>
         type = ArgumentNullGuard.NotNull(type, nameof(type));
 
         return IncludesUnknown ||
-               Types.Any(candidate => SymbolEqualityComparer.Default.Equals(candidate, type));
+            (_membership?.Contains(type) ??
+                Types.Any(candidate =>
+                    SymbolEqualityComparer.Default.Equals(candidate, type)));
     }
 
     public bool IsSubsetOf(EffectThrowSet other)
