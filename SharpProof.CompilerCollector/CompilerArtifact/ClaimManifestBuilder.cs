@@ -67,7 +67,12 @@ internal sealed partial class ClaimManifestBuilder(
         var postconditions = CreatePostconditions(
             target, source, inventory, usesCompanion, callableId);
         var trustedAttributes = TrustedAttributes(target).ToImmutableArray();
-        var selected = SelectFeatures(target, resolution, trustedAttributes);
+        var selection = _attributes.Select(
+            target,
+            resolution.HasSelectedContractIntent);
+        var selected = SelectFeatures(
+            selection,
+            !trustedAttributes.IsDefaultOrEmpty);
         var assumptions = CreateAssumptions(
             target,
             source,
@@ -80,9 +85,7 @@ internal sealed partial class ClaimManifestBuilder(
             return null;
         }
 
-        var analyzerSelection = _attributes.Select(
-            target,
-            resolution.HasSelectedContractIntent);
+        var analyzerSelection = selection;
         var analyzerContractsSelected =
             ContractsEnabled &&
             (analyzerSelection &
@@ -245,21 +248,22 @@ internal sealed partial class ClaimManifestBuilder(
     }
 
     private ImmutableArray<WorkerSelectedFeature> SelectFeatures(
-        IMethodSymbol method,
-        EffectiveContractSourceResolution resolution,
-        ImmutableArray<(ISymbol Scope, AttributeData Attribute)> trustedAttributes)
+        ContractSelectionFeatures selection,
+        bool hasTrustedAttributes)
     {
-        var selected = _attributes.Select(
-            method,
-            resolution.HasSelectedContractIntent,
-            !trustedAttributes.IsDefaultOrEmpty);
+        if (hasTrustedAttributes)
+        {
+            selection |= ContractSelectionFeatures.Contracts |
+                ContractSelectionFeatures.Effects;
+        }
+
         var result = ImmutableArray.CreateBuilder<WorkerSelectedFeature>(2);
-        if (EffectsEnabled && (selected & ContractSelectionFeatures.Effects) != 0)
+        if (EffectsEnabled && (selection & ContractSelectionFeatures.Effects) != 0)
         {
             result.Add(WorkerSelectedFeature.Effects);
         }
 
-        if (ContractsEnabled && (selected & ContractSelectionFeatures.Contracts) != 0)
+        if (ContractsEnabled && (selection & ContractSelectionFeatures.Contracts) != 0)
         {
             result.Add(WorkerSelectedFeature.Contracts);
         }
