@@ -509,42 +509,14 @@ internal sealed partial class SharpProofAnalyzerEngine
         MetadataReader reader,
         CustomAttribute attribute)
     {
-        var type = attribute.Constructor.Kind switch
-        {
-            HandleKind.MemberReference => reader.GetMemberReference(
-                    (MemberReferenceHandle)attribute.Constructor)
-                .Parent,
-            HandleKind.MethodDefinition => reader.GetMethodDefinition(
-                    (MethodDefinitionHandle)attribute.Constructor)
-                .GetDeclaringType(),
-            _ => default
-        };
-        return type.Kind switch
-        {
-            HandleKind.TypeReference => IsClosedContractAttribute(
+        return ApiSpecResolver.TryGetAttributeTypeName(
                 reader,
-                reader.GetTypeReference((TypeReferenceHandle)type)
-                    .Namespace,
-                reader.GetTypeReference((TypeReferenceHandle)type)
-                    .Name),
-            HandleKind.TypeDefinition => IsClosedContractAttribute(
-                reader,
-                reader.GetTypeDefinition((TypeDefinitionHandle)type)
-                    .Namespace,
-                reader.GetTypeDefinition((TypeDefinitionHandle)type)
-                    .Name),
-            _ => false
-        };
-    }
-
-    private static bool IsClosedContractAttribute(
-        MetadataReader reader,
-        StringHandle namespaceHandle,
-        StringHandle nameHandle)
-    {
-        return ContractApiMetadata.IsClosedAttributeTypeName(
-            reader.GetString(namespaceHandle),
-            reader.GetString(nameHandle));
+                attribute,
+                out var namespaceHandle,
+                out var nameHandle) &&
+            ContractApiMetadata.IsClosedAttributeTypeName(
+                reader.GetString(namespaceHandle),
+                reader.GetString(nameHandle));
     }
 
     private static bool NamespaceContainsClosedPrecondition(

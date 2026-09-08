@@ -333,6 +333,23 @@ public sealed class ApiSpecResolver(ApiSpecTable table)
     private static bool IsAttribute(
         MetadataReader reader, CustomAttribute attribute, string metadataName)
     {
+        return TryGetAttributeTypeName(
+                reader,
+                attribute,
+                out var typeNamespace,
+                out var typeName) &&
+            string.Equals(
+                reader.GetString(typeNamespace) + "." + reader.GetString(typeName),
+                metadataName,
+                StringComparison.Ordinal);
+    }
+
+    internal static bool TryGetAttributeTypeName(
+        MetadataReader reader,
+        CustomAttribute attribute,
+        out StringHandle typeNamespace,
+        out StringHandle typeName)
+    {
         var type = attribute.Constructor.Kind switch
         {
             HandleKind.MemberReference => reader.GetMemberReference(
@@ -341,20 +358,22 @@ public sealed class ApiSpecResolver(ApiSpecTable table)
                 (MethodDefinitionHandle)attribute.Constructor).GetDeclaringType(),
             _ => default
         };
-        return type.Kind switch
+        switch (type.Kind)
         {
-            HandleKind.TypeReference => Matches(reader,
-                reader.GetTypeReference((TypeReferenceHandle)type).Namespace,
-                reader.GetTypeReference((TypeReferenceHandle)type).Name),
-            HandleKind.TypeDefinition => Matches(reader,
-                reader.GetTypeDefinition((TypeDefinitionHandle)type).Namespace,
-                reader.GetTypeDefinition((TypeDefinitionHandle)type).Name),
-            _ => false
-        };
-        bool Matches(MetadataReader metadata, StringHandle typeNamespace, StringHandle typeName)
-        {
-            return string.Equals(metadata.GetString(typeNamespace) + "." + metadata.GetString(typeName),
-                metadataName, StringComparison.Ordinal);
+            case HandleKind.TypeReference:
+                var typeReference = reader.GetTypeReference((TypeReferenceHandle)type);
+                typeNamespace = typeReference.Namespace;
+                typeName = typeReference.Name;
+                return true;
+            case HandleKind.TypeDefinition:
+                var typeDefinition = reader.GetTypeDefinition((TypeDefinitionHandle)type);
+                typeNamespace = typeDefinition.Namespace;
+                typeName = typeDefinition.Name;
+                return true;
+            default:
+                typeNamespace = default;
+                typeName = default;
+                return false;
         }
     }
     private static ApiSpecResolutionFailure Failure(
