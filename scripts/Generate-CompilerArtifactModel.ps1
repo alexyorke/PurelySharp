@@ -1,7 +1,6 @@
 [CmdletBinding()]
 param(
     [Parameter()][string]$SchemaPath,
-    [Parameter()][string]$ProtocolSchemaPath,
     [Parameter()][string]$EffectsCatalogPath,
     [Parameter()][Alias('OutputPath')][string]$ModelOutputPath,
     [Parameter()][string]$PortableOutputPath,
@@ -18,7 +17,7 @@ $ErrorActionPreference = 'Stop'
 $repositoryRoot = Get-SharpProofRepositoryRoot $PSScriptRoot
 $SchemaPath = Resolve-SharpProofPath $SchemaPath (
     Join-Path $repositoryRoot 'SharpProof.CompilerArtifact\CompilerArtifactModel.schema.json')
-$ProtocolSchemaPath = Resolve-SharpProofPath $ProtocolSchemaPath (
+$ProtocolSchemaPath = Resolve-SharpProofPath $null (
     Join-Path $repositoryRoot 'SharpProof.Worker.Protocol\ProtocolModel.schema.json')
 $EffectsCatalogPath = Resolve-SharpProofPath $EffectsCatalogPath (
     Join-Path $repositoryRoot 'SharpProof.Effects\EffectContractMappings.catalog.json')

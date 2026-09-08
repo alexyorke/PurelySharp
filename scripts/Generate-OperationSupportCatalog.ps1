@@ -1,7 +1,5 @@
 [CmdletBinding()]
 param(
-    [Parameter()][string]$CatalogPath,
-    [Parameter()][string]$OutputPath,
     [Parameter()][Alias('Check')][switch]$Verify
 )
 
@@ -10,9 +8,9 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'GeneratedFileHelpers.ps1')
 
 $repositoryRoot = Get-SharpProofRepositoryRoot $PSScriptRoot
-$CatalogPath = Resolve-SharpProofPath $CatalogPath (
+$CatalogPath = Resolve-SharpProofPath $null (
     Join-Path $repositoryRoot 'SharpProof.Frontend\OperationSupport.catalog.json')
-$OutputPath = Resolve-SharpProofPath $OutputPath (
+$OutputPath = Resolve-SharpProofPath $null (
     Join-Path $repositoryRoot 'SharpProof.Frontend\OperationSupportCatalog.generated.cs')
 $catalog = Get-Content -LiteralPath $CatalogPath -Raw | ConvertFrom-Json
 if ([int]$catalog.schemaVersion -ne 1) {

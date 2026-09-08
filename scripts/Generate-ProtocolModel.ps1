@@ -1,8 +1,5 @@
 [CmdletBinding()]
 param(
-    [Parameter()][string]$SchemaPath,
-    [Parameter()][string]$OutputPath,
-    [Parameter()][string]$AnalyzerOutputPath,
     [Parameter()][Alias('Check')][switch]$Verify
 )
 
@@ -12,11 +9,11 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'GeneratedFileHelpers.ps1')
 
 $repositoryRoot = Get-SharpProofRepositoryRoot $PSScriptRoot
-$SchemaPath = Resolve-SharpProofPath $SchemaPath (
+$SchemaPath = Resolve-SharpProofPath $null (
     Join-Path $repositoryRoot 'SharpProof.Worker.Protocol\ProtocolModel.schema.json')
-$OutputPath = Resolve-SharpProofPath $OutputPath (
+$OutputPath = Resolve-SharpProofPath $null (
     Join-Path $repositoryRoot 'SharpProof.Worker.Protocol\ProtocolModel.generated.cs')
-$AnalyzerOutputPath = Resolve-SharpProofPath $AnalyzerOutputPath (
+$AnalyzerOutputPath = Resolve-SharpProofPath $null (
     Join-Path $repositoryRoot 'SharpProof.Analyzer.Core\EffectEvaluationProducerTupleCatalog.generated.cs')
 if (-not [IO.File]::Exists($SchemaPath)) {
     throw "Protocol schema not found: $SchemaPath"

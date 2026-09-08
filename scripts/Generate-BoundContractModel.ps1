@@ -1,7 +1,5 @@
 [CmdletBinding()]
 param(
-    [Parameter()][string]$SchemaPath,
-    [Parameter()][string]$OutputPath,
     [Parameter()][Alias('Check')][switch]$Verify
 )
 
@@ -10,9 +8,9 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'GeneratedFileHelpers.ps1')
 
 $repositoryRoot = Get-SharpProofRepositoryRoot $PSScriptRoot
-$SchemaPath = Resolve-SharpProofPath $SchemaPath (
+$SchemaPath = Resolve-SharpProofPath $null (
     Join-Path $repositoryRoot 'SharpProof.Contracts\BoundContractModel.schema.json')
-$OutputPath = Resolve-SharpProofPath $OutputPath (
+$OutputPath = Resolve-SharpProofPath $null (
     Join-Path $repositoryRoot 'SharpProof.Contracts\BoundContractModel.generated.cs')
 $schema = Get-Content -LiteralPath $SchemaPath -Raw | ConvertFrom-Json
 

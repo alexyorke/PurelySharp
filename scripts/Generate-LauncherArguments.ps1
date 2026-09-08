@@ -1,8 +1,5 @@
 [CmdletBinding()]
 param(
-    [Parameter()][string]$CatalogPath,
-    [Parameter()][string]$OutputPath,
-    [Parameter()][string]$BuildTasksOutputPath,
     [Parameter()][Alias('Check')][switch]$Verify
 )
 
@@ -11,11 +8,11 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'GeneratedFileHelpers.ps1')
 
 $repositoryRoot = Get-SharpProofRepositoryRoot $PSScriptRoot
-$CatalogPath = Resolve-SharpProofPath $CatalogPath (
+$CatalogPath = Resolve-SharpProofPath $null (
     Join-Path $repositoryRoot 'SharpProof.Worker.Launcher\LauncherArguments.catalog.json')
-$OutputPath = Resolve-SharpProofPath $OutputPath (
+$OutputPath = Resolve-SharpProofPath $null (
     Join-Path $repositoryRoot 'SharpProof.Worker.Launcher\LauncherArguments.generated.cs')
-$BuildTasksOutputPath = Resolve-SharpProofPath $BuildTasksOutputPath (
+$BuildTasksOutputPath = Resolve-SharpProofPath $null (
     Join-Path $repositoryRoot 'SharpProof.BuildTasks\LauncherRuntimeCompanionInventory.generated.cs')
 
 $catalogJson = Get-Content -LiteralPath $CatalogPath -Raw

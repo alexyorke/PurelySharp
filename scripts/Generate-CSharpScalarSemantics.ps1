@@ -1,15 +1,6 @@
 [CmdletBinding()]
 param(
     [Parameter()]
-    [string]$CatalogPath,
-
-    [Parameter()]
-    [string]$OutputPath,
-
-    [Parameter()]
-    [string]$IrOutputPath,
-
-    [Parameter()]
     [Alias('Check')]
     [switch]$Verify
 )
@@ -20,11 +11,11 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'GeneratedFileHelpers.ps1')
 
 $repositoryRoot = Get-SharpProofRepositoryRoot $PSScriptRoot
-$CatalogPath = Resolve-SharpProofPath $CatalogPath (
+$CatalogPath = Resolve-SharpProofPath $null (
     Join-Path $repositoryRoot 'SharpProof.Frontend\CSharpScalarSemantics.json')
-$OutputPath = Resolve-SharpProofPath $OutputPath (
+$OutputPath = Resolve-SharpProofPath $null (
     Join-Path $repositoryRoot 'SharpProof.Frontend\CSharpScalarSemantics.generated.cs')
-$IrOutputPath = Resolve-SharpProofPath $IrOutputPath (
+$IrOutputPath = Resolve-SharpProofPath $null (
     Join-Path $repositoryRoot 'SharpProof.Ir\IrOperatorCatalog.generated.cs')
 if (-not [IO.File]::Exists($CatalogPath)) {
     throw "C# scalar-semantics catalog not found: $CatalogPath"

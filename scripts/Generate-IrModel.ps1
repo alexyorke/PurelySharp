@@ -1,7 +1,5 @@
 [CmdletBinding()]
 param(
-    [Parameter()][string]$SchemaPath,
-    [Parameter()][string]$OutputPath,
     [Parameter()][Alias('Check')][switch]$Verify
 )
 
@@ -11,9 +9,9 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'GeneratedFileHelpers.ps1')
 
 $repositoryRoot = Get-SharpProofRepositoryRoot $PSScriptRoot
-$SchemaPath = Resolve-SharpProofPath $SchemaPath (
+$SchemaPath = Resolve-SharpProofPath $null (
     Join-Path $repositoryRoot 'SharpProof.Ir\IrModel.schema.json')
-$OutputPath = Resolve-SharpProofPath $OutputPath (
+$OutputPath = Resolve-SharpProofPath $null (
     Join-Path $repositoryRoot 'SharpProof.Ir\IrModel.generated.cs')
 if (-not [IO.File]::Exists($SchemaPath))
 {
