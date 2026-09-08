@@ -26,8 +26,9 @@ internal static class AnalyzerGeneratedCodePolicy
             compilation,
             cancellationToken);
         return IsGeneratedFromTree(tree, generated, cancellationToken) ||
-            generated != GeneratedKind.MarkedGenerated &&
-            generated != GeneratedKind.NotGenerated &&
+            generated is not (
+                GeneratedKind.MarkedGenerated or
+                GeneratedKind.NotGenerated) &&
             HasGeneratedCodeAttribute(symbol, compilation);
     }
 
@@ -45,21 +46,13 @@ internal static class AnalyzerGeneratedCodePolicy
     private static bool IsGeneratedFromTree(
         SyntaxTree tree,
         GeneratedKind generated,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken) => generated switch
     {
-        if (generated == GeneratedKind.MarkedGenerated)
-        {
-            return true;
-        }
-
-        if (generated == GeneratedKind.NotGenerated)
-        {
-            return false;
-        }
-
-        return HasGeneratedPath(tree.FilePath) ||
-            HasGeneratedHeader(tree, cancellationToken);
-    }
+        GeneratedKind.MarkedGenerated => true,
+        GeneratedKind.NotGenerated => false,
+        _ => HasGeneratedPath(tree.FilePath) ||
+            HasGeneratedHeader(tree, cancellationToken)
+    };
 
     private static GeneratedKind GetGeneratedKind(
         SyntaxTree tree,
