@@ -23,28 +23,8 @@ internal static class IrTraversal
     internal static bool Any(IrTerm root, Func<IrTerm, bool> predicate)
     {
         var pending = new Stack<IrTerm>(1);
-        var visited = new HashSet<IrId>();
         pending.Push(root);
-        while (pending.Count != 0)
-        {
-            var term = pending.Pop();
-            if (!visited.Add(term.Id))
-            {
-                continue;
-            }
-
-            if (predicate(term))
-            {
-                return true;
-            }
-
-            foreach (var child in GetChildren(term))
-            {
-                pending.Push(child);
-            }
-        }
-
-        return false;
+        return Traverse(pending, predicate, variables: null);
     }
 
     internal static ImmutableHashSet<IrVarId> CollectVariables(IrTerm root)
@@ -64,6 +44,15 @@ internal static class IrTraversal
         Stack<IrTerm> pending)
     {
         var result = ImmutableHashSet.CreateBuilder<IrVarId>();
+        Traverse(pending, predicate: null, result);
+        return result.ToImmutable();
+    }
+
+    private static bool Traverse(
+        Stack<IrTerm> pending,
+        Func<IrTerm, bool>? predicate,
+        ImmutableHashSet<IrVarId>.Builder? variables)
+    {
         var visited = new HashSet<IrId>();
         while (pending.Count != 0)
         {
@@ -73,9 +62,14 @@ internal static class IrTraversal
                 continue;
             }
 
-            if (term is IrVariableTerm variable)
+            if (predicate != null && predicate(term))
             {
-                result.Add(variable.Variable);
+                return true;
+            }
+
+            if (variables != null && term is IrVariableTerm variable)
+            {
+                variables.Add(variable.Variable);
             }
 
             foreach (var child in GetChildren(term))
@@ -83,7 +77,7 @@ internal static class IrTraversal
                 pending.Push(child);
             }
         }
-        return result.ToImmutable();
+        return false;
     }
 
     internal static T FoldBottomUp<T>(
