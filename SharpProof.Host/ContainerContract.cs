@@ -227,9 +227,8 @@ public static class ContainerContract
 
     private static int RequireInteger(JsonElement element, string name)
     {
-        if (!element.TryGetProperty(name, out var property) ||
-            property.ValueKind != JsonValueKind.Number ||
-            !property.TryGetInt32(out var value))
+        var property = RequireProperty(element, name, JsonValueKind.Number);
+        if (!property.TryGetInt32(out var value))
         {
             throw new InvalidDataException(
                 $"The SharpProof container contract property '{name}' is invalid.");
@@ -242,18 +241,13 @@ public static class ContainerContract
         string name,
         int expected)
     {
-        if (RequireInteger(element, name) != expected)
-        {
-            throw new InvalidDataException(
-                $"The SharpProof container contract property '{name}' does not match the toolchain.");
-        }
+        RequireMatches(element, name, expected, RequireInteger);
     }
 
     private static long RequireInteger64(JsonElement element, string name)
     {
-        if (!element.TryGetProperty(name, out var property) ||
-            property.ValueKind != JsonValueKind.Number ||
-            !property.TryGetInt64(out var value))
+        var property = RequireProperty(element, name, JsonValueKind.Number);
+        if (!property.TryGetInt64(out var value))
         {
             throw new InvalidDataException(
                 $"The SharpProof container contract property '{name}' is invalid.");
@@ -266,23 +260,19 @@ public static class ContainerContract
         string name,
         long expected)
     {
-        if (RequireInteger64(element, name) != expected)
-        {
-            throw new InvalidDataException(
-                $"The SharpProof container contract property '{name}' does not match the toolchain.");
-        }
+        RequireMatches(element, name, expected, RequireInteger64);
     }
 
     private static string RequireString(JsonElement element, string name)
     {
-        if (!element.TryGetProperty(name, out var property) ||
-            property.ValueKind != JsonValueKind.String ||
-            string.IsNullOrWhiteSpace(property.GetString()))
+        var property = RequireProperty(element, name, JsonValueKind.String);
+        var value = property.GetString();
+        if (string.IsNullOrWhiteSpace(value))
         {
             throw new InvalidDataException(
                 $"The SharpProof container contract property '{name}' is invalid.");
         }
-        return property.GetString()!;
+        return value;
     }
 
     private static void RequireString(
@@ -290,10 +280,38 @@ public static class ContainerContract
         string name,
         string expected)
     {
-        if (!string.Equals(
-                RequireString(element, name),
-                expected,
-                StringComparison.Ordinal))
+        RequireMatches(
+            element,
+            name,
+            expected,
+            RequireString,
+            StringComparer.Ordinal);
+    }
+
+    private static JsonElement RequireProperty(
+        JsonElement element,
+        string name,
+        JsonValueKind kind)
+    {
+        if (!element.TryGetProperty(name, out var property) ||
+            property.ValueKind != kind)
+        {
+            throw new InvalidDataException(
+                $"The SharpProof container contract property '{name}' is invalid.");
+        }
+        return property;
+    }
+
+    private static void RequireMatches<T>(
+        JsonElement element,
+        string name,
+        T expected,
+        Func<JsonElement, string, T> accessor,
+        IEqualityComparer<T>? comparer = null)
+    {
+        if (!(comparer ?? EqualityComparer<T>.Default).Equals(
+                accessor(element, name),
+                expected))
         {
             throw new InvalidDataException(
                 $"The SharpProof container contract property '{name}' does not match the toolchain.");
