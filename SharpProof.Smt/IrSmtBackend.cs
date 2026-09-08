@@ -362,11 +362,16 @@ public sealed class IrSmtBackend : ISmtBackend, IDisposable
             value = boolean.HasValue ? factory.CreateBooleanValue(boolean.Value) : null;
         }
         else if (type == factory.IntegerType &&
-                 expression is IntNum integer &&
-                 long.TryParse(integer.ToString(), NumberStyles.AllowLeadingSign,
-                     CultureInfo.InvariantCulture, out var number))
+                 expression is IntNum integer)
         {
-            value = factory.CreateIntegerValue(number);
+            try
+            {
+                value = factory.CreateIntegerValue(integer.Int64);
+            }
+            catch (Z3Exception)
+            {
+                value = null;
+            }
         }
         else
         {
