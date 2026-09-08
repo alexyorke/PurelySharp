@@ -406,37 +406,18 @@ public sealed partial class RunVerifier : Microsoft.Build.Utilities.Task,
             return outputCompletion.IsCompleted;
         }
 
-        var stopwatch = Stopwatch.StartNew();
-        while (true)
-        {
-            if (outputCompletion.IsCompleted)
-            {
-                return true;
-            }
-            if (isInterrupted())
-            {
-                return false;
-            }
-
-            var remaining = RemainingMilliseconds(
-                stopwatch,
-                timeoutMilliseconds);
-            if (remaining <= 0)
-            {
-                return outputCompletion.IsCompleted;
-            }
-
-            var slice = Math.Min(
-                OutputDrainPollingMilliseconds,
-                remaining);
-            var completed = waitOverride == null
+        return WaitForPolling(
+            timeoutMilliseconds,
+            () => outputCompletion.IsCompleted
+                ? true
+                : isInterrupted()
+                    ? false
+                    : null,
+            slice => waitOverride == null
                 ? outputCompletion.Wait(slice)
-                : waitOverride(slice);
-            if (completed)
-            {
-                return true;
-            }
-        }
+                : waitOverride(slice),
+            static () => true,
+            () => outputCompletion.IsCompleted);
     }
 
     internal static SupervisorReadiness WaitForSupervisorReadiness(
@@ -449,18 +430,48 @@ public sealed partial class RunVerifier : Microsoft.Build.Utilities.Task,
         ArgumentNullException.ThrowIfNull(armed);
         ArgumentNullException.ThrowIfNull(outputCompletion);
         ArgumentNullException.ThrowIfNull(hasExited);
+        return WaitForPolling(
+            timeoutMilliseconds,
+            () =>
+            {
+                if (armed.IsCompletedSuccessfully)
+                {
+                    return SupervisorReadiness.Armed;
+                }
+                if (hasExited() && outputCompletion.IsCompletedSuccessfully)
+                {
+                    return armed.IsCompletedSuccessfully
+                        ? SupervisorReadiness.Armed
+                        : SupervisorReadiness.ExitedBeforeArmed;
+                }
+                return null;
+            },
+            slice =>
+            {
+                _ = waitOverride == null
+                    ? armed.Wait(slice)
+                    : waitOverride(slice);
+                return false;
+            },
+            static () => SupervisorReadiness.Armed,
+            static () => SupervisorReadiness.NotReady);
+    }
+
+    private static T WaitForPolling<T>(
+        int timeoutMilliseconds,
+        Func<T?> state,
+        Func<int, bool> wait,
+        Func<T> onWaitCompletion,
+        Func<T> onTimeout)
+        where T : struct
+    {
         var stopwatch = Stopwatch.StartNew();
         while (true)
         {
-            if (armed.IsCompletedSuccessfully)
+            var current = state();
+            if (current.HasValue)
             {
-                return SupervisorReadiness.Armed;
-            }
-            if (hasExited() && outputCompletion.IsCompletedSuccessfully)
-            {
-                return armed.IsCompletedSuccessfully
-                    ? SupervisorReadiness.Armed
-                    : SupervisorReadiness.ExitedBeforeArmed;
+                return current.Value;
             }
 
             var remaining = RemainingMilliseconds(
@@ -468,13 +479,13 @@ public sealed partial class RunVerifier : Microsoft.Build.Utilities.Task,
                 timeoutMilliseconds);
             if (remaining <= 0)
             {
-                return SupervisorReadiness.NotReady;
+                return onTimeout();
             }
 
-            var slice = Math.Min(OutputDrainPollingMilliseconds, remaining);
-            _ = waitOverride == null
-                ? armed.Wait(slice)
-                : waitOverride(slice);
+            if (wait(Math.Min(OutputDrainPollingMilliseconds, remaining)))
+            {
+                return onWaitCompletion();
+            }
         }
     }
 
