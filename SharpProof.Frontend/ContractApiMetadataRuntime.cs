@@ -11,6 +11,18 @@ internal static partial class ContractApiMetadata
         ContractMethodCandidateNameSet =
             ContractMethodCandidateNames.ToImmutableHashSet(
                 StringComparer.Ordinal);
+    private static readonly ImmutableDictionary<string, ContractApiAttributeDescriptor>
+        AttributeByMetadataName =
+            Attributes.ToImmutableDictionary(
+                static attribute => attribute.MetadataName,
+                StringComparer.Ordinal);
+    private static readonly ImmutableHashSet<string>
+        ClosedAttributeTypeNameSet =
+            Attributes
+                .Where(static attribute =>
+                    attribute.Category == ContractApiAttributeCategory.Closed)
+                .Select(static attribute => attribute.TypeName)
+                .ToImmutableHashSet(StringComparer.Ordinal);
 
     internal static bool IsContractMethodCandidateName(string name)
     {
@@ -21,20 +33,15 @@ internal static partial class ContractApiMetadata
         string metadataName,
         out ContractApiAttributeDescriptor descriptor)
     {
-        foreach (var candidate in Attributes)
+        if (metadataName is null)
         {
-            if (string.Equals(
-                    candidate.MetadataName,
-                    metadataName,
-                    StringComparison.Ordinal))
-            {
-                descriptor = candidate;
-                return true;
-            }
+            descriptor = default;
+            return false;
         }
 
-        descriptor = default;
-        return false;
+        return AttributeByMetadataName.TryGetValue(
+            metadataName,
+            out descriptor);
     }
 
     internal static bool IsClosedAttributeTypeName(
@@ -45,12 +52,7 @@ internal static partial class ContractApiMetadata
                 namespaceName,
                 AttributesNamespace,
                 StringComparison.Ordinal) &&
-            Attributes.Any(attribute =>
-                attribute.Category ==
-                    ContractApiAttributeCategory.Closed &&
-                string.Equals(
-                    attribute.TypeName,
-                    typeName,
-                    StringComparison.Ordinal));
+            typeName is not null &&
+            ClosedAttributeTypeNameSet.Contains(typeName);
     }
 }
