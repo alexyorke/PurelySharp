@@ -119,6 +119,12 @@ internal static partial class RequiresCallSiteTreeAnalyzer
                 cancellationToken);
         private readonly INamedTypeSymbol? _delegateType =
             semanticModel.Compilation.GetTypeByMetadataName("System.Delegate");
+        private readonly INamedTypeSymbol? _expressionTreeType =
+            semanticModel.Compilation.GetTypeByMetadataName(
+                FrameworkTypeMetadataNames.ExpressionOfT);
+        private readonly Dictionary<SyntaxNode, bool>
+            _expressionTreeResults = new(
+                ReferenceComparer<SyntaxNode>.Instance);
         private AnalyzerSemanticOutcome _rootOutcome =
             AnalyzerSemanticOutcome.NotApplicable;
 
@@ -1568,11 +1574,15 @@ internal static partial class RequiresCallSiteTreeAnalyzer
         private bool IsExpressionTree(
             SyntaxNode declaration)
         {
-            var expression = semanticModel.Compilation
-                .GetTypeByMetadataName(
-                    FrameworkTypeMetadataNames
-                        .ExpressionOfT);
-            return expression != null &&
+            cancellationToken.ThrowIfCancellationRequested();
+            if (_expressionTreeResults.TryGetValue(
+                    declaration,
+                    out var cached))
+            {
+                return cached;
+            }
+
+            var result = _expressionTreeType != null &&
                 semanticModel.GetTypeInfo(
                         declaration,
                         cancellationToken)
@@ -1580,7 +1590,9 @@ internal static partial class RequiresCallSiteTreeAnalyzer
                     INamedTypeSymbol converted &&
                 SymbolEqualityComparer.Default.Equals(
                     converted.OriginalDefinition,
-                    expression.OriginalDefinition);
+                    _expressionTreeType.OriginalDefinition);
+            _expressionTreeResults.Add(declaration, result);
+            return result;
         }
 
         private static IEnumerable<
