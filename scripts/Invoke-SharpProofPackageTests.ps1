@@ -499,11 +499,27 @@ try {
                 $packageLayoutClass = 'package-layout'
             }
         $workerMethods = @($discoveredMethods[$workerClass])
+        $threeTargetWorkerMethod =
+            'ThreeTargetAbsoluteSarifSurvivesSerialIncrementalAndCleanBuilds'
+        $isolateThreeTargetWorker =
+            $parallelism -ge 4 -and
+            $parallelism -le 8 -and
+            $workerMethods -contains $threeTargetWorkerMethod
+        $bucketWorkerMethods = if ($isolateThreeTargetWorker) {
+            @($workerMethods | Where-Object {
+                    $_ -cne $threeTargetWorkerMethod
+                })
+        }
+        else {
+            $workerMethods
+        }
         # Additional buckets add a second wave of test-host startup without
         # increasing the available concurrency.
-        $workerShardCount = [Math]::Min($workerMethods.Count, $parallelism)
+        $workerShardCount = [Math]::Min(
+            $bucketWorkerMethods.Count,
+            [Math]::Max(1, $parallelism - [int]$isolateThreeTargetWorker))
         $workerBuckets = @(New-SharpProofWeightedBuckets `
-            -Methods $workerMethods `
+            -Methods $bucketWorkerMethods `
             -HistoricalMilliseconds $priorMethodMilliseconds `
             -DefaultMilliseconds 1L `
             -BucketCount $workerShardCount)
@@ -635,18 +651,6 @@ try {
         foreach ($bucket in @($workerBuckets | Where-Object {
                     $_.Methods.Count -gt 0
                 })) {
-            # This three-target build uses /m:1 internally, but each framework
-            # build performs a full analyzer pass. Reserve enough lanes to keep
-            # the analyzer-heavy serial shard from competing with the full
-            # worker wave while preserving every independent shard.
-            $isSerialThreeTarget = $bucket.Methods -contains
-                'ThreeTargetAbsoluteSarifSurvivesSerialIncrementalAndCleanBuilds'
-            $workerSlots = if ($isSerialThreeTarget -and $parallelism -gt 3) {
-                [Math]::Min(8, $parallelism)
-            }
-            else {
-                1
-            }
             $shards.Add([pscustomobject]@{
                 Name = 'worker-' + ($bucket.Index + 1).ToString(
                     'D2', [Globalization.CultureInfo]::InvariantCulture)
@@ -654,7 +658,25 @@ try {
                     "FullyQualifiedName~$workerClass.$_"
                 }) -join '|'
                 EstimatedMilliseconds = $bucket.EstimatedMilliseconds
-                Slots = $workerSlots
+                Slots = 1
+            })
+        }
+        if ($isolateThreeTargetWorker) {
+            $shards.Add([pscustomobject]@{
+                Name = 'worker-three-target'
+                Filter = "FullyQualifiedName~$workerClass.$threeTargetWorkerMethod"
+                EstimatedMilliseconds = $(
+                    if ($priorMethodMilliseconds.ContainsKey(
+                            $threeTargetWorkerMethod)) {
+                        [long]$priorMethodMilliseconds[$threeTargetWorkerMethod]
+                    }
+                    else {
+                        1L
+                    })
+                # The test uses /m:1 but performs a complete analyzer pass for
+                # each framework. Reserve a bounded lane slice while allowing
+                # the independent worker shards to overlap its work.
+                Slots = [Math]::Min(4, $parallelism)
             })
         }
     }

@@ -66,6 +66,27 @@ public sealed class BuildSchedulingTests
     }
 
     [Test]
+    public void AnalyzerHeavyWorkerUsesDedicatedConstrainedWaveShard()
+    {
+        var packageTests = File.ReadAllText(Path.Combine(
+            TestRepository.FindRoot(),
+            "scripts",
+            "Invoke-SharpProofPackageTests.ps1"));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(packageTests, Does.Contain("$threeTargetWorkerMethod"));
+            Assert.That(packageTests, Does.Contain("$bucketWorkerMethods"));
+            Assert.That(packageTests, Does.Contain("Name = 'worker-three-target'"));
+            Assert.That(
+                packageTests,
+                Does.Contain("Slots = [Math]::Min(4, $parallelism)"));
+            Assert.That(packageTests, Does.Contain("$parallelism -ge 4"));
+            Assert.That(packageTests, Does.Contain("$parallelism -le 8"));
+        }
+    }
+
+    [Test]
     public void ContainmentTestsUseFreshProcessesWithReservedCapacity()
     {
         var packageTests = File.ReadAllText(Path.Combine(
