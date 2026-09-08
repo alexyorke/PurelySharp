@@ -19,16 +19,39 @@ internal sealed record CompilerSummaryEvidenceAuthority(
 internal sealed class CompilerRelationalSummaryProvider
 {
     private const int MaximumDependencyDepth = 64;
+
+    private readonly struct SummaryCacheEntry
+    {
+        private SummaryCacheEntry(
+            IrRelationalSummary? summary,
+            CompilerSummaryEvidenceAuthority? authority,
+            bool succeeded)
+        {
+            Summary = summary;
+            Authority = authority;
+            Succeeded = succeeded;
+        }
+
+        internal IrRelationalSummary? Summary { get; }
+        internal CompilerSummaryEvidenceAuthority? Authority { get; }
+        internal bool Succeeded { get; }
+
+        internal static SummaryCacheEntry Failure => default;
+
+        internal static SummaryCacheEntry Success(
+            IrRelationalSummary summary,
+            CompilerSummaryEvidenceAuthority authority)
+        {
+            return new SummaryCacheEntry(summary, authority, succeeded: true);
+        }
+    }
+
     private readonly CSharpCompilation _compilation;
     private readonly CompilerSyntaxTreeSnapshot[]? _capturedTrees;
     private readonly IrFactory _factory;
     private readonly ResolvedApiSpecTable _apiSpecs;
     private readonly CompilerSpecificationPackProvider _specificationPacks;
-    private readonly Dictionary<IMethodSymbol, IrRelationalSummary> _summaries =
-        new(SymbolEqualityComparer.Default);
-    private readonly Dictionary<IMethodSymbol, CompilerSummaryEvidenceAuthority> _authorities =
-        new(SymbolEqualityComparer.Default);
-    private readonly HashSet<IMethodSymbol> _failed =
+    private readonly Dictionary<IMethodSymbol, SummaryCacheEntry> _cache =
         new(SymbolEqualityComparer.Default);
     private readonly HashSet<IMethodSymbol> _active =
         new(SymbolEqualityComparer.Default);
@@ -41,7 +64,9 @@ internal sealed class CompilerRelationalSummaryProvider
     }
 
     internal ImmutableArray<CompilerSummaryEvidenceAuthority> SummaryEvidenceAuthorities =>
-        [.. _authorities.Values
+        [.. _cache.Values
+            .Where(static entry => entry.Authority is not null)
+            .Select(static entry => entry.Authority!)
             .OrderBy(static authority => (int)authority.Origin)
             .ThenBy(static authority => authority.CallIdentity, StringComparer.Ordinal)
             .ThenBy(static authority => authority.EvidenceIdentity, StringComparer.Ordinal)
@@ -99,12 +124,14 @@ internal sealed class CompilerRelationalSummaryProvider
         cancellationToken.ThrowIfCancellationRequested();
         method = SemanticClaimIdentity.NormalizeCandidate(method)
             .ConstructedFrom;
-        if (_summaries.TryGetValue(method, out summary))
+        if (_cache.TryGetValue(method, out var cached))
         {
-            return summary.Signature.Member == member;
+            summary = cached.Summary;
+            return cached.Succeeded &&
+                summary!.Signature.Member == member;
         }
 
-        if (_failed.Contains(method) || _active.Contains(method))
+        if (_active.Contains(method))
         {
             summary = null;
             return false;
@@ -155,7 +182,7 @@ internal sealed class CompilerRelationalSummaryProvider
                         ? CompilerImplementationIlAbstentionReason
                             .SummaryResourceLimit
                         : implementationIlAbstention;
-                _failed.Add(method);
+                _cache.Add(method, SummaryCacheEntry.Failure);
                 return false;
             }
 
@@ -165,13 +192,14 @@ internal sealed class CompilerRelationalSummaryProvider
                 cancellationToken);
             if (authority == null)
             {
-                _failed.Add(method);
+                _cache.Add(method, SummaryCacheEntry.Failure);
                 summary = null;
                 return false;
             }
 
-            _summaries.Add(method, summary!);
-            _authorities.Add(method, authority);
+            _cache.Add(
+                method,
+                SummaryCacheEntry.Success(summary!, authority));
             _dependencyResourceLimitReached = false;
             return true;
         }
