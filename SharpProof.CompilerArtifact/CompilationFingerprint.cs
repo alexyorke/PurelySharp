@@ -384,19 +384,32 @@ internal static class CompilationFingerprint
             value.Aliases.Length == 0 && value.Modules.Length == 1 &&
             string.Equals(value.Identity, value.Modules[0].Name,
                 StringComparison.Ordinal)) &&
-        All(value.Modules, ValidReferenceModule) &&
-        value.Modules.Select(static module => module.Name)
-            .Distinct(StringComparer.Ordinal).Count() == value.Modules.Length &&
-        value.Modules.Skip(1).Zip(value.Modules.Skip(2),
-                static (left, right) => StringComparer.Ordinal.Compare(
-                    left.Name, right.Name) < 0)
-            .All(static ordered => ordered) &&
-        value.Modules.Select(static module => module.Path)
-            .Distinct(PathComparer).Count() ==
-        value.Modules.Length;
+        ValidReferenceModules(value.Modules);
     }
 
     private static StringComparer PathComparer => StringComparer.Ordinal;
+
+    private static bool ValidReferenceModules(
+        CompilerReferenceModuleSnapshot[] modules)
+    {
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        var paths = new HashSet<string>(PathComparer);
+        for (var index = 0; index < modules.Length; index++)
+        {
+            var module = modules[index];
+            if (!ValidReferenceModule(module) ||
+                !names.Add(module.Name) ||
+                !paths.Add(module.Path) ||
+                index > 1 && StringComparer.Ordinal.Compare(
+                    modules[index - 1].Name,
+                    module.Name) >= 0)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     private static bool ValidReferenceModule(
         CompilerReferenceModuleSnapshot? value)
