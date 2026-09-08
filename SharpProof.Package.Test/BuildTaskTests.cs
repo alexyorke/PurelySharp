@@ -1472,13 +1472,7 @@ public sealed class BuildTaskTests
     {
         var assemblyPath = Path.Combine(directory, "TimedProcess.dll");
         var syntaxTree = CSharpSyntaxTree.ParseText(source);
-        var trustedPlatformAssemblies =
-            (string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ??
-            throw new InvalidOperationException(
-                "The trusted platform assembly list is unavailable.");
-        var references = trustedPlatformAssemblies
-            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
-            .Select(static path => MetadataReference.CreateFromFile(path));
+        var references = TestMetadataReferences.Platform;
         var compilation = CSharpCompilation.Create(
             "TimedProcess",
             [syntaxTree],
