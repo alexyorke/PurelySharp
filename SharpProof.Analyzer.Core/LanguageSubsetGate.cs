@@ -58,16 +58,9 @@ internal static class LanguageSubsetGate
 
         foreach (var root in roots)
         {
-            foreach (var operation in root.DescendantsAndSelf())
+            foreach (var operation in WalkCallableBoundary(root))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                // The outer callable's language subset must not be decided by
-                // an unused local function or lambda. Those callables are
-                // analyzed independently when selected/reachable.
-                if (operation != root && IsNestedCallableOperation(operation))
-                {
-                    continue;
-                }
                 if (!OperationSubsetClassifier.Classify(
                         OperationSupportStage.EffectDiscovery,
                         operation.Kind).IsExact)
@@ -96,17 +89,27 @@ internal static class LanguageSubsetGate
         return LanguageSubsetDecision.Supported;
     }
 
-    private static bool IsNestedCallableOperation(IOperation operation)
+    private static IEnumerable<IOperation> WalkCallableBoundary(
+        IOperation root)
     {
-        for (var parent = operation.Parent; parent != null; parent = parent.Parent)
+        var pending = new Stack<IOperation>();
+        pending.Push(root);
+        while (pending.Count != 0)
         {
-            if (parent is ILocalFunctionOperation or IAnonymousFunctionOperation)
+            var operation = pending.Pop();
+            yield return operation;
+            if (operation != root &&
+                (operation is ILocalFunctionOperation or IAnonymousFunctionOperation))
             {
-                return true;
+                continue;
+            }
+
+            var children = operation.ChildOperations;
+            foreach (var child in children.Reverse())
+            {
+                pending.Push(child);
             }
         }
-
-        return false;
     }
 
     private static ImmutableArray<IOperation> GetFallbackRoots(
