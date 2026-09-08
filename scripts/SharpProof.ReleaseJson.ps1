@@ -69,9 +69,11 @@ function Assert-SharpProofJsonObject {
     param(
         [Parameter(Mandatory = $true)]$Element,
         [Parameter(Mandatory = $true)][string[]]$Properties,
-        [Parameter(Mandatory = $true)][string]$Owner
+        [Parameter(Mandatory = $true)][string]$Owner,
+        [Parameter()][switch]$KindAlreadyValidated
     )
-    if ($Element.ValueKind -ne [Text.Json.JsonValueKind]::Object) {
+    if (-not $KindAlreadyValidated -and
+        $Element.ValueKind -ne [Text.Json.JsonValueKind]::Object) {
         throw "$Owner must be an object."
     }
     $actual = [Collections.Generic.List[string]]::new()
@@ -151,7 +153,7 @@ function Assert-SharpProofReleaseManifestShape {
     $index = 0
     foreach ($row in $artifacts.EnumerateArray()) {
         Assert-SharpProofJsonObject $row @(
-            'fileName', 'kind', 'packageId', 'bytes') "Release manifest artifacts[$index]"
+            'fileName', 'kind', 'packageId', 'bytes') "Release manifest artifacts[$index]" -KindAlreadyValidated
         foreach ($name in @('fileName', 'kind')) {
             Assert-SharpProofJsonKind $row.GetProperty($name) String "Release manifest artifacts[$index].$name"
         }
@@ -169,14 +171,14 @@ function Assert-SharpProofReleaseManifestShape {
     Assert-SharpProofJsonArray $payloads Object 'Release manifest packagePayloads'
     $index = 0
     foreach ($payload in $payloads.EnumerateArray()) {
-        Assert-SharpProofJsonObject $payload @('packageId', 'entries') "Release manifest packagePayloads[$index]"
+        Assert-SharpProofJsonObject $payload @('packageId', 'entries') "Release manifest packagePayloads[$index]" -KindAlreadyValidated
         Assert-SharpProofJsonKind $payload.GetProperty('packageId') String "Release manifest packagePayloads[$index].packageId"
         $entries = $payload.GetProperty('entries')
         Assert-SharpProofJsonArray $entries Object "Release manifest packagePayloads[$index].entries"
         $entryIndex = 0
         foreach ($entry in $entries.EnumerateArray()) {
             Assert-SharpProofJsonObject $entry @(
-                'path', 'owner', 'assemblyName', 'bytes') "Release manifest packagePayloads[$index].entries[$entryIndex]"
+                'path', 'owner', 'assemblyName', 'bytes') "Release manifest packagePayloads[$index].entries[$entryIndex]" -KindAlreadyValidated
             foreach ($name in @('path', 'owner')) {
                 Assert-SharpProofJsonKind $entry.GetProperty($name) String "Release manifest packagePayloads[$index].entries[$entryIndex].$name"
             }
@@ -197,7 +199,7 @@ function Assert-SharpProofReleaseManifestShape {
     $index = 0
     foreach ($component in $components.EnumerateArray()) {
         Assert-SharpProofJsonObject $component @(
-            'packageId', 'id', 'version', 'license', 'entries') "Release manifest thirdPartyComponents[$index]"
+            'packageId', 'id', 'version', 'license', 'entries') "Release manifest thirdPartyComponents[$index]" -KindAlreadyValidated
         foreach ($name in @('packageId', 'id', 'version', 'license')) {
             Assert-SharpProofJsonKind $component.GetProperty($name) String "Release manifest thirdPartyComponents[$index].$name"
         }
