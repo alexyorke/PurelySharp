@@ -29,6 +29,28 @@ internal static class CompilerSourceLocationAuthority
         CompilerSyntaxTreeSnapshot? tree,
         CancellationToken cancellationToken = default)
     {
+        return TryValidateLineMap(
+            tree,
+            sourceStart: null,
+            sourceLength: 0,
+            out _,
+            out _,
+            out _,
+            cancellationToken);
+    }
+
+    private static bool TryValidateLineMap(
+        CompilerSyntaxTreeSnapshot? tree,
+        int? sourceStart,
+        int sourceLength,
+        out string mappedPath,
+        out int mappedLine,
+        out int mappedColumn,
+        CancellationToken cancellationToken)
+    {
+        mappedPath = string.Empty;
+        mappedLine = 0;
+        mappedColumn = 0;
         if (tree == null ||
             !WorkerProtocolJson.IsSha256(tree.LineMapSha256) ||
             tree.LineMap is not { Length: > 0 } entries ||
@@ -38,6 +60,7 @@ internal static class CompilerSourceLocationAuthority
         }
 
         var previousStart = -1;
+        CompilerSourceLineMapEntry? selected = null;
         for (var entryIndex = 0; entryIndex < entries.Length; entryIndex++)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -55,6 +78,11 @@ internal static class CompilerSourceLocationAuthority
                 string.IsNullOrWhiteSpace(entry.MappedPath))
             {
                 return false;
+            }
+
+            if (sourceStart.HasValue && entry.SourceStart <= sourceStart.Value)
+            {
+                selected = entry;
             }
 
             var nextStart = entryIndex + 1 < entries.Length
@@ -75,7 +103,39 @@ internal static class CompilerSourceLocationAuthority
             previousStart = entry.SourceStart;
         }
 
-        return entries[0].SourceStart == 0;
+        if (entries[0].SourceStart != 0)
+        {
+            return false;
+        }
+
+        if (!sourceStart.HasValue)
+        {
+            return true;
+        }
+
+        if (sourceStart.Value < 0 ||
+            sourceLength < 0 ||
+            sourceStart.Value > tree.TextLength ||
+            sourceLength > tree.TextLength - sourceStart.Value ||
+            selected == null)
+        {
+            return false;
+        }
+
+        var delta = (long)sourceStart.Value - selected.SourceStart;
+        var mappedDelta = Math.Max(delta - selected.CharacterOffset, 0);
+        var line = (long)selected.MappedLine;
+        var column = (long)selected.MappedColumn + mappedDelta;
+        if (delta < 0 || line < 0 || column < 0 ||
+            line >= int.MaxValue || column >= int.MaxValue)
+        {
+            return false;
+        }
+
+        mappedPath = selected.MappedPath;
+        mappedLine = (int)line;
+        mappedColumn = (int)column;
+        return true;
     }
 
     internal static bool HasValidLocationGeometry(
@@ -86,17 +146,14 @@ internal static class CompilerSourceLocationAuthority
     {
         if (location == null || tree == null ||
             !locationAlreadyValidated && !WorkerProtocolJson.HasValidLocation(location) ||
-            !HasValidLineMap(tree, cancellationToken) ||
-            location.Start < 0 ||
-            location.Length < 0 ||
-            location.Start > tree.TextLength ||
-            location.Length > tree.TextLength - location.Start ||
-            !TryMap(
-                tree.LineMap,
+            !TryValidateLineMap(
+                tree,
                 location.Start,
+                location.Length,
                 out var mappedPath,
                 out var mappedLine,
-                out var mappedColumn))
+                out var mappedColumn,
+                cancellationToken))
         {
             return false;
         }
