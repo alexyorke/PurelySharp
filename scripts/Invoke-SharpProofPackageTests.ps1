@@ -635,9 +635,18 @@ try {
         foreach ($bucket in @($workerBuckets | Where-Object {
                     $_.Methods.Count -gt 0
                 })) {
-            # This three-target build uses /m:1 internally. Keep its scheduler
-            # reservation at one lane so the other independently serialized
-            # worker shards can overlap on constrained CI containers.
+            # This three-target build uses /m:1 internally. On a constrained
+            # three-lane wave, keep its reservation at one lane so the other
+            # independently serialized worker shards can overlap. Preserve
+            # the wider-wave reservation that protects analyzer-heavy shards.
+            $isSerialThreeTarget = $bucket.Methods -contains
+                'ThreeTargetAbsoluteSarifSurvivesSerialIncrementalAndCleanBuilds'
+            $workerSlots = if ($isSerialThreeTarget -and $parallelism -gt 3) {
+                [Math]::Min(8, $parallelism)
+            }
+            else {
+                1
+            }
             $shards.Add([pscustomobject]@{
                 Name = 'worker-' + ($bucket.Index + 1).ToString(
                     'D2', [Globalization.CultureInfo]::InvariantCulture)
@@ -645,7 +654,7 @@ try {
                     "FullyQualifiedName~$workerClass.$_"
                 }) -join '|'
                 EstimatedMilliseconds = $bucket.EstimatedMilliseconds
-                Slots = 1
+                Slots = $workerSlots
             })
         }
     }
