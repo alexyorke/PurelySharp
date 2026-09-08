@@ -9,39 +9,4 @@ namespace SharpProof.Frontend;
 
 internal static class CompilerIdentityProjections
 {
-    internal static bool IsChecked(
-        IOperation operation
-    )
-    {
-        return operation switch
-        {
-            IBinaryOperation binary => binary.IsChecked,
-            IUnaryOperation unary => unary.IsChecked,
-            IConversionOperation conversion => conversion.IsChecked,
-            _ => false
-        };
-    }
-
-    internal static bool IsLifted(
-        IOperation operation
-    )
-    {
-        return operation switch
-        {
-            IBinaryOperation binary => binary.IsLifted,
-            IUnaryOperation unary => unary.IsLifted,
-            _ => false
-        };
-    }
-
-    internal static bool IsTryCast(
-        IOperation operation
-    )
-    {
-        return operation switch
-        {
-            IConversionOperation conversion => conversion.IsTryCast,
-            _ => false
-        };
-    }
 }

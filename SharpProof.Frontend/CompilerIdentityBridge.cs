@@ -129,6 +129,9 @@ public static class CompilerIdentityBridge
         IrFactory factory,
         IOperation operation)
     {
+        var binary = operation as IBinaryOperation;
+        var unary = operation as IUnaryOperation;
+        var conversion = operation as IConversionOperation;
         return new(
             operation.Kind,
             operation.Type == null
@@ -142,12 +145,12 @@ public static class CompilerIdentityBridge
                     InternType(factory, sizeOf.TypeOperand),
                 _ => default
             },
-            (operation as IBinaryOperation)?.OperatorKind,
-            (operation as IUnaryOperation)?.OperatorKind,
+            binary?.OperatorKind,
+            unary?.OperatorKind,
             (operation as IInstanceReferenceOperation)?.ReferenceKind,
-            CompilerIdentityProjections.IsChecked(operation),
-            CompilerIdentityProjections.IsLifted(operation),
-            CompilerIdentityProjections.IsTryCast(operation),
+            binary?.IsChecked ?? unary?.IsChecked ?? conversion?.IsChecked ?? false,
+            binary?.IsLifted ?? unary?.IsLifted ?? false,
+            conversion?.IsTryCast ?? false,
             UnsupportedConstantIdentity(operation));
     }
 
