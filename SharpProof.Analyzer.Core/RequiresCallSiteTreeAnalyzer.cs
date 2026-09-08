@@ -1541,11 +1541,7 @@ internal static partial class RequiresCallSiteTreeAnalyzer
         {
             return graph.Blocks
                 .Where(static block => block.IsReachable)
-                .SelectMany(static block =>
-                    block.Operations.Concat(
-                        block.BranchValue == null
-                            ? []
-                            : [block.BranchValue]))
+                .SelectMany(static block => BlockOperations(block))
                 .SelectMany(static operation =>
                     operation.DescendantsAndSelf());
         }
