@@ -4222,14 +4222,12 @@ public sealed class WorkerMsBuildIntegrationTests
                 arguments);
             startInfo.Environment["SharedCompilationId"] =
                 s_sharedCompilationServerId;
-            using var process = Process.Start(startInfo)!;
-            var standardOutput = process.StandardOutput.ReadToEndAsync();
-            var standardError = process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync();
+            var result = await ProcessRunner.RunCapturedAsync(
+                startInfo,
+                CancellationToken.None);
             return new BuildResult(
-                process.ExitCode,
-                (await standardOutput) + Environment.NewLine +
-                (await standardError));
+                result.ExitCode,
+                result.CombinedOutput);
         }
 
         public void Dispose()
