@@ -127,12 +127,14 @@ public sealed class RoslynProgramLowerer(
             var operationOrdinal = 0;
             foreach (var operation in source.Operations)
             {
-                var identity = CreateOperation(source, operationOrdinal++, operation.Kind);
-                if ((source == _entry && operationOrdinal <= _firstOperation) || _exclude(operation))
+                var ordinal = operationOrdinal++;
+                if ((source == _entry && ordinal < _firstOperation) ||
+                    _exclude(operation))
                 {
                     continue;
                 }
 
+                var identity = CreateOperation(source, ordinal, operation.Kind);
                 if (LowerStatement(block, identity, operation))
                 {
                     return;
