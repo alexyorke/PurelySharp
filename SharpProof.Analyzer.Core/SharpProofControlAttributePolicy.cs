@@ -206,25 +206,19 @@ internal static class SharpProofControlAttributePolicy
         AttributeData attribute,
         ContractSelectionInventory inventory)
     {
-        return ContractSelectionInventory.Is(attribute, inventory.Suppress)
-            ? true
-            : ContractSelectionInventory.Is(attribute, inventory.Trusted)
-                ? false
-                : null;
+        return ContractSelectionInventory.GetControlSelection(
+            attribute.AttributeClass,
+            inventory.Suppress,
+            inventory.Trusted);
     }
 
     private static bool? IsSuppressing(
         INamedTypeSymbol attributeType,
         ContractSelectionInventory inventory)
     {
-        return SymbolEqualityComparer.Default.Equals(
-                attributeType,
-                inventory.Suppress)
-            ? true
-            : SymbolEqualityComparer.Default.Equals(
-                attributeType,
-                inventory.Trusted)
-                ? false
-                : null;
+        return ContractSelectionInventory.GetControlSelection(
+            attributeType,
+            inventory.Suppress,
+            inventory.Trusted);
     }
 }

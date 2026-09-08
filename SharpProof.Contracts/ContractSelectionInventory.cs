@@ -272,6 +272,23 @@ internal sealed class ContractSelectionInventory
             expected.OriginalDefinition);
     }
 
+    internal static bool? GetControlSelection(
+        INamedTypeSymbol? attributeType,
+        INamedTypeSymbol? suppress,
+        INamedTypeSymbol? trusted)
+    {
+        var normalized = attributeType?.OriginalDefinition;
+        return SymbolEqualityComparer.Default.Equals(
+                normalized,
+                suppress?.OriginalDefinition)
+            ? true
+            : SymbolEqualityComparer.Default.Equals(
+                normalized,
+                trusted?.OriginalDefinition)
+                ? false
+                : null;
+    }
+
     internal static IEnumerable<AttributeData> GetCallableAttributes(
         IMethodSymbol method)
     {
