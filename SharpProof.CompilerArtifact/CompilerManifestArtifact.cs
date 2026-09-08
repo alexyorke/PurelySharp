@@ -77,11 +77,11 @@ internal static class WorkerBinaryIdentity
         {
             Directory.CreateDirectory(stagingDirectory);
             using var dependency = OpenRead(ChangeExtension(path, ".deps.json"));
-            var components = RuntimeComponents(path, dependency);
-            dependency.Position = 0;
             var dependencyBytes = ReadSnapshotBytes(
                 dependency,
                 MaximumDependenciesBytes);
+            var components = RuntimeComponents(path, dependencyBytes);
+            ValidateSnapshotBytes(dependencyBytes);
             stagedHandles = new FileStream[components.Count];
             using var hash = new CanonicalHashWriter();
             hash.Add("SharpProof.WorkerBinarySet").Add(1);
@@ -224,7 +224,7 @@ internal static class WorkerBinaryIdentity
 
     private static byte[] ReadSnapshotBytes(FileStream stream, long maximumBytes)
     {
-        if (stream.Length <= 0 || stream.Length > maximumBytes)
+        if (stream.Length > maximumBytes)
         {
             throw new InvalidDataException(
                 "The worker runtime component exceeds the byte limit.");
@@ -236,18 +236,22 @@ internal static class WorkerBinaryIdentity
             "A worker runtime component changed while it was read.");
     }
 
+    private static void ValidateSnapshotBytes(byte[] bytes)
+    {
+        if (bytes.Length == 0)
+        {
+            throw new InvalidDataException(
+                "The worker runtime component exceeds the byte limit.");
+        }
+    }
+
     private static SortedDictionary<string, string> RuntimeComponents(
         string workerPath,
-        FileStream dependencyStream)
+        byte[] dependencyBytes)
     {
         var directory = GetDirectoryName(workerPath)!;
-        long dependencyBytes = 0;
-        ValidateComponentLength(
-            "dependencies",
-            dependencyStream.Length,
-            ref dependencyBytes);
         using var document = JsonDocument.Parse(
-            dependencyStream,
+            dependencyBytes,
             new JsonDocumentOptions { MaxDepth = 32 });
         var root = document.RootElement;
         var names = new HashSet<string>(StringComparer.Ordinal)
