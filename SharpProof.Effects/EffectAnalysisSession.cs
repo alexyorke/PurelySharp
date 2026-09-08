@@ -618,6 +618,7 @@ public sealed class EffectAnalysisSession
     {
         var nodes = new Dictionary<IMethodSymbol, EffectMethodNode>(SymbolEqualityComparer.Default);
         var pending = new Queue<IMethodSymbol>(roots);
+        var queued = new HashSet<IMethodSymbol>(roots, SymbolEqualityComparer.Default);
         while (pending.Count != 0)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -640,7 +641,7 @@ public sealed class EffectAnalysisSession
                 : node.Calls;
             foreach (var call in calls)
             {
-                if (!knownSummaries.ContainsKey(call.Target) && !nodes.ContainsKey(call.Target))
+                if (!knownSummaries.ContainsKey(call.Target) && queued.Add(call.Target))
                 {
                     pending.Enqueue(call.Target);
                 }
