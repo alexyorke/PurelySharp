@@ -418,7 +418,6 @@ public sealed class CoverageScriptTests
 
     [TestCase("one-line")]
     [TestCase("truncated")]
-    [TestCase("missing-project")]
     [TestCase("wrong-assembly")]
     [TestCase("foreign-source")]
     public async Task AuthenticatedCoverageRejectsReportMutations(string mutation)
@@ -1251,7 +1250,6 @@ public sealed class CoverageScriptTests
         switch (mutation)
         {
             case "one-line":
-            case "missing-project":
                 root.Descendants("line").Remove();
                 break;
             case "wrong-assembly":
