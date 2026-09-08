@@ -78,7 +78,8 @@ internal static class EffectContractDiagnostics
 
     internal static ImmutableArray<EffectClaimEvaluation> Evaluate(
         IMethodSymbol method, Location location, AnalyzerSession session,
-        Action<Diagnostic> reportDiagnostic, CancellationToken cancellationToken)
+        Action<Diagnostic> reportDiagnostic, CancellationToken cancellationToken,
+        bool includeDiagnosticPayload = true)
     {
         var attributes = ContractSelectionInventory.GetCallableAttributes(method).ToImmutableArray();
         var pure = Select(attributes, session.Attributes.EnforcePure);
@@ -203,44 +204,64 @@ internal static class EffectContractDiagnostics
         var evaluations = ImmutableArray.CreateBuilder<EffectClaimEvaluation>(6);
         Add(pure, EffectEvaluationContractKind.EnforcePure, purityComplete,
             EffectContractMappings.IsObservablePure(summary),
-            GeneratedDiagnosticDescriptors.PurityNotVerifiedRule, [method.Name],
+            GeneratedDiagnosticDescriptors.PurityNotVerifiedRule,
+            includeDiagnosticPayload ? new object[] { method.Name } : Array.Empty<object>(),
             "constraint=observable-pure",
             purityViolation, EffectClaimConstraint.Empty);
         Add(zeroAllocations, EffectEvaluationContractKind.ZeroAllocations, allocationComplete,
             summary.Allocation == EffectAllocationKind.None,
             GeneratedDiagnosticDescriptors.ZeroAllocationsNotVerifiedRule,
-            [method.Name, allocationComplete
-                ? "may-effect summary includes allocation: " + summary.Allocation
-                : FormatUnknown(summary, "AllocationUnknown")],
+            includeDiagnosticPayload
+                ? new object[] {
+                    method.Name,
+                    allocationComplete
+                        ? "may-effect summary includes allocation: " + summary.Allocation
+                        : FormatUnknown(summary, "AllocationUnknown") }
+                : Array.Empty<object>(),
             "constraint=allocation:none",
             allocationViolation,
             EffectClaimConstraint.Empty);
         Add(allowedCapabilities, EffectEvaluationContractKind.AllowedCapabilities, capabilityComplete,
             disallowedCapabilities == EffectContractCapabilityKind.None,
             GeneratedDiagnosticDescriptors.CapabilityUnknownRule,
-            ["method summary", method.Name, capabilityComplete
-                ? "may-effect summary includes disallowed capabilities: " + disallowedCapabilities
-                : FormatUnknown(summary, "CapabilitySetUnknown")],
+            includeDiagnosticPayload
+                ? new object[] {
+                    "method summary",
+                    method.Name,
+                    capabilityComplete
+                        ? "may-effect summary includes disallowed capabilities: " + disallowedCapabilities
+                        : FormatUnknown(summary, "CapabilitySetUnknown") }
+                : Array.Empty<object>(),
             "allowed.capabilities=" + EffectContractMappings.EvidenceName(capabilities.Value),
             capabilityViolation,
             new EffectClaimConstraint(EffectContractKind.None, capabilities.Value, []),
             capabilities.IsValid);
         Add(noThrow, EffectEvaluationContractKind.DoesNotThrow, exceptionComplete, summary.Throws.IsEmpty,
             GeneratedDiagnosticDescriptors.ExceptionContractNotVerifiedRule,
-            [method.Name, "[DoesNotThrow]", exceptionComplete
-                ? "may-effect summary includes disallowed exceptions: " +
-                  FormatDiagnosticTypes(summary.Throws.Types)
-                : FormatUnknown(summary, "ExceptionSetUnknown")],
+            includeDiagnosticPayload
+                ? new object[] {
+                    method.Name,
+                    "[DoesNotThrow]",
+                    exceptionComplete
+                        ? "may-effect summary includes disallowed exceptions: " +
+                          FormatDiagnosticTypes(summary.Throws.Types)
+                        : FormatUnknown(summary, "ExceptionSetUnknown") }
+                : Array.Empty<object>(),
             "allowed.exceptions=[]",
             noThrowViolation,
             EffectClaimConstraint.Empty);
         Add(allowedExceptions, EffectEvaluationContractKind.AllowedExceptions, exceptionComplete,
             disallowedExceptions.IsDefaultOrEmpty,
             GeneratedDiagnosticDescriptors.ExceptionContractNotVerifiedRule,
-            [method.Name, "[AllowedExceptions]", exceptionComplete
-                ? "may-effect summary includes disallowed exceptions: " +
-                  FormatDiagnosticTypes(disallowedExceptions)
-                : FormatUnknown(summary, "ExceptionSetUnknown")],
+            includeDiagnosticPayload
+                ? new object[] {
+                    method.Name,
+                    "[AllowedExceptions]",
+                    exceptionComplete
+                        ? "may-effect summary includes disallowed exceptions: " +
+                          FormatDiagnosticTypes(disallowedExceptions)
+                        : FormatUnknown(summary, "ExceptionSetUnknown") }
+                : Array.Empty<object>(),
             "allowed.exceptions=[" + FormatTypes(exceptions.Types) + "]",
             exceptionViolation,
             new EffectClaimConstraint(
@@ -255,13 +276,17 @@ internal static class EffectContractDiagnostics
             !bodyless || contract.Kind == EffectContractResolutionKind.Valid
                 ? GeneratedDiagnosticDescriptors.SelectedAnalysisIncompleteRule
                 : null,
-            [method.Name, contract.Kind == EffectContractResolutionKind.Incomplete
-                ? "IncompleteEffectContract"
-                : summary is
-                    { AnalysisIncompleteReason: not EffectAnalysisIncompleteReason.None }
-                    ? "ManagedAbstractFlow:" +
-                      EffectContractMappings.EvidenceName(summary.AnalysisIncompleteReason)
-                    : "EffectContractDoesNotCoverBodySummary"],
+            includeDiagnosticPayload
+                ? new object[] {
+                    method.Name,
+                    contract.Kind == EffectContractResolutionKind.Incomplete
+                        ? "IncompleteEffectContract"
+                        : summary is
+                            { AnalysisIncompleteReason: not EffectAnalysisIncompleteReason.None }
+                            ? "ManagedAbstractFlow:" +
+                              EffectContractMappings.EvidenceName(summary.AnalysisIncompleteReason)
+                            : "EffectContractDoesNotCoverBodySummary" }
+                : Array.Empty<object>(),
             summaryEvidence + ";declared=" + CreateSummaryEvidence(contract.Summary),
             declaredViolationApplicable ? declaredViolation : null,
             new EffectClaimConstraint(declaredProjection.Effects, declaredProjection.Capabilities,
@@ -293,17 +318,20 @@ internal static class EffectContractDiagnostics
             var (outcome, reason, certainty) =
                 EffectEvaluationProducerTupleCatalog.Require(
                     projected.Outcome, projected.Reason, projected.Certainty);
-            var claimDiagnostic =
-                summary is
-                { AnalysisIncompleteReason: not EffectAnalysisIncompleteReason.None } &&
-                violation == null &&
-                diagnostic != GeneratedDiagnosticDescriptors.SelectedAnalysisIncompleteRule
+            var claimDiagnostic = includeDiagnosticPayload
+                ? summary is
+                    { AnalysisIncompleteReason: not EffectAnalysisIncompleteReason.None } &&
+                  violation == null &&
+                  diagnostic != GeneratedDiagnosticDescriptors.SelectedAnalysisIncompleteRule
                     ? null
-                    : diagnostic;
+                    : diagnostic
+                : null;
             evaluations.Add(new EffectClaimEvaluation(
                 kind, selected, outcome,
                 reason, certainty, AddWitnessEvidence(evidence, violation), violation, constraint,
-                valid && !established ? claimDiagnostic : null, location, arguments));
+                valid && !established ? claimDiagnostic : null,
+                includeDiagnosticPayload ? location : Location.None,
+                includeDiagnosticPayload ? arguments : []));
         }
     }
 

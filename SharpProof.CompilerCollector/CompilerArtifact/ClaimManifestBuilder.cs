@@ -115,7 +115,8 @@ internal sealed partial class ClaimManifestBuilder(
         var effects = EffectsEnabled
             ? CreateEffectClaims(
                 EffectContractDiagnostics.Evaluate(
-                    target, location, _effectSession, static _ => { }, cancellationToken),
+                    target, location, _effectSession, static _ => { }, cancellationToken,
+                    includeDiagnosticPayload: false),
                 target, callableId, postconditions.Length, supported)
             : [];
         var features = new HashSet<WorkerSelectedFeature>(selected);
