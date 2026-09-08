@@ -44,23 +44,18 @@ internal sealed class AnalyzerConfiguration
         {
             var options = optionsProvider.GlobalOptions;
             var invalidConfigurationValues =
-                GetInvalidGlobalConfigurationValues(options);
+                GetInvalidGlobalConfigurationValues(
+                    options,
+                    out var profileAliases,
+                    out var featuresAliases);
             if (!invalidConfigurationValues.IsEmpty)
             {
                 return new(SharpProofProfile.Off, SharpProofFeatures.All, invalidConfigurationValues);
             }
 
-            var hasProfile = TryGet(
-                options,
-                AnalyzerConfigurationOptionRegistry.Profile,
-                out var profile);
-            var hasFeatures = TryGet(
-                options,
-                AnalyzerConfigurationOptionRegistry.Features,
-                out var features);
             return new(
-                ParseProfile(hasProfile ? profile : "advisory"),
-                ParseFeatures(hasFeatures ? features : "all"),
+                ParseProfile(profileAliases.Found ? profileAliases.Value : "advisory"),
+                ParseFeatures(featuresAliases.Found ? featuresAliases.Value : "all"),
                 invalidConfigurationValues);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
@@ -73,9 +68,25 @@ internal sealed class AnalyzerConfiguration
     }
 
     private static ImmutableArray<InvalidAnalyzerConfigurationValue>
-        GetInvalidGlobalConfigurationValues(AnalyzerConfigOptions options)
+        GetInvalidGlobalConfigurationValues(
+            AnalyzerConfigOptions options,
+            out (bool Found, string Value, bool HasConflict, string Conflict)
+                profileAliases,
+            out (bool Found, string Value, bool HasConflict, string Conflict)
+                featuresAliases)
     {
-        return [.. GetInvalidConfigurationValues(options, null, parseValues: true)];
+        profileAliases = ReadOptionAliases(
+            options,
+            AnalyzerConfigurationOptionRegistry.Profile);
+        featuresAliases = ReadOptionAliases(
+            options,
+            AnalyzerConfigurationOptionRegistry.Features);
+        return [.. GetInvalidConfigurationValues(
+            options,
+            null,
+            parseValues: true,
+            profileAliases: profileAliases,
+            featuresAliases: featuresAliases)];
     }
 
     private static (bool Found, string Value, bool HasConflict, string Conflict)
@@ -136,13 +147,21 @@ internal sealed class AnalyzerConfiguration
         GetInvalidConfigurationValues(
             AnalyzerConfigOptions options,
             AnalyzerConfigOptions? globalOptions,
-        bool parseValues)
+            bool parseValues,
+            (bool Found, string Value, bool HasConflict, string Conflict)?
+                profileAliases = null,
+            (bool Found, string Value, bool HasConflict, string Conflict)?
+                featuresAliases = null)
     {
         foreach (var option in AnalyzerConfigurationOptionRegistry.All)
         {
-            var aliases = ReadOptionAliases(
-                options,
-                option);
+            var aliases = option == AnalyzerConfigurationOptionRegistry.Profile &&
+                    profileAliases is { } cachedProfile
+                ? cachedProfile
+                : option == AnalyzerConfigurationOptionRegistry.Features &&
+                    featuresAliases is { } cachedFeatures
+                    ? cachedFeatures
+                    : ReadOptionAliases(options, option);
             if (aliases.HasConflict)
             {
                 yield return new InvalidAnalyzerConfigurationValue(
