@@ -283,7 +283,7 @@ internal sealed partial class AcyclicBlockPredicateExecutor
                 return new FlowState(0, inputs.Factory.Boolean(true), inputs.InitialEnvironment);
             }
 
-            if (!_incoming.TryGetValue(block, out var values) || values.Count == 0)
+            if (!_incoming.Remove(block, out var values) || values.Count == 0)
             {
                 return null;
             }
