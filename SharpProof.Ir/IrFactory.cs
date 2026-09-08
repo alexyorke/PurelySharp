@@ -416,11 +416,7 @@ public sealed class IrFactory
         lock (_gate)
         {
             RequireNullableTypeCore(type, nameof(type));
-
-            return Intern(
-                new StructuralKey(IrTermKind.Null, type.Value),
-                type,
-                static (id, state) => new IrNullTerm(id, state));
+            return NullCore(type);
         }
     }
 
@@ -582,7 +578,7 @@ public sealed class IrFactory
 
             if (operand is IrNullTerm && IrOperatorCatalog.IsNullable(target.Kind))
             {
-                return Null(targetType);
+                return NullCore(targetType);
             }
 
             return Intern(
@@ -821,6 +817,14 @@ public sealed class IrFactory
             throw new ArgumentException(
                 "Null requires a string, reference, or sequence type.", parameterName);
         }
+    }
+
+    private IrNullTerm NullCore(IrTypeId type)
+    {
+        return Intern(
+            new StructuralKey(IrTermKind.Null, type.Value),
+            type,
+            static (id, state) => new IrNullTerm(id, state));
     }
 
     private IrVariableInfo GetVariableInfoCore(IrVarId id, string name)
