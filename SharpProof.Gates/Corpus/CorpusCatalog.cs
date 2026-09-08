@@ -318,12 +318,8 @@ internal static class CorpusCatalog
         var prelude = CreatePrelude(variant, helperName, inputName);
         var body = ReplaceTokens(
             seed.Body,
-            helperName,
             inputName);
-        var members = ReplaceTokens(
-            seed.AdditionalMembers,
-            helperName,
-            inputName);
+        var members = seed.AdditionalMembers;
         if (variant == CorpusVariant.AlphaRenameContractFormals)
         {
             body = body.Replace(
@@ -438,11 +434,9 @@ internal static class CorpusCatalog
 
     private static string ReplaceTokens(
         string value,
-        string helper,
         string input)
     {
-        return value.Replace("$HELPER$", helper, StringComparison.Ordinal)
-            .Replace("$INPUT$", input, StringComparison.Ordinal);
+        return value.Replace("$INPUT$", input, StringComparison.Ordinal);
     }
 
     internal static string VariantKey(CorpusVariant variant)
