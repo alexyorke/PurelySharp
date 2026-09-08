@@ -170,7 +170,9 @@ internal static class EffectSummaryOperations
             return EffectRegionSet.Unknown;
         }
 
-        var result = EffectRegionSet.Empty;
+        var mappedRegions = ImmutableArray.CreateBuilder<EffectRegionId>(
+            regions.Regions.Length);
+        var hasUnknown = false;
         foreach (var region in regions.Regions)
         {
             var mapped = region.Kind switch
@@ -180,9 +182,19 @@ internal static class EffectSummaryOperations
                 EffectRegionKind.Parameter => EffectRegionSet.Unknown,
                 _ => EffectRegionSet.Create(region)
             };
-            result = result.Union(mapped);
+            if (mapped.IsUnknown)
+            {
+                hasUnknown = true;
+            }
+            else
+            {
+                mappedRegions.AddRange(mapped.Regions);
+            }
         }
-        return result;
+
+        return hasUnknown
+            ? EffectRegionSet.Unknown
+            : EffectRegionSet.Create(mappedRegions.ToImmutable());
     }
 
     private static EffectSummary Create(
