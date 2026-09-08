@@ -39,20 +39,17 @@ internal sealed class PackagedProductFeed : IDisposable
         typeof(PackagedProductFeed).Assembly.ManifestModule.ModuleVersionId
             .ToString("N");
 
-    private readonly bool _ownsRoot;
     private readonly string? _ownedRoot;
 
     private PackagedProductFeed(
         string source,
         IReadOnlyList<PackagedPackage> packages,
         IReadOnlyList<PackagedPackage> symbolPackages,
-        bool ownsRoot,
         string? ownedRoot)
     {
         Source = source;
         Packages = packages;
         SymbolPackages = symbolPackages;
-        _ownsRoot = ownsRoot;
         _ownedRoot = ownedRoot;
     }
 
@@ -105,7 +102,7 @@ internal sealed class PackagedProductFeed : IDisposable
 
     public void Dispose()
     {
-        if (!_ownsRoot || _ownedRoot == null)
+        if (_ownedRoot == null)
         {
             return;
         }
@@ -132,7 +129,6 @@ internal sealed class PackagedProductFeed : IDisposable
 
             return CreateValidated(
                 source,
-                ownsRoot: false,
                 ownedRoot: null);
         }
 
@@ -168,7 +164,6 @@ internal sealed class PackagedProductFeed : IDisposable
             }
             return CreateValidated(
                 sourceDirectory,
-                ownsRoot: true,
                 ownedRoot: root);
         }
         catch
@@ -184,7 +179,6 @@ internal sealed class PackagedProductFeed : IDisposable
 
     private static PackagedProductFeed CreateValidated(
         string source,
-        bool ownsRoot,
         string? ownedRoot)
     {
         var packages = ReadPackages(source, ".nupkg");
@@ -205,7 +199,6 @@ internal sealed class PackagedProductFeed : IDisposable
             source,
             packages,
             symbolPackages,
-            ownsRoot,
             ownedRoot);
     }
 
