@@ -37,13 +37,28 @@ internal sealed class CompilerResponseEvidenceAuthority :
         {
             All = new HashSet<string>(StringComparer.Ordinal);
             Entry = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var (label, clause) in ClauseLabels(target))
+            RequiresAssumptionIds = new Dictionary<string, string>(StringComparer.Ordinal);
+            AssumeAssumptionIds = new Dictionary<string, string>(StringComparer.Ordinal);
+            ClauseLabels = CompilerResponseEvidenceAuthority.ClauseLabels(target);
+            foreach (var (label, clause) in ClauseLabels)
             {
                 All.Add(label);
                 if (clause.Kind == CompilerContractKind.Requires &&
                     clause.Condition is not IrBooleanTerm { Value: true })
                 {
                     Entry.Add(label);
+                }
+
+                if (clause.AssumptionId != null)
+                {
+                    if (clause.Kind == CompilerContractKind.Requires)
+                    {
+                        RequiresAssumptionIds.Add(label, clause.AssumptionId);
+                    }
+                    else if (clause.Kind == CompilerContractKind.Assume)
+                    {
+                        AssumeAssumptionIds.Add(label, clause.AssumptionId);
+                    }
                 }
             }
 
@@ -91,6 +106,12 @@ internal sealed class CompilerResponseEvidenceAuthority :
         internal HashSet<string> All { get; }
 
         internal HashSet<string> Entry { get; }
+
+        internal Dictionary<string, string> RequiresAssumptionIds { get; }
+
+        internal Dictionary<string, string> AssumeAssumptionIds { get; }
+
+        internal (string Label, CompilerPreparedClause Clause)[] ClauseLabels { get; }
     }
 
     private sealed class TargetClaimIndex
@@ -250,13 +271,15 @@ internal sealed class CompilerResponseEvidenceAuthority :
             }
 
             expectedUsed.UnionWith(
-                AssumptionIdsForCore(target, result.ProofCore, requiresOnly: true));
+                AssumptionIdsForCore(
+                    claimIndex.ProofLabels, result.ProofCore, requiresOnly: true));
         }
         else if (postcondition != null &&
                  result.Outcome == WorkerClaimOutcome.Proven)
         {
             expectedUsed.UnionWith(
-                AssumptionIdsForCore(target, result.ProofCore, requiresOnly: false));
+                AssumptionIdsForCore(
+                    claimIndex.ProofLabels, result.ProofCore, requiresOnly: false));
         }
 
         if (effect != null &&
@@ -573,17 +596,13 @@ internal sealed class CompilerResponseEvidenceAuthority :
     }
 
     private static IEnumerable<string> AssumptionIdsForCore(
-        CompilerCallablePreparation target,
+        TargetProofLabels labels,
         IEnumerable<string>? proofCore,
         bool requiresOnly)
     {
-        var ids = ClauseLabels(target)
-            .Where(item => item.Clause.AssumptionId != null &&
-                (requiresOnly
-                    ? item.Clause.Kind == CompilerContractKind.Requires
-                    : item.Clause.Kind == CompilerContractKind.Assume))
-            .ToDictionary(static item => item.Label, static item => item.Clause.AssumptionId!,
-                StringComparer.Ordinal);
+        var ids = requiresOnly
+            ? labels.RequiresAssumptionIds
+            : labels.AssumeAssumptionIds;
         return (proofCore ?? [])
             .Where(ids.ContainsKey)
             .Select(label => ids[label]);
