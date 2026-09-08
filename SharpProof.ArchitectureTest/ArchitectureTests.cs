@@ -1258,7 +1258,7 @@ public sealed class ArchitectureTests
                 Is.EqualTo(2));
             Assert.That(
                 automation.GetProperty("packageTestCpuPercent").GetInt32(),
-                Is.EqualTo(75));
+                Is.EqualTo(88));
             Assert.That(
                 automation.GetProperty("buildCpuPercent").GetInt32(),
                 Is.EqualTo(75));

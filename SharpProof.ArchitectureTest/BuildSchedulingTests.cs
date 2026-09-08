@@ -529,7 +529,7 @@ public sealed class BuildSchedulingTests
         {
             Assert.That(
                 result.GetProperty("automatic").GetInt32(),
-                Is.EqualTo(Math.Max(1, (int)Math.Floor(visible * 0.75))));
+                Is.EqualTo(Math.Max(1, (int)Math.Floor(visible * 0.88))));
             Assert.That(result.GetProperty("capped").GetInt32(), Is.EqualTo(1));
             Assert.That(
                 package,
