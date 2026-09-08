@@ -62,11 +62,14 @@ internal static class DiagnosticDescriptorCatalogAssertions
             Is.EqualTo(specifications.Select(static specification =>
                 specification.GetProperty("symbol").GetString())),
             name);
+        var markdownAnchors = new Dictionary<string, HashSet<string>>(
+            StringComparer.Ordinal);
         for (var index = 0; index < fields.Length; index++)
         {
             AssertDescriptor(
                 (DiagnosticDescriptor)fields[index].GetValue(null)!,
-                specifications[index]);
+                specifications[index],
+                markdownAnchors);
         }
 
         var supportedMember =
@@ -94,7 +97,8 @@ internal static class DiagnosticDescriptorCatalogAssertions
 
     private static void AssertDescriptor(
         DiagnosticDescriptor descriptor,
-        JsonElement specification)
+        JsonElement specification,
+        Dictionary<string, HashSet<string>> markdownAnchors)
     {
         var id = specification.GetProperty("id").GetString()!;
         using (Assert.EnterMultipleScope())
@@ -146,11 +150,14 @@ internal static class DiagnosticDescriptorCatalogAssertions
         Assert.That(descriptor.HelpLinkUri, Is.EqualTo(expectedHelp), id);
         if (expectedHelp.Length != 0)
         {
-            AssertRepositoryHelpLink(expectedHelp, id);
+            AssertRepositoryHelpLink(expectedHelp, id, markdownAnchors);
         }
     }
 
-    private static void AssertRepositoryHelpLink(string link, string id)
+    private static void AssertRepositoryHelpLink(
+        string link,
+        string id,
+        Dictionary<string, HashSet<string>> markdownAnchors)
     {
         Assert.That(
             link,
@@ -165,8 +172,13 @@ internal static class DiagnosticDescriptorCatalogAssertions
         Assert.That(File.Exists(targetPath), Is.True, id);
         var fragment = Uri.UnescapeDataString(uri.Fragment.TrimStart('#'));
         Assert.That(fragment, Is.Not.Empty, id);
+        if (!markdownAnchors.TryGetValue(targetPath, out var anchors))
+        {
+            anchors = MarkdownAnchors(File.ReadAllText(targetPath));
+            markdownAnchors.Add(targetPath, anchors);
+        }
         Assert.That(
-            MarkdownAnchors(File.ReadAllText(targetPath)).Contains(fragment),
+            anchors.Contains(fragment),
             Is.True,
             id);
     }
