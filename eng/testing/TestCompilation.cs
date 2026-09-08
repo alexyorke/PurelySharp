@@ -6,6 +6,16 @@ using SharpProof.Attributes;
 
 internal static class TestCompilation
 {
+    internal static CSharpCompilationOptions CreateOptions(
+        OutputKind outputKind,
+        NullableContextOptions nullableContextOptions =
+            NullableContextOptions.Disable)
+    {
+        return new(
+            outputKind,
+            nullableContextOptions: nullableContextOptions);
+    }
+
     internal static CSharpCompilation Create(
         string assemblyPrefix,
         string source,

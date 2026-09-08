@@ -285,9 +285,9 @@ public sealed class CompilerCallableLowererTests
             "RelativeSourceSummaryTreePath",
             trees,
             TestMetadataReferences.WithSharpProof,
-            new CSharpCompilationOptions(
+            TestCompilation.CreateOptions(
                 OutputKind.DynamicallyLinkedLibrary,
-                nullableContextOptions: NullableContextOptions.Enable));
+                NullableContextOptions.Enable));
         var discovery = new ClaimManifestBuilder(compilation).Build();
 
         var artifact = CompilerManifestArtifactProducer.Create(

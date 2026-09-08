@@ -59,9 +59,9 @@ public sealed class ExceptionIdentityReplayTests
                 .Add(AttributeReference)
                 .Add(allowedReference)
                 .Add(thrownReference),
-            new CSharpCompilationOptions(
+            TestCompilation.CreateOptions(
                 OutputKind.DynamicallyLinkedLibrary,
-                nullableContextOptions: NullableContextOptions.Enable));
+                NullableContextOptions.Enable));
         var errors = compilation.GetDiagnostics()
             .Where(static diagnostic =>
                 diagnostic.Severity == DiagnosticSeverity.Error)
@@ -262,8 +262,7 @@ public sealed class ExceptionIdentityReplayTests
             "Generic.Argument.Consumer",
             [tree],
             TestMetadataReferences.Platform.Add(firstReference).Add(secondReference),
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary));
+            TestCompilation.CreateOptions(OutputKind.DynamicallyLinkedLibrary));
         var errors = compilation.GetDiagnostics()
             .Where(static diagnostic =>
                 diagnostic.Severity == DiagnosticSeverity.Error)
@@ -317,8 +316,7 @@ public sealed class ExceptionIdentityReplayTests
             "Constructed.Exception.Consumer",
             [tree],
             TestMetadataReferences.Platform,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary));
+            TestCompilation.CreateOptions(OutputKind.DynamicallyLinkedLibrary));
         var method = compilation.GetTypeByMetadataName("Subject")!
             .GetMembers("Compare")
             .OfType<IMethodSymbol>()

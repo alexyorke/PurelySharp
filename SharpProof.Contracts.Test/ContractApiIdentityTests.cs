@@ -98,9 +98,9 @@ public sealed class ContractApiIdentityTests
             "ContractIdentityConsumer",
             [tree],
             PlatformReferences.Add(contractReference),
-            new CSharpCompilationOptions(
+            TestCompilation.CreateOptions(
                 OutputKind.DynamicallyLinkedLibrary,
-                nullableContextOptions: NullableContextOptions.Enable));
+                NullableContextOptions.Enable));
         TestCompilation.AssertNoErrors(compilation);
         return compilation;
     }
@@ -143,9 +143,9 @@ public sealed class ContractApiIdentityTests
                 new CSharpParseOptions(LanguageVersion.CSharp12),
                 "Contract.cs")],
             PlatformReferences,
-            new CSharpCompilationOptions(
+            TestCompilation.CreateOptions(
                 OutputKind.DynamicallyLinkedLibrary,
-                nullableContextOptions: NullableContextOptions.Enable));
+                NullableContextOptions.Enable));
         TestCompilation.AssertNoErrors(compilation);
         using var stream = new MemoryStream();
         var result = compilation.Emit(stream);

@@ -361,7 +361,7 @@ public sealed class CompilerSourceLocationAuthorityTests
         var compilation = CreateCompilation(
             "internal sealed class Subject {}\n",
             includeContractReference: false).WithOptions(
-                new CSharpCompilationOptions(OutputKind.ConsoleApplication));
+                TestCompilation.CreateOptions(OutputKind.ConsoleApplication));
         return CreateArtifact(compilation);
     }
 
@@ -393,6 +393,6 @@ public sealed class CompilerSourceLocationAuthorityTests
             includeContractReference
                 ? TestMetadataReferences.WithSharpProof
                 : TestMetadataReferences.CoreLibraryOnly,
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            TestCompilation.CreateOptions(OutputKind.DynamicallyLinkedLibrary));
     }
 }

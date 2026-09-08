@@ -2654,7 +2654,6 @@ public sealed class CompilerManifestArtifactTests
             includeContractReference
                 ? TestMetadataReferences.WithSharpProof
                 : TestMetadataReferences.CoreLibraryOnly,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary));
+            TestCompilation.CreateOptions(OutputKind.DynamicallyLinkedLibrary));
     }
 }

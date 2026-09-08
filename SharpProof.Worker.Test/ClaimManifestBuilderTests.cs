@@ -1954,10 +1954,9 @@ public sealed class ClaimManifestBuilderTests
             "MalformedBaseTypeTests",
             [tree],
             TestMetadataReferences.WithSharpProof,
-            new CSharpCompilationOptions(
+            TestCompilation.CreateOptions(
                 OutputKind.DynamicallyLinkedLibrary,
-                nullableContextOptions:
-                    NullableContextOptions.Enable));
+                NullableContextOptions.Enable));
         Assert.That(
             compilation.GetDiagnostics().Any(static diagnostic =>
                 diagnostic.Severity ==
