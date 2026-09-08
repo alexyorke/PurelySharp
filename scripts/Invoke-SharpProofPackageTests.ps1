@@ -597,7 +597,15 @@ try {
         $shards.Add([pscustomobject]@{
             Name = 'postflight-buildtask-containment'
             Filter = $isolatedBuildTaskFilter
-            EstimatedMilliseconds = -1L
+            EstimatedMilliseconds =
+                $(if ($null -ne ($historicalMilliseconds =
+                        Get-SharpProofHistoricalFilterMilliseconds `
+                            $isolatedBuildTaskFilter)) {
+                    $historicalMilliseconds
+                }
+                else {
+                    8000L
+                })
             # These deadline-sensitive tests need headroom, but reserving the
             # entire machine makes their six-second run an unavoidable tail.
             # Keep half the lanes idle while overlapping independent shards.
