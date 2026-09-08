@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.Cryptography;
@@ -814,25 +813,21 @@ public sealed class FinalCompilationProbeTests
         }
 
         private async Task<ProcessResult> RunDotNetAsync(
-            string[] arguments,
-            string? workingDirectory = null)
+            string[] arguments)
         {
             var startInfo = ProcessRunner.CreateStartInfo(
-                workingDirectory ?? _root,
+                _root,
                 "dotnet",
                 arguments);
             startInfo.Environment["SharedCompilationId"] =
                 _sharedCompilationServerId;
 
-            using var process = Process.Start(startInfo) ??
-                throw new InvalidOperationException("Failed to start dotnet.");
-            var standardOutput = process.StandardOutput.ReadToEndAsync();
-            var standardError = process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync();
+            var result = await ProcessRunner.RunCapturedAsync(
+                startInfo,
+                CancellationToken.None);
             return new ProcessResult(
-                process.ExitCode,
-                (await standardOutput) + Environment.NewLine +
-                (await standardError));
+                result.ExitCode,
+                result.CombinedOutput);
         }
 
         private static string CreateSharedCompilationServerId(string role)
