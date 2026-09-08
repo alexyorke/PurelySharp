@@ -452,7 +452,7 @@ internal static class CompilerCompilationCapture
             throw new InvalidDataException(
                 "Compiler text contains ill-formed UTF-16.");
         }
-        return Hash(Encoding.UTF8.GetBytes(value));
+        return HashEncoding.ComputeSha256Hex(Encoding.UTF8.GetBytes(value));
     }
 
     private static string Identity(MetadataReader reader)
@@ -538,9 +538,5 @@ internal static class CompilerCompilationCapture
         }
         hash.TransformFinalBlock([], 0, 0);
         return HashEncoding.ToLowerHex(hash.Hash!);
-    }
-    private static string Hash(byte[] bytes)
-    {
-        return HashEncoding.ComputeSha256Hex(bytes);
     }
 }
