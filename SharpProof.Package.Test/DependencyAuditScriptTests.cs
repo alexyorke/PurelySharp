@@ -25,12 +25,12 @@ public sealed class DependencyAuditScriptTests
     {
         using var workspace = DependencyAuditWorkspace.Create();
         var first = await workspace.RunAsync(workspace.CreateCleanReport());
-        Assert.That(first.ExitCode, Is.Zero, first.Output);
+        Assert.That(first.ExitCode, Is.Zero, first.CombinedOutput);
         var firstEvidence = await File.ReadAllBytesAsync(
             workspace.OutputPath);
 
         var second = await workspace.RunAsync(workspace.CreateCleanReport());
-        Assert.That(second.ExitCode, Is.Zero, second.Output);
+        Assert.That(second.ExitCode, Is.Zero, second.CombinedOutput);
         var secondEvidence = await File.ReadAllBytesAsync(
             workspace.OutputPath);
 
@@ -134,11 +134,11 @@ public sealed class DependencyAuditScriptTests
                     .ToArray());
 
             var result = await workspace.RunAsync(report);
-            Assert.That(result.ExitCode, Is.Not.Zero, result.Output);
+            Assert.That(result.ExitCode, Is.Not.Zero, result.CombinedOutput);
             Assert.That(
                 File.Exists(workspace.OutputPath),
                 Is.False,
-                result.Output);
+                result.CombinedOutput);
         }
     }
 
@@ -271,7 +271,7 @@ public sealed class DependencyAuditScriptTests
             .Remove("transitivePackages");
 
         var result = await workspace.RunAsync(report);
-        Assert.That(result.ExitCode, Is.Zero, result.Output);
+        Assert.That(result.ExitCode, Is.Zero, result.CombinedOutput);
     }
 
     [Test]
@@ -335,7 +335,7 @@ public sealed class DependencyAuditScriptTests
             var result = await workspace.RunWithOutputAsync(
                 workspace.CreateCleanReport(),
                 outputPath);
-            Assert.That(result.ExitCode, Is.Not.Zero, result.Output);
+            Assert.That(result.ExitCode, Is.Not.Zero, result.CombinedOutput);
         }
         using (Assert.EnterMultipleScope())
         {
@@ -441,7 +441,7 @@ public sealed class DependencyAuditScriptTests
             };
         }
 
-        internal async Task<ProcessResult> RunAsync(JsonObject report)
+        internal async Task<ProcessRunnerResult> RunAsync(JsonObject report)
         {
             return await RunReportAsync(
                 report,
@@ -450,7 +450,7 @@ public sealed class DependencyAuditScriptTests
                 createStaleOutput: true);
         }
 
-        internal async Task<ProcessResult> RunWithOutputAsync(
+        internal async Task<ProcessRunnerResult> RunWithOutputAsync(
             JsonObject report,
             string outputPath)
         {
@@ -486,22 +486,22 @@ public sealed class DependencyAuditScriptTests
         }
 
         private async Task AssertRejectedAsync(
-            Func<Task<ProcessResult>> run,
+            Func<Task<ProcessRunnerResult>> run,
             string expectedMessage)
         {
             var result = await run();
-            Assert.That(result.ExitCode, Is.Not.Zero, result.Output);
+            Assert.That(result.ExitCode, Is.Not.Zero, result.CombinedOutput);
             Assert.That(
-                result.Output,
+                result.CombinedOutput,
                 Does.Contain(expectedMessage),
-                result.Output);
+                result.CombinedOutput);
             Assert.That(
                 File.Exists(OutputPath),
                 Is.False,
-                result.Output);
+                result.CombinedOutput);
         }
 
-        private async Task<ProcessResult> RunReportAsync(
+        private async Task<ProcessRunnerResult> RunReportAsync(
             JsonObject report,
             string outputPath,
             bool writeIndented,
@@ -568,7 +568,7 @@ public sealed class DependencyAuditScriptTests
                 """);
         }
 
-        private async Task<ProcessResult> RunScriptAsync(
+        private async Task<ProcessRunnerResult> RunScriptAsync(
             string outputPath,
             bool createStaleOutput)
         {
@@ -578,7 +578,7 @@ public sealed class DependencyAuditScriptTests
                     outputPath,
                     "stale evidence");
             }
-            return await RunProcessAsync(
+            return await ProcessRunner.RunCapturedAsync(
                 TestRepository.FindRoot(),
                 "pwsh",
                 "-NoLogo",
@@ -598,20 +598,4 @@ public sealed class DependencyAuditScriptTests
                 outputPath);
         }
     }
-
-    private static async Task<ProcessResult> RunProcessAsync(
-        string workingDirectory,
-        string fileName,
-        params string[] arguments)
-    {
-        var result = await ProcessRunner.RunCapturedAsync(
-            workingDirectory,
-            fileName,
-            arguments);
-        return new ProcessResult(
-            result.ExitCode,
-            result.Output + Environment.NewLine + result.Error);
-    }
-
-    private sealed record ProcessResult(int ExitCode, string Output);
 }
