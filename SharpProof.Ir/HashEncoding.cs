@@ -22,6 +22,12 @@ internal static class HashEncoding
         return ToLowerHex(hash.ComputeHash(bytes));
     }
 
+    internal static string ComputeSha256Hex(Stream stream)
+    {
+        using var hash = SHA256.Create();
+        return ToLowerHex(hash.ComputeHash(stream));
+    }
+
     internal static bool IsSha256(string? value)
     {
         return value is { Length: 64 } && value.All(

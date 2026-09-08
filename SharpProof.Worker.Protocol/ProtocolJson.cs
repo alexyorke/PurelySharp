@@ -52,7 +52,8 @@ public static partial class WorkerProtocolJson
             throw new InvalidDataException("The JSON file changed while it was read.");
         }
 
-        return ComputeSha256(buffer.ToArray());
+        buffer.Position = 0;
+        return ProtocolHashEncoding.ComputeSha256Hex(buffer);
     }
 
     internal static async Task<string> ReadUtf8FileAsync(
