@@ -385,6 +385,7 @@ internal static class CompilerLoweredArtifact
         }
 
         var result = ImmutableArray.CreateBuilder<CompilerCallablePreparation>(artifacts.Length);
+        SummaryEvidenceIndex? summaryEvidence = null;
         foreach (var artifact in artifacts.OrderBy(static item => item.CallableId, StringComparer.Ordinal))
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -400,6 +401,7 @@ internal static class CompilerLoweredArtifact
                 entry,
                 targetClaims,
                 compilation,
+                ref summaryEvidence,
                 cancellationToken));
         }
         cancellationToken.ThrowIfCancellationRequested();
@@ -410,6 +412,7 @@ internal static class CompilerLoweredArtifact
         WorkerCallableManifestEntry entry,
         ImmutableArray<WorkerClaimManifestEntry> claims,
         CompilerCompilationSnapshot compilation,
+        ref SummaryEvidenceIndex? summaryEvidence,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -553,7 +556,8 @@ internal static class CompilerLoweredArtifact
             decoded,
             variables,
             artifact.Clauses.Length,
-            compilation);
+            compilation,
+            ref summaryEvidence);
         cancellationToken.ThrowIfCancellationRequested();
         if (postconditionClaims.Length != 0 && body == null)
         {
@@ -753,7 +757,8 @@ internal static class CompilerLoweredArtifact
         DecodedPortableIrGraph graph,
         ImmutableArray<CompilerCanonicalVariable> variables,
         int clauseRootCount,
-        CompilerCompilationSnapshot compilation)
+        CompilerCompilationSnapshot compilation,
+        ref SummaryEvidenceIndex? summaryEvidence)
     {
         if (row == null)
         {
@@ -790,9 +795,10 @@ internal static class CompilerLoweredArtifact
         }
 
         var programVariables = ValidateExecutableBody(graph.Program, variables);
-        var summaryEvidence = row.SummaryCalls.Length == 0
-            ? null
-            : new SummaryEvidenceIndex(compilation);
+        if (row.SummaryCalls.Length != 0)
+        {
+            summaryEvidence ??= new SummaryEvidenceIndex(compilation);
+        }
 
         var canonical = new HashSet<IrVarId>(variables.Select(static item => item.Variable));
         var parameters = variables
