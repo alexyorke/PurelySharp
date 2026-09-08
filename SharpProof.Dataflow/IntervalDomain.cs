@@ -167,30 +167,31 @@ public sealed class IntervalDomain : ClosedAbstractDomain<IntervalValue>
         return value.IsBottom ? Bottom : Top;
     }
 
-    public IntervalValue AssumeAtLeast(IntervalValue value, long lowerBound)
+    public IntervalValue AssumeAtLeast(IntervalValue value, long lowerBound) =>
+        RestrictBound(value, lowerBound, atLeast: true);
+
+    public IntervalValue AssumeAtMost(IntervalValue value, long upperBound) =>
+        RestrictBound(value, upperBound, atLeast: false);
+
+    private IntervalValue RestrictBound(
+        IntervalValue value, long bound, bool atLeast)
     {
         if (value.IsBottom)
         {
             return Bottom;
         }
 
-        var restricted = value.LowerBound.HasValue
-            ? Math.Max(value.LowerBound.Value, lowerBound)
-            : lowerBound;
-        return Create(restricted, value.UpperBound, value.Modulus, value.Remainder);
-    }
-
-    public IntervalValue AssumeAtMost(IntervalValue value, long upperBound)
-    {
-        if (value.IsBottom)
-        {
-            return Bottom;
-        }
-
-        var restricted = value.UpperBound.HasValue
-            ? Math.Min(value.UpperBound.Value, upperBound)
-            : upperBound;
-        return Create(value.LowerBound, restricted, value.Modulus, value.Remainder);
+        var lower = atLeast
+            ? value.LowerBound.HasValue
+                ? Math.Max(value.LowerBound.Value, bound)
+                : bound
+            : value.LowerBound;
+        var upper = atLeast
+            ? value.UpperBound
+            : value.UpperBound.HasValue
+                ? Math.Min(value.UpperBound.Value, bound)
+                : bound;
+        return Create(lower, upper, value.Modulus, value.Remainder);
     }
 
     internal static BigInteger Normalize(BigInteger value, BigInteger modulus)
