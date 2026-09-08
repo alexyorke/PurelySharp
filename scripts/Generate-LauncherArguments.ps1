@@ -72,7 +72,7 @@ $propertyNames = [Collections.Generic.HashSet[string]]::new(
     [StringComparer]::Ordinal)
 foreach ($option in @($catalog.options)) {
     Assert-Properties $option `
-        @('key', 'category', 'accessor', 'property', 'fallback') `
+        @('key', 'category', 'accessor', 'property') `
         'launcher option'
     if ($option.key -isnot [string] -or
         [string]$option.key -cnotmatch '\A[a-z][a-z0-9-]*\z' -or
@@ -89,7 +89,7 @@ foreach ($option in @($catalog.options)) {
         throw "Publication option '$($option.key)' must project an optional path."
     }
     if ($accessor -eq 'none') {
-        if ($option.property -ne '' -or $option.fallback -ne '') {
+        if ($option.property -ne '') {
             throw "Non-projecting option '$($option.key)' has projection metadata."
         }
         continue
@@ -98,14 +98,6 @@ foreach ($option in @($catalog.options)) {
         [string]$option.property -cnotmatch '\A[A-Z][A-Za-z0-9]*\z' -or
         -not $propertyNames.Add([string]$option.property)) {
         throw "Launcher property is invalid or duplicated: '$($option.property)'."
-    }
-    if ($accessor -eq 'integer') {
-        if ($option.fallback -ne 'terminationGraceMilliseconds') {
-            throw "Integer option '$($option.key)' has an unknown fallback."
-        }
-    }
-    elseif ($option.fallback -ne '') {
-        throw "Path option '$($option.key)' cannot have a fallback."
     }
 }
 
@@ -120,23 +112,14 @@ $budgetDefaults = @{
     MaximumExpressionDepth = `
         'WorkerBudgets.DefaultMaximumExpressionDepth'
 }
-$budgetFallbacks = @{
-    QueryRlimit = 'queryRlimit'
-    MethodRlimit = 'methodRlimit'
-    MethodWallTimeMilliseconds = 'methodWallTimeMilliseconds'
-    ProjectWallTimeMilliseconds = 'projectWallTimeMilliseconds'
-    MaxParallelism = 'maximumParallelism'
-    MaximumExpressionDepth = 'maximumExpressionDepth'
-}
 $seenBudgets = [Collections.Generic.HashSet[string]]::new(
     [StringComparer]::Ordinal)
 foreach ($budget in @($catalog.budgets)) {
-    Assert-Properties $budget @('property', 'key', 'fallback') `
+    Assert-Properties $budget @('property', 'key') `
         'launcher budget projection'
     $property = [string]$budget.property
     if (-not $budgetDefaults.ContainsKey($property) -or
         -not $seenBudgets.Add($property) -or
-        $budget.fallback -ne $budgetFallbacks[$property] -or
         -not $optionKeys.Contains([string]$budget.key)) {
         throw "Launcher budget projection '$property' is invalid."
     }
@@ -145,36 +128,25 @@ if ($seenBudgets.Count -ne $budgetDefaults.Count) {
     throw 'Launcher budget projections are incomplete.'
 }
 
-$cacheDefaults = @{
-    Enabled = 'true'
-    Directory = ''
-    MaximumBytes = 'WorkerCacheOptions.DefaultMaximumBytes'
-}
 $cacheKinds = @{
     Enabled = 'boolean'
     Directory = 'optional'
     MaximumBytes = 'integer'
 }
-$cacheFallbacks = @{
-    Enabled = 'cacheEnabled'
-    Directory = 'none'
-    MaximumBytes = 'cacheMaximumBytes'
-}
 $seenCache = [Collections.Generic.HashSet[string]]::new(
     [StringComparer]::Ordinal)
 foreach ($entry in @($catalog.cache)) {
-    Assert-Properties $entry @('property', 'key', 'projection', 'fallback') `
+    Assert-Properties $entry @('property', 'key', 'projection') `
         'launcher cache projection'
     $property = [string]$entry.property
-    if (-not $cacheDefaults.ContainsKey($property) -or
+    if (-not $cacheKinds.ContainsKey($property) -or
         -not $seenCache.Add($property) -or
         $entry.projection -ne $cacheKinds[$property] -or
-        $entry.fallback -ne $cacheFallbacks[$property] -or
         -not $optionKeys.Contains([string]$entry.key)) {
         throw "Launcher cache projection '$property' is invalid."
     }
 }
-if ($seenCache.Count -ne $cacheDefaults.Count) {
+if ($seenCache.Count -ne $cacheKinds.Count) {
     throw 'Launcher cache projections are incomplete.'
 }
 
