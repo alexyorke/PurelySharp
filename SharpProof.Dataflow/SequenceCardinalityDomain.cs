@@ -44,7 +44,8 @@ public sealed class SequenceCardinalityDomain : ClosedAbstractDomain<SequenceCar
             return Bottom;
         }
 
-        var restricted = _intervals.AssumeAtLeast(length, 0);
+        var minimumLength = kind == SequenceCardinalityKind.NonEmpty ? 1 : 0;
+        var restricted = _intervals.AssumeAtLeast(length, minimumLength);
         if (restricted.IsBottom)
         {
             return Bottom;
@@ -55,12 +56,6 @@ public sealed class SequenceCardinalityDomain : ClosedAbstractDomain<SequenceCar
             case SequenceCardinalityKind.Empty:
                 return restricted.Contains(0) ? Empty : Bottom;
             case SequenceCardinalityKind.NonEmpty:
-                restricted = _intervals.AssumeAtLeast(restricted, 1);
-                if (restricted.IsBottom)
-                {
-                    return Bottom;
-                }
-
                 break;
             case SequenceCardinalityKind.Top:
                 break;
