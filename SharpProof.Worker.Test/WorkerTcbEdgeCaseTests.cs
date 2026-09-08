@@ -92,10 +92,10 @@ public sealed class WorkerTcbEdgeCaseTests
             new FixedBackend(BackendCheckResult.Unknown(backendReason)),
             WorkerBudgets.DefaultMaximumExpressionDepth);
 
-        var results = await verifier.VerifyAsync(
+        var results = (await verifier.VerifyWithEntryFeasibilityAsync(
             CreateTrivialTarget(),
             CreateResourceBudget(),
-            CancellationToken.None);
+            CancellationToken.None)).Postconditions;
 
         using (Assert.EnterMultipleScope())
         {
@@ -120,10 +120,10 @@ public sealed class WorkerTcbEdgeCaseTests
             backend,
             WorkerBudgets.DefaultMaximumExpressionDepth);
 
-        var results = await verifier.VerifyAsync(
+        var results = (await verifier.VerifyWithEntryFeasibilityAsync(
             CreateMalformedProgramTarget(kind),
             CreateResourceBudget(),
-            CancellationToken.None);
+            CancellationToken.None)).Postconditions;
 
         using (Assert.EnterMultipleScope())
         {
@@ -160,12 +160,12 @@ public sealed class WorkerTcbEdgeCaseTests
             CompilerPreparedBody.Trivial());
         var backend = new ThrowingBackend("Malformed input reached the backend.");
 
-        var results = await new CallableVerifier(
+        var results = (await new CallableVerifier(
             backend,
-            WorkerBudgets.DefaultMaximumExpressionDepth).VerifyAsync(
+            WorkerBudgets.DefaultMaximumExpressionDepth).VerifyWithEntryFeasibilityAsync(
                 target,
                 CreateResourceBudget(),
-                CancellationToken.None);
+                CancellationToken.None)).Postconditions;
 
         using (Assert.EnterMultipleScope())
         {
@@ -210,12 +210,12 @@ public sealed class WorkerTcbEdgeCaseTests
             CompilerPreparedBody.Trivial());
         var backend = new ThrowingBackend("Malformed input reached the backend.");
 
-        var results = await new CallableVerifier(
+        var results = (await new CallableVerifier(
             backend,
-            WorkerBudgets.DefaultMaximumExpressionDepth).VerifyAsync(
+            WorkerBudgets.DefaultMaximumExpressionDepth).VerifyWithEntryFeasibilityAsync(
                 target,
                 CreateResourceBudget(),
-                CancellationToken.None);
+                CancellationToken.None)).Postconditions;
 
         using (Assert.EnterMultipleScope())
         {
@@ -246,12 +246,12 @@ public sealed class WorkerTcbEdgeCaseTests
             body: null);
         var backend = new ThrowingBackend("Malformed input reached the backend.");
 
-        var results = await new CallableVerifier(
+        var results = (await new CallableVerifier(
             backend,
-            WorkerBudgets.DefaultMaximumExpressionDepth).VerifyAsync(
+            WorkerBudgets.DefaultMaximumExpressionDepth).VerifyWithEntryFeasibilityAsync(
                 target,
                 CreateResourceBudget(),
-                CancellationToken.None);
+                CancellationToken.None)).Postconditions;
 
         using (Assert.EnterMultipleScope())
         {
@@ -295,12 +295,12 @@ public sealed class WorkerTcbEdgeCaseTests
             CompilerPreparedBody.Trivial());
         var backend = new ThrowingBackend("Malformed input reached the backend.");
 
-        var results = await new CallableVerifier(
+        var results = (await new CallableVerifier(
             backend,
-            maximumExpressionDepth: 1).VerifyAsync(
+            maximumExpressionDepth: 1).VerifyWithEntryFeasibilityAsync(
                 target,
                 CreateResourceBudget(),
-                CancellationToken.None);
+                CancellationToken.None)).Postconditions;
 
         using (Assert.EnterMultipleScope())
         {
@@ -328,12 +328,12 @@ public sealed class WorkerTcbEdgeCaseTests
             CompilerPreparedBody.Trivial());
         var backend = new ThrowingBackend("Malformed input reached the backend.");
 
-        var results = await new CallableVerifier(
+        var results = (await new CallableVerifier(
             backend,
-            WorkerBudgets.DefaultMaximumExpressionDepth).VerifyAsync(
+            WorkerBudgets.DefaultMaximumExpressionDepth).VerifyWithEntryFeasibilityAsync(
                 target,
                 CreateResourceBudget(),
-                CancellationToken.None);
+                CancellationToken.None)).Postconditions;
 
         using (Assert.EnterMultipleScope())
         {
@@ -358,10 +358,10 @@ public sealed class WorkerTcbEdgeCaseTests
             queryRlimit: 10,
             methodRlimit: 10);
 
-        var results = await verifier.VerifyAsync(
+        var results = (await verifier.VerifyWithEntryFeasibilityAsync(
             CreateTrivialTarget(),
             budget,
-            CancellationToken.None);
+            CancellationToken.None)).Postconditions;
 
         using (Assert.EnterMultipleScope())
         {
@@ -528,12 +528,12 @@ public sealed class WorkerTcbEdgeCaseTests
                 BackendFailureReason.InfrastructureFailure),
             BackendCheckResult.Unsatisfiable([]));
 
-        var results = await new CallableVerifier(
+        var results = (await new CallableVerifier(
             backend,
-            WorkerBudgets.DefaultMaximumExpressionDepth).VerifyAsync(
+            WorkerBudgets.DefaultMaximumExpressionDepth).VerifyWithEntryFeasibilityAsync(
                 target,
                 CreateResourceBudget(),
-                CancellationToken.None);
+                CancellationToken.None)).Postconditions;
 
         using (Assert.EnterMultipleScope())
         {
@@ -573,14 +573,14 @@ public sealed class WorkerTcbEdgeCaseTests
     {
         var backend = new SatisfiableUnknownProofBackend();
 
-        var results = await new CallableVerifier(
+        var results = (await new CallableVerifier(
             backend,
-            WorkerBudgets.DefaultMaximumExpressionDepth).VerifyAsync(
+            WorkerBudgets.DefaultMaximumExpressionDepth).VerifyWithEntryFeasibilityAsync(
                 CreateDivisionTarget(
                     IrBinaryOperator.NotEqual,
                     postcondition: true),
                 CreateResourceBudget(),
-                CancellationToken.None);
+                CancellationToken.None)).Postconditions;
 
         using (Assert.EnterMultipleScope())
         {
@@ -620,7 +620,7 @@ public sealed class WorkerTcbEdgeCaseTests
         Func<Task> action =
             () => new CallableVerifier(
                 new ThrowingBackend("Malformed input reached the backend."),
-                WorkerBudgets.DefaultMaximumExpressionDepth).VerifyAsync(
+                WorkerBudgets.DefaultMaximumExpressionDepth).VerifyWithEntryFeasibilityAsync(
                     target,
                     CreateResourceBudget(),
                     CancellationToken.None);
@@ -1545,10 +1545,10 @@ public sealed class WorkerTcbEdgeCaseTests
                 WorkerBudgets.DefaultQueryRlimit));
         return (await new CallableVerifier(
             backend,
-            WorkerBudgets.DefaultMaximumExpressionDepth).VerifyAsync(
+            WorkerBudgets.DefaultMaximumExpressionDepth).VerifyWithEntryFeasibilityAsync(
                 target,
                 CreateResourceBudget(),
-                CancellationToken.None)).Single();
+                CancellationToken.None)).Postconditions.Single();
     }
 
     private static MethodResourceBudget CreateResourceBudget()

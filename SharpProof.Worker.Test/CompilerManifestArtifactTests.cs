@@ -1994,9 +1994,9 @@ public sealed class CompilerManifestArtifactTests
         substituted.Callables[0].Body!.SpecCalls[0].WitnessIdentifier = "bcl.enumerable.empty";
         var target = CompilerManifestArtifactJson.DecodeCallables(substituted).Single();
         var verifier = new CallableVerifier(new UnexpectedBackend(), WorkerBudgets.DefaultMaximumExpressionDepth);
-        var results = await verifier.VerifyAsync(target,
+        var results = (await verifier.VerifyWithEntryFeasibilityAsync(target,
             new MethodResourceBudget(null, WorkerBudgets.DefaultQueryRlimit, WorkerBudgets.DefaultMethodRlimit),
-            CancellationToken.None);
+            CancellationToken.None)).Postconditions;
         using (Assert.EnterMultipleScope())
         {
             Assert.That(results.Single().Outcome, Is.EqualTo(WorkerClaimOutcome.Unknown));

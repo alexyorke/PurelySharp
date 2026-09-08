@@ -71,13 +71,13 @@ public sealed class AcyclicBlockPredicateExecutorTests
         var bindings = conditions.ToImmutableDictionary(static value => value, static value => value);
         var backend = new CompletionThenProofBackend();
         var verifier = new CallableVerifier(backend, WorkerBudgets.DefaultMaximumExpressionDepth);
-        var results = await verifier.VerifyAsync(
+        var results = (await verifier.VerifyWithEntryFeasibilityAsync(
             CreateTarget(factory, program, variables, bindings),
             new MethodResourceBudget(
                 null,
                 WorkerBudgets.DefaultQueryRlimit,
                 WorkerBudgets.DefaultMethodRlimit),
-            CancellationToken.None);
+            CancellationToken.None)).Postconditions;
 
         using (Assert.EnterMultipleScope())
         {
@@ -225,7 +225,7 @@ public sealed class AcyclicBlockPredicateExecutorTests
             "A cyclic body reached the backend.");
         var verifier = new CallableVerifier(backend, WorkerBudgets.DefaultMaximumExpressionDepth);
 
-        var results = await verifier.VerifyAsync(
+        var results = (await verifier.VerifyWithEntryFeasibilityAsync(
             CreateTarget(
                 factory,
                 program,
@@ -235,7 +235,7 @@ public sealed class AcyclicBlockPredicateExecutorTests
                 null,
                 WorkerBudgets.DefaultQueryRlimit,
                 WorkerBudgets.DefaultMethodRlimit),
-            CancellationToken.None);
+            CancellationToken.None)).Postconditions;
 
         using (Assert.EnterMultipleScope())
         {
@@ -308,7 +308,7 @@ public sealed class AcyclicBlockPredicateExecutorTests
             WorkerBudgets.DefaultMaximumExpressionDepth);
 
         Assert.ThrowsAsync<OperationCanceledException>(
-            (Func<Task>)(async () => await verifier.VerifyAsync(
+            (Func<Task>)(async () => await verifier.VerifyWithEntryFeasibilityAsync(
                 target,
                 resourceBudget,
                 cancellation.Token)));

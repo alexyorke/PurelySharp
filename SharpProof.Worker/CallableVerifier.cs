@@ -13,19 +13,6 @@ internal sealed class CallableVerifier(ISmtBackend backend, int maximumExpressio
         ArgumentNullGuard.RequirePositive(
             maximumExpressionDepth, nameof(maximumExpressionDepth));
 
-    internal async Task<ImmutableArray<WorkerClaimResult>> VerifyAsync(
-        CompilerCallablePreparation target,
-        MethodResourceBudget resourceBudget,
-        CancellationToken cancellationToken)
-    {
-        var verification = await VerifyWithEntryFeasibilityAsync(
-                target,
-                resourceBudget,
-                cancellationToken)
-            .ConfigureAwait(false);
-        return verification.Postconditions;
-    }
-
     internal async Task<CallableProofVerification>
         VerifyWithEntryFeasibilityAsync(
             CompilerCallablePreparation target,
