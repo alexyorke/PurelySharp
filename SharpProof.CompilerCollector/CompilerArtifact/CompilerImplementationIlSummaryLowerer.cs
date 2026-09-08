@@ -929,44 +929,38 @@ internal static class CompilerImplementationIlSummaryLowerer
                 };
 
                 var nextOffset = reader.Offset;
+                var branchTarget = 0;
+                if (opCode.IsBranch())
+                {
+                    try
+                    {
+                        branchTarget = checked(nextOffset + (int)operand);
+                    }
+                    catch (OverflowException)
+                    {
+                        instructions = [];
+                        return false;
+                    }
+
+                    if (branchTarget < 0 || branchTarget >= reader.Length)
+                    {
+                        instructions = [];
+                        return false;
+                    }
+                }
+
                 var instruction = new DecodedInstruction(
                     offset,
                     opCode,
                     operand,
-                    nextOffset);
-                // A malformed image can encode a displacement whose checked
-                // addition overflows Int32. Treat that exactly like any other
-                // invalid branch target so collection remains fail-closed.
-                if (instruction.IsBranch &&
-                    (!TryGetBranchTarget(instruction, out var branchTarget) ||
-                     branchTarget < 0 ||
-                     branchTarget >= reader.Length))
-                {
-                    instructions = [];
-                    return false;
-                }
+                    nextOffset,
+                    branchTarget);
 
                 result.Add(instruction);
             }
 
             instructions = result.ToImmutable();
             return !instructions.IsEmpty;
-        }
-
-        private static bool TryGetBranchTarget(
-            DecodedInstruction instruction,
-            out int target)
-        {
-            try
-            {
-                target = instruction.BranchTarget;
-                return true;
-            }
-            catch (OverflowException)
-            {
-                target = -1;
-                return false;
-            }
         }
 
         private bool TryDecodeLocals(
@@ -1785,15 +1779,13 @@ internal static class CompilerImplementationIlSummaryLowerer
         int Offset,
         ILOpCode OpCode,
         long Operand,
-        int NextOffset)
+        int NextOffset,
+        int BranchTarget)
     {
         internal bool IsBranch => OpCode.IsBranch();
 
         internal bool IsConditional => OpCode is not (
             ILOpCode.Br or ILOpCode.Br_s);
-
-        internal int BranchTarget => checked(
-            NextOffset + (int)Operand);
     }
 
     private sealed record Translation(
