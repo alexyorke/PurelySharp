@@ -316,6 +316,15 @@ foreach ($priorTimingPath in $(if ($Fast) {
     try {
         $priorTiming = Get-Content -LiteralPath $priorTimingPath -Raw |
             ConvertFrom-Json
+        # Do not let a profile from another lane width distort the current
+        # weighted partition.  This matters when a local run changes
+        # SHARPPROOF_TEST_PROJECT_PARALLELISM and then returns to the normal
+        # container width; method timings are not comparable under different
+        # contention levels.
+        if ($priorTiming.PSObject.Properties.Name -contains 'parallelism' -and
+            [int]$priorTiming.parallelism -ne $parallelism) {
+            continue
+        }
         $hasScheduler =
             $priorTiming.PSObject.Properties.Name -contains 'scheduler'
         $methodHistory = if ($hasScheduler) {
@@ -544,13 +553,11 @@ try {
             -DefaultMilliseconds $defaultPackageLayoutMethodMilliseconds `
             -BucketCount ([Math]::Min(4, $parallelism)))
         $fixtureClasses = @(
-            'CompilerProbeInputConsistencyTests|CompilerProbeSnapshotTests',
+            'CompilerProbeInputConsistencyTests|CompilerProbeSnapshotTests|SarifProjectionTests|VerifierDiagnosticTransportTests|VerifierProcessSupervisorBug202Tests',
             'DependencyAuditScriptTests',
             'FinalCompilationProbeTests',
             'LauncherArgumentTests',
-            'ReleasePublicationScriptTests',
-            'SarifProjectionTests|VerifierDiagnosticTransportTests',
-            'VerifierProcessSupervisorBug202Tests')
+            'ReleasePublicationScriptTests')
         foreach ($fixtureClass in $fixtureClasses) {
             $classNames = $fixtureClass -split '\|'
             $classFilters = @($classNames | ForEach-Object {
