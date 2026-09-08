@@ -247,7 +247,7 @@ internal static class CompilationFingerprint
     private static bool ValidReferences(
         CompilerReferenceSnapshot[]? references)
     {
-        if (references == null || !All(references, ValidReference))
+        if (references == null)
         {
             return false;
         }
@@ -256,15 +256,9 @@ internal static class CompilationFingerprint
         long size = 0;
         foreach (var reference in references)
         {
-            foreach (var module in reference.Modules)
+            if (!ValidReference(reference, ref count, ref size))
             {
-                count++;
-                size += module.SizeBytes;
-                if (count > CompilerReferenceLimits.MaximumModuleCount ||
-                    size > CompilerReferenceLimits.MaximumClosureBytes)
-                {
-                    return false;
-                }
+                return false;
             }
         }
         return true;
@@ -375,7 +369,10 @@ internal static class CompilationFingerprint
         return value != null && HasText(value.Key) && value.Value != null;
     }
 
-    private static bool ValidReference(CompilerReferenceSnapshot? value)
+    private static bool ValidReference(
+        CompilerReferenceSnapshot? value,
+        ref int moduleCount,
+        ref long closureBytes)
     {
         return value != null &&
         value.Kind is "Assembly" or "Module" &&
@@ -391,20 +388,30 @@ internal static class CompilationFingerprint
             value.Aliases.Length == 0 && value.Modules.Length == 1 &&
             string.Equals(value.Identity, value.Modules[0].Name,
                 StringComparison.Ordinal)) &&
-        ValidReferenceModules(value.Modules);
+        ValidReferenceModules(value.Modules, ref moduleCount, ref closureBytes);
     }
 
     private static StringComparer PathComparer => StringComparer.Ordinal;
 
     private static bool ValidReferenceModules(
-        CompilerReferenceModuleSnapshot[] modules)
+        CompilerReferenceModuleSnapshot[] modules,
+        ref int moduleCount,
+        ref long closureBytes)
     {
         var names = new HashSet<string>(StringComparer.Ordinal);
         var paths = new HashSet<string>(PathComparer);
         for (var index = 0; index < modules.Length; index++)
         {
             var module = modules[index];
-            if (!ValidReferenceModule(module) ||
+            if (!ValidReferenceModule(module))
+            {
+                return false;
+            }
+
+            moduleCount++;
+            closureBytes += module.SizeBytes;
+            if (moduleCount > CompilerReferenceLimits.MaximumModuleCount ||
+                closureBytes > CompilerReferenceLimits.MaximumClosureBytes ||
                 !names.Add(module.Name) ||
                 !paths.Add(module.Path) ||
                 index > 1 && StringComparer.Ordinal.Compare(
