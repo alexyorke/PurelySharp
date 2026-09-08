@@ -3,6 +3,12 @@ namespace SharpProof.Contracts;
 internal sealed class ContractIntrinsicValidator
 {
     private readonly ContractApiSymbols? _api;
+
+    internal ContractIntrinsicValidator(ContractApiSymbols? api)
+    {
+        _api = api;
+    }
+
     internal ContractIntrinsicValidator(Compilation compilation)
     {
         _api = ContractApiSymbols.TryCreate(

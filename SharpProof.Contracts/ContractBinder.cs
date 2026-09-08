@@ -51,7 +51,7 @@ public sealed class ContractBinder
             nameof(compilation));
         _factory = ArgumentNullGuard.NotNull(factory, nameof(factory));
         _api = ContractApiSymbols.TryCreate(compilation);
-        _intrinsics = new ContractIntrinsicValidator(compilation);
+        _intrinsics = new ContractIntrinsicValidator(_api);
         _canonicalization = new ContractCanonicalization(
             compilation,
             _factory);
