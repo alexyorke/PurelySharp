@@ -1405,24 +1405,37 @@ internal static class PerformanceGate
                         : null
                 })
                 .ToArray();
-            var entryPoint = analyzers.Where(static analyzer =>
-                    string.Equals(
-                        analyzer.Role,
-                        "EntryPoint",
-                        StringComparison.Ordinal))
-                .ToArray();
-            var generator = analyzers.Where(static analyzer =>
-                    string.Equals(
-                        analyzer.Role,
-                        "Generator",
-                        StringComparison.Ordinal))
-                .ToArray();
-            var dependencies = analyzers.Where(static analyzer =>
-                    string.Equals(
-                        analyzer.Role,
-                        "Dependency",
-                        StringComparison.Ordinal))
-                .ToArray();
+            var entryPointCount = 0;
+            string? entryPointIdentity = null;
+            var generatorCount = 0;
+            string? generatorIdentity = null;
+            var dependencyCount = 0;
+            var invalidRole = false;
+            var invalidDependencyVisibility = false;
+            foreach (var analyzer in analyzers)
+            {
+                switch (analyzer.Role)
+                {
+                    case "EntryPoint":
+                        entryPointCount++;
+                        entryPointIdentity = analyzer.Identity;
+                        break;
+                    case "Generator":
+                        generatorCount++;
+                        generatorIdentity = analyzer.Identity;
+                        break;
+                    case "Dependency":
+                        dependencyCount++;
+                        invalidDependencyVisibility |= !string.Equals(
+                            analyzer.Visible,
+                            "false",
+                            StringComparison.OrdinalIgnoreCase);
+                        break;
+                    default:
+                        invalidRole = true;
+                        break;
+                }
+            }
             if (!PropertyEquals(properties, "SharpProofProfile", "advisory") ||
                 !PropertyEquals(properties, "SharpProofFeatures", "all") ||
                 !PropertyEquals(properties, "SharpProofVerify", "false") ||
@@ -1447,23 +1460,19 @@ internal static class PerformanceGate
                     "_SharpProofVerifierPackagePresent",
                     "true") ||
                 analyzers.Length != 17 ||
-                entryPoint.Length != 1 ||
-                generator.Length != 1 ||
-                dependencies.Length != 15 ||
-                analyzers.Any(static analyzer => analyzer.Role is not
-                    ("EntryPoint" or "Generator" or "Dependency")) ||
+                entryPointCount != 1 ||
+                generatorCount != 1 ||
+                dependencyCount != 15 ||
+                invalidRole ||
                 !string.Equals(
-                    Path.GetFileName(entryPoint[0].Identity),
+                    Path.GetFileName(entryPointIdentity!),
                     "SharpProof.Analyzer.dll",
                     StringComparison.Ordinal) ||
                 !string.Equals(
-                    Path.GetFileName(generator[0].Identity),
+                    Path.GetFileName(generatorIdentity!),
                     "SharpProof.ContractForGenerator.dll",
                     StringComparison.Ordinal) ||
-                dependencies.Any(static dependency => !string.Equals(
-                    dependency.Visible,
-                    "false",
-                    StringComparison.OrdinalIgnoreCase)))
+                invalidDependencyVisibility)
             {
                 throw new InvalidDataException(
                     "Evaluated package behavior must enable advisory analysis " +
