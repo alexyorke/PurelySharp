@@ -705,13 +705,24 @@ internal static class CompilerManifestArtifactJson
 
             var loweredEffects = lowered.EffectClaims;
             if (loweredEffects == null ||
-                loweredEffects.Length != effects.Length ||
-                !loweredEffects.Select(static effect => effect?.ClaimId)
-                    .SequenceEqual(effects.Select(static claim => claim!.ClaimId), StringComparer.Ordinal) ||
-                !loweredEffects.Select(static effect => effect!.ContractKind)
-                    .SequenceEqual(effects.Select(static claim => claim!.EffectContractKind)))
+                loweredEffects.Length != effects.Length)
             {
                 return false;
+            }
+
+            for (var index = 0; index < effects.Length; index++)
+            {
+                var loweredEffect = loweredEffects[index];
+                var effect = effects[index]!;
+                if (loweredEffect == null ||
+                    !string.Equals(
+                        loweredEffect.ClaimId,
+                        effect.ClaimId,
+                        StringComparison.Ordinal) ||
+                    loweredEffect.ContractKind != effect.EffectContractKind)
+                {
+                    return false;
+                }
             }
 
             foreach (var effect in loweredEffects)
@@ -768,15 +779,32 @@ internal static class CompilerManifestArtifactJson
                 return false;
             }
 
-            var loweredPostconditions = clauses
-                .Where(static clause => clause?.Kind == CompilerContractKind.Ensures)
-                .ToArray();
-            if (loweredPostconditions.Length != postconditions.Length ||
-                !loweredPostconditions.Select(static clause => clause?.ClaimId)
-                    .SequenceEqual(postconditions.Select(static claim => claim!.ClaimId), StringComparer.Ordinal) ||
-                !loweredPostconditions.Select(static clause =>
-                    CompilerLoweredArtifact.ManifestEvidence(clause!.Evidence))
-                    .SequenceEqual(postconditions.Select(static claim => claim!.Evidence)))
+            var postconditionIndex = 0;
+            foreach (var clause in clauses)
+            {
+                if (clause?.Kind != CompilerContractKind.Ensures)
+                {
+                    continue;
+                }
+
+                if (postconditionIndex >= postconditions.Length)
+                {
+                    return false;
+                }
+
+                var postcondition = postconditions[postconditionIndex++]!;
+                if (!string.Equals(
+                        clause.ClaimId,
+                        postcondition.ClaimId,
+                        StringComparison.Ordinal) ||
+                    CompilerLoweredArtifact.ManifestEvidence(clause.Evidence) !=
+                        postcondition.Evidence)
+                {
+                    return false;
+                }
+            }
+
+            if (postconditionIndex != postconditions.Length)
             {
                 return false;
             }
