@@ -84,7 +84,8 @@ internal sealed class EffectiveContractSourceResolver
         var direct = _clauses.Create(
             target,
             implementationBody,
-            cancellationToken);
+            cancellationToken,
+            alreadyNormalized: true);
         var directResolution = new EffectiveContractSourceResolution(
             target,
             direct,
@@ -119,7 +120,8 @@ internal sealed class EffectiveContractSourceResolver
                 var inventory = _clauses.Create(
                     companion.Method,
                     implementationBody: null,
-                    cancellationToken: cancellationToken);
+                    cancellationToken: cancellationToken,
+                    alreadyNormalized: true);
                 var failure = inventory.ImplementationBody == null
                     ? ContractBindingFailure.CompanionBodyUnavailable
                     : inventory.HasPlacementErrors

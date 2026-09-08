@@ -34,12 +34,16 @@ public sealed class ContractClauseInventoryBuilder(Compilation compilation)
     internal ContractClauseInventory Create(
         IMethodSymbol callable,
         IOperation? implementationBody,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool alreadyNormalized = false)
     {
         cancellationToken.ThrowIfCancellationRequested();
         callable = ArgumentNullGuard.NotNull(callable, nameof(callable));
 
-        callable = NormalizeCallable(callable);
+        if (!alreadyNormalized)
+        {
+            callable = NormalizeCallable(callable);
+        }
         if (implementationBody != null &&
             !IsCallableBodyRoot(
                 callable,
