@@ -1131,21 +1131,44 @@ public static class FrontendDifferentialOracle
             .OfType<MethodDeclarationSyntax>()
             .ToArray();
         if (methods.Length != cases.Count ||
-            generatedType.Members.Count != cases.Count ||
-            Enumerable.Range(0, cases.Count).Any(index =>
-                methods.All(method =>
-                    method.Identifier.ValueText !=
-                    SemanticEdgeMethodName(index))))
+            generatedType.Members.Count != cases.Count)
         {
             return IsolateSemanticEdgeFailure(
                 cases,
                 "Roslyn exposed an unexpected semantic-edge method shape.",
                 cancellationToken);
         }
-        methods = Enumerable.Range(0, cases.Count)
-            .Select(index => methods.Single(method =>
-                method.Identifier.ValueText == SemanticEdgeMethodName(index)))
-            .ToArray();
+        var methodsByName = new Dictionary<string, MethodDeclarationSyntax>(
+            StringComparer.Ordinal);
+        foreach (var method in methods)
+        {
+            if (!methodsByName.TryAdd(
+                    method.Identifier.ValueText,
+                    method))
+            {
+                return IsolateSemanticEdgeFailure(
+                    cases,
+                    "Roslyn exposed an unexpected semantic-edge method shape.",
+                    cancellationToken);
+            }
+        }
+
+        var orderedMethods = new MethodDeclarationSyntax[cases.Count];
+        for (var index = 0; index < cases.Count; index++)
+        {
+            if (!methodsByName.TryGetValue(
+                    SemanticEdgeMethodName(index),
+                    out var method))
+            {
+                return IsolateSemanticEdgeFailure(
+                    cases,
+                    "Roslyn exposed an unexpected semantic-edge method shape.",
+                    cancellationToken);
+            }
+
+            orderedMethods[index] = method;
+        }
+        methods = orderedMethods;
 
         return WithLoadedGeneratedAssembly(
             image,
