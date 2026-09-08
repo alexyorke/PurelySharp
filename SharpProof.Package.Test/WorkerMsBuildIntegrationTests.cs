@@ -3627,8 +3627,26 @@ public sealed class WorkerMsBuildIntegrationTests
 
     private sealed class ConsumerProject : IDisposable
     {
+        private static readonly Lazy<ProjectTemplate> s_projectTemplate =
+            new(CreateProjectTemplate);
         private readonly string _root;
         private bool _defaultRestoreCompleted;
+
+        private sealed record ProjectTemplate(
+            string Repository,
+            string NativeZ3Path,
+            string AttributesAssemblyPath,
+            string PropsPath,
+            string VerifierPropsPath,
+            string AnalyzerDirectory,
+            string GeneratorDirectory,
+            string CollectorDirectory,
+            string TargetsPath,
+            string VerifierTargetsPath,
+            string WorkerPath,
+            string LauncherPath,
+            string ProtocolPath,
+            string BuildTasksPath);
 
         private ConsumerProject(string root)
         {
@@ -3944,8 +3962,9 @@ public sealed class WorkerMsBuildIntegrationTests
                 "SharpProof.Package.Test",
                 name);
             Directory.CreateDirectory(root);
+            var template = s_projectTemplate.Value;
             File.Copy(
-                Path.Combine(TestRepository.FindRoot(), "global.json"),
+                Path.Combine(template.Repository, "global.json"),
                 Path.Combine(root, "global.json"));
             File.WriteAllText(
                 Path.Combine(root, "Subject.cs"),
@@ -4240,118 +4259,52 @@ public sealed class WorkerMsBuildIntegrationTests
         private static string CreateProjectXml(
             IEnumerable<(string Name, string Value)> properties)
         {
-            var repository = TestRepository.FindRoot();
-            var nativeZ3Path = SecurityElement.Escape(
-                ContainerContract.ResolveZ3LibraryRequired());
-            var attributes = SecurityElement.Escape(
-                ProductBuildOutputs.AttributesAssemblyPath());
-            var props = SecurityElement.Escape(
-                Path.Combine(
-                    repository,
-                    "SharpProof.Package",
-                    "buildTransitive",
-                    "SharpProof.props"));
-            var verifierProps = SecurityElement.Escape(
-                Path.Combine(
-                    repository,
-                    "SharpProof.Verifier",
-                    "buildTransitive",
-                    "SharpProof.Verifier.props"));
-            var testConfiguration = new DirectoryInfo(
-                Path.GetDirectoryName(
-                    typeof(WorkerMsBuildIntegrationTests).Assembly.Location)!)
-                .Parent?.Name ??
-                throw new InvalidOperationException(
-                    "The test build configuration was not found.");
-            var analyzerDirectory = SecurityElement.Escape(Path.Combine(
-                repository,
-                "SharpProof.Analyzer",
-                "bin",
-                testConfiguration,
-                "netstandard2.0"));
-            var generatorDirectory = SecurityElement.Escape(Path.Combine(
-                repository,
-                "SharpProof.ContractForGenerator",
-                "bin",
-                testConfiguration,
-                "netstandard2.0"));
-            var collectorDirectory = SecurityElement.Escape(Path.Combine(
-                repository,
-                "SharpProof.CompilerCollector",
-                "bin",
-                testConfiguration,
-                "netstandard2.0"));
-            var targets = SecurityElement.Escape(
-                Path.Combine(
-                    repository,
-                    "SharpProof.Package",
-                    "buildTransitive",
-                    "SharpProof.targets"));
-            var verifierTargets = SecurityElement.Escape(
-                Path.Combine(
-                    repository,
-                    "SharpProof.Verifier",
-                    "buildTransitive",
-                    "SharpProof.Verifier.targets"));
-            var worker = SecurityElement.Escape(
-                Path.Combine(repository, "SharpProof.Worker", "bin",
-                    testConfiguration, "net9.0", "SharpProof.Worker.dll"));
-            var launcher = SecurityElement.Escape(
-                Path.Combine(repository, "SharpProof.Worker.Launcher", "bin",
-                    testConfiguration, "net9.0",
-                    "SharpProof.Worker.Launcher.dll"));
-            var protocol = SecurityElement.Escape(
-                Path.Combine(repository, "SharpProof.Worker.Protocol", "bin",
-                    testConfiguration, "netstandard2.0",
-                    "SharpProof.Worker.Protocol.dll"));
-            var buildTasks = SecurityElement.Escape(
-                Path.Combine(repository, "SharpProof.BuildTasks", "bin",
-                    testConfiguration, "net9.0",
-                    "SharpProof.BuildTasks.dll"));
+            var template = s_projectTemplate.Value;
             var configuredProperties = string.Join(
                 Environment.NewLine,
                 properties.Select(static property =>
                     "    <" + property.Name + ">" +
                     SecurityElement.Escape(property.Value) +
                     "</" + property.Name + ">"));
-            var nativeZ3Property = string.IsNullOrEmpty(nativeZ3Path)
+            var nativeZ3Property = string.IsNullOrEmpty(template.NativeZ3Path)
                 ? string.Empty
-                : "    <_SharpProofPackageNativeZ3Path>" + nativeZ3Path +
+                : "    <_SharpProofPackageNativeZ3Path>" +
+                    template.NativeZ3Path +
                     "</_SharpProofPackageNativeZ3Path>" +
                     Environment.NewLine;
             return
                 $"""
                 <Project Sdk="Microsoft.NET.Sdk">
-                  <Import Project="{props}" />
-                  <Import Project="{verifierProps}" />
+                  <Import Project="{template.PropsPath}" />
+                  <Import Project="{template.VerifierPropsPath}" />
                   <PropertyGroup>
-                    <SharpProofAnalyzerDirectory>{analyzerDirectory}</SharpProofAnalyzerDirectory>
-                    <_SharpProofTestContractForGeneratorPath>{generatorDirectory}/SharpProof.ContractForGenerator.dll</_SharpProofTestContractForGeneratorPath>
-                    <_SharpProofSharedDirectory>{collectorDirectory}</_SharpProofSharedDirectory>
-                    <SharpProofCollectorDirectory>{collectorDirectory}</SharpProofCollectorDirectory>
-                    <SharpProofCompilerCollectorPath>{collectorDirectory}/SharpProof.CompilerCollector.dll</SharpProofCompilerCollectorPath>
+                    <SharpProofAnalyzerDirectory>{template.AnalyzerDirectory}</SharpProofAnalyzerDirectory>
+                    <_SharpProofTestContractForGeneratorPath>{template.GeneratorDirectory}/SharpProof.ContractForGenerator.dll</_SharpProofTestContractForGeneratorPath>
+                    <_SharpProofSharedDirectory>{template.CollectorDirectory}</_SharpProofSharedDirectory>
+                    <SharpProofCollectorDirectory>{template.CollectorDirectory}</SharpProofCollectorDirectory>
+                    <SharpProofCompilerCollectorPath>{template.CollectorDirectory}/SharpProof.CompilerCollector.dll</SharpProofCompilerCollectorPath>
                     <LangVersion>12.0</LangVersion>
                     <RestoreIgnoreFailedSources>true</RestoreIgnoreFailedSources>
-                    <SharpProofWorkerPath>{worker}</SharpProofWorkerPath>
-                    <SharpProofLauncherPath>{launcher}</SharpProofLauncherPath>
-                    <_SharpProofTestWorkerProtocolPath>{protocol}</_SharpProofTestWorkerProtocolPath>
-                    <_SharpProofTestBuildTasksPath>{buildTasks}</_SharpProofTestBuildTasksPath>
-                    <_SharpProofPackageWorkerPath>{worker}</_SharpProofPackageWorkerPath>
+                    <SharpProofWorkerPath>{template.WorkerPath}</SharpProofWorkerPath>
+                    <SharpProofLauncherPath>{template.LauncherPath}</SharpProofLauncherPath>
+                    <_SharpProofTestWorkerProtocolPath>{template.ProtocolPath}</_SharpProofTestWorkerProtocolPath>
+                    <_SharpProofTestBuildTasksPath>{template.BuildTasksPath}</_SharpProofTestBuildTasksPath>
+                    <_SharpProofPackageWorkerPath>{template.WorkerPath}</_SharpProofPackageWorkerPath>
                     <_SharpProofPackageWorkerPath Condition="'$(_SharpProofTestWorkerPath)' != ''">$([System.IO.Path]::GetFullPath('$(_SharpProofTestWorkerPath)'))</_SharpProofPackageWorkerPath>
-                    <_SharpProofPackageLauncherPath>{launcher}</_SharpProofPackageLauncherPath>
-                    <_SharpProofPackageWorkerProtocolPath>{protocol}</_SharpProofPackageWorkerProtocolPath>
-                    <_SharpProofPackageBuildTasksPath>{buildTasks}</_SharpProofPackageBuildTasksPath>
+                    <_SharpProofPackageLauncherPath>{template.LauncherPath}</_SharpProofPackageLauncherPath>
+                    <_SharpProofPackageWorkerProtocolPath>{template.ProtocolPath}</_SharpProofPackageWorkerProtocolPath>
+                    <_SharpProofPackageBuildTasksPath>{template.BuildTasksPath}</_SharpProofPackageBuildTasksPath>
                 {nativeZ3Property}{configuredProperties}
                     <TargetFramework Condition="'$(TargetFrameworks)' == '' and '$(TargetFramework)' == ''">net8.0</TargetFramework>
                   </PropertyGroup>
                   <ItemGroup>
                     <Reference Include="SharpProof.Attributes">
-                      <HintPath>{attributes}</HintPath>
+                      <HintPath>{template.AttributesAssemblyPath}</HintPath>
                       <Private>true</Private>
                     </Reference>
                   </ItemGroup>
-                  <Import Project="{targets}" />
-                  <Import Project="{verifierTargets}" />
+                  <Import Project="{template.TargetsPath}" />
+                  <Import Project="{template.VerifierTargetsPath}" />
                   <Target Name="_SharpProofTestInvalidatePublishedResult"
                           BeforeTargets="_SharpProofVerifyCore"
                           Condition="'$(BuildingProject)' == 'false' and
@@ -4378,6 +4331,102 @@ public sealed class WorkerMsBuildIntegrationTests
                   </Target>
                 </Project>
                 """;
+        }
+
+        private static ProjectTemplate CreateProjectTemplate()
+        {
+            var repository = TestRepository.FindRoot();
+            var nativeZ3Path = SecurityElement.Escape(
+                ContainerContract.ResolveZ3LibraryRequired());
+            var attributes = SecurityElement.Escape(
+                ProductBuildOutputs.AttributesAssemblyPath());
+            var props = SecurityElement.Escape(Path.Combine(
+                repository,
+                "SharpProof.Package",
+                "buildTransitive",
+                "SharpProof.props"));
+            var verifierProps = SecurityElement.Escape(Path.Combine(
+                repository,
+                "SharpProof.Verifier",
+                "buildTransitive",
+                "SharpProof.Verifier.props"));
+            var testConfiguration = new DirectoryInfo(
+                Path.GetDirectoryName(
+                    typeof(WorkerMsBuildIntegrationTests).Assembly.Location)!)
+                .Parent?.Name ??
+                throw new InvalidOperationException(
+                    "The test build configuration was not found.");
+            var analyzerDirectory = SecurityElement.Escape(Path.Combine(
+                repository,
+                "SharpProof.Analyzer",
+                "bin",
+                testConfiguration,
+                "netstandard2.0"));
+            var generatorDirectory = SecurityElement.Escape(Path.Combine(
+                repository,
+                "SharpProof.ContractForGenerator",
+                "bin",
+                testConfiguration,
+                "netstandard2.0"));
+            var collectorDirectory = SecurityElement.Escape(Path.Combine(
+                repository,
+                "SharpProof.CompilerCollector",
+                "bin",
+                testConfiguration,
+                "netstandard2.0"));
+            var targets = SecurityElement.Escape(Path.Combine(
+                repository,
+                "SharpProof.Package",
+                "buildTransitive",
+                "SharpProof.targets"));
+            var verifierTargets = SecurityElement.Escape(Path.Combine(
+                repository,
+                "SharpProof.Verifier",
+                "buildTransitive",
+                "SharpProof.Verifier.targets"));
+            var worker = SecurityElement.Escape(Path.Combine(
+                repository,
+                "SharpProof.Worker",
+                "bin",
+                testConfiguration,
+                "net9.0",
+                "SharpProof.Worker.dll"));
+            var launcher = SecurityElement.Escape(Path.Combine(
+                repository,
+                "SharpProof.Worker.Launcher",
+                "bin",
+                testConfiguration,
+                "net9.0",
+                "SharpProof.Worker.Launcher.dll"));
+            var protocol = SecurityElement.Escape(Path.Combine(
+                repository,
+                "SharpProof.Worker.Protocol",
+                "bin",
+                testConfiguration,
+                "netstandard2.0",
+                "SharpProof.Worker.Protocol.dll"));
+            var buildTasks = SecurityElement.Escape(Path.Combine(
+                repository,
+                "SharpProof.BuildTasks",
+                "bin",
+                testConfiguration,
+                "net9.0",
+                "SharpProof.BuildTasks.dll"));
+            return new ProjectTemplate(
+                repository,
+                nativeZ3Path,
+                attributes,
+                props,
+                verifierProps,
+                analyzerDirectory,
+                generatorDirectory,
+                collectorDirectory,
+                targets,
+                verifierTargets,
+                worker,
+                launcher,
+                protocol,
+                buildTasks);
         }
 
     }
