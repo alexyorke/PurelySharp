@@ -673,7 +673,9 @@ public static partial class WorkerProtocolJson
             errors.Rules(value, WorkerProtocolMetadata.CallableResultRules);
             var declared = manifestIndexes.CallablesById.Find(value.CallableId);
             errors.Check(declared != null &&
-                SameAssumptionDeclarations(value.Assumptions, declared.Assumptions),
+                SameAssumptionDeclarations(
+                    value.Assumptions,
+                    manifestIndexes.CallableAssumptionsById[declared.CallableId]),
                 "response.callable_assumption_set");
         }
         return valid;
@@ -750,7 +752,9 @@ public static partial class WorkerProtocolJson
             claim?.Kind ?? WorkerClaimKind.Unspecified, value.Outcome, value.Vacuity),
             "response.vacuity");
         var owner = manifestIndexes.CallablesById.Find(claim?.CallableId);
-        errors.Check(owner != null && SameAssumptionDeclarations(value.Assumptions, owner.Assumptions),
+        errors.Check(owner != null && SameAssumptionDeclarations(
+            value.Assumptions,
+            manifestIndexes.CallableAssumptionsById[owner.CallableId]),
             "response.claim_assumption_set");
     }
     internal static bool HasValidEffectCertainty(WorkerClaimOutcome outcome, WorkerClaimReason reason,
@@ -1134,17 +1138,18 @@ public static partial class WorkerProtocolJson
     }
 
     internal static bool SameAssumptionDeclarations(
-            WorkerAssumptionEvidence[]? actual, WorkerAssumptionEvidence[]? expected)
+            WorkerAssumptionEvidence[]? actual,
+            (string Id, WorkerAssumptionKind Kind)[] expected)
     {
-        static IEnumerable<(string Id, WorkerAssumptionKind Kind)> Normalize(
-            WorkerAssumptionEvidence[]? values)
-        {
-            return (values ?? []).Where(static value => value != null)
-                .OrderBy(static value => value.Id, s_ordinal)
-                .Select(static value => (value.Id, value.Kind));
-        }
+        return NormalizeAssumptionDeclarations(actual).SequenceEqual(expected);
+    }
 
-        return Normalize(actual).SequenceEqual(Normalize(expected));
+    private static (string Id, WorkerAssumptionKind Kind)[]
+        NormalizeAssumptionDeclarations(WorkerAssumptionEvidence[]? values)
+    {
+        return [.. (values ?? []).Where(static value => value != null)
+            .OrderBy(static value => value.Id, s_ordinal)
+            .Select(static value => (value.Id, value.Kind))];
     }
 
     private sealed class ManifestIdentityIndexes
@@ -1162,12 +1167,32 @@ public static partial class WorkerProtocolJson
             ClaimsById = new OrdinalIdentityIndex<WorkerClaimManifestEntry>(
                 Claims,
                 static item => item.ClaimId);
+            CallableAssumptionsById = CreateCallableAssumptions(Callables);
         }
 
         internal WorkerCallableManifestEntry[] Callables { get; }
         internal WorkerClaimManifestEntry[] Claims { get; }
         internal OrdinalIdentityIndex<WorkerCallableManifestEntry> CallablesById { get; }
         internal OrdinalIdentityIndex<WorkerClaimManifestEntry> ClaimsById { get; }
+        internal Dictionary<string?, (string Id, WorkerAssumptionKind Kind)[]>
+            CallableAssumptionsById { get; }
+
+        private static Dictionary<string?, (string Id, WorkerAssumptionKind Kind)[]>
+            CreateCallableAssumptions(WorkerCallableManifestEntry[] callables)
+        {
+            var result = new Dictionary<string?, (string Id, WorkerAssumptionKind Kind)[]>(
+                s_ordinal);
+            foreach (var callable in callables)
+            {
+                if (!result.ContainsKey(callable.CallableId))
+                {
+                    result.Add(
+                        callable.CallableId,
+                        NormalizeAssumptionDeclarations(callable.Assumptions));
+                }
+            }
+            return result;
+        }
     }
 
     private sealed class OrdinalIdentityIndex<T>
