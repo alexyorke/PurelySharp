@@ -379,6 +379,7 @@ internal static class CompilerManifestArtifactJson
         return SerializeCore(
             artifact,
             validate: true,
+            canonicalize: true,
             cancellationToken: cancellationToken);
     }
 
@@ -389,12 +390,29 @@ internal static class CompilerManifestArtifactJson
         return SerializeCore(
             artifact,
             validate: false,
+            canonicalize: true,
+            cancellationToken: cancellationToken);
+    }
+
+    // CompilerManifestArtifactProducer validates and canonicalizes the
+    // artifact before handing it directly to one of these writers. Keep this
+    // precondition explicit so ordinary callers still receive the defensive
+    // canonicalization performed by SerializeValidated.
+    internal static string SerializeProducerValidated(
+        CompilerManifestArtifact artifact,
+        CancellationToken cancellationToken = default)
+    {
+        return SerializeCore(
+            artifact,
+            validate: false,
+            canonicalize: false,
             cancellationToken: cancellationToken);
     }
 
     private static string SerializeCore(
         CompilerManifestArtifact artifact,
         bool validate,
+        bool canonicalize,
         CancellationToken cancellationToken)
     {
         artifact = ArgumentNullGuard.NotNull(artifact, nameof(artifact));
@@ -405,18 +423,23 @@ internal static class CompilerManifestArtifactJson
             throw new JsonException("The compiler diagnostics are invalid.");
         }
 
-        WorkerProtocolJson.Canonicalize(artifact.Manifest);
-        artifact.CompilerDiagnostics =
-            CompilerDiagnosticArtifactOrdering.Canonicalize(
-                artifact.CompilerDiagnostics);
-        artifact.Callables = [
-            .. artifact.Callables.OrderBy(static item => item.CallableId, StringComparer.Ordinal)
-        ];
-        artifact.LocationAuthorities = [
-            .. (artifact.LocationAuthorities ?? [])
-                .OrderBy(static item => item?.OwnerKind)
-                .ThenBy(static item => item?.OwnerId, StringComparer.Ordinal)
-        ];
+        if (canonicalize)
+        {
+            WorkerProtocolJson.Canonicalize(artifact.Manifest);
+            artifact.CompilerDiagnostics =
+                CompilerDiagnosticArtifactOrdering.Canonicalize(
+                    artifact.CompilerDiagnostics);
+            artifact.Callables = [
+                .. artifact.Callables.OrderBy(
+                    static item => item.CallableId,
+                    StringComparer.Ordinal)
+            ];
+            artifact.LocationAuthorities = [
+                .. (artifact.LocationAuthorities ?? [])
+                    .OrderBy(static item => item?.OwnerKind)
+                    .ThenBy(static item => item?.OwnerId, StringComparer.Ordinal)
+            ];
+        }
         cancellationToken.ThrowIfCancellationRequested();
         if (validate)
         {

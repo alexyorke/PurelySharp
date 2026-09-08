@@ -675,7 +675,7 @@ internal static class WorkerPerformanceProbe
                 CancellationToken.None);
             File.WriteAllText(
                 artifactPath,
-                CompilerManifestArtifactJson.SerializeValidated(artifact),
+                CompilerManifestArtifactJson.SerializeProducerValidated(artifact),
                 Utf8WithoutBom);
         }
 
