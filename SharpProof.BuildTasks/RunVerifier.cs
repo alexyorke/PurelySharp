@@ -367,7 +367,6 @@ public sealed partial class RunVerifier : Microsoft.Build.Utilities.Task,
                         processGroupPidFd,
                         standardOutput,
                         standardError,
-                        supervisorNonce,
                         supervisorCleanupSignal.Task,
                         authenticationFailure);
                     process = null;
@@ -609,7 +608,7 @@ public sealed partial class RunVerifier : Microsoft.Build.Utilities.Task,
 
     internal static void RetainCleanupAnchorForTest(Process process)
     {
-        RetainCleanupAnchor(process, -1, null, null, null, null, null);
+        RetainCleanupAnchor(process, -1, null, null, null, null);
     }
 
     internal static void RetainCleanupAnchorForTest(
@@ -626,7 +625,6 @@ public sealed partial class RunVerifier : Microsoft.Build.Utilities.Task,
             -1,
             boundedOutput,
             null,
-            supervisorNonce,
             null,
             authenticationFailure);
     }
@@ -648,7 +646,6 @@ public sealed partial class RunVerifier : Microsoft.Build.Utilities.Task,
         int processGroupPidFd,
         System.Threading.Tasks.Task<BoundedProcessOutput>? standardOutput,
         System.Threading.Tasks.Task<BoundedProcessOutput>? standardError,
-        string? supervisorNonce = null,
         System.Threading.Tasks.Task? supervisorCleanupSignal = null,
         Action<string>? authenticationFailure = null)
     {
@@ -658,7 +655,6 @@ public sealed partial class RunVerifier : Microsoft.Build.Utilities.Task,
             processGroupPidFd,
             standardOutput,
             standardError,
-            supervisorNonce,
             supervisorCleanupSignal,
             authenticationFailure);
         if (!RetainedCleanupAnchors.TryAdd(token, anchor))
@@ -677,8 +673,7 @@ public sealed partial class RunVerifier : Microsoft.Build.Utilities.Task,
         try
         {
             await anchor.Process.WaitForExitAsync().ConfigureAwait(false);
-            if (anchor.SupervisorNonce != null &&
-                anchor.AuthenticationFailure != null)
+            if (anchor.AuthenticationFailure != null)
             {
                 var authenticated = anchor.StandardOutput != null &&
                     await AwaitCleanupAuthenticationAfterSupervisorExit(
@@ -754,7 +749,6 @@ public sealed partial class RunVerifier : Microsoft.Build.Utilities.Task,
         int ProcessGroupPidFd,
         System.Threading.Tasks.Task<BoundedProcessOutput>? StandardOutput,
         System.Threading.Tasks.Task<BoundedProcessOutput>? StandardError,
-        string? SupervisorNonce,
         System.Threading.Tasks.Task? SupervisorCleanupSignal,
         Action<string>? AuthenticationFailure);
 
