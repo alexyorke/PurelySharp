@@ -8,7 +8,6 @@ $ErrorActionPreference = 'Stop'
 $root = Join-Path ([IO.Path]::GetTempPath()) (
     'sharpproof-release-json-' + [Guid]::NewGuid().ToString('N'))
 [IO.Directory]::CreateDirectory($root) | Out-Null
-$passed = 0
 $total = 0
 
 function Write-Fixture {
@@ -39,7 +38,6 @@ function Assert-Fixture {
         $assertion.ExpectRejected = $true
     }
     Invoke-SharpProofFixtureAssertion @assertion
-    $script:passed++
 }
 
 function Assert-Accepted {
@@ -108,7 +106,7 @@ try {
     Assert-Rejected manifest-whitespace ($manifestJson.Replace('  "schemaVersion"', '    "schemaVersion"')) ReleaseManifest
 
 
-    [pscustomobject][ordered]@{ passed = $passed; total = $total } |
+    [pscustomobject][ordered]@{ passed = $total; total = $total } |
         ConvertTo-Json -Compress
 }
 finally {
