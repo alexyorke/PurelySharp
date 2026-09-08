@@ -14,6 +14,12 @@ internal static partial class PortableIrGraphCodec
         PortableIrWireCatalog.BinaryOperators;
     private static readonly IrHavocKind[] HavocKinds =
         PortableIrWireCatalog.HavocKinds;
+    private static readonly IReadOnlyDictionary<string, PortableIrSlotMapping>
+        TermSlotMappings = CreateSlotIndex(PortableIrSlotCatalog.Terms);
+    private static readonly IReadOnlyDictionary<string, PortableIrSlotMapping>
+        LocationSlotMappings = CreateSlotIndex(PortableIrSlotCatalog.Locations);
+    private static readonly IReadOnlyDictionary<string, PortableIrSlotMapping>
+        InstructionSlotMappings = CreateSlotIndex(PortableIrSlotCatalog.Instructions);
 
     internal static bool HasCompleteWireEnumCatalogs =>
         new[] {
@@ -192,14 +198,28 @@ internal static partial class PortableIrGraphCodec
         }
     }
 
+    private static IReadOnlyDictionary<string, PortableIrSlotMapping> CreateSlotIndex(
+        IReadOnlyList<PortableIrSlotMapping> catalog)
+    {
+        var result = new Dictionary<string, PortableIrSlotMapping>(
+            StringComparer.Ordinal);
+        foreach (var mapping in catalog)
+        {
+            if (mapping.Kind is { } kind && !result.ContainsKey(kind))
+            {
+                result.Add(kind, mapping);
+            }
+        }
+        return result;
+    }
+
     private static PortableIrSlotMapping RequireCanonicalSlotMapping<TEnum>(
-        IReadOnlyList<PortableIrSlotMapping> catalog,
+        IReadOnlyDictionary<string, PortableIrSlotMapping> catalog,
         TEnum kind,
         int slotCount)
         where TEnum : struct, Enum
     {
-        var mapping = catalog.FirstOrDefault(candidate =>
-            string.Equals(candidate.Kind, kind.ToString(), StringComparison.Ordinal));
+        catalog.TryGetValue(kind.ToString(), out var mapping);
         Require(mapping.Kind != null, $"Portable IR {kind} slots are not declared.");
         Require(mapping.Slots != null, $"Portable IR {kind} slots are not declared.");
         Require(
@@ -262,7 +282,7 @@ internal static partial class PortableIrGraphCodec
     private static void RequireCanonicalTermSlots(PortableIrTerm row)
     {
         var mapping = RequireCanonicalSlotMapping(
-            PortableIrSlotCatalog.Terms,
+            TermSlotMappings,
             row.Kind,
             7);
         var kind = row.Kind.ToString();
@@ -279,7 +299,7 @@ internal static partial class PortableIrGraphCodec
         PortableIrInstruction row)
     {
         var mapping = RequireCanonicalSlotMapping(
-            PortableIrSlotCatalog.Instructions,
+            InstructionSlotMappings,
             row.Kind,
             6);
         var kind = row.Kind.ToString();
@@ -295,7 +315,7 @@ internal static partial class PortableIrGraphCodec
         PortableIrLocation row)
     {
         var mapping = RequireCanonicalSlotMapping(
-            PortableIrSlotCatalog.Locations,
+            LocationSlotMappings,
             row.Kind,
             5);
         var kind = row.Kind.ToString();
