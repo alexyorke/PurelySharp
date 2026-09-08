@@ -824,23 +824,41 @@ internal sealed partial class OperationEffectScanner
         {
             return EffectSummary.Empty;
         }
-        var arguments = ScanSequence(
-            creation.Arguments.Select(static argument => argument.Value));
-        if (!arguments.CompletesNormally)
-        {
-            return arguments.Summary;
-        }
-        var receiver = EffectRegionSet.Create(EffectRegionId.Fresh(creation.Syntax.SpanStart));
         var allocation = creation.Type?.IsValueType == true
             ? EffectSummary.Empty
             : EffectSummaryOperations.Allocate(EffectAllocationKind.Managed);
+        var suppressExternalConstruction =
+            IsUnmodeledExternalExceptionConstruction(creation) &&
+            creation.Syntax.AncestorsAndSelf().Any(static syntax =>
+                syntax is ThrowExpressionSyntax or ThrowStatementSyntax);
+        return ScanObjectConstruction(
+                creation,
+                allocation,
+                suppressExternalConstruction,
+                out _)
+            .Summary;
+    }
 
+    private EffectStep ScanObjectConstruction(
+        IObjectCreationOperation creation,
+        EffectSummary allocation,
+        bool suppressExternalConstruction,
+        out bool argumentsCompleted)
+    {
+        var arguments = ScanSequence(
+            creation.Arguments.Select(static argument => argument.Value));
+        argumentsCompleted = arguments.CompletesNormally;
+        if (!arguments.CompletesNormally)
+        {
+            return arguments;
+        }
+
+        var receiver = EffectRegionSet.Create(
+            EffectRegionId.Fresh(creation.Syntax.SpanStart));
         var argumentProjection = ProjectArguments(
             creation.Arguments,
             creation.Constructor?.Parameters.Length ?? 0);
-        var construction = IsUnmodeledExternalExceptionConstruction(creation) &&
-            creation.Syntax.AncestorsAndSelf().Any(static syntax =>
-                syntax is ThrowExpressionSyntax or ThrowStatementSyntax)
+        var construction = suppressExternalConstruction
             ? EffectSummary.Empty
             : _callResolver.ResolveConstruction(
                 creation,
@@ -848,16 +866,15 @@ internal sealed partial class OperationEffectScanner
                 argumentProjection.Regions,
                 argumentProjection.ActualArguments,
                 argumentProjection.HasParamArray);
-        var constructor = new EffectStep(
+        var result = arguments.Then(new EffectStep(
             EffectSummaryDomain.Instance.Join(allocation, construction),
-            _completionEvaluator.CanCompleteConstructorCall(creation));
-        var result = arguments.Then(constructor);
+            _completionEvaluator.CanCompleteConstructorCall(creation)));
         if (creation.Initializer != null && result.CompletesNormally)
         {
             result = result.Then(ScanStep(creation.Initializer));
         }
 
-        return result.Summary;
+        return result;
     }
 
     private EffectSummary ScanManagedAllocation(IOperation allocation)
@@ -916,30 +933,14 @@ internal sealed partial class OperationEffectScanner
             IsExternalExceptionConstruction(creation) &&
             !HasNonThrowingConstructorSpec(creation))
         {
-            var arguments = ScanSequence(
-                creation.Arguments.Select(static argument => argument.Value));
-            if (!arguments.CompletesNormally)
-            {
-                return arguments.Summary;
-            }
-
-            var receiver = EffectRegionSet.Create(
-                EffectRegionId.Fresh(creation.Syntax.SpanStart));
-            var argumentProjection = ProjectArguments(
-                creation.Arguments,
-                creation.Constructor?.Parameters.Length ?? 0);
-            var construction = _callResolver.ResolveConstruction(
+            var result = ScanObjectConstruction(
                 creation,
-                receiver,
-                argumentProjection.Regions,
-                argumentProjection.ActualArguments,
-                argumentProjection.HasParamArray);
-            var result = arguments.Then(new EffectStep(
-                construction,
-                _completionEvaluator.CanCompleteConstructorCall(creation)));
-            if (creation.Initializer != null && result.CompletesNormally)
+                EffectSummary.Empty,
+                suppressExternalConstruction: false,
+                out var argumentsCompleted);
+            if (!argumentsCompleted)
             {
-                result = result.Then(ScanStep(creation.Initializer));
+                return result.Summary;
             }
             return EffectSummaryOperations.ExceptionConstructionThrow(
                 result.Summary,
