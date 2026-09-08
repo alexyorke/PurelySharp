@@ -25,18 +25,9 @@ internal static class AnalyzerGeneratedCodePolicy
             tree,
             compilation,
             cancellationToken);
-        if (generated == GeneratedKind.MarkedGenerated)
-        {
-            return true;
-        }
-
-        if (generated == GeneratedKind.NotGenerated)
-        {
-            return false;
-        }
-
-        return HasGeneratedPath(tree.FilePath) ||
-            HasGeneratedHeader(tree, cancellationToken) ||
+        return IsGeneratedFromTree(tree, generated, cancellationToken) ||
+            generated != GeneratedKind.MarkedGenerated &&
+            generated != GeneratedKind.NotGenerated &&
             HasGeneratedCodeAttribute(symbol, compilation);
     }
 
@@ -45,7 +36,17 @@ internal static class AnalyzerGeneratedCodePolicy
         Compilation compilation,
         CancellationToken cancellationToken)
     {
-        var generated = GetGeneratedKind(tree, compilation, cancellationToken);
+        return IsGeneratedFromTree(
+            tree,
+            GetGeneratedKind(tree, compilation, cancellationToken),
+            cancellationToken);
+    }
+
+    private static bool IsGeneratedFromTree(
+        SyntaxTree tree,
+        GeneratedKind generated,
+        CancellationToken cancellationToken)
+    {
         if (generated == GeneratedKind.MarkedGenerated)
         {
             return true;
