@@ -401,32 +401,19 @@ function Measure-RepositoryCSharpSyntax {
         [string]$Scope,
 
         [Parameter()]
-        $ProductionInventory
+        $ProductionInventory,
+
+        [Parameter()]
+        $CompileOwnersByPath
     )
 
     $resolvedPaths = @(Assert-RepositoryPaths -Paths $Paths -Scope $Scope)
-    $compileOwnersByPath = [Collections.Generic.Dictionary[string,
-        Collections.Generic.List[object]]]::new([StringComparer]::Ordinal)
-    if ($null -ne $ProductionInventory) {
-        foreach ($project in @($ProductionInventory.projects)) {
-            $projectCompilePaths = [Collections.Generic.HashSet[string]]::new(
-                [StringComparer]::Ordinal)
-            foreach ($compile in @($project.compile)) {
-                $compilePath = [string]$compile.path
-                if ([string]::IsNullOrWhiteSpace($compilePath) -or
-                    -not $projectCompilePaths.Add($compilePath)) {
-                    continue
-                }
-                $owners = $null
-                if (-not $compileOwnersByPath.TryGetValue(
-                        $compilePath,
-                        [ref]$owners)) {
-                    $owners = [Collections.Generic.List[object]]::new()
-                    $compileOwnersByPath.Add($compilePath, $owners)
-                }
-                $owners.Add($project)
-            }
-        }
+    $compileOwners = if ($null -ne $CompileOwnersByPath) {
+        $CompileOwnersByPath
+    }
+    else {
+        [Collections.Generic.Dictionary[string,
+            Collections.Generic.List[object]]]::new([StringComparer]::Ordinal)
     }
     $expressionNodes = 0
     $decisionPoints = 0
@@ -441,7 +428,7 @@ function Measure-RepositoryCSharpSyntax {
         $parseOptions = $null
         if ($null -ne $ProductionInventory) {
             $optionMatches = $null
-            $optionMatchCount = if ($compileOwnersByPath.TryGetValue(
+            $optionMatchCount = if ($compileOwners.TryGetValue(
                     $relativePath,
                     [ref]$optionMatches)) {
                 $optionMatches.Count
@@ -461,6 +448,28 @@ function Measure-RepositoryCSharpSyntax {
     return [pscustomobject]@{
         expressionNodes = $expressionNodes
         decisionPoints = $decisionPoints
+    }
+}
+
+$productionCompileOwnersByPath = [Collections.Generic.Dictionary[string,
+    Collections.Generic.List[object]]]::new([StringComparer]::Ordinal)
+foreach ($project in @($productionInventory.projects)) {
+    $projectCompilePaths = [Collections.Generic.HashSet[string]]::new(
+        [StringComparer]::Ordinal)
+    foreach ($compile in @($project.compile)) {
+        $compilePath = [string]$compile.path
+        if ([string]::IsNullOrWhiteSpace($compilePath) -or
+            -not $projectCompilePaths.Add($compilePath)) {
+            continue
+        }
+        $owners = $null
+        if (-not $productionCompileOwnersByPath.TryGetValue(
+                $compilePath,
+                [ref]$owners)) {
+            $owners = [Collections.Generic.List[object]]::new()
+            $productionCompileOwnersByPath.Add($compilePath, $owners)
+        }
+        $owners.Add($project)
     }
 }
 
@@ -624,7 +633,7 @@ try {
             $maximumDecisionPoints -le 0) {
             throw "Production coordinator '$name' must have positive limits."
         }
-        $currentMetrics = Measure-RepositoryCSharpSyntax -Paths @($path) -Scope "production coordinator '$name'" -ProductionInventory $productionInventory
+        $currentMetrics = Measure-RepositoryCSharpSyntax -Paths @($path) -Scope "production coordinator '$name'" -ProductionInventory $productionInventory -CompileOwnersByPath $productionCompileOwnersByPath
         $currentExpressionNodes = [int]$currentMetrics.expressionNodes
         $currentDecisionPoints = [int]$currentMetrics.decisionPoints
         if ($currentExpressionNodes -gt $maximumExpressionNodes -or
