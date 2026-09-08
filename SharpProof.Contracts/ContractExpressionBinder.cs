@@ -87,7 +87,7 @@ internal sealed class ContractExpressionBinder
         }
 
         var substitutions = new Dictionary<IrVarId, IrTerm>();
-        foreach (var variable in IrTraversal.CollectVariables(value.Term!))
+        foreach (var variable in value.Variables)
         {
             if (!_preState.TryGetValue(variable, out var preState))
             {
@@ -124,7 +124,8 @@ internal sealed class ContractExpressionBinder
 
         var boundVariables = new HashSet<IrVarId>(
             result.Variables.Select(static binding => binding.Variable));
-        foreach (var variable in IrTraversal.CollectVariables(result.Term))
+        var variables = IrTraversal.CollectVariables(result.Term);
+        foreach (var variable in variables)
         {
             if (boundVariables.Contains(variable) ||
                 variable == _result ||
@@ -140,28 +141,32 @@ internal sealed class ContractExpressionBinder
 
             _receiverVariables.Add(variable);
         }
-        return ExpressionBindingResult.Success(result.Term);
+        return ExpressionBindingResult.Success(result.Term, variables);
     }
 
 }
 
 internal readonly struct ExpressionBindingResult(
     IrTerm? term,
-    ContractBindingFailure failure)
+    ContractBindingFailure failure,
+    ImmutableHashSet<IrVarId> variables)
 {
     internal IrTerm? Term { get; } = term;
     internal ContractBindingFailure Failure { get; } = failure;
+    internal ImmutableHashSet<IrVarId> Variables { get; } = variables;
     internal bool IsSuccess => Failure == ContractBindingFailure.None;
 
-    internal static ExpressionBindingResult Success(IrTerm term)
+    internal static ExpressionBindingResult Success(
+        IrTerm term,
+        ImmutableHashSet<IrVarId> variables)
     {
-        return new(term, ContractBindingFailure.None);
+        return new(term, ContractBindingFailure.None, variables);
     }
 
     internal static ExpressionBindingResult Fail(
         ContractBindingFailure failure)
     {
-        return new(null, failure);
+        return new(null, failure, ImmutableHashSet<IrVarId>.Empty);
     }
 
     internal static ExpressionBindingResult Unsupported
