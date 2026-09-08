@@ -77,6 +77,18 @@ public sealed class IrTraversalTests
                 IrTraversal.GetChildren(shape.Term),
                 Is.EqualTo(shape.Children),
                 shape.Kind.ToString());
+
+            var pending = new Stack<IrTerm>();
+            IrTraversal.PushChildren(shape.Term, pending);
+            var pushed = new List<IrTerm>();
+            while (pending.Count != 0)
+            {
+                pushed.Add(pending.Pop());
+            }
+            Assert.That(
+                pushed,
+                Is.EqualTo(shape.Children.Reverse()),
+                shape.Kind + " push order");
         }
     }
 

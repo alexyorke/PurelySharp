@@ -441,6 +441,7 @@ public sealed class IrSmtBackend : ISmtBackend, IDisposable
             CancellationToken cancellationToken)
         {
             var pending = new Stack<(IrTerm Term, int Depth)>();
+            var children = new Stack<IrTerm>();
             pending.Push((root, 1));
             while (pending.Count != 0)
             {
@@ -457,9 +458,11 @@ public sealed class IrSmtBackend : ISmtBackend, IDisposable
                     continue;
                 }
                 maximumDepths[term.Id] = depth;
-                foreach (var child in IrTraversal.GetChildren(term))
+                children.Clear();
+                IrTraversal.PushChildren(term, children);
+                while (children.Count != 0)
                 {
-                    pending.Push((child, depth + 1));
+                    pending.Push((children.Pop(), depth + 1));
                 }
             }
         }

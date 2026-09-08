@@ -622,21 +622,19 @@ public static class IrStructuralShrinker
         }
 
         var seen = new HashSet<IrId>();
-        Visit(term);
-        return seen.Count;
-
-        void Visit(IrTerm current)
+        var pending = new Stack<IrTerm>();
+        pending.Push(term);
+        while (pending.Count != 0)
         {
+            var current = pending.Pop();
             if (!seen.Add(current.Id))
             {
-                return;
+                continue;
             }
 
-            foreach (var child in IrTraversal.GetChildren(current))
-            {
-                Visit(child);
-            }
+            IrTraversal.PushChildren(current, pending);
         }
+        return seen.Count;
     }
 
     private static IrTerm? TryReplaceChild(
