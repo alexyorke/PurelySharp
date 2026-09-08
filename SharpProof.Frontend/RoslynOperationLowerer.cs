@@ -103,6 +103,13 @@ public sealed class RoslynOperationLowerer
             .OrderBy(static binding => binding.Variable.Value)];
     }
 
+    internal ImmutableArray<IrVarId> CreateVariableIds()
+    {
+        return [.. _variables.Values
+            .Concat(_instances.Values)
+            .OrderBy(static variable => variable.Value)];
+    }
+
     internal ImmutableArray<IrVarId> CreateCaptureBindings()
     {
         return [.. _captureOrder];

@@ -658,8 +658,7 @@ public sealed class RoslynProgramLowerer(
 
         private IrVarId[] CreateKnownStateVariables()
         {
-            return [.. _expressions.CreateVariableBindings()
-                .Select(static binding => binding.Variable)
+            return [.. _expressions.CreateVariableIds()
                 .Concat(_expressions.CreateCaptureBindings())];
         }
 
