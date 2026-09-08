@@ -22,10 +22,8 @@ internal sealed class ContractApiSymbols(
         var selections =
             ContractSelectionInventory.ForCompilation(compilation);
 
-        var hasResult = false;
-        var hasOld = false;
-        IMethodSymbol result = null!;
-        IMethodSymbol old = null!;
+        IMethodSymbol? result = null;
+        IMethodSymbol? old = null;
         foreach (var member in clauses.ContractType.GetMembers())
         {
             if (member is not IMethodSymbol method ||
@@ -38,28 +36,26 @@ internal sealed class ContractApiSymbols(
             if (method.Name == ContractApiMetadata.ResultMethodName &&
                 method.Parameters.Length == 0)
             {
-                if (hasResult)
+                if (result != null)
                 {
                     return null;
                 }
 
                 result = method;
-                hasResult = true;
             }
             else if (method.Name == ContractApiMetadata.OldMethodName &&
                      method.Parameters.Length == 1)
             {
-                if (hasOld)
+                if (old != null)
                 {
                     return null;
                 }
 
                 old = method;
-                hasOld = true;
             }
         }
 
-        if (!hasResult || !hasOld)
+        if (result == null || old == null)
         {
             return null;
         }
