@@ -61,17 +61,32 @@ internal static class ContractForSymbolMatcher
         }
     }
 
-    internal static ImmutableArray<AttributeData> GetAttributes(
+    internal static (int Count, AttributeData? First) GetAttributes(
         INamedTypeSymbol companion,
         INamedTypeSymbol contractFor,
         Func<SyntaxTree, bool>? includeTree = null)
     {
-        return [.. companion.GetAttributes().Where(attribute =>
-            (attribute.ApplicationSyntaxReference == null ||
-             includeTree == null ||
-             includeTree(attribute.ApplicationSyntaxReference.SyntaxTree)) &&
-            SymbolEqualityComparer.Default.Equals(
-                attribute.AttributeClass?.OriginalDefinition, contractFor.OriginalDefinition))];
+        var count = 0;
+        AttributeData? first = null;
+        foreach (var attribute in companion.GetAttributes())
+        {
+            if (attribute.ApplicationSyntaxReference != null &&
+                includeTree != null &&
+                !includeTree(attribute.ApplicationSyntaxReference.SyntaxTree))
+            {
+                continue;
+            }
+            if (!SymbolEqualityComparer.Default.Equals(
+                    attribute.AttributeClass?.OriginalDefinition,
+                    contractFor.OriginalDefinition))
+            {
+                continue;
+            }
+
+            count++;
+            first ??= attribute;
+        }
+        return (count, first);
     }
 
     internal static bool TryGetTarget(
@@ -179,7 +194,9 @@ internal static class ContractForSymbolMatcher
                      cancellationToken))
         {
             var attributes = GetAttributes(type, contractFor);
-            if (attributes.Length == 1 && TryGetTarget(attributes[0], out var target))
+            if (attributes.Count == 1 &&
+                attributes.First is { } attribute &&
+                TryGetTarget(attribute, out var target))
             {
                 result.Add(new CompanionDescriptor(type, target));
             }

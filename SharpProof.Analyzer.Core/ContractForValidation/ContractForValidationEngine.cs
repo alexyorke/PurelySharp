@@ -180,9 +180,9 @@ internal static class ContractForValidationEngine
                 companion, contractFor, includeTree);
             var fallback = ContractForCompanionValidator.GetSourceLocation(
                 companion, compilation, Location.None);
-            if (attributes.Length != 1)
+            if (attributes.Count != 1)
             {
-                var location = attributes.FirstOrDefault() is { } first
+                var location = attributes.First is { } first
                     ? GetAttributeLocation(
                         first,
                         compilation,
@@ -193,7 +193,7 @@ internal static class ContractForValidationEngine
                     ContractForDiagnosticDescriptors.InvalidTarget, location, companion.Name));
                 continue;
             }
-            var attribute = attributes[0];
+            var attribute = attributes.First!;
             var attributeLocation = GetAttributeLocation(
                 attribute,
                 compilation,
