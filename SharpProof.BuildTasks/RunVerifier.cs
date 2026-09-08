@@ -367,6 +367,7 @@ public sealed partial class RunVerifier : Microsoft.Build.Utilities.Task,
                         processGroupPidFd,
                         standardOutput,
                         standardError,
+                        supervisorNonce,
                         supervisorCleanupSignal.Task,
                         authenticationFailure);
                     process = null;
@@ -625,6 +626,7 @@ public sealed partial class RunVerifier : Microsoft.Build.Utilities.Task,
             -1,
             boundedOutput,
             null,
+            supervisorNonce,
             null,
             authenticationFailure);
     }
@@ -646,9 +648,14 @@ public sealed partial class RunVerifier : Microsoft.Build.Utilities.Task,
         int processGroupPidFd,
         System.Threading.Tasks.Task<BoundedProcessOutput>? standardOutput,
         System.Threading.Tasks.Task<BoundedProcessOutput>? standardError,
+        string? supervisorNonce = null,
         System.Threading.Tasks.Task? supervisorCleanupSignal = null,
         Action<string>? authenticationFailure = null)
     {
+        if (supervisorNonce is null)
+        {
+            authenticationFailure = null;
+        }
         var token = Interlocked.Increment(ref s_nextCleanupAnchor);
         var anchor = new CleanupAnchor(
             process,
