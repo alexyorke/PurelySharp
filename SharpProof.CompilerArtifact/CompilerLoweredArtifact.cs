@@ -637,13 +637,21 @@ internal static class CompilerLoweredArtifact
 
         var expected = claims.Where(static item => item.Kind == WorkerClaimKind.Effect).ToArray();
         if (artifact.EffectClaims.Length != expected.Length ||
-            artifact.EffectAuthorities.Length != expected.Length ||
-            artifact.EffectClaims.Select(static item => item?.ClaimId)
-                .Distinct(StringComparer.Ordinal).Count() != artifact.EffectClaims.Length ||
-            artifact.EffectAuthorities.Select(static item => item?.ClaimId)
-                .Distinct(StringComparer.Ordinal).Count() != artifact.EffectAuthorities.Length)
+            artifact.EffectAuthorities.Length != expected.Length)
         {
             throw new InvalidDataException("Compiler effect-claim evidence does not equal the manifest.");
+        }
+
+        var effectClaimIds = new HashSet<string?>(StringComparer.Ordinal);
+        var effectAuthorityIds = new HashSet<string?>(StringComparer.Ordinal);
+        for (var index = 0; index < artifact.EffectClaims.Length; index++)
+        {
+            if (!effectClaimIds.Add(artifact.EffectClaims[index]?.ClaimId) ||
+                !effectAuthorityIds.Add(artifact.EffectAuthorities[index]?.ClaimId))
+            {
+                throw new InvalidDataException(
+                    "Compiler effect-claim evidence does not equal the manifest.");
+            }
         }
 
         for (var index = 0; index < expected.Length; index++)
