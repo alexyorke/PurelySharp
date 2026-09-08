@@ -83,7 +83,7 @@ internal static partial class SemanticClaimIdentity
     {
         method = ArgumentNullGuard.NotNull(method, nameof(method));
 
-        method = NormalizePartial(method).OriginalDefinition;
+        method = NormalizeCallable(method);
         var documentationId = DocumentationCommentId.CreateDeclarationId(method);
         if (!string.IsNullOrEmpty(documentationId))
         {
@@ -109,7 +109,7 @@ internal static partial class SemanticClaimIdentity
 
         siblingOrdinal = ArgumentNullGuard.RequireNonnegative(
             siblingOrdinal, nameof(siblingOrdinal));
-        method = NormalizePartial(method).OriginalDefinition;
+        method = NormalizeCallable(method);
         using var writer = new CanonicalHashWriter();
         writer.Add("SharpProofCallable/v1").Add(parentId).Add(siblingOrdinal);
         WriteMethod(writer, method, new ClaimIdentityContext(method, method, false));
@@ -531,6 +531,11 @@ internal static partial class SemanticClaimIdentity
     private static IMethodSymbol NormalizePartial(IMethodSymbol method)
     {
         return method.PartialImplementationPart ?? method;
+    }
+
+    private static IMethodSymbol NormalizeCallable(IMethodSymbol method)
+    {
+        return NormalizePartial(method).OriginalDefinition;
     }
 
     internal static IMethodSymbol NormalizeCandidate(IMethodSymbol method)
