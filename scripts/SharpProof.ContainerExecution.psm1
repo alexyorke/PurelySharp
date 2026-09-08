@@ -166,6 +166,58 @@ function Invoke-SharpProofRequiredDotnet {
     }
 }
 
+function Start-SharpProofEncodedPowerShell {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$WrapperPath,
+
+        [Parameter(Mandatory = $true)]
+        [int]$TimeoutSeconds,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$Arguments,
+
+        [Parameter(Mandatory = $true)]
+        [string]$WorkingDirectory,
+
+        [AllowEmptyString()]
+        [string]$StandardOutput = '',
+
+        [AllowEmptyString()]
+        [string]$StandardError = ''
+    )
+
+    $quotedArguments = @(
+        $Arguments |
+            ForEach-Object {
+                "'" + ([string]$_).Replace("'", "''") + "'"
+            }
+    ) -join ','
+    $escapedWrapper = $WrapperPath.Replace("'", "''")
+    $command = (
+        "& '$escapedWrapper' -TimeoutSeconds " +
+        [string]$TimeoutSeconds +
+        " @($quotedArguments); exit " + '$LASTEXITCODE')
+    $encodedCommand = [Convert]::ToBase64String(
+        [Text.Encoding]::Unicode.GetBytes($command))
+    $startParameters = @{
+        FilePath = 'pwsh'
+        ArgumentList = @(
+            '-NoLogo', '-NoProfile', '-EncodedCommand', $encodedCommand)
+        WorkingDirectory = $WorkingDirectory
+        Wait = $true
+        PassThru = $true
+    }
+    if (-not [string]::IsNullOrWhiteSpace($StandardOutput)) {
+        $startParameters.RedirectStandardOutput = $StandardOutput
+    }
+    if (-not [string]::IsNullOrWhiteSpace($StandardError)) {
+        $startParameters.RedirectStandardError = $StandardError
+    }
+    return Start-Process @startParameters
+}
+
 function Invoke-SharpProofCheckedCommand {
     param(
         [Parameter(Mandatory = $true)]
@@ -1125,6 +1177,7 @@ Export-ModuleMember -Function @(
     'Resolve-SharpProofSolutionTestTimeoutSeconds',
     'Get-SharpProofTestAssemblyPath',
     'Get-SharpProofDotnetWrapperPath',
+    'Start-SharpProofEncodedPowerShell',
     'Invoke-SharpProofCheckedCommand',
     'Write-SharpProofFailureOutput',
     'Invoke-SharpProofGitText',

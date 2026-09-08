@@ -84,47 +84,11 @@ $dotnetWrapper = Get-SharpProofDotnetWrapperPath
 $fuzzProject = Join-Path `
     $repositoryRoot 'Tools\SharpProof.Fuzz\SharpProof.Fuzz.csproj'
 
-function Invoke-BoundedDotnetProcess {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string[]]$DotnetArguments,
-
-        [string]$StandardOutput = '',
-
-        [string]$StandardError = ''
-    )
-
-    $quotedArguments = @(
-        $DotnetArguments |
-            ForEach-Object {
-                "'" + ([string]$_).Replace("'", "''") + "'"
-            }
-    ) -join ','
-    $escapedWrapper = $dotnetWrapper.Replace("'", "''")
-    $command = (
-        "& '$escapedWrapper' -TimeoutSeconds " +
-        [string]$contract.worker.maximumProjectWallSeconds +
-        " @($quotedArguments); exit " + '$LASTEXITCODE')
-    $encodedCommand = [Convert]::ToBase64String(
-        [Text.Encoding]::Unicode.GetBytes($command))
-    $startParameters = @{
-        FilePath = 'pwsh'
-        ArgumentList = @(
-            '-NoLogo', '-NoProfile', '-EncodedCommand', $encodedCommand)
-        WorkingDirectory = $repositoryRoot
-        Wait = $true
-        PassThru = $true
-    }
-    if (-not [string]::IsNullOrWhiteSpace($StandardOutput)) {
-        $startParameters.RedirectStandardOutput = $StandardOutput
-    }
-    if (-not [string]::IsNullOrWhiteSpace($StandardError)) {
-        $startParameters.RedirectStandardError = $StandardError
-    }
-    return Start-Process @startParameters
-}
-
-$buildProcess = Invoke-BoundedDotnetProcess -DotnetArguments @(
+$buildProcess = Start-SharpProofEncodedPowerShell `
+    -WrapperPath $dotnetWrapper `
+    -TimeoutSeconds ([int]$contract.worker.maximumProjectWallSeconds) `
+    -WorkingDirectory $repositoryRoot `
+    -Arguments @(
     'build',
     $fuzzProject,
     '-c',
@@ -169,8 +133,11 @@ function Invoke-FuzzRun {
         '--max-parallelism',
         [string]$contract.fuzz.maximumParallelism
     )
-    $process = Invoke-BoundedDotnetProcess `
-        -DotnetArguments $dotnetArguments `
+    $process = Start-SharpProofEncodedPowerShell `
+        -WrapperPath $dotnetWrapper `
+        -TimeoutSeconds ([int]$contract.worker.maximumProjectWallSeconds) `
+        -WorkingDirectory $repositoryRoot `
+        -Arguments $dotnetArguments `
         -StandardOutput $standardOutput `
         -StandardError $standardError
     $validationError = $null

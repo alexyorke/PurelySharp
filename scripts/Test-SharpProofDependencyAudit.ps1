@@ -21,6 +21,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+Import-Module (Join-Path `
+    $PSScriptRoot 'SharpProof.ContainerExecution.psm1') -Force
 
 function Resolve-RepositoryPathValue {
     param(
@@ -227,33 +229,14 @@ function Invoke-DependencyAudit {
         '--config',
         $Configuration
     )
-    $quotedArguments = @(
-        $dotnetArguments |
-            ForEach-Object {
-                "'" + ([string]$_).Replace("'", "''") + "'"
-            }
-    ) -join ','
-    $escapedWrapper = $wrapper.Replace("'", "''")
-    $command = (
-        "& '$escapedWrapper' -TimeoutSeconds $TimeoutSeconds " +
-        "@($quotedArguments); exit " +
-        '$LASTEXITCODE')
-    $encodedCommand = [Convert]::ToBase64String(
-        [Text.Encoding]::Unicode.GetBytes($command))
     try {
-        $process = Start-Process `
-            -FilePath 'pwsh' `
-            -ArgumentList @(
-                '-NoLogo',
-                '-NoProfile',
-                '-EncodedCommand',
-                $encodedCommand
-            ) `
+        $process = Start-SharpProofEncodedPowerShell `
+            -WrapperPath $wrapper `
+            -TimeoutSeconds $TimeoutSeconds `
+            -Arguments $dotnetArguments `
             -WorkingDirectory $repositoryRoot `
-            -Wait `
-            -PassThru `
-            -RedirectStandardOutput $standardOutput `
-            -RedirectStandardError $standardError
+            -StandardOutput $standardOutput `
+            -StandardError $standardError
         try {
             $outputText = if ([IO.File]::Exists($standardOutput)) {
                 [IO.File]::ReadAllText($standardOutput)

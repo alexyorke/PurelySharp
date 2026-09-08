@@ -18,6 +18,8 @@ $ErrorActionPreference = 'Stop'
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 . (Join-Path $PSScriptRoot 'Resolve-SharpProofContainedPath.ps1')
 . (Join-Path $PSScriptRoot 'Assert-SharpProofStandaloneGateResult.ps1')
+Import-Module (Join-Path `
+    $PSScriptRoot 'SharpProof.ContainerExecution.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot 'SharpProof.PEMetadata.psm1') -Force
 $sourceCommit = (& git -C $repositoryRoot rev-parse HEAD).Trim()
 if ($LASTEXITCODE -ne 0 -or $sourceCommit -notmatch '^[0-9a-f]{40}$') {
@@ -60,36 +62,17 @@ $dotnetArguments = @(
     $executable,
     $Gate
 )
-$quotedArguments = @(
-    $dotnetArguments |
-        ForEach-Object {
-            "'" + ([string]$_).Replace("'", "''") + "'"
-        }
-) -join ','
-$escapedWrapper = $wrapper.Replace("'", "''")
-$command = (
-    "& '$escapedWrapper' -TimeoutSeconds " +
-    [string]$TimeoutSeconds +
-    " @($quotedArguments); exit " + '$LASTEXITCODE')
-$encodedCommand = [Convert]::ToBase64String(
-    [Text.Encoding]::Unicode.GetBytes($command))
 $exitCode = -1
 $failure = $null
 $gateResult = $null
 try {
-    $process = Start-Process `
-        -FilePath 'pwsh' `
-        -ArgumentList @(
-            '-NoLogo',
-            '-NoProfile',
-            '-EncodedCommand',
-            $encodedCommand
-        ) `
+    $process = Start-SharpProofEncodedPowerShell `
+        -WrapperPath $wrapper `
+        -TimeoutSeconds $TimeoutSeconds `
+        -Arguments $dotnetArguments `
         -WorkingDirectory $repositoryRoot `
-        -Wait `
-        -PassThru `
-        -RedirectStandardOutput $rawOutput `
-        -RedirectStandardError $standardError
+        -StandardOutput $rawOutput `
+        -StandardError $standardError
     $exitCode = $process.ExitCode
     if (-not (Test-Path -LiteralPath $rawOutput -PathType Leaf)) {
         $failure = 'The gate did not produce a JSON result.'
