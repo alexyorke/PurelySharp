@@ -6809,29 +6809,18 @@ public sealed class WorkerTests
         using var worker = new SharpProofWorker(backend);
         var response = await worker.VerifyAsync(request);
         var authority = CreateResponseAuthority(request);
+        var validation = WorkerProtocolJson.Validate(
+            response,
+            response.InputHash,
+            response.Manifest,
+            authority);
         Assert.That(
-            WorkerProtocolJson.Validate(
-                    response,
-                    response.InputHash,
-                    response.Manifest,
-                    authority)
-                .IsValid,
+            validation.IsValid,
             Is.True,
-            FormatValidationErrors(response, authority));
+            string.Join(
+                Environment.NewLine,
+                validation.Errors.Select(static error => error.Code)));
         return (response, authority);
-    }
-
-    private static string FormatValidationErrors(
-        WorkerVerifyResponse response,
-        CompilerResponseEvidenceAuthority authority)
-    {
-        return string.Join(
-            Environment.NewLine,
-            WorkerProtocolJson.Validate(
-                response,
-                response.InputHash,
-                response.Manifest,
-                authority).Errors.Select(static error => error.Code));
     }
 
     private static void SetDeclaredMaxStack(
