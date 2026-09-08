@@ -1,5 +1,51 @@
 Set-StrictMode -Version Latest
 
+function Read-SharpProofBoundedJsonDocument {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$ByteLimitMessage,
+        [Parameter(Mandatory = $true)][string]$ShortReadMessage,
+        [Parameter(Mandatory = $true)][string]$GrowthMessage
+    )
+
+    $stream = [IO.FileStream]::new(
+        $Path,
+        [IO.FileMode]::Open,
+        [IO.FileAccess]::Read,
+        [IO.FileShare]::Read)
+    try {
+        if ($stream.Length -eq 0 -or $stream.Length -gt 1048576) {
+            throw $ByteLimitMessage
+        }
+        $bytes = [byte[]]::new([int]$stream.Length)
+        $offset = 0
+        while ($offset -lt $bytes.Length) {
+            $read = $stream.Read(
+                $bytes,
+                $offset,
+                $bytes.Length - $offset)
+            if ($read -eq 0) {
+                throw $ShortReadMessage
+            }
+            $offset += $read
+        }
+        if ($stream.ReadByte() -ne -1) {
+            throw $GrowthMessage
+        }
+    }
+    finally {
+        $stream.Dispose()
+    }
+
+    $json = [Text.UTF8Encoding]::new($false, $true).GetString($bytes)
+    return [pscustomobject]@{
+        Document = [Text.Json.JsonDocument]::Parse($json)
+        Bytes = $bytes
+        Json = $json
+    }
+}
+
 function Assert-ExactJsonObjectProperties {
     param(
         [Parameter(Mandatory = $true)]
@@ -63,37 +109,13 @@ function Assert-SharpProofFuzzRunnerResult {
     $bytes = $null
     $json = $null
     try {
-        $stream = [IO.FileStream]::new(
-            $Path,
-            [IO.FileMode]::Open,
-            [IO.FileAccess]::Read,
-            [IO.FileShare]::Read)
-        try {
-            if ($stream.Length -eq 0 -or $stream.Length -gt 1048576) {
-                throw 'The fuzz runner result exceeds its byte limit.'
-            }
-            $bytes = [byte[]]::new([int]$stream.Length)
-            $offset = 0
-            while ($offset -lt $bytes.Length) {
-                $read = $stream.Read(
-                    $bytes,
-                    $offset,
-                    $bytes.Length - $offset)
-                if ($read -eq 0) {
-                    throw 'The fuzz runner result ended before its declared length.'
-                }
-                $offset += $read
-            }
-            if ($stream.ReadByte() -ne -1) {
-                throw 'The fuzz runner result changed during validation.'
-            }
-        }
-        finally {
-            $stream.Dispose()
-        }
-        $json = [Text.UTF8Encoding]::new($false, $true).GetString($bytes)
-        $document = [Text.Json.JsonDocument]::Parse(
-            $json)
+        $validation = Read-SharpProofBoundedJsonDocument -Path $Path `
+            -ByteLimitMessage 'The fuzz runner result exceeds its byte limit.' `
+            -ShortReadMessage 'The fuzz runner result ended before its declared length.' `
+            -GrowthMessage 'The fuzz runner result changed during validation.'
+        $document = $validation.Document
+        $bytes = $validation.Bytes
+        $json = $validation.Json
         $root = $document.RootElement
         Assert-ExactJsonObjectProperties -Object $root `
             -Description 'Fuzz runner result' `

@@ -82,37 +82,11 @@ function Read-SharpProofRetainedFuzzSeedManifest {
 
     $document = $null
     try {
-        $stream = [IO.FileStream]::new(
-            $Path,
-            [IO.FileMode]::Open,
-            [IO.FileAccess]::Read,
-            [IO.FileShare]::Read)
-        try {
-            if ($stream.Length -eq 0 -or $stream.Length -gt 1048576) {
-                throw 'The retained fuzz seed manifest exceeds its byte limit.'
-            }
-            $bytes = [byte[]]::new([int]$stream.Length)
-            $offset = 0
-            while ($offset -lt $bytes.Length) {
-                $read = $stream.Read(
-                    $bytes,
-                    $offset,
-                    $bytes.Length - $offset)
-                if ($read -eq 0) {
-                    throw 'The retained fuzz seed manifest changed while read.'
-                }
-                $offset += $read
-            }
-            if ($stream.ReadByte() -ne -1) {
-                throw 'The retained fuzz seed manifest changed while read.'
-            }
-        }
-        finally {
-            $stream.Dispose()
-        }
-        $json = [Text.UTF8Encoding]::new($false, $true).GetString($bytes)
-        $document = [Text.Json.JsonDocument]::Parse(
-            $json)
+        $validation = Read-SharpProofBoundedJsonDocument -Path $Path `
+            -ByteLimitMessage 'The retained fuzz seed manifest exceeds its byte limit.' `
+            -ShortReadMessage 'The retained fuzz seed manifest changed while read.' `
+            -GrowthMessage 'The retained fuzz seed manifest changed while read.'
+        $document = $validation.Document
         $root = $document.RootElement
         if ($root.ValueKind -ne [Text.Json.JsonValueKind]::Object) {
             throw 'The retained fuzz seed manifest must be an object.'
