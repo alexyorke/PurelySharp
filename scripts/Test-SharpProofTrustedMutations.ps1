@@ -2599,8 +2599,6 @@ try {
     }
     else {
         $baselineRows = [Collections.Generic.List[object]]::new()
-        $baselineKeys = [Collections.Generic.HashSet[string]]::new(
-            [StringComparer]::Ordinal)
         $baselineGroupIndex = 0
         $baselinePlan = @(Get-SharpProofMutationBaselinePlan `
                 -Mutations $pendingMutations `
@@ -2667,18 +2665,15 @@ try {
                     -NotePropertyValue $invocation.Identity
                 $mutation | Add-Member -NotePropertyName BaselineTrx `
                     -NotePropertyValue $baselineTrxRelative
-                $key = $invocation.Identity
-                if ($baselineKeys.Add($key)) {
-                    $baselineRows.Add([pscustomobject]@{
-                        project = [string]$mutation.Project
-                        filter = [string]$mutation.Filter
-                        configuration = $Configuration
-                        invocation = $invocation.Identity
-                        ledger = $ledger
-                        trx = $baselineTrxRelative
-                    })
-                }
             }
+            $baselineRows.Add([pscustomobject]@{
+                project = [string]$invocation.Project
+                filter = [string]$invocation.Filter
+                configuration = $Configuration
+                invocation = $invocation.Identity
+                ledger = $ledger
+                trx = $baselineTrxRelative
+            })
         }
         if ($BaselineOnly) {
             $baselineParent = Split-Path -Parent $baselineFile
