@@ -197,20 +197,52 @@ internal static class CorpusGate
             .ConfigureAwait(false);
         failures.AddRange(concurrencyFailures);
 
-        var unknownCount = observations.Count(static observation =>
-            observation.Verdict == CorpusVerdict.Unknown);
-        var silentUnknownCount = observations.Count(static observation =>
-            observation.Verdict == CorpusVerdict.SilentUnknown);
-        var totalUnknownCount = unknownCount + silentUnknownCount;
         var casesById = casesByIdBuilder.ToImmutable();
-        var supportedUnknownCount = observations.Count(observation =>
-            casesById[observation.CaseId].Support == CorpusSupport.Supported &&
-            observation.Verdict is
-                CorpusVerdict.Unknown or CorpusVerdict.SilentUnknown);
+        var unknownCount = 0;
+        var silentUnknownCount = 0;
+        var supportedUnknownCount = 0;
+        var diagnosticCount = 0;
+        var unknownReasonCounts =
+            new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var observation in observations)
+        {
+            var corpusCase = casesById[observation.CaseId];
+            diagnosticCount = checked(
+                diagnosticCount + observation.Diagnostics.Length);
+            if (observation.Verdict == CorpusVerdict.Unknown)
+            {
+                unknownCount++;
+            }
+            else if (observation.Verdict == CorpusVerdict.SilentUnknown)
+            {
+                silentUnknownCount++;
+            }
+
+            if (observation.Verdict is
+                    CorpusVerdict.Unknown or CorpusVerdict.SilentUnknown)
+            {
+                if (corpusCase.Support == CorpusSupport.Supported)
+                {
+                    supportedUnknownCount++;
+                }
+
+                var reason = GetUnknownReason(observation);
+                unknownReasonCounts[reason] =
+                    unknownReasonCounts.TryGetValue(reason, out var count)
+                        ? checked(count + 1)
+                        : 1;
+            }
+        }
+        var totalUnknownCount = unknownCount + silentUnknownCount;
         failures.AddRange(
             ValidateSupportedUnknownCount(supportedUnknownCount));
 
-        var unknownReasons = CountUnknownReasons(observations);
+        ImmutableArray<CorpusUnknownReasonCount> unknownReasons = [..
+            unknownReasonCounts
+                .OrderBy(static entry => entry.Key, StringComparer.Ordinal)
+                .Select(static entry => new CorpusUnknownReasonCount(
+                    entry.Key,
+                    entry.Value))];
         ValidateUnknownReasonRatchet(
             unknownReasonRatchet,
             unknownReasons,
@@ -228,8 +260,7 @@ internal static class CorpusGate
             OpenSourceCorpusCatalog.CountSourceFiles(openSourceDocument.Methods),
             CorpusCatalog.Seeds.Length,
             CorpusCatalog.Variants.Length,
-            observations.Sum(static observation =>
-                observation.Diagnostics.Length),
+            diagnosticCount,
             supportedCaseCount,
             intentionallyUnsupportedCaseCount,
             supportedUnknownCount,
@@ -636,18 +667,6 @@ internal static class CorpusGate
             CultureInfo.InvariantCulture,
             $"{path}:{start.Line + 1}:{start.Character + 1}-" +
             $"{end.Line + 1}:{end.Character + 1}");
-    }
-
-    private static ImmutableArray<CorpusUnknownReasonCount> CountUnknownReasons(
-        ImmutableArray<CorpusObservation> observations)
-    {
-        return [.. observations
-            .Where(static observation => observation.Verdict is
-                CorpusVerdict.Unknown or CorpusVerdict.SilentUnknown)
-            .GroupBy(GetUnknownReason, StringComparer.Ordinal)
-            .OrderBy(static group => group.Key, StringComparer.Ordinal)
-            .Select(static group =>
-                new CorpusUnknownReasonCount(group.Key, group.Count()))];
     }
 
     private static string GetUnknownReason(CorpusObservation observation)
