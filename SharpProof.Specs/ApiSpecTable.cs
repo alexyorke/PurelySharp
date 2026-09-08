@@ -234,11 +234,11 @@ public sealed partial class ApiSpecTable
             }
         }
         if (target.ApprovedAssemblies
-                .Select(static assembly =>
-                    assembly.Name + "\u001f" +
-                    assembly.PublicKeyToken.ToUpperInvariant() + "\u001f" +
-                    (int)assembly.ReferenceFamily)
-                .Distinct(StringComparer.Ordinal)
+                .Select(static assembly => (
+                    assembly.Name,
+                    PublicKeyToken: assembly.PublicKeyToken.ToUpperInvariant(),
+                    assembly.ReferenceFamily))
+                .Distinct()
                 .Count() != target.ApprovedAssemblies.Length)
         {
             throw new ArgumentException("Approved assembly identities must be unique.", nameof(declaration));
