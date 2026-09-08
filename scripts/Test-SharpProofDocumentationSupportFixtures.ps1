@@ -30,6 +30,8 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+. (Join-Path $PSScriptRoot 'Get-SharpProofReleaseVersion.ps1')
+
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $relativePath = switch ($Mutation) {
     'stale-contract-api-silence' { 'docs\diagnostic-examples.md' }
@@ -102,11 +104,8 @@ try {
             $text += "`nSharpProof.Verifier.Win-x64 is supported.`n"
         }
         'package-version-drift' {
-            [xml]$release = Get-Content -LiteralPath (
-                Join-Path $repositoryRoot 'SharpProof.Release.props') -Raw
-            $prefix = [string]$release.Project.PropertyGroup.SharpProofVersionPrefix
-            $version = ([string]$release.Project.PropertyGroup.SharpProofPackageVersion).
-                Replace('$(SharpProofVersionPrefix)', $prefix)
+            $version = Get-SharpProofReleaseVersion `
+                -RepositoryRoot $repositoryRoot
             $text = Replace-Required `
                 -InputText $text `
                 -OldValue $version `
