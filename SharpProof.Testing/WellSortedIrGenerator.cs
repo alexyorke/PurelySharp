@@ -65,7 +65,8 @@ public sealed class WellSortedIrGenerator(IrFactory factory, int seed)
     public GeneratedIrCase Next(int maximumDepth = 4)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(maximumDepth);
-        var category = (GeneratedIrCategory)_random.Next(7);
+        var category = (GeneratedIrCategory)_random.Next(
+            Enum.GetValues<GeneratedIrCategory>().Length);
         var term = category switch
         {
             GeneratedIrCategory.Arithmetic => Integer(maximumDepth),
