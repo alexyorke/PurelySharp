@@ -378,6 +378,15 @@ internal static class CacheSoundnessRules
         IOperation root,
         LocalResolution resolving)
     {
+        return ResolveLocalReference(reference, root, resolving, null);
+    }
+
+    private static bool ResolveLocalReference(
+        ILocalReferenceOperation reference,
+        IOperation root,
+        LocalResolution resolving,
+        INamedTypeSymbol? enumType)
+    {
         if (!resolving.Add(reference))
         {
             return true;
@@ -390,8 +399,19 @@ internal static class CacheSoundnessRules
                 root,
                 resolving.CancellationToken);
             return writes.Length == 0 || writes.Any(value =>
-                IsSelfReference(value, reference.Local) ||
-                IsNonCacheableValueFactory(value, root, resolving));
+            {
+                if (IsSelfReference(value, reference.Local))
+                {
+                    return true;
+                }
+                return enumType == null
+                    ? IsNonCacheableValueFactory(value, root, resolving)
+                    : IsNonCacheableNumericEnumValue(
+                        value,
+                        enumType,
+                        root,
+                        resolving);
+            });
         }
         finally
         {
@@ -784,29 +804,7 @@ internal static class CacheSoundnessRules
         IOperation root,
         LocalResolution resolving)
     {
-        if (!resolving.Add(reference))
-        {
-            return true;
-        }
-
-        try
-        {
-            var writes = GetReachingLocalValues(
-                reference,
-                root,
-                resolving.CancellationToken);
-            return writes.Length == 0 || writes.Any(value =>
-                IsSelfReference(value, reference.Local) ||
-                IsNonCacheableNumericEnumValue(
-                    value,
-                    enumType,
-                    root,
-                    resolving));
-        }
-        finally
-        {
-            resolving.Remove(reference);
-        }
+        return ResolveLocalReference(reference, root, resolving, enumType);
     }
 
     private static bool IsNonCacheableEnumConstant(
