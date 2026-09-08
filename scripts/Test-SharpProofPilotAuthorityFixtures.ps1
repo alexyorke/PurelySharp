@@ -39,8 +39,6 @@ try {
     Reset-Packages
     $valid = @(Get-SharpProofPilotPackageAuthority $packages $version $commit)
     if ($valid.Count -ne 6) { throw 'Canonical package authority failed.' }
-    $target = Join-Path $packages "SharpProof.$version.nupkg"
-    [IO.File]::AppendAllText($target, 'changed')
     Reset-Packages; Remove-Item (Join-Path $packages "SharpProof.$version.snupkg")
     Require-Failure { Get-SharpProofPilotPackageAuthority $packages $version $commit } missing-package
     Reset-Packages; Copy-Item (Join-Path $packages "SharpProof.$version.nupkg") (Join-Path $packages 'extra.nupkg')
