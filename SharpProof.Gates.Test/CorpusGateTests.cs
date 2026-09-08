@@ -106,6 +106,31 @@ public sealed class CorpusGateTests
     }
 
     [Test]
+    public void CorpusContainmentRejectsLexicalEscapes()
+    {
+        var root = Path.Combine(
+            Path.GetTempPath(),
+            "SharpProof.Gates.Test",
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var exception = Assert.Throws<InvalidDataException>((Action)(() =>
+                OpenSourceCorpusCatalog.EnsureContained(
+                    root,
+                    Path.Combine(root, "..", "outside.txt"))));
+
+            Assert.That(
+                exception!.Message,
+                Does.Contain("escaped its directory"));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
     [Platform("Linux")]
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]
     public void CorpusContainmentRejectsSymlinkTargetsOutsideRoot()

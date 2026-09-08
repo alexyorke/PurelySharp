@@ -415,11 +415,7 @@ internal static class OpenSourceCorpusCatalog
         var lexicalRoot = Path.GetFullPath(root);
         var lexicalPath = Path.GetFullPath(path);
         var lexicalRelative = Path.GetRelativePath(lexicalRoot, lexicalPath);
-        if (Path.IsPathRooted(lexicalRelative) ||
-            lexicalRelative.Split(
-                    Path.DirectorySeparatorChar,
-                    Path.AltDirectorySeparatorChar)
-                .Any(static part => part == ".."))
+        if (!IsContainedRelative(lexicalRelative))
         {
             throw new InvalidDataException(
                 $"Generated OSS corpus path escaped its directory: {path}");
@@ -428,15 +424,20 @@ internal static class OpenSourceCorpusCatalog
         var resolvedRoot = ResolvePath(lexicalRoot);
         var resolvedPath = ResolvePath(lexicalPath);
         var resolvedRelative = Path.GetRelativePath(resolvedRoot, resolvedPath);
-        if (Path.IsPathRooted(resolvedRelative) ||
-            resolvedRelative.Split(
-                    Path.DirectorySeparatorChar,
-                    Path.AltDirectorySeparatorChar)
-                .Any(static part => part == ".."))
+        if (!IsContainedRelative(resolvedRelative))
         {
             throw new InvalidDataException(
                 $"Generated OSS corpus path follows a link outside its directory: {path}");
         }
+    }
+
+    private static bool IsContainedRelative(string relative)
+    {
+        return !Path.IsPathRooted(relative) &&
+            !relative.Split(
+                    Path.DirectorySeparatorChar,
+                    Path.AltDirectorySeparatorChar)
+                .Any(static part => part == "..");
     }
 
     private static string ResolvePath(string path)
