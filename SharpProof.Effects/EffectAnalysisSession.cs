@@ -27,6 +27,7 @@ public sealed class EffectAnalysisSession
     private readonly ExternalEffectResolver _external;
     private readonly EffectKnownSymbols _knownSymbols;
     private readonly CSharpCompilation? _metadataImportCompilation;
+    private readonly Lazy<ExternalEffectResolver>? _metadataExternal;
     private readonly IEffectCallPreconditionPolicy
         _callPreconditions;
     private readonly EffectModuleInitialization _moduleInitialization;
@@ -61,6 +62,11 @@ public sealed class EffectAnalysisSession
             ? csharp.WithOptions(
                 csharp.Options.WithMetadataImportOptions(
                     MetadataImportOptions.All))
+            : null;
+        _metadataExternal = _metadataImportCompilation is { } metadataCompilation
+            ? new Lazy<ExternalEffectResolver>(
+                () => new ExternalEffectResolver(metadataCompilation, apiSpecs),
+                LazyThreadSafetyMode.ExecutionAndPublication)
             : null;
         _invocationEmission = new InvocationEmissionPolicy(compilation);
         _external = new ExternalEffectResolver(compilation,
@@ -276,9 +282,7 @@ public sealed class EffectAnalysisSession
         }
 
         return WrapTypeInitializationFailures(
-            new ExternalEffectResolver(
-                _metadataImportCompilation!,
-                ApiSpecs).Resolve(initializers[0]));
+            _metadataExternal!.Value.Resolve(initializers[0]));
     }
 
     private INamedTypeSymbol? ResolveImportedMetadataType(
