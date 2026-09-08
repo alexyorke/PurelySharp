@@ -94,6 +94,8 @@ public sealed class ApiSpecResolver(ApiSpecTable table)
 {
     private static readonly (string Marker, ApiSpecReferenceFamily Family)[] ReferenceFamilyMarkers =
         EffectContractMappingCatalog.ReferenceFamilyMarkers;
+    private static readonly ConditionalWeakTable<Compilation, ResolvedApiSpecTable>
+        DefaultCache = new();
     private readonly ConditionalWeakTable<Compilation, ResolvedApiSpecTable> _cache = new();
     private readonly ApiSpecTable _table =
         ArgumentNullGuard.NotNull(table, nameof(table));
@@ -101,7 +103,9 @@ public sealed class ApiSpecResolver(ApiSpecTable table)
     {
         compilation = ArgumentNullGuard.NotNull(compilation, nameof(compilation));
 
-        return _cache.GetValue(compilation, Build);
+        return ReferenceEquals(_table, ApiSpecTable.Default)
+            ? DefaultCache.GetValue(compilation, Build)
+            : _cache.GetValue(compilation, Build);
     }
     private ResolvedApiSpecTable Build(Compilation compilation)
     {
