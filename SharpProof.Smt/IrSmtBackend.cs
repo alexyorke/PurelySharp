@@ -166,8 +166,13 @@ public sealed class IrSmtBackend : ISmtBackend, IDisposable
             var encoder = new QueryEncoder(_context, query, owner, meter, cancellationToken);
             using var solver = _context.MkSolver();
 
-            foreach (var variable in encoder.IntegerVariables)
+            foreach (var (variable, type) in encoder.Variables)
             {
+                if (type != query.Factory.IntegerType)
+                {
+                    continue;
+                }
+
                 meter.Consume();
                 var expression = (ArithExpr)encoder.GetVariable(variable);
                 solver.Assert(owner.Own(_context.MkGe(
@@ -379,10 +384,10 @@ public sealed class IrSmtBackend : ISmtBackend, IDisposable
         private readonly Dictionary<IrVarId, Expr> _variables = [];
         private readonly IrFactory _factory;
         private readonly CancellationToken _cancellationToken;
-        private readonly ArithExpr _longMin;
-        private readonly ArithExpr _longMax;
-        private readonly ArithExpr _zero;
-        private readonly ArithExpr _minusOne;
+        private ArithExpr? _longMin;
+        private ArithExpr? _longMax;
+        private ArithExpr? _zero;
+        private ArithExpr? _minusOne;
 
         internal QueryEncoder(
             Context context,
@@ -395,10 +400,6 @@ public sealed class IrSmtBackend : ISmtBackend, IDisposable
             _owner = owner;
             _factory = query.Factory;
             _cancellationToken = cancellationToken;
-            _longMin = _owner.Own(_context.MkInt(long.MinValue));
-            _longMax = _owner.Own(_context.MkInt(long.MaxValue));
-            _zero = _owner.Own(_context.MkInt(0));
-            _minusOne = _owner.Own(_context.MkInt(-1));
             var maximumDepths = new Dictionary<IrId, int>();
             foreach (var assumption in query.Assumptions)
             {
@@ -407,7 +408,6 @@ public sealed class IrSmtBackend : ISmtBackend, IDisposable
             ValidateDepth(query.Goal.Predicate, maximumDepths, meter, cancellationToken);
             var variables = ImmutableArray.CreateBuilder<
                 (IrVarId Variable, IrTypeId Type)>(query.ModelVariables.Length);
-            var integerVariables = ImmutableArray.CreateBuilder<IrVarId>();
             for (var index = 0; index < query.ModelVariables.Length; index++)
             {
                 meter.Consume();
@@ -419,10 +419,6 @@ public sealed class IrSmtBackend : ISmtBackend, IDisposable
                     throw new UnsupportedIrEncodingException();
                 }
 
-                if (type == _factory.IntegerType)
-                {
-                    integerVariables.Add(variable);
-                }
                 variables.Add((variable, type));
                 var name = "v" + index.ToString(CultureInfo.InvariantCulture);
                 _variables.Add(variable, type == _factory.BooleanType
@@ -430,7 +426,6 @@ public sealed class IrSmtBackend : ISmtBackend, IDisposable
                     : _owner.Own(_context.MkIntConst(name)));
             }
             Variables = variables.ToImmutable();
-            IntegerVariables = integerVariables.ToImmutable();
         }
 
         private static void ValidateDepth(
@@ -467,15 +462,13 @@ public sealed class IrSmtBackend : ISmtBackend, IDisposable
         {
             get;
         }
-        internal ImmutableArray<IrVarId> IntegerVariables
-        {
-            get;
-        }
-
-        internal ArithExpr LongMin => _longMin;
-        internal ArithExpr LongMax => _longMax;
-        internal ArithExpr Zero => _zero;
-        internal ArithExpr MinusOne => _minusOne;
+        internal ArithExpr LongMin => _longMin ??= _owner.Own(
+            _context.MkInt(long.MinValue));
+        internal ArithExpr LongMax => _longMax ??= _owner.Own(
+            _context.MkInt(long.MaxValue));
+        internal ArithExpr Zero => _zero ??= _owner.Own(_context.MkInt(0));
+        internal ArithExpr MinusOne => _minusOne ??= _owner.Own(
+            _context.MkInt(-1));
 
         internal Expr GetVariable(IrVarId variable)
         {
