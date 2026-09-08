@@ -234,7 +234,13 @@ public sealed class DependencyAutomationTests
     [Test]
     public void RepositorySecurityPinsExternalWorkflowActionsToImmutableShas()
     {
+        var root = TestRepository.FindRoot();
+        var actionFiles = Directory.EnumerateFiles(
+            Path.Combine(root, ".github", "actions"),
+            "action.yml",
+            SearchOption.AllDirectories);
         var references = WorkflowFiles()
+            .Concat(actionFiles)
             .SelectMany(path => File.ReadLines(path)
                 .Select((line, index) => new
                 {
@@ -329,8 +335,13 @@ public sealed class DependencyAutomationTests
             }
             Assert.That(
                 packageAction,
-                Does.Contain("docker compose build tooling")
-                    .And.Not.Contain("docker buildx"));
+                Does.Not.Contain("docker compose build tooling")
+                    .And.Contain("docker/setup-buildx-action@")
+                    .And.Contain("docker/build-push-action@")
+                    .And.Contain("platforms: linux/amd64")
+                    .And.Contain("load: true")
+                    .And.Contain("cache-from: type=gha")
+                    .And.Contain("cache-to: type=gha,mode=max"));
             Assert.That(dockerfile, Does.Contain("DOTNET_SDK_IMAGE="));
             Assert.That(dockerfile, Does.Contain("DOTNET_MINIMUM_SDK_IMAGE="));
             Assert.That(
