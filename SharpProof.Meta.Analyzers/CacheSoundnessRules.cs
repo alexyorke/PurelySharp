@@ -982,6 +982,7 @@ internal static class CacheSoundnessRules
         var exceptionalInputs = CreateBlockStates(
             graph,
             cancellationToken);
+        var exceptionalSuccessors = new Dictionary<int, BasicBlock[]>();
         bool changed;
         do
         {
@@ -1007,11 +1008,21 @@ internal static class CacheSoundnessRules
                     input,
                     root,
                     cancellationToken);
-                foreach (var successor in RoslynCfgThrowFacts.ExceptionalSuccessors(
-                             graph,
-                             block,
-                             cancellationToken))
+                if (!exceptionalSuccessors.TryGetValue(
+                        block.Ordinal,
+                        out var successors))
                 {
+                    successors = RoslynCfgThrowFacts.ExceptionalSuccessors(
+                            graph,
+                            block,
+                            cancellationToken)
+                        .ToArray();
+                    exceptionalSuccessors.Add(block.Ordinal, successors);
+                }
+                cancellationToken.ThrowIfCancellationRequested();
+                foreach (var successor in successors)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
                     nextExceptionalInputs[successor.Ordinal]
                         .UnionWith(exceptional);
                 }
