@@ -11,7 +11,7 @@ public sealed class RoslynProgramLowerer(
     {
         graph = ArgumentNullGuard.NotNull(graph, nameof(graph));
 
-        return new LoweringSession(_factory, graph, _isKnownPure, graph.Blocks[0], 0, static _ => false).Lower().Lowering;
+        return new LoweringSession(_factory, graph, _isKnownPure, graph.Blocks[0], 0, static _ => false).Lower();
     }
 
     internal SelectedProgramLoweringResult LowerSelected(
@@ -29,7 +29,10 @@ public sealed class RoslynProgramLowerer(
             throw new ArgumentOutOfRangeException(nameof(firstOperation));
         }
 
-        return new LoweringSession(_factory, graph, _isKnownPure, entry, firstOperation, exclude).Lower();
+        var session = new LoweringSession(
+            _factory, graph, _isKnownPure, entry, firstOperation, exclude);
+        return new SelectedProgramLoweringResult(
+            session.Lower(), session.CreateCalls());
     }
 
     internal static bool IsDirectInvocation(IInvocationOperation invocation)
@@ -77,7 +80,7 @@ public sealed class RoslynProgramLowerer(
         private readonly Dictionary<IrCallInstruction, IInvocationOperation> _calls = [];
         private int _nextTemporary;
 
-        internal SelectedProgramLoweringResult Lower()
+        internal FrontendProgramLoweringResult Lower()
         {
             var selection = SelectBlocks();
             var selected = selection.Selected;
@@ -109,7 +112,13 @@ public sealed class RoslynProgramLowerer(
                     : FrontendSubsetClassification.Abstain(firstReason),
                 _expressions.CreateVariableBindings(), _expressions.CreateCaptureBindings(),
                 [.. _abstentions]);
-            return new SelectedProgramLoweringResult(lowering, _calls.ToImmutableDictionary());
+            return lowering;
+        }
+
+        internal ImmutableDictionary<IrCallInstruction, IInvocationOperation>
+            CreateCalls()
+        {
+            return _calls.ToImmutableDictionary();
         }
 
         private void LowerBlock(BasicBlock source)

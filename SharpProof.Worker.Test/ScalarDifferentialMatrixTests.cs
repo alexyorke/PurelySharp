@@ -860,6 +860,7 @@ public sealed class ScalarDifferentialMatrixTests
     {
         private readonly string _sourcePath;
         private CompilerCallablePreparation[] _callables = [];
+        private CSharpCompilation? _compilation;
 
         private DifferentialProject(string directory, string sourcePath)
         {
@@ -889,7 +890,7 @@ public sealed class ScalarDifferentialMatrixTests
 
         internal WorkerVerifyRequest CreateRequest()
         {
-            var compilation = CreateCompilation(includeContracts: false);
+            var compilation = CreateCompilation();
             var discovery = new ClaimManifestBuilder(compilation).Build();
             var artifact = CompilerManifestArtifactProducer.Create(
                 compilation,
@@ -933,7 +934,7 @@ public sealed class ScalarDifferentialMatrixTests
 
         internal RuntimeAssembly EmitRuntimeAssembly()
         {
-            var compilation = CreateCompilation(includeContracts: false);
+            var compilation = CreateCompilation();
             using var image = new MemoryStream();
             var emit = compilation.Emit(image);
             Assert.That(
@@ -961,13 +962,14 @@ public sealed class ScalarDifferentialMatrixTests
                 "SharpProof.ScalarDifferential");
         }
 
-        private CSharpCompilation CreateCompilation(bool includeContracts)
+        private CSharpCompilation CreateCompilation()
         {
+            if (_compilation is not null)
+            {
+                return _compilation;
+            }
             var parseOptions = new CSharpParseOptions(
-                LanguageVersion.CSharp12,
-                preprocessorSymbols: includeContracts
-                    ? [Contract.ConditionalSymbol]
-                    : []);
+                LanguageVersion.CSharp12);
             var syntaxTree = CSharpSyntaxTree.ParseText(
                 SourceText.From(
                     File.ReadAllText(_sourcePath),
@@ -976,7 +978,7 @@ public sealed class ScalarDifferentialMatrixTests
                 parseOptions,
                 _sourcePath);
             var references = GetReferences();
-            return CSharpCompilation.Create(
+            return _compilation = CSharpCompilation.Create(
                 "ScalarDifferential",
                 [syntaxTree],
                 references,

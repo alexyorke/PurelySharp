@@ -1031,11 +1031,6 @@ internal sealed partial class OperationEffectScanner
         }
 
         var whenNotNullStep = ScanStep(whenNotNull);
-        if (_nullnessEvaluator.IsProvenNonNull(conditional.Operation, conditional))
-        {
-            return receiver.Then(whenNotNullStep).Summary;
-        }
-
         // A nullable receiver gives two paths: the null path completes without
         // evaluating WhenNotNull, while the non-null path evaluates it.
         return EffectSummaryDomain.Instance.Join(

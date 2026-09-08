@@ -722,7 +722,8 @@ internal static partial class RequiresCallSiteTreeAnalyzer
                             // syntax span in an earlier block. Only the
                             // reference embedded in the actual assignment
                             // operation represents the commit.
-                            if (!HasEnclosingSimpleAssignment(reference))
+                            var assignment = GetEnclosingSimpleAssignment(reference);
+                            if (assignment == null)
                             {
                                 continue;
                             }
@@ -736,7 +737,7 @@ internal static partial class RequiresCallSiteTreeAnalyzer
                                         BlockMayThrowBeforeAssignmentCommit(
                                             graph,
                                             after,
-                                            reference,
+                                            assignment,
                                             assignmentThrowCache);
                                     killed = true;
                                     break;
@@ -1166,7 +1167,7 @@ internal static partial class RequiresCallSiteTreeAnalyzer
                     RoslynCfgThrowFacts.OperationMayThrow(operation));
         }
 
-        private static bool HasEnclosingSimpleAssignment(
+        private static ISimpleAssignmentOperation? GetEnclosingSimpleAssignment(
             ILocalReferenceOperation reference)
         {
             for (var operation = reference.Parent;
@@ -1175,10 +1176,10 @@ internal static partial class RequiresCallSiteTreeAnalyzer
             {
                 if (operation is ISimpleAssignmentOperation)
                 {
-                    return true;
+                    return (ISimpleAssignmentOperation)operation;
                 }
             }
-            return false;
+            return null;
         }
 
         private static bool IsAssignedStorage(
@@ -1217,49 +1218,38 @@ internal static partial class RequiresCallSiteTreeAnalyzer
         private static bool BlockMayThrowBeforeAssignmentCommit(
             ControlFlowGraph graph,
             int after,
-            ILocalReferenceOperation reference,
+            ISimpleAssignmentOperation assignment,
             Dictionary<(
                 SyntaxTree Tree,
                 int Start,
                 int End,
                 int After), bool> cache)
         {
-            for (var operation = reference.Parent;
-                 operation != null;
-                 operation = operation.Parent)
+            var commitEnd = assignment.Syntax.Span.End;
+            var key = (
+                assignment.Syntax.SyntaxTree,
+                assignment.Syntax.SpanStart,
+                commitEnd,
+                after);
+            if (cache.TryGetValue(key, out var cached))
             {
-                if (operation is ISimpleAssignmentOperation assignment)
-                {
-                    var commitEnd = assignment.Syntax.Span.End;
-                    var key = (
-                        assignment.Syntax.SyntaxTree,
-                        assignment.Syntax.SpanStart,
-                        commitEnd,
-                        after);
-                    if (cache.TryGetValue(key, out var cached))
-                    {
-                        return cached;
-                    }
-
-                    // The assignment's RHS may be lowered across several
-                    // basic blocks (e.g. a ternary or coalesce), so the
-                    // throwing sub-expression is not necessarily in the
-                    // same block as the commit. Scan every block, bounded
-                    // by the assignment's own syntax span.
-                    var result = graph.Blocks
-                        .SelectMany(BlockOperations)
-                        .Where(candidate =>
-                            candidate.Syntax.Span.End > after &&
-                            candidate.Syntax.SpanStart < commitEnd)
-                        .SelectMany(static candidate =>
-                            candidate.DescendantsAndSelf())
-                        .Any(static candidate =>
-                            RoslynCfgThrowFacts.OperationMayThrow(candidate));
-                    cache.Add(key, result);
-                    return result;
-                }
+                return cached;
             }
-            return false;
+
+            // The assignment's RHS may be lowered across several basic
+            // blocks (e.g. a ternary or coalesce), so the throwing
+            // sub-expression is not necessarily in the same block as the
+            // commit. Scan every block, bounded by the assignment's span.
+            var result = graph.Blocks
+                .SelectMany(BlockOperations)
+                .Where(candidate =>
+                    candidate.Syntax.Span.End > after &&
+                    candidate.Syntax.SpanStart < commitEnd)
+                .SelectMany(static candidate => candidate.DescendantsAndSelf())
+                .Any(static candidate =>
+                    RoslynCfgThrowFacts.OperationMayThrow(candidate));
+            cache.Add(key, result);
+            return result;
         }
 
         private static int GetReferenceOrder(

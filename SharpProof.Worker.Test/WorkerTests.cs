@@ -1976,9 +1976,6 @@ public sealed class WorkerTests
                 error.Code)));
         Assert.That(response.ClaimResults, Has.Length.EqualTo(cases.Length));
 
-        var runtimeRequest = project.CreateRequest(
-            cacheEnabled: false,
-            parseOptions: CreateParseOptions(preprocessorSymbols: []));
         var runtimeCompilation = project.CreateCompilation(
             CreateParseOptions(preprocessorSymbols: []));
         using var image = new MemoryStream();
