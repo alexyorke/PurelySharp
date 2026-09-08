@@ -169,13 +169,10 @@ public sealed class ContractApiCatalogParityTests
             var catalogPath = Path.Combine(temporaryDirectory, "catalog.json");
             var outputPath = Path.Combine(temporaryDirectory, "generated.cs");
             await File.WriteAllTextAsync(catalogPath, catalog);
-            var start = new ProcessStartInfo("pwsh")
-            {
-                RedirectStandardError = true,
-                RedirectStandardOutput = true,
-                UseShellExecute = false
-            };
-            foreach (var argument in new[]
+            var start = ProcessRunner.CreateStartInfo(
+                Environment.CurrentDirectory,
+                "pwsh",
+                new[]
             {
                 "-NoLogo",
                 "-NoProfile",
@@ -185,22 +182,16 @@ public sealed class ContractApiCatalogParityTests
                 catalogPath,
                 "-OutputPath",
                 outputPath
-            })
-            {
-                start.ArgumentList.Add(argument);
-            }
+            });
 
-            using var process = Process.Start(start) ??
-                throw new InvalidOperationException(
-                    "The catalog generator process did not start.");
-            var standardOutput = process.StandardOutput.ReadToEndAsync();
-            var standardError = process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync();
-            var output = await standardOutput + await standardError;
+            var result = await ProcessRunner.RunCapturedAsync(
+                start,
+                CancellationToken.None);
+            var output = result.Output + result.Error;
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(process.ExitCode, Is.Not.Zero, output);
+                Assert.That(result.ExitCode, Is.Not.Zero, output);
                 Assert.That(output, Does.Contain(expectedError));
                 Assert.That(File.Exists(outputPath), Is.False);
             }
