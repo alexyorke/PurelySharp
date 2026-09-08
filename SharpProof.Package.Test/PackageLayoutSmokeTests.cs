@@ -2424,20 +2424,14 @@ public sealed class PackageLayoutSmokeTests
             }
 
             var role = roleElement.GetString() ?? "";
-            var area = role is "EntryPoint" or "Generator" or "Dependency"
-                ? "Analyzer"
-                : role is "Collector" or "CollectorDependency"
-                    ? "Collector"
-                    : null;
-            if (identity == null || area == null)
+            if (identity == null)
             {
                 continue;
             }
 
             result.Add(new(
                 Path.GetFileName(identity),
-                role,
-                area));
+                role));
         }
         return [.. result];
     }
@@ -2535,16 +2529,6 @@ public sealed class PackageLayoutSmokeTests
             includeCollector
                 ? Is.EquivalentTo(ExpectedCollectorDependencyFileNames)
                 : Is.Empty);
-        Assert.That(
-            items.Where(static item =>
-                    item.Role is "EntryPoint" or "Generator" or "Dependency")
-                .Select(static item => item.Area),
-            Has.All.EqualTo("Analyzer"));
-        Assert.That(
-            items.Where(static item =>
-                    item.Role is "Collector" or "CollectorDependency")
-                .Select(static item => item.Area),
-            Has.All.EqualTo("Collector"));
         Assert.That(
             items.Select(static item => item.Role),
             Has.All.Matches<string>(role =>
@@ -3235,8 +3219,7 @@ public sealed class PackageLayoutSmokeTests
 
     private readonly record struct PackagedAnalyzerItem(
         string FileName,
-        string Role,
-        string Area);
+        string Role);
 
     private readonly record struct SourceConsumerAnalyzerItems(
         string[] EntryFileNames,
