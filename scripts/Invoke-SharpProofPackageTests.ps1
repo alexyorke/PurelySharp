@@ -289,12 +289,17 @@ $campaign = [Diagnostics.Stopwatch]::StartNew()
 $phaseTimings = [Collections.Generic.List[object]]::new()
 $timingDirectory = Join-Path $repositoryRoot 'artifacts/timings'
 [IO.Directory]::CreateDirectory($timingDirectory) | Out-Null
+$canonicalPackageFilter =
+    'TestCategory!=Performance&TestCategory!=Coverage&TestCategory!=Corpus'
+$useDefaultShardPlan = [string]::IsNullOrWhiteSpace($TestFilter) -or
+    $TestFilter -ceq $canonicalPackageFilter
 $timingStem = 'package-tests-' + $Configuration.ToLowerInvariant()
 $timingSuffix = if ($coverageEnabled) { '-coverage' } else { '' }
 $canonicalTimingOutput = Join-Path $timingDirectory (
     $timingStem + $timingSuffix + '.json')
 $timingOutput = Join-Path $timingDirectory (
     $timingStem + $(if ($Fast) { '-fast' } else { '' }) +
+    $(if ($useDefaultShardPlan) { '' } else { '-selected' }) +
     $timingSuffix + '.json')
 $priorMethodMilliseconds = @{}
 $priorPackageLayoutMethodMilliseconds = @{}
@@ -445,11 +450,6 @@ try {
         'SharpProof.Package.Test.WorkerMsBuildIntegrationTests'
     $packageLayoutClass =
         'SharpProof.Package.Test.PackageLayoutSmokeTests'
-    $canonicalPackageFilter =
-        'TestCategory!=Performance&TestCategory!=Coverage&TestCategory!=Corpus'
-    $useDefaultShardPlan = [string]::IsNullOrWhiteSpace($TestFilter) -or
-        $TestFilter -ceq $canonicalPackageFilter
-
     function Get-SharpProofHistoricalFilterMilliseconds {
         param([Parameter(Mandatory = $true)][string]$Filter)
 
@@ -635,6 +635,18 @@ try {
         foreach ($bucket in @($workerBuckets | Where-Object {
                     $_.Methods.Count -gt 0
                 })) {
+            # This serial three-target build uses /m:1 internally. Reserve
+            # eight scheduler lanes to avoid CPU contention with sibling
+            # analyzer-heavy integration shards.
+            $workerSlots = if (
+                $bucket.Methods -contains
+                    'ThreeTargetAbsoluteSarifSurvivesSerialIncrementalAndCleanBuilds'
+            ) {
+                [Math]::Min(8, $parallelism)
+            }
+            else {
+                1
+            }
             $shards.Add([pscustomobject]@{
                 Name = 'worker-' + ($bucket.Index + 1).ToString(
                     'D2', [Globalization.CultureInfo]::InvariantCulture)
@@ -642,6 +654,7 @@ try {
                     "FullyQualifiedName~$workerClass.$_"
                 }) -join '|'
                 EstimatedMilliseconds = $bucket.EstimatedMilliseconds
+                Slots = $workerSlots
             })
         }
     }
