@@ -12,6 +12,7 @@ public sealed class SharedTestInfrastructureTests
         var projects = new[]
         {
             "SharpProof.Contracts.Test",
+            "SharpProof.Frontend.Test",
             "SharpProof.Worker.Test"
         };
         var directReads = projects

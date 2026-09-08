@@ -8,9 +8,6 @@ namespace SharpProof.Frontend.Test;
 [TestFixture]
 public sealed class ContractApiIdentityResolverTests
 {
-    private static readonly ImmutableArray<MetadataReference>
-        PlatformReferences = CreatePlatformReferences();
-
     [Test]
     public void ExactUnsignedPackagePayloadIsAccepted()
     {
@@ -177,8 +174,9 @@ public sealed class ContractApiIdentityResolverTests
             "MalformedContractConsumer",
             [tree],
             duplicateReference
-                ? PlatformReferences.Add(contractReference).Add(contractReference)
-                : PlatformReferences.Add(contractReference),
+                ? TestMetadataReferences.WithoutSharpProof
+                    .Add(contractReference).Add(contractReference)
+                : TestMetadataReferences.WithoutSharpProof.Add(contractReference),
             new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
                 nullableContextOptions: NullableContextOptions.Enable));
@@ -279,7 +277,7 @@ public sealed class ContractApiIdentityResolverTests
                 source,
                 new CSharpParseOptions(LanguageVersion.CSharp12),
                 "SharpProof.Attributes.cs")],
-            PlatformReferences,
+            TestMetadataReferences.WithoutSharpProof,
             new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
                 nullableContextOptions: NullableContextOptions.Enable));
@@ -317,23 +315,6 @@ public sealed class ContractApiIdentityResolverTests
 
         Directory.CreateDirectory(path);
         return path;
-    }
-
-    private static ImmutableArray<MetadataReference>
-        CreatePlatformReferences()
-    {
-        var trustedPlatformAssemblies =
-            (string?)AppContext.GetData(
-                "TRUSTED_PLATFORM_ASSEMBLIES") ??
-            throw new InvalidOperationException(
-                "Trusted platform assemblies are unavailable.");
-        return [.. trustedPlatformAssemblies
-            .Split(Path.PathSeparator)
-            .Where(static path => !string.Equals(
-                Path.GetFileNameWithoutExtension(path),
-                "SharpProof.Attributes",
-                StringComparison.OrdinalIgnoreCase))
-            .Select(static path => MetadataReference.CreateFromFile(path))];
     }
 
     private static void AssertNoErrors(Compilation compilation)

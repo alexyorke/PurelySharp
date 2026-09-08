@@ -640,7 +640,7 @@ public sealed class FrontendLoweringTests
         var compilation = CSharpCompilation.Create(
             "Collision.Consumer",
             [tree],
-            PlatformReferences.Add(leftReference).Add(rightReference),
+            TestMetadataReferences.Platform.Add(leftReference).Add(rightReference),
             new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
                 nullableContextOptions: NullableContextOptions.Enable));
@@ -711,7 +711,7 @@ public sealed class FrontendLoweringTests
         var compilation = CSharpCompilation.Create(
             "Identity.Shapes",
             [tree],
-            PlatformReferences,
+            TestMetadataReferences.Platform,
             new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
                 nullableContextOptions: NullableContextOptions.Enable));
@@ -799,7 +799,7 @@ public sealed class FrontendLoweringTests
         var equivalentCompilation = CSharpCompilation.Create(
             "Identity.Shapes",
             [tree],
-            PlatformReferences,
+            TestMetadataReferences.Platform,
             new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
                 nullableContextOptions: NullableContextOptions.Enable));
@@ -1184,7 +1184,7 @@ public sealed class FrontendLoweringTests
             var compilation = CSharpCompilation.Create(
                 "FrontendDifferential_" + Guid.NewGuid().ToString("N"),
                 [syntaxTree],
-                PlatformReferences,
+                TestMetadataReferences.Platform,
                 new CSharpCompilationOptions(
                     OutputKind.DynamicallyLinkedLibrary,
                     optimizationLevel: OptimizationLevel.Release,
@@ -1406,7 +1406,7 @@ public sealed class FrontendLoweringTests
         var compilation = CSharpCompilation.Create(
             assemblyName,
             [tree],
-            PlatformReferences,
+            TestMetadataReferences.Platform,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
         using var stream = new MemoryStream();
         var emit = compilation.Emit(stream);
@@ -1420,12 +1420,4 @@ public sealed class FrontendLoweringTests
                 MetadataImageKind.Assembly,
                 aliases: [alias]));
     }
-
-    private static ImmutableArray<MetadataReference> PlatformReferences
-    {
-        get;
-    } =
-        [.. ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
-        .Split(Path.PathSeparator)
-        .Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path))];
 }

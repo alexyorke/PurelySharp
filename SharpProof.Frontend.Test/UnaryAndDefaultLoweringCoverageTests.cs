@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -211,7 +210,7 @@ public sealed class UnaryAndDefaultLoweringCoverageTests
         var compilation = CSharpCompilation.Create(
             "UnaryCoverage_" + Guid.NewGuid().ToString("N"),
             [tree],
-            PlatformReferences,
+            TestMetadataReferences.Platform,
             new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
                 checkOverflow: false,
@@ -260,16 +259,4 @@ public sealed class UnaryAndDefaultLoweringCoverageTests
             throw new InvalidOperationException(
                 "Roslyn did not expose the target expression.");
     }
-
-    private static ImmutableArray<MetadataReference>
-        PlatformReferences
-    {
-        get;
-    } =
-        [.. ((string)AppContext.GetData(
-                "TRUSTED_PLATFORM_ASSEMBLIES")!)
-            .Split(Path.PathSeparator)
-            .Select(static path =>
-                (MetadataReference)
-                MetadataReference.CreateFromFile(path))];
 }

@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -176,7 +175,7 @@ public sealed class OpaqueSemanticIdentityTests
         var compilation = CSharpCompilation.Create(
             "OpaqueSemanticIdentityTests_" + Guid.NewGuid().ToString("N"),
             [tree],
-            PlatformReferences,
+            TestMetadataReferences.Platform,
             new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
                 optimizationLevel: OptimizationLevel.Release,
@@ -198,13 +197,4 @@ public sealed class OpaqueSemanticIdentityTests
         return compilation.GetSemanticModel(tree)
             .GetOperation(method.ExpressionBody!.Expression)!;
     }
-
-    private static ImmutableArray<MetadataReference> PlatformReferences
-    {
-        get;
-    } =
-        [.. ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
-            .Split(Path.PathSeparator)
-            .Select(static path =>
-                (MetadataReference)MetadataReference.CreateFromFile(path))];
 }

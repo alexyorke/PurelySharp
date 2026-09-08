@@ -10,6 +10,12 @@ internal static class TestMetadataReferences
     internal static ImmutableArray<MetadataReference> WithSharpProof { get; } =
         AddSharpProofReference(Platform);
 
+    internal static ImmutableArray<MetadataReference> WithoutSharpProof { get; } =
+        [.. Platform.Where(static reference => !string.Equals(
+            Path.GetFileNameWithoutExtension(reference.Display),
+            "SharpProof.Attributes",
+            StringComparison.OrdinalIgnoreCase))];
+
     internal static ImmutableArray<MetadataReference> CoreLibraryOnly { get; } =
         [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)];
 

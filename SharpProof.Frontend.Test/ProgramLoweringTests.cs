@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -835,7 +834,7 @@ public sealed class ProgramLoweringTests
         var compilation = CSharpCompilation.Create(
             "SharpProof.Frontend.ProgramTests",
             [tree],
-            PlatformReferences,
+            TestMetadataReferences.Platform,
             new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
                 checkOverflow: false,
@@ -874,13 +873,4 @@ public sealed class ProgramLoweringTests
                 static block => block.Instructions)];
         internal FrontendProgramLoweringResult Result { get; } = result;
     }
-
-    private static ImmutableArray<MetadataReference> PlatformReferences
-    {
-        get;
-    } =
-        [.. ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
-        .Split(Path.PathSeparator)
-        .Select(static path =>
-            (MetadataReference)MetadataReference.CreateFromFile(path))];
 }
