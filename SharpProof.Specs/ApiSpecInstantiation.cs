@@ -41,7 +41,7 @@ public static partial class ApiSpecInstantiator
             substitutions, nameof(substitutions));
         substitutions = substitutions.ToImmutableDictionary();
 
-        var variables = template.Variables.ToImmutableDictionary(static item => item.Id);
+        var variables = template.VariablesById;
         foreach (var substitution in substitutions)
         {
             if (!variables.TryGetValue(substitution.Key, out var variable))
@@ -69,8 +69,7 @@ public static partial class ApiSpecInstantiator
             }
         }
         var instantiation = new Instantiation(factory, substitutions,
-            template.Variables.ToImmutableDictionary(
-                static item => (item.Role, item.Ordinal)));
+            template.VariablesBySlot);
         var postconditions = ImmutableArray.CreateBuilder<IrTerm>(template.Postconditions.Length);
         foreach (var postcondition in template.Postconditions)
         {

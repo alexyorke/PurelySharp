@@ -84,7 +84,7 @@ internal static class ApiSpecContentDigest
             {
                 hash.Add(postcondition.Evidence.Kind)
                     .Add(postcondition.Evidence.Source);
-                Add(hash, postcondition.Condition, template.Variables);
+                Add(hash, postcondition.Condition, template.VariablesBySlot);
             }
         }
         return hash.Finish();
@@ -92,15 +92,14 @@ internal static class ApiSpecContentDigest
 
     private static void Add(
         CanonicalHashWriter hash, SpecTermDeclaration term,
-        ImmutableArray<SpecVariableInfo> variables)
+        IReadOnlyDictionary<(SpecVariableRole Role, int Ordinal), SpecVariableInfo> variables)
     {
         hash.Add(term.GetType().Name.Replace("Declaration", "Term"))
             .Add(term.Type);
         (object? Payload, SpecTermDeclaration[] Children) parts = term switch
         {
             SpecVariableDeclaration variable => (
-                variables.Single(item =>
-                    item.Role == variable.Role && item.Ordinal == variable.Ordinal).Id.Value, []),
+                variables[(variable.Role, variable.Ordinal)].Id.Value, []),
             SpecBooleanDeclaration boolean => (boolean.Value, []),
             SpecIntegerDeclaration integer => (integer.Value, []),
             SpecStringDeclaration text => (text.Value, []),

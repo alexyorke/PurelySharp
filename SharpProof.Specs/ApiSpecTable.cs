@@ -157,7 +157,7 @@ public sealed partial class ApiSpecTable
         }).ToImmutableArray();
         return new ApiSpecTemplate(
             id, declaration.Target, facets,
-            variableArray, receiver, parameters.MoveToImmutable(), result,
+            variableArray, receiver, bySlot, parameters.MoveToImmutable(), result,
             postconditions);
     }
 
