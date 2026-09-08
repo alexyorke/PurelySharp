@@ -373,34 +373,22 @@ internal sealed partial class AcyclicBlockPredicateExecutor
             var substitutions = new Dictionary<SpecVarId, IrTerm>();
             if (template.Receiver.HasValue)
             {
-                var receiver = Substitute(call.Receiver!, environment);
-                if (receiver == null)
+                if (AdmitOperand(call.Receiver!, environment, ref guard)
+                    is not { } receiver)
                 {
                     return null;
                 }
 
-                if (ConstrainNormalExecution(guard, receiver) is not { } receiverGuard)
-                {
-                    return null;
-                }
-
-                guard = receiverGuard;
                 substitutions.Add(template.Receiver.Value, receiver);
             }
             for (var index = 0; index < call.Arguments.Length; index++)
             {
-                var argument = Substitute(call.Arguments[index], environment);
-                if (argument == null)
+                if (AdmitOperand(call.Arguments[index], environment, ref guard)
+                    is not { } argument)
                 {
                     return null;
                 }
 
-                if (ConstrainNormalExecution(guard, argument) is not { } argumentGuard)
-                {
-                    return null;
-                }
-
-                guard = argumentGuard;
                 substitutions.Add(template.Parameters[index], argument);
             }
             var resultVariable = inputs.Factory.CreateVariable(
@@ -472,30 +460,18 @@ internal sealed partial class AcyclicBlockPredicateExecutor
 
             if (call.Receiver != null)
             {
-                var receiver = Substitute(call.Receiver, environment);
-                if (receiver == null ||
-                    ConstrainNormalExecution(
-                        guard,
-                        receiver) is not { } receiverGuard)
+                if (AdmitOperand(call.Receiver, environment, ref guard) == null)
                 {
                     return null;
                 }
-
-                guard = receiverGuard;
             }
 
             foreach (var argumentTerm in call.Arguments)
             {
-                var argument = Substitute(argumentTerm, environment);
-                if (argument == null ||
-                    ConstrainNormalExecution(
-                        guard,
-                        argument) is not { } argumentGuard)
+                if (AdmitOperand(argumentTerm, environment, ref guard) == null)
                 {
                     return null;
                 }
-
-                guard = argumentGuard;
             }
 
             var freeVariables = new HashSet<IrVarId>(
@@ -627,6 +603,23 @@ internal sealed partial class AcyclicBlockPredicateExecutor
                 return Supported(result) ? result : null;
             }
             catch (ArgumentException) { return null; }
+        }
+
+        private IrTerm? AdmitOperand(
+            IrTerm operand,
+            IReadOnlyDictionary<IrVarId, IrTerm> environment,
+            ref IrTerm guard)
+        {
+            var substituted = Substitute(operand, environment);
+            if (substituted == null ||
+                ConstrainNormalExecution(guard, substituted)
+                    is not { } nextGuard)
+            {
+                return null;
+            }
+
+            guard = nextGuard;
+            return substituted;
         }
 
         private bool Supported(IrTerm term)
