@@ -337,70 +337,11 @@ public sealed class RequiresCallSiteDiscoveryTests
         }
     }
 
-    [TestCase("getter", TestName =
-        "CoalesceAssignmentSkipsSetterAfterNonreturningGetter")]
-    [TestCase("receiver", TestName =
-        "CoalesceAssignmentSkipsSetterAfterNonreturningReceiver")]
-    [TestCase("index", TestName =
-        "CoalesceAssignmentSkipsSetterAfterNonreturningIndex")]
-    [TestCase("value", TestName =
-        "CoalesceAssignmentSkipsSetterAfterNonreturningValue")]
+    [TestCaseSource(nameof(CoalesceAssignmentCases))]
     public void CoalesceAssignmentSkipsSetterAfterNonreturningExpression(
-        string scenario)
+        string source,
+        MethodKind[] expected)
     {
-        var (source, expected) = scenario switch
-        {
-            "getter" => (
-                """
-                #nullable enable
-                using System;
-                public sealed class Subject {
-                    public string? Value {
-                        get => throw new InvalidOperationException();
-                        set { }
-                    }
-                    public void Call() { Value ??= null; }
-                }
-                """,
-                new[] { MethodKind.PropertyGet }),
-            "receiver" => (
-                """
-                #nullable enable
-                using System;
-                public sealed class Box { public string? Value { get; set; } }
-                public static class Subject {
-                    private static Box Fail() => throw new InvalidOperationException();
-                    public static void Call() { Fail().Value ??= null; }
-                }
-                """,
-                new[] { MethodKind.PropertyGet, MethodKind.Ordinary }),
-            "index" => (
-                """
-                #nullable enable
-                using System;
-                public sealed class Box {
-                    public string? this[int index] { get => null; set { } }
-                }
-                public static class Subject {
-                    private static int Fail() => throw new InvalidOperationException();
-                    public static void Call(Box box) { box[Fail()] ??= null; }
-                }
-                """,
-                new[] { MethodKind.PropertyGet, MethodKind.Ordinary }),
-            "value" => (
-                """
-                #nullable enable
-                using System;
-                public sealed class Subject {
-                    public string? Value { get; set; }
-                    private static string Fail() =>
-                        throw new InvalidOperationException();
-                    public void Call() { Value ??= Fail(); }
-                }
-                """,
-                new[] { MethodKind.PropertyGet, MethodKind.Ordinary }),
-            _ => throw new ArgumentOutOfRangeException(nameof(scenario), scenario, null)
-        };
         var compilation = AnalyzerTestHost.CreateCompilation(source, []);
         var tree = compilation.SyntaxTrees.Single();
         var declaration = tree.GetRoot().DescendantNodes()
@@ -415,6 +356,63 @@ public sealed class RequiresCallSiteDiscoveryTests
             candidates!.Value.Select(static candidate =>
                 candidate.TargetMethod.MethodKind),
             Is.EqualTo(expected));
+    }
+
+    private static IEnumerable<TestCaseData> CoalesceAssignmentCases()
+    {
+        yield return new TestCaseData(
+                """
+                #nullable enable
+                using System;
+                public sealed class Subject {
+                    public string? Value {
+                        get => throw new InvalidOperationException();
+                        set { }
+                    }
+                    public void Call() { Value ??= null; }
+                }
+                """,
+                new[] { MethodKind.PropertyGet })
+            .SetName("CoalesceAssignmentSkipsSetterAfterNonreturningGetter");
+        yield return new TestCaseData(
+                """
+                #nullable enable
+                using System;
+                public sealed class Box { public string? Value { get; set; } }
+                public static class Subject {
+                    private static Box Fail() => throw new InvalidOperationException();
+                    public static void Call() { Fail().Value ??= null; }
+                }
+                """,
+                new[] { MethodKind.PropertyGet, MethodKind.Ordinary })
+            .SetName("CoalesceAssignmentSkipsSetterAfterNonreturningReceiver");
+        yield return new TestCaseData(
+                """
+                #nullable enable
+                using System;
+                public sealed class Box {
+                    public string? this[int index] { get => null; set { } }
+                }
+                public static class Subject {
+                    private static int Fail() => throw new InvalidOperationException();
+                    public static void Call(Box box) { box[Fail()] ??= null; }
+                }
+                """,
+                new[] { MethodKind.PropertyGet, MethodKind.Ordinary })
+            .SetName("CoalesceAssignmentSkipsSetterAfterNonreturningIndex");
+        yield return new TestCaseData(
+                """
+                #nullable enable
+                using System;
+                public sealed class Subject {
+                    public string? Value { get; set; }
+                    private static string Fail() =>
+                        throw new InvalidOperationException();
+                    public void Call() { Value ??= Fail(); }
+                }
+                """,
+                new[] { MethodKind.PropertyGet, MethodKind.Ordinary })
+            .SetName("CoalesceAssignmentSkipsSetterAfterNonreturningValue");
     }
 
     [Test]
