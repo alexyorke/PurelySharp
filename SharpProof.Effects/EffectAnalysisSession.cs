@@ -122,7 +122,6 @@ public sealed class EffectAnalysisSession
             normalized,
             moduleInitializers,
             summaries);
-        summary = initialization.Then(new EffectStep(summary, true)).Summary;
         ImmutableArray<EffectDirectWitness> directWitnesses;
         lock (_gate)
         {
@@ -134,7 +133,7 @@ public sealed class EffectAnalysisSession
                 : [];
         }
 
-        return new EffectMethodResult(normalized, summary, directWitnesses);
+        return CreateResult(normalized, initialization, summary, directWitnesses);
     }
 
     public ImmutableArray<EffectMethodResult> AnalyzeAll(
@@ -168,17 +167,28 @@ public sealed class EffectAnalysisSession
                         out var beforeInitializer)
                     ? beforeInitializer
                     : finalInitialization;
-                return new EffectMethodResult(
+                return CreateResult(
                     method,
-                    initialization.Then(new EffectStep(
-                        summaries[method],
-                        true)).Summary,
+                    initialization,
+                    summaries[method],
                     EffectModuleInitialization.CanPreventBodyEntry(
                         initialization.Summary)
                         ? []
                         : _nodes[method].DirectWitnesses);
             })];
         }
+    }
+
+    private static EffectMethodResult CreateResult(
+        IMethodSymbol method,
+        EffectStep initialization,
+        EffectSummary summary,
+        ImmutableArray<EffectDirectWitness> directWitnesses)
+    {
+        return new EffectMethodResult(
+            method,
+            initialization.Then(new EffectStep(summary, true)).Summary,
+            directWitnesses);
     }
 
     internal int AnalyzedSourceMethodCount => _summaries.Count;
