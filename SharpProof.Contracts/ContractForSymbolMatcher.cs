@@ -602,9 +602,9 @@ internal static class ContractForSymbolMatcher
         // parameters but omits it from the equivalent static companion. RefKind
         // already captures that source-level contract, so compare the remaining
         // modifiers exactly.
-        return CustomModifiersMatch(
-            RemoveCompilerInAttribute(left.RefCustomModifiers),
-            RemoveCompilerInAttribute(right.RefCustomModifiers));
+        return CustomModifiersMatchWithoutCompilerInAttribute(
+            left.RefCustomModifiers,
+            right.RefCustomModifiers);
     }
 
     private static bool IsCompilerReadOnlyInput(RefKind refKind)
@@ -612,14 +612,43 @@ internal static class ContractForSymbolMatcher
         return refKind is RefKind.In or RefKind.RefReadOnlyParameter;
     }
 
-    private static ImmutableArray<CustomModifier> RemoveCompilerInAttribute(
-        ImmutableArray<CustomModifier> modifiers)
+    private static bool CustomModifiersMatchWithoutCompilerInAttribute(
+        ImmutableArray<CustomModifier> left,
+        ImmutableArray<CustomModifier> right)
     {
-        return modifiers
-            .Where(static modifier =>
-                modifier.IsOptional ||
-                !IsCompilerInAttribute(modifier.Modifier))
-            .ToImmutableArray();
+        var leftIndex = 0;
+        var rightIndex = 0;
+        while (true)
+        {
+            while (leftIndex < left.Length &&
+                   !left[leftIndex].IsOptional &&
+                   IsCompilerInAttribute(left[leftIndex].Modifier))
+            {
+                leftIndex++;
+            }
+            while (rightIndex < right.Length &&
+                   !right[rightIndex].IsOptional &&
+                   IsCompilerInAttribute(right[rightIndex].Modifier))
+            {
+                rightIndex++;
+            }
+            if (leftIndex == left.Length || rightIndex == right.Length)
+            {
+                return leftIndex == left.Length && rightIndex == right.Length;
+            }
+
+            var leftModifier = left[leftIndex];
+            var rightModifier = right[rightIndex];
+            if (leftModifier.IsOptional != rightModifier.IsOptional ||
+                !SymbolEqualityComparer.Default.Equals(
+                    leftModifier.Modifier,
+                    rightModifier.Modifier))
+            {
+                return false;
+            }
+            leftIndex++;
+            rightIndex++;
+        }
     }
 
     private static bool IsCompilerInAttribute(INamedTypeSymbol type)
@@ -890,15 +919,41 @@ internal static class ContractForSymbolMatcher
         ImmutableArray<INamedTypeSymbol> leftCallingConventions,
         ImmutableArray<INamedTypeSymbol> rightCallingConventions)
     {
-        return CustomModifiersMatch(
-            [.. left.Where(modifier =>
-                !IsCallingConventionModifier(
-                    modifier,
-                    leftCallingConventions))],
-            [.. right.Where(modifier =>
-                !IsCallingConventionModifier(
-                    modifier,
-                    rightCallingConventions))]);
+        var leftIndex = 0;
+        var rightIndex = 0;
+        while (true)
+        {
+            while (leftIndex < left.Length &&
+                   IsCallingConventionModifier(
+                       left[leftIndex],
+                       leftCallingConventions))
+            {
+                leftIndex++;
+            }
+            while (rightIndex < right.Length &&
+                   IsCallingConventionModifier(
+                       right[rightIndex],
+                       rightCallingConventions))
+            {
+                rightIndex++;
+            }
+            if (leftIndex == left.Length || rightIndex == right.Length)
+            {
+                return leftIndex == left.Length && rightIndex == right.Length;
+            }
+
+            var leftModifier = left[leftIndex];
+            var rightModifier = right[rightIndex];
+            if (leftModifier.IsOptional != rightModifier.IsOptional ||
+                !SymbolEqualityComparer.Default.Equals(
+                    leftModifier.Modifier,
+                    rightModifier.Modifier))
+            {
+                return false;
+            }
+            leftIndex++;
+            rightIndex++;
+        }
     }
 
     private static bool IsCallingConventionModifier(
