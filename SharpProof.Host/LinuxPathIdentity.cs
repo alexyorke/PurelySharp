@@ -41,6 +41,10 @@ public static partial class LinuxPathIdentity
         Encoding.ASCII.GetBytes("SharpProof.PublicationSetIdentity/1\0");
     private static readonly byte[] PublicationPathIdentityDomain =
         Encoding.ASCII.GetBytes("SharpProof.PublicationPathIdentity/1\0");
+    private static readonly UTF8Encoding StrictUtf8 =
+        new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+    private static readonly UTF8Encoding LenientUtf8 =
+        new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false);
     // Publication requires local flock, atomic rename, and directory fsync
     // semantics. Unknown mount types must fail closed.
     private static readonly HashSet<string> SupportedLocalFileSystems =
@@ -481,10 +485,9 @@ public static partial class LinuxPathIdentity
         var directory = Path.GetDirectoryName(canonicalPath) ??
             throw new IOException(
                 "SharpProof publication path has no parent directory.");
-        var utf8 = new UTF8Encoding(false, true);
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         hash.AppendData(PublicationPathIdentityDomain);
-        hash.AppendData(utf8.GetBytes(canonicalPath));
+        hash.AppendData(StrictUtf8.GetBytes(canonicalPath));
         var identity = Convert.ToHexString(hash.GetHashAndReset());
         return Path.Combine(
             directory,
@@ -552,7 +555,7 @@ public static partial class LinuxPathIdentity
         var completed = false;
         try
         {
-            var bytes = new UTF8Encoding(false).GetBytes(marker);
+            var bytes = LenientUtf8.GetBytes(marker);
             foreach (var item in pending)
             {
                 if (File.Exists(item.Path) || Directory.Exists(item.Path))
@@ -610,14 +613,13 @@ public static partial class LinuxPathIdentity
         var paths = canonicalPaths
             .OrderBy(static path => path, StringComparer.Ordinal)
             .ToArray();
-        var utf8 = new UTF8Encoding(false, true);
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         hash.AppendData(PublicationSetIdentityDomain);
         AppendPublicationSetFrame(hash, paths.Length);
         foreach (var path in paths)
         {
             ArgumentNullException.ThrowIfNull(path);
-            var bytes = utf8.GetBytes(path);
+            var bytes = StrictUtf8.GetBytes(path);
             AppendPublicationSetFrame(hash, bytes.Length);
             hash.AppendData(bytes);
         }
@@ -653,7 +655,7 @@ public static partial class LinuxPathIdentity
         using var stream = new FileStream(handle, FileAccess.Read);
         using var reader = new StreamReader(
             stream,
-            new UTF8Encoding(false, true),
+            StrictUtf8,
             detectEncodingFromByteOrderMarks: false,
             bufferSize: 256,
             leaveOpen: false);
