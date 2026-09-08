@@ -335,7 +335,7 @@ public sealed class IrSmtBackend : ISmtBackend, IDisposable
         QueryResourceMeter meter)
     {
         using var model = solver.Model;
-        var assignments = ImmutableArray.CreateBuilder<KeyValuePair<IrVarId, IrValue>>();
+        var assignments = new Dictionary<IrVarId, IrValue>(encoder.Variables.Length);
         foreach (var (variable, type) in encoder.Variables)
         {
             meter.Consume();
@@ -345,7 +345,7 @@ public sealed class IrSmtBackend : ISmtBackend, IDisposable
                 return BackendCheckResult.Unknown(BackendFailureReason.MalformedResult);
             }
 
-            assignments.Add(new KeyValuePair<IrVarId, IrValue>(variable, value!));
+            assignments.Add(variable, value!);
         }
         return BackendCheckResult.Satisfiable(new BackendModel(assignments));
     }
