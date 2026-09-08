@@ -93,6 +93,8 @@ internal sealed class CallableVerifier(ISmtBackend backend, int maximumExpressio
             return [];
         }
 
+        var effectClaimIds = CallableClaimResultAssembler.EffectClaimIds(target);
+
         if (entryFeasibility.IsUnknown)
         {
             return CallableClaimResultAssembler.PostconditionUnknowns(
@@ -212,7 +214,8 @@ internal sealed class CallableVerifier(ISmtBackend backend, int maximumExpressio
                 CallableClaimResultAssembler.PostconditionUnknowns(
                     target,
                     WorkerClaimReason.ResourceLimit,
-                    startIndex));
+                    startIndex,
+                    effectClaimIds));
         }
 
         for (var index = 0; index < ensures.Length; index++)
@@ -238,19 +241,31 @@ internal sealed class CallableVerifier(ISmtBackend backend, int maximumExpressio
             }
             if (missingReturnValue)
             {
-                records.Add(CallableClaimResultAssembler.Unknown(target, index, WorkerClaimReason.MissingReturnValue));
+                records.Add(CallableClaimResultAssembler.Unknown(
+                    target,
+                    index,
+                    WorkerClaimReason.MissingReturnValue,
+                    effectClaimIds: effectClaimIds));
                 continue;
             }
             var condition = Conjoin(factory, pathObligations);
             if (GetDepth(condition) > _maximumExpressionDepth)
             {
-                records.Add(CallableClaimResultAssembler.Unknown(target, index, WorkerClaimReason.DeepPostcondition));
+                records.Add(CallableClaimResultAssembler.Unknown(
+                    target,
+                    index,
+                    WorkerClaimReason.DeepPostcondition,
+                    effectClaimIds: effectClaimIds));
                 continue;
             }
             if (!evidence.UsesSupportedDomain ||
                 !IsSupportedProofDomain(factory, condition))
             {
-                records.Add(CallableClaimResultAssembler.Unknown(target, index, WorkerClaimReason.UnsupportedExpression));
+                records.Add(CallableClaimResultAssembler.Unknown(
+                    target,
+                    index,
+                    WorkerClaimReason.UnsupportedExpression,
+                    effectClaimIds: effectClaimIds));
                 continue;
             }
             if (!resourceBudget.TryStartQuery())
@@ -276,7 +291,8 @@ internal sealed class CallableVerifier(ISmtBackend backend, int maximumExpressio
                     CallableClaimResultAssembler.Unknown(
                         target,
                         index,
-                        normalCompletionUnknown));
+                        normalCompletionUnknown,
+                        effectClaimIds: effectClaimIds));
                 continue;
             }
 
@@ -299,7 +315,8 @@ internal sealed class CallableVerifier(ISmtBackend backend, int maximumExpressio
                 assumptionLabels,
                 userAssumptionIds,
                 replayed,
-                vacuity);
+                vacuity,
+                effectClaimIds);
             if (record.Outcome == WorkerClaimOutcome.Proven)
             {
                 record.ProofCore = CallableProofCore.Merge(
@@ -316,7 +333,8 @@ internal sealed class CallableVerifier(ISmtBackend backend, int maximumExpressio
                     record = CallableClaimResultAssembler.Unknown(
                         target,
                         index,
-                        WorkerClaimReason.MalformedBackendResult);
+                        WorkerClaimReason.MalformedBackendResult,
+                        effectClaimIds: effectClaimIds);
                 }
             }
 

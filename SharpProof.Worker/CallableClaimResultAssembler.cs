@@ -7,10 +7,12 @@ internal static class CallableClaimResultAssembler
         IReadOnlyDictionary<ProofJustification, string> assumptionLabels,
         IReadOnlyDictionary<ProofJustification, string> userAssumptionIds,
         WorkerClaimReason replayFailure,
-        WorkerVacuityKind vacuity)
+        WorkerVacuityKind vacuity,
+        IReadOnlySet<string>? effectClaimIds = null)
     {
         var claimId = target.Entry.ClaimIds[contractOrdinal];
-        var effectCertainty = target.EffectClaims.Any(evidence => evidence.ClaimId == claimId)
+        var effectCertainty = (effectClaimIds?.Contains(claimId) ??
+            target.EffectClaims.Any(evidence => evidence.ClaimId == claimId))
             ? WorkerEffectEvidenceCertainty.Unavailable
             : WorkerEffectEvidenceCertainty.Unspecified;
         WorkerClaimResult record;
@@ -120,14 +122,16 @@ internal static class CallableClaimResultAssembler
         CompilerCallablePreparation target,
         int contractOrdinal,
         WorkerClaimReason reason,
-        bool projectAssumptions = true)
+        bool projectAssumptions = true,
+        IReadOnlySet<string>? effectClaimIds = null)
     {
         var claimId = target.Entry.ClaimIds[contractOrdinal];
         return CreateUnknown(
             target,
             claimId,
             reason,
-            target.EffectClaims.Any(evidence => evidence.ClaimId == claimId),
+            effectClaimIds?.Contains(claimId) ??
+                target.EffectClaims.Any(evidence => evidence.ClaimId == claimId),
             projectAssumptions);
     }
 
@@ -145,7 +149,8 @@ internal static class CallableClaimResultAssembler
     internal static ImmutableArray<WorkerClaimResult> PostconditionUnknowns(
         CompilerCallablePreparation target,
         WorkerClaimReason reason,
-        int startIndex = 0)
+        int startIndex = 0,
+        IReadOnlySet<string>? effectClaimIds = null)
     {
         // One caller reaches here precisely because the Ensures clauses outnumber
         // the declared claim ids, so the clause count cannot be used to index
@@ -154,7 +159,7 @@ internal static class CallableClaimResultAssembler
             clause.Kind == CompilerContractKind.Ensures);
         var count = Math.Min(ensures, target.Entry.ClaimIds.Length);
         startIndex = Math.Clamp(startIndex, 0, count);
-        var effectClaimIds = EffectClaimIds(target);
+        effectClaimIds ??= EffectClaimIds(target);
         var results = ImmutableArray.CreateBuilder<WorkerClaimResult>(
             count - startIndex);
         for (var index = startIndex; index < count; index++)
@@ -169,7 +174,7 @@ internal static class CallableClaimResultAssembler
         return results.MoveToImmutable();
     }
 
-    private static HashSet<string> EffectClaimIds(
+    internal static HashSet<string> EffectClaimIds(
         CompilerCallablePreparation target)
     {
         return new HashSet<string>(
