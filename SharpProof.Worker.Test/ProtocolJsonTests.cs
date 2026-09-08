@@ -118,6 +118,26 @@ public sealed class ProtocolJsonTests
     }
 
     [Test]
+    public void BoundedReadStreamReturnsEofAtExactLimit()
+    {
+        using var exact = new BoundedReadStream(
+            new MemoryStream([7]),
+            1,
+            "overflow");
+        Assert.That(exact.ReadByte(), Is.EqualTo(7));
+        Assert.That(exact.ReadByte(), Is.EqualTo(-1));
+
+        using var overflow = new BoundedReadStream(
+            new MemoryStream([7, 8]),
+            1,
+            "overflow");
+        Assert.That(overflow.ReadByte(), Is.EqualTo(7));
+        Assert.That(
+            (Func<int>)overflow.ReadByte,
+            Throws.TypeOf<InvalidDataException>());
+    }
+
+    [Test]
     [Platform("Linux")]
     public void BoundedUtf8FileReaderRejectsGrowthAfterOpen()
     {

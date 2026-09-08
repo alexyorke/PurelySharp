@@ -80,7 +80,12 @@ internal sealed class BoundedReadStream : Stream
     {
         if (_remaining == 0)
         {
-            return ProbeForOverflow();
+            if (_inner.ReadByte() >= 0)
+            {
+                throw new InvalidDataException(_limitMessage);
+            }
+
+            return -1;
         }
 
         var value = _inner.ReadByte();
