@@ -204,9 +204,9 @@ internal sealed class CompilerCallableLowerer
                     binding.Key,
                     binding.Value,
                     callIdentity,
-                    cancellationToken,
                     admissibleByValue,
-                    out var preparedSource))
+                    out var preparedSource,
+                    cancellationToken))
             {
                 summaryCalls.Add(binding.Key.Id, preparedSource!);
                 continue;
@@ -313,9 +313,9 @@ internal sealed class CompilerCallableLowerer
         IrCallInstruction call,
         IInvocationOperation invocation,
         string callIdentity,
-        CancellationToken cancellationToken,
         bool admissibleByValue,
-        out CompilerPreparedSummaryCall? prepared)
+        out CompilerPreparedSummaryCall? prepared,
+        CancellationToken cancellationToken)
     {
         prepared = null;
         if (!admissibleByValue ||

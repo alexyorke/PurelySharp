@@ -36,22 +36,18 @@ internal sealed class ContractApiSymbols(
             if (method.Name == ContractApiMetadata.ResultMethodName &&
                 method.Parameters.Length == 0)
             {
-                if (result != null)
+                if (!TrySetUnique(ref result, method))
                 {
                     return null;
                 }
-
-                result = method;
             }
             else if (method.Name == ContractApiMetadata.OldMethodName &&
                      method.Parameters.Length == 1)
             {
-                if (old != null)
+                if (!TrySetUnique(ref old, method))
                 {
                     return null;
                 }
-
-                old = method;
             }
         }
 
@@ -65,6 +61,19 @@ internal sealed class ContractApiSymbols(
             result,
             old,
             selections);
+    }
+
+    private static bool TrySetUnique(
+        ref IMethodSymbol? slot,
+        IMethodSymbol candidate)
+    {
+        if (slot is not null)
+        {
+            return false;
+        }
+
+        slot = candidate;
+        return true;
     }
 
     internal bool IsResult(IMethodSymbol method)
