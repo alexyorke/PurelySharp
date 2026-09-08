@@ -31,6 +31,48 @@ internal sealed class CompilerResponseEvidenceAuthority :
         internal ImmutableArray<(string Id, WorkerAssumptionKind Kind)> Canonical { get; }
     }
 
+    private sealed class TargetClaimIndex
+    {
+        private readonly Dictionary<string?, CompilerEffectClaimArtifact> _effects =
+            new(StringComparer.Ordinal);
+        private readonly Dictionary<string?, CompilerPreparedClause> _postconditions =
+            new(StringComparer.Ordinal);
+
+        internal TargetClaimIndex(CompilerCallablePreparation target)
+        {
+            foreach (var effect in target.EffectClaims)
+            {
+                if (!_effects.ContainsKey(effect.ClaimId))
+                {
+                    _effects.Add(effect.ClaimId, effect);
+                }
+            }
+
+            foreach (var clause in target.Clauses)
+            {
+                if (clause.Kind == CompilerContractKind.Ensures &&
+                    !_postconditions.ContainsKey(clause.ClaimId))
+                {
+                    _postconditions.Add(clause.ClaimId, clause);
+                }
+            }
+        }
+
+        internal CompilerEffectClaimArtifact? FindEffect(string? claimId)
+        {
+            return _effects.TryGetValue(claimId, out var effect)
+                ? effect
+                : null;
+        }
+
+        internal CompilerPreparedClause? FindPostcondition(string? claimId)
+        {
+            return _postconditions.TryGetValue(claimId, out var clause)
+                ? clause
+                : null;
+        }
+    }
+
     internal CompilerResponseEvidenceAuthority(
         ImmutableArray<CompilerCallablePreparation> targets)
     {
@@ -68,6 +110,7 @@ internal sealed class CompilerResponseEvidenceAuthority :
                 continue;
             }
 
+            var claimIndex = new TargetClaimIndex(target);
             var assumptionShape = CreateAssumptionShape(target.Entry.Assumptions);
             ValidateCallableAssumptions(callable, assumptionShape, errors);
             foreach (var claimId in target.Entry.ClaimIds)
@@ -77,6 +120,7 @@ internal sealed class CompilerResponseEvidenceAuthority :
                     cancellationToken.ThrowIfCancellationRequested();
                     ValidateClaim(
                         target,
+                        claimIndex,
                         claim,
                         assumptionShape,
                         errors,
@@ -102,6 +146,7 @@ internal sealed class CompilerResponseEvidenceAuthority :
 
     private static void ValidateClaim(
         CompilerCallablePreparation target,
+        TargetClaimIndex claimIndex,
         WorkerClaimResult result,
         AssumptionShape assumptionShape,
         HashSet<string> errors,
@@ -109,15 +154,13 @@ internal sealed class CompilerResponseEvidenceAuthority :
     {
         if (!target.IsSuccess)
         {
-            ValidateFailedTargetClaim(target, result, assumptionShape, errors);
+            ValidateFailedTargetClaim(
+                target, claimIndex, result, assumptionShape, errors);
             return;
         }
 
-        var effect = target.EffectClaims.FirstOrDefault(
-            evidence => evidence.ClaimId == result.ClaimId);
-        var postcondition = target.Clauses.FirstOrDefault(
-            clause => clause.Kind == CompilerContractKind.Ensures &&
-                      clause.ClaimId == result.ClaimId);
+        var effect = claimIndex.FindEffect(result.ClaimId);
+        var postcondition = claimIndex.FindPostcondition(result.ClaimId);
         if (effect == null && postcondition == null ||
             effect != null && postcondition != null)
         {
@@ -172,12 +215,12 @@ internal sealed class CompilerResponseEvidenceAuthority :
 
     private static void ValidateFailedTargetClaim(
         CompilerCallablePreparation target,
+        TargetClaimIndex claimIndex,
         WorkerClaimResult result,
         AssumptionShape assumptionShape,
         HashSet<string> errors)
     {
-        var effect = target.EffectClaims.FirstOrDefault(
-            evidence => evidence.ClaimId == result.ClaimId);
+        var effect = claimIndex.FindEffect(result.ClaimId);
         if (effect != null &&
             target.FailureReason != WorkerClaimReason.UnsupportedCallable)
         {
