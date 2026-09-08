@@ -142,59 +142,26 @@ internal static class EffectExceptionFlow
                 includeRethrows && ContainsRethrow(@catch.Block));
         }).ToImmutableArray();
 
-        known = [.. known.Where(type => CanEscape(type, catches))];
+        known = [.. known.Where(type => CanEscape(catches, type, null))];
         if (includesUnknown)
         {
-            includesUnknown = CanUnknownEscape(catches, exceptionType);
+            includesUnknown = CanEscape(catches, null, exceptionType);
         }
     }
 
     private static bool CanEscape(
-        INamedTypeSymbol thrown,
-        ImmutableArray<CatchFlow> catches)
-    {
-        var canReachNext = true;
-        var canEscape = false;
-        foreach (var @catch in catches)
-        {
-            var selection = Combine(
-                GetTypeSelection(thrown, @catch.Caught),
-                @catch.Filter);
-            if (selection == CatchSelection.Never)
-            {
-                continue;
-            }
-
-            canEscape |= @catch.ContainsRethrow;
-            if (selection == CatchSelection.Always)
-            {
-                canReachNext = false;
-                break;
-            }
-        }
-
-        return canEscape || canReachNext;
-    }
-
-    private static bool CanUnknownEscape(
         ImmutableArray<CatchFlow> catches,
+        INamedTypeSymbol? thrown,
         INamedTypeSymbol? exceptionType)
     {
         var canReachNext = true;
         var canEscape = false;
         foreach (var @catch in catches)
         {
-            var typeSelection =
-                @catch.Caught != null &&
-                exceptionType != null &&
-                SymbolEqualityComparer.Default.Equals(
-                    @catch.Caught,
-                    exceptionType)
-                    ? CatchSelection.Always
-                    : CatchSelection.Maybe;
-            var selection = Combine(
-                typeSelection,
-                @catch.Filter);
+            var typeSelection = thrown is { } knownType
+                ? GetTypeSelection(knownType, @catch.Caught)
+                : GetUnknownTypeSelection(@catch.Caught, exceptionType);
+            var selection = Combine(typeSelection, @catch.Filter);
             if (selection == CatchSelection.Never)
             {
                 continue;
@@ -209,6 +176,17 @@ internal static class EffectExceptionFlow
         }
 
         return canEscape || canReachNext;
+    }
+
+    private static CatchSelection GetUnknownTypeSelection(
+        INamedTypeSymbol? caught,
+        INamedTypeSymbol? exceptionType)
+    {
+        return caught != null &&
+            exceptionType != null &&
+            SymbolEqualityComparer.Default.Equals(caught, exceptionType)
+            ? CatchSelection.Always
+            : CatchSelection.Maybe;
     }
 
     private static CatchSelection GetTypeSelection(
