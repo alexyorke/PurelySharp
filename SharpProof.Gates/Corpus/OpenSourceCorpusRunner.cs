@@ -132,9 +132,12 @@ internal static class OpenSourceCorpusRunner
             cancellationToken);
 
         var targetMap = targets.ToImmutable();
-        var targetsByMethodId = targetMap.Values.ToImmutableDictionary(
-            static target => target.Method.Id,
-            StringComparer.Ordinal);
+        var diagnosticsByMethod = targetMap.Values
+            .Select(static target => target.Method.Id)
+            .ToDictionary(
+                static id => id,
+                static _ => new List<string>(),
+                StringComparer.Ordinal);
         var factory = new RecordingSessionFactory(targetMap);
         var diagnostics = await AnalyzerGateHost.AnalyzeAsync(
                 compilation,
@@ -155,12 +158,6 @@ internal static class OpenSourceCorpusRunner
                 static group => group.Key,
                 static group => group.ToArray(),
                 (IEqualityComparer<SyntaxTree>)ReferenceEqualityComparer.Instance);
-        var diagnosticsByMethod = targetMap.Values
-            .Select(static target => target.Method.Id)
-            .ToDictionary(
-                static id => id,
-                static _ => new List<string>(),
-                StringComparer.Ordinal);
         for (var index = 0; index < diagnostics.Length; index++)
         {
             var diagnostic = diagnostics[index];
@@ -192,13 +189,13 @@ internal static class OpenSourceCorpusRunner
                     $"Analyzer did not record an outcome for OSS method {method.Id}.");
             }
 
-            if (!targetsByMethodId.TryGetValue(method.Id, out var target))
+            if (!diagnosticsByMethod.TryGetValue(method.Id, out var methodDiagnostics))
             {
                 throw new InvalidDataException(
                     $"Analyzer did not produce a target for OSS method " +
                     $"{method.Id}.");
             }
-            var canonicalDiagnostics = diagnosticsByMethod[target.Method.Id]
+            var canonicalDiagnostics = methodDiagnostics
                 .OrderBy(static diagnostic => diagnostic, StringComparer.Ordinal)
                 .ToImmutableArray();
             observations.Add(
