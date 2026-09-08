@@ -529,6 +529,16 @@ public static partial class WorkerProtocolJson
             return;
         }
 
+        if (ReferenceEquals(actual, expected))
+        {
+            if (!actualIsValid)
+            {
+                errors.Add("response.expected_manifest");
+            }
+
+            return;
+        }
+
         var expectedErrors = new Validator();
         ValidateManifestCore(
             expected,
