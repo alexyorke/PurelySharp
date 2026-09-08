@@ -6,8 +6,7 @@ internal sealed class ContractExpressionBinder
     private readonly ContractApiSymbols _api;
     private readonly IMethodSymbol _source;
     private readonly RoslynOperationLowerer _lowerer;
-    private readonly Dictionary<ISymbol, IrVarId> _variables =
-        new(SymbolEqualityComparer.Default);
+    private readonly HashSet<IrVarId> _boundVariables = [];
     private readonly HashSet<IrVarId> _receiverVariables = [];
     private readonly Dictionary<IrVarId, IrVarId> _preState = [];
     private readonly HashSet<IrVarId> _preStateValues = [];
@@ -32,16 +31,7 @@ internal sealed class ContractExpressionBinder
 
     internal ImmutableArray<FrontendVariableBinding> VariableBindings
     {
-        get
-        {
-            if (_variableBindings.IsDefault)
-            {
-                _variableBindings = [.. _variables.Select(static pair =>
-                    new FrontendVariableBinding(pair.Key, pair.Value))];
-            }
-
-            return _variableBindings;
-        }
+        get => _variableBindings.IsDefault ? [] : _variableBindings;
     }
 
     internal ImmutableArray<IrVarId> ReceiverVariables =>
@@ -116,18 +106,16 @@ internal sealed class ContractExpressionBinder
             return ExpressionBindingResult.Unsupported;
         }
 
+        _variableBindings = result.Variables;
         foreach (var binding in result.Variables)
         {
-            _variables[binding.Symbol] = binding.Variable;
+            _boundVariables.Add(binding.Variable);
         }
-        _variableBindings = default;
 
-        var boundVariables = new HashSet<IrVarId>(
-            result.Variables.Select(static binding => binding.Variable));
         var variables = IrTraversal.CollectVariables(result.Term);
         foreach (var variable in variables)
         {
-            if (boundVariables.Contains(variable) ||
+            if (_boundVariables.Contains(variable) ||
                 variable == _result ||
                 _preStateValues.Contains(variable))
             {
