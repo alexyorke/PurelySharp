@@ -320,10 +320,9 @@ public static partial class LinuxPathIdentity
         string firstPath,
         string secondPath)
     {
-        var first = TryInformation(Canonicalize(firstPath));
-        var second = TryInformation(Canonicalize(secondPath));
-        return first.HasValue && second.HasValue &&
-            SameFile(first.Value, second.Value);
+        var canonicalFirst = Canonicalize(firstPath);
+        var canonicalSecond = Canonicalize(secondPath);
+        return AreSameExistingFileCanonical(canonicalFirst, canonicalSecond);
     }
 
     public static bool IsSameOrDescendant(string path, string directory)
@@ -335,9 +334,11 @@ public static partial class LinuxPathIdentity
 
     public static bool PathsConflict(string firstPath, string secondPath)
     {
-        return IsSameOrDescendant(firstPath, secondPath) ||
-            IsSameOrDescendant(secondPath, firstPath) ||
-            AreSameExistingFile(firstPath, secondPath);
+        var canonicalFirst = Canonicalize(firstPath);
+        var canonicalSecond = Canonicalize(secondPath);
+        return IsCanonicalPathWithin(canonicalFirst, canonicalSecond) ||
+            IsCanonicalPathWithin(canonicalSecond, canonicalFirst) ||
+            AreSameExistingFileCanonical(canonicalFirst, canonicalSecond);
     }
 
     public static bool DeleteIfUnprotected(
@@ -791,6 +792,16 @@ public static partial class LinuxPathIdentity
     private static bool SameFile(LinuxStat left, LinuxStat right)
     {
         return left.Device == right.Device && left.Inode == right.Inode;
+    }
+
+    private static bool AreSameExistingFileCanonical(
+        string canonicalFirst,
+        string canonicalSecond)
+    {
+        var first = TryInformation(canonicalFirst);
+        var second = TryInformation(canonicalSecond);
+        return first.HasValue && second.HasValue &&
+            SameFile(first.Value, second.Value);
     }
 
     private static string FindFileSystemType(string canonicalPath)
