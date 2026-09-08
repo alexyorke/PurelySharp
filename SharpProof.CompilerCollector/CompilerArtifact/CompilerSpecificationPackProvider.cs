@@ -190,11 +190,6 @@ internal sealed class CompilerSpecificationPackProvider
             return false;
         }
 
-        if (resultExpression.Type != memberInfo.ReturnType)
-        {
-            return false;
-        }
-
         var result = _factory.CreateVariable(
             specificationPackPrefix + ":result",
             memberInfo.ReturnType);
