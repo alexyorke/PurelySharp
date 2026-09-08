@@ -540,10 +540,9 @@ public sealed class CompilerArtifactModelSchemaTests
                 BindingFlags.DeclaredOnly)
                 .OrderBy(static property => property.MetadataToken)
         ];
-        Assert.That(
-            properties.Select(static property => property.Name),
-            Is.EqualTo(specifications.Select(static specification =>
-                specification.GetProperty("name").GetString())),
+        SchemaModelTestHelpers.AssertPropertyNames(
+            properties,
+            specifications,
             type.Name);
         for (var index = 0; index < properties.Length; index++)
         {
@@ -601,15 +600,11 @@ public sealed class CompilerArtifactModelSchemaTests
                 continue;
             }
 
-            var replacement = SchemaModelTestHelpers.ReplacementValue(
-                property.PropertyType,
-                property.GetValue(instance),
+            SchemaModelTestHelpers.AssertWritableProperty(
+                type,
+                property,
+                instance,
                 CreateObject);
-            property.SetValue(instance, replacement);
-            Assert.That(
-                property.GetValue(instance),
-                Is.EqualTo(replacement),
-                $"{type.Name}.{property.Name}");
         }
     }
 

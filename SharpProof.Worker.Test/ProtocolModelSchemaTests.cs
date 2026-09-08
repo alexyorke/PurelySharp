@@ -333,10 +333,9 @@ public sealed class ProtocolModelSchemaTests
                 BindingFlags.DeclaredOnly)
             .OrderBy(static property => property.MetadataToken)
             .ToArray();
-        Assert.That(
-            properties.Select(static property => property.Name),
-            Is.EqualTo(specifications.Select(static specification =>
-                specification.GetProperty("name").GetString())),
+        SchemaModelTestHelpers.AssertPropertyNames(
+            properties,
+            specifications,
             type.Name);
         var instance = CreateInstance(type);
         using var wire = JsonDocument.Parse(JsonSerializer.Serialize(
@@ -372,16 +371,12 @@ public sealed class ProtocolModelSchemaTests
                 continue;
             }
 
-            var replacement = SchemaModelTestHelpers.ReplacementValue(
-                property.PropertyType,
-                initial,
+            SchemaModelTestHelpers.AssertWritableProperty(
+                type,
+                property,
+                instance,
                 CreateInstance,
                 includeUnsignedInteger: true);
-            property.SetValue(instance, replacement);
-            Assert.That(
-                property.GetValue(instance),
-                Is.EqualTo(replacement),
-                $"{type.Name}.{property.Name}");
         }
     }
 

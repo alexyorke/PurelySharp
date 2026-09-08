@@ -23,6 +23,42 @@ internal static class SchemaModelTestHelpers
             context);
     }
 
+    internal static void AssertPropertyNames(
+        PropertyInfo[] properties,
+        JsonElement[] specifications,
+        string context)
+    {
+        Assert.That(
+            properties.Select(static property => property.Name),
+            Is.EqualTo(specifications.Select(static specification =>
+                specification.GetProperty("name").GetString())),
+            context);
+    }
+
+    internal static void AssertWritableProperty(
+        Type declaringType,
+        PropertyInfo property,
+        object instance,
+        Func<Type, object> createObject,
+        bool includeUnsignedInteger = false)
+    {
+        if (property.SetMethod == null)
+        {
+            return;
+        }
+
+        var replacement = ReplacementValue(
+            property.PropertyType,
+            property.GetValue(instance),
+            createObject,
+            includeUnsignedInteger);
+        property.SetValue(instance, replacement);
+        Assert.That(
+            property.GetValue(instance),
+            Is.EqualTo(replacement),
+            $"{declaringType.Name}.{property.Name}");
+    }
+
     internal static void AssertConstants(
         Type type,
         JsonElement declaration,
