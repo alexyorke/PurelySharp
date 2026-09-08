@@ -139,7 +139,10 @@ internal static class CompilationFingerprint
                 row.CallIdentity + "|" + row.EvidenceIdentity + "|" + row.EvidenceSha256;
             if (previous != null &&
                 StringComparer.Ordinal.Compare(previous, key) >= 0 ||
-                !ValidSummaryEvidenceRow(row, snapshot))
+                !ValidSummaryEvidenceRow(
+                    row,
+                    snapshot,
+                    identityAlreadyValidated: true))
             {
                 return false;
             }
@@ -153,7 +156,8 @@ internal static class CompilationFingerprint
     internal static bool ValidSummaryEvidenceRow(
         CompilerSummaryEvidenceSnapshot row,
         CompilerCompilationSnapshot snapshot,
-        bool authorityMode = false)
+        bool authorityMode = false,
+        bool identityAlreadyValidated = false)
     {
         // JSON deserialization can populate non-nullable string properties with
         // null. Validate the complete shape before the branch-specific checks
@@ -166,6 +170,9 @@ internal static class CompilationFingerprint
             row.OwningModuleName is null ||
             row.OwningModuleMvid is null ||
             row.OwningModuleSha256 is null ||
+            !identityAlreadyValidated &&
+            (!WorkerProtocolJson.IsSha256(row.EvidenceSha256) ||
+             !ValidIdentity(row.CallIdentity)) ||
             authorityMode &&
             (!WorkerProtocolJson.IsSha256(row.EvidenceSha256) ||
              !ValidIdentity(row.CallIdentity)))
