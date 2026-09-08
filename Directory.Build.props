@@ -150,7 +150,8 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(MSBuildProjectName)' == 'SharpProof.Analyzer.Test' OR
-                        '$(MSBuildProjectName)' == 'SharpProof.Effects.Test'">
+                        '$(MSBuildProjectName)' == 'SharpProof.Effects.Test' OR
+                        '$(MSBuildProjectName)' == 'SharpProof.Worker.Test'">
     <Compile Include="$(MSBuildThisFileDirectory)eng\testing\RuntimeAssemblyTestHost.cs"
              Link="RuntimeAssemblyTestHost.cs" />
   </ItemGroup>

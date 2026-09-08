@@ -1988,14 +1988,11 @@ public sealed class WorkerTests
                 emit.Diagnostics.Select(static diagnostic =>
                     diagnostic.ToString())));
 
-        var loadContext = new System.Runtime.Loader.AssemblyLoadContext(
+        RuntimeAssemblyTestHost.WithRuntimeAssembly(
             "SharpProof.Worker.Test.RuntimeContractOracle",
-            isCollectible: true);
-        loadContext.Resolving += ResolveRuntimeContractAssembly;
-        try
+            image,
+            assembly =>
         {
-            image.Position = 0;
-            var assembly = loadContext.LoadFromStream(image);
             var fixture = assembly.GetType(
                     "RuntimeContractOracle",
                     throwOnError: true)!;
@@ -2049,12 +2046,7 @@ public sealed class WorkerTests
                         item.MethodName);
                 }
             }
-        }
-        finally
-        {
-            loadContext.Resolving -= ResolveRuntimeContractAssembly;
-            loadContext.Unload();
-        }
+        });
     }
 
     [Test]
@@ -6237,18 +6229,6 @@ public sealed class WorkerTests
         }
         builder.AppendLine("}");
         return builder.ToString();
-    }
-
-    private static System.Reflection.Assembly?
-        ResolveRuntimeContractAssembly(
-            System.Runtime.Loader.AssemblyLoadContext context,
-            System.Reflection.AssemblyName requestedName)
-    {
-        return AppDomain.CurrentDomain.GetAssemblies()
-            .FirstOrDefault(candidate =>
-                System.Reflection.AssemblyName.ReferenceMatchesDefinition(
-                    candidate.GetName(),
-                    requestedName));
     }
 
     private sealed record RuntimeContractCase(

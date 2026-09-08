@@ -8,14 +8,23 @@ internal static class RuntimeAssemblyTestHost
         byte[] image,
         Action<Assembly> action)
     {
+        using var stream = new MemoryStream(image, writable: false);
+        WithRuntimeAssembly(contextName, stream, action);
+    }
+
+    internal static void WithRuntimeAssembly(
+        string contextName,
+        Stream image,
+        Action<Assembly> action)
+    {
         var context = new AssemblyLoadContext(
             contextName,
             isCollectible: true);
         context.Resolving += ResolveFromDefaultContext;
         try
         {
-            using var stream = new MemoryStream(image, writable: false);
-            action(context.LoadFromStream(stream));
+            image.Position = 0;
+            action(context.LoadFromStream(image));
         }
         finally
         {
