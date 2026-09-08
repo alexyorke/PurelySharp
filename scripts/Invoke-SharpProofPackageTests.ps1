@@ -635,15 +635,14 @@ try {
         foreach ($bucket in @($workerBuckets | Where-Object {
                     $_.Methods.Count -gt 0
                 })) {
-            # This three-target build uses /m:1 internally. On a constrained
-            # three-lane wave, keep its reservation at one lane so the other
-            # independently serialized worker shards can overlap. Preserve
-            # a three-lane reservation that protects the analyzer-heavy test
-            # while allowing more independent shards to overlap.
+            # This three-target build uses /m:1 internally, but each framework
+            # build performs a full analyzer pass. Reserve enough lanes to keep
+            # the analyzer-heavy serial shard from competing with the full
+            # worker wave while preserving every independent shard.
             $isSerialThreeTarget = $bucket.Methods -contains
                 'ThreeTargetAbsoluteSarifSurvivesSerialIncrementalAndCleanBuilds'
             $workerSlots = if ($isSerialThreeTarget -and $parallelism -gt 3) {
-                [Math]::Min(3, $parallelism)
+                [Math]::Min(8, $parallelism)
             }
             else {
                 1
