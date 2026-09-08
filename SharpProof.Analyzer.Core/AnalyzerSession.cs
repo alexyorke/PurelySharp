@@ -56,7 +56,7 @@ internal sealed class AnalyzerSession
     private readonly ConcurrentDictionary<IMethodSymbol, byte>
         _selectedSemicolonAccessors =
             new(SymbolEqualityComparer.Default);
-    private readonly ConcurrentDictionary<IMethodSymbol, AnalyzerSemanticOutcome>
+    private readonly ConcurrentDictionary<IMethodSymbol, byte>
         _semanticOutcomes =
             new(SymbolEqualityComparer.Default);
 
@@ -253,10 +253,7 @@ internal sealed class AnalyzerSession
         AnalyzerSemanticOutcome outcome)
     {
         method = EffectAnalysisSession.NormalizeMethod(method);
-        _semanticOutcomes.AddOrUpdate(
-            method,
-            outcome,
-            (_, current) => AnalyzerSemanticOutcomes.Combine(current, outcome));
+        _semanticOutcomes.TryAdd(method, 0);
         _outcomeObserver?.Invoke(method, outcome);
     }
 
