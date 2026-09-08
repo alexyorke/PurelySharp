@@ -32,10 +32,9 @@ public sealed class ValidatePublishedVerificationResult : Microsoft.Build.Utilit
                     : ProjectDirectory);
             string ResolvePath(string path)
             {
-                return LinuxPathIdentity.RequireLocalPath(
-                    Path.IsPathRooted(path)
-                        ? path
-                        : Path.Combine(projectRoot, path));
+                return CancelableBuildTask.ResolveProjectRelativePathFromRoot(
+                    projectRoot,
+                    path);
             }
 
             var requestPath = ResolvePath(RequestPath);

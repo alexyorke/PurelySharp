@@ -98,7 +98,16 @@ public abstract class CancelableBuildTask : Microsoft.Build.Utilities.Task,
             string.IsNullOrWhiteSpace(projectDirectory)
                 ? Environment.CurrentDirectory
                 : projectDirectory);
+        return ResolveProjectRelativePathFromRoot(root, path);
+    }
+
+    internal static string ResolveProjectRelativePathFromRoot(
+        string projectRoot,
+        string path)
+    {
         return LinuxPathIdentity.RequireLocalPath(
-            Path.IsPathRooted(path) ? path : Path.Combine(root, path));
+            Path.IsPathRooted(path)
+                ? path
+                : Path.Combine(projectRoot, path));
     }
 }
