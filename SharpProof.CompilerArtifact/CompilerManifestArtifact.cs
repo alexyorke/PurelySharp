@@ -560,7 +560,9 @@ internal static class CompilerManifestArtifactJson
             value.Compilation));
 
         cancellationToken.ThrowIfCancellationRequested();
-        CompilationFingerprint.ValidateShape(value.Compilation);
+        CompilationFingerprint.ValidateShape(
+            value.Compilation,
+            specificationPackAuthorityAlreadyValidated: true);
         cancellationToken.ThrowIfCancellationRequested();
         if (validateDecodability &&
             !HasDecodableCallables(value, cancellationToken))

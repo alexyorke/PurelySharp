@@ -64,15 +64,19 @@ internal static class CompilationFingerprint
         return hash.Finish();
     }
 
-    internal static void ValidateShape(CompilerCompilationSnapshot snapshot)
+    internal static void ValidateShape(
+        CompilerCompilationSnapshot snapshot,
+        bool specificationPackAuthorityAlreadyValidated = false)
     {
-        if (!ValidSnapshot(snapshot))
+        if (!ValidSnapshot(snapshot, specificationPackAuthorityAlreadyValidated))
         {
             throw new JsonException("The compiler compilation evidence is invalid.");
         }
     }
 
-    private static bool ValidSnapshot(CompilerCompilationSnapshot? value)
+    private static bool ValidSnapshot(
+        CompilerCompilationSnapshot? value,
+        bool specificationPackAuthorityAlreadyValidated = false)
     {
         if (value is null)
         {
@@ -95,10 +99,11 @@ internal static class CompilationFingerprint
                 value.CSharpCompilerVersion) &&
             CompilerCaptureAuthority.IsCanonicalMvid(
                 value.CSharpCompilerMvid) &&
-            CompilerSpecificationPackAuthorityValidation.IsValid(
-                value.SpecificationPackIds,
-                value.SpecificationPackCatalogVersion,
-                value.SpecificationPackCatalogSha256) &&
+            (specificationPackAuthorityAlreadyValidated ||
+             CompilerSpecificationPackAuthorityValidation.IsValid(
+                 value.SpecificationPackIds,
+                 value.SpecificationPackCatalogVersion,
+                 value.SpecificationPackCatalogSha256)) &&
             ValidOptions(value.Options) &&
             ValidTrees(value.SyntaxTrees) &&
             ValidReferences(value.References) &&
