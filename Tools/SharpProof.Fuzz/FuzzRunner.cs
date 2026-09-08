@@ -141,11 +141,6 @@ public static class FuzzRunner
                 "Maximum parallelism must be between 1 and 4.");
         }
 
-        var agreements = 0;
-        var abstentions = 0;
-        var frontendAgreements = 0;
-        var smtAgreements = 0;
-        var partialSmtAgreements = 0;
         var frontendCases = new GeneratedCSharpCase[options.Cases];
         for (var index = 0; index < frontendCases.Length; index++)
         {
@@ -195,13 +190,6 @@ public static class FuzzRunner
             {
                 token.ThrowIfCancellationRequested();
                 var caseSeed = CreateCaseSeed(options.Seed, index);
-                var frontendCase = frontendCases[index];
-                var frontend = frontendResults[index];
-                frontendStatuses[index] = frontend.Status;
-                if (frontend.Status == FuzzOracleStatus.Agreement)
-                {
-                    Interlocked.Increment(ref frontendAgreements);
-                }
 
                 var factory = new IrFactory();
                 var formula = CreateTotalFiniteDomainFormula(
@@ -214,10 +202,6 @@ public static class FuzzRunner
                         token)
                     .ConfigureAwait(false);
                 smtStatuses[index] = smt.Status;
-                if (smt.Status == FuzzOracleStatus.Agreement)
-                {
-                    Interlocked.Increment(ref smtAgreements);
-                }
 
                 var partialCase = PartialTermSmtCaseGenerator.Create(
                     factory,
@@ -228,25 +212,47 @@ public static class FuzzRunner
                         token)
                     .ConfigureAwait(false);
                 partialStatuses[index] = partial.Status;
-                if (partial.Status == FuzzOracleStatus.Agreement)
-                {
-                    Interlocked.Increment(ref partialSmtAgreements);
-                }
-
-                var classification = ClassifyCase(
-                    frontend.Status,
-                    smt.Status,
-                    partial.Status);
-                if (!classification.HasMismatch &&
-                    !classification.HasAbstention)
-                {
-                    Interlocked.Increment(ref agreements);
-                }
-                else if (!classification.HasMismatch)
-                {
-                    Interlocked.Increment(ref abstentions);
-                }
             });
+
+        var agreements = 0;
+        var abstentions = 0;
+        var frontendAgreements = 0;
+        var smtAgreements = 0;
+        var partialSmtAgreements = 0;
+        for (var index = 0; index < options.Cases; index++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var frontendStatus = frontendResults[index].Status;
+            var smtStatus = smtStatuses[index];
+            var partialStatus = partialStatuses[index];
+            frontendStatuses[index] = frontendStatus;
+            if (frontendStatus == FuzzOracleStatus.Agreement)
+            {
+                frontendAgreements++;
+            }
+            if (smtStatus == FuzzOracleStatus.Agreement)
+            {
+                smtAgreements++;
+            }
+            if (partialStatus == FuzzOracleStatus.Agreement)
+            {
+                partialSmtAgreements++;
+            }
+
+            var classification = ClassifyCase(
+                frontendStatus,
+                smtStatus,
+                partialStatus);
+            if (!classification.HasMismatch &&
+                !classification.HasAbstention)
+            {
+                agreements++;
+            }
+            else if (!classification.HasMismatch)
+            {
+                abstentions++;
+            }
+        }
 
         var failureKeys = SelectFailureKeys(
             frontendStatuses,
