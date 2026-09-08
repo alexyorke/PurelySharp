@@ -668,15 +668,15 @@ internal static class CompilerManifestArtifactJson
             var effects = claimPartitions.Effects;
             var selectedEffects = callable.SelectedFeatures.Contains(WorkerSelectedFeature.Effects);
             var selectedContracts = callable.SelectedFeatures.Contains(WorkerSelectedFeature.Contracts);
+            var hasContractAssumptions = callable.Assumptions.Any(assumption =>
+                assumption != null &&
+                assumption.Kind is (WorkerAssumptionKind.Precondition or WorkerAssumptionKind.UserAssume));
 
             if ((selectedEffects && !allowEffects) ||
                 (selectedContracts && !allowContracts) ||
                 (effects.Length != 0 && (!selectedEffects || !allowEffects)) ||
                 (postconditions.Length != 0 && (!selectedContracts || !allowContracts)) ||
-                callable.Assumptions.Any(assumption =>
-                    assumption != null &&
-                    assumption.Kind is (WorkerAssumptionKind.Precondition or WorkerAssumptionKind.UserAssume) &&
-                    (!selectedContracts || !allowContracts)))
+                (hasContractAssumptions && (!selectedContracts || !allowContracts)))
             {
                 return false;
             }
@@ -685,9 +685,6 @@ internal static class CompilerManifestArtifactJson
                 WorkerSelectionReason.ExplicitAnnotation);
             var hasDiscoveredReason = callable.SelectionReasons.Contains(
                 WorkerSelectionReason.DiscoveredPostcondition);
-            var hasContractAssumptions = callable.Assumptions.Any(assumption =>
-                assumption != null &&
-                assumption.Kind is (WorkerAssumptionKind.Precondition or WorkerAssumptionKind.UserAssume));
             if (hasDiscoveredReason != (postconditions.Length != 0) ||
                 (hasExplicitReason &&
                  callable.SelectedFeatures.Length == 0 &&
