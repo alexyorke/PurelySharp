@@ -232,16 +232,12 @@ function Get-DiscoveredTestMethods {
     if ($LASTEXITCODE -ne 0) {
         throw 'Could not discover package test methods.'
     }
-    $listedMethods = @(
-        [regex]::Matches(
-            $list,
-            '(?m)^\s{4}(?<method>[A-Za-z_][A-Za-z0-9_]*)(?:\(|\s*$)') |
-            ForEach-Object { $_.Groups['method'].Value } |
-            Sort-Object -Unique)
     $listedMethodSet = [Collections.Generic.HashSet[string]]::new(
         [StringComparer]::Ordinal)
-    foreach ($listedMethod in $listedMethods) {
-        [void]$listedMethodSet.Add([string]$listedMethod)
+    foreach ($match in [regex]::Matches(
+        $list,
+        '(?m)^\s{4}(?<method>[A-Za-z_][A-Za-z0-9_]*)(?:\(|\s*$)')) {
+        [void]$listedMethodSet.Add($match.Groups['method'].Value)
     }
     $testAssembly = [Reflection.Assembly]::LoadFrom($Assembly)
     $bindingFlags = [Reflection.BindingFlags]::Instance -bor

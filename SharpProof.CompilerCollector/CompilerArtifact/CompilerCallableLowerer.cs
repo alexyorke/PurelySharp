@@ -186,10 +186,14 @@ internal sealed class CompilerCallableLowerer
                 return Unsupported(out failure);
             }
 
+            var admissibleByValue = TryGetAdmissibleByValueCall(
+                binding.Key,
+                binding.Value);
             if (TryPrepareSpecCall(
                     binding.Key,
                     binding.Value,
                     callIdentity,
+                    admissibleByValue,
                     out var preparedSpec))
             {
                 specCalls.Add(binding.Key.Id, preparedSpec!);
@@ -201,6 +205,7 @@ internal sealed class CompilerCallableLowerer
                     binding.Value,
                     callIdentity,
                     cancellationToken,
+                    admissibleByValue,
                     out var preparedSource))
             {
                 summaryCalls.Add(binding.Key.Id, preparedSource!);
@@ -274,10 +279,11 @@ internal sealed class CompilerCallableLowerer
     }
 
     private bool TryPrepareSpecCall(IrCallInstruction call, IInvocationOperation invocation, string callIdentity,
+        bool admissibleByValue,
         out CompilerPreparedSpecCall? prepared)
     {
         prepared = null;
-        if (!TryGetAdmissibleByValueCall(call, invocation))
+        if (!admissibleByValue)
         {
             return false;
         }
@@ -308,10 +314,11 @@ internal sealed class CompilerCallableLowerer
         IInvocationOperation invocation,
         string callIdentity,
         CancellationToken cancellationToken,
+        bool admissibleByValue,
         out CompilerPreparedSummaryCall? prepared)
     {
         prepared = null;
-        if (!TryGetAdmissibleByValueCall(call, invocation) ||
+        if (!admissibleByValue ||
             !_summaries.TryGet(
                 invocation.TargetMethod,
                 call.Member,
