@@ -46,31 +46,20 @@ function Resolve-SharpProofPackageSource {
     if ($symbolPackageFiles.Count -ne 3) {
         throw "SharpProof package source must contain exactly three snupkg files; found $($symbolPackageFiles.Count)."
     }
+    $identitySet = Get-SharpProofPackageIdentitySet `
+        -Files @($packageFiles + $symbolPackageFiles)
     $identities = @(
-        $packageFiles |
-            ForEach-Object { Get-SharpProofPackageIdentity -Path $_.FullName }
+        $identitySet.Identities |
+            Where-Object { $_.File.Extension -eq '.nupkg' } |
+            ForEach-Object { $_.Identity }
     )
     $symbolIdentities = @(
-        $symbolPackageFiles |
-            ForEach-Object { Get-SharpProofPackageIdentity -Path $_.FullName }
+        $identitySet.Identities |
+            Where-Object { $_.File.Extension -eq '.snupkg' } |
+            ForEach-Object { $_.Identity }
     )
     $expectedIds = $SharpProofPackageIds
-    $actualIds = @($identities.Id | Sort-Object)
-    if (($actualIds -join '|') -ne ($expectedIds -join '|')) {
-        throw "SharpProof package source IDs must be exactly '$($expectedIds -join ', ')'; found '$($actualIds -join ', ')'."
-    }
-    $actualSymbolIds = @($symbolIdentities.Id | Sort-Object)
-    if (($actualSymbolIds -join '|') -ne ($expectedIds -join '|')) {
-        throw "SharpProof symbol package source IDs must be exactly '$($expectedIds -join ', ')'; found '$($actualSymbolIds -join ', ')'."
-    }
-    $versions = @(
-        (@($identities.Version) +
-            @($symbolIdentities.Version)) |
-            Sort-Object -Unique
-    )
-    if ($versions.Count -ne 1) {
-        throw "SharpProof package and symbol package versions must match; found '$($versions -join ', ')'."
-    }
+    $versions = @($identitySet.Version)
 
     $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
     $repositoryCommit = (& git -C $repositoryRoot rev-parse HEAD).Trim()

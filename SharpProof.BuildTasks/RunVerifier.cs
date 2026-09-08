@@ -539,24 +539,18 @@ public sealed partial class RunVerifier : Microsoft.Build.Utilities.Task,
                         {
                             line = line[..^1];
                         }
-                        var armedRecord = string.Equals(
+                        RecordSupervisorAuthentication(
                             line,
-                            LinuxWorkerProcess.ArmedMessage + " " + supervisorNonce,
-                            StringComparison.Ordinal);
-                        supervisorArmed |= armedRecord;
-                        if (armedRecord)
-                        {
-                            supervisorArmedSignal?.TrySetResult(true);
-                        }
-                        var cleanupRecord = string.Equals(
+                            LinuxWorkerProcess.ArmedMessage,
+                            supervisorNonce,
+                            ref supervisorArmed,
+                            supervisorArmedSignal);
+                        RecordSupervisorAuthentication(
                             line,
-                            LinuxWorkerProcess.CleanupMessage + " " + supervisorNonce,
-                            StringComparison.Ordinal);
-                        cleanupAuthenticated |= cleanupRecord;
-                        if (cleanupRecord)
-                        {
-                            supervisorCleanupSignal?.TrySetResult(true);
-                        }
+                            LinuxWorkerProcess.CleanupMessage,
+                            supervisorNonce,
+                            ref cleanupAuthenticated,
+                            supervisorCleanupSignal);
                     }
                     protocolLine.Clear();
                     protocolLineTooLong = false;
@@ -581,6 +575,25 @@ public sealed partial class RunVerifier : Microsoft.Build.Utilities.Task,
             limitExceeded,
             supervisorArmed,
             cleanupAuthenticated);
+    }
+
+    private static void RecordSupervisorAuthentication(
+        string line,
+        string message,
+        string supervisorNonce,
+        ref bool authenticated,
+        System.Threading.Tasks.TaskCompletionSource<bool>? signal)
+    {
+        if (!string.Equals(
+                line,
+                message + " " + supervisorNonce,
+                StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        authenticated = true;
+        signal?.TrySetResult(true);
     }
 
     internal bool RequireSupervisorCleanupReceipt(

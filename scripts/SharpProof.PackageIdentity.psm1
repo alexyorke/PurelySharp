@@ -110,9 +110,66 @@ function Get-SharpProofPackageIdentity {
     }
 }
 
+function Get-SharpProofPackageIdentitySet {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object[]]$Files,
+
+        [Parameter()]
+        [switch]$RequireRepository
+    )
+
+    $identities = @(
+        $Files | ForEach-Object {
+            [pscustomobject][ordered]@{
+                File = $_
+                Identity = Get-SharpProofPackageIdentity `
+                    -Path $_.FullName `
+                    -RequireRepository:$RequireRepository
+            }
+        }
+    )
+    foreach ($extension in @('.nupkg', '.snupkg')) {
+        $actualIds = @(
+            $identities |
+                Where-Object { $_.File.Extension -eq $extension } |
+                ForEach-Object { $_.Identity.Id } |
+                Sort-Object
+        )
+        if (($actualIds -join '|') -ne ($SharpProofPackageIds -join '|')) {
+            throw (
+                "SharpProof package identity set requires one $extension " +
+                "for each expected ID; found '$($actualIds -join ', ')'.")
+        }
+    }
+
+    $versions = @(
+        $identities |
+            ForEach-Object { $_.Identity.Version } |
+            Sort-Object -Unique
+    )
+    if ($versions.Count -ne 1) {
+        throw (
+            'SharpProof package and symbol package versions must match; ' +
+            "found '$($versions -join ', ')'.")
+    }
+
+    return [pscustomobject][ordered]@{
+        Identities = $identities
+        Version = [string]$versions[0]
+        RepositoryCommits = @(
+            $identities |
+                ForEach-Object { $_.Identity.RepositoryCommit } |
+                Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+                Sort-Object -Unique
+        )
+    }
+}
+
 Export-ModuleMember -Function @(
     'Get-SharpProofNuspecMetadata',
-    'Get-SharpProofPackageIdentity'
+    'Get-SharpProofPackageIdentity',
+    'Get-SharpProofPackageIdentitySet'
 ) -Variable @(
     'SharpProofPackageIds',
     'SharpProofPackagePushOrder'

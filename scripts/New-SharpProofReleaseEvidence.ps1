@@ -335,38 +335,16 @@ Test-SharpProofExactRegularFileSet `
     -Owner 'Release package input'
 
 $expectedIds = $SharpProofPackageIds
-$identities = @(
-    $packageFiles |
-        ForEach-Object {
-            [pscustomobject][ordered]@{
-                File = $_
-                Identity = Get-SharpProofPackageIdentity `
-                    -Path $_.FullName -RequireRepository
-            }
-        }
-)
-foreach ($extension in @('.nupkg', '.snupkg')) {
-    $actualIds = @(
-        $identities |
-            Where-Object { $_.File.Extension -eq $extension } |
-            ForEach-Object { $_.Identity.Id } |
-            Sort-Object
-    )
-    if (($actualIds -join '|') -ne ($expectedIds -join '|')) {
-        throw "Release evidence requires one $extension for each package ID; found '$($actualIds -join ', ')'."
-    }
-}
-
-$versions = @($identities | ForEach-Object { $_.Identity.Version })
+$identitySet = Get-SharpProofPackageIdentitySet `
+    -Files $packageFiles `
+    -RequireRepository
+$identities = @($identitySet.Identities)
+$versions = @($identitySet.Version)
 Test-SharpProofReleaseVersionSet `
     -ExpectedVersion $releaseVersion `
     -Versions $versions `
     -Owner 'NuGet artifacts'
-$commits = @(
-    $identities |
-        ForEach-Object { $_.Identity.RepositoryCommit } |
-        Sort-Object -Unique
-)
+$commits = @($identitySet.RepositoryCommits)
 if ($commits.Count -ne 1) {
     throw "NuGet artifact repository commits must match; found '$($commits -join ', ')'."
 }
