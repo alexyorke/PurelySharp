@@ -287,23 +287,29 @@ internal static class CompilerCompilationCapture
             throw new InvalidDataException(
                 "A compiler reference exceeds the module count limit.");
         }
-        if (backingModules.Length > 1)
+        var moduleEntries = backingModules
+            .Select(static module => (
+                Module: module,
+                Name: ReadModuleName(module.GetMetadataReader())))
+            .ToArray();
+        if (moduleEntries.Length > 1)
         {
-            backingModules = [
-                backingModules[0],
-                .. backingModules.Skip(1).OrderBy(
-                    static module => ReadModuleName(module.GetMetadataReader()),
+            moduleEntries = [
+                moduleEntries[0],
+                .. moduleEntries.Skip(1).OrderBy(
+                    static module => module.Name,
                     StringComparer.Ordinal)
             ];
         }
         var modules = ImmutableArray.CreateBuilder<CompilerReferenceModuleSnapshot>(
-            backingModules.Length);
+            moduleEntries.Length);
         string? identity = null;
-        for (var index = 0; index < backingModules.Length; index++)
+        for (var index = 0; index < moduleEntries.Length; index++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var backingReader = backingModules[index].GetMetadataReader();
-            var backingName = ReadModuleName(backingReader);
+            var backingModule = moduleEntries[index].Module;
+            var backingReader = backingModule.GetMetadataReader();
+            var backingName = moduleEntries[index].Name;
             var modulePath = index == 0
                 ? Path.GetFullPath(path)
                 : ResolveSiblingModule(path, backingName);
