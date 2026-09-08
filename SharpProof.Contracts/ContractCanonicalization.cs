@@ -116,6 +116,8 @@ internal sealed class ContractCanonicalization(
                 }
                 var parameterTypes = ImmutableArray.CreateBuilder<ITypeSymbol>(
                     signature.Parameters.Length);
+                var parameterRefKinds = ImmutableArray.CreateBuilder<RefKind>(
+                    signature.Parameters.Length);
                 foreach (var functionParameter in signature.Parameters)
                 {
                     var parameterType = Specialize(functionParameter.Type);
@@ -124,13 +126,13 @@ internal sealed class ContractCanonicalization(
                         return null;
                     }
                     parameterTypes.Add(parameterType);
+                    parameterRefKinds.Add(functionParameter.RefKind);
                 }
                 return _compilation.CreateFunctionPointerTypeSymbol(
                     returnType,
                     signature.RefKind,
                     parameterTypes.ToImmutable(),
-                    [.. signature.Parameters.Select(static parameter =>
-                        parameter.RefKind)],
+                    parameterRefKinds.ToImmutable(),
                     signature.CallingConvention,
                     signature.UnmanagedCallingConventionTypes);
             }
