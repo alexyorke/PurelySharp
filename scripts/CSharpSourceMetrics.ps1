@@ -45,17 +45,6 @@ if ($null -eq $script:CSharpSyntaxTreeType -or
     throw 'Roslyn source-metric types were not loaded.'
 }
 
-function Get-CSharpSyntaxKindName {
-    param(
-        [Parameter(Mandatory = $true)]
-        $NodeOrToken
-    )
-
-    return [Enum]::GetName(
-        $script:CSharpSyntaxKindType,
-        [int]$NodeOrToken.RawKind)
-}
-
 if ($null -eq ('SharpProof.ScriptSupport.CSharpSourceMetricsEngine' -as [type])) {
     $metricsEngine = @'
 using Microsoft.CodeAnalysis;
@@ -69,20 +58,23 @@ namespace SharpProof.ScriptSupport
         public static int[] Measure(SyntaxNode root)
         {
             int syntaxTokens = 0;
-            foreach (SyntaxToken token in root.DescendantTokens())
-            {
-                if ((SyntaxKind)token.RawKind != SyntaxKind.EndOfFileToken)
-                {
-                    syntaxTokens++;
-                }
-            }
-
             int syntaxNodes = 0;
             int expressionNodes = 0;
             int decisionPoints = 0;
             int members = 0;
-            foreach (SyntaxNode node in root.DescendantNodes())
+            foreach (SyntaxNodeOrToken nodeOrToken in root.DescendantNodesAndTokens())
             {
+                if (nodeOrToken.IsToken)
+                {
+                    if ((SyntaxKind)nodeOrToken.AsToken().RawKind !=
+                        SyntaxKind.EndOfFileToken)
+                    {
+                        syntaxTokens++;
+                    }
+                    continue;
+                }
+
+                SyntaxNode node = nodeOrToken.AsNode();
                 syntaxNodes++;
                 if (node is ExpressionSyntax)
                 {

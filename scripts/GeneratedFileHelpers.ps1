@@ -306,7 +306,8 @@ function Format-SharpProofGeneratedCSharp
     $braceIndentByLine = @{}
     foreach ($token in $tree.GetRoot().DescendantTokens())
     {
-        if ((Get-CSharpSyntaxKindName $token) -ne 'OpenBraceToken')
+        if ([int]$token.RawKind -ne
+            [int]$script:CSharpSyntaxKindType::OpenBraceToken)
         {
             continue
         }
