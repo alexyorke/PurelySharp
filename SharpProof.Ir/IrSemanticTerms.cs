@@ -81,8 +81,6 @@ public static class IrSemanticTerms
         IrBinaryOperator @operator,
         bool identity)
     {
-        ArgumentNullGuard.NotNull(factory, nameof(factory));
-        ArgumentNullGuard.NotNull(terms, nameof(terms));
         if (terms.Count == 0)
         {
             return factory.Boolean(identity);
