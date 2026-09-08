@@ -16,11 +16,9 @@ internal static class TestCompilation
         return CreateCore(
             assemblyPrefix,
             [(string.Empty, source)],
-            LanguageVersion.CSharp12,
-            allowUnsafe,
-            outputKind,
-            includeSharpProofReference,
-            appendUniqueAssemblySuffix: true);
+            allowUnsafe: allowUnsafe,
+            outputKind: outputKind,
+            includeSharpProofReference: includeSharpProofReference);
     }
 
     internal static CSharpCompilation Create(
@@ -35,10 +33,9 @@ internal static class TestCompilation
             assemblyPrefix,
             sources,
             languageVersion,
-            allowUnsafe,
-            outputKind,
-            includeSharpProofReference,
-            appendUniqueAssemblySuffix: true);
+            allowUnsafe: allowUnsafe,
+            outputKind: outputKind,
+            includeSharpProofReference: includeSharpProofReference);
     }
 
     internal static CSharpCompilation Create(
@@ -48,10 +45,6 @@ internal static class TestCompilation
         return CreateCore(
             assemblyName,
             sources,
-            LanguageVersion.CSharp12,
-            allowUnsafe: false,
-            OutputKind.DynamicallyLinkedLibrary,
-            includeSharpProofReference: true,
             appendUniqueAssemblySuffix: false);
     }
 
@@ -63,10 +56,7 @@ internal static class TestCompilation
         return CreateCore(
             assemblyName,
             sources,
-            LanguageVersion.CSharp12,
-            allowUnsafe: false,
-            outputKind,
-            includeSharpProofReference: true,
+            outputKind: outputKind,
             appendUniqueAssemblySuffix: false);
     }
 
@@ -87,11 +77,11 @@ internal static class TestCompilation
     private static CSharpCompilation CreateCore(
         string assemblyName,
         IEnumerable<(string FileName, string Source)> sources,
-        LanguageVersion languageVersion,
-        bool allowUnsafe,
-        OutputKind outputKind,
-        bool includeSharpProofReference,
-        bool appendUniqueAssemblySuffix)
+        LanguageVersion languageVersion = LanguageVersion.CSharp12,
+        bool allowUnsafe = false,
+        OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary,
+        bool includeSharpProofReference = true,
+        bool appendUniqueAssemblySuffix = true)
     {
         var parseOptions = new CSharpParseOptions(
             languageVersion,
