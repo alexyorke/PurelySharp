@@ -23,7 +23,7 @@ public sealed class ManagedAbstractFlowTests
                 }
             }
             """);
-        var (_, root, _, analysis) = AnalyzeCalls(compilation);
+        var (root, _, analysis) = AnalyzeCalls(compilation);
         Assert.That(
             root.Descendants().OfType<IVariableDeclaratorOperation>()
                 .Any(static declarator => declarator.Initializer == null),
@@ -261,7 +261,7 @@ public sealed class ManagedAbstractFlowTests
                 }
             }
             """);
-        var (_, root, _, analysis) = AnalyzeCalls(compilation);
+        var (root, _, analysis) = AnalyzeCalls(compilation);
         var assignment = root.Descendants()
             .OfType<ISimpleAssignmentOperation>().Single();
 
@@ -333,7 +333,7 @@ public sealed class ManagedAbstractFlowTests
             "public static class Sample { public static void Calls() { int value = 0;" +
             statements +
             "} }");
-        var (_, _, graph, analysis) = AnalyzeCalls(compilation);
+        var (_, graph, analysis) = AnalyzeCalls(compilation);
 
         Assert.That(graph.Blocks.Length, Is.LessThanOrEqualTo(ManagedAbstractFlow.MaxAnalyzedBlocks));
         using (Assert.EnterMultipleScope())
@@ -358,7 +358,7 @@ public sealed class ManagedAbstractFlowTests
             " public static void Calls(bool condition) { int value = 0;" +
             branches +
             "} }");
-        var (_, _, graph, analysis) = AnalyzeCalls(compilation);
+        var (_, graph, analysis) = AnalyzeCalls(compilation);
 
         Assert.That(graph.Blocks.Length, Is.GreaterThan(ManagedAbstractFlow.MaxAnalyzedBlocks));
         using (Assert.EnterMultipleScope())
@@ -383,7 +383,7 @@ public sealed class ManagedAbstractFlowTests
                 }
             }
             """);
-        var (_, _, _, analysis) = AnalyzeCalls(compilation);
+        var (_, _, analysis) = AnalyzeCalls(compilation);
 
         using (Assert.EnterMultipleScope())
         {
@@ -415,7 +415,7 @@ public sealed class ManagedAbstractFlowTests
                 }
             }
             """);
-        var (_, root, _, analysis) = AnalyzeCalls(compilation);
+        var (root, _, analysis) = AnalyzeCalls(compilation);
         var flow = analysis.Result;
         var calls = root.Descendants().OfType<IInvocationOperation>()
             .OrderBy(static call => call.Syntax.SpanStart).ToArray();
@@ -547,7 +547,7 @@ public sealed class ManagedAbstractFlowTests
                 }
             }
             """);
-        var (method, root, _, analysis) = AnalyzeCalls(compilation);
+        var (root, _, analysis) = AnalyzeCalls(compilation);
         var call = root.Descendants().OfType<IInvocationOperation>().Single();
         var flow = analysis.Result;
 
@@ -573,7 +573,7 @@ public sealed class ManagedAbstractFlowTests
                 }
             }
             """);
-        var (method, root, _, analysis) = AnalyzeCalls(compilation);
+        var (root, _, analysis) = AnalyzeCalls(compilation);
         var sink = root.Descendants().OfType<IInvocationOperation>()
             .Single(static invocation => invocation.TargetMethod.Name == "Sink");
 
@@ -637,7 +637,7 @@ public sealed class ManagedAbstractFlowTests
                 }
             }
             """);
-        var (method, root, _, analysis) = AnalyzeCalls(compilation);
+        var (root, _, analysis) = AnalyzeCalls(compilation);
         var sinks = root.Descendants().OfType<IInvocationOperation>()
             .Where(static invocation => invocation.TargetMethod.Name == "Sink")
             .ToArray();
@@ -673,7 +673,7 @@ public sealed class ManagedAbstractFlowTests
                 }
             }
             """);
-        var (method, root, _, analysis) = AnalyzeCalls(compilation);
+        var (root, _, analysis) = AnalyzeCalls(compilation);
         var sink = root.Descendants().OfType<IInvocationOperation>()
             .Single(static invocation =>
                 invocation.TargetMethod.Name == "Sink");
@@ -755,7 +755,7 @@ public sealed class ManagedAbstractFlowTests
                 }
             }
             """);
-        var (method, root, _, analysis) = AnalyzeCalls(compilation);
+        var (root, _, analysis) = AnalyzeCalls(compilation);
         var sink = root.Descendants().OfType<IInvocationOperation>().Single();
 
         Assert.That(analysis.Status, Is.EqualTo(ManagedFlowStatus.Complete));
@@ -801,7 +801,7 @@ public sealed class ManagedAbstractFlowTests
                 }
                 """,
                 contractReference);
-        var (method, root, _, analysis) = AnalyzeCalls(compilation);
+        var (root, _, analysis) = AnalyzeCalls(compilation);
         var sink = root.Descendants().OfType<IInvocationOperation>().Single();
 
         Assert.That(analysis.Status, Is.EqualTo(ManagedFlowStatus.Complete));
@@ -828,14 +828,14 @@ public sealed class ManagedAbstractFlowTests
         return (method, root, ControlFlowGraph.Create(root));
     }
 
-    private static (IMethodSymbol Method, IMethodBodyOperation Root,
-        ControlFlowGraph Graph, ManagedFlowAnalysis Analysis)
+    private static (IMethodBodyOperation Root, ControlFlowGraph Graph,
+        ManagedFlowAnalysis Analysis)
         AnalyzeCalls(CSharpCompilation compilation)
     {
         var (method, root, graph) = GetCallsContext(compilation);
         var analysis = ManagedAbstractFlow.ForCompilation(compilation)
             .Analyze(method, graph, null, default);
-        return (method, root, graph, analysis);
+        return (root, graph, analysis);
     }
 
     private static void AssertIntegerInterval(
@@ -973,7 +973,7 @@ public sealed class ManagedAbstractFlowTests
     [Test]
     public void DeepExpressionEvaluationAbstainsInsteadOfExhaustingTheStack()
     {
-        static (ManagedAbstractValue Value, ManagedAbstractFlow Flow) Evaluate(int terms)
+        static ManagedAbstractValue Evaluate(int terms)
         {
             var chain = string.Join(" + ", Enumerable.Repeat("value", terms));
             var compilation = EffectTestHost.CreateCompilation(
@@ -991,13 +991,13 @@ public sealed class ManagedAbstractFlowTests
                 method.Parameters[0],
                 ManagedAbstractValue.Integer(IntervalValue.Constant(1)));
             var flow = ManagedAbstractFlow.ForCompilation(compilation);
-            return (flow.Evaluate(expression, state), flow);
+            return flow.Evaluate(expression, state);
         }
 
         // Entered directly, so the walk budget is spent here rather than in
         // Transfer, which is what makes this guard reachable at all.
-        var shallow = Evaluate(4).Value;
-        var deep = Evaluate(400).Value;
+        var shallow = Evaluate(4);
+        var deep = Evaluate(400);
 
         // With the parameter bound, a shallow chain folds to an exact interval.
         // Past the depth budget the walk stops and the operand becomes unknown,

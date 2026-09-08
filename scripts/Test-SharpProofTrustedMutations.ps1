@@ -377,7 +377,7 @@ $mutations = @(
         Original = '            if (!SharpProofAnalyzerEngine.GetConfigurationDiagnostics('
         Mutated = '            if (SharpProofAnalyzerEngine.GetConfigurationDiagnostics('
         Project = 'SharpProof.Analyzer.Test\SharpProof.Analyzer.Test.csproj'
-        Filter = 'FullyQualifiedName~TreeLocalConfigurationGateDoesNotEmitAnArtifact'
+        Filter = 'FullyQualifiedName~TreeLocalConfigurationPreventsArtifactEmission'
     },
     [pscustomobject]@{
         Name = 'effect-region-contract-catalog'

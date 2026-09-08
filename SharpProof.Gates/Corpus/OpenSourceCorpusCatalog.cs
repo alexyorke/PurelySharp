@@ -55,12 +55,6 @@ internal static class OpenSourceCorpusCatalog
     }
 
     internal static ImmutableArray<CorpusCase> CreateCases(
-        string repositoryRoot)
-    {
-        return CreateCases(Load(repositoryRoot));
-    }
-
-    internal static ImmutableArray<CorpusCase> CreateCases(
         OpenSourceCorpusDocument document)
     {
         ArgumentNullException.ThrowIfNull(document);
