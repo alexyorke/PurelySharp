@@ -102,5 +102,9 @@ public sealed class IrTraversalTests
         Assert.That(
             variables,
             Is.EquivalentTo(new[] { condition, first, second }));
+
+        Assert.That(
+            IrTraversal.CollectVariables(root),
+            Is.EquivalentTo(new[] { condition, first, second }));
     }
 }

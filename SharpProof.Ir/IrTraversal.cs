@@ -22,7 +22,7 @@ internal static class IrTraversal
 
     internal static bool Any(IrTerm root, Func<IrTerm, bool> predicate)
     {
-        var pending = new Stack<IrTerm>();
+        var pending = new Stack<IrTerm>(1);
         var visited = new HashSet<IrId>();
         pending.Push(root);
         while (pending.Count != 0)
@@ -49,14 +49,21 @@ internal static class IrTraversal
 
     internal static ImmutableHashSet<IrVarId> CollectVariables(IrTerm root)
     {
-        return CollectVariables([root]);
+        var pending = new Stack<IrTerm>();
+        pending.Push(root);
+        return CollectVariablesCore(pending);
     }
 
     internal static ImmutableHashSet<IrVarId> CollectVariables(
         IEnumerable<IrTerm> roots)
     {
+        return CollectVariablesCore(new Stack<IrTerm>(roots));
+    }
+
+    private static ImmutableHashSet<IrVarId> CollectVariablesCore(
+        Stack<IrTerm> pending)
+    {
         var result = ImmutableHashSet.CreateBuilder<IrVarId>();
-        var pending = new Stack<IrTerm>(roots);
         var visited = new HashSet<IrId>();
         while (pending.Count != 0)
         {
