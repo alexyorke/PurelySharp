@@ -301,7 +301,7 @@ internal sealed class CompilerResponseEvidenceAuthority :
 
         if (effect != null)
         {
-            ValidateEffectClaim(target, claimIndex, effect, result, errors);
+            ValidateEffectClaim(claimIndex, effect, result, errors);
         }
         else
         {
@@ -395,7 +395,7 @@ internal sealed class CompilerResponseEvidenceAuthority :
             assumptionShape,
             expectedUsed,
             errors);
-        ValidateEffectClaim(target, claimIndex, evidence, result, errors);
+        ValidateEffectClaim(claimIndex, evidence, result, errors);
     }
 
     private static void ValidateAssumptionShape(
@@ -450,7 +450,6 @@ internal sealed class CompilerResponseEvidenceAuthority :
     }
 
     private static void ValidateEffectClaim(
-        CompilerCallablePreparation target,
         TargetClaimIndex claimIndex,
         CompilerEffectClaimArtifact evidence,
         WorkerClaimResult result,

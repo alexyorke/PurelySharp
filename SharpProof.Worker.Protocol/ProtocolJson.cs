@@ -1172,8 +1172,7 @@ public static partial class WorkerProtocolJson
         internal WorkerClaimManifestEntry[] Claims { get; }
         internal OrdinalIdentityIndex<WorkerCallableManifestEntry> CallablesById { get; }
         internal OrdinalIdentityIndex<WorkerClaimManifestEntry> ClaimsById { get; }
-        internal Dictionary<string?, (string Id, WorkerAssumptionKind Kind)[]>
-            CallableAssumptionsById { get; }
+        internal Dictionary<string?, (string Id, WorkerAssumptionKind Kind)[]> CallableAssumptionsById { get; }
 
         private static Dictionary<string?, (string Id, WorkerAssumptionKind Kind)[]>
             CreateCallableAssumptions(WorkerCallableManifestEntry[] callables)

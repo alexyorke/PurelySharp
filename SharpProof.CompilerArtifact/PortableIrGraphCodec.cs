@@ -198,7 +198,7 @@ internal static partial class PortableIrGraphCodec
         }
     }
 
-    private static IReadOnlyDictionary<string, PortableIrSlotMapping> CreateSlotIndex(
+    private static Dictionary<string, PortableIrSlotMapping> CreateSlotIndex(
         IReadOnlyList<PortableIrSlotMapping> catalog)
     {
         var result = new Dictionary<string, PortableIrSlotMapping>(

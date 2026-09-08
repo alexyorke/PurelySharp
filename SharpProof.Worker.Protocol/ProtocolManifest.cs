@@ -61,6 +61,7 @@ public static partial class WorkerProtocolJson
 
     public static void SealManifest(WorkerClaimManifest manifest)
     {
+        _ = manifest ?? throw new ArgumentNullException(nameof(manifest));
         Canonicalize(manifest);
         manifest.Hash = ComputeManifestHash(manifest);
     }

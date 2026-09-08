@@ -46,13 +46,16 @@ internal static class AnalyzerGeneratedCodePolicy
     private static bool IsGeneratedFromTree(
         SyntaxTree tree,
         GeneratedKind generated,
-        CancellationToken cancellationToken) => generated switch
+        CancellationToken cancellationToken)
     {
-        GeneratedKind.MarkedGenerated => true,
-        GeneratedKind.NotGenerated => false,
-        _ => HasGeneratedPath(tree.FilePath) ||
-            HasGeneratedHeader(tree, cancellationToken)
-    };
+        return generated switch
+        {
+            GeneratedKind.MarkedGenerated => true,
+            GeneratedKind.NotGenerated => false,
+            _ => HasGeneratedPath(tree.FilePath) ||
+                HasGeneratedHeader(tree, cancellationToken)
+        };
+    }
 
     private static GeneratedKind GetGeneratedKind(
         SyntaxTree tree,

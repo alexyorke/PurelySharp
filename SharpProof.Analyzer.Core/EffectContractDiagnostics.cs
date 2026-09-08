@@ -320,9 +320,9 @@ internal static class EffectContractDiagnostics
                     projected.Outcome, projected.Reason, projected.Certainty);
             var claimDiagnostic = includeDiagnosticPayload
                 ? summary is
-                    { AnalysisIncompleteReason: not EffectAnalysisIncompleteReason.None } &&
-                  violation == null &&
-                  diagnostic != GeneratedDiagnosticDescriptors.SelectedAnalysisIncompleteRule
+                { AnalysisIncompleteReason: not EffectAnalysisIncompleteReason.None } &&
+                    violation == null &&
+                    diagnostic != GeneratedDiagnosticDescriptors.SelectedAnalysisIncompleteRule
                     ? null
                     : diagnostic
                 : null;
