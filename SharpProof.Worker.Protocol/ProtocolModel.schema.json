@@ -3,15 +3,6 @@
   "namespace": "SharpProof.Worker.Protocol",
   "jsonNamingPolicy": "camelCase",
   "usings": ["System.Collections.Immutable"],
-  "versionMembers": {
-    "protocol": "WorkerProtocolVersions.Current",
-    "manifest": "WorkerManifestVersions.Current",
-    "cache": "WorkerCacheVersions.Current"
-  },
-  "requiredJsonRoots": [
-    "WorkerVerifyRequest",
-    "WorkerVerifyResponse"
-  ],
   "manifestNameEnums": [
     "WorkerSelectedFeature",
     "WorkerSelectionReason",

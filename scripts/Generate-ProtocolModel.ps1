@@ -328,8 +328,6 @@ $schema = Read-SharpProofSchema `
 $namespace = [string]$schema.namespace
 $jsonNamingPolicy = [string]$schema.jsonNamingPolicy
 $declarations = @(Get-RequiredMember $schema 'declarations' 'schema')
-$requiredJsonRoots = @(
-    Get-RequiredMember $schema 'requiredJsonRoots' 'schema')
 $manifestNameEnums = @(
     Get-RequiredMember $schema 'manifestNameEnums' 'schema')
 $definedEnums = @(
@@ -606,17 +604,6 @@ $lines.Add('    internal readonly Func<T, bool> IsValid = isValid;')
 $lines.Add('}')
 $lines.Add('')
 $lines.Add('internal static class WorkerProtocolMetadata {')
-$requiredRootNames = [Collections.Generic.HashSet[string]]::new(
-    [StringComparer]::Ordinal)
-foreach ($nameValue in $requiredJsonRoots) {
-    $name = [string]$nameValue
-    if (-not $requiredRootNames.Add($name) -or
-        -not $declarationByName.ContainsKey($name) -or
-        [string](Get-RequiredMember $declarationByName[$name] 'kind' `
-            "required JSON root '$name'") -ne 'class') {
-        throw "Required JSON root '$name' is not a unique class."
-    }
-}
 $lines.Add('')
 $lines.Add('    internal static readonly IReadOnlyDictionary<string, WorkerProtocolJsonObjectShape> JsonObjectShapes =')
 $lines.Add('        new Dictionary<string, WorkerProtocolJsonObjectShape>(StringComparer.Ordinal) {')
@@ -976,13 +963,6 @@ $lines.Add('')
 $lines.Add('internal static class WorkerManifestIdentityCatalog {')
 $lines.Add("    internal const string Domain = $(ConvertTo-CSharpString $manifestDomain);")
 $lines.Add('}')
-$versionMembers = Get-RequiredMember $schema 'versionMembers' 'schema'
-foreach ($role in $versionMembers.PSObject.Properties) {
-    if (-not $constantNames.Contains([string]$role.Value)) {
-        throw "Version role '$($role.Name)' references unknown constant '$($role.Value)'."
-    }
-}
-
 $producerLines = New-SharpProofGeneratedHeader `
     -Generator 'scripts/Generate-ProtocolModel.ps1' `
     -Source 'SharpProof.Worker.Protocol/ProtocolModel.schema.json.' `

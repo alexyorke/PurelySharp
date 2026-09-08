@@ -23,20 +23,8 @@ public sealed class ProtocolModelSchemaTests
     [Test]
     public void SchemaPinsTheReleasedWireVersions()
     {
-        using var schema = ReadSchema();
-        var versions = schema.RootElement.GetProperty("versionMembers");
-
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(
-                ResolveMemberValue(versions.GetProperty("protocol").GetString()!),
-                Is.EqualTo("11"));
-            Assert.That(
-                ResolveMemberValue(versions.GetProperty("manifest").GetString()!),
-                Is.EqualTo(4));
-            Assert.That(
-                ResolveMemberValue(versions.GetProperty("cache").GetString()!),
-                Is.EqualTo(13));
             Assert.That(WorkerProtocolVersions.Current, Is.EqualTo("11"));
             Assert.That(WorkerManifestVersions.Current, Is.EqualTo(4));
             Assert.That(WorkerCacheVersions.Current, Is.EqualTo(13));
