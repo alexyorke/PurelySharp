@@ -2435,22 +2435,18 @@ public sealed class ClaimManifestBuilderTests
                 "1",
                 StringComparison.Ordinal))
         {
-            var startInfo = new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = "dotnet",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true
-            };
-            startInfo.ArgumentList.Add("vstest");
-            startInfo.ArgumentList.Add(
-                typeof(ClaimManifestBuilderTests).Assembly.Location);
-            startInfo.ArgumentList.Add(
-                "/TestCaseFilter:FullyQualifiedName=" +
-                typeof(ClaimManifestBuilderTests).FullName + "." +
-                nameof(
-                    DeeplyNestedUnselectedCallablesDoNotOverflowManifestDiscovery));
+            var startInfo = ProcessRunner.CreateStartInfo(
+                Environment.CurrentDirectory,
+                "dotnet",
+                new[]
+                {
+                    "vstest",
+                    typeof(ClaimManifestBuilderTests).Assembly.Location,
+                    "/TestCaseFilter:FullyQualifiedName=" +
+                    typeof(ClaimManifestBuilderTests).FullName + "." +
+                    nameof(
+                        DeeplyNestedUnselectedCallablesDoNotOverflowManifestDiscovery)
+                });
             startInfo.Environment[childVariable] = "1";
             var marker = Path.Combine(
                 Path.GetTempPath(),
@@ -2458,15 +2454,13 @@ public sealed class ClaimManifestBuilderTests
             startInfo.Environment[markerVariable] = marker;
             try
             {
-                using var process = System.Diagnostics.Process.Start(startInfo)!;
-                var standardOutput = process.StandardOutput.ReadToEndAsync();
-                var standardError = process.StandardError.ReadToEndAsync();
-                await process.WaitForExitAsync();
-                var output = (await standardOutput) + Environment.NewLine +
-                    (await standardError);
+                var result = await ProcessRunner.RunCapturedAsync(
+                    startInfo,
+                    CancellationToken.None);
+                var output = result.CombinedOutput;
                 using (Assert.EnterMultipleScope())
                 {
-                    Assert.That(process.ExitCode, Is.Zero, output);
+                    Assert.That(result.ExitCode, Is.Zero, output);
                     Assert.That(File.Exists(marker), Is.True, output);
                 }
             }

@@ -90,7 +90,8 @@
   <ItemGroup Condition="'$(MSBuildProjectName)' == 'SharpProof.ArchitectureTest' OR
                         '$(MSBuildProjectName)' == 'SharpProof.Frontend.Test' OR
                         '$(MSBuildProjectName)' == 'SharpProof.Package.Test' OR
-                        '$(MSBuildProjectName)' == 'SharpProof.Specs.Test'">
+                        '$(MSBuildProjectName)' == 'SharpProof.Specs.Test' OR
+                        '$(MSBuildProjectName)' == 'SharpProof.Worker.Test'">
     <Compile Include="$(MSBuildThisFileDirectory)eng\testing\ProcessRunner.cs"
              Link="ProcessRunner.cs" />
   </ItemGroup>
