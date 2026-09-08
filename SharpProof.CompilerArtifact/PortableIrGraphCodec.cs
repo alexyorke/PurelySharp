@@ -548,6 +548,11 @@ internal static partial class PortableIrGraphCodec
         private int TypeIndex(IrTypeId id)
         {
             _cancellationToken.ThrowIfCancellationRequested();
+            if (_types.Indices.TryGetValue(id, out var existing))
+            {
+                return existing;
+            }
+
             var depth = 0;
             for (var current = id; ;)
             {
