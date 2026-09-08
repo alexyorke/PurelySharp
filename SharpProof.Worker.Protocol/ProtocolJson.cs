@@ -284,10 +284,9 @@ public static partial class WorkerProtocolJson
     public static void Canonicalize(WorkerVerifyResponse response)
     {
         _ = response ?? throw new ArgumentNullException(nameof(response));
-        if (response.Manifest != null)
-        {
-            Canonicalize(response.Manifest);
-        }
+        var claimsById = response.Manifest == null
+            ? CreateClaimIndex(null)
+            : CanonicalizeManifest(response.Manifest);
 
         response.CallableResults = SortOrdinal(response.CallableResults, static value => value?.CallableId);
         foreach (var result in response.CallableResults.OfType<WorkerCallableResult>())
@@ -295,7 +294,6 @@ public static partial class WorkerProtocolJson
             result.Assumptions = CanonicalizeAssumptions(result.Assumptions);
         }
 
-        var claimsById = CreateClaimIndex(response.Manifest);
         response.ClaimResults = [.. (response.ClaimResults ?? [])
             .OrderBy(value => FindClaimCallableId(claimsById, value?.ClaimId), s_ordinal)
             .ThenBy(value => FindClaimOrdinal(claimsById, value?.ClaimId))

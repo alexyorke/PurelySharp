@@ -6,6 +6,12 @@ public static partial class WorkerProtocolJson
 {
     public static void Canonicalize(WorkerClaimManifest manifest)
     {
+        _ = CanonicalizeManifest(manifest);
+    }
+
+    private static OrdinalIdentityIndex<WorkerClaimManifestEntry>
+        CanonicalizeManifest(WorkerClaimManifest manifest)
+    {
         _ = manifest ?? throw new ArgumentNullException(nameof(manifest));
         manifest.Claims = [
             .. (manifest.Claims ?? [])
@@ -40,6 +46,8 @@ public static partial class WorkerProtocolJson
             callable.Assumptions =
                 CanonicalizeAssumptions(callable.Assumptions);
         }
+
+        return claimsById;
     }
 
     public static string ComputeManifestHash(
