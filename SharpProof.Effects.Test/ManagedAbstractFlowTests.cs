@@ -522,7 +522,7 @@ public sealed class ManagedAbstractFlowTests
                 public static bool Calls() => new Token() == null;
             }
             """);
-        var (_, root, _) = GetCallsContext(compilation);
+        var (_, root) = GetCallsMethodAndRoot(compilation);
         var binary = root.Descendants().OfType<IBinaryOperation>().Single();
 
         var value = ManagedAbstractFlow.ForCompilation(compilation)
@@ -603,7 +603,7 @@ public sealed class ManagedAbstractFlowTests
                 }
             }
             """);
-        var (method, root, _) = GetCallsContext(compilation);
+        var (method, root) = GetCallsMethodAndRoot(compilation);
         var requires = root.Descendants().OfType<IInvocationOperation>()
             .Single(static invocation => invocation.TargetMethod.Name == "Requires");
         var state = ManagedAbstractFlow.ForCompilation(compilation)
@@ -815,9 +815,8 @@ public sealed class ManagedAbstractFlowTests
         Assert.That(nullness, Is.EqualTo(NullnessValue.MaybeNull));
     }
 
-    private static (IMethodSymbol Method, IMethodBodyOperation Root,
-        ControlFlowGraph Graph)
-        GetCallsContext(CSharpCompilation compilation)
+    private static (IMethodSymbol Method, IMethodBodyOperation Root)
+        GetCallsMethodAndRoot(CSharpCompilation compilation)
     {
         var syntax = compilation.SyntaxTrees.Single().GetRoot()
             .DescendantNodes().OfType<MethodDeclarationSyntax>()
@@ -825,6 +824,14 @@ public sealed class ManagedAbstractFlowTests
         var model = compilation.GetSemanticModel(syntax.SyntaxTree);
         var root = (IMethodBodyOperation)model.GetOperation(syntax)!;
         var method = (IMethodSymbol)model.GetDeclaredSymbol(syntax)!;
+        return (method, root);
+    }
+
+    private static (IMethodSymbol Method, IMethodBodyOperation Root,
+        ControlFlowGraph Graph)
+        GetCallsContext(CSharpCompilation compilation)
+    {
+        var (method, root) = GetCallsMethodAndRoot(compilation);
         return (method, root, ControlFlowGraph.Create(root));
     }
 
@@ -867,10 +874,8 @@ public sealed class ManagedAbstractFlowTests
         AnalyzeSingleCall(string source)
     {
         var compilation = EffectTestHost.CreateCompilation(source);
-        var (method, root, graph) = GetCallsContext(compilation);
+        var (root, _, analysis) = AnalyzeCalls(compilation);
         var call = root.Descendants().OfType<IInvocationOperation>().Single();
-        var analysis = ManagedAbstractFlow.ForCompilation(compilation)
-            .Analyze(method, graph, null, default);
         return (analysis, call);
     }
 
