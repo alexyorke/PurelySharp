@@ -528,8 +528,7 @@ try {
             -DefaultMilliseconds $defaultPackageLayoutMethodMilliseconds `
             -BucketCount ([Math]::Min(4, $parallelism)))
         $fixtureClasses = @(
-            'CompilerProbeInputConsistencyTests',
-            'CompilerProbeSnapshotTests',
+            'CompilerProbeInputConsistencyTests|CompilerProbeSnapshotTests',
             'DependencyAuditScriptTests',
             'FinalCompilationProbeTests',
             'LauncherArgumentTests',
