@@ -139,7 +139,7 @@ internal sealed class ManagedAbstractFlow
         var dataflowGraph = CreateDataflowGraph(graph, result, cancellationToken);
         try
         {
-            _ = ForwardDataflowAnalysis.Analyze(dataflowGraph,
+            ForwardDataflowAnalysis.AnalyzeWithoutResult(dataflowGraph,
                 FlowDomain.Instance, entryState ?? CreateEntryState(method),
                 new ForwardDataflowAnalysisOptions(
                     maxIterations: maxIterationsOverride

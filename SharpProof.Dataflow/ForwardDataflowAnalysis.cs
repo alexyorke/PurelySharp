@@ -86,7 +86,18 @@ public static class ForwardDataflowAnalysis
         ForwardDataflowAnalysisOptions? options = null)
     {
         return AnalyzeCore(graph, domain, initialState,
-            options ?? new ForwardDataflowAnalysisOptions(), null);
+            options ?? new ForwardDataflowAnalysisOptions(), null,
+            produceResult: true)!;
+    }
+
+    internal static void AnalyzeWithoutResult<T>(
+        DataflowGraph<T> graph,
+        IAbstractDomain<T> domain,
+        T initialState,
+        ForwardDataflowAnalysisOptions options)
+    {
+        _ = AnalyzeCore(graph, domain, initialState, options, null,
+            produceResult: false);
     }
 
     internal static DataflowAnalysisResult<T> AnalyzeWithWorklistOrderForTesting<T>(
@@ -98,15 +109,17 @@ public static class ForwardDataflowAnalysis
     {
         ArgumentNullGuard.NotNull(worklistOrder, nameof(worklistOrder));
 
-        return AnalyzeCore(graph, domain, initialState, options, worklistOrder);
+        return AnalyzeCore(graph, domain, initialState, options, worklistOrder,
+            produceResult: true)!;
     }
 
-    private static DataflowAnalysisResult<T> AnalyzeCore<T>(
+    private static DataflowAnalysisResult<T>? AnalyzeCore<T>(
         DataflowGraph<T> graph,
         IAbstractDomain<T> domain,
         T initialState,
         ForwardDataflowAnalysisOptions options,
-        Func<ImmutableArray<int>, ImmutableArray<int>>? worklistOrder)
+        Func<ImmutableArray<int>, ImmutableArray<int>>? worklistOrder,
+        bool produceResult)
     {
         ArgumentNullGuard.NotNull(graph, nameof(graph));
         ArgumentNullGuard.NotNull(domain, nameof(domain));
@@ -204,7 +217,9 @@ public static class ForwardDataflowAnalysis
             }
         }
 
-        return new DataflowAnalysisResult<T>([.. inputs], [.. outputs], iterations);
+        return produceResult
+            ? new DataflowAnalysisResult<T>([.. inputs], [.. outputs], iterations)
+            : null;
     }
 
     private static SortedSet<int> FindReachableBlocks<T>(

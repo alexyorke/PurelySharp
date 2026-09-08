@@ -14,5 +14,6 @@
   <ItemGroup>
     <InternalsVisibleTo Include="SharpProof.Dataflow.Test" />
     <InternalsVisibleTo Include="SharpProof.Analyzer.Core" />
+    <InternalsVisibleTo Include="SharpProof.Effects" />
   </ItemGroup>
 </Project>
