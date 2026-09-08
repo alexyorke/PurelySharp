@@ -18,7 +18,8 @@ internal static class IrBlockOrder
         var blockCapacity = program.Blocks.Length;
         var states = new Dictionary<IrBlockId, byte>(blockCapacity);
         var pending = new Stack<(IrBlockId Block, bool Exit)>(blockCapacity);
-        var result = new List<IrBlockId>(blockCapacity);
+        var result = new IrBlockId[blockCapacity];
+        var resultCount = 0;
         pending.Push((program.Entry, false));
         while (pending.Count != 0)
         {
@@ -32,7 +33,7 @@ internal static class IrBlockOrder
             if (frame.Exit)
             {
                 states[frame.Block] = 2;
-                result.Add(frame.Block);
+                result[resultCount++] = frame.Block;
 
                 continue;
             }
@@ -67,8 +68,8 @@ internal static class IrBlockOrder
             }
         }
 
-        result.Reverse();
+        Array.Reverse(result, 0, resultCount);
         failure = IrAcyclicOrderFailure.None;
-        return [.. result];
+        return ImmutableArray.Create(result, 0, resultCount);
     }
 }
