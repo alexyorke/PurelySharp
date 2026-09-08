@@ -70,13 +70,20 @@ internal static class WorkerResultAssembler
         var claims = (manifest.Claims ?? [])
             .OfType<WorkerClaimManifestEntry>()
             .ToArray();
-        var assumptionsByCallable = callables
-            .Where(static callable =>
-                !string.IsNullOrWhiteSpace(callable.CallableId))
-            .ToLookup(
-                static callable => callable.CallableId,
-                static callable => callable.Assumptions ?? [],
-                StringComparer.Ordinal);
+        var assumptionsByCallable = new Dictionary<
+            string, WorkerAssumptionEvidence[]>(StringComparer.Ordinal);
+        foreach (var callable in callables)
+        {
+            if (!string.IsNullOrWhiteSpace(callable.CallableId))
+            {
+                if (!assumptionsByCallable.ContainsKey(callable.CallableId))
+                {
+                    assumptionsByCallable.Add(
+                        callable.CallableId,
+                        callable.Assumptions ?? []);
+                }
+            }
+        }
         return Create(inputHash, manifest, status, failureReason,
             callables.Select(callable => new WorkerCallableResult
             {
@@ -96,10 +103,12 @@ internal static class WorkerResultAssembler
                 // This runs on the failure path, where the manifest may already be
                 // malformed. A claim naming an absent callable must not turn a
                 // reported failure into an unhandled exception.
-                Assumptions = string.IsNullOrWhiteSpace(claim.CallableId)
+                Assumptions = string.IsNullOrWhiteSpace(claim.CallableId) ||
+                    !assumptionsByCallable.TryGetValue(
+                        claim.CallableId,
+                        out var assumptions)
                     ? []
-                    : assumptionsByCallable[claim.CallableId]
-                        .FirstOrDefault() ?? []
+                    : assumptions
             }),
             budgets, WorkerCacheStatus.Disabled, elapsedMilliseconds, errors, requestHash, versions);
     }

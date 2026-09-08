@@ -3,7 +3,7 @@ namespace SharpProof.Worker;
 internal static class CallableClaimResultAssembler
 {
     internal static WorkerClaimResult FromOutcome(CompilerCallablePreparation target, int contractOrdinal,
-        ProofOutcome outcome, IReadOnlyList<CompilerCanonicalVariable> variables,
+        ProofOutcome outcome,
         IReadOnlyDictionary<ProofJustification, string> assumptionLabels,
         IReadOnlyDictionary<ProofJustification, string> userAssumptionIds,
         WorkerClaimReason replayFailure,
@@ -75,7 +75,7 @@ internal static class CallableClaimResultAssembler
                     WorkerClaimReason.None,
                     effectCertainty,
                     projectAssumptions: false);
-                record.Model = CreateModel(refuted, variables);
+                record.Model = CreateModel(refuted, target.Variables);
                 break;
             case UnknownOutcome unknown:
                 record = Create(

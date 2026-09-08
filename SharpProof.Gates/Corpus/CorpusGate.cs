@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Text;
@@ -533,14 +532,10 @@ internal static class CorpusGate
         var expected = firstPass.ToImmutableDictionary(
             static observation => observation.CaseId,
             StringComparer.Ordinal);
-        var bag = new ConcurrentBag<CorpusObservation>();
-        await Task.WhenAll(selected.Select(async item =>
-        {
-            var observation = await ObserveCaseAsync(item, cancellationToken)
-                .ConfigureAwait(false);
-            bag.Add(observation);
-        })).ConfigureAwait(false);
-        return [.. bag
+        var observations = await Task.WhenAll(
+            selected.Select(item => ObserveCaseAsync(item, cancellationToken)))
+            .ConfigureAwait(false);
+        return [.. observations
             .Where(observation => !Matches(expected[observation.CaseId], observation))
             .OrderBy(static observation => observation.CaseId, StringComparer.Ordinal)
             .Select(static observation =>

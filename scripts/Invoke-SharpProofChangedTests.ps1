@@ -237,9 +237,11 @@ Write-Host (
     $(if ($runPackageTests) { ' plus package shards' } else { '' }))
 
 if ($selectedRelative.Count -gt 0) {
-    $filterPath = Join-Path $repositoryRoot (
-        '.sharpproof-changed-' + [Guid]::NewGuid().ToString('N') + '.slnf')
-    try {
+    $directChangedProject = $selectedRelative.Count -eq 1
+    $filterPath = ''
+    if (-not $directChangedProject) {
+        $filterPath = Join-Path $repositoryRoot (
+            '.sharpproof-changed-' + [Guid]::NewGuid().ToString('N') + '.slnf')
         [pscustomobject]@{
             solution = [ordered]@{
                 path = 'SharpProof.sln'
@@ -247,7 +249,8 @@ if ($selectedRelative.Count -gt 0) {
             }
         } | ConvertTo-Json -Depth 4 |
             Set-Content -LiteralPath $filterPath -Encoding utf8NoBOM
-        $directChangedProject = $selectedRelative.Count -eq 1
+    }
+    try {
         if (-not $NoBuild) {
             $restoreTarget = if ($directChangedProject) {
                 $selectedRelative[0]
@@ -322,7 +325,9 @@ if ($selectedRelative.Count -gt 0) {
         }
     }
     finally {
-        Remove-Item -LiteralPath $filterPath -Force -ErrorAction SilentlyContinue
+        if (-not [string]::IsNullOrWhiteSpace($filterPath)) {
+            Remove-Item -LiteralPath $filterPath -Force -ErrorAction SilentlyContinue
+        }
     }
 }
 

@@ -296,7 +296,6 @@ internal sealed class CallableVerifier(ISmtBackend backend, int maximumExpressio
                 target,
                 index,
                 outcome,
-                target.Variables,
                 assumptionLabels,
                 userAssumptionIds,
                 replayed,

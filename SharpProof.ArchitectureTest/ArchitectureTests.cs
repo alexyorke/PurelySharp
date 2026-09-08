@@ -158,10 +158,7 @@ public sealed class ArchitectureTests
                 "SharpProof.Summaries",
                 "SharpProof.Worker.Protocol"
             ],
-            ["SharpProof.ContractForGenerator"] = [
-                "SharpProof.Analyzer.Core",
-                "SharpProof.Contracts"
-            ],
+            ["SharpProof.ContractForGenerator"] = [],
             ["SharpProof.Specs"] = ["SharpProof.Ir"],
             ["SharpProof.Dataflow"] = [],
             ["SharpProof.Frontend"] = [

@@ -981,27 +981,20 @@ internal sealed partial class RequiresCallSiteDiscovery(
             }
             else
             {
-                targets.Add(
-                    declaration.Symbol,
-                    new DirectDelegateTarget(
-                        declaration.Method,
-                        declaration.Instance,
-                        [],
-                        hasGoto));
+                    targets.Add(
+                        declaration.Symbol,
+                        new DirectDelegateTarget(
+                            declaration.Method,
+                            declaration.Instance,
+                            invalidations.TryGetValue(
+                                declaration.Symbol,
+                                out var operations)
+                                ? [.. operations]
+                                : [],
+                            hasGoto));
             }
         }
 
-        foreach (var local in targets.Keys.ToArray())
-        {
-            if (invalidations.TryGetValue(local, out var operations))
-            {
-                var known = targets[local];
-                targets[local] = known with
-                {
-                    Invalidations = [.. operations]
-                };
-            }
-        }
         return targets;
     }
 
