@@ -601,13 +601,17 @@ internal static class CompilerImplementationIlSummaryLowerer
                 var stack = new Stack<IlValue>();
                 if (start == 0)
                 {
-                    for (var index = 0; index < locals.Length; index++)
+                    if (locals.Length != 0)
                     {
-                        builder.Assign(
-                            block,
-                            Operation(start),
-                            locals[index],
-                            DefaultValue(localTypes[index]));
+                        var initializationOperation = Operation(start);
+                        for (var index = 0; index < locals.Length; index++)
+                        {
+                            builder.Assign(
+                                block,
+                                initializationOperation,
+                                locals[index],
+                                DefaultValue(localTypes[index]));
+                        }
                     }
                 }
 
