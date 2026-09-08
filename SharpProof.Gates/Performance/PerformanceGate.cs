@@ -349,7 +349,6 @@ internal static class PerformanceGate
         var sessionFactory = new CountingSessionFactory();
         var analyzer = new SharpProofAnalyzer(sessionFactory);
         var diagnosticCount = 0;
-        var stopwatch = Stopwatch.StartNew();
         for (var index = 0; index < iterations; index++)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -363,7 +362,6 @@ internal static class PerformanceGate
                 analyzer,
                 cancellationToken);
         }
-        stopwatch.Stop();
         if (diagnosticCount != 0)
         {
             throw new InvalidOperationException(
@@ -371,7 +369,6 @@ internal static class PerformanceGate
         }
 
         return new UnannotatedAdvisoryBatchMeasurement(
-            stopwatch.Elapsed.TotalMilliseconds / iterations,
             iterations,
             diagnosticCount,
             sessionFactory.CreateCount,
@@ -1787,7 +1784,6 @@ internal static class PerformanceGate
         double UnannotatedAdvisoryMilliseconds);
 
     internal sealed record UnannotatedAdvisoryBatchMeasurement(
-        double MeanMilliseconds,
         int AnalyzerDriverRunCount,
         int DiagnosticCount,
         int AnalysisSessionCreateCount,
