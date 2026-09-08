@@ -205,9 +205,8 @@ internal sealed class CompilerSpecificationPackProvider
             entry,
             _factory.CreateOperation(specificationPackPrefix + ":return"),
             resultExpression);
-        var signature = new IrSummarySignature(
+        var signature = CompilerSummarySignature.Create(
             member,
-            receiver: null,
             parameters,
             result,
             new IrSummaryProvenance(

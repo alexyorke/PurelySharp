@@ -294,9 +294,8 @@ internal sealed class CompilerRelationalSummaryProvider
             calls.Add(binding.Key.Id, dependency!);
         }
 
-        var signature = new IrSummarySignature(
+        var signature = CompilerSummarySignature.Create(
             member,
-            receiver: null,
             parameters,
             result,
             new IrSummaryProvenance(

@@ -280,9 +280,8 @@ internal static class CompilerImplementationIlSummaryLowerer
                 return false;
             }
 
-            var signature = new IrSummarySignature(
+            var signature = CompilerSummarySignature.Create(
                 member,
-                receiver: null,
                 parameters,
                 result,
                 new IrSummaryProvenance(
