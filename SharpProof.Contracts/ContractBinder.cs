@@ -74,7 +74,11 @@ public sealed class ContractBinder
         return implementationBody == null
             ? _bindings.GetOrAdd(
                 target,
-                value => BindUncached(value, requiresOnly: false))
+                value => BindCore(
+                    value,
+                    implementationBody: null,
+                    requiresOnly: false,
+                    cancellationToken: CancellationToken.None))
             : BindCore(
                 target,
                 implementationBody,
@@ -91,7 +95,11 @@ public sealed class ContractBinder
         return implementationBody == null
             ? _requiresBindings.GetOrAdd(
                 target,
-                value => BindUncached(value, requiresOnly: true))
+                value => BindCore(
+                    value,
+                    implementationBody: null,
+                    requiresOnly: true,
+                    cancellationToken: CancellationToken.None))
             : BindCore(
                 target,
                 implementationBody,
@@ -117,17 +125,6 @@ public sealed class ContractBinder
     public ContractClauseInventory GetClauseInventory(IMethodSymbol target)
     {
         return _clauseInventory.Create(target);
-    }
-
-    private ContractBindingResult BindUncached(
-        IMethodSymbol target,
-        bool requiresOnly)
-    {
-        return BindCore(
-            target,
-            implementationBody: null,
-            requiresOnly,
-            cancellationToken: CancellationToken.None);
     }
 
     private ContractBindingResult BindCore(
