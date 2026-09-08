@@ -302,7 +302,7 @@ public sealed class IrSmtBackend : ISmtBackend, IDisposable
         Action? check = null)
         where T : IDisposable
     {
-        var core = ImmutableArray.CreateBuilder<int>();
+        var core = new HashSet<int>();
         try
         {
             foreach (var expression in expressions)
@@ -317,7 +317,7 @@ public sealed class IrSmtBackend : ISmtBackend, IDisposable
                 core.Add(index);
             }
             return BackendCheckResult.Unsatisfiable(
-                core.Distinct().OrderBy(static index => index));
+                core.OrderBy(static index => index));
         }
         finally
         {
