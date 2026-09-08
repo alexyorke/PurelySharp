@@ -104,8 +104,7 @@ public sealed class FrontendSemanticEdgeCaseTests
                 (long?)1L)
         };
 
-        var results = new FrontendDifferentialOracle()
-            .CompareSemanticEdges(cases);
+        var results = FrontendDifferentialOracle.CompareSemanticEdges(cases);
 
         Assert.That(results, Has.Length.EqualTo(cases.Length));
         Assert.That(
@@ -134,7 +133,7 @@ public sealed class FrontendSemanticEdgeCaseTests
     {
         long[] first = [1, 2];
         long[] second = [1, 2];
-        var result = new FrontendDifferentialOracle().CompareSemanticEdges(
+        var result = FrontendDifferentialOracle.CompareSemanticEdges(
         [
             new FrontendSemanticEdgeCase(
                 "long[]",
@@ -192,7 +191,7 @@ public sealed class FrontendSemanticEdgeCaseTests
 
     private static void AssertValidPeerIsolation(string injectedExpression)
     {
-        var results = new FrontendDifferentialOracle().CompareSemanticEdges(
+        var results = FrontendDifferentialOracle.CompareSemanticEdges(
         [
             Exact("long", "", "0L"),
             Exact("long", "", injectedExpression)

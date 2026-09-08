@@ -103,13 +103,9 @@ public static class PartialTermSmtCaseGenerator
     }
 }
 
-public sealed class PartialTermSmtDifferentialOracle
+public static class PartialTermSmtDifferentialOracle
 {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Performance",
-        "CA1822:Mark members as static",
-        Justification = "Oracle methods intentionally share an instance-shaped test API.")]
-    public async Task<PartialTermSmtDifferentialResult> CompareAsync(
+    public static async Task<PartialTermSmtDifferentialResult> CompareAsync(
         IrFactory factory,
         PartialTermSmtCase generated,
         CancellationToken cancellationToken = default)

@@ -19,7 +19,7 @@ public sealed record FiniteDomainDifferentialResult(
     int FiniteDomainAssumptions,
     string Detail);
 
-public sealed class FiniteDomainSmtDifferentialOracle
+public static class FiniteDomainSmtDifferentialOracle
 {
     private const int MaximumAssignmentCount = 65_536;
     private static readonly bool[] BooleanDomain = [false, true];
@@ -60,11 +60,7 @@ public sealed class FiniteDomainSmtDifferentialOracle
             cancellationToken: cancellationToken);
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Performance",
-        "CA1822:Mark members as static",
-        Justification = "Oracle methods intentionally share an instance-shaped test API.")]
-    public async Task<FiniteDomainDifferentialResult> CompareAsync(
+    public static async Task<FiniteDomainDifferentialResult> CompareAsync(
         IrFactory factory,
         IrTerm formula,
         CancellationToken cancellationToken = default)

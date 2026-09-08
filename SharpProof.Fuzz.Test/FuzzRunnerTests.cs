@@ -306,7 +306,7 @@ public sealed class FuzzRunnerTests
         Assert.That(first.Left, Is.EqualTo(second.Left));
         Assert.That(first.Right, Is.EqualTo(second.Right));
         Assert.That(first.Condition, Is.EqualTo(second.Condition));
-        var comparison = new FrontendDifferentialOracle().Compare(first);
+        var comparison = FrontendDifferentialOracle.Compare(first);
         Assert.That(
             comparison.Status,
             Is.EqualTo(FuzzOracleStatus.Agreement),
@@ -342,7 +342,7 @@ public sealed class FuzzRunnerTests
                 Condition: false)
         };
 
-        var results = new FrontendDifferentialOracle().CompareBatch(cases);
+        var results = FrontendDifferentialOracle.CompareBatch(cases);
 
         Assert.That(
             results.Select(static result => result.Status),
@@ -375,8 +375,7 @@ public sealed class FuzzRunnerTests
             Right: 0,
             Condition: false);
 
-        var results = new FrontendDifferentialOracle()
-            .CompareBatch([valid, invalid]);
+        var results = FrontendDifferentialOracle.CompareBatch([valid, invalid]);
 
         using (Assert.EnterMultipleScope())
         {
@@ -411,10 +410,10 @@ public sealed class FuzzRunnerTests
             IrBinaryOperator.LessThan,
             factory.Variable(value),
             factory.Integer(-2));
-        var oracle = new FiniteDomainSmtDifferentialOracle();
-
-        var sat = await oracle.CompareAsync(factory, satisfiable);
-        var unsat = await oracle.CompareAsync(factory, unsatisfiable);
+        var sat = await FiniteDomainSmtDifferentialOracle.CompareAsync(
+            factory, satisfiable);
+        var unsat = await FiniteDomainSmtDifferentialOracle.CompareAsync(
+            factory, unsatisfiable);
 
         AssertAgreement(
             sat,
@@ -469,11 +468,10 @@ public sealed class FuzzRunnerTests
                 factory,
                 contradiction,
                 safety.Token);
-        var comparison = await new FiniteDomainSmtDifferentialOracle()
-            .CompareAsync(
-                factory,
-                contradiction,
-                safety.Token);
+        var comparison = await FiniteDomainSmtDifferentialOracle.CompareAsync(
+            factory,
+            contradiction,
+            safety.Token);
 
         using (Assert.EnterMultipleScope())
         {
@@ -502,8 +500,8 @@ public sealed class FuzzRunnerTests
         var factory = new IrFactory();
         var generated = PartialTermSmtCaseGenerator.Create(factory, seed);
 
-        var result = await new PartialTermSmtDifferentialOracle()
-            .CompareAsync(factory, generated);
+        var result = await PartialTermSmtDifferentialOracle.CompareAsync(
+            factory, generated);
 
         using (Assert.EnterMultipleScope())
         {

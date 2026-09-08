@@ -892,13 +892,13 @@ public sealed record FrontendSemanticEdgeResult(
     string Detail,
     IrExceptionKind? ExceptionKind = null);
 
-public sealed class FrontendDifferentialOracle
+public static class FrontendDifferentialOracle
 {
     private const string SemanticEdgeMethodPrefix = "EdgeTarget";
     private static readonly Lazy<ImmutableArray<MetadataReference>> References =
         new(CreateReferences, LazyThreadSafetyMode.ExecutionAndPublication);
 
-    public FrontendDifferentialResult Compare(
+    public static FrontendDifferentialResult Compare(
         GeneratedCSharpCase generated,
         CancellationToken cancellationToken = default)
     {
@@ -910,11 +910,7 @@ public sealed class FrontendDifferentialOracle
         return CompareBatch([generated], cancellationToken)[0];
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Performance",
-        "CA1822:Mark members as static",
-        Justification = "Oracle methods intentionally share an instance-shaped test API.")]
-    public ImmutableArray<FrontendDifferentialResult> CompareBatch(
+    public static ImmutableArray<FrontendDifferentialResult> CompareBatch(
         IReadOnlyList<GeneratedCSharpCase> generatedCases,
         CancellationToken cancellationToken = default)
     {
@@ -1046,11 +1042,7 @@ public sealed class FrontendDifferentialOracle
             });
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Performance",
-        "CA1822:Mark members as static",
-        Justification = "Oracle methods intentionally share an instance-shaped test API.")]
-    public ImmutableArray<FrontendSemanticEdgeResult> CompareSemanticEdges(
+    public static ImmutableArray<FrontendSemanticEdgeResult> CompareSemanticEdges(
         IReadOnlyList<FrontendSemanticEdgeCase> cases,
         CancellationToken cancellationToken = default)
     {
@@ -1201,7 +1193,7 @@ public sealed class FrontendDifferentialOracle
         }
     }
 
-    private ImmutableArray<FrontendSemanticEdgeResult>
+    private static ImmutableArray<FrontendSemanticEdgeResult>
         IsolateSemanticEdgeFailure(
             IReadOnlyList<FrontendSemanticEdgeCase> cases,
             string detail,

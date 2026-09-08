@@ -160,7 +160,6 @@ public static class FuzzRunner
         var frontendStatuses = new FuzzOracleStatus[options.Cases];
         var smtStatuses = new FuzzOracleStatus[options.Cases];
         var partialStatuses = new FuzzOracleStatus[options.Cases];
-        var frontendOracle = new FrontendDifferentialOracle();
         for (var offset = 0;
              offset < frontendCases.Length;
              offset += FrontendCompilationBatchSize)
@@ -169,7 +168,7 @@ public static class FuzzRunner
             var count = Math.Min(
                 FrontendCompilationBatchSize,
                 frontendCases.Length - offset);
-            var batchResults = frontendOracle.CompareBatch(
+            var batchResults = FrontendDifferentialOracle.CompareBatch(
                 new ArraySegment<GeneratedCSharpCase>(
                     frontendCases,
                     offset,
@@ -209,8 +208,7 @@ public static class FuzzRunner
                     factory,
                     caseSeed,
                     token);
-                var smtOracle = new FiniteDomainSmtDifferentialOracle();
-                var smt = await smtOracle.CompareAsync(
+                var smt = await FiniteDomainSmtDifferentialOracle.CompareAsync(
                         factory,
                         formula,
                         token)
@@ -224,9 +222,7 @@ public static class FuzzRunner
                 var partialCase = PartialTermSmtCaseGenerator.Create(
                     factory,
                     unchecked(caseSeed ^ 0x243F6A88));
-                var partialOracle =
-                    new PartialTermSmtDifferentialOracle();
-                var partial = await partialOracle.CompareAsync(
+                var partial = await PartialTermSmtDifferentialOracle.CompareAsync(
                         factory,
                         partialCase,
                         token)
@@ -272,11 +268,11 @@ public static class FuzzRunner
                         : CSharpStructuralShrinker.Minimize(
                             frontendCase,
                             candidate => IsSemanticMismatch(
-                                frontendOracle.Compare(
+                                FrontendDifferentialOracle.Compare(
                                     candidate,
                                     cancellationToken)),
                             cancellationToken);
-                    var minimizedFrontendResult = frontendOracle.Compare(
+                    var minimizedFrontendResult = FrontendDifferentialOracle.Compare(
                         minimizedFrontend,
                         cancellationToken);
                     failures.Add(new FuzzFailure(
@@ -293,13 +289,12 @@ public static class FuzzRunner
                         factory,
                         caseSeed,
                         cancellationToken);
-                    var smtOracle = new FiniteDomainSmtDifferentialOracle();
                     var minimizedFormula = await IrStructuralShrinker
                         .MinimizeAsync(
                             factory,
                             formula,
                             async (candidate, cancellation) =>
-                                (await smtOracle.CompareAsync(
+                                (await FiniteDomainSmtDifferentialOracle.CompareAsync(
                                         factory,
                                         candidate,
                                         cancellation)
@@ -307,7 +302,7 @@ public static class FuzzRunner
                                 FuzzOracleStatus.Agreement,
                             cancellationToken)
                         .ConfigureAwait(false);
-                    var minimizedSmtResult = await smtOracle.CompareAsync(
+                    var minimizedSmtResult = await FiniteDomainSmtDifferentialOracle.CompareAsync(
                             factory,
                             minimizedFormula,
                             cancellationToken)
@@ -326,8 +321,8 @@ public static class FuzzRunner
                     var partialCase = PartialTermSmtCaseGenerator.Create(
                         partialFactory,
                         unchecked(caseSeed ^ 0x243F6A88));
-                    var partialResult = await new
-                        PartialTermSmtDifferentialOracle().CompareAsync(
+                    var partialResult = await
+                        PartialTermSmtDifferentialOracle.CompareAsync(
                             partialFactory,
                             partialCase,
                             cancellationToken)
