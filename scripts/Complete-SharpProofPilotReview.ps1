@@ -107,14 +107,13 @@ if ($seen.Count -ne $expected.Count) {
     throw 'The review ledger is incomplete.'
 }
 
-$reviewed = $source | ConvertTo-Json -Depth 20 | ConvertFrom-Json
-$reviewed.reviewStatus = 'Reviewed'
-foreach ($pilot in @($reviewed.pilots)) {
+$source.reviewStatus = 'Reviewed'
+foreach ($pilot in @($source.pilots)) {
     $pilot.falsePositiveReports = [int]($falsePositives[[string]$pilot.id] ?? 0)
 }
 [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($resolvedOutput)) | Out-Null
 [IO.File]::WriteAllText(
     $resolvedOutput,
-    ($reviewed | ConvertTo-Json -Depth 20) + "`n",
+    ($source | ConvertTo-Json -Depth 20) + "`n",
     [Text.UTF8Encoding]::new($false))
 Write-Host "Reviewed five pilot reports for $($source.commit)."
