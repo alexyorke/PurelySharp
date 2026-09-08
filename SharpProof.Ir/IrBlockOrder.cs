@@ -16,7 +16,7 @@ internal static class IrBlockOrder
         out IrAcyclicOrderFailure failure)
     {
         var blockCapacity = program.Blocks.Length;
-        var states = new Dictionary<IrBlockId, byte>(blockCapacity);
+        var states = new byte[blockCapacity];
         var pending = new Stack<(IrBlockId Block, bool Exit)>(blockCapacity);
         var result = new IrBlockId[blockCapacity];
         var resultCount = 0;
@@ -32,13 +32,15 @@ internal static class IrBlockOrder
             var frame = pending.Pop();
             if (frame.Exit)
             {
-                states[frame.Block] = 2;
+                states[frame.Block.Value] = 2;
                 result[resultCount++] = frame.Block;
 
                 continue;
             }
 
-            if (states.TryGetValue(frame.Block, out var state))
+            var block = program.GetBlock(frame.Block);
+            var state = states[frame.Block.Value];
+            if (state != 0)
             {
                 if (state == 2)
                 {
@@ -49,9 +51,9 @@ internal static class IrBlockOrder
                 return default;
             }
 
-            states.Add(frame.Block, 1);
+            states[frame.Block.Value] = 1;
             pending.Push((frame.Block, true));
-            switch (program.GetBlock(frame.Block).Terminator)
+            switch (block.Terminator)
             {
                 case IrBranchInstruction branch:
                     pending.Push((branch.WhenFalse, false));
