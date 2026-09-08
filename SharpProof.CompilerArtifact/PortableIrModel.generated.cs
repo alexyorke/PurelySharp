@@ -140,7 +140,6 @@ internal sealed class DecodedPortableIrGraph(
     IrProgram? program,
     IrTerm[] roots,
     IrVarId[] variables,
-    IrBlockId[] blocks,
     IrInstruction[] instructions
 )
 {
@@ -148,7 +147,6 @@ internal sealed class DecodedPortableIrGraph(
     internal IrProgram? Program { get; } = program;
     internal IReadOnlyList<IrTerm> Roots { get; } = roots;
     internal IReadOnlyList<IrVarId> Variables { get; } = variables;
-    internal IReadOnlyList<IrBlockId> Blocks { get; } = blocks;
     internal IReadOnlyList<IrInstruction> Instructions { get; } = instructions;
 }
 

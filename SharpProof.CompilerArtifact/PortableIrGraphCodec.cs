@@ -630,10 +630,10 @@ internal static partial class PortableIrGraphCodec
             }
 
             IrTerm[] roots = [.. _graph.Roots.Select(Term)];
-            var (program, blocks, instructions) = DecodeProgram();
+            var (program, instructions) = DecodeProgram();
             _cancellationToken.ThrowIfCancellationRequested();
             return new DecodedPortableIrGraph(
-                _factory, program, roots, _variables, blocks, instructions);
+                _factory, program, roots, _variables, instructions);
         }
 
         private void RequireGraphShape()
@@ -779,11 +779,11 @@ internal static partial class PortableIrGraphCodec
             return [.. indices.Select(index => DecodeTerm(index, depth + 1))];
         }
 
-        private (IrProgram? Program, IrBlockId[] Blocks, IrInstruction[] Instructions) DecodeProgram()
+        private (IrProgram? Program, IrInstruction[] Instructions) DecodeProgram()
         {
             if (!_graph.HasProgram)
             {
-                return (null, [], []);
+                return (null, []);
             }
 
             var builder = new IrProgramBuilder(_factory);
@@ -808,7 +808,7 @@ internal static partial class PortableIrGraphCodec
                 }
             }
 
-            return (builder.Build(), blocks, [.. instructions]);
+            return (builder.Build(), [.. instructions]);
         }
 
         private IrInstruction Instruction(

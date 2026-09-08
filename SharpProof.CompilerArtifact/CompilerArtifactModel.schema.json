@@ -1428,10 +1428,6 @@
           "type": "IrVarId[]"
         },
         {
-          "name": "blocks",
-          "type": "IrBlockId[]"
-        },
-        {
           "name": "instructions",
           "type": "IrInstruction[]"
         }
@@ -1475,16 +1471,6 @@
           "default": {
             "kind": "parameter",
             "name": "variables"
-          }
-        },
-        {
-          "name": "Blocks",
-          "type": "IReadOnlyList<IrBlockId>",
-          "accessibility": "internal",
-          "set": "none",
-          "default": {
-            "kind": "parameter",
-            "name": "blocks"
           }
         },
         {

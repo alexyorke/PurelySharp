@@ -46,7 +46,7 @@ public sealed class PortableIrGraphCodecTests
             Assert.That(decoded.Program, Is.Not.Null);
             Assert.That(decoded.Roots, Has.Count.EqualTo(fixture.Roots.Length));
             Assert.That(decoded.Variables, Has.Count.EqualTo(encoded.Graph.Variables.Length));
-            Assert.That(decoded.Blocks, Has.Count.EqualTo(encoded.Graph.Blocks.Length));
+            Assert.That(decoded.Program!.Blocks, Has.Length.EqualTo(encoded.Graph.Blocks.Length));
             Assert.That(
                 decoded.Instructions,
                 Has.Count.EqualTo(

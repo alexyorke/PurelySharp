@@ -787,9 +787,9 @@ internal static class CompilerLoweredArtifact
             return CompilerPreparedBody.Trivial();
         }
         if (row.Kind != CompilerPreparedBodyKind.Program ||
-            graph.Program == null || graph.Blocks.Count == 0 ||
+            graph.Program == null || graph.Program.Blocks.Length == 0 ||
             graph.Program.Blocks.Sum(static block => (long)block.Instructions.Length) > CompilerPreparedBody.MaximumInstructions ||
-            graph.Program.Entry.Value != 0 || graph.Program.Entry != graph.Blocks[0])
+            graph.Program.Entry.Value != 0 || graph.Program.Entry != graph.Program.Blocks[0].Id)
         {
             throw new InvalidDataException("A lowered program body is invalid.");
         }
