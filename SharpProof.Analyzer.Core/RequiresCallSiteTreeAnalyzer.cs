@@ -391,15 +391,17 @@ internal static partial class RequiresCallSiteTreeAnalyzer
                 SymbolEqualityComparer.Default);
             var scannedAnonymous = new HashSet<IMethodSymbol>(
                 SymbolEqualityComparer.Default);
+            var discovered = new List<IMethodSymbol>();
             if (!TryCollectLocalReferences(
-                    graph, candidates, reachable, scannedAnonymous))
+                    graph, candidates, reachable, scannedAnonymous,
+                    discovered))
             {
                 return candidates;
             }
             var pending = new Queue<IMethodSymbol>();
             var scheduledLocals = new HashSet<IMethodSymbol>(
                 SymbolEqualityComparer.Default);
-            foreach (var method in reachable)
+            foreach (var method in discovered)
             {
                 pending.Enqueue(method);
                 scheduledLocals.Add(method);
@@ -420,20 +422,18 @@ internal static partial class RequiresCallSiteTreeAnalyzer
                 {
                     return candidates;
                 }
-                var count = reachable.Count;
+                discovered.Clear();
                 if (!TryCollectLocalReferences(
-                        child, candidates, reachable, scannedAnonymous))
+                        child, candidates, reachable, scannedAnonymous,
+                        discovered))
                 {
                     return candidates;
                 }
-                if (reachable.Count != count)
+                foreach (var discoveredMethod in discovered)
                 {
-                    foreach (var discovered in reachable)
+                    if (scheduledLocals.Add(discoveredMethod))
                     {
-                        if (scheduledLocals.Add(discovered))
-                        {
-                            pending.Enqueue(discovered);
-                        }
+                        pending.Enqueue(discoveredMethod);
                     }
                 }
             }
@@ -445,7 +445,8 @@ internal static partial class RequiresCallSiteTreeAnalyzer
             ControlFlowGraph graph,
             ImmutableHashSet<IMethodSymbol> candidates,
             HashSet<IMethodSymbol> reachable,
-            HashSet<IMethodSymbol> scannedAnonymous)
+            HashSet<IMethodSymbol> scannedAnonymous,
+            List<IMethodSymbol> discovered)
         {
             var anonymousFunctions = new List<
                 IFlowAnonymousFunctionOperation>();
@@ -470,7 +471,10 @@ internal static partial class RequiresCallSiteTreeAnalyzer
                         .NormalizeCallable(referenced).OriginalDefinition;
                     if (candidates.Contains(referenced))
                     {
-                        reachable.Add(referenced);
+                        if (reachable.Add(referenced))
+                        {
+                            discovered.Add(referenced);
+                        }
                     }
                 }
                 if (operation is IFlowAnonymousFunctionOperation anonymous)
@@ -500,7 +504,7 @@ internal static partial class RequiresCallSiteTreeAnalyzer
                             anonymous, cancellationToken);
                     if (!TryCollectLocalReferences(
                             child, candidates, reachable,
-                            scannedAnonymous))
+                            scannedAnonymous, discovered))
                     {
                         return false;
                     }
