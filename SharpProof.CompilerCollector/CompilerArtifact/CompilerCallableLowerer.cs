@@ -1,4 +1,6 @@
 // This lowerer runs only in the build-time compiler collector.
+using Microsoft.CodeAnalysis.Text;
+
 namespace SharpProof.CompilerArtifact;
 
 internal sealed class CompilerCallableLowerer
@@ -151,14 +153,18 @@ internal sealed class CompilerCallableLowerer
         }
 
         var inventory = _contracts.GetClauseInventory(target.Method);
+        var clauseSites = target.VerifierDeclaration.Body is { }
+            ? CreateClauseSiteIndex(inventory)
+            : null;
         if (target.Method.ReturnsVoid)
         {
             failure = ContainsOnlyContractStatements(
                 target,
-                inventory) ? WorkerClaimReason.None : WorkerClaimReason.UnsupportedBody;
+                inventory,
+                clauseSites) ? WorkerClaimReason.None : WorkerClaimReason.UnsupportedBody;
             return failure == WorkerClaimReason.None ? CompilerPreparedBody.Trivial() : null;
         }
-        var bodyStart = FindExecutableBodyStart(target, inventory);
+        var bodyStart = FindExecutableBodyStart(target, inventory, clauseSites);
         if (!bodyStart.HasValue)
         {
             return Unsupported(out failure);
@@ -483,7 +489,8 @@ internal sealed class CompilerCallableLowerer
 
     private static int? FindExecutableBodyStart(
         ManifestCallableTarget target,
-        ContractClauseInventory inventory)
+        ContractClauseInventory inventory,
+        HashSet<(SyntaxTree Tree, TextSpan Span)>? clauseSites)
     {
         var declaration = target.VerifierDeclaration;
         if (declaration.ExpressionBody is { } expressionBody)
@@ -499,7 +506,7 @@ internal sealed class CompilerCallableLowerer
         foreach (var statement in body.Statements)
         {
             if (statement is EmptyStatementSyntax ||
-                IsContractStatement(inventory, statement))
+                IsContractStatement(inventory, statement, clauseSites))
             {
                 continue;
             }
@@ -660,19 +667,21 @@ internal sealed class CompilerCallableLowerer
 
     private static bool ContainsOnlyContractStatements(
         ManifestCallableTarget target,
-        ContractClauseInventory inventory)
+        ContractClauseInventory inventory,
+        HashSet<(SyntaxTree Tree, TextSpan Span)>? clauseSites)
     {
         var declaration = target.VerifierDeclaration;
         return declaration.Body is { } body
             ? body.Statements.All(statement =>
-                IsContractStatement(inventory, statement))
+                IsContractStatement(inventory, statement, clauseSites))
             : declaration.ExpressionBody is { Expression: { } expression } &&
-                IsContractExpression(inventory, expression);
+                IsContractExpression(inventory, expression, clauseSites);
     }
 
     private static bool IsContractStatement(
         ContractClauseInventory inventory,
-        StatementSyntax statement)
+        StatementSyntax statement,
+        HashSet<(SyntaxTree Tree, TextSpan Span)>? clauseSites)
     {
         if (statement is EmptyStatementSyntax)
         {
@@ -680,18 +689,35 @@ internal sealed class CompilerCallableLowerer
         }
 
         return statement is ExpressionStatementSyntax expression &&
-            IsContractExpression(inventory, expression.Expression);
+            IsContractExpression(inventory, expression.Expression, clauseSites);
     }
 
     private static bool IsContractExpression(
         ContractClauseInventory inventory,
-        ExpressionSyntax expression)
+        ExpressionSyntax expression,
+        HashSet<(SyntaxTree Tree, TextSpan Span)>? clauseSites)
     {
-        return inventory.Clauses.Any(
-            clause =>
-                clause.Invocation.Syntax.SyntaxTree ==
-                    expression.SyntaxTree &&
-                clause.Invocation.Syntax.Span == expression.Span);
+        return clauseSites is { } sites
+            ? sites.Contains((expression.SyntaxTree, expression.Span))
+            : inventory.Clauses.Any(
+                clause =>
+                    clause.Invocation.Syntax.SyntaxTree ==
+                        expression.SyntaxTree &&
+                    clause.Invocation.Syntax.Span == expression.Span);
+    }
+
+    private static HashSet<(SyntaxTree Tree, TextSpan Span)> CreateClauseSiteIndex(
+        ContractClauseInventory inventory)
+    {
+        var clauseSites = new HashSet<(SyntaxTree Tree, TextSpan Span)>();
+        foreach (var clause in inventory.Clauses)
+        {
+            clauseSites.Add((
+                clause.Invocation.Syntax.SyntaxTree,
+                clause.Invocation.Syntax.Span));
+        }
+
+        return clauseSites;
     }
 
     private static WorkerClaimReason MapBindingFailure(ContractBindingFailure failure)
