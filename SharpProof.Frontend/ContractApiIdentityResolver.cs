@@ -38,6 +38,9 @@ internal sealed class ContractApiIdentityResolver
             new(SymbolEqualityComparer.Default);
     private readonly ConcurrentDictionary<string, AttributeResolution> _attributes =
         new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<INamedTypeSymbol, string>
+        _knownAttributeMetadataNames =
+            new(SymbolEqualityComparer.Default);
     private readonly ConcurrentDictionary<string, MetadataNameParts>
         _metadataNames = new(StringComparer.Ordinal);
 
@@ -557,16 +560,23 @@ internal sealed class ContractApiIdentityResolver
         INamedTypeSymbol type,
         out string metadataName)
     {
+        if (_knownAttributeMetadataNames.TryGetValue(type, out metadataName!))
+        {
+            return metadataName.Length != 0;
+        }
+
         foreach (var candidate in AttributeMetadataNames)
         {
             if (HasMetadataName(type, candidate))
             {
                 metadataName = candidate;
+                _knownAttributeMetadataNames.TryAdd(type, metadataName);
                 return true;
             }
         }
 
         metadataName = string.Empty;
+        _knownAttributeMetadataNames.TryAdd(type, metadataName);
         return false;
     }
 
