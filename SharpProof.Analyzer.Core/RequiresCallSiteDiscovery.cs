@@ -8,7 +8,8 @@ internal sealed partial class RequiresCallSiteDiscovery(
     SemanticModel semanticModel,
     CancellationToken cancellationToken,
     ControlFlowGraph? suppliedGraph = null,
-    IOperation? suppliedOperationRoot = null)
+    IOperation? suppliedOperationRoot = null,
+    IOperation? suppliedInitializerOperation = null)
 {
     private readonly InvocationEmissionPolicy _invocationEmission =
         new(semanticModel.Compilation);
@@ -371,9 +372,11 @@ internal sealed partial class RequiresCallSiteDiscovery(
             return null;
         }
 
-        var operation = semanticModel.GetOperation(
-            initializer.Value,
-            cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        var operation = suppliedInitializerOperation ??
+            semanticModel.GetOperation(
+                initializer.Value,
+                cancellationToken);
         return operation == null
             ? []
             : new HashSet<(SyntaxTree Tree, int Start, int Length)>(

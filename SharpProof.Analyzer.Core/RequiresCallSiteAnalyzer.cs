@@ -226,7 +226,8 @@ internal static partial class RequiresCallSiteAnalyzer
         return new Analysis(
                 constructor, initializer, semanticModel, session,
                 reportDiagnostic, graph: null, operationRoot: root,
-                cancellationToken)
+                cancellationToken: cancellationToken,
+                suppliedInitializerOperation: operation)
             .Run(requireCallerOwnership: false);
     }
 
@@ -238,7 +239,8 @@ internal static partial class RequiresCallSiteAnalyzer
         Action<Diagnostic> reportDiagnostic,
         ControlFlowGraph? graph,
         IOperation? operationRoot,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IOperation? suppliedInitializerOperation = null)
     {
         private readonly IrFactory _factory = session.IrFactory;
         private readonly RequiresCallSiteDiscovery _discovery =
@@ -248,7 +250,8 @@ internal static partial class RequiresCallSiteAnalyzer
                 semanticModel,
                 cancellationToken,
                 graph,
-                operationRoot);
+                operationRoot,
+                suppliedInitializerOperation);
 
         internal AnalyzerSemanticOutcome Run(
             bool requireCallerOwnership = true)
