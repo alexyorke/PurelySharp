@@ -109,6 +109,8 @@ internal static class CompilerManifestArtifactProducer
     {
         Dictionary<(string Path, string Sha256), CompilerSyntaxTreeSnapshot[]>?
             syntaxTreesByIdentity = null;
+        Dictionary<(string Name, string Sha256), CompilerReferenceModuleSnapshot[]>?
+            modulesByIdentity = null;
         return [.. authorities.Select(authority =>
         {
             var row = new CompilerSummaryEvidenceSnapshot
@@ -148,20 +150,23 @@ internal static class CompilerManifestArtifactProducer
             }
             else if (authority.Origin == CompilerSummaryOrigin.ImplementationIl)
             {
-                var module = snapshot.References
+                modulesByIdentity ??= snapshot.References
                     .SelectMany(static reference => reference.Modules)
-                    .Where(module =>
-                        module.Name == authority.OwningModuleName &&
-                        module.Sha256 == authority.EvidenceSha256)
-                    .ToArray();
-                if (module.Length != 1)
+                    .GroupBy(static module => (module.Name, module.Sha256))
+                    .ToDictionary(
+                        static group => group.Key,
+                        static group => group.ToArray());
+                if (!modulesByIdentity.TryGetValue(
+                        (authority.OwningModuleName, authority.EvidenceSha256),
+                        out var matchingModules) ||
+                    matchingModules.Length != 1)
                 {
                     throw new InvalidOperationException(
                         "An IL summary authority is not bound to one captured module.");
                 }
 
-                row.OwningModuleMvid = module[0].Mvid;
-                row.OwningModuleSha256 = module[0].Sha256;
+                row.OwningModuleMvid = matchingModules[0].Mvid;
+                row.OwningModuleSha256 = matchingModules[0].Sha256;
             }
             else if (authority.Origin == CompilerSummaryOrigin.SpecificationPack)
             {
