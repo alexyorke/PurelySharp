@@ -755,7 +755,8 @@ internal static class CompilerManifestArtifactJson
                         loweredEffects[index],
                         loweredAuthorities[index],
                         effects[index]!,
-                        value.Compilation))
+                        value.Compilation,
+                        evidenceValidated: true))
                 {
                     return false;
                 }

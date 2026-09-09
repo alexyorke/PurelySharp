@@ -669,7 +669,8 @@ internal static class CompilerLoweredArtifact
                 evidence,
                 authority,
                 expected[index],
-                compilation);
+                compilation,
+                evidenceValidated: true);
             if (!authorityMatches)
             {
                 throw new InvalidDataException(

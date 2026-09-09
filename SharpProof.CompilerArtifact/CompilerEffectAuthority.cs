@@ -70,6 +70,21 @@ internal static class CompilerEffectAuthority
         WorkerClaimManifestEntry expected,
         CompilerCompilationSnapshot compilation)
     {
+        return Matches(
+            evidence,
+            authority,
+            expected,
+            compilation,
+            evidenceValidated: false);
+    }
+
+    internal static bool Matches(
+        CompilerEffectClaimArtifact evidence,
+        CompilerEffectAuthorityArtifact authority,
+        WorkerClaimManifestEntry expected,
+        CompilerCompilationSnapshot compilation,
+        bool evidenceValidated)
+    {
         try
         {
             if (evidence == null || authority == null || expected == null ||
@@ -78,7 +93,8 @@ internal static class CompilerEffectAuthority
                 return false;
             }
 
-            if (!HasValidAuthorityPayload(authority, compilation) ||
+            if ((!evidenceValidated &&
+                 !HasValidAuthorityPayload(authority, compilation)) ||
                 authority.Source == null ||
                 authority.Constraint == null ||
                 authority.SourceTreePath == null ||
