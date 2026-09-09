@@ -10,7 +10,6 @@
     <_SharpProofWorkerProtocolPath>$([System.IO.Path]::Combine('$(_SharpProofToolsDirectory)', 'SharpProof.Worker.Protocol.dll'))</_SharpProofWorkerProtocolPath>
     <_SharpProofWorkerProtocolPath Condition="'$(_SharpProofTestWorkerProtocolPath)' != ''">$([System.IO.Path]::GetFullPath('$(_SharpProofTestWorkerProtocolPath)'))</_SharpProofWorkerProtocolPath>
     <_SharpProofBuildTasksPath Condition="'$(_SharpProofTestBuildTasksPath)' != ''">$([System.IO.Path]::GetFullPath('$(_SharpProofTestBuildTasksPath)'))</_SharpProofBuildTasksPath>
-    <_SharpProofPackageBuildTasksPath Condition="'$(_SharpProofTestBuildTasksPath)' != ''">$([System.IO.Path]::GetFullPath('$(_SharpProofTestBuildTasksPath)'))</_SharpProofPackageBuildTasksPath>
   </PropertyGroup>
   <Target Name="_SharpProofSetVerifyActive"
           BeforeTargets="GenerateMSBuildEditorConfigFileShouldRun;GenerateMSBuildEditorConfigFile;CoreCompile">
