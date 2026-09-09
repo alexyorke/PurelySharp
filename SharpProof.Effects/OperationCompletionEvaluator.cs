@@ -17,6 +17,7 @@ internal sealed class OperationCompletionEvaluator
     private readonly Func<IOperation?, IOperation, bool> _isProvenNull;
     private readonly Func<IOperation?, IOperation, bool> _isProvenNonNull;
     private readonly Func<IInvocationOperation, bool> _isImplicitLockEnterWithNullValue;
+    private readonly Dictionary<IOperation, bool> _completionCache = new();
 
     internal OperationCompletionEvaluator(
         EffectAnalysisSession session,
@@ -51,6 +52,18 @@ internal sealed class OperationCompletionEvaluator
             return true;
         }
 
+        if (_completionCache.TryGetValue(operation, out var cached))
+        {
+            return cached;
+        }
+
+        var result = CanCompleteNormallyCore(operation);
+        _completionCache.Add(operation, result);
+        return result;
+    }
+
+    private bool CanCompleteNormallyCore(IOperation operation)
+    {
         return operation switch
         {
             IThrowOperation => false,
