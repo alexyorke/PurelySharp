@@ -693,7 +693,7 @@ try {
                 # The test performs a complete analyzer pass for each
                 # framework. Reserve a bounded lane slice while allowing the
                 # independent worker shards to overlap its work.
-                Slots = [Math]::Min(4, $parallelism)
+                Slots = [Math]::Min(3, $parallelism)
             })
         }
     }
