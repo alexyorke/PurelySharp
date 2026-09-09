@@ -14,6 +14,9 @@ namespace SharpProof.Specs.Test;
 [TestFixture]
 public sealed class ApiSpecTests
 {
+    private static readonly Lazy<CSharpCompilation> s_platformCompilation =
+        new(CreatePlatformCompilation);
+
     [Test]
     public void TablesAssignDeterministicLocalIdsButKeepScopesDistinct()
     {
@@ -237,7 +240,7 @@ public sealed class ApiSpecTests
     [Test]
     public void DefaultRowsResolveOnceToOriginalFrameworkDefinitions()
     {
-        var compilation = CreatePlatformCompilation();
+        var compilation = s_platformCompilation.Value;
         var resolver = new ApiSpecResolver(ApiSpecTable.Default);
         var first = resolver.Resolve(compilation);
         var second = resolver.Resolve(compilation);
@@ -294,7 +297,7 @@ public sealed class ApiSpecTests
     [Test]
     public void ResolverDoesNotMatchImpossibleConstructorAndPropertyShapes()
     {
-        var compilation = CreatePlatformCompilation();
+        var compilation = s_platformCompilation.Value;
         var constructor = compilation.GetTypeByMetadataName("System.Exception")!
             .InstanceConstructors.Single(static method => method.Parameters.Length == 0);
         var property = compilation.GetSpecialType(SpecialType.System_String)
@@ -443,7 +446,7 @@ public sealed class ApiSpecTests
     [Test]
     public void MissingTypesAndMembersProduceTypedResolutionFailures()
     {
-        var compilation = CreatePlatformCompilation();
+        var compilation = s_platformCompilation.Value;
         var missingType = new ApiSpecResolver(ApiSpecTable.Create([
             Declaration("missing-type", "M:Missing.Widget.Run", "Missing.Widget")
         ])).Resolve(compilation);
@@ -670,7 +673,8 @@ public sealed class ApiSpecTests
                 "System.Math",
                 memberName: "Abs")
         ]);
-        var resolved = new ApiSpecResolver(table).Resolve(CreatePlatformCompilation());
+        var resolved = new ApiSpecResolver(table).Resolve(
+            s_platformCompilation.Value);
 
         using (Assert.EnterMultipleScope())
         {
@@ -686,7 +690,7 @@ public sealed class ApiSpecTests
     [Test]
     public void UnspecifiedMembersAndUncertainFacetsRemainConservativeUnknowns()
     {
-        var compilation = CreatePlatformCompilation();
+        var compilation = s_platformCompilation.Value;
         var resolved = new ApiSpecResolver(ApiSpecTable.Default).Resolve(compilation);
         var toUpper = compilation.GetSpecialType(SpecialType.System_String)
             .GetMembers("ToUpper")
@@ -716,7 +720,7 @@ public sealed class ApiSpecTests
     [Test]
     public void ExceptionConstructorSpecsRequireAnExactMemberMatch()
     {
-        var compilation = CreatePlatformCompilation();
+        var compilation = s_platformCompilation.Value;
         var resolved = new ApiSpecResolver(ApiSpecTable.Default)
             .Resolve(compilation);
         var exception = compilation.GetTypeByMetadataName("System.Exception")!;
@@ -765,7 +769,7 @@ public sealed class ApiSpecTests
     [Test]
     public void PureOpaqueEligibilityComesOnlyFromResolvedSpecFacets()
     {
-        var compilation = CreatePlatformCompilation();
+        var compilation = s_platformCompilation.Value;
         var resolved = new ApiSpecResolver(ApiSpecTable.Default)
             .Resolve(compilation);
         var abs = compilation.GetTypeByMetadataName("System.Math")!
@@ -824,7 +828,7 @@ public sealed class ApiSpecTests
     public void EverySeedHasAUniqueWitnessAndResolvableDocumentationIdentifier()
     {
         var templates = ApiSpecTable.Default.Templates;
-        var compilation = CreatePlatformCompilation();
+        var compilation = s_platformCompilation.Value;
         var resolved = new ApiSpecResolver(ApiSpecTable.Default).Resolve(compilation);
 
         using (Assert.EnterMultipleScope())
