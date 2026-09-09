@@ -985,30 +985,60 @@ internal static class CompilerManifestArtifactJson
             return false;
         }
 
-        if (authorities.Any(static authority => authority == null) ||
-            !authorities.Zip(
-                    authorities.Skip(1),
-                    static (left, right) => CompareAuthorities(left, right) < 0)
-                .All(static ordered => ordered))
+        for (var index = 0; index < authorities.Length; index++)
         {
-            return false;
+            if (authorities[index] == null)
+            {
+                return false;
+            }
         }
 
-        var expected = manifest.Callables
-            .Select(static entry => (
-                Kind: CompilerSourceLocationOwnerKind.Callable,
-                Id: entry.CallableId,
-                Location: entry.Location))
-            .Concat(manifest.Claims.Select(static entry => (
-                Kind: CompilerSourceLocationOwnerKind.Claim,
-                Id: entry.ClaimId,
-                Location: entry.Location)))
-            .OrderBy(static value => value.Kind)
-            .ThenBy(static value => value.Id, StringComparer.Ordinal)
-            .ToArray();
-        if (expected.Any(static row => row.Location == null))
+        for (var index = 1; index < authorities.Length; index++)
         {
-            return false;
+            if (CompareAuthorities(authorities[index - 1], authorities[index]) >= 0)
+            {
+                return false;
+            }
+        }
+
+        var expected = new (
+            CompilerSourceLocationOwnerKind Kind,
+            string Id,
+            WorkerSourceLocation? Location)[
+                manifest.Callables.Length + manifest.Claims.Length];
+        var expectedIndex = 0;
+        foreach (var entry in manifest.Callables)
+        {
+            expected[expectedIndex++] = (
+                CompilerSourceLocationOwnerKind.Callable,
+                entry.CallableId,
+                entry.Location);
+        }
+
+        foreach (var entry in manifest.Claims)
+        {
+            expected[expectedIndex++] = (
+                CompilerSourceLocationOwnerKind.Claim,
+                entry.ClaimId,
+                entry.Location);
+        }
+
+        Array.Sort(
+            expected,
+            static (left, right) =>
+            {
+                var result = left.Kind.CompareTo(right.Kind);
+                return result != 0
+                    ? result
+                    : StringComparer.Ordinal.Compare(left.Id, right.Id);
+            });
+
+        for (var index = 0; index < expected.Length; index++)
+        {
+            if (expected[index].Location == null)
+            {
+                return false;
+            }
         }
 
         for (var index = 0; index < expected.Length; index++)
