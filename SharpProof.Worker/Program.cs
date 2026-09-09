@@ -44,7 +44,9 @@ internal static class Program
 
         async Task<int> Respond(WorkerVerifyResponse response)
         {
-            await WriteResponseAtomicAsync(resultPath, response).ConfigureAwait(false);
+            await AtomicFile.WriteUtf8Async(
+                resultPath,
+                WorkerProtocolJson.SerializeResponse(response)).ConfigureAwait(false);
             return 0;
         }
         WorkerVerifyRequest? request;
@@ -182,9 +184,5 @@ internal static class Program
             }
         }
         return false;
-    }
-    private static Task WriteResponseAtomicAsync(string path, WorkerVerifyResponse response)
-    {
-        return AtomicFile.WriteUtf8Async(path, WorkerProtocolJson.SerializeResponse(response));
     }
 }
