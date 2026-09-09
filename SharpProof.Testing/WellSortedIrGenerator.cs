@@ -101,29 +101,119 @@ public sealed class WellSortedIrGenerator(IrFactory factory, int seed)
         IrTerm term,
         GeneratedIrCategory category)
     {
-        var text = _random.Next(4) switch
+        var referenced = CollectVariables(term);
+        var textChoice = _random.Next(4);
+        var sequenceIsNull = _random.Next(4) == 0;
+        var sequenceLength = sequenceIsNull ? 0 : _random.Next(4);
+        long[]? sequenceElements = referenced.Contains(_values) && !sequenceIsNull
+            ? new long[sequenceLength]
+            : null;
+        for (var index = 0; index < sequenceLength; index++)
         {
-            0 => (IrValue)_factory.CreateNullValue(_factory.StringType),
-            1 => _factory.CreateStringValue(""),
-            2 => _factory.CreateStringValue("sharp"),
-            _ => _factory.CreateStringValue("proof")
-        };
-        var sequence = _random.Next(4) == 0
-            ? _factory.CreateNullValue(_integerSequence)
-            : _factory.CreateSequenceValue(
-                _integerSequence,
-                Enumerable.Range(0, _random.Next(4))
-                    .Select(_ => _factory.CreateIntegerValue(NextInteger())));
-        var variables = new Dictionary<IrVarId, IrValue>
+            var value = NextInteger();
+            if (sequenceElements != null)
+            {
+                sequenceElements[index] = value;
+            }
+        }
+
+        var leftValue = NextInteger();
+        var rightValue = NextInteger();
+        var conditionValue = _random.Next(2) == 0;
+        var variables = new Dictionary<IrVarId, IrValue>();
+        if (referenced.Contains(_left))
         {
-            [_left] = _factory.CreateIntegerValue(NextInteger()),
-            [_right] = _factory.CreateIntegerValue(NextInteger()),
-            [_condition] = _factory.CreateBooleanValue(_random.Next(2) == 0),
-            [_text] = text,
-            [_reference] = _factory.CreateNullValue(_factory.ObjectType),
-            [_values] = sequence
-        };
+            variables[_left] = _factory.CreateIntegerValue(leftValue);
+        }
+        if (referenced.Contains(_right))
+        {
+            variables[_right] = _factory.CreateIntegerValue(rightValue);
+        }
+        if (referenced.Contains(_condition))
+        {
+            variables[_condition] = _factory.CreateBooleanValue(conditionValue);
+        }
+        if (referenced.Contains(_text))
+        {
+            variables[_text] = textChoice switch
+            {
+                0 => _factory.CreateNullValue(_factory.StringType),
+                1 => _factory.CreateStringValue(""),
+                2 => _factory.CreateStringValue("sharp"),
+                _ => _factory.CreateStringValue("proof")
+            };
+        }
+        if (referenced.Contains(_reference))
+        {
+            variables[_reference] = _factory.CreateNullValue(_factory.ObjectType);
+        }
+        if (referenced.Contains(_values))
+        {
+            variables[_values] = sequenceIsNull
+                ? _factory.CreateNullValue(_integerSequence)
+                : _factory.CreateSequenceValue(
+                    _integerSequence,
+                    sequenceElements!.Select(_factory.CreateIntegerValue));
+        }
         return new GeneratedIrCase(term, variables, category);
+    }
+
+    private static HashSet<IrVarId> CollectVariables(IrTerm root)
+    {
+        var variables = new HashSet<IrVarId>();
+        var visited = new HashSet<IrId>();
+        var pending = new Stack<IrTerm>();
+        pending.Push(root);
+        while (pending.Count != 0)
+        {
+            var current = pending.Pop();
+            if (!visited.Add(current.Id))
+            {
+                continue;
+            }
+
+            if (current is IrVariableTerm variable)
+            {
+                variables.Add(variable.Variable);
+            }
+
+            switch (current)
+            {
+                case IrOpaqueTerm opaque:
+                    if (opaque.Receiver is { } receiver)
+                    {
+                        pending.Push(receiver);
+                    }
+                    for (var index = 0; index < opaque.Arguments.Length; index++)
+                    {
+                        pending.Push(opaque.Arguments[index]);
+                    }
+                    break;
+                case IrUnaryTerm unary:
+                    pending.Push(unary.Operand);
+                    break;
+                case IrBinaryTerm binary:
+                    pending.Push(binary.Left);
+                    pending.Push(binary.Right);
+                    break;
+                case IrConditionalTerm conditional:
+                    pending.Push(conditional.Condition);
+                    pending.Push(conditional.WhenTrue);
+                    pending.Push(conditional.WhenFalse);
+                    break;
+                case IrCastTerm cast:
+                    pending.Push(cast.Operand);
+                    break;
+                case IrLengthTerm length:
+                    pending.Push(length.Value);
+                    break;
+                case IrSequenceAccessTerm access:
+                    pending.Push(access.Sequence);
+                    pending.Push(access.Index);
+                    break;
+            }
+        }
+        return variables;
     }
 
     private IrTerm Integer(int depth)
