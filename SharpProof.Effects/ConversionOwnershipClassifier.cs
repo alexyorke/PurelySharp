@@ -218,14 +218,11 @@ internal sealed class ConversionOwnershipClassifier
     }
 
     internal void BuildLocalRegions(
-        IOperation root,
         Func<IOperation, bool> isReachable,
-        ImmutableArray<IOperation> operations)
+        ImmutableArray<IOperation> relevantOperations)
     {
-        var relevant = operations
-            .Where(operation => !IsInsideNestedCallable(operation, root))
-            .ToImmutableArray();
-        foreach (var declarator in relevant.OfType<IVariableDeclaratorOperation>())
+        foreach (var declarator in relevantOperations
+                     .OfType<IVariableDeclaratorOperation>())
         {
             if (!_localRegions.ContainsKey(declarator.Symbol))
             {
@@ -244,7 +241,7 @@ internal sealed class ConversionOwnershipClassifier
         while (changed)
         {
             changed = false;
-            foreach (var operation in relevant)
+            foreach (var operation in relevantOperations)
             {
                 if (!isReachable(operation))
                 {
