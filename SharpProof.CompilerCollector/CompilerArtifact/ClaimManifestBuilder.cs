@@ -64,8 +64,12 @@ internal sealed partial class ClaimManifestBuilder(
         var source = resolution.Source;
         var inventory = resolution.Inventory;
         var usesCompanion = resolution.UsesCompanion;
+        var clausePartitions = ContractsEnabled
+            ? PartitionClauses(inventory.Clauses)
+            : default;
         var postconditions = CreatePostconditions(
-            target, source, inventory, usesCompanion, callableId);
+            target, source, clausePartitions.Postconditions,
+            usesCompanion, callableId);
         var trustedAttributes = TrustedAttributes(target).ToImmutableArray();
         var selection = _attributes.Select(
             target,
@@ -76,7 +80,7 @@ internal sealed partial class ClaimManifestBuilder(
         var assumptions = CreateAssumptions(
             target,
             source,
-            inventory,
+            clausePartitions.Assumptions,
             usesCompanion,
             callableId,
             trustedAttributes);
@@ -190,7 +194,7 @@ internal sealed partial class ClaimManifestBuilder(
     private ImmutableArray<ManifestClaim> CreatePostconditions(
         IMethodSymbol target,
         IMethodSymbol source,
-        ContractClauseInventory inventory,
+        ImmutableArray<ContractClauseOccurrence> clauses,
         bool usesCompanion,
         string callableId)
     {
@@ -199,12 +203,7 @@ internal sealed partial class ClaimManifestBuilder(
             return [];
         }
 
-        var candidates = inventory.Clauses
-            .Where(static clause => clause is
-            {
-                Kind: BoundContractKind.Ensures,
-                Placement: not ContractClausePlacement.NestedCallable
-            })
+        var candidates = clauses
             .Select(clause => new ClaimCandidate(
                 SemanticClaimIdentity.CreateInvocationFingerprint(
                     clause.Invocation, target, source, usesCompanion),
@@ -275,7 +274,7 @@ internal sealed partial class ClaimManifestBuilder(
     private ImmutableArray<WorkerAssumptionEvidence> CreateAssumptions(
         IMethodSymbol target,
         IMethodSymbol source,
-        ContractClauseInventory inventory,
+        ImmutableArray<ContractClauseOccurrence> clauses,
         bool usesCompanion,
         string callableId,
         ImmutableArray<(ISymbol Scope, AttributeData Attribute)> trustedAttributes)
@@ -283,15 +282,9 @@ internal sealed partial class ClaimManifestBuilder(
         var candidates = ImmutableArray.CreateBuilder<AssumptionCandidate>();
         if (ContractsEnabled)
         {
-            foreach (var clause in inventory.Clauses)
+            foreach (var clause in clauses)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (clause.Kind is not (BoundContractKind.Requires or BoundContractKind.Assume) ||
-                    clause.Placement == ContractClausePlacement.NestedCallable)
-                {
-                    continue;
-                }
-
                 candidates.Add(new AssumptionCandidate(
                     clause.Kind == BoundContractKind.Requires
                         ? WorkerAssumptionKind.Precondition
@@ -327,6 +320,34 @@ internal sealed partial class ClaimManifestBuilder(
                 Used = false
             };
         })];
+    }
+
+    private ClausePartitions PartitionClauses(
+        ImmutableArray<ContractClauseOccurrence> clauses)
+    {
+        var postconditions = ImmutableArray.CreateBuilder<ContractClauseOccurrence>();
+        var assumptions = ImmutableArray.CreateBuilder<ContractClauseOccurrence>();
+        foreach (var clause in clauses)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (clause.Placement == ContractClausePlacement.NestedCallable)
+            {
+                continue;
+            }
+
+            switch (clause.Kind)
+            {
+                case BoundContractKind.Ensures:
+                    postconditions.Add(clause);
+                    break;
+                case BoundContractKind.Requires:
+                case BoundContractKind.Assume:
+                    assumptions.Add(clause);
+                    break;
+            }
+        }
+
+        return new(postconditions.ToImmutable(), assumptions.ToImmutable());
     }
 
     private ImmutableArray<ManifestEffectClaim> CreateEffectClaims(
@@ -666,6 +687,10 @@ internal sealed partial class ClaimManifestBuilder(
     private bool ContractsEnabled => enabledFeatures is WorkerFeatureSet.Contracts or WorkerFeatureSet.All;
     private bool EffectsEnabled => enabledFeatures is WorkerFeatureSet.Effects or WorkerFeatureSet.All;
     private string AssemblyName => _compilation.Assembly.Identity.Name;
+
+    private readonly record struct ClausePartitions(
+        ImmutableArray<ContractClauseOccurrence> Postconditions,
+        ImmutableArray<ContractClauseOccurrence> Assumptions);
 
     private static int NextRank(Dictionary<string, int> ranks, string key)
     {
