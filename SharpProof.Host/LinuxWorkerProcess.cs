@@ -139,19 +139,25 @@ public sealed partial class LinuxWorkerProcess : IDisposable
         {
             return;
         }
-        if (!process.HasExited)
+        try
         {
-            var stopwatch = Stopwatch.StartNew();
-            var deadline = Interlocked.Read(ref _terminationDeadlineTimestamp);
-            var remaining = deadline == 0
-                ? TimeSpan.FromSeconds(1)
-                : TimeSpan.FromSeconds(Math.Max(
-                    0,
-                    (deadline - Stopwatch.GetTimestamp()) /
-                        (double)Stopwatch.Frequency));
-            _ = Terminate(process, stopwatch, remaining);
+            if (!process.HasExited)
+            {
+                var stopwatch = Stopwatch.StartNew();
+                var deadline = Interlocked.Read(ref _terminationDeadlineTimestamp);
+                var remaining = deadline == 0
+                    ? TimeSpan.FromSeconds(1)
+                    : TimeSpan.FromSeconds(Math.Max(
+                        0,
+                        (deadline - Stopwatch.GetTimestamp()) /
+                            (double)Stopwatch.Frequency));
+                _ = Terminate(process, stopwatch, remaining);
+            }
         }
-        process.Dispose();
+        finally
+        {
+            process.Dispose();
+        }
     }
 
     internal static LinuxWorkerCompletion CompleteAtDeadline(

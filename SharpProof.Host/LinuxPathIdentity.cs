@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Buffers.Binary;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
@@ -758,13 +759,32 @@ public static partial class LinuxPathIdentity
 
     private static void ReleaseLocks(PublicationLock[] locks, int acquired)
     {
+        Exception? firstFailure = null;
         for (var index = acquired - 1; index >= 0; index--)
         {
-            locks[index].Release();
+            try
+            {
+                locks[index].Release();
+            }
+            catch (Exception exception)
+            {
+                firstFailure ??= exception;
+            }
         }
         foreach (var publicationLock in locks)
         {
-            publicationLock.Dispose();
+            try
+            {
+                publicationLock.Dispose();
+            }
+            catch (Exception exception)
+            {
+                firstFailure ??= exception;
+            }
+        }
+        if (firstFailure != null)
+        {
+            ExceptionDispatchInfo.Capture(firstFailure).Throw();
         }
     }
 
@@ -943,11 +963,17 @@ public static partial class LinuxPathIdentity
 
         public void Dispose()
         {
-            if (_acquired)
+            try
             {
-                Release();
+                if (_acquired)
+                {
+                    Release();
+                }
             }
-            _handle.Dispose();
+            finally
+            {
+                _handle.Dispose();
+            }
         }
     }
 
