@@ -39,11 +39,24 @@ internal static class CompilerImplementationIlSummaryLowerer
 {
     internal sealed class MetadataResolutionContext(CSharpCompilation compilation)
     {
+        private sealed class ReferenceModule(
+            PortableExecutableReference reference,
+            ModuleMetadata module,
+            string path)
+        {
+            internal PortableExecutableReference Reference { get; } = reference;
+            internal ModuleMetadata Module { get; } = module;
+            internal string Path { get; } = path;
+        }
+
         private readonly CSharpCompilation _compilation =
             ArgumentNullGuard.NotNull(compilation, nameof(compilation));
         private readonly Dictionary<PortableExecutableReference, ISymbol?> _symbols =
             new(ReferenceComparer<PortableExecutableReference>.Instance);
         private CSharpCompilation? _metadataCompilation;
+        private Dictionary<
+            (AssemblyIdentity Identity, string ModuleName),
+            ReferenceModule[]>? _referenceModules;
 
         internal ISymbol? Resolve(PortableExecutableReference reference)
         {
@@ -58,6 +71,96 @@ internal static class CompilerImplementationIlSummaryLowerer
             symbol = _metadataCompilation.GetAssemblyOrModuleSymbol(reference);
             _symbols.Add(reference, symbol);
             return symbol;
+        }
+
+        internal bool TryFindReference(
+            AssemblyIdentity assemblyIdentity,
+            string moduleName,
+            out PortableExecutableReference reference,
+            out ModuleMetadata module,
+            out string modulePath)
+        {
+            var matches = GetReferenceModules(
+                assemblyIdentity,
+                moduleName);
+            if (matches.Length != 1)
+            {
+                reference = null!;
+                module = null!;
+                modulePath = string.Empty;
+                return false;
+            }
+
+            reference = matches[0].Reference;
+            module = matches[0].Module;
+            modulePath = matches[0].Path;
+            return true;
+        }
+
+        private ReferenceModule[] GetReferenceModules(
+            AssemblyIdentity assemblyIdentity,
+            string moduleName)
+        {
+            _referenceModules ??= new Dictionary<
+                (AssemblyIdentity Identity, string ModuleName),
+                ReferenceModule[]>();
+            var key = (assemblyIdentity, moduleName);
+            if (_referenceModules.TryGetValue(key, out var cached))
+            {
+                return cached;
+            }
+
+            var matches = new List<ReferenceModule>();
+            foreach (var candidate in _compilation.References
+                         .OfType<PortableExecutableReference>())
+            {
+                if (candidate.Properties.Kind != MetadataImageKind.Assembly ||
+                    _compilation.GetAssemblyOrModuleSymbol(candidate)
+                        is not IAssemblySymbol assembly ||
+                    !assembly.Identity.Equals(assemblyIdentity) ||
+                    candidate.FilePath == null ||
+                    candidate.GetMetadata() is not AssemblyMetadata metadata)
+                {
+                    continue;
+                }
+
+                var modules = metadata.GetModules();
+                for (var indexInAssembly = 0;
+                     indexInAssembly < modules.Length;
+                     indexInAssembly++)
+                {
+                    var module = modules[indexInAssembly];
+                    var currentName = CompilerCompilationCapture.ReadModuleName(
+                        module.GetMetadataReader());
+                    if (!string.Equals(
+                            currentName,
+                            moduleName,
+                            StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    var path = indexInAssembly == 0
+                        ? Path.GetFullPath(candidate.FilePath)
+                        : CompilerCompilationCapture.ResolveSiblingModule(
+                            candidate.FilePath,
+                            currentName);
+                    matches.Add(new ReferenceModule(
+                        candidate,
+                        module,
+                        path));
+                    if (matches.Count == 2)
+                    {
+                        cached = matches.ToArray();
+                        _referenceModules.Add(key, cached);
+                        return cached;
+                    }
+                }
+            }
+
+            cached = matches.ToArray();
+            _referenceModules.Add(key, cached);
+            return cached;
         }
     }
 
@@ -220,9 +323,9 @@ internal static class CompilerImplementationIlSummaryLowerer
             return false;
         }
 
-        if (!TryFindReference(
-                compilation,
-                method,
+        if (!metadataResolution.TryFindReference(
+                method.ContainingAssembly.Identity,
+                method.ContainingModule.Name,
                 out var reference,
                 out var module,
                 out var modulePath))
@@ -372,80 +475,6 @@ internal static class CompilerImplementationIlSummaryLowerer
             reason = CompilerImplementationIlAbstentionReason.InvalidImage;
             return false;
         }
-    }
-
-    private static bool TryFindReference(
-        CSharpCompilation compilation,
-        IMethodSymbol method,
-        out PortableExecutableReference reference,
-        out ModuleMetadata module,
-        out string modulePath)
-    {
-        var found = false;
-        PortableExecutableReference foundReference = null!;
-        ModuleMetadata foundModule = null!;
-        var foundPath = string.Empty;
-        foreach (var candidate in compilation.References
-                     .OfType<PortableExecutableReference>())
-        {
-            if (candidate.Properties.Kind !=
-                    MetadataImageKind.Assembly ||
-                compilation.GetAssemblyOrModuleSymbol(candidate)
-                    is not IAssemblySymbol assembly ||
-                !assembly.Identity.Equals(
-                    method.ContainingAssembly.Identity) ||
-                candidate.FilePath == null ||
-                candidate.GetMetadata() is not AssemblyMetadata metadata)
-            {
-                continue;
-            }
-
-            var modules = metadata.GetModules();
-            for (var index = 0; index < modules.Length; index++)
-            {
-                var current = modules[index];
-                var name = CompilerCompilationCapture.ReadModuleName(
-                    current.GetMetadataReader());
-                if (!string.Equals(
-                        name,
-                        method.ContainingModule.Name,
-                        StringComparison.Ordinal))
-                {
-                    continue;
-                }
-
-                var candidatePath = index == 0
-                    ? Path.GetFullPath(candidate.FilePath)
-                    : CompilerCompilationCapture.ResolveSiblingModule(
-                        candidate.FilePath,
-                        name);
-                if (found)
-                {
-                    reference = null!;
-                    module = null!;
-                    modulePath = string.Empty;
-                    return false;
-                }
-
-                found = true;
-                foundReference = candidate;
-                foundModule = current;
-                foundPath = candidatePath;
-            }
-        }
-
-        if (found)
-        {
-            reference = foundReference;
-            module = foundModule;
-            modulePath = foundPath;
-            return true;
-        }
-
-        reference = null!;
-        module = null!;
-        modulePath = string.Empty;
-        return false;
     }
 
     private static bool IsReferenceAssembly(IAssemblySymbol assembly)
