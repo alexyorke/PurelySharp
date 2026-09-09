@@ -375,18 +375,7 @@ public sealed class ContractApiIdentityAnalyzerTests
         File.Delete(copied);
         Directory.Delete(directory);
 
-        var trustedPlatformAssemblies =
-            (string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ??
-            throw new InvalidOperationException(
-                "Trusted platform assemblies are unavailable.");
-        var references = trustedPlatformAssemblies
-            .Split(Path.PathSeparator)
-            .Where(static path => !string.Equals(
-                Path.GetFileName(path),
-                "SharpProof.Attributes.dll",
-                StringComparison.OrdinalIgnoreCase))
-            .Select(static path => MetadataReference.CreateFromFile(path))
-            .Cast<MetadataReference>()
+        var references = TestMetadataReferences.WithoutSharpProof
             .Append(reference);
         var compilation = AnalyzerTestHost.WithEnabledDiagnostics(
             CSharpCompilation.Create(
@@ -436,18 +425,7 @@ public sealed class ContractApiIdentityAnalyzerTests
         try
         {
             var wrongPayload = MetadataReference.CreateFromFile(copied);
-            var trustedPlatformAssemblies =
-                (string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ??
-                throw new InvalidOperationException(
-                    "Trusted platform assemblies are unavailable.");
-            var references = trustedPlatformAssemblies
-                .Split(Path.PathSeparator)
-                .Where(static path => !string.Equals(
-                    Path.GetFileName(path),
-                    "SharpProof.Attributes.dll",
-                    StringComparison.OrdinalIgnoreCase))
-                .Select(static path => MetadataReference.CreateFromFile(path))
-                .Cast<MetadataReference>()
+            var references = TestMetadataReferences.WithoutSharpProof
                 .Append(wrongPayload);
             var compilation = AnalyzerTestHost.WithEnabledDiagnostics(
                 CSharpCompilation.Create(
@@ -499,7 +477,7 @@ public sealed class ContractApiIdentityAnalyzerTests
         try
         {
             var wrongPayload = MetadataReference.CreateFromFile(copied);
-            var platform = GetPlatformReferences();
+            var platform = TestMetadataReferences.WithoutSharpProof;
             var contractLibrary = CSharpCompilation.Create(
                 "RejectedMetadataContractLibrary",
                 [CSharpSyntaxTree.ParseText(
@@ -590,18 +568,4 @@ public sealed class ContractApiIdentityAnalyzerTests
             Does.Not.Contain("SP0047"));
     }
 
-    private static IEnumerable<MetadataReference> GetPlatformReferences()
-    {
-        var trustedPlatformAssemblies =
-            (string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ??
-            throw new InvalidOperationException(
-                "Trusted platform assemblies are unavailable.");
-        return trustedPlatformAssemblies
-            .Split(Path.PathSeparator)
-            .Where(static path => !string.Equals(
-                Path.GetFileName(path),
-                "SharpProof.Attributes.dll",
-                StringComparison.OrdinalIgnoreCase))
-            .Select(static path => MetadataReference.CreateFromFile(path));
-    }
 }

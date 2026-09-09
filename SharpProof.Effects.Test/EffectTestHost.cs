@@ -3,7 +3,7 @@ namespace SharpProof.Effects.Test;
 internal static class EffectTestHost
 {
     private static readonly ImmutableArray<MetadataReference> PlatformReferences =
-        CreatePlatformReferences();
+        TestMetadataReferences.SortedPlatform;
     private static readonly ImmutableArray<MetadataReference> DefaultReferences =
         PlatformReferences.Add(MetadataReference.CreateFromFile(
             typeof(EffectContractAttribute).Assembly.Location));
@@ -298,18 +298,6 @@ internal static class EffectTestHost
                 deterministic: true));
         RequireNoErrors(compilation);
         return compilation;
-    }
-
-    private static ImmutableArray<MetadataReference> CreatePlatformReferences()
-    {
-        var trustedAssemblies =
-            AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string ??
-            throw new InvalidOperationException(
-                "The runtime did not expose trusted platform assemblies.");
-        return [.. trustedAssemblies
-            .Split(Path.PathSeparator)
-            .OrderBy(static path => path, StringComparer.Ordinal)
-            .Select(static path => MetadataReference.CreateFromFile(path))];
     }
 
     private static void RequireNoErrors(Compilation compilation)

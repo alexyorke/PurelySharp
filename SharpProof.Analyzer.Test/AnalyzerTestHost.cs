@@ -24,8 +24,8 @@ internal static class AnalyzerTestHost
                 StringComparer.Ordinal);
     private static readonly CSharpParseOptions ParseOptions =
         new(LanguageVersion.Preview);
-    private static readonly Lazy<ImmutableArray<MetadataReference>> References =
-        new(CreateReferences);
+    private static readonly ImmutableArray<MetadataReference> References =
+        TestMetadataReferences.WithSharpProof;
 
     internal static void AssertIds(
         IEnumerable<Diagnostic> diagnostics,
@@ -97,8 +97,8 @@ internal static class AnalyzerTestHost
             "AnalyzerFixture",
             [tree],
             additionalReferences == null
-                ? References.Value
-                : References.Value.AddRange(additionalReferences),
+                ? References
+                : References.AddRange(additionalReferences),
             options);
     }
 
@@ -271,23 +271,9 @@ internal static class AnalyzerTestHost
         var compilation = CSharpCompilation.Create(
             assemblyName,
             [tree],
-            References.Value,
+            References,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
         return MetadataReference.CreateFromImage(EmitImage(compilation));
-    }
-
-    private static ImmutableArray<MetadataReference> CreateReferences()
-    {
-        var trustedPlatformAssemblies =
-            (string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ??
-            throw new InvalidOperationException(
-                "Trusted platform assemblies are unavailable.");
-        return [.. trustedPlatformAssemblies
-            .Split(Path.PathSeparator)
-            .Select(static path => MetadataReference.CreateFromFile(path))
-            .Append(
-                MetadataReference.CreateFromFile(
-                    typeof(Contract).Assembly.Location))];
     }
 
 }

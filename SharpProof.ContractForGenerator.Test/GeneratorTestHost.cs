@@ -10,7 +10,9 @@ internal static class GeneratorTestHost
     private static readonly CSharpParseOptions ParseOptions =
         CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.CSharp12);
     private static readonly ImmutableArray<MetadataReference> References =
-        CreateReferences();
+        [.. TestMetadataReferences.SortedPlatform,
+            MetadataReference.CreateFromFile(
+                typeof(ContractForAttribute).Assembly.Location)];
 
     internal static CSharpCompilation CreateCompilation(
         params (string Path, string Source)[] sources)
@@ -21,7 +23,7 @@ internal static class GeneratorTestHost
     internal static CSharpCompilation CreateCompilationWithoutAttributes(
         params (string Path, string Source)[] sources)
     {
-        return CreateCompilation(CreateReferences(includeAttributes: false), sources);
+        return CreateCompilation(TestMetadataReferences.SortedPlatform, sources);
     }
 
     internal static CSharpCompilation CreateCompilationWithReference(
@@ -210,26 +212,6 @@ internal static class GeneratorTestHost
             driverOptions: new GeneratorDriverOptions(
                 IncrementalGeneratorOutputKind.None,
                 trackIncrementalGeneratorSteps: true));
-    }
-
-    private static ImmutableArray<MetadataReference> CreateReferences(
-        bool includeAttributes = true)
-    {
-        var trustedAssemblies =
-            AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string ??
-            throw new InvalidOperationException(
-                "The runtime did not expose trusted platform assemblies.");
-        var references = trustedAssemblies
-            .Split(Path.PathSeparator)
-            .OrderBy(static path => path, StringComparer.Ordinal)
-            .Select(static path => MetadataReference.CreateFromFile(path));
-        if (includeAttributes)
-        {
-            references = references.Append(MetadataReference.CreateFromFile(
-                typeof(ContractForAttribute).Assembly.Location));
-        }
-
-        return [.. references];
     }
 
     private static void RequireNoErrors(Compilation compilation)

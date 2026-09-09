@@ -11,7 +11,10 @@ public sealed class SharedTestInfrastructureTests
         var root = TestRepository.FindRoot();
         var projects = new[]
         {
+            "SharpProof.Analyzer.Test",
+            "SharpProof.ContractForGenerator.Test",
             "SharpProof.Contracts.Test",
+            "SharpProof.Effects.Test",
             "SharpProof.Frontend.Test",
             "SharpProof.Specs.Test",
             "SharpProof.Worker.Test"

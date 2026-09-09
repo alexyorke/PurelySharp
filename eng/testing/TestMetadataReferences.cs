@@ -7,6 +7,11 @@ internal static class TestMetadataReferences
     internal static ImmutableArray<MetadataReference> Platform { get; } =
         CreatePlatformReferences();
 
+    internal static ImmutableArray<MetadataReference> SortedPlatform { get; } =
+        [.. Platform.OrderBy(
+            static reference => reference.Display ?? string.Empty,
+            StringComparer.Ordinal)];
+
     internal static ImmutableArray<MetadataReference> WithSharpProof { get; } =
         AddSharpProofReference(Platform);
 
