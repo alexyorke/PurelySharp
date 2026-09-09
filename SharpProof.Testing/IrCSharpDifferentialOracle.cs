@@ -109,12 +109,15 @@ public sealed class IrCSharpDifferentialOracle(IrFactory factory)
         out string reason)
     {
         var variables = new SortedDictionary<int, IrVarId>();
+        var variableTypes = new Dictionary<IrVarId, IrTypeId>();
+        var csharpTypes = new Dictionary<IrTypeId, string>();
         var terms = new List<IrTerm>();
         if (!TryCollectTerms(
                 term,
                 variables,
                 new HashSet<IrId>(),
                 terms,
+                csharpTypes,
                 out reason))
         {
             program = "";
@@ -133,6 +136,7 @@ public sealed class IrCSharpDifferentialOracle(IrFactory factory)
             }
 
             var variableType = _factory.GetVariableInfo(variable).Type;
+            variableTypes.Add(variable, variableType);
             if (value == null || value.Type != variableType)
             {
                 program = "";
@@ -141,7 +145,7 @@ public sealed class IrCSharpDifferentialOracle(IrFactory factory)
             }
         }
 
-        if (!TryGetCSharpType(term.Type, out var returnType))
+        if (!TryGetCSharpType(term.Type, csharpTypes, out var returnType))
         {
             program = "";
             reason = "The result type is outside the executable oracle subset.";
@@ -164,7 +168,8 @@ public sealed class IrCSharpDifferentialOracle(IrFactory factory)
 
             var variable = orderedVariables[index];
             if (!TryGetCSharpType(
-                    _factory.GetVariableInfo(variable).Type,
+                    variableTypes[variable],
+                    csharpTypes,
                     out var parameterType))
             {
                 program = "";
@@ -178,7 +183,11 @@ public sealed class IrCSharpDifferentialOracle(IrFactory factory)
         source.AppendLine(") {");
         foreach (var current in terms)
         {
-            if (!TryAppendLazyDeclaration(source, current, out reason))
+            if (!TryAppendLazyDeclaration(
+                    source,
+                    current,
+                    csharpTypes,
+                    out reason))
             {
                 program = "";
                 return false;
@@ -199,6 +208,7 @@ public sealed class IrCSharpDifferentialOracle(IrFactory factory)
         SortedDictionary<int, IrVarId> variables,
         HashSet<IrId> visited,
         List<IrTerm> terms,
+        Dictionary<IrTypeId, string> csharpTypes,
         out string reason)
     {
         var pending = new Stack<(IrTerm Term, bool ChildrenReady)>();
@@ -216,7 +226,7 @@ public sealed class IrCSharpDifferentialOracle(IrFactory factory)
             {
                 continue;
             }
-            if (!TryGetCSharpType(current.Type, out _))
+            if (!TryGetCSharpType(current.Type, csharpTypes, out _))
             {
                 reason = "The result type is outside the executable oracle subset.";
                 return false;
@@ -255,9 +265,10 @@ public sealed class IrCSharpDifferentialOracle(IrFactory factory)
     private bool TryAppendLazyDeclaration(
         StringBuilder builder,
         IrTerm term,
+        Dictionary<IrTypeId, string> csharpTypes,
         out string reason)
     {
-        if (!TryGetCSharpType(term.Type, out var type))
+        if (!TryGetCSharpType(term.Type, csharpTypes, out var type))
         {
             reason = "The result type is outside the executable oracle subset.";
             return false;
@@ -352,14 +363,23 @@ public sealed class IrCSharpDifferentialOracle(IrFactory factory)
         builder.Append(".Value");
     }
 
-    private bool TryGetCSharpType(IrTypeId type, out string name)
+    private bool TryGetCSharpType(
+        IrTypeId type,
+        Dictionary<IrTypeId, string> csharpTypes,
+        out string name)
     {
+        if (csharpTypes.TryGetValue(type, out name!))
+        {
+            return name.Length != 0;
+        }
+
         var info = _factory.GetTypeInfo(type);
         if (info.Kind == IrTypeKind.Sequence &&
             info.ElementType != null &&
-            TryGetCSharpType(info.ElementType.Value, out var elementName))
+            TryGetCSharpType(info.ElementType.Value, csharpTypes, out var elementName))
         {
             name = elementName + "[]";
+            csharpTypes[type] = name;
             return true;
         }
 
@@ -372,6 +392,7 @@ public sealed class IrCSharpDifferentialOracle(IrFactory factory)
                 "object",
             _ => ""
         };
+        csharpTypes[type] = name;
         return name.Length != 0;
     }
 
