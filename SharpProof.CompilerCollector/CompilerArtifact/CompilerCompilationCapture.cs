@@ -17,12 +17,17 @@ internal static class CompilerCompilationCapture
     {
         internal SyntaxTreeCache(
             CSharpCompilation compilation,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            int capturedTreeOrdinal,
+            SourceText? capturedText)
         {
             var seenPaths = new HashSet<string>(StringComparer.Ordinal);
             Trees = [.. compilation.SyntaxTrees.Select((tree, index) =>
             {
-                var snapshot = CaptureTree(tree, cancellationToken);
+                var snapshot = CaptureTree(
+                    tree,
+                    cancellationToken,
+                    index == capturedTreeOrdinal ? capturedText : null);
                 // Roslyn permits generated/in-memory trees without a path and
                 // multiple trees sharing one path. Give each tree a stable
                 // compilation-local identity instead of rejecting the input.
@@ -62,12 +67,35 @@ internal static class CompilerCompilationCapture
 
     internal static CompilerSyntaxTreeSnapshot[] CaptureTrees(
         CSharpCompilation compilation,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int capturedTreeOrdinal = -1,
+        SourceText? capturedText = null)
     {
         compilation = ArgumentNullGuard.NotNull(compilation, nameof(compilation));
         return SyntaxTreeCaches.GetValue(
             compilation,
-            value => new SyntaxTreeCache(value, cancellationToken)).Trees;
+            value => new SyntaxTreeCache(
+                value,
+                cancellationToken,
+                capturedTreeOrdinal,
+                capturedText)).Trees;
+    }
+
+    internal static bool TryGetCapturedTreeTextLength(
+        CSharpCompilation compilation,
+        int treeOrdinal,
+        out int textLength)
+    {
+        compilation = ArgumentNullGuard.NotNull(compilation, nameof(compilation));
+        if (SyntaxTreeCaches.TryGetValue(compilation, out var cache) &&
+            (uint)treeOrdinal < (uint)cache.Trees.Length)
+        {
+            textLength = cache.Trees[treeOrdinal].TextLength;
+            return true;
+        }
+
+        textLength = 0;
+        return false;
     }
 
     private const string CommandLineAdditionalTextTypeName =
@@ -186,11 +214,12 @@ internal static class CompilerCompilationCapture
     }
     internal static CompilerSyntaxTreeSnapshot CaptureTree(
         SyntaxTree tree,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        SourceText? capturedText = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var parse = (CSharpParseOptions)tree.Options;
-        var text = tree.GetText(cancellationToken);
+        var text = capturedText ?? tree.GetText(cancellationToken);
         var characterOffsets = new Dictionary<int, int>();
         foreach (var mapping in tree.GetLineMappings(cancellationToken))
         {

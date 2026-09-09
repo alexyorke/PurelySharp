@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Microsoft.CodeAnalysis.Text;
 
 // This lowerer runs only in the build-time compiler collector.
 namespace SharpProof.CompilerArtifact;
@@ -460,15 +461,29 @@ internal static class CompilerEffectReplayLowerer
         }
 
         var tree = operation.Syntax.SyntaxTree;
-        var text = tree.GetText(cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        SourceText? capturedText = null;
+        int textLength;
+        if (!CompilerCompilationCapture.TryGetCapturedTreeTextLength(
+                compilation,
+                treeOrdinal,
+                out textLength))
+        {
+            capturedText = tree.GetText(cancellationToken);
+            textLength = capturedText.Length;
+        }
+
         if (operation.Syntax.SpanStart < 0 ||
-            operation.Syntax.Span.End > text.Length)
+            operation.Syntax.Span.End > textLength)
         {
             return false;
         }
 
         var capturedTrees = CompilerCompilationCapture.CaptureTrees(
-            compilation, cancellationToken);
+            compilation,
+            cancellationToken,
+            treeOrdinal,
+            capturedText);
         var syntaxTree = capturedTrees[treeOrdinal];
         treeSha256 = syntaxTree.Sha256;
         treeLineMapSha256 = syntaxTree.LineMapSha256;
