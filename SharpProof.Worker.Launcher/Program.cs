@@ -611,7 +611,7 @@ internal static class Program
         members.Add(new PublicationMember(
             arguments.PublishResultPath!,
             Encoding.UTF8.GetBytes(
-                WorkerProtocolJson.SerializeResponse(response))));
+                WorkerProtocolJson.SerializeCanonicalResponse(response))));
 
         using var previous = CapturePreviousPublication(members);
         var commitStarted = false;
@@ -841,7 +841,7 @@ internal static class Program
             timeout ? WorkerClaimReason.ProjectTimeout : WorkerClaimReason.InfrastructureFailure,
             [new WorkerProtocolError { Code = code, Message = message }],
             expectedVersions);
-        return AtomicFile.WriteUtf8Async(path, WorkerProtocolJson.SerializeResponse(response));
+        return AtomicFile.WriteUtf8Async(path, WorkerProtocolJson.SerializeCanonicalResponse(response));
     }
 
     private static async Task PromotePreManifestProjectTimeoutAsync(
@@ -904,7 +904,7 @@ internal static class Program
             response.Summary.ElapsedMilliseconds);
         await AtomicFile.WriteUtf8Async(
                 path,
-                WorkerProtocolJson.SerializeResponse(promoted))
+                WorkerProtocolJson.SerializeCanonicalResponse(promoted))
             .ConfigureAwait(false);
     }
 

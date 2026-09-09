@@ -46,7 +46,7 @@ internal static class Program
         {
             await AtomicFile.WriteUtf8Async(
                 resultPath,
-                WorkerProtocolJson.SerializeResponse(response)).ConfigureAwait(false);
+                WorkerProtocolJson.SerializeCanonicalResponse(response)).ConfigureAwait(false);
             return 0;
         }
         WorkerVerifyRequest? request;
