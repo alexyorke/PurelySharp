@@ -70,20 +70,12 @@ public sealed class ContractBinder
         IOperation? implementationBody = null)
     {
         target = ArgumentNullGuard.NotNull(target, nameof(target));
-
-        return implementationBody == null
-            ? _bindings.GetOrAdd(
-                target,
-                value => BindCore(
-                    value,
-                    implementationBody: null,
-                    requiresOnly: false,
-                    cancellationToken: CancellationToken.None))
-            : BindCore(
-                target,
-                implementationBody,
-                requiresOnly: false,
-                cancellationToken: CancellationToken.None);
+        return BindCached(
+            target,
+            implementationBody,
+            requiresOnly: false,
+            cancellationToken: CancellationToken.None,
+            cache: _bindings);
     }
 
     public ContractBindingResult BindRequires(
@@ -91,20 +83,12 @@ public sealed class ContractBinder
         IOperation? implementationBody = null)
     {
         target = ArgumentNullGuard.NotNull(target, nameof(target));
-
-        return implementationBody == null
-            ? _requiresBindings.GetOrAdd(
-                target,
-                value => BindCore(
-                    value,
-                    implementationBody: null,
-                    requiresOnly: true,
-                    cancellationToken: CancellationToken.None))
-            : BindCore(
-                target,
-                implementationBody,
-                requiresOnly: true,
-                cancellationToken: CancellationToken.None);
+        return BindCached(
+            target,
+            implementationBody,
+            requiresOnly: true,
+            cancellationToken: CancellationToken.None,
+            cache: _requiresBindings);
     }
 
     internal ContractBindingResult BindRequires(
@@ -113,19 +97,30 @@ public sealed class ContractBinder
     {
         cancellationToken.ThrowIfCancellationRequested();
         target = ArgumentNullGuard.NotNull(target, nameof(target));
-        return _requiresBindings.GetOrAdd(
+        return BindCached(
             target,
-            value => BindCore(
-                value,
-                implementationBody: null,
-                requiresOnly: true,
-                cancellationToken: cancellationToken));
+            implementationBody: null,
+            requiresOnly: true,
+            cancellationToken: cancellationToken,
+            cache: _requiresBindings);
     }
 
     public ContractClauseInventory GetClauseInventory(IMethodSymbol target)
     {
         return _clauseInventory.Create(target);
     }
+
+    private ContractBindingResult BindCached(
+        IMethodSymbol target,
+        IOperation? implementationBody,
+        bool requiresOnly,
+        CancellationToken cancellationToken,
+        ConcurrentDictionary<IMethodSymbol, ContractBindingResult> cache) =>
+        implementationBody == null
+            ? cache.GetOrAdd(
+                target,
+                value => BindCore(value, null, requiresOnly, cancellationToken))
+            : BindCore(target, implementationBody, requiresOnly, cancellationToken);
 
     private ContractBindingResult BindCore(
         IMethodSymbol target,
