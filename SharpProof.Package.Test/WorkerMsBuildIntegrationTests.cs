@@ -2658,10 +2658,9 @@ public sealed class WorkerMsBuildIntegrationTests
         }
         finally
         {
-            if (Directory.Exists(directory))
-            {
-                Directory.Delete(directory, recursive: true);
-            }
+            TestRepository.DeleteOwnedTemporaryDirectory(
+                directory,
+                "SharpProof.Package.Test");
         }
     }
 

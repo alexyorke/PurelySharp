@@ -167,11 +167,9 @@ internal sealed class PackagedProductFeed : IDisposable
         }
         catch
         {
-            if (Directory.Exists(root))
-            {
-                Directory.Delete(root, recursive: true);
-            }
-
+            TestRepository.DeleteOwnedTemporaryDirectory(
+                root,
+                "SharpProof.PackagedProductFeed");
             throw;
         }
     }
