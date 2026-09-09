@@ -276,7 +276,13 @@ else {
     (Resolve-Path -LiteralPath $PackageSource -ErrorAction Stop).Path
 }
 $results = if ($coverageEnabled) {
-    $resolvedCoverageResults
+    # Coverage callers may retain the results directory across selected and
+    # default campaigns. Keep this run's TRX files in a private directory so
+    # timing extraction cannot mix historical shard receipts into the new
+    # scheduler profile. Coverage report collection is recursive, so the
+    # additional campaign level remains part of the published evidence.
+    Join-Path $resolvedCoverageResults (
+        'campaign-' + [Guid]::NewGuid().ToString('N'))
 }
 else {
     Join-Path $root 'results'
