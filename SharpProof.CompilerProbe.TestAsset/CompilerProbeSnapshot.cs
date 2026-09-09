@@ -7,23 +7,37 @@ namespace SharpProof.CompilerProbe.TestAsset;
 
 internal static class CompilerProbeSnapshot
 {
+    private const BindingFlags InstanceMemberFlags =
+        BindingFlags.Instance |
+        BindingFlags.Public |
+        BindingFlags.NonPublic;
+    private const string CommandLineAdditionalTextTypeName =
+        "Microsoft.CodeAnalysis.AdditionalTextFile";
+
     private static readonly ConditionalWeakTable<Type, PortableImageMethod>
         PortableImageMethods = new();
+    private static readonly ConditionalWeakTable<Type, CompilationProperty>
+        CompilationProperties = new();
 
     private sealed class PortableImageMethod(Type metadataType)
     {
         internal MethodInfo? Value { get; } = metadataType.GetMethod(
             "GetEntireImage",
-            BindingFlags.Instance |
-                BindingFlags.Public |
-                BindingFlags.NonPublic,
+            InstanceMemberFlags,
             binder: null,
             Type.EmptyTypes,
             modifiers: null);
     }
 
-    private const string CommandLineAdditionalTextTypeName =
-        "Microsoft.CodeAnalysis.AdditionalTextFile";
+    private sealed class CompilationProperty(Type referenceType)
+    {
+        internal PropertyInfo? Value { get; } = referenceType
+            .GetProperties(InstanceMemberFlags)
+            .SingleOrDefault(static candidate =>
+                candidate.Name == "Compilation" &&
+                typeof(CSharpCompilation).IsAssignableFrom(
+                    candidate.PropertyType));
+    }
 
     internal static string Create(CompilationAnalysisContext context)
     {
@@ -499,16 +513,10 @@ internal static class CompilerProbeSnapshot
     private static CSharpCompilation GetReferencedCompilation(
         CompilationReference reference)
     {
-        const System.Reflection.BindingFlags flags =
-            System.Reflection.BindingFlags.Instance |
-            System.Reflection.BindingFlags.Public |
-            System.Reflection.BindingFlags.NonPublic;
-        var property = reference.GetType()
-            .GetProperties(flags)
-            .SingleOrDefault(static candidate =>
-                candidate.Name == "Compilation" &&
-                typeof(CSharpCompilation).IsAssignableFrom(
-                    candidate.PropertyType));
+        var property = CompilationProperties.GetValue(
+            reference.GetType(),
+            static type => new CompilationProperty(type))
+            .Value;
         return property?.GetValue(reference) as CSharpCompilation ??
             throw new InvalidOperationException(
                 "The C# compiler probe encountered a non-C# compilation reference.");
