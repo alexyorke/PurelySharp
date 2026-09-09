@@ -203,22 +203,34 @@ internal sealed class ContractApiIdentityResolver
             return false;
         }
 
-        var matches = _compilation.References
-            .Where(reference =>
-                SymbolEqualityComparer.Default.Equals(
+        var matches = new List<PortableExecutableReference>();
+        var hasNonPortableMatch = false;
+        foreach (var reference in _compilation.References)
+        {
+            if (!SymbolEqualityComparer.Default.Equals(
                     assembly,
-                    _compilation.GetAssemblyOrModuleSymbol(
-                        reference)))
-            .ToImmutableArray();
-        if (matches.IsDefaultOrEmpty ||
-            matches.Any(static reference => reference is not PortableExecutableReference))
+                    _compilation.GetAssemblyOrModuleSymbol(reference)))
+            {
+                continue;
+            }
+
+            if (reference is PortableExecutableReference portable)
+            {
+                matches.Add(portable);
+            }
+            else
+            {
+                hasNonPortableMatch = true;
+            }
+        }
+        if (matches.Count == 0 || hasNonPortableMatch)
         {
             return false;
         }
 
         var trusted = true;
         string? unreadableReason = null;
-        foreach (var match in matches.Cast<PortableExecutableReference>())
+        foreach (var match in matches)
         {
             var current = match.FilePath is { Length: > 0 } path
                 ? HasExpectedPayloadHash(path, match, out var currentReason)
