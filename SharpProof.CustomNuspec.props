@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <NuspecBasePath>$(MSBuildProjectDirectory)</NuspecBasePath>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+    <NoPackageAnalysis>true</NoPackageAnalysis>
+  </PropertyGroup>
+</Project>

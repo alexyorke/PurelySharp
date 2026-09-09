@@ -1,16 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\SharpProof.PackageMetadata.props" />
+  <Import Project="..\SharpProof.CustomNuspec.props" />
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <IsPackable>true</IsPackable>
-    <IncludeBuildOutput>false</IncludeBuildOutput>
     <NuspecFile>SharpProof.Verifier.nuspec</NuspecFile>
-    <NuspecBasePath>$(MSBuildProjectDirectory)</NuspecBasePath>
-    <NoWarn>$(NoWarn);NU5128</NoWarn>
-  </PropertyGroup>
-  <PropertyGroup>
     <PackageId>SharpProof.Verifier</PackageId>
-    <NoPackageAnalysis>true</NoPackageAnalysis>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\SharpProof.Package\SharpProof.Package.csproj"
