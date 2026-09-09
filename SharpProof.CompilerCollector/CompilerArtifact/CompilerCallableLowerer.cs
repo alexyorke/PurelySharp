@@ -601,9 +601,14 @@ internal sealed class CompilerCallableLowerer
             }
 
             instructions += block.Instructions.Length;
-            foreach (var successor in IrInstructionFacts.TryGetSuccessors(block.Terminator) ?? [])
+            var successors = IrInstructionFacts.TryGetSuccessors(block.Terminator);
+            if (successors is { } known)
             {
-                if (!Visit(successor))
+                if (known.First is { } first && !Visit(first))
+                {
+                    return false;
+                }
+                if (known.Second is { } second && !Visit(second))
                 {
                     return false;
                 }

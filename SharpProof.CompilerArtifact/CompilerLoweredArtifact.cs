@@ -1155,12 +1155,14 @@ internal static class CompilerLoweredArtifact
             }
             else
             {
-                foreach (var successor in Successors(terminator))
+                var successors = Successors(terminator);
+                if (successors.First is { } first && !Visit(first))
                 {
-                    if (!Visit(successor))
-                    {
-                        return false;
-                    }
+                    return false;
+                }
+                if (successors.Second is { } second && !Visit(second))
+                {
+                    return false;
                 }
             }
 
@@ -1168,7 +1170,7 @@ internal static class CompilerLoweredArtifact
             return true;
         }
 
-        static ImmutableArray<IrBlockId> Successors(IrInstruction terminator)
+        static IrSuccessors Successors(IrInstruction terminator)
         {
             return IrInstructionFacts.TryGetSuccessors(terminator) ??
                 throw new InvalidDataException(

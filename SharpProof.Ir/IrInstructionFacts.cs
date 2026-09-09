@@ -2,17 +2,23 @@ namespace SharpProof.Ir;
 
 internal static class IrInstructionFacts
 {
-    internal static ImmutableArray<IrBlockId>? TryGetSuccessors(
+    internal static IrSuccessors? TryGetSuccessors(
         IrInstruction terminator)
     {
         return terminator switch
         {
             IrBranchInstruction { WhenTrue: var whenTrue, WhenFalse: var whenFalse }
-                when whenTrue == whenFalse => [whenTrue],
-            IrBranchInstruction branch => [branch.WhenTrue, branch.WhenFalse],
-            IrGotoInstruction go => [go.Target],
-            IrReturnInstruction => [],
+                when whenTrue == whenFalse => new(whenTrue, null),
+            IrBranchInstruction branch => new(branch.WhenTrue, branch.WhenFalse),
+            IrGotoInstruction go => new(go.Target, null),
+            IrReturnInstruction => new(null, null),
             _ => null
         };
     }
+}
+
+internal readonly struct IrSuccessors(IrBlockId? first, IrBlockId? second)
+{
+    internal IrBlockId? First { get; } = first;
+    internal IrBlockId? Second { get; } = second;
 }
