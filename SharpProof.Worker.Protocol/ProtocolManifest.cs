@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace SharpProof.Worker.Protocol;
 
 public static partial class WorkerProtocolJson
@@ -53,10 +51,10 @@ public static partial class WorkerProtocolJson
     public static string ComputeManifestHash(
         WorkerClaimManifest manifest)
     {
-        return ComputeSha256(Encoding.UTF8.GetBytes(
-            CreateManifestPayload(
-                manifest ??
-                throw new ArgumentNullException(nameof(manifest)))));
+        _ = manifest ?? throw new ArgumentNullException(nameof(manifest));
+        using var writer = ManifestWriter.CreateHashWriter();
+        WriteManifestPayload(manifest, writer);
+        return writer.FinishHash();
     }
 
     public static void SealManifest(WorkerClaimManifest manifest)

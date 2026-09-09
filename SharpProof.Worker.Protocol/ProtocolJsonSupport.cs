@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Collections.Concurrent;
 using System.Globalization;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -295,9 +296,30 @@ public static partial class WorkerProtocolJson
         return options;
     }
 
-    private sealed class ManifestWriter
+    private sealed class ManifestWriter : IDisposable
     {
-        private readonly StringBuilder _builder = new();
+        private const int Utf8BufferSize = 4096;
+        private readonly StringBuilder? _builder;
+        private readonly IncrementalHash? _hash;
+        private readonly byte[]? _utf8Buffer;
+        private bool _finished;
+
+        internal ManifestWriter()
+        {
+            _builder = new StringBuilder();
+        }
+
+        private ManifestWriter(IncrementalHash hash)
+        {
+            _hash = hash;
+            _utf8Buffer = new byte[Utf8BufferSize];
+        }
+
+        internal static ManifestWriter CreateHashWriter()
+        {
+            return new ManifestWriter(
+                IncrementalHash.CreateHash(HashAlgorithmName.SHA256));
+        }
 
         internal ManifestWriter Add(int value)
         {
@@ -308,12 +330,14 @@ public static partial class WorkerProtocolJson
         {
             if (value == null)
             {
-                _builder.Append("-1:;");
+                Append("-1:;");
             }
             else
             {
-                _builder.Append(value.Length.ToString(CultureInfo.InvariantCulture))
-                    .Append(':').Append(value).Append(';');
+                Append(value.Length.ToString(CultureInfo.InvariantCulture));
+                Append(":");
+                Append(value);
+                Append(";");
             }
 
             return this;
@@ -348,7 +372,62 @@ public static partial class WorkerProtocolJson
 
         public override string ToString()
         {
-            return _builder.ToString();
+            return _builder?.ToString() ??
+                throw new InvalidOperationException(
+                    "A hash manifest writer has no text representation.");
+        }
+
+        internal string FinishHash()
+        {
+            if (_hash == null || _finished)
+            {
+                throw new ObjectDisposedException(nameof(ManifestWriter));
+            }
+
+            _finished = true;
+            return ProtocolHashEncoding.ToLowerHex(
+                _hash.GetHashAndReset());
+        }
+
+        public void Dispose()
+        {
+            _finished = true;
+            _hash?.Dispose();
+        }
+
+        private void Append(string value)
+        {
+            if (_builder is { } builder)
+            {
+                builder.Append(value);
+                return;
+            }
+
+            if (_finished || _hash == null || _utf8Buffer == null)
+            {
+                throw new ObjectDisposedException(nameof(ManifestWriter));
+            }
+
+            for (var offset = 0; offset < value.Length;)
+            {
+                var count = Math.Min(
+                    value.Length - offset,
+                    _utf8Buffer.Length / 3);
+                if (offset + count < value.Length &&
+                    char.IsHighSurrogate(value[offset + count - 1]))
+                {
+                    count--;
+                }
+
+                var bytes = Encoding.UTF8.GetBytes(
+                    value,
+                    offset,
+                    count,
+                    _utf8Buffer,
+                    0);
+                _hash.AppendData(_utf8Buffer, 0, bytes);
+                offset += count;
+            }
         }
     }
 
