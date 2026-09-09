@@ -1081,7 +1081,7 @@ public sealed class WorkerMsBuildIntegrationTests
     public async Task PublicationRejectsCompilerOwnedOutputsBeforeMutation()
     {
         RequireContainerWorker();
-        var collisions = new[]
+        (string PublicationProperty, string OutputKind)[] collisions = new[]
         {
             ("SharpProofVerifyResultFile", "target"),
             ("SharpProofVerifyRequestFile", "intermediate"),
@@ -1090,41 +1090,72 @@ public sealed class WorkerMsBuildIntegrationTests
             ("SharpProofVerifyRequestFile", "reference-assembly"),
             ("SharpProofCompilerManifestFile", "generated-editorconfig")
         };
-        foreach (var (publicationProperty, outputKind) in collisions)
+        var collisionProjects = new List<(
+            (string PublicationProperty, string OutputKind) Collision,
+            ConsumerProject Project,
+            (string Name, string Value)[] Properties)>(collisions.Length);
+        try
         {
-            using var project = ConsumerProject.Create(IdentitySource);
-            var compilerOutput = project.CompilerOutputPath(outputKind);
-            var properties = new List<(string Name, string Value)>
+            foreach (var collision in collisions)
             {
-                (publicationProperty, compilerOutput)
-            };
-            if (outputKind == "documentation")
-            {
-                properties.Add(("DocumentationFile", compilerOutput));
+                var project = ConsumerProject.Create(IdentitySource);
+                var compilerOutput = project.CompilerOutputPath(
+                    collision.OutputKind);
+                var properties = new List<(string Name, string Value)>
+                {
+                    (collision.PublicationProperty, compilerOutput)
+                };
+                if (collision.OutputKind == "documentation")
+                {
+                    properties.Add(("DocumentationFile", compilerOutput));
+                }
+
+                collisionProjects.Add((
+                    collision,
+                    project,
+                    properties.ToArray()));
             }
 
-            var build = await project.BuildAsync(
-                verify: true,
-                properties.ToArray());
+            // Every project and compiler-owned path is independent, so run the
+            // negative builds together instead of serializing six full builds.
+            var builds = await Task.WhenAll(collisionProjects.Select(
+                static item => item.Project.BuildAsync(
+                    verify: true,
+                    item.Properties)));
+            for (var index = 0; index < collisionProjects.Count; index++)
+            {
+                var (collision, project, _) = collisionProjects[index];
+                var compilerOutput = project.CompilerOutputPath(
+                    collision.OutputKind);
+                var build = builds[index];
 
-            Assert.That(
-                build.ExitCode,
-                Is.Not.Zero,
-                $"{publicationProperty} -> {outputKind}{Environment.NewLine}" +
-                build.Output);
-            Assert.That(
-                build.Output,
-                Does.Contain("compiler-owned outputs"),
-                $"{publicationProperty} -> {outputKind}");
-            Assert.That(
-                File.Exists(
-                    LinuxPathIdentity.PublicationMarkerPath(compilerOutput)),
-                Is.False,
-                $"{publicationProperty} -> {outputKind}");
-            Assert.That(
-                File.Exists(compilerOutput),
-                Is.False,
-                $"{publicationProperty} -> {outputKind}");
+                Assert.That(
+                    build.ExitCode,
+                    Is.Not.Zero,
+                    $"{collision.PublicationProperty} -> " +
+                    $"{collision.OutputKind}{Environment.NewLine}" +
+                    build.Output);
+                Assert.That(
+                    build.Output,
+                    Does.Contain("compiler-owned outputs"),
+                    $"{collision.PublicationProperty} -> {collision.OutputKind}");
+                Assert.That(
+                    File.Exists(
+                        LinuxPathIdentity.PublicationMarkerPath(compilerOutput)),
+                    Is.False,
+                    $"{collision.PublicationProperty} -> {collision.OutputKind}");
+                Assert.That(
+                    File.Exists(compilerOutput),
+                    Is.False,
+                    $"{collision.PublicationProperty} -> {collision.OutputKind}");
+            }
+        }
+        finally
+        {
+            foreach (var (_, project, _) in collisionProjects)
+            {
+                project.Dispose();
+            }
         }
 
         using var incremental = ConsumerProject.Create(IdentitySource);
