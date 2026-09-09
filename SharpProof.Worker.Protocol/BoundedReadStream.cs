@@ -45,7 +45,7 @@ internal sealed class BoundedReadStream : Stream
         }
         if (_remaining == 0)
         {
-            return ProbeForOverflow();
+            return CompleteOverflowProbe(_inner.ReadByte() >= 0);
         }
 
         var read = _inner.Read(
@@ -134,11 +134,6 @@ internal sealed class BoundedReadStream : Stream
             .ConfigureAwait(false);
         _remaining -= read;
         return read;
-    }
-
-    private int ProbeForOverflow()
-    {
-        return CompleteOverflowProbe(_inner.ReadByte() >= 0);
     }
 
     private async Task<int> ProbeForOverflowAsync(
