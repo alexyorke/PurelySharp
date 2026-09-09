@@ -33,7 +33,27 @@ internal static class FrontendAbstentionValidation
         FrontendAbstention value,
         string parameterName)
     {
-        if (!Enum.IsDefined(typeof(FrontendAbstention), value))
+        var isDefined = value switch
+        {
+            FrontendAbstention.None or
+            FrontendAbstention.UnsupportedOperationKind or
+            FrontendAbstention.UnsupportedType or
+            FrontendAbstention.ErrorOperation or
+            FrontendAbstention.InvalidOperation or
+            FrontendAbstention.UserDefinedOperator or
+            FrontendAbstention.LiftedOperator or
+            FrontendAbstention.UncheckedOverflowSemantics or
+            FrontendAbstention.ConversionMayChangeValue or
+            FrontendAbstention.UnsupportedMemberAccess or
+            FrontendAbstention.UnsupportedInvocationShape or
+            FrontendAbstention.UnsupportedControlFlow or
+            FrontendAbstention.UnsupportedStatement or
+            FrontendAbstention.UnsupportedMutation or
+            FrontendAbstention.UnknownOperationKind or
+            FrontendAbstention.ExpressionDepthLimit => true,
+            _ => false
+        };
+        if (!isDefined)
         {
             throw new ArgumentOutOfRangeException(parameterName);
         }

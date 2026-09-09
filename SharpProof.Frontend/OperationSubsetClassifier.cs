@@ -7,6 +7,8 @@ public static class OperationSubsetClassifier
             .Cast<OperationKind>()
             .Distinct()
             .OrderBy(static kind => (int)kind)];
+    private static readonly HashSet<OperationKind> s_knownOperationKindSet =
+        new(s_knownOperationKinds);
 
     public static FrontendSubsetClassification Classify(OperationKind kind)
     {
@@ -19,7 +21,7 @@ public static class OperationSubsetClassifier
         OperationSupportStage stage,
         OperationKind kind)
     {
-        if (!Enum.IsDefined(typeof(OperationKind), kind))
+        if (!s_knownOperationKindSet.Contains(kind))
         {
             return FrontendSubsetClassification.Abstain(
                 FrontendAbstention.UnknownOperationKind);
