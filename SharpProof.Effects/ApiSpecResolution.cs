@@ -111,9 +111,14 @@ public sealed class ApiSpecResolver(ApiSpecTable table)
     {
         var failures = ImmutableArray.CreateBuilder<ApiSpecResolutionFailure>();
         var resolved = new List<(ApiSpecTemplate Template, ISymbol Symbol)>();
+        var containingTypes = new Dictionary<string, ContainingTypeLookup>(
+            StringComparer.Ordinal);
         foreach (var template in _table.Templates)
         {
-            var candidate = ResolveTemplate(compilation, template);
+            var candidate = ResolveTemplate(
+                compilation,
+                template,
+                containingTypes);
             if (candidate.Failure == null)
             {
                 resolved.Add((template, candidate.Symbol!));
@@ -155,14 +160,19 @@ public sealed class ApiSpecResolver(ApiSpecTable table)
         return new ResolvedApiSpecTable(specs.ToImmutable(), failures.ToImmutable());
     }
     private static (ISymbol? Symbol, ApiSpecResolutionFailure? Failure) ResolveTemplate(
-        Compilation compilation, ApiSpecTemplate template)
+        Compilation compilation,
+        ApiSpecTemplate template,
+        Dictionary<string, ContainingTypeLookup> containingTypes)
     {
         var target = template.Target;
-        var containingType = compilation.GetTypeByMetadataName(target.ContainingTypeMetadataName);
+        var containingTypeLookup = ResolveContainingType(
+            compilation,
+            target.ContainingTypeMetadataName,
+            containingTypes);
+        var containingType = containingTypeLookup.Type;
         if (containingType == null)
         {
-            var alternatives = compilation.GetTypesByMetadataName(target.ContainingTypeMetadataName);
-            return alternatives.Length > 1
+            return containingTypeLookup.Alternatives.Length > 1
                 ? Unresolved(
                     template,
                     ApiSpecResolutionFailureKind.AmbiguousContainingType,
@@ -218,6 +228,36 @@ public sealed class ApiSpecResolver(ApiSpecTable table)
                 "The documentation identifier resolved to multiple original definitions.")
         };
     }
+
+    private static ContainingTypeLookup ResolveContainingType(
+        Compilation compilation,
+        string metadataName,
+        Dictionary<string, ContainingTypeLookup> containingTypes)
+    {
+        if (containingTypes.TryGetValue(metadataName, out var lookup))
+        {
+            return lookup;
+        }
+
+        var containingType = compilation.GetTypeByMetadataName(metadataName);
+        lookup = new ContainingTypeLookup(
+            containingType,
+            containingType == null
+                ? compilation.GetTypesByMetadataName(metadataName)
+                : ImmutableArray<INamedTypeSymbol>.Empty);
+        containingTypes.Add(metadataName, lookup);
+        return lookup;
+    }
+
+    private readonly struct ContainingTypeLookup(
+        INamedTypeSymbol? type,
+        ImmutableArray<INamedTypeSymbol> alternatives)
+    {
+        internal INamedTypeSymbol? Type { get; } = type;
+        internal ImmutableArray<INamedTypeSymbol> Alternatives { get; } =
+            alternatives;
+    }
+
     private static bool MatchesTarget(ISymbol symbol, ApiSpecTarget target)
     {
         return target.MemberKind switch
