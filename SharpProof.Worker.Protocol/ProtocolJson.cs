@@ -84,7 +84,8 @@ public static partial class WorkerProtocolJson
 
     public static string ComputeRequestHash(WorkerVerifyRequest request)
     {
-        return ComputeSha256(Encoding.UTF8.GetBytes(SerializeRequest(request)));
+        return ComputeSha256(SerializeBoundedUtf8(
+            request ?? throw new ArgumentNullException(nameof(request))));
     }
 
     private static StreamReader OpenJsonReader(string path)
@@ -146,6 +147,18 @@ public static partial class WorkerProtocolJson
     {
         var json = JsonSerializer.Serialize(value, s_options);
         if (Encoding.UTF8.GetByteCount(json) > MaximumJsonBytes)
+        {
+            throw new InvalidDataException(
+                $"The JSON document exceeds the {MaximumJsonBytes} byte limit.");
+        }
+
+        return json;
+    }
+
+    private static byte[] SerializeBoundedUtf8<T>(T value)
+    {
+        var json = JsonSerializer.SerializeToUtf8Bytes(value, s_options);
+        if (json.Length > MaximumJsonBytes)
         {
             throw new InvalidDataException(
                 $"The JSON document exceeds the {MaximumJsonBytes} byte limit.");

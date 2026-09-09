@@ -73,6 +73,9 @@ public sealed class ProtocolJsonTests
                 (Action)(() => WorkerProtocolJson.SerializeRequest(request)),
                 Throws.TypeOf<InvalidDataException>());
             Assert.That(
+                (Action)(() => WorkerProtocolJson.ComputeRequestHash(request)),
+                Throws.TypeOf<InvalidDataException>());
+            Assert.That(
                 (Action)(() => WorkerProtocolJson.SerializeResponse(response)),
                 Throws.TypeOf<InvalidDataException>());
         }
