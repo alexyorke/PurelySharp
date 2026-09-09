@@ -712,23 +712,19 @@ internal sealed partial class ClaimManifestBuilder(
 
     private WorkerSourceLocation ToSourceLocation(Location location)
     {
+        var result = CompilerSourceLocationProjection.Create(location);
         if (!location.IsInSource)
         {
-            return new WorkerSourceLocation();
+            return result;
         }
 
-        var mapped = location.GetMappedLineSpan();
-        var path = string.IsNullOrEmpty(mapped.Path)
-            ? location.SourceTree?.FilePath ?? string.Empty
-            : mapped.Path;
-        var result = new WorkerSourceLocation
+        if (string.IsNullOrEmpty(result.Path))
         {
-            Path = string.IsNullOrEmpty(path) ? "<compiler-generated>" : path,
-            Start = location.SourceSpan.Start,
-            Length = location.SourceSpan.Length,
-            Line = mapped.StartLinePosition.Line + 1,
-            Column = mapped.StartLinePosition.Character + 1
-        };
+            result.Path = location.SourceTree?.FilePath ?? string.Empty;
+        }
+        result.Path = string.IsNullOrEmpty(result.Path)
+            ? "<compiler-generated>"
+            : result.Path;
         if (location.SourceTree is { } sourceTree)
         {
             var ordinal = _compilation.SyntaxTrees.IndexOf(sourceTree);

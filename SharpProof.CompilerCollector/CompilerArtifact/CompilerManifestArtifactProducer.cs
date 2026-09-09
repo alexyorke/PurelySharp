@@ -211,21 +211,13 @@ internal static class CompilerManifestArtifactProducer
         CompilerCompilationSnapshot compilation)
     {
         var source = diagnostic.Location.IsInSource;
-        var span = source ? diagnostic.Location.GetMappedLineSpan() : default;
-        var location = new WorkerSourceLocation
+        var location = CompilerSourceLocationProjection.Create(diagnostic.Location);
+        if (source && string.IsNullOrEmpty(location.Path))
         {
-            Path = source
-                ? string.IsNullOrEmpty(span.Path)
-                    ? diagnostic.Location.SourceTree?.FilePath ??
-                        throw new InvalidDataException(
-                            "A compiler diagnostic has no source tree path.")
-                    : span.Path
-                : string.Empty,
-            Start = source ? diagnostic.Location.SourceSpan.Start : 0,
-            Length = source ? diagnostic.Location.SourceSpan.Length : 0,
-            Line = source ? span.StartLinePosition.Line + 1 : 0,
-            Column = source ? span.StartLinePosition.Character + 1 : 0
-        };
+            location.Path = diagnostic.Location.SourceTree?.FilePath ??
+                throw new InvalidDataException(
+                    "A compiler diagnostic has no source tree path.");
+        }
         var result = new CompilerDiagnosticArtifact
         {
             Code = "compiler." + diagnostic.Id,
