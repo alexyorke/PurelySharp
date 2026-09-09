@@ -48,6 +48,7 @@ internal sealed class CompilerRelationalSummaryProvider
 
     private readonly CSharpCompilation _compilation;
     private readonly CompilerSyntaxTreeSnapshot[]? _capturedTrees;
+    private readonly Dictionary<SyntaxTree, int>? _capturedTreeOrdinals;
     private readonly IrFactory _factory;
     private readonly ResolvedApiSpecTable _apiSpecs;
     private readonly CompilerSpecificationPackProvider _specificationPacks;
@@ -98,6 +99,23 @@ internal sealed class CompilerRelationalSummaryProvider
             compilation,
             nameof(compilation));
         _capturedTrees = capturedTrees;
+        Dictionary<SyntaxTree, int>? capturedTreeOrdinals = null;
+        if (capturedTrees is not null)
+        {
+            capturedTreeOrdinals = new Dictionary<SyntaxTree, int>(
+                _compilation.SyntaxTrees.Length,
+                ReferenceComparer<SyntaxTree>.Instance);
+            for (var index = 0; index < _compilation.SyntaxTrees.Length; index++)
+            {
+                var tree = _compilation.SyntaxTrees[index];
+                if (!capturedTreeOrdinals.ContainsKey(tree))
+                {
+                    capturedTreeOrdinals.Add(tree, index);
+                }
+            }
+        }
+
+        _capturedTreeOrdinals = capturedTreeOrdinals;
         _factory = ArgumentNullGuard.NotNull(factory, nameof(factory));
         _apiSpecs = ArgumentNullGuard.NotNull(apiSpecs, nameof(apiSpecs));
         _specificationPacks = new CompilerSpecificationPackProvider(
@@ -460,21 +478,16 @@ internal sealed class CompilerRelationalSummaryProvider
 
     private CompilerSyntaxTreeSnapshot? FindCapturedTree(SyntaxTree syntaxTree)
     {
-        if (_capturedTrees == null)
+        if (_capturedTrees == null ||
+            _capturedTreeOrdinals == null ||
+            syntaxTree == null ||
+            !_capturedTreeOrdinals.TryGetValue(syntaxTree, out var index))
         {
             return null;
         }
 
-        for (var index = 0; index < _compilation.SyntaxTrees.Length; index++)
-        {
-            if (ReferenceEquals(_compilation.SyntaxTrees[index], syntaxTree))
-            {
-                return index < _capturedTrees.Length
-                    ? _capturedTrees[index]
-                    : null;
-            }
-        }
-
-        return null;
+        return index < _capturedTrees.Length
+            ? _capturedTrees[index]
+            : null;
     }
 }
