@@ -788,12 +788,12 @@ public static class IrRelationalSummaryBuilder
 
         private bool Supported(IrTerm term)
         {
-            if (!Charge(term))
+            if (!_termDepths.TryGetValue(term.Id, out var depth) &&
+                !ChargeAndMeasureDepth(term, out depth))
             {
                 return false;
             }
-            if (IrTermAnalysis.GetDepth(term, _termDepths) <=
-                _limits.MaximumExpressionDepth)
+            if (depth <= _limits.MaximumExpressionDepth)
             {
                 return true;
             }
@@ -802,27 +802,48 @@ public static class IrRelationalSummaryBuilder
             return false;
         }
 
-        private bool Charge(IrTerm root)
+        private bool ChargeAndMeasureDepth(IrTerm root, out int depth)
         {
-            var pending = new Stack<IrTerm>();
-            pending.Push(root);
+            depth = 0;
+            var pending = new Stack<(
+                IrTerm Term,
+                ImmutableArray<IrTerm> Children,
+                bool ChildrenReady)>();
+            pending.Push((root, [], ChildrenReady: false));
             while (pending.Count != 0)
             {
-                var term = pending.Pop();
-                if (!_visitedTerms.Add(term.Id))
+                var (term, children, childrenReady) = pending.Pop();
+                if (childrenReady)
+                {
+                    var termDepth = 1;
+                    foreach (var child in children)
+                    {
+                        termDepth = Math.Max(
+                            termDepth,
+                            1 + _termDepths[child.Id]);
+                    }
+                    _termDepths[term.Id] = termDepth;
+                    continue;
+                }
+
+                if (_termDepths.ContainsKey(term.Id))
                 {
                     continue;
                 }
-                if (!Spend())
+                if (_visitedTerms.Add(term.Id) && !Spend())
                 {
                     return false;
                 }
-                foreach (var child in IrTraversal.GetChildren(term).Reverse())
+
+                children = IrTraversal.GetChildren(term);
+                pending.Push((term, children, ChildrenReady: true));
+                for (var index = children.Length - 1; index >= 0; index--)
                 {
-                    pending.Push(child);
+                    pending.Push((children[index], [], ChildrenReady: false));
                 }
             }
-            return true;
+
+            return _termDepths.TryGetValue(root.Id, out depth);
         }
 
         private void AddIncoming(
