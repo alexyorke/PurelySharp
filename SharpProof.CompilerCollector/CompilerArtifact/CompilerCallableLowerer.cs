@@ -238,6 +238,10 @@ internal sealed class CompilerCallableLowerer
         ImmutableArray<WorkerAssumptionEvidence>.Builder UserAssumptions) PartitionAssumptions(
             WorkerAssumptionEvidence[] assumptions)
     {
+        if (assumptions is null)
+        {
+            throw new ArgumentNullException(nameof(assumptions));
+        }
         var preconditions = ImmutableArray.CreateBuilder<WorkerAssumptionEvidence>();
         var userAssumptions = ImmutableArray.CreateBuilder<WorkerAssumptionEvidence>();
         foreach (var assumption in assumptions)
