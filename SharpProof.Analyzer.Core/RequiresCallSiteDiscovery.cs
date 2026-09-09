@@ -12,6 +12,9 @@ internal sealed partial class RequiresCallSiteDiscovery(
 {
     private readonly InvocationEmissionPolicy _invocationEmission =
         new(semanticModel.Compilation);
+    private readonly Dictionary<bool,
+        (INamedTypeSymbol? Interface, IMethodSymbol? Method)>
+        _disposeInterfaceMethodCache = [];
 
     internal ImmutableHashSet<IMethodSymbol>?
         GetPotentialCallOwners(
@@ -42,7 +45,8 @@ internal sealed partial class RequiresCallSiteDiscovery(
                 operationFacts,
                 semanticModel,
                 delegateTargets,
-                cancellationToken: cancellationToken);
+                cancellationToken: cancellationToken,
+                disposeInterfaceMethodCache: _disposeInterfaceMethodCache);
             if (calls.IsDefaultOrEmpty)
             {
                 continue;
@@ -153,7 +157,8 @@ internal sealed partial class RequiresCallSiteDiscovery(
                     semanticModel,
                     delegateTargets,
                     flowResult,
-                    cancellationToken);
+                    cancellationToken,
+                    _disposeInterfaceMethodCache);
                 if (calls.IsDefaultOrEmpty ||
                     reachableInitializerSites != null &&
                     !reachableInitializerSites.Contains((
@@ -273,7 +278,8 @@ internal sealed partial class RequiresCallSiteDiscovery(
                          semanticModel,
                          delegateTargets,
                          flowResult,
-                         cancellationToken))
+                         cancellationToken,
+                         _disposeInterfaceMethodCache))
             {
                 var candidate = CreateCandidate(
                     operation,
@@ -705,7 +711,10 @@ internal sealed partial class RequiresCallSiteDiscovery(
             DirectDelegateTarget>?
             delegateTargets = null,
         ManagedFlowResult? flowResult = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        Dictionary<bool,
+            (INamedTypeSymbol? Interface, IMethodSymbol? Method)>?
+            disposeInterfaceMethodCache = null)
     {
         return operation switch
         {
@@ -777,19 +786,22 @@ internal sealed partial class RequiresCallSiteDiscovery(
                 forEach,
                 operationFacts,
                 semanticModel,
-                cancellationToken),
+                cancellationToken,
+                disposeInterfaceMethodCache),
             IUsingOperation usingOperation => GetUsingCalls(
                 usingOperation.Resources,
                 usingOperation.IsAsynchronous,
                 semanticModel?.Compilation,
                 operationFacts,
-                flowResult),
+                flowResult,
+                disposeInterfaceMethodCache),
             IUsingDeclarationOperation usingDeclaration => GetUsingCalls(
                 usingDeclaration.DeclarationGroup,
                 usingDeclaration.IsAsynchronous,
                 semanticModel?.Compilation,
                 operationFacts,
-                flowResult),
+                flowResult,
+                disposeInterfaceMethodCache),
             IRecursivePatternOperation
             {
                 DeconstructSymbol: IMethodSymbol deconstruct
@@ -1118,7 +1130,10 @@ internal sealed partial class RequiresCallSiteDiscovery(
         IForEachLoopOperation loop,
         DefiniteOperationFacts? operationFacts,
         SemanticModel? semanticModel,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Dictionary<bool,
+            (INamedTypeSymbol? Interface, IMethodSymbol? Method)>?
+            disposeInterfaceMethodCache)
     {
         if (semanticModel == null ||
             loop.Syntax is not CommonForEachStatementSyntax syntax)
@@ -1161,7 +1176,9 @@ internal sealed partial class RequiresCallSiteDiscovery(
             ResolveDisposeMethod(
                 info.GetEnumeratorMethod.ReturnType,
                 loop.IsAsynchronous,
-                semanticModel.Compilation) ?? info.DisposeMethod,
+                semanticModel.Compilation,
+                disposeInterfaceMethodCache: disposeInterfaceMethodCache) ??
+                info.DisposeMethod,
             instance: null);
         return calls.ToImmutable();
 
@@ -1213,7 +1230,10 @@ internal sealed partial class RequiresCallSiteDiscovery(
         bool isAsynchronous,
         Compilation? compilation,
         DefiniteOperationFacts? operationFacts,
-        ManagedFlowResult? flowResult)
+        ManagedFlowResult? flowResult,
+        Dictionary<bool,
+            (INamedTypeSymbol? Interface, IMethodSymbol? Method)>?
+            disposeInterfaceMethodCache)
     {
         if (compilation == null)
         {
@@ -1262,7 +1282,8 @@ internal sealed partial class RequiresCallSiteDiscovery(
             var method = ResolveDisposeMethod(
                 item.Type,
                 isAsynchronous,
-                compilation);
+                compilation,
+                disposeInterfaceMethodCache: disposeInterfaceMethodCache);
             if (method != null)
             {
                 calls.Add(new RequiresCallTarget(
@@ -1281,7 +1302,10 @@ internal sealed partial class RequiresCallSiteDiscovery(
         ITypeSymbol resourceType,
         bool isAsynchronous,
         Compilation compilation,
-        HashSet<ITypeSymbol>? visited = null)
+        HashSet<ITypeSymbol>? visited = null,
+        Dictionary<bool,
+            (INamedTypeSymbol? Interface, IMethodSymbol? Method)>?
+            disposeInterfaceMethodCache = null)
     {
         visited ??= new HashSet<ITypeSymbol>(
             SymbolEqualityComparer.Default);
@@ -1299,7 +1323,8 @@ internal sealed partial class RequiresCallSiteDiscovery(
                     constraint,
                     isAsynchronous,
                     compilation,
-                    visited);
+                    visited,
+                    disposeInterfaceMethodCache);
                 if (constrained != null)
                 {
                     return constrained;
@@ -1314,10 +1339,14 @@ internal sealed partial class RequiresCallSiteDiscovery(
         var methodName = isAsynchronous
             ? "DisposeAsync"
             : "Dispose";
-        var disposable = compilation.GetTypeByMetadataName(interfaceName);
-        var interfaceMethod = disposable?.GetMembers(methodName)
-            .OfType<IMethodSymbol>()
-            .SingleOrDefault(static method => method.Parameters.IsEmpty);
+        var interfaceLookup = GetDisposeInterfaceMethod(
+            compilation,
+            isAsynchronous,
+            interfaceName,
+            methodName,
+            disposeInterfaceMethodCache);
+        var disposable = interfaceLookup.Interface;
+        var interfaceMethod = interfaceLookup.Method;
         if (interfaceMethod != null &&
             resourceType is INamedTypeSymbol named &&
             named.AllInterfaces.Any(candidate =>
@@ -1336,6 +1365,34 @@ internal sealed partial class RequiresCallSiteDiscovery(
                 !method.IsStatic &&
                 method.Arity == 0 &&
                 method.Parameters.IsEmpty);
+    }
+
+    private static (
+        INamedTypeSymbol? Interface,
+        IMethodSymbol? Method) GetDisposeInterfaceMethod(
+        Compilation compilation,
+        bool isAsynchronous,
+        string interfaceName,
+        string methodName,
+        Dictionary<bool,
+            (INamedTypeSymbol? Interface, IMethodSymbol? Method)>?
+            disposeInterfaceMethodCache)
+    {
+        if (disposeInterfaceMethodCache != null &&
+            disposeInterfaceMethodCache.TryGetValue(
+                isAsynchronous,
+                out var cached))
+        {
+            return cached;
+        }
+
+        var disposable = compilation.GetTypeByMetadataName(interfaceName);
+        var interfaceMethod = disposable?.GetMembers(methodName)
+            .OfType<IMethodSymbol>()
+            .SingleOrDefault(static method => method.Parameters.IsEmpty);
+        var result = (disposable, interfaceMethod);
+        disposeInterfaceMethodCache?.Add(isAsynchronous, result);
+        return result;
     }
 
     private static ImmutableArray<RequiresCallTarget>
