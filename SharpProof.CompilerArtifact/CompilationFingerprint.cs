@@ -144,7 +144,9 @@ internal static class CompilationFingerprint
             return false;
         }
 
-        var evidenceIndex = CreateSummaryEvidenceIndex(snapshot);
+        SummaryEvidenceIndex? evidenceIndex = values.Length == 0
+            ? null
+            : CreateSummaryEvidenceIndex(snapshot);
 
         string? previous = null;
         foreach (var row in values)
