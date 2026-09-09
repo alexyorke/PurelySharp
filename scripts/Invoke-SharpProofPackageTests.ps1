@@ -907,5 +907,5 @@ finally {
     if ([IO.Directory]::Exists($root)) {
         [IO.Directory]::Delete($root, $true)
     }
-    Remove-SharpProofCoverageOutput -Directory $isolatedOutputRoot
+    Remove-SharpProofOwnedDirectory -Directory $isolatedOutputRoot
 }

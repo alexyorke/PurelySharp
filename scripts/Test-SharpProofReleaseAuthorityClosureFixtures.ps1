@@ -3,6 +3,7 @@ param()
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'SharpProof.ContainerExecution.psm1') -Force
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $fixture = Join-Path ([IO.Path]::GetTempPath()) (
     'SharpProof-release-authority-' + [Guid]::NewGuid().ToString('N'))
@@ -128,7 +129,5 @@ $manifest = 'SharpProof.Verifier/SharpProof.Verifier.nuspec'
     Write-Host 'Release-authority closure fixtures passed.'
 }
 finally {
-    if (Test-Path -LiteralPath $fixture) {
-        Remove-Item -LiteralPath $fixture -Recurse -Force
-    }
+    Remove-SharpProofOwnedDirectory -Directory $fixture
 }

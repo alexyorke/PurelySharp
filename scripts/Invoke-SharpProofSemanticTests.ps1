@@ -471,7 +471,7 @@ finally {
     if ($temporaryResults -and [IO.Directory]::Exists($resultsRoot)) {
         [IO.Directory]::Delete($resultsRoot, $true)
     }
-    Remove-SharpProofCoverageOutput -Directory $isolatedOutputRoot
+    Remove-SharpProofOwnedDirectory -Directory $isolatedOutputRoot
 }
 
 $campaign.Stop()

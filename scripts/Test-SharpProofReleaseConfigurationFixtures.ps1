@@ -3,6 +3,7 @@ param()
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'SharpProof.ContainerExecution.psm1') -Force
 
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $canonicalWorkflow = [IO.File]::ReadAllText((Join-Path $repositoryRoot (
@@ -260,7 +261,5 @@ cat "$GH_FIXTURE_ROOT/$file.json"
     Write-Host 'Release configuration exact-ref fixtures passed.'
 }
 finally {
-    if (Test-Path -LiteralPath $fixture) {
-        Remove-Item -LiteralPath $fixture -Recurse -Force
-    }
+    Remove-SharpProofOwnedDirectory -Directory $fixture
 }

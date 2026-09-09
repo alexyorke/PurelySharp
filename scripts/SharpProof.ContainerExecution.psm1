@@ -1090,7 +1090,7 @@ function New-SharpProofCoverageContext {
     }
 }
 
-function Remove-SharpProofCoverageOutput {
+function Remove-SharpProofOwnedDirectory {
     [CmdletBinding()]
     param(
         [AllowEmptyString()]
@@ -1198,7 +1198,7 @@ Export-ModuleMember -Function @(
     'Invoke-SharpProofParallelDotnetTests',
     'New-SharpProofParallelProcessStartInfo',
     'New-SharpProofCoverageContext',
-    'Remove-SharpProofCoverageOutput',
+    'Remove-SharpProofOwnedDirectory',
     'Add-SharpProofCoverageArguments',
     'Invoke-SharpProofRequiredDotnet',
     'New-SharpProofIsolatedTestOutput',

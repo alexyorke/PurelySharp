@@ -6,6 +6,7 @@ $ErrorActionPreference = 'Stop'
 
 Import-Module (Join-Path $PSScriptRoot 'SharpProof.MutationEvidence.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot 'SharpProof.MutationBaselines.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'SharpProof.ContainerExecution.psm1') -Force
 
 $fixtureRoot = Join-Path ([IO.Path]::GetTempPath()) (
     'SharpProof-mutation-evidence-' + [Guid]::NewGuid().ToString('N'))
@@ -1153,7 +1154,5 @@ try {
     Write-Host 'Mutation evidence behavioral fixtures passed.'
 }
 finally {
-    if (Test-Path -LiteralPath $fixtureRoot) {
-        Remove-Item -LiteralPath $fixtureRoot -Recurse -Force
-    }
+    Remove-SharpProofOwnedDirectory -Directory $fixtureRoot
 }

@@ -20,6 +20,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'SharpProof.ContainerExecution.psm1') -Force
 . (Join-Path $PSScriptRoot 'SharpProof.PublicationPlanTopology.ps1')
 . (Join-Path $PSScriptRoot 'SharpProof.PublicationDestination.ps1')
 $root = Join-Path ([IO.Path]::GetTempPath()) (
@@ -263,7 +264,5 @@ try {
     Write-Host "Publication destination fixture passed: $Mutation"
 }
 finally {
-    if (Test-Path -LiteralPath $root) {
-        Remove-Item -LiteralPath $root -Recurse -Force
-    }
+    Remove-SharpProofOwnedDirectory -Directory $root
 }
