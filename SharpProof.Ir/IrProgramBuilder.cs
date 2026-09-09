@@ -61,17 +61,26 @@ public sealed class IrProgramBuilder(IrFactory factory)
 
     public IrAssignInstruction Assign(IrBlockId block, OperationId operation, IrVarId target, IrTerm value)
     {
-        return Append(block, id => new IrAssignInstruction(id, operation, target, value));
+        return Append(
+            block,
+            new IrAssignInstruction(
+                NextInstructionId(), operation, target, value));
     }
 
     public IrLoadInstruction Load(IrBlockId block, OperationId operation, IrVarId target, IrLocation location)
     {
-        return Append(block, id => new IrLoadInstruction(id, operation, target, location));
+        return Append(
+            block,
+            new IrLoadInstruction(
+                NextInstructionId(), operation, target, location));
     }
 
     public IrStoreInstruction Store(IrBlockId block, OperationId operation, IrLocation location, IrTerm value)
     {
-        return Append(block, id => new IrStoreInstruction(id, operation, location, value));
+        return Append(
+            block,
+            new IrStoreInstruction(
+                NextInstructionId(), operation, location, value));
     }
 
     public IrCallInstruction Call(
@@ -84,18 +93,27 @@ public sealed class IrProgramBuilder(IrFactory factory)
     {
         ArgumentNullGuard.NotNull(arguments, nameof(arguments));
 
-        return Append(block, id => new IrCallInstruction(
-            id, operation, target, member, receiver, [.. arguments]));
+        return Append(
+            block,
+            new IrCallInstruction(
+                NextInstructionId(), operation, target, member, receiver,
+                [.. arguments]));
     }
 
     public IrAssumeInstruction Assume(IrBlockId block, OperationId operation, IrTerm condition)
     {
-        return Append(block, id => new IrAssumeInstruction(id, operation, condition));
+        return Append(
+            block,
+            new IrAssumeInstruction(
+                NextInstructionId(), operation, condition));
     }
 
     public IrAssertInstruction Assert(IrBlockId block, OperationId operation, IrTerm condition)
     {
-        return Append(block, id => new IrAssertInstruction(id, operation, condition));
+        return Append(
+            block,
+            new IrAssertInstruction(
+                NextInstructionId(), operation, condition));
     }
 
     public IrHavocInstruction Havoc(
@@ -110,26 +128,36 @@ public sealed class IrProgramBuilder(IrFactory factory)
             .Distinct()
             .OrderBy(static variable => variable.Value)
             .ToImmutableArray();
-        return Append(block,
-            id => new IrHavocInstruction(id, operation, havocKind, distinct));
+        return Append(
+            block,
+            new IrHavocInstruction(
+                NextInstructionId(), operation, havocKind, distinct));
     }
 
     public IrBranchInstruction Branch(
         IrBlockId block, OperationId operation, IrTerm condition,
         IrBlockId whenTrue, IrBlockId whenFalse)
     {
-        return Append(block, id => new IrBranchInstruction(
-            id, operation, condition, whenTrue, whenFalse));
+        return Append(
+            block,
+            new IrBranchInstruction(
+                NextInstructionId(), operation, condition, whenTrue, whenFalse));
     }
 
     public IrGotoInstruction Goto(IrBlockId block, OperationId operation, IrBlockId target)
     {
-        return Append(block, id => new IrGotoInstruction(id, operation, target));
+        return Append(
+            block,
+            new IrGotoInstruction(
+                NextInstructionId(), operation, target));
     }
 
     public IrReturnInstruction Return(IrBlockId block, OperationId operation, IrTerm? value = null)
     {
-        return Append(block, id => new IrReturnInstruction(id, operation, value));
+        return Append(
+            block,
+            new IrReturnInstruction(
+                NextInstructionId(), operation, value));
     }
 
     public IrProgram Build()
@@ -161,10 +189,9 @@ public sealed class IrProgramBuilder(IrFactory factory)
             blocks.MoveToImmutable());
     }
 
-    private T Append<T>(IrBlockId blockId, Func<IrInstructionId, T> create) where T : IrInstruction
+    private T Append<T>(IrBlockId blockId, T instruction) where T : IrInstruction
     {
         EnsureMutable();
-        var instruction = create(new IrInstructionId(_scope, _nextInstruction));
         ValidateInstruction(instruction);
         var block = GetBlock(blockId);
         if (block.Instructions.Count != 0 &&
@@ -177,6 +204,12 @@ public sealed class IrProgramBuilder(IrFactory factory)
         _nextInstruction++;
         block.Instructions.Add(instruction);
         return instruction;
+    }
+
+    private IrInstructionId NextInstructionId()
+    {
+        EnsureMutable();
+        return new IrInstructionId(_scope, _nextInstruction);
     }
 
     private void ValidateInstruction(IrInstruction instruction)
