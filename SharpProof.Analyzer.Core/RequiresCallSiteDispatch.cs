@@ -39,7 +39,7 @@ internal static class RequiresCallSiteDispatch
                          .OfType<IMethodSymbol>())
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (Overrides(candidate, target))
+                if (RoslynCfgFactory.OverridesMethod(candidate, target))
                 {
                     return candidate;
                 }
@@ -81,10 +81,4 @@ internal static class RequiresCallSiteDispatch
         }
     }
 
-    private static bool Overrides(
-        IMethodSymbol candidate,
-        IMethodSymbol target)
-    {
-        return RoslynCfgFactory.OverridesMethod(candidate, target);
-    }
 }
