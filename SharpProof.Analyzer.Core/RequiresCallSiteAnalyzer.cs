@@ -329,7 +329,11 @@ internal static partial class RequiresCallSiteAnalyzer
                 return AnalyzerSemanticOutcome.Unknown;
             }
 
-            var concrete = AnalyzeConcreteCall(candidate, binding.Contracts, requires);
+            var concrete = AnalyzeConcreteCall(
+                candidate,
+                binding.Contracts,
+                requires,
+                out var inputVariables);
             if (candidate.FlowStatus != ManagedFlowStatus.Complete)
             {
                 return concrete == AnalyzerSemanticOutcome.Refuted
@@ -337,13 +341,18 @@ internal static partial class RequiresCallSiteAnalyzer
                     : AnalyzerSemanticOutcome.Unknown;
             }
 
-            return concrete ?? AnalyzeAbstractCallSite(candidate, binding.Contracts, requires);
+            return concrete ?? AnalyzeAbstractCallSite(
+                candidate,
+                binding.Contracts,
+                requires,
+                inputVariables);
         }
 
         private AnalyzerSemanticOutcome AnalyzeAbstractCallSite(
             RequiresCallSiteCandidate candidate,
             BoundMethodContracts contracts,
-            ImmutableArray<BoundContractClause> requires)
+            ImmutableArray<BoundContractClause> requires,
+            ImmutableArray<BoundContractVariable> inputVariables)
         {
             if (candidate.Flow == null || candidate.Operation == null)
             {
@@ -361,9 +370,13 @@ internal static partial class RequiresCallSiteAnalyzer
 
             var variables = new Dictionary<IrVarId, ManagedAbstractValue>();
             var definitelyStrings = new HashSet<IrVarId>();
-            foreach (var variable in GetInputVariablesUsedBy(
-                         contracts,
-                         requires))
+            if (inputVariables.IsDefault)
+            {
+                inputVariables = GetInputVariablesUsedBy(
+                    contracts,
+                    requires).ToImmutableArray();
+            }
+            foreach (var variable in inputVariables)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (TryGetImplicitIntegerArgument(
@@ -472,8 +485,10 @@ internal static partial class RequiresCallSiteAnalyzer
         private AnalyzerSemanticOutcome? AnalyzeConcreteCall(
             RequiresCallSiteCandidate callSite,
             BoundMethodContracts contracts,
-            ImmutableArray<BoundContractClause> requires)
+            ImmutableArray<BoundContractClause> requires,
+            out ImmutableArray<BoundContractVariable> inputVariables)
         {
+            inputVariables = default;
             if (contracts.Target.Parameters.Any(
                     static parameter => parameter.RefKind != RefKind.None) ||
                 requires.Any(static clause =>
@@ -493,14 +508,16 @@ internal static partial class RequiresCallSiteAnalyzer
                 return null;
             }
 
+            inputVariables = GetInputVariablesUsedBy(
+                contracts,
+                requires).ToImmutableArray();
+
             var lowerer = RoslynOperationLowerer.CreateForConcreteReplay(
                 _factory,
                 session.IsKnownPure);
             var interpreter = new IrInterpreter(_factory);
             var substitutions = new Dictionary<IrVarId, IrTerm>();
-            foreach (var variable in GetInputVariablesUsedBy(
-                         contracts,
-                         requires))
+            foreach (var variable in inputVariables)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (TryGetImplicitIntegerArgument(
