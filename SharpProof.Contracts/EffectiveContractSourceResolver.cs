@@ -3,7 +3,7 @@ namespace SharpProof.Contracts;
 internal sealed partial class EffectiveContractSourceResolution
 {
     internal bool HasValidDirectClause =>
-        DirectInventory.Clauses.Any(static clause => clause.IsValid);
+        DirectInventory.HasValidClause;
     internal bool HasSelectedContractIntent =>
         Failure is not (
             ContractBindingFailure.None or
@@ -99,8 +99,7 @@ internal sealed class EffectiveContractSourceResolver
             direct.HasPlacementErrors
                 ? ContractBindingFailure.InvalidClausePlacement
                 : ContractBindingFailure.None);
-        if (direct.HasPlacementErrors ||
-            direct.Clauses.Any(static clause => clause.IsValid))
+        if (direct.HasPlacementErrors || direct.HasValidClause)
         {
             return directResolution;
         }
