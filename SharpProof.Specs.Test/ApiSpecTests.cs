@@ -344,7 +344,7 @@ public sealed class ApiSpecTests
             typeof(Contract).Assembly.Location);
         var compilation = CSharpCompilation.Create(
             "AuthenticatedContractSpecConsumer",
-            references: PlatformReferences().Append(reference),
+            references: TestMetadataReferences.WithoutSharpProof.Append(reference),
             options: new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary));
         var resolved = new ApiSpecResolver(ApiSpecTable.Create([
@@ -981,7 +981,7 @@ public sealed class ApiSpecTests
     {
         var compilation = CSharpCompilation.Create(
             "ContractSpecConsumer",
-            references: PlatformReferences().Append(
+            references: TestMetadataReferences.WithoutSharpProof.Append(
                 attributesReference),
             options: new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary));
@@ -1125,7 +1125,7 @@ public sealed class ApiSpecTests
 
     private static CSharpCompilation CreatePlatformCompilation()
     {
-        var references = PlatformReferences().Append(
+        var references = TestMetadataReferences.WithoutSharpProof.Append(
             MetadataReference.CreateFromFile(
                 typeof(Contract).Assembly.Location));
         return CSharpCompilation.Create(
@@ -1133,24 +1133,6 @@ public sealed class ApiSpecTests
             references: references,
             options: new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary));
-    }
-
-    private static IEnumerable<MetadataReference> PlatformReferences()
-    {
-        var trustedPlatformAssemblies = (string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES");
-        if (string.IsNullOrWhiteSpace(trustedPlatformAssemblies))
-        {
-            throw new InvalidOperationException("Trusted platform assemblies are unavailable.");
-        }
-
-        return trustedPlatformAssemblies
-            .Split(Path.PathSeparator)
-            .Where(static path => !string.Equals(
-                Path.GetFileName(path),
-                "SharpProof.Attributes.dll",
-                StringComparison.OrdinalIgnoreCase))
-            .Select(static path =>
-                (MetadataReference)MetadataReference.CreateFromFile(path));
     }
 
     private static CSharpCompilation CreateTargetFrameworkCompilation(

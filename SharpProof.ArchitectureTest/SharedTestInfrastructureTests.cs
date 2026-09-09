@@ -13,6 +13,7 @@ public sealed class SharedTestInfrastructureTests
         {
             "SharpProof.Contracts.Test",
             "SharpProof.Frontend.Test",
+            "SharpProof.Specs.Test",
             "SharpProof.Worker.Test"
         };
         var directReads = projects
