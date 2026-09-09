@@ -885,6 +885,7 @@ function Invoke-SharpProofParallelDotnetTests {
                     Test = $test
                     Slots = $next.Slots
                     Process = $started.Process
+                    ExitTask = $started.Process.WaitForExitAsync()
                     StartedUtc = $started.StartedUtc
                     StandardOutput = $started.StandardOutput
                     StandardError = $started.StandardError
@@ -895,11 +896,22 @@ function Invoke-SharpProofParallelDotnetTests {
             if ([DateTime]::UtcNow -ge $deadline) {
                 throw "Parallel $Label tests exceeded $TimeoutSeconds seconds."
             }
-            $finished = @($running | Where-Object { $_.Process.HasExited })
-            if ($finished.Count -eq 0) {
-                Start-Sleep -Milliseconds 100
-                continue
+            if ($running.Count -gt 0) {
+                $remaining = $deadline - [DateTime]::UtcNow
+                $exitTasks = [Threading.Tasks.Task[]]@(
+                    $running | ForEach-Object { $_.ExitTask })
+                $remainingMilliseconds = [int][Math]::Max(
+                    1,
+                    [Math]::Ceiling($remaining.TotalMilliseconds))
+                if ([Threading.Tasks.Task]::WaitAny(
+                        $exitTasks,
+                        $remainingMilliseconds) -lt 0) {
+                    throw "Parallel $Label tests exceeded $TimeoutSeconds seconds."
+                }
             }
+            $finished = @($running | Where-Object {
+                    $_.ExitTask.IsCompleted
+                })
             foreach ($active in $finished) {
                 $active.Process.WaitForExit()
                 $stdout = $active.StandardOutput.GetAwaiter().GetResult()
