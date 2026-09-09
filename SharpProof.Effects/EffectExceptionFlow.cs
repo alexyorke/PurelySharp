@@ -1,9 +1,14 @@
+using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace SharpProof.Effects;
 
 internal static class EffectExceptionFlow
 {
+    private static readonly ConditionalWeakTable<
+        Compilation, CatchFlowCache> CatchFlows = new();
+
     internal static EffectThrowSet ResolveThrownException(
         IThrowOperation thrown,
         EffectAnalysisSession session,
@@ -129,8 +134,43 @@ internal static class EffectExceptionFlow
         ref bool includesUnknown,
         bool includeRethrows)
     {
-        var exceptionType = model.Compilation.GetTypeByMetadataName(FrameworkTypeMetadataNames.Exception);
-        var catches = @try.Catches.Select(@catch =>
+        var catches = GetCatchFlows(@try, model, includeRethrows);
+
+        known = [.. known.Where(type => CanEscape(catches, type, null))];
+        if (includesUnknown)
+        {
+            includesUnknown = CanEscape(
+                catches,
+                null,
+                model.Compilation.GetTypeByMetadataName(
+                    FrameworkTypeMetadataNames.Exception));
+        }
+    }
+
+    private static ImmutableArray<CatchFlow> GetCatchFlows(
+        TryStatementSyntax @try,
+        SemanticModel model,
+        bool includeRethrows)
+    {
+        var cache = CatchFlows.GetValue(
+            model.Compilation,
+            static _ => new CatchFlowCache());
+        var selected = includeRethrows
+            ? cache.WithRethrows
+            : cache.WithoutRethrows;
+        return selected.GetOrAdd(
+            @try,
+            _ => CreateCatchFlows(@try, model, includeRethrows));
+    }
+
+    private static ImmutableArray<CatchFlow> CreateCatchFlows(
+        TryStatementSyntax @try,
+        SemanticModel model,
+        bool includeRethrows)
+    {
+        var exceptionType = model.Compilation.GetTypeByMetadataName(
+            FrameworkTypeMetadataNames.Exception);
+        return @try.Catches.Select(@catch =>
         {
             var caught = @catch.Declaration == null
                 ? exceptionType
@@ -141,12 +181,6 @@ internal static class EffectExceptionFlow
                 filter,
                 includeRethrows && ContainsRethrow(@catch.Block));
         }).ToImmutableArray();
-
-        known = [.. known.Where(type => CanEscape(catches, type, null))];
-        if (includesUnknown)
-        {
-            includesUnknown = CanEscape(catches, null, exceptionType);
-        }
     }
 
     private static bool CanEscape(
@@ -250,5 +284,16 @@ internal static class EffectExceptionFlow
         INamedTypeSymbol? Caught,
         CatchSelection Filter,
         bool ContainsRethrow);
+
+    private sealed class CatchFlowCache
+    {
+        internal readonly ConcurrentDictionary<
+            TryStatementSyntax, ImmutableArray<CatchFlow>> WithoutRethrows =
+            new(ReferenceComparer<TryStatementSyntax>.Instance);
+
+        internal readonly ConcurrentDictionary<
+            TryStatementSyntax, ImmutableArray<CatchFlow>> WithRethrows =
+            new(ReferenceComparer<TryStatementSyntax>.Instance);
+    }
 
 }
