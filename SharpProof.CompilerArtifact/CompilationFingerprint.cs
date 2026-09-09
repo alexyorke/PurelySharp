@@ -16,6 +16,30 @@ internal static class CompilationFingerprint
         "SharpProof.CompilerSourceLineMap";
     private const int SourceLineMapVersion = 2;
 
+    private sealed class SummaryEvidenceIndex
+    {
+        internal SummaryEvidenceIndex(
+            Dictionary<(string Path, string Sha256), int> sourceTextLengths,
+            Dictionary<(string Name, string Mvid, string Sha256), int>
+                implementationModuleCounts)
+        {
+            SourceTextLengths = sourceTextLengths;
+            ImplementationModuleCounts = implementationModuleCounts;
+        }
+
+        internal Dictionary<(string Path, string Sha256), int>
+            SourceTextLengths
+        {
+            get;
+        }
+
+        internal Dictionary<(string Name, string Mvid, string Sha256), int>
+            ImplementationModuleCounts
+        {
+            get;
+        }
+    }
+
     internal static string ComputeLineMapSha256(
         CompilerSourceLineMapEntry[] entries)
     {
@@ -120,6 +144,8 @@ internal static class CompilationFingerprint
             return false;
         }
 
+        var evidenceIndex = CreateSummaryEvidenceIndex(snapshot);
+
         string? previous = null;
         foreach (var row in values)
         {
@@ -144,10 +170,12 @@ internal static class CompilationFingerprint
                 row.CallIdentity + "|" + row.EvidenceIdentity + "|" + row.EvidenceSha256;
             if (previous != null &&
                 StringComparer.Ordinal.Compare(previous, key) >= 0 ||
-                !ValidSummaryEvidenceRow(
+                !ValidSummaryEvidenceRowCore(
                     row,
                     snapshot,
-                    identityAlreadyValidated: true))
+                    authorityMode: false,
+                    identityAlreadyValidated: true,
+                    evidenceIndex: evidenceIndex))
             {
                 return false;
             }
@@ -163,6 +191,21 @@ internal static class CompilationFingerprint
         CompilerCompilationSnapshot snapshot,
         bool authorityMode = false,
         bool identityAlreadyValidated = false)
+    {
+        return ValidSummaryEvidenceRowCore(
+            row,
+            snapshot,
+            authorityMode,
+            identityAlreadyValidated,
+            evidenceIndex: null);
+    }
+
+    private static bool ValidSummaryEvidenceRowCore(
+        CompilerSummaryEvidenceSnapshot row,
+        CompilerCompilationSnapshot snapshot,
+        bool authorityMode,
+        bool identityAlreadyValidated,
+        SummaryEvidenceIndex? evidenceIndex)
     {
         // JSON deserialization can populate non-nullable string properties with
         // null. Validate the complete shape before the branch-specific checks
@@ -198,11 +241,10 @@ internal static class CompilationFingerprint
                     row.OwningModuleMvid.Length == 0 &&
                     row.OwningModuleSha256.Length == 0 &&
                     row.MethodMetadataToken == -1 &&
-                    (snapshot.SyntaxTrees ?? []).Count(tree =>
-                        tree != null &&
-                        tree.Path == row.SourcePath &&
-                        tree.Sha256 == row.SourceTreeSha256 &&
-                        row.SourceStart <= tree.TextLength - row.SourceLength) == 1;
+                    ValidSourceEvidenceLocation(
+                        row,
+                        snapshot,
+                        evidenceIndex);
 
             case CompilerSummaryOrigin.ImplementationIl:
                 return row.EvidenceIdentity is { Length: 0 } &&
@@ -216,12 +258,10 @@ internal static class CompilationFingerprint
                         : Guid.TryParseExact(row.OwningModuleMvid, "D", out _)) &&
                     row.OwningModuleSha256 == row.EvidenceSha256 &&
                     row.MethodMetadataToken > 0 &&
-                    (snapshot.References ?? []).SelectMany(
-                        static reference => reference?.Modules ?? [])
-                    .Count(module => module != null &&
-                        module.Name == row.OwningModuleName &&
-                        module.Mvid == row.OwningModuleMvid &&
-                        module.Sha256 == row.OwningModuleSha256) == 1;
+                    HasUniqueImplementationModule(
+                        row,
+                        snapshot,
+                        evidenceIndex);
 
             case CompilerSummaryOrigin.SpecificationPack:
                 return row.SourcePath is { Length: 0 } &&
@@ -241,6 +281,85 @@ internal static class CompilationFingerprint
             default:
                 return false;
         }
+    }
+
+    private static SummaryEvidenceIndex CreateSummaryEvidenceIndex(
+        CompilerCompilationSnapshot snapshot)
+    {
+        var sourceTextLengths = new Dictionary<(string Path, string Sha256), int>();
+        foreach (var tree in snapshot.SyntaxTrees ?? [])
+        {
+            if (tree != null)
+            {
+                sourceTextLengths[(tree.Path, tree.Sha256)] = tree.TextLength;
+            }
+        }
+
+        var implementationModuleCounts = new Dictionary<
+            (string Name, string Mvid, string Sha256), int>();
+        foreach (var reference in snapshot.References ?? [])
+        {
+            foreach (var module in reference?.Modules ?? [])
+            {
+                if (module == null)
+                {
+                    continue;
+                }
+
+                var key = (module.Name, module.Mvid, module.Sha256);
+                implementationModuleCounts[key] =
+                    implementationModuleCounts.TryGetValue(key, out var count)
+                        ? count + 1
+                        : 1;
+            }
+        }
+
+        return new SummaryEvidenceIndex(
+            sourceTextLengths,
+            implementationModuleCounts);
+    }
+
+    private static bool ValidSourceEvidenceLocation(
+        CompilerSummaryEvidenceSnapshot row,
+        CompilerCompilationSnapshot snapshot,
+        SummaryEvidenceIndex? evidenceIndex)
+    {
+        if (evidenceIndex != null)
+        {
+            return evidenceIndex.SourceTextLengths.TryGetValue(
+                       (row.SourcePath, row.SourceTreeSha256),
+                       out var textLength) &&
+                row.SourceStart <= textLength - row.SourceLength;
+        }
+
+        return (snapshot.SyntaxTrees ?? []).Count(tree =>
+            tree != null &&
+            tree.Path == row.SourcePath &&
+            tree.Sha256 == row.SourceTreeSha256 &&
+            row.SourceStart <= tree.TextLength - row.SourceLength) == 1;
+    }
+
+    private static bool HasUniqueImplementationModule(
+        CompilerSummaryEvidenceSnapshot row,
+        CompilerCompilationSnapshot snapshot,
+        SummaryEvidenceIndex? evidenceIndex)
+    {
+        if (evidenceIndex != null)
+        {
+            return evidenceIndex.ImplementationModuleCounts.TryGetValue(
+                       (row.OwningModuleName,
+                        row.OwningModuleMvid,
+                        row.OwningModuleSha256),
+                       out var count) &&
+                count == 1;
+        }
+
+        return (snapshot.References ?? []).SelectMany(
+                static reference => reference?.Modules ?? [])
+            .Count(module => module != null &&
+                module.Name == row.OwningModuleName &&
+                module.Mvid == row.OwningModuleMvid &&
+                module.Sha256 == row.OwningModuleSha256) == 1;
     }
 
     private static bool ValidIdentity(string? value)
