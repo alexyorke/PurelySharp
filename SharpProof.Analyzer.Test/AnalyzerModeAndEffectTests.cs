@@ -194,8 +194,8 @@ public sealed class AnalyzerModeAndEffectTests
 
         Assert.That(factory.Session, Is.Not.Null);
         Assert.That(
-            factory.Session!.EffectApiSpecs,
-            Is.SameAs(factory.Session.ApiSpecs));
+            factory.Session!.EffectAnalysisUsesResolvedApiSpecs,
+            Is.True);
     }
 
     [TestCase(null, "everything", null, "advisory, strict, off")]

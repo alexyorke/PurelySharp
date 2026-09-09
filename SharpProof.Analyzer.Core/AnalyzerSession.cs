@@ -121,8 +121,9 @@ internal sealed class AnalyzerSession
         GetValue(_attributes);
     internal IrFactory IrFactory { get; } = new();
     internal ResolvedApiSpecTable ApiSpecs => GetValue(_apiSpecs);
-    internal ResolvedApiSpecTable? EffectApiSpecs =>
-        Configuration.EffectsEnabled ? GetValue(_effects).ApiSpecs : null;
+    internal bool EffectAnalysisUsesResolvedApiSpecs =>
+        _effects.IsValueCreated &&
+        ReferenceEquals(_effects.Value.ApiSpecs, _apiSpecs.Value);
     internal bool HasCreatedApiSpecs => _apiSpecs.IsValueCreated;
     internal bool HasCreatedEffectAnalysis => _effects.IsValueCreated;
 
