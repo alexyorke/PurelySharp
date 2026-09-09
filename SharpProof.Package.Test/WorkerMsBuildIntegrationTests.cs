@@ -934,7 +934,7 @@ public sealed class WorkerMsBuildIntegrationTests
     }
 
     [Test]
-    public async Task ThreeTargetAbsoluteSarifSurvivesSerialIncrementalAndCleanBuilds()
+    public async Task ThreeTargetAbsoluteSarifSurvivesSerialInitialAndParallelIncrementalAndCleanBuilds()
     {
         RequireContainerWorker();
         using var project = ConsumerProject.CreateConfigured(
@@ -946,20 +946,28 @@ public sealed class WorkerMsBuildIntegrationTests
             "absolute-evidence",
             "verification.sarif");
 
-        var first = await project.BuildAsync(
+        var first = await project.BuildSerialAsync(
             verify: true,
             ("SharpProofVerifySarifFile", configured));
-        var incremental = await project.BuildAsync(
+        Assert.That(first.ExitCode, Is.Zero, first.Output);
+        await AssertFrameworkScopedSarifAsync(first.Output);
+        // Keep one serial build to exercise the explicit BuildInParallel=false
+        // contract. The incremental and clean builds verify the same
+        // framework-scoped outputs through the normal parallel dispatch path,
+        // avoiding three repeated analyzer passes on one scheduler lane.
+        var incremental = await project.BuildParallelAsync(
             verify: true,
             ("SharpProofVerifySarifFile", configured));
-        var rebuilt = await project.RebuildAsync(
+
+        Assert.That(incremental.ExitCode, Is.Zero, incremental.Output);
+        await AssertFrameworkScopedSarifAsync(incremental.Output);
+
+        var rebuilt = await project.RebuildParallelAsync(
             verify: true,
             ("SharpProofVerifySarifFile", configured));
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(first.ExitCode, Is.Zero, first.Output);
-            Assert.That(incremental.ExitCode, Is.Zero, incremental.Output);
             Assert.That(rebuilt.ExitCode, Is.Zero, rebuilt.Output);
             Assert.That(
                 File.Exists(Path.Combine(project.Root, "obj", "project.assets.json")),
@@ -968,22 +976,27 @@ public sealed class WorkerMsBuildIntegrationTests
             Assert.That(rebuilt.Output,
                 Does.Not.Contain("Determining projects to restore"));
         }
-        var markerIdentities = new List<string>();
-        foreach (var framework in new[]
-                 {
-                     "net9.0", "net8.0", "netstandard2.0"
-                 })
+        await AssertFrameworkScopedSarifAsync(rebuilt.Output);
+
+        async Task AssertFrameworkScopedSarifAsync(string output)
         {
-            var sarif = Path.Combine(
-                project.Root,
-                "absolute-evidence",
-                framework,
-                "verification.sarif");
-            Assert.That(File.Exists(sarif), Is.True, rebuilt.Output);
-            markerIdentities.Add(await File.ReadAllTextAsync(
-                LinuxPathIdentity.PublicationMarkerPath(sarif)));
+            var markerIdentities = new List<string>();
+            foreach (var framework in new[]
+                     {
+                         "net9.0", "net8.0", "netstandard2.0"
+                     })
+            {
+                var sarif = Path.Combine(
+                    project.Root,
+                    "absolute-evidence",
+                    framework,
+                    "verification.sarif");
+                Assert.That(File.Exists(sarif), Is.True, output);
+                markerIdentities.Add(await File.ReadAllTextAsync(
+                    LinuxPathIdentity.PublicationMarkerPath(sarif)));
+            }
+            Assert.That(markerIdentities, Is.Unique);
         }
-        Assert.That(markerIdentities, Is.Unique);
     }
 
     [Test]
@@ -3976,9 +3989,40 @@ public sealed class WorkerMsBuildIntegrationTests
             return new ConsumerProject(root);
         }
 
-        internal async Task<BuildResult> BuildAsync(
+        internal Task<BuildResult> BuildAsync(
             bool? verify,
             params (string Name, string Value)[] properties)
+        {
+            return BuildCoreAsync(
+                verify,
+                buildInParallel: null,
+                properties: properties);
+        }
+
+        internal Task<BuildResult> BuildSerialAsync(
+            bool? verify,
+            params (string Name, string Value)[] properties)
+        {
+            return BuildCoreAsync(
+                verify,
+                buildInParallel: false,
+                properties: properties);
+        }
+
+        internal Task<BuildResult> BuildParallelAsync(
+            bool? verify,
+            params (string Name, string Value)[] properties)
+        {
+            return BuildCoreAsync(
+                verify,
+                buildInParallel: true,
+                properties: properties);
+        }
+
+        private async Task<BuildResult> BuildCoreAsync(
+            bool? verify,
+            bool? buildInParallel,
+            (string Name, string Value)[] properties)
         {
             var restoreSensitive = properties.Any(
                 static property => IsRestoreSensitiveProperty(property.Name));
@@ -3995,10 +4039,16 @@ public sealed class WorkerMsBuildIntegrationTests
                 "-c",
                 "Release",
                 "--nologo",
-                "/m:1",
+                buildInParallel == true ? "/m:3" : "/m:1",
                 "/nodeReuse:false",
                 "-p:GeneratePackageOnBuild=false"
             };
+            if (buildInParallel.HasValue)
+            {
+                arguments.Add(
+                    "-p:BuildInParallel=" +
+                    (buildInParallel.Value ? "true" : "false"));
+            }
             if (skipRestore)
             {
                 arguments.Add("--no-restore");
@@ -4071,6 +4121,27 @@ public sealed class WorkerMsBuildIntegrationTests
             bool? verify,
             params (string Name, string Value)[] properties)
         {
+            return RebuildCoreAsync(
+                verify,
+                buildInParallel: null,
+                properties: properties);
+        }
+
+        internal Task<BuildResult> RebuildParallelAsync(
+            bool? verify,
+            params (string Name, string Value)[] properties)
+        {
+            return RebuildCoreAsync(
+                verify,
+                buildInParallel: true,
+                properties: properties);
+        }
+
+        private Task<BuildResult> RebuildCoreAsync(
+            bool? verify,
+            bool? buildInParallel,
+            (string Name, string Value)[] properties)
+        {
             var arguments = new List<string>
             {
                 "build",
@@ -4080,10 +4151,16 @@ public sealed class WorkerMsBuildIntegrationTests
                 "Release",
                 "--no-restore",
                 "--nologo",
-                "/m:1",
+                buildInParallel == true ? "/m:3" : "/m:1",
                 "/nodeReuse:false",
                 "-p:GeneratePackageOnBuild=false"
             };
+            if (buildInParallel.HasValue)
+            {
+                arguments.Add(
+                    "-p:BuildInParallel=" +
+                    (buildInParallel.Value ? "true" : "false"));
+            }
             if (verify.HasValue)
             {
                 arguments.Add(

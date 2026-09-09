@@ -509,12 +509,16 @@ try {
             }
         $workerMethods = @($discoveredMethods[$workerClass])
         $threeTargetWorkerMethod =
-            'ThreeTargetAbsoluteSarifSurvivesSerialIncrementalAndCleanBuilds'
-        # This test performs three full analyzer builds in sequence. At the
-        # normal wide package wave, keeping it in a worker bucket lets its
-        # analyzer CPU compete with every other worker and creates the tail.
-        # Reserve a bounded slice at every useful multi-lane width; retain
-        # the bucketed path for 1-3 lanes where it would consume the wave.
+            'ThreeTargetAbsoluteSarifSurvivesSerialInitialAndParallelIncrementalAndCleanBuilds'
+        $threeTargetWorkerHistoryNames = @(
+            $threeTargetWorkerMethod,
+            'ThreeTargetAbsoluteSarifSurvivesSerialIncrementalAndCleanBuilds')
+        # This test performs one serial initial build followed by parallel
+        # incremental and clean builds. At the normal wide package wave,
+        # keeping it in a worker bucket lets its analyzer CPU compete with
+        # every other worker and creates the tail. Reserve a bounded slice at
+        # every useful multi-lane width; retain the bucketed path for 1-3
+        # lanes where it would consume the wave.
         $isolateThreeTargetWorker =
             $parallelism -ge 4 -and
             $workerMethods -contains $threeTargetWorkerMethod
@@ -674,20 +678,21 @@ try {
             })
         }
         if ($isolateThreeTargetWorker) {
+            $threeTargetEstimatedMilliseconds = 1L
+            foreach ($historyName in $threeTargetWorkerHistoryNames) {
+                if ($priorMethodMilliseconds.ContainsKey($historyName)) {
+                    $threeTargetEstimatedMilliseconds =
+                        [long]$priorMethodMilliseconds[$historyName]
+                    break
+                }
+            }
             $shards.Add([pscustomobject]@{
                 Name = 'worker-three-target'
                 Filter = "FullyQualifiedName~$workerClass.$threeTargetWorkerMethod"
-                EstimatedMilliseconds = $(
-                    if ($priorMethodMilliseconds.ContainsKey(
-                            $threeTargetWorkerMethod)) {
-                        [long]$priorMethodMilliseconds[$threeTargetWorkerMethod]
-                    }
-                    else {
-                        1L
-                    })
-                # The test uses /m:1 but performs a complete analyzer pass for
-                # each framework. Reserve a bounded lane slice while allowing
-                # the independent worker shards to overlap its work.
+                EstimatedMilliseconds = $threeTargetEstimatedMilliseconds
+                # The test performs a complete analyzer pass for each
+                # framework. Reserve a bounded lane slice while allowing the
+                # independent worker shards to overlap its work.
                 Slots = [Math]::Min(4, $parallelism)
             })
         }
