@@ -14,6 +14,8 @@ internal sealed class UsingDisposalEffectResolver
     private readonly EffectCallSiteResolver _calls;
     private readonly Compilation _compilation;
     private readonly ManagedFlowResult? _flow;
+    private readonly Dictionary<IOperation, ResourceDisposalFacts>
+        _declarationDisposalFacts = new();
 
     internal UsingDisposalEffectResolver(
         Compilation compilation,
@@ -62,6 +64,7 @@ internal sealed class UsingDisposalEffectResolver
                     ResolveResources(
                         @using.Resources,
                         @using,
+                        false,
                         classifyRegion,
                         canCompleteNormally,
                         canMethodCompleteNormally,
@@ -73,6 +76,7 @@ internal sealed class UsingDisposalEffectResolver
                     ResolveResources(
                         declaration.DeclarationGroup,
                         declaration,
+                        true,
                         classifyRegion,
                         canCompleteNormally,
                         canMethodCompleteNormally,
@@ -116,6 +120,7 @@ internal sealed class UsingDisposalEffectResolver
     private EffectSummary ResolveResources(
         IOperation resources,
         IOperation origin,
+        bool cacheDeclarationFacts,
         Func<IOperation?, bool, EffectRegionSet> classifyRegion,
         Func<IOperation?, bool> canCompleteNormally,
         Func<IMethodSymbol, bool> canMethodCompleteNormally,
@@ -153,10 +158,13 @@ internal sealed class UsingDisposalEffectResolver
         var summary = EffectSummary.Empty;
         foreach (var item in acquired.Take(reachableDisposalCount).Reverse())
         {
-            var facts = ResolveResourceFacts(
-                item.Type,
-                item.Resource,
-                item.Origin);
+            var facts = cacheDeclarationFacts &&
+                item.Origin is IVariableDeclaratorOperation declarator
+                    ? ResolveDeclarationResourceFacts(declarator)
+                    : ResolveResourceFacts(
+                        item.Type,
+                        item.Resource,
+                        item.Origin);
             var disposal = ResolveResource(
                 facts,
                 classifyRegion,
@@ -173,6 +181,22 @@ internal sealed class UsingDisposalEffectResolver
         return summary;
     }
 
+    private ResourceDisposalFacts ResolveDeclarationResourceFacts(
+        IVariableDeclaratorOperation declarator)
+    {
+        if (_declarationDisposalFacts.TryGetValue(declarator, out var facts))
+        {
+            return facts;
+        }
+
+        facts = ResolveResourceFacts(
+            declarator.Symbol.Type,
+            declarator.Initializer?.Value,
+            declarator);
+        _declarationDisposalFacts.Add(declarator, facts);
+        return facts;
+    }
+
     private bool CanDisposalsCompleteNormally(
         IUsingDeclarationOperation declaration,
         Func<IMethodSymbol, bool> canMethodCompleteNormally)
@@ -181,29 +205,21 @@ internal sealed class UsingDisposalEffectResolver
             .SelectMany(static item => item.Declarators)
             .Reverse()
             .All(declarator => CanDisposalCompleteNormally(
-                declarator.Symbol.Type,
-                declarator.Initializer?.Value,
-                declarator,
+                ResolveDeclarationResourceFacts(declarator),
                 canMethodCompleteNormally));
     }
 
     private bool CanDisposalCompleteNormally(
-        ITypeSymbol? resourceType,
-        IOperation? resource,
-        IOperation origin,
+        ResourceDisposalFacts facts,
         Func<IMethodSymbol, bool> canMethodCompleteNormally)
     {
-        if (resourceType == null || resource == null ||
-            IsDefinitelyNull(resource, origin))
+        if (facts.ResourceType == null || facts.Resource == null ||
+            facts.IsDefinitelyNull)
         {
             return true;
         }
-        var dispose = ResolveDispose(
-            _compilation,
-            _caller,
-            UsingDisposalGraph.GetConcreteResourceType(resourceType, resource));
-        return dispose == null || IsDispatchUncertain(dispose) ||
-            canMethodCompleteNormally(dispose);
+        return facts.Dispose == null || facts.IsDispatchUncertain ||
+            canMethodCompleteNormally(facts.Dispose);
     }
 
     private bool IsDefinitelyNull(IOperation resource, IOperation origin)
