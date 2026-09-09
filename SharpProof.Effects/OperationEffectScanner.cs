@@ -1342,7 +1342,8 @@ internal sealed partial class OperationEffectScanner
             case IFieldReferenceOperation field:
                 _ = RecordField(field, isWrite: false, safeValue: true);
                 break;
-            case IInvocationOperation invocation when IsMonitorCall(invocation):
+            case IInvocationOperation invocation when
+                MonitorFacts.IsExplicitMonitorCall(invocation, _monitorType):
                 AddSynchronization(
                     EffectDirectEventKind.MonitorCall,
                     Symbol(invocation.TargetMethod),
@@ -1454,11 +1455,6 @@ internal sealed partial class OperationEffectScanner
         }
 
         return true;
-    }
-
-    private bool IsMonitorCall(IInvocationOperation invocation)
-    {
-        return MonitorFacts.IsExplicitMonitorCall(invocation, _monitorType);
     }
 
     private bool IsSynthesizedLockMonitorCall(IInvocationOperation invocation)
