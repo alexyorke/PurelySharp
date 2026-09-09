@@ -153,7 +153,8 @@ internal sealed class CompilerCallableLowerer
         }
 
         var inventory = _contracts.GetClauseInventory(target.Method);
-        var clauseSites = target.VerifierDeclaration.Body is { }
+        var clauseSites = target.VerifierDeclaration.Body is { } &&
+            !inventory.Clauses.IsDefaultOrEmpty
             ? CreateClauseSiteIndex(inventory)
             : null;
         if (target.Method.ReturnsVoid)
@@ -490,7 +491,7 @@ internal sealed class CompilerCallableLowerer
     private static int? FindExecutableBodyStart(
         ManifestCallableTarget target,
         ContractClauseInventory inventory,
-        HashSet<(SyntaxTree Tree, TextSpan Span)>? clauseSites)
+        Dictionary<SyntaxTree, HashSet<TextSpan>>? clauseSites)
     {
         var declaration = target.VerifierDeclaration;
         if (declaration.ExpressionBody is { } expressionBody)
@@ -668,7 +669,7 @@ internal sealed class CompilerCallableLowerer
     private static bool ContainsOnlyContractStatements(
         ManifestCallableTarget target,
         ContractClauseInventory inventory,
-        HashSet<(SyntaxTree Tree, TextSpan Span)>? clauseSites)
+        Dictionary<SyntaxTree, HashSet<TextSpan>>? clauseSites)
     {
         var declaration = target.VerifierDeclaration;
         return declaration.Body is { } body
@@ -681,7 +682,7 @@ internal sealed class CompilerCallableLowerer
     private static bool IsContractStatement(
         ContractClauseInventory inventory,
         StatementSyntax statement,
-        HashSet<(SyntaxTree Tree, TextSpan Span)>? clauseSites)
+        Dictionary<SyntaxTree, HashSet<TextSpan>>? clauseSites)
     {
         if (statement is EmptyStatementSyntax)
         {
@@ -695,26 +696,36 @@ internal sealed class CompilerCallableLowerer
     private static bool IsContractExpression(
         ContractClauseInventory inventory,
         ExpressionSyntax expression,
-        HashSet<(SyntaxTree Tree, TextSpan Span)>? clauseSites)
+        Dictionary<SyntaxTree, HashSet<TextSpan>>? clauseSites)
     {
-        return clauseSites is { } sites
-            ? sites.Contains((expression.SyntaxTree, expression.Span))
-            : inventory.Clauses.Any(
-                clause =>
-                    clause.Invocation.Syntax.SyntaxTree ==
-                        expression.SyntaxTree &&
-                    clause.Invocation.Syntax.Span == expression.Span);
+        if (clauseSites is { } sites)
+        {
+            return sites.TryGetValue(expression.SyntaxTree, out var spans) &&
+                spans.Contains(expression.Span);
+        }
+
+        return inventory.Clauses.Any(
+            clause =>
+                clause.Invocation.Syntax.SyntaxTree ==
+                    expression.SyntaxTree &&
+                clause.Invocation.Syntax.Span == expression.Span);
     }
 
-    private static HashSet<(SyntaxTree Tree, TextSpan Span)> CreateClauseSiteIndex(
+    private static Dictionary<SyntaxTree, HashSet<TextSpan>> CreateClauseSiteIndex(
         ContractClauseInventory inventory)
     {
-        var clauseSites = new HashSet<(SyntaxTree Tree, TextSpan Span)>();
+        var clauseSites = new Dictionary<SyntaxTree, HashSet<TextSpan>>(
+            ReferenceComparer<SyntaxTree>.Instance);
         foreach (var clause in inventory.Clauses)
         {
-            clauseSites.Add((
-                clause.Invocation.Syntax.SyntaxTree,
-                clause.Invocation.Syntax.Span));
+            var syntax = clause.Invocation.Syntax;
+            if (!clauseSites.TryGetValue(syntax.SyntaxTree, out var spans))
+            {
+                spans = new HashSet<TextSpan>();
+                clauseSites.Add(syntax.SyntaxTree, spans);
+            }
+
+            spans.Add(syntax.Span);
         }
 
         return clauseSites;
