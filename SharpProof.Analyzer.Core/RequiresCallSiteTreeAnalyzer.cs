@@ -125,8 +125,16 @@ internal static partial class RequiresCallSiteTreeAnalyzer
         private readonly Dictionary<SyntaxNode, bool>
             _expressionTreeResults = new(
                 ReferenceComparer<SyntaxNode>.Instance);
+        private readonly Dictionary<ControlFlowGraph,
+            Dictionary<SyntaxTree, ImmutableArray<ContainingBlockEntry>>>
+            _containingBlockIndexes = new(
+                ReferenceComparer<ControlFlowGraph>.Instance);
         private AnalyzerSemanticOutcome _rootOutcome =
             AnalyzerSemanticOutcome.NotApplicable;
+
+        private readonly record struct ContainingBlockEntry(
+            TextSpan Span,
+            BasicBlock Block);
 
         internal AnalyzerSemanticOutcome Run(
             ControlFlowGraph graph,
@@ -1118,15 +1126,61 @@ internal static partial class RequiresCallSiteTreeAnalyzer
                 identifier.Identifier.ValueText == "_";
         }
 
-        private static BasicBlock? FindContainingBlock(
+        private BasicBlock? FindContainingBlock(
             ControlFlowGraph graph,
             SyntaxNode syntax)
         {
-            return graph.Blocks.FirstOrDefault(block =>
-                BlockOperations(block).Any(operation =>
-                    operation.DescendantsAndSelf().Any(descendant =>
-                        descendant.Syntax.SyntaxTree == syntax.SyntaxTree &&
-                        descendant.Syntax.Span.Contains(syntax.Span))));
+            if (!_containingBlockIndexes.TryGetValue(
+                    graph,
+                    out var index))
+            {
+                var entries = new Dictionary<SyntaxTree,
+                    ImmutableArray<ContainingBlockEntry>.Builder>(
+                        ReferenceComparer<SyntaxTree>.Instance);
+                foreach (var block in graph.Blocks)
+                {
+                    foreach (var operation in BlockOperations(block))
+                    {
+                        foreach (var descendant in
+                                 operation.DescendantsAndSelf())
+                        {
+                            var tree = descendant.Syntax.SyntaxTree;
+                            if (!entries.TryGetValue(tree, out var bucket))
+                            {
+                                bucket = ImmutableArray.CreateBuilder<
+                                    ContainingBlockEntry>();
+                                entries.Add(tree, bucket);
+                            }
+                            bucket.Add(new(
+                                descendant.Syntax.Span,
+                                block));
+                        }
+                    }
+                }
+
+                index = new Dictionary<SyntaxTree,
+                    ImmutableArray<ContainingBlockEntry>>(
+                        ReferenceComparer<SyntaxTree>.Instance);
+                foreach (var pair in entries)
+                {
+                    index.Add(pair.Key, pair.Value.ToImmutable());
+                }
+                _containingBlockIndexes.Add(graph, index);
+            }
+
+            if (!index.TryGetValue(syntax.SyntaxTree, out var candidates))
+            {
+                return null;
+            }
+
+            foreach (var candidate in candidates)
+            {
+                if (candidate.Span.Contains(syntax.Span))
+                {
+                    return candidate.Block;
+                }
+            }
+            return null;
         }
 
         private static IEnumerable<IOperation> BlockOperations(
