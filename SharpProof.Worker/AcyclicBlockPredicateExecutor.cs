@@ -589,16 +589,18 @@ internal sealed partial class AcyclicBlockPredicateExecutor
             HashSet<IrVarId>? freeVariables = null)
         {
             inputs.CancellationToken.ThrowIfCancellationRequested();
-            if (!IrTraversal.CollectVariables(term).All(variable =>
-                    environment.ContainsKey(variable) ||
-                    freeVariables?.Contains(variable) == true))
-            {
-                return null;
-            }
-
             try
             {
-                var result = IrSubstitution.Substitute(inputs.Factory, term, environment);
+                if (!IrSubstitution.TrySubstitute(
+                        inputs.Factory,
+                        term,
+                        environment,
+                        freeVariables,
+                        out var result))
+                {
+                    return null;
+                }
+
                 inputs.CancellationToken.ThrowIfCancellationRequested();
                 return Supported(result) ? result : null;
             }

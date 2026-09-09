@@ -44,7 +44,37 @@ public static class IrSubstitution
         }
 
         var memo = new Dictionary<IrId, IrTerm>();
-        return Rewrite(factory, root, replacementMap, memo);
+        return Rewrite(
+            factory,
+            root,
+            replacementMap,
+            memo,
+            allowedVariables: null,
+            out _);
+    }
+
+    internal static bool TrySubstitute(
+        IrFactory factory,
+        IrTerm root,
+        IReadOnlyDictionary<IrVarId, IrTerm> replacements,
+        ISet<IrVarId>? freeVariables,
+        out IrTerm result)
+    {
+        ArgumentNullGuard.NotNull(factory, nameof(factory));
+        ArgumentNullGuard.NotNull(root, nameof(root));
+        ArgumentNullGuard.NotNull(replacements, nameof(replacements));
+
+        factory.EnsureTerm(root, nameof(root));
+        var replacementMap = CreateReplacementMap(factory, replacements);
+        var memo = new Dictionary<IrId, IrTerm>();
+        result = Rewrite(
+            factory,
+            root,
+            replacementMap,
+            memo,
+            freeVariables,
+            out var variablesValid);
+        return variablesValid;
     }
 
     public static ImmutableArray<IrTerm> SubstituteMany(
@@ -72,7 +102,13 @@ public static class IrSubstitution
         var result = ImmutableArray.CreateBuilder<IrTerm>(roots.Count);
         foreach (var root in roots)
         {
-            result.Add(Rewrite(factory, root, replacementMap, memo));
+            result.Add(Rewrite(
+                factory,
+                root,
+                replacementMap,
+                memo,
+                allowedVariables: null,
+                out _));
         }
 
         return result.MoveToImmutable();
@@ -112,16 +148,39 @@ public static class IrSubstitution
         IrFactory factory,
         IrTerm root,
         Dictionary<IrVarId, IrTerm> replacements,
-        Dictionary<IrId, IrTerm> memo)
+        Dictionary<IrId, IrTerm> memo,
+        ISet<IrVarId>? allowedVariables,
+        out bool variablesValid)
     {
-        return IrTraversal.FoldBottomUp(
+        var allVariablesValid = true;
+        var result = IrTraversal.FoldBottomUp(
             root,
             memo,
             (term, _, rewritten) => RewriteNode(factory, term, rewritten),
-            term => term is IrVariableTerm variable &&
-                replacements.TryGetValue(variable.Variable, out var replacement)
-                    ? (true, replacement)
-                    : (false, null!));
+            term =>
+            {
+                if (term is not IrVariableTerm variable)
+                {
+                    return (false, null!);
+                }
+
+                if (replacements.TryGetValue(
+                        variable.Variable,
+                        out var replacement))
+                {
+                    return (true, replacement);
+                }
+
+                if (allowedVariables == null ||
+                    !allowedVariables.Contains(variable.Variable))
+                {
+                    allVariablesValid = false;
+                }
+
+                return (false, null!);
+            });
+        variablesValid = allVariablesValid;
+        return result;
     }
 
     private static IrTerm RewriteNode(
