@@ -45,9 +45,18 @@ public sealed class InvalidatePublishedResult : CancelableBuildTask
     protected override bool ExecuteCore(CancellationToken cancellationToken)
     {
         ContainerContract.ValidateRequired();
+        var resolvedPaths = new Dictionary<string, string>(
+            StringComparer.Ordinal);
         string ResolvePath(string path)
         {
-            return ResolveProjectRelativePath(ProjectDirectory, path);
+            if (resolvedPaths.TryGetValue(path, out var resolved))
+            {
+                return resolved;
+            }
+
+            resolved = ResolveProjectRelativePath(ProjectDirectory, path);
+            resolvedPaths.Add(path, resolved);
+            return resolved;
         }
 
         var outputPaths = Present(ResultPath, SarifPath)

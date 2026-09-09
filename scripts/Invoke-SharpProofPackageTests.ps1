@@ -541,13 +541,16 @@ try {
         else {
             $workerMethods
         }
-        # Keep one worker bucket per available lane even when the dedicated
-        # multi-target test reserves a lane slice. This shortens the final
-        # worker tail without increasing the number of concurrently running
-        # test processes.
+        # Keep low-width runs at one bucket per lane. At wider widths, create
+        # a modest oversubscription of serial worker shards so duration skew
+        # can be absorbed by the scheduler without increasing process fan-out.
+        $workerShardLimit = [Math]::Max(1, $parallelism)
+        if ($parallelism -ge 4) {
+            $workerShardLimit = [int][Math]::Ceiling($parallelism * 1.5)
+        }
         $workerShardCount = [Math]::Min(
             $bucketWorkerMethods.Count,
-            [Math]::Max(1, $parallelism))
+            $workerShardLimit)
         $workerBuckets = @(New-SharpProofWeightedBuckets `
             -Methods $bucketWorkerMethods `
             -HistoricalMilliseconds $priorMethodMilliseconds `

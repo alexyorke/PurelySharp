@@ -434,6 +434,13 @@ public static partial class LinuxPathIdentity
             var current = Path.GetDirectoryName(path) ?? "/";
             while (true)
             {
+                // This walk already captured the complete existing parent
+                // chain for the previous path. Reuse that snapshot for shared
+                // ancestors; post-lock confirmation still rechecks each one.
+                if (identities.ContainsKey(current))
+                {
+                    break;
+                }
                 if (NativeMethods.LStat(current, out var information) != 0)
                 {
                     var error = Marshal.GetLastPInvokeError();
