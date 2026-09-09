@@ -257,7 +257,7 @@ internal static class CorpusGate
             CorpusCatalog.Seeds.Length + openSourceCases.Length,
             openSourceCases.Length,
             supportedOpenSourceMethodCount,
-            OpenSourceCorpusCatalog.CountSourceFiles(openSourceDocument.Methods),
+            OpenSourceCorpusCatalog.GetSourceFileCount(openSourceDocument),
             CorpusCatalog.Seeds.Length,
             CorpusCatalog.Variants.Length,
             diagnosticCount,

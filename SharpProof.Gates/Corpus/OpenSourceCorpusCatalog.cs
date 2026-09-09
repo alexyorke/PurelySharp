@@ -24,7 +24,7 @@ internal static class OpenSourceCorpusCatalog
     };
     private static readonly ConditionalWeakTable<
         OpenSourceCorpusDocument,
-        ImmutableDictionary<string, CompilationUnitSyntax>> ParsedFiles = new();
+        ValidationResult> ParsedFiles = new();
 
     internal static OpenSourceCorpusDocument Load(string repositoryRoot)
     {
@@ -49,9 +49,18 @@ internal static class OpenSourceCorpusCatalog
         GetParsedFiles(OpenSourceCorpusDocument document)
     {
         ArgumentNullException.ThrowIfNull(document);
-        return ParsedFiles.TryGetValue(document, out var parsedFiles)
-            ? parsedFiles
+        return ParsedFiles.TryGetValue(document, out var validation)
+            ? validation.ParsedFiles
             : null;
+    }
+
+    internal static int GetSourceFileCount(
+        OpenSourceCorpusDocument document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        return ParsedFiles.TryGetValue(document, out var validation)
+            ? validation.SourceFileCount
+            : CountSourceFiles(document.Methods);
     }
 
     internal static ImmutableArray<CorpusCase> CreateCases(
@@ -115,7 +124,7 @@ internal static class OpenSourceCorpusCatalog
             .Trim();
     }
 
-    private static ImmutableDictionary<string, CompilationUnitSyntax> Validate(
+    private static ValidationResult Validate(
         OpenSourceCorpusDocument document,
         string corpusDirectory)
     {
@@ -281,7 +290,18 @@ internal static class OpenSourceCorpusCatalog
                 $"{MinimumSourceFileCount} are required to prevent one-file padding.");
         }
 
-        return files.ToImmutableDictionary(StringComparer.Ordinal);
+        return new ValidationResult(
+            files.ToImmutableDictionary(StringComparer.Ordinal),
+            sourceFileCount);
+    }
+
+    private sealed class ValidationResult(
+        ImmutableDictionary<string, CompilationUnitSyntax> parsedFiles,
+        int sourceFileCount)
+    {
+        internal ImmutableDictionary<string, CompilationUnitSyntax> ParsedFiles { get; } =
+            parsedFiles;
+        internal int SourceFileCount { get; } = sourceFileCount;
     }
 
     internal static HashSet<string> ValidateSourceIds(
