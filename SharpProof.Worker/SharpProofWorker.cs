@@ -223,12 +223,13 @@ public sealed class SharpProofWorker : IDisposable
                 projectBoundary.Token.ThrowIfCancellationRequested();
                 if (cached != null)
                 {
-                    var cachedResponse = Assemble(
-                        WorkerRunStatus.Complete,
-                        WorkerRunFailureReason.None,
-                        cached.CallableResults,
-                        cached.ClaimResults,
-                        WorkerCacheStatus.Hit);
+                    var cachedResponse = WorkerResultAssembler.ApplyRequestContext(
+                        cached,
+                        requestHash,
+                        request.Budgets,
+                        Versions(),
+                        WorkerCacheStatus.Hit,
+                        Elapsed(started));
                     if (WorkerProtocolJson.Validate(
                             cachedResponse,
                             snapshot.InputHash,
@@ -435,8 +436,13 @@ public sealed class SharpProofWorker : IDisposable
                 var written = await cache.TryWriteAsync(
                     response, snapshot.InputHash, manifest, projectBoundary.Token).ConfigureAwait(false);
                 projectBoundary.Token.ThrowIfCancellationRequested();
-                response = Assemble(run.Status, run.Failure, callableResults, claimResults,
-                    written ? WorkerCacheStatus.Written : WorkerCacheStatus.Unavailable);
+                response = WorkerResultAssembler.ApplyRequestContext(
+                    response,
+                    requestHash,
+                    request.Budgets,
+                    Versions(),
+                    written ? WorkerCacheStatus.Written : WorkerCacheStatus.Unavailable,
+                    Elapsed(started));
             }
             projectBoundary.Token.ThrowIfCancellationRequested();
             return response;

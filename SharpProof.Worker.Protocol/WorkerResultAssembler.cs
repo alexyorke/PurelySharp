@@ -3,6 +3,40 @@ namespace SharpProof.Worker.Protocol;
 internal static class WorkerResultAssembler
 {
     internal const string EmptyInputHash = WorkerProtocolVersions.EmptySha256;
+
+    internal static WorkerVerifyResponse ApplyRequestContext(
+        WorkerVerifyResponse response,
+        string requestHash,
+        WorkerBudgets budgets,
+        WorkerVersionSummary versions,
+        WorkerCacheStatus cacheStatus,
+        long elapsedMilliseconds)
+    {
+        if (response is null)
+        {
+            throw new ArgumentNullException(nameof(response));
+        }
+        if (requestHash is null)
+        {
+            throw new ArgumentNullException(nameof(requestHash));
+        }
+        if (budgets is null)
+        {
+            throw new ArgumentNullException(nameof(budgets));
+        }
+        if (versions is null)
+        {
+            throw new ArgumentNullException(nameof(versions));
+        }
+        response.RequestHash = requestHash;
+        response.Summary.CacheStatus = cacheStatus;
+        response.Summary.CacheHit = cacheStatus == WorkerCacheStatus.Hit;
+        response.Summary.Budgets = CloneBudgets(budgets);
+        response.Summary.Versions = versions;
+        response.Summary.ElapsedMilliseconds = Math.Max(0, elapsedMilliseconds);
+        return response;
+    }
+
     internal static WorkerVerifyResponse Create(
         string inputHash, WorkerClaimManifest manifest, WorkerRunStatus runStatus, WorkerRunFailureReason failureReason,
         IEnumerable<WorkerCallableResult> callableResults, IEnumerable<WorkerClaimResult> claimResults,
