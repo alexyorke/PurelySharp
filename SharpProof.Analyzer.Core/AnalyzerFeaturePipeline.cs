@@ -98,10 +98,11 @@ internal static partial class AnalyzerFeaturePipeline
         EffectContractDiagnostics.ValidateArguments(method, session, context.ReportDiagnostic);
         ClosedContractDiagnostics.Validate(method, session, context.ReportDiagnostic);
         var rejectedContractApi =
-            session.Attributes.GetRejectedSelectionFeatures(method) !=
+            session.Attributes.GetRejectedSelectionFeatures(
+                method,
+                out var rejectedCallableFeatures) !=
             ContractSelectionFeatures.None;
-        var rejectedCallableApi =
-            session.Attributes.GetRejectedCallableSelectionFeatures(method) !=
+        var rejectedCallableApi = rejectedCallableFeatures !=
             ContractSelectionFeatures.None;
         if (rejectedCallableApi &&
             session.TryMarkRejectedContractApiReported(method))

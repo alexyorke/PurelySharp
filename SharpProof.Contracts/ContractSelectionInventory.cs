@@ -173,8 +173,17 @@ internal sealed class ContractSelectionInventory
     internal ContractSelectionFeatures GetRejectedSelectionFeatures(
         IMethodSymbol method)
     {
-        var selected = GetRejectedCallableSelectionFeatures(method);
-        return selected | GetRejectedControlFeatures(method);
+        return GetRejectedSelectionFeatures(
+            method,
+            out _);
+    }
+
+    internal ContractSelectionFeatures GetRejectedSelectionFeatures(
+        IMethodSymbol method,
+        out ContractSelectionFeatures callable)
+    {
+        callable = GetRejectedCallableSelectionFeatures(method);
+        return callable | GetRejectedControlFeatures(method);
     }
 
     private ContractSelectionFeatures GetRejectedSelectionFeatures(
