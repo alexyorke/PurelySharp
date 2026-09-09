@@ -2,7 +2,7 @@
 
 Resolved proposals are removed from this file after implementation, validation, or a current-tree refutation. The original survey remains available in Git history; this file is intentionally only the active queue.
 
-Inventory after deduplication: 442 active IDs in 384 rows (325 pending, 118 deferred). Resolved and refuted proposals are removed; repeated and superseded rows are merged into their canonical IDs.
+Inventory after deduplication: 591 active IDs in 545 rows (477 pending, 114 deferred). Resolved and refuted proposals are removed; repeated and superseded rows are merged into their canonical IDs.
 
 Each pending row must be rechecked against the current tree, applied in a compatible batch, validated with the smallest relevant containerized test target, and then removed here.
 
@@ -906,7 +906,7 @@ Ten reviewers were explicitly launched with gpt-6-astra and medium reasoning aft
 
 
 
-- **R4262**: **Worker shard membership and task construction repeat the same plan in several forms.** scripts/Invoke-SharpProofSemanticTests.ps1:208-222 repeats the two dedicated fixture names in positive filters and remainder exclusions; :280-319 expands four near-identical task objects. A small local descriptor list can own task names, fixture memberships, slots and estimates, derive remainder exclusions and construct the common fields once. Keep the descriptor local rather than introducing a generic scheduling framework. Preserve substring semantics, parentheses, exact task names, slot caps, estimates and output isolation. No missing current test was established: worker remainder and architecture hotspot/remainder predicates are complementary. BuildSchedulingTests.cs:870 checks explicitly attributed exact-namespace fixture rosters and :932 checks source strings, not selected-case equivalence. Proposed adapter-backed exactly-once tests and generated-plan comparison remain unexecuted.
+
 
 - **Coordinator performance coverage.** PackageBuildEstimator preserves chronological contiguous indices and opposite-order adjacent pairing before sorting summary distributions; four sorted arrays serve distinct raw/order/balanced statistics and are not interchangeable. PerformanceGate's percentile callers use rank 0.95. No current bad-rank caller or redundant chronological ordering was established. Next slice: performance measurement result validation and artifact publication boundaries.
 

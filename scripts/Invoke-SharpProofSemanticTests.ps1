@@ -205,10 +205,13 @@ $architectureShardingEnabled =
 $semanticProjectShardingEnabled =
     $architectureShardingEnabled -and -not $ArchitectureOnly
 $workerClassPrefix = 'SharpProof.Worker.Test.'
+$workerDedicatedClasses = @(
+    'ClaimManifestBuilderTests',
+    'CompilerManifestArtifactTests')
 $claimFilter =
-    'FullyQualifiedName~' + $workerClassPrefix + 'ClaimManifestBuilderTests'
+    'FullyQualifiedName~' + $workerClassPrefix + $workerDedicatedClasses[0]
 $manifestFilter =
-    'FullyQualifiedName~' + $workerClassPrefix + 'CompilerManifestArtifactTests'
+    'FullyQualifiedName~' + $workerClassPrefix + $workerDedicatedClasses[1]
 $workerCoreClasses = @(
     'WorkerTests',
     'WorkerProgramTests',
@@ -218,8 +221,7 @@ $workerCoreFilter = @($workerCoreClasses | ForEach-Object {
         'FullyQualifiedName~' + $workerClassPrefix + $_
     }) -join '|'
 $workerRemainderFilter = @(
-    @('ClaimManifestBuilderTests', 'CompilerManifestArtifactTests') +
-    $workerCoreClasses |
+    $workerDedicatedClasses + $workerCoreClasses |
         ForEach-Object {
             'FullyQualifiedName!~' + $workerClassPrefix + $_
         }) -join '&'
@@ -270,46 +272,42 @@ if (-not $ArchitectureOnly) {
                 DefaultEstimatedMilliseconds = 60000L
             })
     }
-    $tasks.Add(
+    $workerTaskDescriptors = @(
         [pscustomobject]@{
             Name = 'worker-claim-manifest'
-            Target = $testProject
             Filter = $claimTaskFilter
-            ProjectParallelism = 0
-            IsolateOutput = $true
             Slots = [Math]::Min($parallelism, 2)
             DefaultEstimatedMilliseconds = 30000L
-        })
-    $tasks.Add(
+        },
         [pscustomobject]@{
             Name = 'worker-compiler-manifest'
-            Target = $testProject
             Filter = $manifestTaskFilter
-            ProjectParallelism = 0
-            IsolateOutput = $true
             Slots = [Math]::Min($parallelism, 4)
             DefaultEstimatedMilliseconds = 50000L
-        })
-    $tasks.Add(
+        },
         [pscustomobject]@{
             Name = 'worker-core'
-            Target = $testProject
             Filter = $workerCoreTaskFilter
-            ProjectParallelism = 0
-            IsolateOutput = $true
             Slots = [Math]::Min($parallelism, 2)
             DefaultEstimatedMilliseconds = 50000L
-        })
-    $tasks.Add(
+        },
         [pscustomobject]@{
             Name = 'worker-remainder'
-            Target = $testProject
             Filter = $workerRemainderTaskFilter
-            ProjectParallelism = 0
-            IsolateOutput = $true
             Slots = [Math]::Min($parallelism, 2)
             DefaultEstimatedMilliseconds = 20000L
         })
+    foreach ($descriptor in $workerTaskDescriptors) {
+        $tasks.Add([pscustomobject]@{
+            Name = $descriptor.Name
+            Target = $testProject
+            Filter = $descriptor.Filter
+            ProjectParallelism = 0
+            IsolateOutput = $true
+            Slots = $descriptor.Slots
+            DefaultEstimatedMilliseconds = $descriptor.DefaultEstimatedMilliseconds
+        })
+    }
 }
 if ($architectureShardingEnabled) {
     $architectureProject = Join-Path $repositoryRoot (
