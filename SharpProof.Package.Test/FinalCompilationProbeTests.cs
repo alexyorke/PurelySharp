@@ -734,6 +734,7 @@ public sealed class FinalCompilationProbeTests
                 "-c",
                 "Release",
                 "--nologo",
+                "/m:1",
                 "/nodeReuse:false"
             ]);
         }
@@ -749,6 +750,7 @@ public sealed class FinalCompilationProbeTests
                 "Release",
                 "--no-restore",
                 "--nologo",
+                "/m:1",
                 "/nodeReuse:false"
             };
             if (forceUnsupportedWorkerHost)
@@ -781,6 +783,7 @@ public sealed class FinalCompilationProbeTests
                 "-p:Configuration=Release",
                 "-p:TargetFramework=" + NetTargetFramework,
                 "-p:SharpProofVerify=true",
+                "/m:1",
                 "-p:_SharpProofCompilerManifestPath=" +
                     invocationManifestPath,
                 "-p:_SharpProofInvocationId=" + invocationId,
@@ -804,6 +807,7 @@ public sealed class FinalCompilationProbeTests
                 "restore",
                 ProjectPath,
                 "--nologo",
+                "/m:1",
                 "/nodeReuse:false",
                 "--configfile",
                 nugetConfig,

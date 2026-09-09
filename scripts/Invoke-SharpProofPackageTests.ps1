@@ -603,6 +603,16 @@ try {
                     '\|', '-and-')
                 Filter = $filter
                 EstimatedMilliseconds = $estimatedMilliseconds
+                # FinalCompilationProbeTests runs up to four NUnit children
+                # concurrently, each launching an MSBuild process. Charge
+                # those internal workers to the outer wave scheduler so they
+                # do not consume untracked CPU alongside every worker shard.
+                Slots = if ($fixtureClass -ceq 'FinalCompilationProbeTests') {
+                    [Math]::Min(4, $parallelism)
+                }
+                else {
+                    1
+                }
                 })
         }
         $buildTaskClass = 'SharpProof.Package.Test.BuildTaskTests'
