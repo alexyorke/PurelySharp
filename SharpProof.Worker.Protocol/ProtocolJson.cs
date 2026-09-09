@@ -363,14 +363,18 @@ public static partial class WorkerProtocolJson
             response.Manifest,
             "manifest",
             errors,
-            out var allManifestClaimsPostconditions);
+            out var allManifestClaimsPostconditions,
+            out var manifestCallables,
+            out var manifestClaims);
         ValidateExpectedManifest(
             response.Manifest,
             expectedManifest,
             errors.Count == manifestErrorCount,
             errors);
         var protocolErrors = ValidateProtocolErrors(response.Errors, errors);
-        var manifestIndexes = new ManifestIdentityIndexes(response.Manifest);
+        var manifestIndexes = new ManifestIdentityIndexes(
+            manifestCallables,
+            manifestClaims);
         var callables = ValidateCallableResults(
             response.CallableResults,
             manifestIndexes,
@@ -543,6 +547,8 @@ public static partial class WorkerProtocolJson
             expected,
             "expected_manifest",
             expectedErrors,
+            out _,
+            out _,
             out _);
         if (expectedErrors.Count != 0)
         {
@@ -558,9 +564,13 @@ public static partial class WorkerProtocolJson
         WorkerClaimManifest? manifest,
         string prefix,
         Validator errors,
-        out bool allClaimsPostconditions)
+        out bool allClaimsPostconditions,
+        out WorkerCallableManifestEntry[] callables,
+        out WorkerClaimManifestEntry[] claims)
     {
         allClaimsPostconditions = false;
+        callables = [];
+        claims = [];
         if (manifest == null)
         {
             errors.Add(prefix + ".null");
@@ -568,8 +578,8 @@ public static partial class WorkerProtocolJson
         }
         var initialErrors = errors.Count;
         errors.Check(manifest.SchemaVersion == WorkerManifestVersions.Current, prefix + ".schema");
-        var callables = Present(manifest.Callables, prefix + ".callables", errors);
-        var claims = Present(manifest.Claims, prefix + ".claims", errors);
+        callables = Present(manifest.Callables, prefix + ".callables", errors);
+        claims = Present(manifest.Claims, prefix + ".claims", errors);
         allClaimsPostconditions = manifest.Claims is { Length: > 0 } &&
             claims.Length == manifest.Claims.Length;
         var callableIdValues = ValidateUniqueIds(
@@ -1152,12 +1162,12 @@ public static partial class WorkerProtocolJson
 
     private sealed class ManifestIdentityIndexes
     {
-        internal ManifestIdentityIndexes(WorkerClaimManifest? manifest)
+        internal ManifestIdentityIndexes(
+            WorkerCallableManifestEntry[] callables,
+            WorkerClaimManifestEntry[] claims)
         {
-            Callables = [.. manifest?.Callables
-                ?.OfType<WorkerCallableManifestEntry>() ?? []];
-            Claims = [.. manifest?.Claims
-                ?.OfType<WorkerClaimManifestEntry>() ?? []];
+            Callables = callables;
+            Claims = claims;
             CallablesById = new OrdinalIdentityIndex<
                 WorkerCallableManifestEntry>(
                     Callables,

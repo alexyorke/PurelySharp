@@ -70,7 +70,13 @@ public static partial class WorkerProtocolJson
         WorkerClaimManifest? manifest)
     {
         var errors = new Validator();
-        ValidateManifestCore(manifest, "manifest", errors, out _);
+        ValidateManifestCore(
+            manifest,
+            "manifest",
+            errors,
+            out _,
+            out _,
+            out _);
         return errors.Result;
     }
 
