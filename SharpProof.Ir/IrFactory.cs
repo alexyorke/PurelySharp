@@ -212,17 +212,9 @@ public sealed class IrFactory
         params IrTypeId[] parameterTypes)
     {
         ArgumentNullGuard.NotNull(parameterTypes, nameof(parameterTypes));
-        var parameterBuilder =
-            ImmutableArray.CreateBuilder<IrTypeId>(parameterTypes.Length);
-        var parameterIdBuilder =
-            ImmutableArray.CreateBuilder<int>(parameterTypes.Length);
-        foreach (var parameterType in parameterTypes)
-        {
-            parameterBuilder.Add(parameterType);
-            parameterIdBuilder.Add(parameterType.Value);
-        }
-        var parameters = parameterBuilder.MoveToImmutable();
-        var parameterIds = parameterIdBuilder.MoveToImmutable();
+        var parameters = ImmutableArray.CreateRange(parameterTypes);
+        var parameterIds = ImmutableArray.CreateRange(
+            parameters.Select(static parameter => parameter.Value));
         ValidateName(name, nameof(name));
 
         lock (_gate)
