@@ -109,7 +109,9 @@ internal sealed class ConservativeEffectCallPreconditionPolicy
         IMethodSymbol method)
     {
         _cancellationToken.ThrowIfCancellationRequested();
-        if (HasPotentialDirectOrClosedPreconditions(method))
+        if (_directOrClosedPreconditions.GetOrAdd(
+                method,
+                HasPotentialDirectOrClosedPreconditionsCore))
         {
             return true;
         }
@@ -144,6 +146,8 @@ internal sealed class ConservativeEffectCallPreconditionPolicy
         {
             return false;
         }
+
+        method = EffectAnalysisSession.NormalizeMethod(method);
 
         foreach (var syntaxReference in
                  method.DeclaringSyntaxReferences)
