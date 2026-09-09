@@ -1,8 +1,52 @@
+using System.Runtime.CompilerServices;
+
 // This lowerer runs only in the build-time compiler collector.
 namespace SharpProof.CompilerArtifact;
 
 internal static class CompilerEffectReplayLowerer
 {
+    private static readonly ConditionalWeakTable<
+        CSharpCompilation,
+        FrameworkTypeCache> FrameworkTypeCaches = new();
+
+    private sealed class FrameworkTypeCache(CSharpCompilation compilation)
+    {
+        private INamedTypeSymbol? _exceptionType;
+        private INamedTypeSymbol? _monitorType;
+        private bool _exceptionTypeResolved;
+        private bool _monitorTypeResolved;
+
+        internal INamedTypeSymbol? ExceptionType
+        {
+            get
+            {
+                if (!_exceptionTypeResolved)
+                {
+                    _exceptionType = compilation.GetTypeByMetadataName(
+                        FrameworkTypeMetadataNames.Exception);
+                    _exceptionTypeResolved = true;
+                }
+
+                return _exceptionType;
+            }
+        }
+
+        internal INamedTypeSymbol? MonitorType
+        {
+            get
+            {
+                if (!_monitorTypeResolved)
+                {
+                    _monitorType = compilation.GetTypeByMetadataName(
+                        FrameworkTypeMetadataNames.Monitor);
+                    _monitorTypeResolved = true;
+                }
+
+                return _monitorType;
+            }
+        }
+    }
+
     internal static bool TryCreate(
         CSharpCompilation compilation,
         ResolvedApiSpecTable apiSpecs,
@@ -22,6 +66,9 @@ internal static class CompilerEffectReplayLowerer
         if (!HasReplayableShape(witness) ||
             !TryCreateEvent(
                 compilation,
+                FrameworkTypeCaches.GetValue(
+                    compilation,
+                    static value => new FrameworkTypeCache(value)),
                 apiSpecs,
                 witness,
                 location,
@@ -98,6 +145,7 @@ internal static class CompilerEffectReplayLowerer
 
     private static bool TryCreateEvent(
         CSharpCompilation compilation,
+        FrameworkTypeCache frameworkTypes,
         ResolvedApiSpecTable apiSpecs,
         EffectDirectWitness witness,
         WorkerSourceLocation location,
@@ -196,7 +244,7 @@ internal static class CompilerEffectReplayLowerer
                     exactExceptionType,
                     exceptionType) &&
                 IsExactFrameworkException(
-                    compilation,
+                    frameworkTypes.ExceptionType,
                     exceptionType) &&
                 HasNonThrowingConstructorSpec(creation, apiSpecs):
                 eventKind = CompilerEffectReplayEventKind.ExplicitThrow;
@@ -220,7 +268,7 @@ internal static class CompilerEffectReplayLowerer
                 IInvocationOperation invocation) when
                 witness.Kind == EffectDirectEventKinds.ToWireName(
                     EffectDirectEventKind.MonitorCall) &&
-                IsDefiniteMonitorCall(compilation, invocation):
+                IsDefiniteMonitorCall(frameworkTypes.MonitorType, invocation):
                 eventKind = CompilerEffectReplayEventKind.MonitorCall;
                 memberIdentity = CompilerIdentityBridge.CreateSymbolDisplay(
                     invocation.TargetMethod);
@@ -245,8 +293,7 @@ internal static class CompilerEffectReplayLowerer
                     @lock,
                     apiSpecs,
                     cancellationToken) &&
-                compilation.GetTypeByMetadataName(
-                    FrameworkTypeMetadataNames.Monitor) is { } monitorType:
+                frameworkTypes.MonitorType is { } monitorType:
                 eventKind = CompilerEffectReplayEventKind.EmptyLock;
                 memberIdentity = string.Empty;
                 memberDocumentationId = null;
@@ -332,11 +379,9 @@ internal static class CompilerEffectReplayLowerer
     }
 
     private static bool IsExactFrameworkException(
-        CSharpCompilation compilation,
+        INamedTypeSymbol? exceptionType,
         INamedTypeSymbol type)
     {
-        var exceptionType = compilation.GetTypeByMetadataName(
-            FrameworkTypeMetadataNames.Exception);
         return exceptionType != null &&
             SymbolEqualityComparer.Default.Equals(
                 type.ContainingAssembly,
@@ -345,13 +390,12 @@ internal static class CompilerEffectReplayLowerer
     }
 
     private static bool IsDefiniteMonitorCall(
-        CSharpCompilation compilation,
+        INamedTypeSymbol? monitorType,
         IInvocationOperation invocation)
     {
         return MonitorFacts.IsExplicitMonitorCall(
             invocation,
-            compilation.GetTypeByMetadataName(
-                FrameworkTypeMetadataNames.Monitor));
+            monitorType);
     }
 
     private static bool IsDefiniteEmptyLock(
