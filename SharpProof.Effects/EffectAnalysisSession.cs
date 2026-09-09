@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -28,6 +29,9 @@ public sealed class EffectAnalysisSession
     private readonly EffectKnownSymbols _knownSymbols;
     private readonly CSharpCompilation? _metadataImportCompilation;
     private readonly Lazy<ExternalEffectResolver>? _metadataExternal;
+    private readonly ConcurrentDictionary<IAssemblySymbol,
+        MetadataImportAssemblyResult> _metadataImportAssemblyCache =
+        new(SymbolEqualityComparer.Default);
     private readonly IEffectCallPreconditionPolicy
         _callPreconditions;
     private readonly EffectModuleInitialization _moduleInitialization;
@@ -304,23 +308,45 @@ public sealed class EffectAnalysisSession
             return null;
         }
 
+        var importedAssembly = _metadataImportAssemblyCache.GetOrAdd(
+            target.ContainingAssembly,
+            ResolveImportedMetadataAssembly).Assembly;
+        return importedAssembly?.GetTypeByMetadataName(metadataName);
+    }
+
+    private MetadataImportAssemblyResult ResolveImportedMetadataAssembly(
+        IAssemblySymbol targetAssembly)
+    {
+        var metadataImportCompilation = _metadataImportCompilation;
+        if (metadataImportCompilation == null)
+        {
+            return MetadataImportAssemblyResult.Missing;
+        }
+
         foreach (var reference in _compilation.References)
         {
             if (_compilation.GetAssemblyOrModuleSymbol(reference)
                     is not IAssemblySymbol assembly ||
                 !SymbolEqualityComparer.Default.Equals(
-                    assembly,
-                    target.ContainingAssembly) ||
-                _metadataImportCompilation.GetAssemblyOrModuleSymbol(
+                    assembly, targetAssembly) ||
+                metadataImportCompilation.GetAssemblyOrModuleSymbol(
                     reference) is not IAssemblySymbol importedAssembly)
             {
                 continue;
             }
 
-            return importedAssembly.GetTypeByMetadataName(metadataName);
+            return new MetadataImportAssemblyResult(importedAssembly);
         }
 
-        return null;
+        return MetadataImportAssemblyResult.Missing;
+    }
+
+    private sealed class MetadataImportAssemblyResult(IAssemblySymbol? assembly)
+    {
+        internal static MetadataImportAssemblyResult Missing { get; } =
+            new(null);
+
+        internal IAssemblySymbol? Assembly { get; } = assembly;
     }
 
     internal EffectSummary ResolveEntryPreconditions(
