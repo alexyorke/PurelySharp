@@ -267,6 +267,7 @@ internal static class EffectTestHost
                 abstractFlow: null),
             getReachableListPatternMembers: static _ => [],
             apiSpecs: session.ApiSpecs,
+            externalEffects: session.ExternalEffects,
             knownSymbols: session.KnownSymbols,
             isKnownNonThrowing: isKnownNonThrowing
                 ? static _ => true

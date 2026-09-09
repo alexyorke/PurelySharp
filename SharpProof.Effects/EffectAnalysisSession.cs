@@ -89,6 +89,7 @@ public sealed class EffectAnalysisSession
 
     public Compilation Compilation => _compilation;
     internal ResolvedApiSpecTable ApiSpecs => _external.ApiSpecs;
+    internal ExternalEffectResolver ExternalEffects => _external;
     internal EffectKnownSymbols KnownSymbols => _knownSymbols;
 
     internal EffectContractResolution ResolveExternalContract(IMethodSymbol method)

@@ -95,6 +95,7 @@ internal sealed partial class OperationEffectScanner
             _conversionEffects,
             _completionEvaluator.GetReachableImplicitListPatternMembers,
             session.ApiSpecs,
+            session.ExternalEffects,
             session.KnownSymbols,
             IsKnownNonThrowing);
         var operationsBuilder = ImmutableArray.CreateBuilder<IOperation>();

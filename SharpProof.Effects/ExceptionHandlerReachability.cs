@@ -16,6 +16,7 @@ internal sealed class ExceptionHandlerReachability(
     Func<IListPatternOperation, IReadOnlyList<IMethodSymbol>>
         getReachableListPatternMembers,
     ResolvedApiSpecTable apiSpecs,
+    ExternalEffectResolver externalEffects,
     EffectKnownSymbols knownSymbols,
     Func<IMethodSymbol, bool> isKnownNonThrowing)
 {
@@ -58,8 +59,7 @@ internal sealed class ExceptionHandlerReachability(
             FrameworkTypeMetadataNames.SwitchExpressionException);
     private readonly DefiniteOperationFacts _staticInitializationFacts =
         new(compilation, CancellationToken.None);
-    private readonly ExternalEffectResolver _externalEffects =
-        new(compilation, apiSpecs);
+    private readonly ExternalEffectResolver _externalEffects = externalEffects;
 
     internal bool IsReachable(CatchClauseSyntax target, bool inFilter)
     {
