@@ -2,7 +2,7 @@
 
 Resolved proposals are removed from this file after implementation, validation, or a current-tree refutation. The original survey remains available in Git history; this file is intentionally only the active queue.
 
-Inventory after deduplication: 493 active IDs in 432 rows (378 pending, 115 deferred). Resolved and refuted proposals are removed; repeated and superseded rows are merged into their canonical IDs.
+Inventory after deduplication: 471 active IDs in 413 rows (356 pending, 115 deferred). Resolved and refuted proposals are removed; repeated and superseded rows are merged into their canonical IDs.
 
 Each pending row must be rechecked against the current tree, applied in a compatible batch, validated with the smallest relevant containerized test target, and then removed here.
 
