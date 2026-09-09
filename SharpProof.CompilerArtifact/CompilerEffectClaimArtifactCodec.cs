@@ -10,10 +10,14 @@ internal static class CompilerEffectClaimArtifactCodec
         if (value.Replay is { } replay)
         {
             replay.ConstraintSha256 = ComputeConstraintSha256(value.ContractKind, value.Constraint);
+            using var hash = StartEvidenceHash(value);
             foreach (var effectEvent in replay.Events ?? [])
             {
                 effectEvent.OperationIdentitySha256 = ComputeReplayOperationSha256(effectEvent);
+                AddReplayEvent(hash, effectEvent, includeOrdinal: true, includeOperationIdentity: true);
             }
+            value.EvidenceSha256 = FinishEvidenceHash(hash, value);
+            return;
         }
         value.EvidenceSha256 = ComputeSha256(value);
     }
@@ -32,10 +36,16 @@ internal static class CompilerEffectClaimArtifactCodec
             !WorkerProtocolJson.IsDefined(value.ContractKind, WorkerEffectContractKind.Unspecified) ||
             !Enum.IsDefined(typeof(WorkerClaimReason), value.Reason) ||
             !WorkerProtocolJson.IsDefined(value.Certainty, WorkerEffectEvidenceCertainty.Unspecified) ||
-            !HasValidConstraint(value.ContractKind, value.Constraint) ||
-            !HasValidReplay(value) ||
+            !HasValidConstraint(value.ContractKind, value.Constraint))
+        {
+            throw new InvalidDataException("Compiler effect-claim evidence is invalid.");
+        }
+
+        if (!TryValidateAndComputeEvidenceSha256(
+                value,
+                out var expectedEvidenceSha256) ||
             !HasValidOutcome(value) ||
-            value.EvidenceSha256 != ComputeSha256(value) ||
+            value.EvidenceSha256 != expectedEvidenceSha256 ||
             (compilation != null && !HasValidReplayGeometry(value, compilation)))
         {
             throw new InvalidDataException("Compiler effect-claim evidence is invalid.");
@@ -138,12 +148,22 @@ internal static class CompilerEffectClaimArtifactCodec
             (!rule.ExceptionsMustBeEmpty || value.AllowedExceptionTypes.Length == 0);
     }
 
-    private static bool HasValidReplay(CompilerEffectClaimArtifact value)
+    private static bool TryValidateAndComputeEvidenceSha256(
+        CompilerEffectClaimArtifact value,
+        out string? evidenceSha256)
     {
+        evidenceSha256 = null;
         var replay = value.Replay;
         if (replay == null)
         {
-            return value.Outcome != WorkerClaimOutcome.Refuted;
+            if (value.Outcome == WorkerClaimOutcome.Refuted)
+            {
+                return false;
+            }
+
+            using var emptyReplayHash = StartEvidenceHash(value);
+            evidenceSha256 = FinishEvidenceHash(emptyReplayHash, value);
+            return true;
         }
 
         if (value.Outcome != WorkerClaimOutcome.Refuted ||
@@ -154,11 +174,39 @@ internal static class CompilerEffectClaimArtifactCodec
             return false;
         }
 
-        return replay.Events.Select((item, index) =>
-            HasValidReplayEvent(item, index)).All(static valid => valid);
+        using var hash = StartEvidenceHash(value);
+        for (var index = 0; index < replay.Events.Length; index++)
+        {
+            var effectEvent = replay.Events[index];
+            using var operationHash = new CanonicalHashWriter();
+            operationHash.Add(CompilerEffectEvidenceCatalog.OperationDomain)
+                .Add(CompilerEffectEvidenceCatalog.OperationVersion);
+            if (!TryAddValidatedReplayEvent(
+                    hash,
+                    operationHash,
+                    effectEvent,
+                    index))
+            {
+                return false;
+            }
+
+            if (!StringComparer.Ordinal.Equals(
+                    effectEvent.OperationIdentitySha256,
+                    operationHash.Finish()))
+            {
+                return false;
+            }
+        }
+
+        evidenceSha256 = FinishEvidenceHash(hash, value);
+        return true;
     }
 
-    private static bool HasValidReplayEvent(CompilerEffectReplayEventArtifact? value, int ordinal)
+    private static bool TryAddValidatedReplayEvent(
+        CanonicalHashWriter evidenceHash,
+        CanonicalHashWriter operationHash,
+        CompilerEffectReplayEventArtifact? value,
+        int ordinal)
     {
         if (value == null || value.Ordinal != ordinal ||
             !CompilerEffectEvidenceCatalog.SupportedReplayEventKinds.Contains(value.Kind) ||
@@ -173,7 +221,6 @@ internal static class CompilerEffectClaimArtifactCodec
             !WorkerProtocolJson.IsSha256(value.SourceLineMapSha256) ||
             value.SyntaxStart < 0 || value.SyntaxLength <= 0 ||
             value.SyntaxStart > int.MaxValue - value.SyntaxLength ||
-            value.OperationIdentitySha256 != ComputeReplayOperationSha256(value) ||
             string.IsNullOrWhiteSpace(value.TypeIdentity) ||
             !HasOptionalText(value.MemberDocumentationId) ||
             !HasOptionalText(value.TypeDocumentationId) ||
@@ -186,29 +233,40 @@ internal static class CompilerEffectClaimArtifactCodec
             return false;
         }
 
-        if (value.SpecWitnessIdentifier != null)
-        {
-            return false;
-        }
-
-        return value.Kind switch
+        var exceptionTypes = value.ExactExceptionTypeHierarchy;
+        var validShape = value.Kind switch
         {
             CompilerEffectReplayEventKind.ManagedObjectAllocation or
             CompilerEffectReplayEventKind.MonitorCall =>
                 !string.IsNullOrWhiteSpace(value.MemberIdentity) &&
-                value.ExactExceptionTypeHierarchy.Length == 0,
+                exceptionTypes.Length == 0,
             CompilerEffectReplayEventKind.ManagedArrayAllocation or
             CompilerEffectReplayEventKind.EmptyLock =>
                 string.IsNullOrEmpty(value.MemberIdentity) &&
                 value.MemberDocumentationId == null &&
-                value.ExactExceptionTypeHierarchy.Length == 0,
+                exceptionTypes.Length == 0,
             CompilerEffectReplayEventKind.ExplicitThrow =>
                 !string.IsNullOrWhiteSpace(value.MemberIdentity) &&
-                value.ExactExceptionTypeHierarchy.Length > 0 &&
-                HasCanonicalStrings(value.ExactExceptionTypeHierarchy) &&
-                value.ExactExceptionTypeHierarchy.Contains(
-                    value.TypeIdentity,
-                    StringComparer.Ordinal),
+                exceptionTypes.Length > 0,
+            _ => false
+        };
+        if (!validShape)
+        {
+            return false;
+        }
+
+        var (canonicalExceptions, containsType) =
+            AddReplayEventPair(evidenceHash, operationHash, value);
+        return value.Kind switch
+        {
+            CompilerEffectReplayEventKind.ManagedObjectAllocation or
+            CompilerEffectReplayEventKind.MonitorCall =>
+                true,
+            CompilerEffectReplayEventKind.ManagedArrayAllocation or
+            CompilerEffectReplayEventKind.EmptyLock =>
+                true,
+            CompilerEffectReplayEventKind.ExplicitThrow =>
+                canonicalExceptions && containsType,
             _ => false
         };
     }
@@ -270,11 +328,12 @@ internal static class CompilerEffectClaimArtifactCodec
         return hash.Finish();
     }
 
-    private static string ComputeSha256(CompilerEffectClaimArtifact value)
+    private static CanonicalHashWriter StartEvidenceHash(
+        CompilerEffectClaimArtifact value)
     {
         var witness = value.Witness;
         var constraint = value.Constraint;
-        using var hash = new CanonicalHashWriter();
+        var hash = new CanonicalHashWriter();
         hash.Add(CompilerEffectEvidenceCatalog.EvidenceDomain)
             .Add(CompilerEffectEvidenceCatalog.EvidenceVersion)
             .Add(value.ClaimId)
@@ -297,10 +356,14 @@ internal static class CompilerEffectClaimArtifactCodec
             .Add(replay?.PathKind ?? CompilerEffectReplayPathKind.Unspecified)
             .Add(replay?.ConstraintSha256)
             .Add(replay?.Events?.Length ?? -1);
-        foreach (var effectEvent in replay?.Events ?? [])
-        {
-            AddReplayEvent(hash, effectEvent, includeOrdinal: true, includeOperationIdentity: true);
-        }
+        return hash;
+    }
+
+    private static string FinishEvidenceHash(
+        CanonicalHashWriter hash,
+        CompilerEffectClaimArtifact value)
+    {
+        var witness = value.Witness;
         return hash.Add(witness?.Location.Path)
             .Add(witness?.Location.Start ?? -1)
             .Add(witness?.Location.Length ?? -1)
@@ -308,6 +371,20 @@ internal static class CompilerEffectClaimArtifactCodec
             .Add(witness?.Location.Column ?? -1)
             .Add(value.Evidence)
             .Finish();
+    }
+
+    private static string ComputeSha256(CompilerEffectClaimArtifact value)
+    {
+        using var hash = StartEvidenceHash(value);
+        foreach (var effectEvent in value.Replay?.Events ?? [])
+        {
+            AddReplayEvent(
+                hash,
+                effectEvent,
+                includeOrdinal: true,
+                includeOperationIdentity: true);
+        }
+        return FinishEvidenceHash(hash, value);
     }
 
     private static void AddSortedStrings(
@@ -375,5 +452,95 @@ internal static class CompilerEffectClaimArtifactCodec
             .Add(location?.Length ?? -1)
             .Add(location?.Line ?? -1)
             .Add(location?.Column ?? -1);
+    }
+
+    private static (bool CanonicalExceptions, bool ContainsType)
+        AddReplayEventPair(
+        CanonicalHashWriter evidenceHash,
+        CanonicalHashWriter operationHash,
+        CompilerEffectReplayEventArtifact value)
+    {
+        evidenceHash.Add(value.Ordinal);
+        evidenceHash.Add(value.Kind);
+        operationHash.Add(value.Kind);
+        evidenceHash.Add(value.SyntaxTreeOrdinal);
+        operationHash.Add(value.SyntaxTreeOrdinal);
+        evidenceHash.Add(value.SyntaxTreeSha256);
+        operationHash.Add(value.SyntaxTreeSha256);
+        evidenceHash.Add(value.SyntaxTreeSnapshotSha256);
+        operationHash.Add(value.SyntaxTreeSnapshotSha256);
+        evidenceHash.Add(value.SyntaxTreeLineMapSha256);
+        operationHash.Add(value.SyntaxTreeLineMapSha256);
+        evidenceHash.Add(value.SyntaxStart);
+        operationHash.Add(value.SyntaxStart);
+        evidenceHash.Add(value.SyntaxLength);
+        operationHash.Add(value.SyntaxLength);
+        evidenceHash.Add(value.OperationIdentitySha256);
+
+        var memberIdentity = value.MemberIdentity ?? string.Empty;
+        evidenceHash.Add(memberIdentity);
+        operationHash.Add(memberIdentity);
+        evidenceHash.Add(value.MemberDocumentationId);
+        operationHash.Add(value.MemberDocumentationId);
+        evidenceHash.Add(value.TypeIdentity);
+        operationHash.Add(value.TypeIdentity);
+        evidenceHash.Add(value.TypeDocumentationId);
+        operationHash.Add(value.TypeDocumentationId);
+        evidenceHash.Add(value.SpecWitnessIdentifier);
+        operationHash.Add(value.SpecWitnessIdentifier);
+        evidenceHash.Add(value.SourceTreeOrdinal);
+        operationHash.Add(value.SourceTreeOrdinal);
+        evidenceHash.Add(value.SourceTreePath);
+        operationHash.Add(value.SourceTreePath);
+        evidenceHash.Add(value.SourceTreeSha256);
+        operationHash.Add(value.SourceTreeSha256);
+        evidenceHash.Add(value.SourceLineMapSha256);
+        operationHash.Add(value.SourceLineMapSha256);
+
+        var operands = value.ScalarOperands ?? [];
+        evidenceHash.Add(operands.Length);
+        operationHash.Add(operands.Length);
+        foreach (var operand in operands)
+        {
+            evidenceHash.Add(operand);
+            operationHash.Add(operand);
+        }
+
+        var exceptionTypes = value.ExactExceptionTypeHierarchy ?? [];
+        evidenceHash.Add(exceptionTypes.Length);
+        operationHash.Add(exceptionTypes.Length);
+        var canonicalExceptions = true;
+        var containsType = false;
+        string? previousExceptionType = null;
+        foreach (var type in exceptionTypes)
+        {
+            evidenceHash.Add(type);
+            operationHash.Add(type);
+            if (string.IsNullOrWhiteSpace(type) ||
+                previousExceptionType != null &&
+                StringComparer.Ordinal.Compare(
+                    previousExceptionType,
+                    type) >= 0)
+            {
+                canonicalExceptions = false;
+            }
+            containsType |= StringComparer.Ordinal.Equals(
+                type,
+                value.TypeIdentity);
+            previousExceptionType = type;
+        }
+
+        var location = value.Location;
+        evidenceHash.Add(location?.Path);
+        operationHash.Add(location?.Path);
+        evidenceHash.Add(location?.Start ?? -1);
+        operationHash.Add(location?.Start ?? -1);
+        evidenceHash.Add(location?.Length ?? -1);
+        operationHash.Add(location?.Length ?? -1);
+        evidenceHash.Add(location?.Line ?? -1);
+        operationHash.Add(location?.Line ?? -1);
+        evidenceHash.Add(location?.Column ?? -1);
+        operationHash.Add(location?.Column ?? -1);
+        return (canonicalExceptions, containsType);
     }
 }
