@@ -81,6 +81,21 @@ internal static partial class PortableIrGraphCodec
             cancellationToken).Encode();
     }
 
+    private static EncodedPortableIrGraph EncodeGraph(
+        IrFactory factory,
+        IrProgram? program,
+        IReadOnlyList<IrTerm> roots,
+        IReadOnlyList<IrVarId> variables,
+        CancellationToken cancellationToken)
+    {
+        return new Encoder(
+            factory,
+            program,
+            roots,
+            variables,
+            cancellationToken).Encode(includeInstructionIndices: false);
+    }
+
     internal static DecodedPortableIrGraph Decode(
         PortableIrGraph graph,
         IReadOnlyList<int>? externalVariableIndices = null,
@@ -129,7 +144,7 @@ internal static partial class PortableIrGraphCodec
             externalVariables.Add(decoded.Variables[index]);
         }
 
-        var canonical = Encode(
+        var canonical = EncodeGraph(
             decoded.Factory,
             decoded.Program,
             decoded.Roots,
@@ -409,7 +424,7 @@ internal static partial class PortableIrGraphCodec
             _terms = new((id, _) => TermRow(id));
         }
 
-        internal EncodedPortableIrGraph Encode()
+        internal EncodedPortableIrGraph Encode(bool includeInstructionIndices = true)
         {
             _cancellationToken.ThrowIfCancellationRequested();
             TypeIndex(_factory.BooleanType);
@@ -446,9 +461,12 @@ internal static partial class PortableIrGraphCodec
                         static block => block.Id.Value)];
             }
             _blockIndices = Dense(_blocks.Select(static block => block.Id));
-            _instructionIndices = Dense(_blocks
-                .SelectMany(static block => block.Instructions)
-                .Select(static instruction => instruction.Id));
+            if (includeInstructionIndices)
+            {
+                _instructionIndices = Dense(_blocks
+                    .SelectMany(static block => block.Instructions)
+                    .Select(static instruction => instruction.Id));
+            }
             var blocks = _blocks.Select(BlockRow).ToArray();
             _cancellationToken.ThrowIfCancellationRequested();
             var graph = new PortableIrGraph
