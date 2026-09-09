@@ -130,6 +130,7 @@ internal static class UsingDisposalGraph
         var activeTargets = new List<int>();
         var leavesActiveLifetime = false;
         var hasUnconditionalGoto = false;
+        var operations = scope.Operations;
         foreach (var branch in operation.DescendantsAndSelf()
                      .OfType<IBranchOperation>())
         {
@@ -151,10 +152,10 @@ internal static class UsingDisposalGraph
 
                 var targetIndex = -1;
                 for (var index = 0;
-                     index < scope.Operations.Length;
+                     index < operations.Length;
                      index++)
                 {
-                    var candidate = scope.Operations[index];
+                    var candidate = operations[index];
                     if (candidate.Syntax.Span.Contains(target.Span) ||
                         candidate.Syntax.Span.IntersectsWith(target.Span) ||
                         target.Span.Contains(candidate.Syntax.Span))
@@ -166,11 +167,20 @@ internal static class UsingDisposalGraph
 
                 if (targetIndex < 0)
                 {
-                    targetIndex = scope.Operations
-                        .Select((candidate, index) => (candidate, index))
-                        .First(item =>
-                            item.candidate.Syntax.Span.Start >= target.Span.Start)
-                        .index;
+                    for (var index = 0; index < operations.Length; index++)
+                    {
+                        if (operations[index].Syntax.Span.Start >= target.Span.Start)
+                        {
+                            targetIndex = index;
+                            break;
+                        }
+                    }
+
+                    if (targetIndex < 0)
+                    {
+                        throw new InvalidOperationException(
+                            "Sequence contains no matching element");
+                    }
                 }
 
                 if (seenTargets.Add(targetIndex))
