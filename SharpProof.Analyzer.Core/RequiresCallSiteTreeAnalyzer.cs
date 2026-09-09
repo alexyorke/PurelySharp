@@ -325,8 +325,12 @@ internal static partial class RequiresCallSiteTreeAnalyzer
                 graph.LocalFunctions.Select(
                     static method => ContractClauseInventoryBuilder
                         .NormalizeCallable(method).OriginalDefinition));
+            var reachableOperations = ReachableOperations(graph)
+                .ToImmutableArray();
             var reachableLocals = GetReachableLocalFunctions(
-                graph, localMethods);
+                graph,
+                localMethods,
+                reachableOperations);
             foreach (var method in localMethods)
             {
                 if (!reachableLocals.Contains(method))
@@ -347,8 +351,9 @@ internal static partial class RequiresCallSiteTreeAnalyzer
                 }
             }
 
-            foreach (var anonymous in
-                     GetAnonymousFunctions(graph))
+            foreach (var anonymous in GetAnonymousFunctions(
+                         graph,
+                         reachableOperations))
             {
                 var method =
                     ContractClauseInventoryBuilder
@@ -387,7 +392,8 @@ internal static partial class RequiresCallSiteTreeAnalyzer
         private ImmutableHashSet<IMethodSymbol>
             GetReachableLocalFunctions(
                 ControlFlowGraph graph,
-                ImmutableHashSet<IMethodSymbol> candidates)
+                ImmutableHashSet<IMethodSymbol> candidates,
+                IEnumerable<IOperation>? rootOperations = null)
         {
             if (candidates.IsEmpty)
             {
@@ -400,7 +406,7 @@ internal static partial class RequiresCallSiteTreeAnalyzer
             var discovered = new List<IMethodSymbol>();
             if (!TryCollectLocalReferences(
                     graph, candidates, reachable, scannedAnonymous,
-                    discovered))
+                    discovered, rootOperations))
             {
                 return candidates;
             }
@@ -452,11 +458,12 @@ internal static partial class RequiresCallSiteTreeAnalyzer
             ImmutableHashSet<IMethodSymbol> candidates,
             HashSet<IMethodSymbol> reachable,
             HashSet<IMethodSymbol> scannedAnonymous,
-            List<IMethodSymbol> discovered)
+            List<IMethodSymbol> discovered,
+            IEnumerable<IOperation>? operations = null)
         {
             var anonymousFunctions = new List<
                 IFlowAnonymousFunctionOperation>();
-            foreach (var operation in ReachableOperations(graph))
+            foreach (var operation in operations ?? ReachableOperations(graph))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var referenced = operation switch
@@ -1598,9 +1605,10 @@ internal static partial class RequiresCallSiteTreeAnalyzer
         private static IEnumerable<
             IFlowAnonymousFunctionOperation>
             GetAnonymousFunctions(
-                ControlFlowGraph graph)
+                ControlFlowGraph graph,
+                IEnumerable<IOperation>? operations = null)
         {
-            return ReachableOperations(graph)
+            return (operations ?? ReachableOperations(graph))
                 .OfType<IFlowAnonymousFunctionOperation>();
         }
     }
