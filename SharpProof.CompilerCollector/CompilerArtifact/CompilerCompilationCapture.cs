@@ -42,8 +42,23 @@ internal static class CompilerCompilationCapture
         internal CompilerSyntaxTreeSnapshot[] Trees { get; }
     }
 
+    private sealed class ResolverDirectiveCache
+    {
+        internal ResolverDirectiveCache(
+            CSharpCompilation compilation,
+            CancellationToken cancellationToken)
+        {
+            HasDirective = compilation.SyntaxTrees.Any(
+                tree => HasResolverDirective(tree, cancellationToken));
+        }
+
+        internal bool HasDirective { get; }
+    }
+
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<CSharpCompilation, SyntaxTreeCache>
         SyntaxTreeCaches = new();
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<CSharpCompilation, ResolverDirectiveCache>
+        ResolverDirectiveCaches = new();
 
     internal static CompilerSyntaxTreeSnapshot[] CaptureTrees(
         CSharpCompilation compilation,
@@ -110,7 +125,9 @@ internal static class CompilerCompilationCapture
             options,
             "ReferencesSupersedeLowerVersions");
         if (supersedes || options.MetadataReferenceResolver?.ResolveMissingAssemblies == true ||
-            compilation.SyntaxTrees.Any(tree => HasResolverDirective(tree, cancellationToken)))
+            ResolverDirectiveCaches.GetValue(
+                compilation,
+                value => new ResolverDirectiveCache(value, cancellationToken)).HasDirective)
         {
             throw new InvalidOperationException(
             "Reference supersession and resolver directives are unsupported.");
