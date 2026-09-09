@@ -129,8 +129,9 @@ internal static class CallableEvidenceBuilder
                 ? summaryPrefix + ":" +
                     summaryAssumption.EvidenceIdentity
                 : summaryPrefix;
-            var dependencyEvidence = BuildDependencyEvidenceLabel(
-                summaryAssumption.DependencyEvidence);
+            var dependencyEvidence = CompilerDependencyEvidenceFormatter.Format(
+                summaryAssumption.DependencyEvidence,
+                throwOnUnsupportedOrigin: true);
 
             ProofJustification justification = new LoweredJustification(
                 factory.CreateOperation(
@@ -223,14 +224,6 @@ internal static class CallableEvidenceBuilder
         prefix = CompilerSpecificationPackAuthorityValidation
             .GetSummaryPrefix(origin) ?? string.Empty;
         return prefix.Length != 0;
-    }
-
-    private static string BuildDependencyEvidenceLabel(
-        ImmutableArray<CompilerPreparedSummaryEvidence> evidence)
-    {
-        return CompilerDependencyEvidenceFormatter.Format(
-            evidence,
-            throwOnUnsupportedOrigin: true);
     }
 
     internal static CallableEntryEvidenceBuildResult BuildEntry(
