@@ -282,10 +282,8 @@ internal sealed class ExternalEffectResolver
     private EffectSummary ResolveSpec(ApiSpecTemplate spec)
     {
         var effects = spec.Facets.Effects.Effects;
-        var reads = SpecRegions(effects, SpecEffect.ReadsReceiverState,
-            SpecEffect.ReadsArgumentState, SpecEffect.ReadsAmbientState, spec.Target.ParameterTypes.Length);
-        var writes = SpecRegions(effects, SpecEffect.WritesReceiverState,
-            SpecEffect.WritesArgumentState, SpecEffect.WritesAmbientState, spec.Target.ParameterTypes.Length);
+        var reads = EffectRegionSet.Empty;
+        var writes = EffectRegionSet.Empty;
         var capabilities = EffectCapabilityKind.None;
         var completeness = EffectCompleteness.Complete;
         if ((effects & SpecEffect.Unknown) != 0)
@@ -297,6 +295,12 @@ internal sealed class ExternalEffectResolver
         }
         else
         {
+            reads = SpecRegions(effects, SpecEffect.ReadsReceiverState,
+                SpecEffect.ReadsArgumentState, SpecEffect.ReadsAmbientState,
+                spec.Target.ParameterTypes.Length);
+            writes = SpecRegions(effects, SpecEffect.WritesReceiverState,
+                SpecEffect.WritesArgumentState, SpecEffect.WritesAmbientState,
+                spec.Target.ParameterTypes.Length);
             if ((effects & SpecEffect.InputOutput) != 0)
             {
                 reads = reads.Union(EffectRegionSet.Create(EffectRegionId.Ambient));
