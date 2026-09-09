@@ -530,7 +530,7 @@ internal static class CompilerDiagnosticArtifactOrdering
             .All(static ordered => ordered);
     }
 
-    private static int Compare(
+    internal static int Compare(
         CompilerDiagnosticArtifact left,
         CompilerDiagnosticArtifact right)
     {

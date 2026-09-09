@@ -877,23 +877,64 @@ internal static class CompilerManifestArtifactJson
         CancellationToken cancellationToken,
         bool validateDiagnosticShapes = true)
     {
-        return (!validateDiagnosticShapes || HasValidDiagnosticShapes(diagnostics)) &&
-            CompilerDiagnosticArtifactOrdering.IsCanonical(diagnostics!) &&
-            diagnostics!.All(item => HasValidDiagnosticBinding(item, compilation, cancellationToken));
+        if (validateDiagnosticShapes)
+        {
+            if (diagnostics == null)
+            {
+                return false;
+            }
+
+            var ordered = true;
+            CompilerDiagnosticArtifact? previous = null;
+            foreach (var diagnostic in diagnostics)
+            {
+                if (!HasValidDiagnosticShape(diagnostic))
+                {
+                    return false;
+                }
+
+                if (previous != null &&
+                    CompilerDiagnosticArtifactOrdering.Compare(
+                        previous,
+                        diagnostic) > 0)
+                {
+                    ordered = false;
+                }
+
+                previous = diagnostic;
+            }
+
+            if (!ordered)
+            {
+                return false;
+            }
+        }
+        else if (!CompilerDiagnosticArtifactOrdering.IsCanonical(diagnostics!))
+        {
+            return false;
+        }
+
+        return diagnostics!.All(item =>
+            HasValidDiagnosticBinding(item, compilation, cancellationToken));
     }
 
     private static bool HasValidDiagnosticShapes(
         CompilerDiagnosticArtifact[]? diagnostics)
     {
-        return diagnostics?.All(static item =>
-            item != null &&
+        return diagnostics?.All(HasValidDiagnosticShape) == true;
+    }
+
+    private static bool HasValidDiagnosticShape(
+        CompilerDiagnosticArtifact? item)
+    {
+        return item != null &&
             WorkerProtocolJson.IsCompilerDiagnosticCode(item.Code) &&
             !string.IsNullOrWhiteSpace(item.Message) &&
             item.SourceTreePath != null &&
             item.SourceTreeSha256 != null &&
             item.SourceLineMapSha256 != null &&
             item.Location is { Path: not null } location &&
-            WorkerProtocolJson.HasValidLocationOrNone(location)) == true;
+            WorkerProtocolJson.HasValidLocationOrNone(location);
     }
 
     private static bool HasValidDiagnosticBinding(
