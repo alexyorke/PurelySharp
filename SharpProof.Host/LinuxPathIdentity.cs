@@ -119,13 +119,7 @@ public static partial class LinuxPathIdentity
     {
         var canonical = Canonicalize(path);
         var fileSystem = FindFileSystemType(canonical);
-        if (!SupportedLocalFileSystems.Contains(fileSystem))
-        {
-            throw new ArgumentException(
-                $"SharpProof preview publication requires a supported local filesystem; '{fileSystem}' is not supported.",
-                nameof(path));
-        }
-        return canonical;
+        return RequireSupportedLocalFileSystem(canonical, fileSystem, nameof(path));
     }
 
     public static string PublicationLockName(string publicationPath)
@@ -377,8 +371,19 @@ public static partial class LinuxPathIdentity
     private static string[] CanonicalPublicationPaths(
         IEnumerable<string> publicationPaths)
     {
-        return publicationPaths
-            .Select(RequireLocalPath)
+        var canonicalPaths = new List<string>();
+        MountInfoSnapshot? mountInfo = null;
+        foreach (var path in publicationPaths)
+        {
+            var canonical = Canonicalize(path);
+            mountInfo ??= MountInfoSnapshot.Load();
+            canonicalPaths.Add(RequireSupportedLocalFileSystem(
+                canonical,
+                mountInfo.FindFileSystemType(canonical),
+                nameof(path)));
+        }
+
+        return canonicalPaths
             .OrderBy(static path => path, StringComparer.Ordinal)
             .ToArray();
     }
@@ -826,40 +831,85 @@ public static partial class LinuxPathIdentity
 
     private static string FindFileSystemType(string canonicalPath)
     {
-        const string mountInfoPath = "/proc/self/mountinfo";
-        if (!File.Exists(mountInfoPath))
+        return MountInfoSnapshot.Load().FindFileSystemType(canonicalPath);
+    }
+
+    private static string RequireSupportedLocalFileSystem(
+        string canonicalPath,
+        string fileSystem,
+        string parameterName)
+    {
+        if (!SupportedLocalFileSystems.Contains(fileSystem))
         {
-            throw new PlatformNotSupportedException(
-                "SharpProof requires Linux mount metadata.");
+            throw new ArgumentException(
+                $"SharpProof preview publication requires a supported local filesystem; '{fileSystem}' is not supported.",
+                parameterName);
+        }
+        return canonicalPath;
+    }
+
+    private sealed class MountInfoSnapshot
+    {
+        private readonly MountInfoEntry[] _mounts;
+
+        private MountInfoSnapshot(MountInfoEntry[] mounts)
+        {
+            _mounts = mounts;
         }
 
-        string? bestMount = null;
-        string? bestType = null;
-        foreach (var line in File.ReadLines(mountInfoPath))
+        internal static MountInfoSnapshot Load()
         {
-            var separator = line.IndexOf(" - ", StringComparison.Ordinal);
-            if (separator < 0)
+            const string mountInfoPath = "/proc/self/mountinfo";
+            if (!File.Exists(mountInfoPath))
             {
-                continue;
+                throw new PlatformNotSupportedException(
+                    "SharpProof requires Linux mount metadata.");
             }
-            var left = line.Substring(0, separator).Split(' ');
-            var right = line.Substring(separator + 3).Split(' ');
-            if (left.Length < 5 || right.Length == 0)
+
+            var mounts = new List<MountInfoEntry>();
+            foreach (var line in File.ReadLines(mountInfoPath))
             {
-                continue;
+                var separator = line.IndexOf(" - ", StringComparison.Ordinal);
+                if (separator < 0)
+                {
+                    continue;
+                }
+                var left = line.Substring(0, separator).Split(' ');
+                var right = line.Substring(separator + 3).Split(' ');
+                if (left.Length < 5 || right.Length == 0)
+                {
+                    continue;
+                }
+                mounts.Add(new MountInfoEntry(
+                    DecodeMountPath(left[4]),
+                    right[0]));
             }
-            var mount = DecodeMountPath(left[4]);
-            if (!IsCanonicalPathWithin(canonicalPath, mount) ||
-                bestMount != null && mount.Length <= bestMount.Length)
-            {
-                continue;
-            }
-            bestMount = mount;
-            bestType = right[0];
+
+            return new MountInfoSnapshot([.. mounts]);
         }
-        return bestType ?? throw new IOException(
-            "SharpProof could not identify the publication filesystem.");
+
+        internal string FindFileSystemType(string canonicalPath)
+        {
+            string? bestMount = null;
+            string? bestType = null;
+            foreach (var mount in _mounts)
+            {
+                if (!IsCanonicalPathWithin(canonicalPath, mount.Path) ||
+                    bestMount != null && mount.Path.Length <= bestMount.Length)
+                {
+                    continue;
+                }
+                bestMount = mount.Path;
+                bestType = mount.FileSystemType;
+            }
+            return bestType ?? throw new IOException(
+                "SharpProof could not identify the publication filesystem.");
+        }
     }
+
+    private readonly record struct MountInfoEntry(
+        string Path,
+        string FileSystemType);
 
     private static bool IsCanonicalPathWithin(string path, string directory)
     {
