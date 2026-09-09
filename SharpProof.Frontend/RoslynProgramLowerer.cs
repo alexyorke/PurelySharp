@@ -323,6 +323,11 @@ public sealed class RoslynProgramLowerer(
                     Abstain(operation, location.Abstention);
                     break;
                 default:
+                    if (value.ChildOperations.Count == 0)
+                    {
+                        break;
+                    }
+
                     var nestedValues = new Dictionary<IOperation, IrTerm>();
                     LowerNestedOperations(
                         block,
