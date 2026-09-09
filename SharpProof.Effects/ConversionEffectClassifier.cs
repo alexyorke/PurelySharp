@@ -12,6 +12,17 @@ internal sealed class ConversionEffectClassifier(
         IConversionOperation operation,
         Microsoft.CodeAnalysis.CSharp.Conversion conversion)
     {
+        return Classify(
+            operation,
+            conversion,
+            SkipsLiftedOperator(operation));
+    }
+
+    internal EffectSummary Classify(
+        IConversionOperation operation,
+        Microsoft.CodeAnalysis.CSharp.Conversion conversion,
+        bool skipsLiftedOperator)
+    {
         if (!conversion.Exists)
         {
             return EffectSummaryOperations.Unsupported();
@@ -61,12 +72,18 @@ internal sealed class ConversionEffectClassifier(
         {
             return ClassifyNullableConversion(
                 operation,
-                CheckedOverflow(operation.IsChecked, operation));
+                CheckedOverflow(
+                    operation.IsChecked,
+                    operation,
+                    skipsLiftedOperator));
         }
 
         if (conversion is { IsNumeric: true } or { IsEnumeration: true })
         {
-            return CheckedOverflow(operation.IsChecked, operation);
+            return CheckedOverflow(
+                operation.IsChecked,
+                operation,
+                skipsLiftedOperator);
         }
 
         if (conversion.IsInterpolatedString)
@@ -116,8 +133,19 @@ internal sealed class ConversionEffectClassifier(
         bool isChecked,
         IOperation operation)
     {
+        return CheckedOverflow(
+            isChecked,
+            operation,
+            SkipsLiftedOperator(operation));
+    }
+
+    internal EffectSummary CheckedOverflow(
+        bool isChecked,
+        IOperation operation,
+        bool skipsLiftedOperator)
+    {
         return isChecked &&
-               !SkipsLiftedOperator(operation) &&
+               !skipsLiftedOperator &&
                abstractFlow?.ProvesNoOverflow(operation) != true
             ? Throw(FrameworkTypeMetadataNames.OverflowException)
             : EffectSummary.Empty;

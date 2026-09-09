@@ -508,13 +508,16 @@ internal sealed partial class OperationEffectScanner
             return result.Summary;
         }
 
+        var skipsLiftedOperator =
+            _conversionEffects.SkipsLiftedOperator(increment);
         result = result.Then(new EffectStep(
-            _conversionEffects.SkipsLiftedOperator(increment)
+            skipsLiftedOperator
                 ? EffectSummary.Empty
                 : EffectSummaryOperations.Join(
                     _conversionEffects.CheckedOverflow(
                         increment.IsChecked,
-                        increment),
+                        increment,
+                        skipsLiftedOperator),
                     ResolveOperatorEffects(
                         increment.OperatorMethod,
                         [increment.Target],
@@ -589,7 +592,9 @@ internal sealed partial class OperationEffectScanner
             return result;
         }
 
-        var operatorEffect = _conversionEffects.SkipsLiftedOperator(binary)
+        var skipsLiftedOperator =
+            _conversionEffects.SkipsLiftedOperator(binary);
+        var operatorEffect = skipsLiftedOperator
             ? EffectSummary.Empty
             : ResolveOperatorEffects(
                 binary.OperatorMethod,
@@ -606,7 +611,10 @@ internal sealed partial class OperationEffectScanner
             BuiltInDelegateCombinationAllocation(binary),
             IntegralDivisionExceptions(binary.OperatorKind, binary.Type,
                 binary.LeftOperand, binary.RightOperand, binary),
-            _conversionEffects.CheckedOverflow(binary.IsChecked, binary),
+            _conversionEffects.CheckedOverflow(
+                binary.IsChecked,
+                binary,
+                skipsLiftedOperator),
             operatorEffect);
     }
 
@@ -776,10 +784,15 @@ internal sealed partial class OperationEffectScanner
             return operand.Summary;
         }
 
-        var operation = _conversionEffects.SkipsLiftedOperator(unary)
+        var skipsLiftedOperator =
+            _conversionEffects.SkipsLiftedOperator(unary);
+        var operation = skipsLiftedOperator
             ? EffectSummary.Empty
             : EffectSummaryOperations.Join(
-                _conversionEffects.CheckedOverflow(unary.IsChecked, unary),
+                _conversionEffects.CheckedOverflow(
+                    unary.IsChecked,
+                    unary,
+                    skipsLiftedOperator),
                 ResolveOperatorEffects(
                     unary.OperatorMethod,
                     [unary.Operand],
@@ -805,15 +818,19 @@ internal sealed partial class OperationEffectScanner
         }
 
         var conversion = Microsoft.CodeAnalysis.CSharp.CSharpExtensions.GetConversion(operation);
-        var operatorEffect = _conversionEffects
-            .SkipsLiftedOperator(operation)
-                ? EffectSummary.Empty
-                : ResolveOperatorEffects(
-                    operation.OperatorMethod,
-                    [operation.Operand],
-                    operation);
+        var skipsLiftedOperator = _conversionEffects
+            .SkipsLiftedOperator(operation);
+        var operatorEffect = skipsLiftedOperator
+            ? EffectSummary.Empty
+            : ResolveOperatorEffects(
+                operation.OperatorMethod,
+                [operation.Operand],
+                operation);
         var conversionEffect = EffectSummaryOperations.Join(
-            _conversionEffects.Classify(operation, conversion),
+            _conversionEffects.Classify(
+                operation,
+                conversion,
+                skipsLiftedOperator),
             operatorEffect);
         return operand.Then(new EffectStep(
             conversionEffect,

@@ -137,9 +137,11 @@ internal sealed partial class OperationEffectScanner
             return result.Summary;
         }
 
+        var skipsLiftedOperator =
+            _conversionEffects.SkipsLiftedOperator(assignment);
         result = result.Then(new EffectStep(
             EffectSummaryOperations.Join(
-                _conversionEffects.SkipsLiftedOperator(assignment)
+                skipsLiftedOperator
                     ? EffectSummary.Empty
                     : ResolveCompoundOperatorEffects(assignment),
                 StringConcatenationEffectResolver.Resolve(
@@ -156,7 +158,8 @@ internal sealed partial class OperationEffectScanner
                     assignment),
                 _conversionEffects.CheckedOverflow(
                     assignment.IsChecked,
-                    assignment)),
+                    assignment,
+                    skipsLiftedOperator)),
             _completionEvaluator.CanCompleteCompoundOperator(assignment)));
         if (!result.CompletesNormally)
         {
