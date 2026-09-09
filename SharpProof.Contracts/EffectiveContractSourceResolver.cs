@@ -20,6 +20,9 @@ internal sealed class EffectiveContractSourceResolver
         Compilation, EffectiveContractSourceResolver> Cache = new();
     private readonly ContractClauseInventoryBuilder _clauses;
     private readonly ImmutableArray<ContractForSymbolMatcher.CompanionDescriptor> _companions;
+    private readonly IReadOnlyDictionary<INamedTypeSymbol,
+        ImmutableArray<ContractForSymbolMatcher.CompanionDescriptor>>
+        _companionsByTarget;
     private readonly ConcurrentDictionary<
         IMethodSymbol, EffectiveContractSourceResolution> _cache =
         new(SymbolEqualityComparer.IncludeNullability);
@@ -34,6 +37,8 @@ internal sealed class EffectiveContractSourceResolver
         _companions = ContractForSymbolMatcher.DiscoverCompanions(
             ArgumentNullGuard.NotNull(compilation, nameof(compilation)),
             cancellationToken);
+        _companionsByTarget = ContractForSymbolMatcher
+            .BuildCompanionTargetIndex(_companions);
     }
 
     internal ImmutableArray<ContractForSymbolMatcher.CompanionDescriptor> Companions =>
@@ -104,7 +109,8 @@ internal sealed class EffectiveContractSourceResolver
         {
             var companion = ContractForSymbolMatcher.ResolveCompanion(
                 _companions,
-                target);
+                target,
+                _companionsByTarget);
             if (companion.Failure != ContractBindingFailure.None)
             {
                 return new(

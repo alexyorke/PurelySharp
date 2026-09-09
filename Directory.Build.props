@@ -106,6 +106,7 @@
 
   <ItemGroup Condition="'$(MSBuildProjectName)' == 'SharpProof.Analyzer.Test' OR
                         '$(MSBuildProjectName)' == 'SharpProof.ContractForGenerator.Test' OR
+                        '$(MSBuildProjectName)' == 'SharpProof.Contracts.Test' OR
                         '$(MSBuildProjectName)' == 'SharpProof.Frontend.Test' OR
                         '$(MSBuildProjectName)' == 'SharpProof.Effects.Test' OR
                         '$(MSBuildProjectName)' == 'SharpProof.Package.Test' OR

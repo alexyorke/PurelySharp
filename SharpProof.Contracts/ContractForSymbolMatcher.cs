@@ -18,6 +18,33 @@ internal static class ContractForSymbolMatcher
         internal INamedTypeSymbol Target => ContractTarget.Target;
     }
 
+    internal static IReadOnlyDictionary<INamedTypeSymbol,
+        ImmutableArray<CompanionDescriptor>> BuildCompanionTargetIndex(
+        ImmutableArray<CompanionDescriptor> companions)
+    {
+        var indexed = new Dictionary<INamedTypeSymbol,
+            ImmutableArray<CompanionDescriptor>.Builder>(
+            SymbolEqualityComparer.Default);
+        foreach (var companion in companions)
+        {
+            var key = companion.ContractTarget.IsOpen
+                ? companion.Target.OriginalDefinition
+                : companion.Target;
+            if (!indexed.TryGetValue(key, out var bucket))
+            {
+                bucket = ImmutableArray.CreateBuilder<CompanionDescriptor>();
+                indexed.Add(key, bucket);
+            }
+            bucket.Add(companion);
+        }
+
+        return indexed.ToDictionary(
+            static pair => pair.Key,
+            static pair => pair.Value.ToImmutable(),
+            (IEqualityComparer<INamedTypeSymbol>)
+                SymbolEqualityComparer.Default);
+    }
+
     internal sealed class CompanionRelationshipInventory(
         ImmutableArray<CompanionDescriptor> accepted,
         HashSet<INamedTypeSymbol> selfTargeting,
@@ -302,7 +329,9 @@ internal static class ContractForSymbolMatcher
 
     internal static CompanionResolution ResolveCompanion(
         ImmutableArray<CompanionDescriptor> companions,
-        IMethodSymbol target)
+        IMethodSymbol target,
+        IReadOnlyDictionary<INamedTypeSymbol,
+            ImmutableArray<CompanionDescriptor>>? targetIndex = null)
     {
         if (target.MethodKind != MethodKind.Ordinary)
         {
@@ -311,7 +340,10 @@ internal static class ContractForSymbolMatcher
 
         var matchingCount = 0;
         CompanionDescriptor? matchingCompanion = null;
-        foreach (var candidateCompanion in companions)
+        foreach (var candidateCompanion in GetCompanionCandidates(
+                     companions,
+                     target,
+                     targetIndex))
         {
             if (!TargetsType(candidateCompanion.ContractTarget, target.ContainingType))
             {
@@ -378,6 +410,46 @@ internal static class ContractForSymbolMatcher
             : namedCount == 0
                 ? ContractBindingFailure.MissingCompanion
                 : ContractBindingFailure.CompanionSignatureMismatch);
+    }
+
+    private static IEnumerable<CompanionDescriptor> GetCompanionCandidates(
+        ImmutableArray<CompanionDescriptor> companions,
+        IMethodSymbol target,
+        IReadOnlyDictionary<INamedTypeSymbol,
+            ImmutableArray<CompanionDescriptor>>? targetIndex)
+    {
+        if (targetIndex == null)
+        {
+            return companions;
+        }
+
+        return EnumerateIndexed();
+
+        IEnumerable<CompanionDescriptor> EnumerateIndexed()
+        {
+            var containingType = target.ContainingType;
+            if (targetIndex.TryGetValue(containingType, out var exact))
+            {
+                foreach (var companion in exact)
+                {
+                    yield return companion;
+                }
+            }
+
+            var originalDefinition = containingType.OriginalDefinition;
+            if (SymbolEqualityComparer.Default.Equals(
+                    containingType,
+                    originalDefinition) ||
+                !targetIndex.TryGetValue(originalDefinition, out var open))
+            {
+                yield break;
+            }
+
+            foreach (var companion in open)
+            {
+                yield return companion;
+            }
+        }
     }
 
     internal static bool IsCompanionType(
