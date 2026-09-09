@@ -26,9 +26,20 @@ $lines.Add('namespace SharpProof.Frontend;')
 $lines.Add('')
 $lines.Add('internal static class OperationSupportCatalogData')
 $lines.Add('{')
+$sharedEntries = @($catalog.PSObject.Properties['shared'].Value)
+if ($sharedEntries.Count -eq 0) {
+    throw "Operation-support catalog 'shared' cannot be empty."
+}
+$sharedSeen = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+foreach ($entry in $sharedEntries) {
+    Assert-Identifier ([string]$entry) "Operation-support catalog 'shared' entry"
+    if (-not $sharedSeen.Add([string]$entry)) {
+        throw "Operation-support catalog 'shared' repeats '$entry'."
+    }
+}
 foreach ($property in @('contractExpression', 'effectDiscovery')) {
     $name = if ($property -eq 'contractExpression') { 'ContractExpression' } else { 'EffectDiscovery' }
-    $entries = @($catalog.PSObject.Properties[$property].Value)
+    $entries = @($sharedEntries + @($catalog.PSObject.Properties[$property].Value))
     if ($entries.Count -eq 0) {
         throw "Operation-support catalog '$property' cannot be empty."
     }
