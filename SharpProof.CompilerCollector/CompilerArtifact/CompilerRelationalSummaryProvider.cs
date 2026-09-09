@@ -49,6 +49,8 @@ internal sealed class CompilerRelationalSummaryProvider
     private readonly CSharpCompilation _compilation;
     private readonly CompilerSyntaxTreeSnapshot[]? _capturedTrees;
     private readonly Dictionary<SyntaxTree, int>? _capturedTreeOrdinals;
+    private readonly CompilerImplementationIlSummaryLowerer.MetadataResolutionContext
+        _metadataResolution;
     private readonly IrFactory _factory;
     private readonly ResolvedApiSpecTable _apiSpecs;
     private readonly CompilerSpecificationPackProvider _specificationPacks;
@@ -116,6 +118,7 @@ internal sealed class CompilerRelationalSummaryProvider
         }
 
         _capturedTreeOrdinals = capturedTreeOrdinals;
+        _metadataResolution = new(_compilation);
         _factory = ArgumentNullGuard.NotNull(factory, nameof(factory));
         _apiSpecs = ArgumentNullGuard.NotNull(apiSpecs, nameof(apiSpecs));
         _specificationPacks = new CompilerSpecificationPackProvider(
@@ -181,6 +184,7 @@ internal sealed class CompilerRelationalSummaryProvider
                     out summary) &&
                 !CompilerImplementationIlSummaryLowerer.TryBuild(
                     _compilation,
+                    _metadataResolution,
                     _factory,
                     method,
                     member,

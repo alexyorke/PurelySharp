@@ -37,6 +37,30 @@ internal enum CompilerImplementationIlAbstentionReason
 
 internal static class CompilerImplementationIlSummaryLowerer
 {
+    internal sealed class MetadataResolutionContext(CSharpCompilation compilation)
+    {
+        private readonly CSharpCompilation _compilation =
+            ArgumentNullGuard.NotNull(compilation, nameof(compilation));
+        private readonly Dictionary<PortableExecutableReference, ISymbol?> _symbols =
+            new(ReferenceComparer<PortableExecutableReference>.Instance);
+        private CSharpCompilation? _metadataCompilation;
+
+        internal ISymbol? Resolve(PortableExecutableReference reference)
+        {
+            if (_symbols.TryGetValue(reference, out var symbol))
+            {
+                return symbol;
+            }
+
+            _metadataCompilation ??= _compilation.WithOptions(
+                _compilation.Options.WithMetadataImportOptions(
+                    MetadataImportOptions.All));
+            symbol = _metadataCompilation.GetAssemblyOrModuleSymbol(reference);
+            _symbols.Add(reference, symbol);
+            return symbol;
+        }
+    }
+
     private const int MaximumIlBytes = 65536;
     private const int MaximumStack = 128;
     private static readonly IReadOnlyDictionary<ILOpCode, IlOperandSize>
@@ -155,6 +179,31 @@ internal static class CompilerImplementationIlSummaryLowerer
         out IrRelationalSummary? summary,
         out CompilerImplementationIlAbstentionReason reason)
     {
+        return TryBuild(
+            compilation,
+            new MetadataResolutionContext(compilation),
+            factory,
+            method,
+            member,
+            isKnownPure,
+            resolveSummary,
+            cancellationToken,
+            out summary,
+            out reason);
+    }
+
+    internal static bool TryBuild(
+        CSharpCompilation compilation,
+        MetadataResolutionContext metadataResolution,
+        IrFactory factory,
+        IMethodSymbol method,
+        IrMemberId member,
+        Func<IMethodSymbol, bool> isKnownPure,
+        TryResolveCompilerSummary resolveSummary,
+        CancellationToken cancellationToken,
+        out IrRelationalSummary? summary,
+        out CompilerImplementationIlAbstentionReason reason)
+    {
         summary = null;
         reason = CompilerImplementationIlAbstentionReason.None;
         method = SemanticClaimIdentity.NormalizeCandidate(method)
@@ -207,10 +256,7 @@ internal static class CompilerImplementationIlSummaryLowerer
                 return false;
             }
 
-            var metadataCompilation = compilation.WithOptions(
-                compilation.Options.WithMetadataImportOptions(
-                    MetadataImportOptions.All));
-            if (metadataCompilation.GetAssemblyOrModuleSymbol(reference)
+            if (metadataResolution.Resolve(reference)
                     is not IAssemblySymbol metadataAssembly)
             {
                 reason = CompilerImplementationIlAbstentionReason.MetadataMismatch;
