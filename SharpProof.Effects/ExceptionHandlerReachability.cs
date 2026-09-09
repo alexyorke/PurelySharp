@@ -1613,7 +1613,7 @@ internal sealed class ExceptionHandlerReachability(
                             hasConstant,
                             value,
                             inputDefinitelyNonNull)
-                        : SwitchSelection.Never;
+                        : SwitchExpressionSelection.Never;
                 var clauseSelection = clause switch
                 {
                     ISingleValueCaseClauseOperation single
@@ -1621,15 +1621,15 @@ internal sealed class ExceptionHandlerReachability(
                             single.Value.ConstantValue is
                             { HasValue: true } item =>
                         Equals(value, item.Value)
-                            ? SwitchSelection.Always
-                            : SwitchSelection.Never,
+                            ? SwitchExpressionSelection.Always
+                            : SwitchExpressionSelection.Never,
                     IPatternCaseClauseOperation pattern =>
                         ApplySwitchGuard(
                             patternSelection,
                             pattern.Guard),
-                    _ => SwitchSelection.Maybe
+                    _ => SwitchExpressionSelection.Maybe
                 };
-                if (clauseSelection != SwitchSelection.Never)
+                if (clauseSelection != SwitchExpressionSelection.Never)
                 {
                     reachableClauses.Add(clause);
                     bodyReachable |= GetCaseClauseCompletionFacts(
@@ -1637,7 +1637,7 @@ internal sealed class ExceptionHandlerReachability(
                             completionFacts)
                         .CanReachBody;
                 }
-                stopsSelection |= clauseSelection == SwitchSelection.Always ||
+                stopsSelection |= clauseSelection == SwitchExpressionSelection.Always ||
                     clause is IPatternCaseClauseOperation barrierClause &&
                     SwitchExpressionFacts.IsPatternEvaluationUnavoidable(
                         barrierClause.Pattern,
@@ -1646,7 +1646,7 @@ internal sealed class ExceptionHandlerReachability(
                     !GetCaseClauseCompletionFacts(
                         barrierClause,
                         completionFacts).PatternCompletes ||
-                    patternSelection == SwitchSelection.Always &&
+                    patternSelection == SwitchExpressionSelection.Always &&
                     clause is IPatternCaseClauseOperation
                     { Guard: not null } guarded &&
                     !GetCaseClauseCompletionFacts(
@@ -1884,7 +1884,7 @@ internal sealed class ExceptionHandlerReachability(
         bool GuardCompletes,
         bool CanReachBody);
 
-    private static SwitchSelection GetPatternSelection(
+    private static SwitchExpressionSelection GetPatternSelection(
         IPatternOperation pattern,
         ITypeSymbol? inputType,
         bool hasConstant,
@@ -1897,29 +1897,22 @@ internal sealed class ExceptionHandlerReachability(
                 pattern,
                 inputType,
                 inputDefinitelyNonNull);
-        return selection switch
-        {
-            SwitchExpressionSelection.Never => SwitchSelection.Never,
-            SwitchExpressionSelection.Maybe => SwitchSelection.Maybe,
-            SwitchExpressionSelection.Always => SwitchSelection.Always,
-            _ => throw new InvalidOperationException(
-                "Unknown switch-pattern selection.")
-        };
+        return selection;
     }
 
-    private static SwitchSelection ApplySwitchGuard(
-        SwitchSelection selection,
+    private static SwitchExpressionSelection ApplySwitchGuard(
+        SwitchExpressionSelection selection,
         IOperation? guard)
     {
-        if (selection == SwitchSelection.Never || guard == null)
+        if (selection == SwitchExpressionSelection.Never || guard == null)
         {
             return selection;
         }
         return guard.ConstantValue is { HasValue: true, Value: bool value }
             ? value
                 ? selection
-                : SwitchSelection.Never
-            : SwitchSelection.Maybe;
+                : SwitchExpressionSelection.Never
+            : SwitchExpressionSelection.Maybe;
     }
 
     private PotentialExceptions GetNestedTryExceptions(
@@ -3317,13 +3310,6 @@ internal sealed class ExceptionHandlerReachability(
         ImmutableHashSet<INamedTypeSymbol> Known,
         bool Unknown);
 
-
-    private enum SwitchSelection
-    {
-        Never,
-        Maybe,
-        Always
-    }
 
     private sealed record SwitchCaseReachability(
         ISwitchCaseOperation Case,
