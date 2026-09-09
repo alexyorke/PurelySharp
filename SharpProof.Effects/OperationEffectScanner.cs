@@ -21,6 +21,10 @@ internal sealed partial class OperationEffectScanner
     private readonly Dictionary<
         (SyntaxTree Tree, int SpanStart),
         IArrayTypeSymbol> _freshArrayTypes = new();
+    private readonly Dictionary<int, (
+        ImmutableArray<EffectRegionSet> Regions,
+        ImmutableArray<IOperation?> ActualArguments)>
+        _implicitPatternArgumentCache = [];
     private readonly ConversionOwnershipClassifier _conversionOwnership;
     private readonly IMethodSymbol _method;
     private readonly INamedTypeSymbol? _monitorType;
@@ -1195,20 +1199,30 @@ internal sealed partial class OperationEffectScanner
         IOperation pattern,
         IOperation? instance)
     {
-        var argumentRegions = Enumerable.Repeat(
-                EffectRegionSet.Empty,
-                method.Parameters.Length)
-            .ToImmutableArray();
-        var actualArguments = Enumerable.Repeat<IOperation?>(
-                null,
-                method.Parameters.Length)
-            .ToImmutableArray();
+        if (!_implicitPatternArgumentCache.TryGetValue(
+                method.Parameters.Length,
+                out var arguments))
+        {
+            arguments = (
+                Enumerable.Repeat(
+                        EffectRegionSet.Empty,
+                        method.Parameters.Length)
+                    .ToImmutableArray(),
+                Enumerable.Repeat<IOperation?>(
+                        null,
+                        method.Parameters.Length)
+                    .ToImmutableArray());
+            _implicitPatternArgumentCache.Add(
+                method.Parameters.Length,
+                arguments);
+        }
+
         var call = _callResolver.Resolve(
             method,
             receiver,
             receiver,
-            argumentRegions,
-            actualArguments,
+            arguments.Regions,
+            arguments.ActualArguments,
             method.IsVirtual || method.IsAbstract,
             pattern,
             instance,
