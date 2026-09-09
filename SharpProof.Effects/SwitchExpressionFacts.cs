@@ -173,7 +173,7 @@ internal static class SwitchExpressionFacts
         foreach (var arm in operation.Arms)
         {
             var pattern = GetPatternSelection(arm.Pattern, constant.Value);
-            var selection = GetArmSelection(arm, constant.Value);
+            var selection = ApplyGuard(pattern, arm.Guard);
             if (ShouldIncludeArm(selection, patternOnly))
             {
                 reachable.Add(arm);
@@ -253,7 +253,7 @@ internal static class SwitchExpressionFacts
         foreach (var arm in operation.Arms)
         {
             var pattern = GetPatternSelection(arm.Pattern, constant.Value);
-            var selection = GetArmSelection(arm, constant.Value);
+            var selection = ApplyGuard(pattern, arm.Guard);
             if (selection == SwitchExpressionSelection.Always)
             {
                 return false;
