@@ -590,7 +590,8 @@ try {
         $isolatedBuildTaskMethods = @(
             'OversizedVerifierOutputTriggersPromptBoundedContainment',
             'VerifierExecutionRetainsLiveIncompleteCleanupAnchor',
-            'VerifierTaskBoundsTheWholeLauncherProcess')
+            'VerifierTaskBoundsTheWholeLauncherProcess',
+            'VerifierPreLaunchSetupDoesNotConsumeCleanupReserve')
         $remainingBuildTaskFilter = "FullyQualifiedName~$buildTaskClass"
         foreach ($method in $isolatedBuildTaskMethods) {
             $remainingBuildTaskFilter +=
