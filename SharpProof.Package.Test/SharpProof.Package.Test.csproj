@@ -25,6 +25,11 @@
     <ProjectReference Include="..\SharpProof.Host\SharpProof.Host.csproj" />
     <ProjectReference Include="..\SharpProof.Package\SharpProof.Package.csproj"
                       ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\SharpProof.Verifier\SharpProof.Verifier.csproj"
+                      ReferenceOutputAssembly="false"
+                      SkipGetTargetFrameworkProperties="true"
+                      PrivateAssets="all"
+                      TreatAsPackageReference="false" />
     <ProjectReference Include="..\SharpProof.Worker.Launcher\SharpProof.Worker.Launcher.csproj" />
     <ProjectReference Include="..\SharpProof.Worker.Protocol\SharpProof.Worker.Protocol.csproj" />
     <ProjectReference Include="..\SharpProof.Worker\SharpProof.Worker.csproj" />

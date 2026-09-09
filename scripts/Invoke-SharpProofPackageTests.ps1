@@ -401,7 +401,12 @@ try {
             Arguments = $testHarnessBuildArguments
         })
     }
-    if ([string]::IsNullOrWhiteSpace($PackageSource) -and -not $NoBuild) {
+    # The Release test-harness project references Verifier with no output
+    # assembly, so its build already materializes the complete package
+    # dependency closure. Keep the explicit product build for Debug, where
+    # the harness is not built in the package's Release configuration.
+    if ([string]::IsNullOrWhiteSpace($PackageSource) -and -not $NoBuild -and
+        $Configuration -cne 'Release') {
         $packageProductBuildArguments = @(
             'build',
             'SharpProof.Verifier/SharpProof.Verifier.csproj',
