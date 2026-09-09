@@ -1,3 +1,5 @@
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static SharpProof.CompilerProbe.TestAsset.CompilerProbeSourceHelpers;
 
@@ -5,6 +7,21 @@ namespace SharpProof.CompilerProbe.TestAsset;
 
 internal static class CompilerProbeSnapshot
 {
+    private static readonly ConditionalWeakTable<Type, PortableImageMethod>
+        PortableImageMethods = new();
+
+    private sealed class PortableImageMethod(Type metadataType)
+    {
+        internal MethodInfo? Value { get; } = metadataType.GetMethod(
+            "GetEntireImage",
+            BindingFlags.Instance |
+                BindingFlags.Public |
+                BindingFlags.NonPublic,
+            binder: null,
+            Type.EmptyTypes,
+            modifiers: null);
+    }
+
     private const string CommandLineAdditionalTextTypeName =
         "Microsoft.CodeAnalysis.AdditionalTextFile";
 
@@ -388,15 +405,10 @@ internal static class CompilerProbeSnapshot
         }
 
         var metadata = reference.GetMetadata();
-        var method = metadata.GetType().GetMethod(
-            "GetEntireImage",
-            System.Reflection.BindingFlags.Instance |
-            System.Reflection.BindingFlags.Public |
-            System.Reflection.BindingFlags.NonPublic,
-            binder: null,
-            Type.EmptyTypes,
-            modifiers: null);
-        var image = method?.Invoke(metadata, null);
+        var image = PortableImageMethods.GetValue(
+            metadata.GetType(),
+            static type => new PortableImageMethod(type))
+            .Value?.Invoke(metadata, null);
         if (image is null)
         {
             image = FindRetainedPortableImage(
