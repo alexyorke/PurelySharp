@@ -39,6 +39,21 @@ internal static class CompilerProbeSnapshot
                     candidate.PropertyType));
     }
 
+    private sealed class ReferenceIdentityComparer : IEqualityComparer<object>
+    {
+        internal static readonly ReferenceIdentityComparer Instance = new();
+
+        bool IEqualityComparer<object>.Equals(object? x, object? y)
+        {
+            return ReferenceEquals(x, y);
+        }
+
+        int IEqualityComparer<object>.GetHashCode(object obj)
+        {
+            return RuntimeHelpers.GetHashCode(obj);
+        }
+    }
+
     internal static string Create(CompilationAnalysisContext context)
     {
         var compilation = (CSharpCompilation)context.Compilation;
@@ -428,7 +443,7 @@ internal static class CompilerProbeSnapshot
             image = FindRetainedPortableImage(
                 metadata,
                 depth: 4,
-                []);
+                new HashSet<object>(ReferenceIdentityComparer.Instance));
         }
         if (image is System.Collections.Immutable.ImmutableArray<byte> bytes &&
             !bytes.IsDefault)
@@ -447,7 +462,7 @@ internal static class CompilerProbeSnapshot
         FindRetainedPortableImage(
             object? value,
             int depth,
-            List<object> visited)
+            HashSet<object> visited)
     {
         if (value is null || depth < 0)
         {
@@ -464,11 +479,10 @@ internal static class CompilerProbeSnapshot
         }
         var type = value.GetType();
         if (type.IsPrimitive || type.IsEnum || value is string or Delegate ||
-            visited.Any(item => ReferenceEquals(item, value)))
+            !visited.Add(value))
         {
             return default;
         }
-        visited.Add(value);
 
         if (value is System.Collections.IEnumerable sequence)
         {
