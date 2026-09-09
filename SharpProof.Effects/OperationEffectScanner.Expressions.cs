@@ -15,6 +15,17 @@ internal sealed partial class OperationEffectScanner
             : Throw(exceptionType);
     }
 
+    private EffectStep PotentialNullCheck(
+        IOperation? value,
+        IOperation origin,
+        string exceptionType)
+    {
+        var proofs = _nullnessEvaluator.GetNullProofs(value, origin);
+        return new(
+            proofs.IsNonNull ? EffectSummary.Empty : Throw(exceptionType),
+            !proofs.IsNull);
+    }
+
     private EffectSummary ScanPropertySubpattern(
         IPropertySubpatternOperation propertySubpattern)
     {
@@ -191,11 +202,10 @@ internal sealed partial class OperationEffectScanner
             return result.Summary;
         }
 
-        var receiverCheck = new EffectStep(
-            PotentialNullReceiver(reference.Instance, eventAssignment),
-            !_nullnessEvaluator.IsProvenNull(
-                reference.Instance,
-                eventAssignment));
+        var receiverCheck = PotentialNullCheck(
+            reference.Instance,
+            eventAssignment,
+            FrameworkTypeMetadataNames.NullReferenceException);
         result = result.Then(receiverCheck);
         if (!result.CompletesNormally)
         {
@@ -266,13 +276,10 @@ internal sealed partial class OperationEffectScanner
         var awaitableCheck = getAwaiter.IsStatic ||
             getAwaiter.ReducedFrom != null
                 ? EffectStep.Empty
-                : new EffectStep(
-                    PotentialNullReceiver(
-                        awaitOperation.Operation,
-                        awaitOperation),
-                    !_nullnessEvaluator.IsProvenNull(
-                        awaitOperation.Operation,
-                        awaitOperation));
+                : PotentialNullCheck(
+                    awaitOperation.Operation,
+                    awaitOperation,
+                    FrameworkTypeMetadataNames.NullReferenceException);
         var getAwaiterSummary = _callResolver.Resolve(
             getAwaiter,
             awaitableReceiver,
@@ -441,13 +448,10 @@ internal sealed partial class OperationEffectScanner
             return result;
         }
 
-        result = result.Then(new EffectStep(
-            PotentialNullReceiver(
-                original,
-                origin),
-            !_nullnessEvaluator.IsProvenNull(
-                original,
-                origin)));
+        result = result.Then(PotentialNullCheck(
+            original,
+            origin,
+            FrameworkTypeMetadataNames.NullReferenceException));
         if (!result.CompletesNormally)
         {
             return result;
@@ -482,12 +486,16 @@ internal sealed partial class OperationEffectScanner
             return receiver.Summary;
         }
 
+        var nullCheck = PotentialNullCheck(
+            @lock.LockedValue,
+            @lock,
+            FrameworkTypeMetadataNames.ArgumentNullException);
         var entry = new EffectStep(
             EffectSummaryOperations.Join(
-                PotentialNullLock(@lock.LockedValue, @lock),
+                nullCheck.Summary,
                 EffectSummaryOperations.Capability(
                     EffectCapabilityKind.Synchronization)),
-            !_nullnessEvaluator.IsProvenNull(@lock.LockedValue, @lock));
+            nullCheck.CompletesNormally);
         var result = receiver.Then(entry);
         if (@lock.Body != null && result.CompletesNormally)
         {

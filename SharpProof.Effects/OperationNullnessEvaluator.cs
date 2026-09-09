@@ -2,6 +2,8 @@ namespace SharpProof.Effects;
 
 internal sealed class OperationNullnessEvaluator
 {
+    internal readonly record struct NullProofs(bool IsNull, bool IsNonNull);
+
     internal enum NullState
     {
         Unknown,
@@ -32,6 +34,29 @@ internal sealed class OperationNullnessEvaluator
             (value.ConstantValue is { HasValue: true, Value: null } ||
              _abstractFlow?.ProvesNull(origin, value) == true ||
              IsSourceDefinitelyNull(value, origin));
+    }
+
+    internal NullProofs GetNullProofs(IOperation? value, IOperation origin)
+    {
+        var isNonNull = IsStaticallyNonNull(value);
+        if (value == null)
+        {
+            return new(IsNull: false, IsNonNull: isNonNull);
+        }
+
+        var isNull = value.ConstantValue is { HasValue: true, Value: null };
+        if (_abstractFlow?.TryEvaluate(origin, value, out var result) == true)
+        {
+            isNonNull |= result.IsDefinitelyNonNull;
+            isNull |= result.IsDefinitelyNull;
+        }
+
+        if (!isNull)
+        {
+            isNull = IsSourceDefinitelyNull(value, origin);
+        }
+
+        return new(isNull, isNonNull);
     }
 
     internal NullState GetNullState(IOperation? value, IOperation origin)

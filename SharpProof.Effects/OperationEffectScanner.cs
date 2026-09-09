@@ -497,9 +497,10 @@ internal sealed partial class OperationEffectScanner
 
         var receiverCheck = receiver == null
             ? EffectStep.Empty
-            : new EffectStep(
-                PotentialNullReceiver(receiver, access),
-                !_nullnessEvaluator.IsProvenNull(receiver, access));
+            : PotentialNullCheck(
+                receiver,
+                access,
+                FrameworkTypeMetadataNames.NullReferenceException);
         return instance.Then(receiverCheck);
     }
 
@@ -753,9 +754,10 @@ internal sealed partial class OperationEffectScanner
 
         if (instance != null && method.ReducedFrom == null)
         {
-            var receiverCheck = new EffectStep(
-                PotentialNullReceiver(instance, origin),
-                !_nullnessEvaluator.IsProvenNull(instance, origin));
+            var receiverCheck = PotentialNullCheck(
+                instance,
+                origin,
+                FrameworkTypeMetadataNames.NullReferenceException);
             result = result.Then(receiverCheck);
             if (!result.CompletesNormally)
             {
