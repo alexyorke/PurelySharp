@@ -61,10 +61,40 @@ internal sealed class CompilerCallableLowerer
         }
 
         var contracts = binding.Contracts!;
-        var assumptions = PartitionAssumptions(target.Entry.Assumptions);
-        var clauseCounts = CountClauseKinds(contracts.Clauses);
-        if (clauseCounts.Requires != assumptions.Preconditions.Count ||
-            clauseCounts.Assumptions != assumptions.UserAssumptions.Count)
+        var manifestAssumptions = target.Entry.Assumptions;
+        if (manifestAssumptions is null)
+        {
+            throw new ArgumentNullException(nameof(target.Entry.Assumptions));
+        }
+        var preconditions = ImmutableArray.CreateBuilder<WorkerAssumptionEvidence>();
+        var userAssumptions = ImmutableArray.CreateBuilder<WorkerAssumptionEvidence>();
+        foreach (var evidence in manifestAssumptions)
+        {
+            if (evidence.Kind == WorkerAssumptionKind.Precondition)
+            {
+                preconditions.Add(evidence);
+            }
+            else if (evidence.Kind == WorkerAssumptionKind.UserAssume)
+            {
+                userAssumptions.Add(evidence);
+            }
+        }
+
+        var requiresCount = 0;
+        var assumeCount = 0;
+        foreach (var clause in contracts.Clauses)
+        {
+            if (clause.Kind == BoundContractKind.Requires)
+            {
+                requiresCount++;
+            }
+            else if (clause.Kind == BoundContractKind.Assume)
+            {
+                assumeCount++;
+            }
+        }
+        if (requiresCount != preconditions.Count ||
+            assumeCount != userAssumptions.Count)
         {
             return Fail(target, WorkerClaimReason.UnsupportedContract);
         }
@@ -81,8 +111,8 @@ internal sealed class CompilerCallableLowerer
             CompilerLoweringWireMappings.ToCompiler(clause.Kind), clause.Condition,
             CompilerLoweringWireMappings.ToCompiler(clause.Evidence),
             clause.Kind == BoundContractKind.Ensures ? target.Claims[claimOrdinal++].Entry.ClaimId : null,
-            clause.Kind == BoundContractKind.Requires ? assumptions.Preconditions[preconditionOrdinal++].Id :
-                clause.Kind == BoundContractKind.Assume ? assumptions.UserAssumptions[assumptionOrdinal++].Id : null))];
+            clause.Kind == BoundContractKind.Requires ? preconditions[preconditionOrdinal++].Id :
+                clause.Kind == BoundContractKind.Assume ? userAssumptions[assumptionOrdinal++].Id : null))];
         ImmutableArray<CompilerCanonicalVariable> variables = [.. contracts.Variables.Select(
             variable => CreateVariable(variable, contracts))];
         var requiresBodyAdmission =
@@ -231,54 +261,6 @@ internal sealed class CompilerCallableLowerer
     {
         failure = WorkerClaimReason.UnsupportedBody;
         return null;
-    }
-
-    private static (
-        ImmutableArray<WorkerAssumptionEvidence>.Builder Preconditions,
-        ImmutableArray<WorkerAssumptionEvidence>.Builder UserAssumptions) PartitionAssumptions(
-            WorkerAssumptionEvidence[] assumptions)
-    {
-        if (assumptions is null)
-        {
-            throw new ArgumentNullException(nameof(assumptions));
-        }
-        var preconditions = ImmutableArray.CreateBuilder<WorkerAssumptionEvidence>();
-        var userAssumptions = ImmutableArray.CreateBuilder<WorkerAssumptionEvidence>();
-        foreach (var assumption in assumptions)
-        {
-            switch (assumption.Kind)
-            {
-                case WorkerAssumptionKind.Precondition:
-                    preconditions.Add(assumption);
-                    break;
-                case WorkerAssumptionKind.UserAssume:
-                    userAssumptions.Add(assumption);
-                    break;
-            }
-        }
-
-        return (preconditions, userAssumptions);
-    }
-
-    private static (int Requires, int Assumptions) CountClauseKinds(
-        ImmutableArray<BoundContractClause> clauses)
-    {
-        var requires = 0;
-        var assumptions = 0;
-        foreach (var clause in clauses)
-        {
-            switch (clause.Kind)
-            {
-                case BoundContractKind.Requires:
-                    requires++;
-                    break;
-                case BoundContractKind.Assume:
-                    assumptions++;
-                    break;
-            }
-        }
-
-        return (requires, assumptions);
     }
 
     private static bool HasManifestParity(ManifestCallableTarget target, BoundMethodContracts contracts)
