@@ -1,7 +1,19 @@
+using System.Runtime.CompilerServices;
+
 namespace SharpProof.Frontend;
 
 internal static class ReferencedTypeSymbols
 {
+    private sealed class TypeSnapshot(
+        ImmutableArray<INamedTypeSymbol> types)
+    {
+        internal ImmutableArray<INamedTypeSymbol> Types { get; } = types;
+    }
+
+    private static readonly ConditionalWeakTable<
+        Compilation,
+        TypeSnapshot> CachedSnapshots = new();
+
     internal static IEnumerable<INamedTypeSymbol> GetAll(
         Compilation compilation,
         CancellationToken cancellationToken = default)
@@ -21,6 +33,22 @@ internal static class ReferencedTypeSymbols
             {
                 yield return type;
             }
+        }
+    }
+
+    internal static IEnumerable<INamedTypeSymbol> GetAllCached(
+        Compilation compilation,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var snapshot = CachedSnapshots.GetValue(
+            compilation,
+            _ => new TypeSnapshot(
+                GetAll(compilation, cancellationToken).ToImmutableArray()));
+        foreach (var type in snapshot.Types)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            yield return type;
         }
     }
 

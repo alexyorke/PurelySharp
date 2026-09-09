@@ -232,7 +232,7 @@ internal sealed class ConservativeEffectCallPreconditionPolicy
         }
 
         foreach (var type in SharpProof.Frontend.ReferencedTypeSymbols
-                     .GetAll(compilation, cancellationToken))
+                     .GetAllCached(compilation, cancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
             foreach (var attribute in type.GetAttributes())

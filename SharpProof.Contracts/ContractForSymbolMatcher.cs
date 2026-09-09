@@ -227,7 +227,7 @@ internal static class ContractForSymbolMatcher
         }
 
         var result = ImmutableArray.CreateBuilder<CompanionDescriptor>();
-        foreach (var type in ReferencedTypeSymbols.GetAll(
+        foreach (var type in ReferencedTypeSymbols.GetAllCached(
                      compilation,
                      cancellationToken))
         {
