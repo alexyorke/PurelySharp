@@ -82,7 +82,7 @@ public sealed class BuildSchedulingTests
                 packageTests,
                 Does.Contain("Slots = [Math]::Min(4, $parallelism)"));
             Assert.That(packageTests, Does.Contain("$parallelism -ge 4"));
-            Assert.That(packageTests, Does.Contain("$parallelism -le 8"));
+            Assert.That(packageTests, Does.Not.Contain("$parallelism -le 8"));
         }
     }
 

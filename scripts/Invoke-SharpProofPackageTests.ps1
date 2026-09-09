@@ -510,9 +510,13 @@ try {
         $workerMethods = @($discoveredMethods[$workerClass])
         $threeTargetWorkerMethod =
             'ThreeTargetAbsoluteSarifSurvivesSerialIncrementalAndCleanBuilds'
+        # This test performs three full analyzer builds in sequence. At the
+        # normal wide package wave, keeping it in a worker bucket lets its
+        # analyzer CPU compete with every other worker and creates the tail.
+        # Reserve a bounded slice at every useful multi-lane width; retain
+        # the bucketed path for 1-3 lanes where it would consume the wave.
         $isolateThreeTargetWorker =
             $parallelism -ge 4 -and
-            $parallelism -le 8 -and
             $workerMethods -contains $threeTargetWorkerMethod
         $bucketWorkerMethods = if ($isolateThreeTargetWorker) {
             @($workerMethods | Where-Object {
