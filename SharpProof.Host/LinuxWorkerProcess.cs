@@ -225,7 +225,8 @@ public sealed partial class LinuxWorkerProcess : IDisposable
     private static List<(int ProcessId, ulong StartTime)> CaptureDescendants(
         int rootProcessId)
     {
-        var parentByProcess = new Dictionary<int, (int ParentId, ulong StartTime)>();
+        var childrenByParent =
+            new Dictionary<int, List<(int ProcessId, ulong StartTime)>>();
         foreach (var directory in Directory.EnumerateDirectories("/proc"))
         {
             if (!int.TryParse(Path.GetFileName(directory), out var processId) ||
@@ -233,21 +234,26 @@ public sealed partial class LinuxWorkerProcess : IDisposable
             {
                 continue;
             }
-            parentByProcess[processId] = (parentId, startTime);
+            if (!childrenByParent.TryGetValue(parentId, out var children))
+            {
+                children = [];
+                childrenByParent.Add(parentId, children);
+            }
+            children.Add((processId, startTime));
         }
 
         var descendants = new List<(int ProcessId, ulong StartTime)>();
         var pending = new Queue<int>([rootProcessId]);
         while (pending.TryDequeue(out var parentId))
         {
-            foreach (var pair in parentByProcess)
+            if (!childrenByParent.TryGetValue(parentId, out var children))
             {
-                if (pair.Value.ParentId != parentId)
-                {
-                    continue;
-                }
-                descendants.Add((pair.Key, pair.Value.StartTime));
-                pending.Enqueue(pair.Key);
+                continue;
+            }
+            foreach (var child in children)
+            {
+                descendants.Add(child);
+                pending.Enqueue(child.ProcessId);
             }
         }
         return descendants;
