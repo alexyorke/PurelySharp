@@ -17,20 +17,45 @@ public sealed class CompilerProbeGenerator : IIncrementalGenerator
                     Path.GetFileName(file.Path),
                     CompilerProbeContract.AdditionalFileName,
                     StringComparison.OrdinalIgnoreCase))
+            .Collect()
             .Combine(context.AnalyzerConfigOptionsProvider)
             .Select(static (pair, cancellationToken) =>
             {
-                var text = pair.Left.GetText(cancellationToken)?.ToString() ??
+                var files = pair.Left;
+                if (files.IsDefaultOrEmpty)
+                {
+                    return ImmutableArray<(
+                        string Path,
+                        string Text,
+                        string Metadata)>.Empty;
+                }
+
+                var selected = files[0];
+                var selectedPath = NormalizePath(selected.Path);
+                for (var index = 1; index < files.Length; index++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var candidate = files[index];
+                    var candidatePath = NormalizePath(candidate.Path);
+                    if (StringComparer.Ordinal.Compare(
+                            candidatePath,
+                            selectedPath) < 0)
+                    {
+                        selected = candidate;
+                        selectedPath = candidatePath;
+                    }
+                }
+
+                var text = selected.GetText(cancellationToken)?.ToString() ??
                     string.Empty;
                 var metadata = GetOption(
-                    pair.Right.GetOptions(pair.Left),
+                    pair.Right.GetOptions(selected),
                     CompilerProbeContract.AdditionalFileMetadataOptionKey);
-                return (
-                    Path: NormalizePath(pair.Left.Path),
+                return ImmutableArray.Create((
+                    Path: selectedPath,
                     Text: text,
-                    Metadata: metadata);
-            })
-            .Collect();
+                    Metadata: metadata));
+            });
         context.RegisterSourceOutput(
             globalValue.Combine(inputs),
             static (productionContext, input) =>
@@ -48,14 +73,6 @@ public sealed class CompilerProbeGenerator : IIncrementalGenerator
         }
 
         var input = inputs[0];
-        for (var index = 1; index < inputs.Length; index++)
-        {
-            var candidate = inputs[index];
-            if (StringComparer.Ordinal.Compare(candidate.Path, input.Path) < 0)
-            {
-                input = candidate;
-            }
-        }
         var fingerprint = ProbeHash.Text(
             globalValue + "\0" + input.Metadata + "\0" + input.Text);
         context.AddSource(
