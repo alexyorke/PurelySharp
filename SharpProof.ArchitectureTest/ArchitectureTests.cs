@@ -622,14 +622,16 @@ public sealed class ArchitectureTests
             canonicalTcb.Distinct(StringComparer.Ordinal).Count(),
             Is.EqualTo(canonicalTcb.Length),
             "The canonical TCB union must not contain duplicate ownership.");
-        var mutationCatalog = File.ReadAllText(Path.Combine(
-            TestRepository.FindRoot(),
-            "scripts",
-            "Test-SharpProofTrustedMutations.ps1"));
-        var mutationTargets = Regex.Matches(
-                mutationCatalog,
-                @"(?m)^\s*File\s*=\s*'([^']+)'\s*$")
-            .Select(static match => match.Groups[1].Value.Replace('\\', '/'))
+        using var mutationCatalog = JsonDocument.Parse(File.ReadAllText(
+            Path.Combine(
+                TestRepository.FindRoot(),
+                "eng",
+                "mutations",
+                "trusted-mutations.json")));
+        var mutationTargets = mutationCatalog.RootElement
+            .EnumerateArray()
+            .Select(static mutation =>
+                mutation.GetProperty("file").GetString() ?? "")
             .Distinct(StringComparer.Ordinal)
             .ToArray();
         Assert.That(mutationTargets, Is.Not.Empty);
@@ -1221,6 +1223,12 @@ public sealed class ArchitectureTests
             root,
             "scripts",
             "Test-SharpProofTrustedMutations.ps1"));
+        using var mutationCatalog = JsonDocument.Parse(File.ReadAllText(
+            Path.Combine(
+                root,
+                "eng",
+                "mutations",
+                "trusted-mutations.json")));
         var parallelMutationDriver = File.ReadAllText(Path.Combine(
             root,
             "scripts",
@@ -1233,17 +1241,16 @@ public sealed class ArchitectureTests
             root,
             "scripts",
             "Invoke-SharpProofDevCheck.ps1"));
-        var mutationProjects = Regex.Matches(
-                mutationDriver,
-                @"(?m)^\s*Project\s*=\s*'([^']+)'\s*$")
-            .Select(static match => match.Groups[1].Value)
+        var mutationProjects = mutationCatalog.RootElement
+            .EnumerateArray()
+            .Select(static mutation => mutation.GetProperty("project").GetString() ?? "")
             .Distinct(StringComparer.Ordinal)
             .OrderBy(static value => value, StringComparer.Ordinal)
             .ToArray();
         var weightedProjects = automation
             .GetProperty("mutationProjectWeights")
             .EnumerateObject()
-            .Select(static property => property.Name)
+            .Select(static property => property.Name.Replace('\\', '/'))
             .OrderBy(static value => value, StringComparer.Ordinal)
             .ToArray();
 
@@ -1323,6 +1330,8 @@ public sealed class ArchitectureTests
             Assert.That(
                 mutationDriver,
                 Does.Contain("Get-SharpProofMutationBaselinePlan"));
+            Assert.That(mutationDriver, Does.Contain("trusted-mutations.json"));
+            Assert.That(mutationDriver, Does.Not.Contain("$mutations = @("));
             Assert.That(
                 mutationDriver,
                 Does.Not.Contain("($filters -join '|')"));

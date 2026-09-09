@@ -124,6 +124,7 @@
       "eng/release/first-party-assemblies.json",
       "eng/release/package-dependency-contract.json",
       "eng/release/third-party-components.json",
+      "eng/mutations/trusted-mutations.json",
       "scripts/Assert-SharpProofFuzzRunnerResult.ps1",
       "scripts/Assert-SharpProofJsonProperties.ps1",
       "scripts/Assert-SharpProofStandaloneGateResult.ps1",
@@ -417,6 +418,7 @@
           "scripts/Test-SharpProofMutationBaselines.ps1",
           "scripts/Test-SharpProofMutationScheduling.ps1",
           "scripts/Test-SharpProofMutationEvidence.ps1",
+          "eng/mutations/trusted-mutations.json",
           "scripts/Test-SharpProofTrustedMutations.ps1",
           "scripts/Invoke-SharpProofTrustedMutationsParallel.ps1",
           "scripts/Test-SharpProofMutationCatalog.ps1"
