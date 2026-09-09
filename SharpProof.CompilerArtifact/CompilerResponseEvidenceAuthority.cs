@@ -663,15 +663,9 @@ internal sealed class CompilerResponseEvidenceAuthority :
             ? prefix + ":" + summary.EvidenceIdentity
             : prefix;
         return summaryEvidence + ":" + summary.CallIdentity +
-            DependencyEvidenceLabel(summary.DependencyEvidence);
-    }
-
-    private static string DependencyEvidenceLabel(
-        ImmutableArray<CompilerPreparedSummaryEvidence> evidence)
-    {
-        return CompilerDependencyEvidenceFormatter.Format(
-            evidence,
-            throwOnUnsupportedOrigin: false);
+            CompilerDependencyEvidenceFormatter.Format(
+                summary.DependencyEvidence,
+                throwOnUnsupportedOrigin: false);
     }
 
     private static bool IsCanonicalProofCore(string[]? values)
