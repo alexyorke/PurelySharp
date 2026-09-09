@@ -116,6 +116,24 @@ internal static class CSharpScalarSemantics
         new(UnaryOperatorKind.Minus, IrUnaryOperator.Negate, requiresCheckedArithmetic: true, requiresExactIntegerDomain: true)
     ];
 
+    private static readonly ImmutableDictionary<SpecialType, CSharpIntegerSemantics>
+        IntegerLookup = Integers.ToImmutableDictionary(
+            static value => value.SpecialType);
+    private static readonly ImmutableDictionary<(SpecialType Source, SpecialType Target), bool>
+        IntegerConversionLookup = IntegerConversions.ToImmutableDictionary(
+            static value => (value.Source, value.Target),
+            static value => value.IsValuePreserving);
+    private static readonly ImmutableDictionary<BinaryOperatorKind, CSharpBinarySemantics>
+        BinaryLookup = BinaryOperators.ToImmutableDictionary(
+            static value => value.Kind);
+    private static readonly ImmutableDictionary<UnaryOperatorKind, CSharpUnarySemantics>
+        UnaryLookup = UnaryOperators.ToImmutableDictionary(
+            static value => value.Kind);
+    private static readonly ImmutableDictionary<IrBinaryOperator, BinaryOperatorKind>
+        BinaryOperatorLookup = BinaryOperators.ToImmutableDictionary(
+            static value => value.IrOperator,
+            static value => value.Kind);
+
     internal static ImmutableArray<CSharpIntegerSemantics> SupportedIntegers =>
         Integers;
 
@@ -142,30 +160,10 @@ internal static class CSharpScalarSemantics
             _ => null
         };
 
-    private static bool TryGet<TSemantics, TKey>(
-        ImmutableArray<TSemantics> candidates,
-        TKey key,
-        Func<TSemantics, TKey> keySelector,
-        out TSemantics semantics)
-        where TSemantics : struct
-        where TKey : struct
-    {
-        foreach (var candidate in candidates)
-            if (EqualityComparer<TKey>.Default.Equals(
-                keySelector(candidate), key))
-            {
-                semantics = candidate;
-                return true;
-            }
-        semantics = default;
-        return false;
-    }
-
     internal static bool TryGetInteger(
         SpecialType type,
         out CSharpIntegerSemantics semantics) =>
-        TryGet(Integers, type,
-            static candidate => candidate.SpecialType, out semantics);
+        IntegerLookup.TryGetValue(type, out semantics);
 
     internal static bool TryGetIrIntegerRange(
         SpecialType type,
@@ -199,10 +197,10 @@ internal static class CSharpScalarSemantics
     internal static BinaryOperatorKind MapBinaryToRoslyn(
         IrBinaryOperator @operator)
     {
-        foreach (var candidate in BinaryOperators)
-            if (candidate.IrOperator == @operator)
-                return candidate.Kind;
-        return BinaryOperatorKind.None;
+        return BinaryOperatorLookup.TryGetValue(
+            @operator, out var kind)
+            ? kind
+            : BinaryOperatorKind.None;
     }
 
     internal static BinaryOperatorKind ReverseBinary(
@@ -227,14 +225,10 @@ internal static class CSharpScalarSemantics
 
     internal static bool IsValuePreservingIntegerConversion(
         SpecialType source,
-        SpecialType target)
-    {
-        foreach (var conversion in IntegerConversions)
-            if (conversion.Source == source &&
-                conversion.Target == target)
-                return conversion.IsValuePreserving;
-        return false;
-    }
+        SpecialType target) =>
+        IntegerConversionLookup.TryGetValue(
+            (source, target), out var isValuePreserving) &&
+        isValuePreserving;
 
     internal static bool SupportsExactIntegerIrArithmetic(SpecialType type) =>
         TryGetInteger(type, out var semantics) &&
@@ -243,8 +237,7 @@ internal static class CSharpScalarSemantics
     internal static bool TryGetUnary(
         UnaryOperatorKind kind,
         out CSharpUnarySemantics semantics) =>
-        TryGet(UnaryOperators, kind,
-            static candidate => candidate.Kind, out semantics);
+        UnaryLookup.TryGetValue(kind, out semantics);
 
     internal static bool SupportsBuiltInOperands(
         BinaryOperatorKind kind,
@@ -256,8 +249,7 @@ internal static class CSharpScalarSemantics
     internal static bool TryGetBinary(
         BinaryOperatorKind kind,
         out CSharpBinarySemantics semantics) =>
-        TryGet(BinaryOperators, kind,
-            static candidate => candidate.Kind, out semantics);
+        BinaryLookup.TryGetValue(kind, out semantics);
 
     private static bool SupportsBuiltInEquality(ITypeSymbol? type) =>
 
