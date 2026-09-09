@@ -102,6 +102,10 @@ public sealed class ContractClauseInventoryBuilder(Compilation compilation)
             ContractClausePlacement Placement,
             IInvocationOperation Invocation,
             int TreeOrdinal)>();
+        var directClauseCache = new Dictionary<(
+            SyntaxTree Tree,
+            int Start,
+            int Length), bool>();
         IOperation? resolvedBody = null;
         var hasRejectedContractApiUsage = false;
         foreach (var body in GetBodies(
@@ -150,7 +154,8 @@ public sealed class ContractClauseInventoryBuilder(Compilation compilation)
                     model,
                     body,
                     ownedByCallable,
-                    cancellationToken), invocation,
+                    cancellationToken,
+                    directClauseCache), invocation,
                     GetTreeOrdinal(invocation.Syntax.SyntaxTree)));
             }
         }
@@ -216,7 +221,9 @@ public sealed class ContractClauseInventoryBuilder(Compilation compilation)
         SemanticModel model,
         SyntaxNode body,
         bool ownedByCallable,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Dictionary<(SyntaxTree Tree, int Start, int Length), bool>
+            directClauseCache)
     {
         if (!ownedByCallable)
         {
@@ -233,6 +240,7 @@ public sealed class ContractClauseInventoryBuilder(Compilation compilation)
                 model,
                 body,
                 cancellationToken,
+                directClauseCache,
                 out var placement))
         {
             return placement;
@@ -263,6 +271,8 @@ public sealed class ContractClauseInventoryBuilder(Compilation compilation)
         SemanticModel model,
         SyntaxNode body,
         CancellationToken cancellationToken,
+        Dictionary<(SyntaxTree Tree, int Start, int Length), bool>
+            directClauseCache,
         out ContractClausePlacement placement)
     {
         if (body is not BlockSyntax and not CompilationUnitSyntax)
@@ -284,7 +294,11 @@ public sealed class ContractClauseInventoryBuilder(Compilation compilation)
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            if (!IsDirectClause(model, prior, cancellationToken))
+            if (!IsDirectClause(
+                    model,
+                    prior,
+                    cancellationToken,
+                    directClauseCache))
             {
                 placement = ContractClausePlacement.Late;
                 return true;
@@ -321,13 +335,31 @@ public sealed class ContractClauseInventoryBuilder(Compilation compilation)
     private bool IsDirectClause(
         SemanticModel model,
         StatementSyntax statement,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Dictionary<(SyntaxTree Tree, int Start, int Length), bool>
+            directClauseCache)
     {
-        return statement is ExpressionStatementSyntax expression &&
-        model.GetOperation(
-            expression.Expression,
-            cancellationToken) is IInvocationOperation invocation &&
-        _api!.GetClauseKind(invocation.TargetMethod).HasValue;
+        cancellationToken.ThrowIfCancellationRequested();
+        if (statement is not ExpressionStatementSyntax expression)
+        {
+            return false;
+        }
+
+        var key = (
+            expression.SyntaxTree,
+            expression.Span.Start,
+            expression.Span.Length);
+        if (directClauseCache.TryGetValue(key, out var cached))
+        {
+            return cached;
+        }
+
+        var isDirect = model.GetOperation(
+                expression.Expression,
+                cancellationToken) is IInvocationOperation invocation &&
+            _api!.GetClauseKind(invocation.TargetMethod).HasValue;
+        directClauseCache.Add(key, isDirect);
+        return isDirect;
     }
 
     private static bool IsReachable(
