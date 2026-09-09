@@ -107,6 +107,8 @@ internal static class CompilerManifestArtifactProducer
         CompilerCompilationSnapshot snapshot,
         ImmutableArray<CompilerSummaryEvidenceAuthority> authorities)
     {
+        Dictionary<(string Path, string Sha256), CompilerSyntaxTreeSnapshot[]>?
+            syntaxTreesByIdentity = null;
         return [.. authorities.Select(authority =>
         {
             var row = new CompilerSummaryEvidenceSnapshot
@@ -125,7 +127,15 @@ internal static class CompilerManifestArtifactProducer
 
             if (authority.Origin == CompilerSummaryOrigin.Source)
             {
-                if (!snapshot.SyntaxTrees.Any(tree =>
+                syntaxTreesByIdentity ??= snapshot.SyntaxTrees
+                    .GroupBy(static tree => (tree.Path, tree.Sha256))
+                    .ToDictionary(
+                        static group => group.Key,
+                        static group => group.ToArray());
+                if (!syntaxTreesByIdentity.TryGetValue(
+                        (authority.SourcePath, authority.SourceTreeSha256),
+                        out var matchingTrees) ||
+                    !matchingTrees.Any(tree =>
                         tree.Path == authority.SourcePath &&
                         tree.Sha256 == authority.SourceTreeSha256 &&
                         authority.SourceStart >= 0 &&
