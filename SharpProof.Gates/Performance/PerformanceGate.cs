@@ -1515,21 +1515,26 @@ internal static class PerformanceGate
         XDocument verifierProps,
         XDocument verifierTargets)
     {
-        var visibleProperties = portableProps
+        var portablePropsElements = new DescendantInventory(portableProps);
+        var portableTargetsElements = new DescendantInventory(portableTargets);
+        var portableContractElements = new DescendantInventory(portableContract);
+        var verifierPropsElements = new DescendantInventory(verifierProps);
+        var verifierTargetsElements = new DescendantInventory(verifierTargets);
+        var visibleProperties = portablePropsElements
             .Descendants("CompilerVisibleProperty")
             .SelectMany(static element => SplitMsBuildList(
                 (string?)element.Attribute("Include")))
             .ToHashSet(StringComparer.Ordinal);
         var profile = FindDefaultProperty(
-            portableContract,
+            portableContractElements,
             "SharpProofProfile");
         var features = FindDefaultProperty(
-            portableContract,
+            portableContractElements,
             "SharpProofFeatures");
         var verify = FindDefaultProperty(
-            portableContract,
+            portableContractElements,
             "SharpProofVerify");
-        var analyzerGroups = portableTargets.Descendants("ItemGroup")
+        var analyzerGroups = portableTargetsElements.Descendants("ItemGroup")
             .Where(static group =>
                 group.Elements("Analyzer").Any())
             .ToArray();
@@ -1597,25 +1602,25 @@ internal static class PerformanceGate
                 collectorDependencies,
                 "CollectorDependency",
                 "false");
-        var verifierMarker = verifierProps
+        var verifierMarker = verifierPropsElements
             .Descendants("_SharpProofVerifierPackagePresent")
             .SingleOrDefault();
-        var verifierHost = verifierProps
+        var verifierHost = verifierPropsElements
             .Descendants("_SharpProofVerifierHostSupported")
             .SingleOrDefault();
         var verifyPolicy = FindDefaultProperty(
-            verifierTargets,
+            verifierTargetsElements,
             "SharpProofVerifyPolicy");
         var assumptionPolicy = FindDefaultProperty(
-            verifierTargets,
+            verifierTargetsElements,
             "SharpProofAssumptionPolicy");
-        var verifierTarget = verifierTargets.Descendants("Target")
+        var verifierTarget = verifierTargetsElements.Descendants("Target")
             .SingleOrDefault(static target =>
                 string.Equals(
                     (string?)target.Attribute("Name"),
                     "SharpProofVerify",
                     StringComparison.Ordinal));
-        var verifierCore = verifierTargets.Descendants("Target")
+        var verifierCore = verifierTargetsElements.Descendants("Target")
             .SingleOrDefault(static target =>
                 string.Equals(
                     (string?)target.Attribute("Name"),
@@ -1635,35 +1640,35 @@ internal static class PerformanceGate
         const string expectedVerifierCondition =
             "'$(_SharpProofVerifyActive)'=='true'AND" +
             "'$(_SharpProofVerifierHostSupported)'=='true'";
-        var unexpectedCoreDependency = verifierTargets.Descendants("Target")
+        var unexpectedCoreDependency = verifierTargetsElements.Descendants("Target")
             .Where(target => !ReferenceEquals(target, verifierTarget))
             .Any(target => SplitMsBuildList(
                     (string?)target.Attribute("DependsOnTargets"))
                 .Contains(
                     "_SharpProofVerifyCore",
                     StringComparer.Ordinal));
-        var callTargetInvokesCore = verifierTargets.Descendants("CallTarget")
+        var callTargetInvokesCore = verifierTargetsElements.Descendants("CallTarget")
             .Any(call => SplitMsBuildList(
                     (string?)call.Attribute("Targets"))
                 .Contains(
                     "_SharpProofVerifyCore",
                     StringComparer.Ordinal));
-        var verifierExec = verifierTargets.Descendants("Exec").ToArray();
-        var verifierRun = verifierTargets
+        var verifierExec = verifierTargetsElements.Descendants("Exec").ToArray();
+        var verifierRun = verifierTargetsElements
             .Descendants("SharpProof.BuildTasks.RunVerifier")
             .ToArray();
-        var verifierRunnerTask = verifierTargets.Descendants("UsingTask")
+        var verifierRunnerTask = verifierTargetsElements.Descendants("UsingTask")
             .SingleOrDefault(static task => string.Equals(
                 (string?)task.Attribute("TaskName"),
                 "SharpProof.BuildTasks.RunVerifier",
                 StringComparison.Ordinal));
-        var inlineTaskFactories = verifierTargets.Descendants("UsingTask")
+        var inlineTaskFactories = verifierTargetsElements.Descendants("UsingTask")
             .Where(static task => task.Attribute("TaskFactory") != null)
             .ToArray();
         var portableContainsVerifierWork =
-            portableTargets.Descendants("Exec").Any() ||
-            portableTargets.Descendants("SharpProof.BuildTasks.RunVerifier").Any() ||
-            portableTargets.Descendants("Target").Any(static target =>
+            portableTargetsElements.Descendants("Exec").Any() ||
+            portableTargetsElements.Descendants("SharpProof.BuildTasks.RunVerifier").Any() ||
+            portableTargetsElements.Descendants("Target").Any(static target =>
                 (string?)target.Attribute("Name") is
                     "SharpProofVerify" or "_SharpProofVerifyCore");
         if (!visibleProperties.Contains("SharpProofProfile") ||
@@ -1732,7 +1737,7 @@ internal static class PerformanceGate
     }
 
     private static XElement? FindDefaultProperty(
-        XDocument document,
+        DescendantInventory document,
         string name)
     {
         return document.Descendants(name).SingleOrDefault(element =>
@@ -1740,6 +1745,37 @@ internal static class PerformanceGate
                 (string?)element.Attribute("Condition"),
                 $"'$({name})' == ''",
                 StringComparison.Ordinal));
+    }
+
+    private sealed class DescendantInventory
+    {
+        private readonly Dictionary<XName, XElement[]> _elements;
+
+        internal DescendantInventory(XDocument document)
+        {
+            ArgumentNullException.ThrowIfNull(document);
+            var grouped = new Dictionary<XName, List<XElement>>();
+            foreach (var element in document.Descendants())
+            {
+                if (!grouped.TryGetValue(element.Name, out var values))
+                {
+                    values = [];
+                    grouped.Add(element.Name, values);
+                }
+                values.Add(element);
+            }
+
+            _elements = grouped.ToDictionary(
+                static pair => pair.Key,
+                static pair => pair.Value.ToArray());
+        }
+
+        internal IReadOnlyList<XElement> Descendants(XName name)
+        {
+            return _elements.TryGetValue(name, out var elements)
+                ? elements
+                : Array.Empty<XElement>();
+        }
     }
 
     private static string NormalizeMsBuildCondition(string? condition)
