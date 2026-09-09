@@ -65,18 +65,14 @@ internal sealed class ExternalEffectResolver
 
     internal EffectContractResolution ResolveContract(IMethodSymbol method)
     {
-        var attributes = EnumerateDirectContractAttributes(method).ToImmutableArray();
-        if (attributes.IsDefaultOrEmpty)
-        {
-            return new(EffectContractResolutionKind.Missing, EffectSummary.Bottom);
-        }
-
         EffectSummary? resolved = null;
         var preconditionFree = true;
+        var sawAttribute = false;
         var invalidAttributes =
             ImmutableArray.CreateBuilder<EffectContractInvalidAttribute>();
-        foreach (var attribute in attributes)
+        foreach (var attribute in EnumerateDirectContractAttributes(method))
         {
+            sawAttribute = true;
             if (!TryDecodeContract(
                     method,
                     attribute,
@@ -97,6 +93,10 @@ internal sealed class ExternalEffectResolver
             }
             resolved = candidate;
             preconditionFree &= candidatePreconditionFree;
+        }
+        if (!sawAttribute)
+        {
+            return new(EffectContractResolutionKind.Missing, EffectSummary.Bottom);
         }
         if (invalidAttributes.Count != 0)
         {
