@@ -2445,30 +2445,19 @@ public sealed class ClaimManifestBuilderTests
                     typeof(ClaimManifestBuilderTests).FullName + "." +
                     nameof(
                         DeeplyNestedUnselectedCallablesDoNotOverflowManifestDiscovery)
-                });
+            });
             startInfo.Environment[childVariable] = "1";
-            var marker = Path.Combine(
-                Path.GetTempPath(),
-                "nested-callable-stack-" + Guid.NewGuid().ToString("N"));
+            using var temporary = new TempDirectory("nested-callable-stack-");
+            var marker = Path.Combine(temporary.FullName, "marker");
             startInfo.Environment[markerVariable] = marker;
-            try
+            var result = await ProcessRunner.RunCapturedAsync(
+                startInfo,
+                CancellationToken.None);
+            var output = result.CombinedOutput;
+            using (Assert.EnterMultipleScope())
             {
-                var result = await ProcessRunner.RunCapturedAsync(
-                    startInfo,
-                    CancellationToken.None);
-                var output = result.CombinedOutput;
-                using (Assert.EnterMultipleScope())
-                {
-                    Assert.That(result.ExitCode, Is.Zero, output);
-                    Assert.That(File.Exists(marker), Is.True, output);
-                }
-            }
-            finally
-            {
-                if (File.Exists(marker))
-                {
-                    File.Delete(marker);
-                }
+                Assert.That(result.ExitCode, Is.Zero, output);
+                Assert.That(File.Exists(marker), Is.True, output);
             }
             return;
         }
