@@ -1427,6 +1427,9 @@ public sealed class CoverageScriptTests
             Path.Combine(root, "scripts", "SharpProof.ContainerExecution.psm1"),
             Path.Combine(scripts, "SharpProof.ContainerExecution.psm1"));
         File.Copy(
+            Path.Combine(root, "scripts", "SharpProof.MutationEvidence.psm1"),
+            Path.Combine(scripts, "SharpProof.MutationEvidence.psm1"));
+        File.Copy(
             Path.Combine(root, "scripts", "SharpProof.PEMetadata.psm1"),
             Path.Combine(scripts, "SharpProof.PEMetadata.psm1"));
         File.Copy(

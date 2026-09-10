@@ -603,5 +603,6 @@ function Read-SharpProofMutationTestEvidence {
 }
 
 Export-ModuleMember -Function @(
+    'Get-OrdinalSortedUniqueStrings',
     'Read-SharpProofMutationTestEvidence',
     'Test-SharpProofOrdinalStringSequence')

@@ -25,21 +25,7 @@ $ErrorActionPreference = 'Stop'
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 . (Join-Path $PSScriptRoot 'Get-SharpProofTcbPaths.ps1')
 Import-Module (Join-Path $PSScriptRoot 'SharpProof.ContainerExecution.psm1') -Force
-
-function ConvertTo-OrdinalSortedArray {
-    param(
-        [Parameter(Mandatory = $true)]
-        [AllowEmptyCollection()]
-        [object[]]$Values
-    )
-
-    $items = [Collections.Generic.List[string]]::new()
-    foreach ($value in $Values) {
-        $items.Add([string]$value)
-    }
-    $items.Sort([StringComparer]::Ordinal)
-    return $items.ToArray()
-}
+Import-Module (Join-Path $PSScriptRoot 'SharpProof.MutationEvidence.psm1') -Force
 function Test-ClearlyNonSemanticSourceLine {
     param(
         [Parameter(Mandatory = $true)]
@@ -528,7 +514,7 @@ foreach ($property in $baseline.projects.PSObject.Properties |
                     [StringComparison]::Ordinal)
             }
     )
-    $paths = @(ConvertTo-OrdinalSortedArray -Values $paths)
+    $paths = @(Get-OrdinalSortedUniqueStrings -Values $paths)
     if ($paths.Count -eq 0) {
         throw "Coverage did not contain production project '$projectName'."
     }
@@ -653,7 +639,7 @@ if (-not [string]::IsNullOrWhiteSpace($comparisonCommit)) {
                 '--no-renames',
                 $diffTarget,
                 '--'
-            ) + @(ConvertTo-OrdinalSortedArray -Values @($changedTcbFiles))) `
+            ) + @(Get-OrdinalSortedUniqueStrings -Values @($changedTcbFiles))) `
             -FailureMessage (
                 "git diff failed for changed TCB paths for comparison ref '$ComparisonRef'.")
     }
@@ -698,7 +684,7 @@ if (-not [string]::IsNullOrWhiteSpace($comparisonCommit)) {
     }
     $changedCovered = 0
     $changedCoverable = 0
-    $changedMetadataFiles = @(ConvertTo-OrdinalSortedArray -Values @(
+    $changedMetadataFiles = @(Get-OrdinalSortedUniqueStrings -Values @(
         $changedTcbFiles |
             Where-Object { -not $coverageTcbFiles.Contains($_) }))
     $nonCoverableChangedFiles =
@@ -805,11 +791,11 @@ if (-not [string]::IsNullOrWhiteSpace($comparisonCommit)) {
         coverableLines = $changedCoverable
         linePercent = $changedPercent
         minimumLinePercent = [double]$baseline.minimumChangedTcbLinePercent
-        declarationOnlyFiles = @(ConvertTo-OrdinalSortedArray `
+        declarationOnlyFiles = @(Get-OrdinalSortedUniqueStrings `
             -Values @($declarationOnlyChangedFiles))
-        nonCoverableFiles = @(ConvertTo-OrdinalSortedArray `
+        nonCoverableFiles = @(Get-OrdinalSortedUniqueStrings `
             -Values @($nonCoverableChangedFiles))
-        uncoveredLines = @(ConvertTo-OrdinalSortedArray `
+        uncoveredLines = @(Get-OrdinalSortedUniqueStrings `
             -Values @($uncoveredChangedLines))
         passed = $nonCoverableChangedFiles.Count -eq 0 -and
             $changedPercent + 0.005 -ge
