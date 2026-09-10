@@ -800,11 +800,14 @@ public sealed class DefaultApiSpecCatalogGenerationTests
 
     private sealed class GenerationWorkspace : IDisposable
     {
+        private readonly TempDirectory _temporary;
         private readonly string _root;
 
-        private GenerationWorkspace(string root)
+        private GenerationWorkspace(TempDirectory temporary)
         {
-            _root = root;
+            _temporary = temporary;
+            _root = temporary.FullName;
+            var root = _root;
             CatalogInputPath = Path.Combine(root, "catalog.json");
             FirstSourcePath = Path.Combine(root, "first.generated.cs");
             FirstDocumentationPath =
@@ -850,20 +853,25 @@ public sealed class DefaultApiSpecCatalogGenerationTests
 
         internal static GenerationWorkspace Create()
         {
-            var root = Path.Combine(
-                Path.GetTempPath(),
-                "SharpProof.ApiSpecCatalog.Test",
-                Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(root);
-            return new GenerationWorkspace(root);
+            var temporary = new TempDirectory(
+                string.Empty,
+                Path.Combine(
+                    Path.GetTempPath(),
+                    "SharpProof.ApiSpecCatalog.Test"));
+            try
+            {
+                return new GenerationWorkspace(temporary);
+            }
+            catch
+            {
+                temporary.Dispose();
+                throw;
+            }
         }
 
         public void Dispose()
         {
-            TestRepository.DeleteOwnedTemporaryDirectory(
-                _root,
-                "SharpProof.ApiSpecCatalog.Test",
-                "Refusing to remove an unexpected generator directory.");
+            _temporary.Dispose();
         }
     }
 }
