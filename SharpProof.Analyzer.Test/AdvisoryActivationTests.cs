@@ -1,10 +1,8 @@
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Text;
 using NUnit.Framework;
-using SharpProof.Analyzer.Configuration;
 
 namespace SharpProof.Analyzer.Test;
 
@@ -450,25 +448,6 @@ public sealed class AdvisoryActivationTests
             .GetMembers("Run")
             .OfType<IMethodSymbol>()
             .Single();
-    }
-
-    private sealed class RecordingSessionFactory : IAnalyzerSessionFactory
-    {
-        private int _createCount;
-
-        internal int CreateCount => Volatile.Read(ref _createCount);
-
-        public AnalyzerSession Create(
-            Compilation compilation,
-            AnalyzerConfiguration configuration,
-            CancellationToken cancellationToken)
-        {
-            Interlocked.Increment(ref _createCount);
-            return new AnalyzerSession(
-                compilation,
-                configuration,
-                cancellationToken);
-        }
     }
 
     private sealed class CancellingSourceText(

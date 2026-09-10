@@ -7,6 +7,7 @@ namespace SharpProof.Analyzer.Test;
 
 internal sealed class RecordingSessionFactory : IAnalyzerSessionFactory
 {
+    private int _createCount;
     private readonly ConcurrentDictionary<
         string,
         AnalyzerSemanticOutcome> _outcomes =
@@ -18,6 +19,7 @@ internal sealed class RecordingSessionFactory : IAnalyzerSessionFactory
         _outcomes;
     internal ConcurrentDictionary<string, int> OutcomeCounts =>
         _outcomeCounts;
+    internal int CreateCount => Volatile.Read(ref _createCount);
     internal AnalyzerSession? Session
     {
         get;
@@ -29,6 +31,7 @@ internal sealed class RecordingSessionFactory : IAnalyzerSessionFactory
         AnalyzerConfiguration configuration,
         CancellationToken cancellationToken)
     {
+        Interlocked.Increment(ref _createCount);
         Session = new AnalyzerSession(
             compilation,
             configuration,
