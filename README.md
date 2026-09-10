@@ -27,7 +27,7 @@ which packs the exact three-package graph into an isolated local feed.
 
 The smallest package setup is:
 
-~~~xml
+```xml
 <ItemGroup>
   <PackageReference Include="SharpProof.Attributes"
                     Version="1.0.0-preview.1" />
@@ -40,7 +40,7 @@ The smallest package setup is:
   <SharpProofProfile>advisory</SharpProofProfile>
   <SharpProofFeatures>all</SharpProofFeatures>
 </PropertyGroup>
-~~~
+```
 
 The default advisory profile analyzes selected code while keeping unannotated
 code quiet. SharpProofFeatures accepts effects, contracts, or all.
@@ -62,7 +62,7 @@ sharpproof_features. Their accepted values are `advisory`, `strict`,
 
 ## A minimal contract
 
-~~~csharp
+```csharp
 using SharpProof.Attributes;
 
 public static class Calculator
@@ -74,7 +74,7 @@ public static class Calculator
         return value + 1;
     }
 }
-~~~
+```
 
 Contract.Requires, Contract.Ensures, and Contract.Assume are direct,
 contiguous prologue clauses. They are compiler-elided unless
@@ -88,7 +88,7 @@ Strict builds need the verifier package and an explicit policy. The following
 configuration requires every selected claim to be proven and treats unresolved
 assumptions as errors:
 
-~~~xml
+```xml
 <ItemGroup>
   <PackageReference Include="SharpProof.Verifier"
                     Version="1.0.0-preview.1"
@@ -102,7 +102,7 @@ assumptions as errors:
   <SharpProofVerifyPolicy>require-proven</SharpProofVerifyPolicy>
   <SharpProofAssumptionPolicy>error</SharpProofAssumptionPolicy>
 </PropertyGroup>
-~~~
+```
 
 SharpProofVerify=true runs the compiler collector and the SharpProof.Worker
 through the packaged launcher. The worker consumes a closed compiler artifact,

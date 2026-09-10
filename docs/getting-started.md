@@ -21,7 +21,7 @@ the exact package graph.
 
 For a library or application using annotations:
 
-~~~xml
+```xml
 <ItemGroup>
   <PackageReference Include="SharpProof.Attributes"
                     Version="1.0.0-preview.1" />
@@ -29,7 +29,7 @@ For a library or application using annotations:
                     Version="1.0.0-preview.1"
                     PrivateAssets="all" />
 </ItemGroup>
-~~~
+```
 
 The analyzer package adds no compile-time assembly reference. Keep it private
 so consumers receive only the contract API and its IntelliSense XML.
@@ -38,12 +38,12 @@ so consumers receive only the contract API and its IntelliSense XML.
 
 The default profile is advisory and the default feature selection is all:
 
-~~~xml
+```xml
 <PropertyGroup>
   <SharpProofProfile>advisory</SharpProofProfile>
   <SharpProofFeatures>all</SharpProofFeatures>
 </PropertyGroup>
-~~~
+```
 
 SharpProofProfile accepts advisory, strict, and off. SharpProofFeatures accepts
 effects, contracts, and all. The analyzer configuration equivalents are
@@ -63,7 +63,7 @@ off when an older host must consume only the contract API.
 
 The supported clause methods are direct, contiguous prologue statements:
 
-~~~csharp
+```csharp
 using SharpProof.Attributes;
 
 public static class Calculator
@@ -75,7 +75,7 @@ public static class Calculator
         return value;
     }
 }
-~~~
+```
 
 The public API also includes closed NotNull, Positive, and InRange attributes,
 effect contracts, and compiler-bound ContractFor companions. See
@@ -91,7 +91,7 @@ the compiler artifact unsound.
 Strict verification is a separate package-consumer concern. Add the verifier
 package privately and set the worker policies explicitly:
 
-~~~xml
+```xml
 <ItemGroup>
   <PackageReference Include="SharpProof.Verifier"
                     Version="1.0.0-preview.1"
@@ -105,7 +105,7 @@ package privately and set the worker policies explicitly:
   <SharpProofVerifyPolicy>require-proven</SharpProofVerifyPolicy>
   <SharpProofAssumptionPolicy>error</SharpProofAssumptionPolicy>
 </PropertyGroup>
-~~~
+```
 
 SharpProofVerify=true requests compiler artifact collection and launches the
 SharpProof.Worker. Strict profile defaults are require-proven and error, but
