@@ -18,36 +18,32 @@ public sealed class CompilerRuntimeSymbolArtifactTests
         var artifact = CreateArtifact();
         var tree = artifact.Compilation.SyntaxTrees.Single();
         var json = CompilerManifestArtifactJson.Serialize(artifact);
-        var path = TemporaryManifestPath();
-        try
-        {
-            var request = await WriteRequestAsync(path, json);
+        using var temporary = new TempDirectory(
+            "runtime-symbol-artifact-",
+            TestContext.CurrentContext.WorkDirectory);
+        var path = Path.Combine(temporary.FullName, "manifest.json");
+        var request = await WriteRequestAsync(path, json);
 
-            var snapshot = WorkerInputSnapshot.Load(
-                request,
-                WorkerCacheIdentity.Current,
-                CancellationToken.None);
+        var snapshot = WorkerInputSnapshot.Load(
+            request,
+            WorkerCacheIdentity.Current,
+            CancellationToken.None);
 
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(
-                    artifact.SchemaVersion,
-                    Is.EqualTo(CompilerManifestArtifactVersions.Current));
-                Assert.That(
-                    tree.PreprocessorSymbols,
-                    Does.Contain(Contract.ConditionalSymbol));
-                Assert.That(
-                    tree.EffectivePreprocessorSymbols,
-                    Does.Not.Contain(Contract.ConditionalSymbol));
-                Assert.That(
-                    snapshot.CompilerManifest.Compilation.SyntaxTrees
-                        .Single().EffectivePreprocessorSymbols,
-                    Does.Not.Contain(Contract.ConditionalSymbol));
-            }
-        }
-        finally
+        using (Assert.EnterMultipleScope())
         {
-            File.Delete(path);
+            Assert.That(
+                artifact.SchemaVersion,
+                Is.EqualTo(CompilerManifestArtifactVersions.Current));
+            Assert.That(
+                tree.PreprocessorSymbols,
+                Does.Contain(Contract.ConditionalSymbol));
+            Assert.That(
+                tree.EffectivePreprocessorSymbols,
+                Does.Not.Contain(Contract.ConditionalSymbol));
+            Assert.That(
+                snapshot.CompilerManifest.Compilation.SyntaxTrees
+                    .Single().EffectivePreprocessorSymbols,
+                Does.Not.Contain(Contract.ConditionalSymbol));
         }
     }
 
@@ -63,34 +59,30 @@ public sealed class CompilerRuntimeSymbolArtifactTests
         var json = JsonSerializer.Serialize(
             artifact,
             WorkerProtocolJson.Options) + "\n";
-        var path = TemporaryManifestPath();
-        try
+        using var temporary = new TempDirectory(
+            "runtime-symbol-artifact-",
+            TestContext.CurrentContext.WorkDirectory);
+        var path = Path.Combine(temporary.FullName, "manifest.json");
+        Assert.That(
+            (Action)(() =>
+                CompilerManifestArtifactJson.Deserialize(json)),
+            Throws.TypeOf<JsonException>());
+        var request = await WriteRequestAsync(path, json);
+
+        var exception = Assert.Throws<IOException>((Action)(() =>
         {
+            _ = WorkerInputSnapshot.Load(
+                request,
+                WorkerCacheIdentity.Current,
+                CancellationToken.None);
+        }));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(exception, Is.Not.Null);
             Assert.That(
-                (Action)(() =>
-                    CompilerManifestArtifactJson.Deserialize(json)),
-                Throws.TypeOf<JsonException>());
-            var request = await WriteRequestAsync(path, json);
-
-            var exception = Assert.Throws<IOException>((Action)(() =>
-            {
-                _ = WorkerInputSnapshot.Load(
-                    request,
-                    WorkerCacheIdentity.Current,
-                    CancellationToken.None);
-            }));
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(exception, Is.Not.Null);
-                Assert.That(
-                    exception!.Message,
-                    Is.EqualTo(WorkerInputSnapshot.ManifestInvalid));
-            }
-        }
-        finally
-        {
-            File.Delete(path);
+                exception!.Message,
+                Is.EqualTo(WorkerInputSnapshot.ManifestInvalid));
         }
     }
 
@@ -135,12 +127,4 @@ public sealed class CompilerRuntimeSymbolArtifactTests
         };
     }
 
-    private static string TemporaryManifestPath()
-    {
-        return Path.Combine(
-            TestContext.CurrentContext.WorkDirectory,
-            "runtime-symbol-artifact-" +
-            Guid.NewGuid().ToString("N") +
-            ".json");
-    }
 }
