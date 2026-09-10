@@ -612,7 +612,7 @@ public sealed class RequiresAndControlTests
                 Base({{baseArgument}}) { }
             """,
             "contracts",
-            ["SP0027"]);
+            []);
 
         if (expectedDiagnostic)
         {
@@ -1224,7 +1224,7 @@ public sealed class RequiresAndControlTests
                 }
             }
             """,
-            ["SP0047"],
+            [],
             [external]);
         var session = new AnalyzerSession(
             compilation,
@@ -2501,7 +2501,7 @@ public sealed class RequiresAndControlTests
             }
             """,
             mode: null,
-            ["SP0024"],
+            [],
             features: "effects");
 
         AnalyzerTestHost.AssertIds(diagnostics, "SP0024", 4);
@@ -2559,7 +2559,7 @@ public sealed class RequiresAndControlTests
             }
             """,
             "contracts",
-            ["SP0024"]);
+            []);
 
         AnalyzerTestHost.AssertIds(diagnostics, "SP0024", 4);
         Assert.That(
@@ -2637,7 +2637,7 @@ public sealed class RequiresAndControlTests
             }
             """,
             "contracts",
-            ["SP0024"]);
+            []);
 
         AnalyzerTestHost.AssertIds(diagnostics, "SP0024", "SP0024");
         Assert.That(
@@ -2829,7 +2829,7 @@ public sealed class RequiresAndControlTests
             }
             """,
             "all-experimental",
-            ["SP0024"]);
+            []);
 
         AnalyzerTestHost.AssertIds(diagnostics, "SP0024", "SP0024");
     }
@@ -2844,7 +2844,7 @@ public sealed class RequiresAndControlTests
             [assembly: SharpProofTrusted("")]
             """,
             "all-experimental",
-            ["SP0024"]);
+            []);
 
         AnalyzerTestHost.AssertIds(diagnostics, "SP0024");
     }
