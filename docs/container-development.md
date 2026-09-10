@@ -213,7 +213,9 @@ Finite task workspaces use an 8 GiB `/tmp` tmpfs by default, keeping source
 snapshots, compiler scratch, and test outputs off the host filesystem. Set
 `SHARPPROOF_TMPFS_SIZE` higher for unusually large package or coverage runs.
 Trusted mutations use 4 deterministic weighted lanes. Worker fixtures and
-package integration methods run in isolated duration-weighted processes.
+package integration methods run in isolated processes; wider package waves use
+duration-weighted partitioning, while CI-width waves use count-balanced worker
+buckets because nested analyzer contention makes method timings noisy.
 Override the
 Docker budget with
 `SHARPPROOF_CONTAINER_CPU_LIMIT` and `SHARPPROOF_CONTAINER_MEMORY_LIMIT`; the

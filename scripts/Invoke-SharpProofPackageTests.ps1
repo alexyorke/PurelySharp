@@ -552,9 +552,22 @@ try {
         $workerShardCount = [Math]::Min(
             $bucketWorkerMethods.Count,
             $workerShardLimit)
+        # At CI width, method durations include analyzer and nested-MSBuild
+        # contention from the other worker hosts.  Feeding those noisy
+        # samples back into LPT made the four buckets less even than the
+        # cold, count-balanced plan (paired p4 runs: 98-99s versus
+        # 106-109s in the test phase).  Keep historical weighting for wider
+        # local containers, where the extra lanes make those samples useful,
+        # but use deterministic count balancing for the p4-or-smaller wave.
+        $workerBucketHistory = if ($parallelism -le 4) {
+            @{}
+        }
+        else {
+            $priorMethodMilliseconds
+        }
         $workerBuckets = @(New-SharpProofWeightedBuckets `
             -Methods $bucketWorkerMethods `
-            -HistoricalMilliseconds $priorMethodMilliseconds `
+            -HistoricalMilliseconds $workerBucketHistory `
             -DefaultMilliseconds 1L `
             -BucketCount $workerShardCount)
         $packageLayoutMethods = @($discoveredMethods[$packageLayoutClass])
