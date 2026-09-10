@@ -833,7 +833,7 @@ public sealed class WorkerMsBuildIntegrationTests
         using var project = ConsumerProject.CreateConfigured(
             IdentitySource, ("TargetFrameworks", "net8.0;net9.0"));
 
-        var build = await project.BuildAsync(verify: true);
+        var build = await project.BuildParallelAsync(verify: true);
 
         Assert.That(build.ExitCode, Is.Zero, build.Output);
         foreach (var framework in new[] { "net8.0", "net9.0" })
@@ -904,7 +904,7 @@ public sealed class WorkerMsBuildIntegrationTests
             ("TargetFrameworks", "net8.0;net9.0"),
             ("SharpProofVerifySarifFile", "evidence/result.sarif"));
 
-        var build = await project.BuildAsync(verify: true);
+        var build = await project.BuildParallelAsync(verify: true);
 
         Assert.That(build.ExitCode, Is.Zero, build.Output);
         foreach (var framework in new[] { "net8.0", "net9.0" })
