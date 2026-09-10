@@ -1349,7 +1349,8 @@ public sealed partial class RunVerifier : Microsoft.Build.Utilities.Task,
     private static string GetFileIdentity(string path)
     {
         using var stream = File.OpenRead(path);
-        return Convert.ToHexString(SHA256.HashData(stream));
+        return SharpProof.Worker.Protocol.ProtocolHashEncoding
+            .ComputeSha256Hex(stream);
     }
 
 }

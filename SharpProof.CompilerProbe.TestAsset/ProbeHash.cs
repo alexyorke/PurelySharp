@@ -10,9 +10,7 @@ internal static class ProbeHash
     internal static string File(string path)
     {
         using var stream = System.IO.File.OpenRead(path);
-        using var algorithm = SHA256.Create();
-        return SharpProof.Ir.HashEncoding.ToLowerHex(
-            algorithm.ComputeHash(stream));
+        return SharpProof.Ir.HashEncoding.ComputeSha256Hex(stream);
     }
 
     internal static string Bytes(byte[] value)
