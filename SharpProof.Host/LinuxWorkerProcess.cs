@@ -297,15 +297,14 @@ public sealed partial class LinuxWorkerProcess : IDisposable
         try
         {
             var stat = File.ReadAllText($"/proc/{processId}/stat");
-            var closeName = stat.LastIndexOf(')');
-            if (closeName < 0)
+            if (!LinuxProcessStatParser.TryParse(stat, out var processStat) ||
+                processStat.StartTime is not { } parsedStartTime)
             {
                 return false;
             }
-            var fields = stat[(closeName + 2)..].Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            return fields.Length > 19 &&
-                int.TryParse(fields[1], out parentId) &&
-                ulong.TryParse(fields[19], out startTime);
+            parentId = processStat.ParentProcessId;
+            startTime = parsedStartTime;
+            return true;
         }
         catch (IOException)
         {

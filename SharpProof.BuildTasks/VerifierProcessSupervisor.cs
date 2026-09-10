@@ -447,23 +447,11 @@ internal static partial class VerifierProcessSupervisor
             {
                 var stat = File.ReadAllText(
                     Path.Combine(directory, "stat"));
-                var close = stat.LastIndexOf(')');
-                if (close < 0)
+                if (!LinuxProcessStatParser.TryParse(stat, out var processStat))
                 {
                     continue;
                 }
-                var fields = stat.AsSpan(close + 2)
-                    .ToString()
-                    .Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                if (fields.Length >= 2 &&
-                    int.TryParse(
-                        fields[1],
-                        NumberStyles.None,
-                        CultureInfo.InvariantCulture,
-                        out var parentId))
-                {
-                    result[processId] = parentId;
-                }
+                result[processId] = processStat.ParentProcessId;
             }
             catch (DirectoryNotFoundException) { }
             catch (FileNotFoundException) { }
