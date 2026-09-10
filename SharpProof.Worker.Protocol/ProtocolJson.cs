@@ -79,13 +79,13 @@ public static partial class WorkerProtocolJson
     public static string SerializeRequest(WorkerVerifyRequest request)
     {
         return SerializeBounded(
-            request ?? throw new ArgumentNullException(nameof(request)));
+            ArgumentNullGuard.NotNull(request, nameof(request)));
     }
 
     public static string ComputeRequestHash(WorkerVerifyRequest request)
     {
         return ComputeSha256(SerializeBoundedUtf8(
-            request ?? throw new ArgumentNullException(nameof(request))));
+            ArgumentNullGuard.NotNull(request, nameof(request))));
     }
 
     private static StreamReader OpenJsonReader(string path)
@@ -226,8 +226,7 @@ public static partial class WorkerProtocolJson
         CancellationToken cancellationToken = default)
     {
         RequireSha256(expectedInputHash, nameof(expectedInputHash), "input");
-        _ = evidenceAuthority ??
-            throw new ArgumentNullException(nameof(evidenceAuthority));
+        _ = ArgumentNullGuard.NotNull(evidenceAuthority, nameof(evidenceAuthority));
         return ValidateResponse(
             response, expectedInputHash, expectedManifest, null, null, null,
             evidenceAuthority: evidenceAuthority,
@@ -259,8 +258,7 @@ public static partial class WorkerProtocolJson
         int terminationGraceMilliseconds = WorkerLauncherDefaults.TerminationGraceMilliseconds,
         CancellationToken cancellationToken = default)
     {
-        _ = evidenceAuthority ??
-            throw new ArgumentNullException(nameof(evidenceAuthority));
+        _ = ArgumentNullGuard.NotNull(evidenceAuthority, nameof(evidenceAuthority));
         return ValidateForRequestCore(
             response,
             expectedRequestHash,
@@ -282,10 +280,9 @@ public static partial class WorkerProtocolJson
     {
         RequireSha256(expectedRequestHash, nameof(expectedRequestHash), "request");
         RequireSha256(expectedInputHash, nameof(expectedInputHash), "input");
-        _ = expectedManifest ??
-            throw new ArgumentNullException(nameof(expectedManifest));
-        _ = expectedRequest ?? throw new ArgumentNullException(nameof(expectedRequest));
-        _ = expectedVersions ?? throw new ArgumentNullException(nameof(expectedVersions));
+        _ = ArgumentNullGuard.NotNull(expectedManifest, nameof(expectedManifest));
+        _ = ArgumentNullGuard.NotNull(expectedRequest, nameof(expectedRequest));
+        _ = ArgumentNullGuard.NotNull(expectedVersions, nameof(expectedVersions));
         if (!Validate(expectedRequest).IsValid ||
             ComputeRequestHash(expectedRequest) != expectedRequestHash)
         {
@@ -309,7 +306,7 @@ public static partial class WorkerProtocolJson
 
     public static void Canonicalize(WorkerVerifyResponse response)
     {
-        _ = response ?? throw new ArgumentNullException(nameof(response));
+        _ = ArgumentNullGuard.NotNull(response, nameof(response));
         var claimsById = response.Manifest == null
             ? CreateClaimIndex(null)
             : CanonicalizeManifest(response.Manifest);
@@ -1282,7 +1279,7 @@ public static partial class WorkerProtocolJson
 
     private static T? Deserialize<T>(string json)
     {
-        json = json ?? throw new ArgumentNullException(nameof(json));
+        json = ArgumentNullGuard.NotNull(json, nameof(json));
         using var document = JsonDocument.Parse(
             json,
             new JsonDocumentOptions { MaxDepth = MaximumJsonDepth });

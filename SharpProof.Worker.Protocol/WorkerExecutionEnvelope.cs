@@ -26,7 +26,7 @@ public static class WorkerExecutionEnvelope
         int terminationGraceMilliseconds,
         bool validateRequest)
     {
-        _ = request ?? throw new ArgumentNullException(nameof(request));
+        _ = ArgumentNullGuard.NotNull(request, nameof(request));
         if (terminationGraceMilliseconds <= 0 ||
             terminationGraceMilliseconds > WorkerLauncherDefaults.MaximumTerminationGraceMilliseconds)
         {

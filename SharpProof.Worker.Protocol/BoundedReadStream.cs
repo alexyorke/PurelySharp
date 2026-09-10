@@ -11,14 +11,13 @@ internal sealed class BoundedReadStream : Stream
         long maximumBytes,
         string limitMessage)
     {
-        _inner = inner ?? throw new ArgumentNullException(nameof(inner));
+        _inner = ArgumentNullGuard.NotNull(inner, nameof(inner));
         if (maximumBytes < 0)
         {
             throw new ArgumentOutOfRangeException(nameof(maximumBytes));
         }
         _remaining = maximumBytes;
-        _limitMessage = limitMessage ??
-            throw new ArgumentNullException(nameof(limitMessage));
+        _limitMessage = ArgumentNullGuard.NotNull(limitMessage, nameof(limitMessage));
     }
 
     public override bool CanRead => _inner.CanRead;

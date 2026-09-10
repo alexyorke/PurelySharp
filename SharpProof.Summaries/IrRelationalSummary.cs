@@ -58,7 +58,8 @@ public sealed class IrSummaryProvenance
         Origin = origin;
         EvidenceSha256 = evidenceSha256;
         EvidenceIdentity = evidenceIdentity;
-        EvidenceCallIdentity = evidenceCallIdentity ?? throw new ArgumentNullException(
+        EvidenceCallIdentity = ArgumentNullGuard.NotNull(
+            evidenceCallIdentity,
             nameof(evidenceCallIdentity));
     }
 
@@ -83,14 +84,13 @@ public sealed class IrSummarySignature(
 
     public IrVarId? Receiver { get; } = receiver;
 
-    public ImmutableArray<IrVarId> Parameters { get; } = parameters == null
-        ? throw new ArgumentNullException(nameof(parameters))
-        : parameters.ToImmutableArray();
+    public ImmutableArray<IrVarId> Parameters { get; } =
+        ArgumentNullGuard.NotNull(parameters, nameof(parameters)).ToImmutableArray();
 
     public IrVarId Result { get; } = result;
 
-    public IrSummaryProvenance Provenance { get; } = provenance ??
-        throw new ArgumentNullException(nameof(provenance));
+    public IrSummaryProvenance Provenance { get; } =
+        ArgumentNullGuard.NotNull(provenance, nameof(provenance));
 }
 
 public sealed class IrRelationalSummary

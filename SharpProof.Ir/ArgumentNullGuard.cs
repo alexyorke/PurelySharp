@@ -1,4 +1,6 @@
-#if SHARPPROOF_DATAFLOW_ARGUMENT_GUARD
+#if SHARPPROOF_WORKER_PROTOCOL
+namespace SharpProof.Worker.Protocol
+#elif SHARPPROOF_DATAFLOW_ARGUMENT_GUARD
 namespace SharpProof.Dataflow
 #else
 namespace SharpProof

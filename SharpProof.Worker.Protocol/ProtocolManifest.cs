@@ -10,7 +10,7 @@ public static partial class WorkerProtocolJson
     private static OrdinalIdentityIndex<WorkerClaimManifestEntry>
         CanonicalizeManifest(WorkerClaimManifest manifest)
     {
-        _ = manifest ?? throw new ArgumentNullException(nameof(manifest));
+        _ = ArgumentNullGuard.NotNull(manifest, nameof(manifest));
         manifest.Claims = [
             .. (manifest.Claims ?? [])
                 .OrderBy(
@@ -51,7 +51,7 @@ public static partial class WorkerProtocolJson
     public static string ComputeManifestHash(
         WorkerClaimManifest manifest)
     {
-        _ = manifest ?? throw new ArgumentNullException(nameof(manifest));
+        _ = ArgumentNullGuard.NotNull(manifest, nameof(manifest));
         using var writer = ManifestWriter.CreateHashWriter();
         WriteManifestPayload(manifest, writer);
         return writer.FinishHash();
@@ -59,7 +59,7 @@ public static partial class WorkerProtocolJson
 
     public static void SealManifest(WorkerClaimManifest manifest)
     {
-        _ = manifest ?? throw new ArgumentNullException(nameof(manifest));
+        _ = ArgumentNullGuard.NotNull(manifest, nameof(manifest));
         Canonicalize(manifest);
         manifest.Hash = ComputeManifestHash(manifest);
     }
