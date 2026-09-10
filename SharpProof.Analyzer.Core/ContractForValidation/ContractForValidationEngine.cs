@@ -18,9 +18,7 @@ internal static class ContractForValidationEngine
         var contractFor = ContractSelectionInventory.ForCompilation(compilation).ContractFor;
         if (contractFor == null)
         {
-            foreach (var candidate in candidates
-                         .Distinct((IEqualityComparer<INamedTypeSymbol>)
-                             SymbolEqualityComparer.Default))
+            foreach (var candidate in candidates)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 diagnostics.Add(Diagnostic.Create(
