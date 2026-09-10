@@ -976,7 +976,13 @@ public sealed class PackageLayoutSmokeTests
         // net472 qualification is intentionally build-only: the package
         // supplies compiler analyzers, but this test never executes the
         // resulting .NET Framework consumer assembly.
-        var build = await BuildAnalyzerConsumerAsync(workspace);
+        // Framework qualification only checks that the packaged project can
+        // compile on each target; analyzer diagnostics are covered by the
+        // dedicated analyzer regression fixtures below. Avoid running the
+        // analyzer for these build-only compatibility checks.
+        var build = await BuildAnalyzerConsumerAsync(
+            workspace,
+            runAnalyzers: false);
         Assert.That(build.ExitCode, Is.Zero, build.Output);
     }
 
@@ -1552,17 +1558,25 @@ public sealed class PackageLayoutSmokeTests
     }
 
     private static Task<ProcessResult> BuildAnalyzerConsumerAsync(
-        PackageWorkspace workspace)
+        PackageWorkspace workspace,
+        bool runAnalyzers = true)
     {
-        return RunDotNetAsync(
-            workspace.ConsumerDirectory,
+        var arguments = new List<string> {
             "build",
             workspace.ConsumerProject,
             "-c",
             "Release",
             "--no-restore",
             "--nologo",
-            "/nodeReuse:false");
+            "/nodeReuse:false"
+        };
+        if (!runAnalyzers)
+        {
+            arguments.Add("-p:RunAnalyzersDuringBuild=false");
+        }
+        return RunDotNetAsync(
+            workspace.ConsumerDirectory,
+            [.. arguments]);
     }
 
     private static async Task<PackagedAnalyzerItem[]>
