@@ -9,7 +9,7 @@ internal static class PropertyDispatchFacts
         IMethodSymbol accessor)
     {
         return !IsStaticallyBound(property) &&
-               IsSymbolDispatchUncertain(accessor);
+               HasOpenVirtualDispatch(accessor);
     }
 
     private static bool IsStaticallyBound(
@@ -19,7 +19,7 @@ internal static class PropertyDispatchFacts
                property.Instance?.Type?.IsSealed == true;
     }
 
-    private static bool IsSymbolDispatchUncertain(
+    internal static bool HasOpenVirtualDispatch(
         IMethodSymbol accessor)
     {
         return !accessor.IsStatic &&

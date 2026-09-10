@@ -470,12 +470,7 @@ internal static class StringConcatenationEffectResolver
 
         return receiverType?.IsValueType != true &&
             receiverType is not INamedTypeSymbol { IsSealed: true } &&
-            !method.IsStatic &&
-            (method.IsVirtual ||
-             method.IsAbstract ||
-             method.IsOverride ||
-             method.ContainingType?.TypeKind == TypeKind.Interface) &&
-            !method.IsSealed;
+            PropertyDispatchFacts.HasOpenVirtualDispatch(method);
     }
 
     private readonly record struct FormattedValueCall(
