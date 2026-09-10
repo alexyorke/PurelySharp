@@ -9,6 +9,10 @@
     <PackageReference Include="System.Collections.Immutable" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\SharpProof.Specs\Polyfills\NotNullAttribute.cs"
+             Link="Polyfills\NotNullAttribute.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <InternalsVisibleTo Include="SharpProof.CompilerArtifact" />
     <InternalsVisibleTo Include="SharpProof.CompilerCollector" />
     <InternalsVisibleTo Include="SharpProof.Analyzer.Test" />

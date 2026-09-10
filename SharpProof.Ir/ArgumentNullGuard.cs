@@ -1,11 +1,3 @@
-namespace System.Diagnostics.CodeAnalysis
-{
-    [AttributeUsage(AttributeTargets.Parameter)]
-    internal sealed class NotNullAttribute : Attribute
-    {
-    }
-}
-
 #if SHARPPROOF_DATAFLOW_ARGUMENT_GUARD
 namespace SharpProof.Dataflow
 #else
