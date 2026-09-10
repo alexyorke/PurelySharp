@@ -276,11 +276,8 @@ public sealed class CorpusGateTests
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]
     public async Task CanceledGitReadTerminatesTheChildProcess()
     {
-        var root = Path.Combine(
-            Path.GetTempPath(),
-            "SharpProof.Gates.Test",
-            Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(root);
+        using var temporary = new TempDirectory("SharpProof.Gates.Test-");
+        var root = temporary.FullName;
         var executable = Path.Combine(root, "git-probe.sh");
         var pidPath = Path.Combine(root, "child.pid");
         await File.WriteAllTextAsync(
@@ -344,7 +341,6 @@ public sealed class CorpusGateTests
                 process.Kill(entireProcessTree: true);
                 await process.WaitForExitAsync();
             }
-            Directory.Delete(root, recursive: true);
         }
     }
 
