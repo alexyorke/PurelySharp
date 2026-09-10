@@ -244,14 +244,12 @@ internal sealed partial class OperationEffectScanner
             _session.Compilation,
             _method,
             _callResolver,
-            _abstractFlow).Scan(
-                root,
-                _conversionOwnership.ClassifyRegion,
-                _completionEvaluator.CanCompleteNormally,
-                _completionEvaluator.CanMethodCompleteNormally,
-                _handlerReachability.CanMethodThrow,
-                _handlerReachability.CanExitAbruptly,
-                operations);
+            _abstractFlow,
+            _conversionOwnership.ClassifyRegion,
+            _completionEvaluator.CanCompleteNormally,
+            _completionEvaluator.CanMethodCompleteNormally,
+            _handlerReachability.CanMethodThrow,
+            _handlerReachability.CanExitAbruptly).Scan(root, operations);
     }
 
     private EffectSummary Scan(

@@ -14,6 +14,11 @@ internal sealed class UsingDisposalEffectResolver
     private readonly EffectCallSiteResolver _calls;
     private readonly Compilation _compilation;
     private readonly ManagedFlowResult? _flow;
+    private readonly Func<IOperation?, bool, EffectRegionSet> _classifyRegion;
+    private readonly Func<IOperation?, bool> _canCompleteNormally;
+    private readonly Func<IMethodSymbol, bool> _canMethodCompleteNormally;
+    private readonly Func<IMethodSymbol, bool> _canMethodThrow;
+    private readonly Func<IOperation, IOperation, bool> _canExitAbruptly;
     private readonly Dictionary<IOperation, ResourceDisposalFacts>
         _declarationDisposalFacts = new();
 
@@ -21,7 +26,12 @@ internal sealed class UsingDisposalEffectResolver
         Compilation compilation,
         IMethodSymbol caller,
         EffectCallSiteResolver calls,
-        ManagedFlowResult? flow)
+        ManagedFlowResult? flow,
+        Func<IOperation?, bool, EffectRegionSet> classifyRegion,
+        Func<IOperation?, bool> canCompleteNormally,
+        Func<IMethodSymbol, bool> canMethodCompleteNormally,
+        Func<IMethodSymbol, bool> canMethodThrow,
+        Func<IOperation, IOperation, bool> canExitAbruptly)
     {
         _compilation = ArgumentNullGuard.NotNull(
             compilation,
@@ -29,15 +39,15 @@ internal sealed class UsingDisposalEffectResolver
         _caller = ArgumentNullGuard.NotNull(caller, nameof(caller));
         _calls = ArgumentNullGuard.NotNull(calls, nameof(calls));
         _flow = flow;
+        _classifyRegion = classifyRegion;
+        _canCompleteNormally = canCompleteNormally;
+        _canMethodCompleteNormally = canMethodCompleteNormally;
+        _canMethodThrow = canMethodThrow;
+        _canExitAbruptly = canExitAbruptly;
     }
 
     internal EffectSummary Scan(
         IOperation root,
-        Func<IOperation?, bool, EffectRegionSet> classifyRegion,
-        Func<IOperation?, bool> canCompleteNormally,
-        Func<IMethodSymbol, bool> canMethodCompleteNormally,
-        Func<IMethodSymbol, bool> canMethodThrow,
-        Func<IOperation, IOperation, bool> canExitAbruptly,
         ImmutableArray<IOperation> operations = default)
     {
         var summary = EffectSummary.Empty;
@@ -65,30 +75,18 @@ internal sealed class UsingDisposalEffectResolver
                         @using.Resources,
                         @using,
                         false,
-                        classifyRegion,
-                        canCompleteNormally,
-                        canMethodCompleteNormally,
-                        canMethodThrow,
-                        canExitAbruptly,
-                        canCompleteNormally(@using.Body) ||
-                        canExitAbruptly(@using.Body, @using.Body)),
+                        _canCompleteNormally(@using.Body) ||
+                        _canExitAbruptly(@using.Body, @using.Body)),
                 IUsingDeclarationOperation declaration =>
                     ResolveResources(
                         declaration.DeclarationGroup,
                         declaration,
                         true,
-                        classifyRegion,
-                        canCompleteNormally,
-                        canMethodCompleteNormally,
-                        canMethodThrow,
-                        canExitAbruptly,
                         UsingDisposalGraph.CanReachDeclarationDisposal(
                             declaration,
-                            canCompleteNormally,
-                            canExitAbruptly,
-                            later => CanDisposalsCompleteNormally(
-                                later,
-                                canMethodCompleteNormally))),
+                            _canCompleteNormally,
+                            _canExitAbruptly,
+                            later => CanDisposalsCompleteNormally(later))),
                 _ => EffectSummary.Empty
             };
             summary = EffectSummaryDomain.Instance.Join(summary, disposal);
@@ -121,16 +119,11 @@ internal sealed class UsingDisposalEffectResolver
         IOperation resources,
         IOperation origin,
         bool cacheDeclarationFacts,
-        Func<IOperation?, bool, EffectRegionSet> classifyRegion,
-        Func<IOperation?, bool> canCompleteNormally,
-        Func<IMethodSymbol, bool> canMethodCompleteNormally,
-        Func<IMethodSymbol, bool> canMethodThrow,
-        Func<IOperation, IOperation, bool> canExitAbruptly,
         bool scopeExitReachable)
     {
         if (resources is not IVariableDeclarationGroupOperation group)
         {
-            if (!canCompleteNormally(resources))
+            if (!_canCompleteNormally(resources))
             {
                 return EffectSummary.Empty;
             }
@@ -139,17 +132,14 @@ internal sealed class UsingDisposalEffectResolver
                 return EffectSummary.Empty;
             }
             return ResolveResource(
-                    ResolveResourceFacts(resources.Type, resources, origin),
-                    classifyRegion,
-                    canMethodCompleteNormally,
-                    canMethodThrow)
+                    ResolveResourceFacts(resources.Type, resources, origin))
                 .Summary;
         }
 
         var (acquired, reachableDisposalCount) = UsingDisposalGraph.AcquireResources(
             group,
-            canCompleteNormally,
-            canExitAbruptly,
+            _canCompleteNormally,
+            _canExitAbruptly,
             scopeExitReachable);
         if (reachableDisposalCount == 0)
         {
@@ -166,10 +156,7 @@ internal sealed class UsingDisposalEffectResolver
                         item.Resource,
                         item.Origin);
             var disposal = ResolveResource(
-                facts,
-                classifyRegion,
-                canMethodCompleteNormally,
-                canMethodThrow);
+                facts);
             summary = EffectSummaryDomain.Instance.Join(
                 summary,
                 disposal.Summary);
@@ -197,21 +184,17 @@ internal sealed class UsingDisposalEffectResolver
         return facts;
     }
 
-    private bool CanDisposalsCompleteNormally(
-        IUsingDeclarationOperation declaration,
-        Func<IMethodSymbol, bool> canMethodCompleteNormally)
+    private bool CanDisposalsCompleteNormally(IUsingDeclarationOperation declaration)
     {
         return declaration.DeclarationGroup.Declarations
             .SelectMany(static item => item.Declarators)
             .Reverse()
             .All(declarator => CanDisposalCompleteNormally(
-                ResolveDeclarationResourceFacts(declarator),
-                canMethodCompleteNormally));
+                ResolveDeclarationResourceFacts(declarator)));
     }
 
-    private static bool CanDisposalCompleteNormally(
-        ResourceDisposalFacts facts,
-        Func<IMethodSymbol, bool> canMethodCompleteNormally)
+    private bool CanDisposalCompleteNormally(
+        ResourceDisposalFacts facts)
     {
         if (facts.ResourceType == null || facts.Resource == null ||
             facts.IsDefinitelyNull)
@@ -219,7 +202,7 @@ internal sealed class UsingDisposalEffectResolver
             return true;
         }
         return facts.Dispose == null || facts.IsDispatchUncertain ||
-            canMethodCompleteNormally(facts.Dispose);
+            _canMethodCompleteNormally(facts.Dispose);
     }
 
     private bool IsDefinitelyNull(IOperation resource, IOperation origin)
@@ -230,10 +213,7 @@ internal sealed class UsingDisposalEffectResolver
     }
 
     private (EffectSummary Summary, bool CanUnwind) ResolveResource(
-        ResourceDisposalFacts facts,
-        Func<IOperation?, bool, EffectRegionSet> classifyRegion,
-        Func<IMethodSymbol, bool> canMethodCompleteNormally,
-        Func<IMethodSymbol, bool> canMethodThrow)
+        ResourceDisposalFacts facts)
     {
         if (facts.ResourceType == null || facts.Resource == null)
         {
@@ -252,9 +232,9 @@ internal sealed class UsingDisposalEffectResolver
         }
 
         var canComplete = !facts.IsDispatchUncertain &&
-            canMethodCompleteNormally(dispose);
+            _canMethodCompleteNormally(dispose);
         var canThrow = !facts.IsDispatchUncertain &&
-            canMethodThrow(dispose);
+            _canMethodThrow(dispose);
         var canUnwind = facts.IsDispatchUncertain || canComplete || canThrow;
         if (!canUnwind)
         {
@@ -264,7 +244,7 @@ internal sealed class UsingDisposalEffectResolver
         var receiver = dispose.ContainingType?.IsValueType == true &&
             !dispose.ContainingType.IsRefLikeType
                 ? EffectRegionSet.Empty
-                : classifyRegion(facts.Resource, true);
+                : _classifyRegion(facts.Resource, true);
         return (
             _calls.Resolve(
                 dispose,
