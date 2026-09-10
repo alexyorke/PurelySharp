@@ -407,10 +407,8 @@ public sealed class ContractApiIdentityAnalyzerTests
             """;
         var attributesPath =
             typeof(SharpProof.Attributes.Contract).Assembly.Location;
-        var directory = Path.Combine(
-            Path.GetTempPath(),
-            "SharpProofWrongPayload-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(directory);
+        using var temporary = new TempDirectory("SharpProofWrongPayload-");
+        var directory = temporary.FullName;
         var copied = Path.Combine(directory, "SharpProof.Attributes.dll");
         File.Copy(attributesPath, copied);
         await using (var stream = new FileStream(
@@ -422,36 +420,29 @@ public sealed class ContractApiIdentityAnalyzerTests
             await stream.WriteAsync(new byte[] { 0x5a });
         }
 
-        try
-        {
-            var wrongPayload = MetadataReference.CreateFromFile(copied);
-            var references = TestMetadataReferences.WithoutSharpProof
-                .Append(wrongPayload);
-            var compilation = AnalyzerTestHost.WithEnabledDiagnostics(
-                CSharpCompilation.Create(
-                    "WrongPayloadContractApiFixture",
-                    [CSharpSyntaxTree.ParseText(source)],
-                    references,
-                    new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)),
-                "SP0047");
+        var wrongPayload = MetadataReference.CreateFromFile(copied);
+        var references = TestMetadataReferences.WithoutSharpProof
+            .Append(wrongPayload);
+        var compilation = AnalyzerTestHost.WithEnabledDiagnostics(
+            CSharpCompilation.Create(
+                "WrongPayloadContractApiFixture",
+                [CSharpSyntaxTree.ParseText(source)],
+                references,
+                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)),
+            "SP0047");
 
-            var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
-                compilation,
-                mode: null,
-                profile: "advisory",
-                features: "contracts");
+        var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
+            compilation,
+            mode: null,
+            profile: "advisory",
+            features: "contracts");
 
-            AnalyzerTestHost.AssertIds(diagnostics, "SP0047");
-            Assert.That(
-                diagnostics.Single().GetMessage(
-                    System.Globalization.CultureInfo.InvariantCulture),
-                Does.Contain("Identity")
-                    .And.Contain("ContractApiIdentityRejected"));
-        }
-        finally
-        {
-            Directory.Delete(directory, recursive: true);
-        }
+        AnalyzerTestHost.AssertIds(diagnostics, "SP0047");
+        Assert.That(
+            diagnostics.Single().GetMessage(
+                System.Globalization.CultureInfo.InvariantCulture),
+            Does.Contain("Identity")
+                .And.Contain("ContractApiIdentityRejected"));
     }
 
     [Test]
@@ -459,10 +450,8 @@ public sealed class ContractApiIdentityAnalyzerTests
     {
         var attributesPath =
             typeof(SharpProof.Attributes.Contract).Assembly.Location;
-        var directory = Path.Combine(
-            Path.GetTempPath(),
-            "SharpProofRejectedMetadata-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(directory);
+        using var temporary = new TempDirectory("SharpProofRejectedMetadata-");
+        var directory = temporary.FullName;
         var copied = Path.Combine(directory, "SharpProof.Attributes.dll");
         File.Copy(attributesPath, copied);
         await using (var stream = new FileStream(
@@ -474,69 +463,62 @@ public sealed class ContractApiIdentityAnalyzerTests
             await stream.WriteAsync(new byte[] { 0x5a });
         }
 
-        try
-        {
-            var wrongPayload = MetadataReference.CreateFromFile(copied);
-            var platform = TestMetadataReferences.WithoutSharpProof;
-            var contractLibrary = CSharpCompilation.Create(
-                "RejectedMetadataContractLibrary",
-                [CSharpSyntaxTree.ParseText(
-                    """
-                    using SharpProof.Attributes;
-                    public static class ExternalContract {
-                        public static int Read([Positive] int value) => value;
-                    }
-                    """)],
-                platform.Append(wrongPayload),
-                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-            var external = MetadataReference.CreateFromImage(
-                AnalyzerTestHost.EmitImage(contractLibrary));
-            var consumer = AnalyzerTestHost.WithEnabledDiagnostics(
-                CSharpCompilation.Create(
-                    "RejectedMetadataConsumer",
-                    [
-                        CSharpSyntaxTree.ParseText(
-                            """
-                            public static class Subject {
-                                public static int Read(int value) {
-                                    var first = ExternalContract.Read(value);
-                                    return first + ExternalContract.Read(value);
-                                }
+        var wrongPayload = MetadataReference.CreateFromFile(copied);
+        var platform = TestMetadataReferences.WithoutSharpProof;
+        var contractLibrary = CSharpCompilation.Create(
+            "RejectedMetadataContractLibrary",
+            [CSharpSyntaxTree.ParseText(
+                """
+                using SharpProof.Attributes;
+                public static class ExternalContract {
+                    public static int Read([Positive] int value) => value;
+                }
+                """)],
+            platform.Append(wrongPayload),
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+        var external = MetadataReference.CreateFromImage(
+            AnalyzerTestHost.EmitImage(contractLibrary));
+        var consumer = AnalyzerTestHost.WithEnabledDiagnostics(
+            CSharpCompilation.Create(
+                "RejectedMetadataConsumer",
+                [
+                    CSharpSyntaxTree.ParseText(
+                        """
+                        public static class Subject {
+                            public static int Read(int value) {
+                                var first = ExternalContract.Read(value);
+                                return first + ExternalContract.Read(value);
                             }
-                            """),
-                        CSharpSyntaxTree.ParseText(
-                            """
-                            // <auto-generated/>
-                            internal static class GeneratedSubject {
-                                internal static int Read(int value) =>
-                                    ExternalContract.Read(value);
-                            }
-                            """,
-                            path: "Rejected.Metadata.g.cs")
-                    ],
-                    platform.Append(wrongPayload).Append(external),
-                    new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)),
-                "SP0047");
+                        }
+                        """),
+                    CSharpSyntaxTree.ParseText(
+                        """
+                        // <auto-generated/>
+                        internal static class GeneratedSubject {
+                            internal static int Read(int value) =>
+                                ExternalContract.Read(value);
+                        }
+                        """,
+                        path: "Rejected.Metadata.g.cs")
+                ],
+                platform.Append(wrongPayload).Append(external),
+                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)),
+            "SP0047");
 
-            var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
-                consumer,
-                mode: null,
-                profile: "advisory",
-                features: "contracts");
+        var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
+            consumer,
+            mode: null,
+            profile: "advisory",
+            features: "contracts");
 
-            AnalyzerTestHost.AssertIds(diagnostics, "SP0047", "SP0047");
-            Assert.That(
-                diagnostics.All(static diagnostic => diagnostic.Location.IsInSource),
-                Is.True);
-            Assert.That(
-                diagnostics.Select(static diagnostic => diagnostic.GetMessage(
-                    System.Globalization.CultureInfo.InvariantCulture)),
-                Has.All.Contain("ContractApiIdentityRejected"));
-        }
-        finally
-        {
-            Directory.Delete(directory, recursive: true);
-        }
+        AnalyzerTestHost.AssertIds(diagnostics, "SP0047", "SP0047");
+        Assert.That(
+            diagnostics.All(static diagnostic => diagnostic.Location.IsInSource),
+            Is.True);
+        Assert.That(
+            diagnostics.Select(static diagnostic => diagnostic.GetMessage(
+                System.Globalization.CultureInfo.InvariantCulture)),
+            Has.All.Contain("ContractApiIdentityRejected"));
     }
 
     [Test]
