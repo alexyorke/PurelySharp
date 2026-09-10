@@ -38,18 +38,18 @@ internal sealed class PackagedProductFeed : IDisposable
         typeof(PackagedProductFeed).Assembly.ManifestModule.ModuleVersionId
             .ToString("N");
 
-    private readonly string? _ownedRoot;
+    private readonly TempDirectory? _ownedDirectory;
 
     private PackagedProductFeed(
         string source,
         IReadOnlyList<PackagedPackage> packages,
         IReadOnlyList<PackagedPackage> symbolPackages,
-        string? ownedRoot)
+        TempDirectory? ownedDirectory)
     {
         Source = source;
         Packages = packages;
         SymbolPackages = symbolPackages;
-        _ownedRoot = ownedRoot;
+        _ownedDirectory = ownedDirectory;
     }
 
     internal string Source
@@ -101,15 +101,7 @@ internal sealed class PackagedProductFeed : IDisposable
 
     public void Dispose()
     {
-        if (_ownedRoot == null)
-        {
-            return;
-        }
-
-        TestRepository.DeleteOwnedTemporaryDirectory(
-            _ownedRoot,
-            "SharpProof.PackagedProductFeed",
-            "Refusing to remove an unexpected package-feed directory.");
+        _ownedDirectory?.Dispose();
     }
 
     private static async Task<PackagedProductFeed> CreateAsync()
@@ -128,18 +120,17 @@ internal sealed class PackagedProductFeed : IDisposable
 
             return CreateValidated(
                 source,
-                ownedRoot: null);
+                ownedDirectory: null);
         }
 
         var repositoryRoot = TestRepository.FindRoot();
-        var root = Path.Combine(
-            Path.GetTempPath(),
-            "SharpProof.PackagedProductFeed",
-            Guid.NewGuid().ToString("N"));
-        var sourceDirectory = Path.Combine(root, "feed");
-        Directory.CreateDirectory(sourceDirectory);
+        var temporary = new TempDirectory(
+            string.Empty,
+            Path.Combine(Path.GetTempPath(), "SharpProof.PackagedProductFeed"));
         try
         {
+            var sourceDirectory = Path.Combine(temporary.FullName, "feed");
+            Directory.CreateDirectory(sourceDirectory);
             // Keep the package catalog as the topology check, but invoke one
             // solution-level pack so the SDK can schedule the shared project
             // closure once instead of starting three sequential pack graphs.
@@ -164,20 +155,18 @@ internal sealed class PackagedProductFeed : IDisposable
             }
             return CreateValidated(
                 sourceDirectory,
-                ownedRoot: root);
+                ownedDirectory: temporary);
         }
         catch
         {
-            TestRepository.DeleteOwnedTemporaryDirectory(
-                root,
-                "SharpProof.PackagedProductFeed");
+            temporary.Dispose();
             throw;
         }
     }
 
     private static PackagedProductFeed CreateValidated(
         string source,
-        string? ownedRoot)
+        TempDirectory? ownedDirectory)
     {
         var packages = ReadPackages(source, ".nupkg");
         var symbolPackages = ReadPackages(source, ".snupkg");
@@ -197,7 +186,7 @@ internal sealed class PackagedProductFeed : IDisposable
             source,
             packages,
             symbolPackages,
-            ownedRoot);
+            ownedDirectory);
     }
 
     private static PackagedPackage[] ReadPackages(
