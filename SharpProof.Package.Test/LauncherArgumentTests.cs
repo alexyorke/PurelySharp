@@ -1135,31 +1135,22 @@ public sealed class LauncherArgumentTests
             string.Join(Environment.NewLine,
                 direct.Errors.Select(static error => error.Code)));
 
-        var path = Path.Combine(
-            TestContext.CurrentContext.WorkDirectory,
-            Guid.NewGuid().ToString("N") + ".json");
-        try
-        {
-            File.WriteAllText(path, WorkerProtocolJson.SerializeResponse(response));
-            Assert.That(Program.ValidateAndReport(
-                path, request, inputHash, manifest, expectedVersions,
-                out var valid, out _, terminationGraceMilliseconds), Is.Not.EqualTo(3));
-            Assert.That(valid, Is.True);
+        using var temporary = new TempDirectory(
+            "sharpproof-bound-result-",
+            TestContext.CurrentContext.WorkDirectory);
+        var path = Path.Combine(temporary.FullName, "response.json");
+        File.WriteAllText(path, WorkerProtocolJson.SerializeResponse(response));
+        Assert.That(Program.ValidateAndReport(
+            path, request, inputHash, manifest, expectedVersions,
+            out var valid, out _, terminationGraceMilliseconds), Is.Not.EqualTo(3));
+        Assert.That(valid, Is.True);
 
-            response.Summary.ElapsedMilliseconds++;
-            var over = WorkerProtocolJson.ValidateForRequest(
-                response, response.RequestHash, inputHash, manifest, request,
-                expectedVersions, terminationGraceMilliseconds);
-            Assert.That(over.Errors.Select(static error => error.Code),
-                Does.Contain("response.elapsed_request_envelope"));
-        }
-        finally
-        {
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
-        }
+        response.Summary.ElapsedMilliseconds++;
+        var over = WorkerProtocolJson.ValidateForRequest(
+            response, response.RequestHash, inputHash, manifest, request,
+            expectedVersions, terminationGraceMilliseconds);
+        Assert.That(over.Errors.Select(static error => error.Code),
+            Does.Contain("response.elapsed_request_envelope"));
     }
 
     [TestCase("input", "response.input_mismatch")]
@@ -1212,9 +1203,10 @@ public sealed class LauncherArgumentTests
             response.Summary.Versions.WorkerVersion = "fabricated";
         }
 
-        var path = Path.Combine(
-            TestContext.CurrentContext.WorkDirectory,
-            Guid.NewGuid().ToString("N") + ".json");
+        using var temporary = new TempDirectory(
+            "sharpproof-bound-result-",
+            TestContext.CurrentContext.WorkDirectory);
+        var path = Path.Combine(temporary.FullName, "response.json");
         var error = Console.Error;
         using var capture = new StringWriter();
         try
@@ -1233,10 +1225,6 @@ public sealed class LauncherArgumentTests
         finally
         {
             Console.SetError(error);
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
         }
     }
 
@@ -1330,9 +1318,10 @@ public sealed class LauncherArgumentTests
             }
         };
         const string inputHash = ValidInputHash;
-        var path = Path.Combine(
-            TestContext.CurrentContext.WorkDirectory,
-            Guid.NewGuid().ToString("N") + ".json");
+        using var temporary = new TempDirectory(
+            "sharpproof-bound-result-",
+            TestContext.CurrentContext.WorkDirectory);
+        var path = Path.Combine(temporary.FullName, "response.json");
         var output = Console.Out;
         var error = Console.Error;
         using var outputCapture = new StringWriter();
@@ -1371,10 +1360,6 @@ public sealed class LauncherArgumentTests
         {
             Console.SetOut(output);
             Console.SetError(error);
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
         }
     }
 
