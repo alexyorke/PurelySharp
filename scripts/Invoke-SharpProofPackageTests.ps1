@@ -541,9 +541,14 @@ try {
         else {
             $workerMethods
         }
-        # Keep one worker bucket per available lane. Additional buckets add
-        # another wave of test-host startup without increasing concurrency.
+        # Keep low-width runs at one worker bucket per available lane. On a
+        # wide local container, leave a small amount of headroom for the
+        # fixture hosts' nested workers and avoid paying for a long tail of
+        # tiny vstest processes after the heavy workers finish.
         $workerShardLimit = [Math]::Max(1, $parallelism)
+        if ($parallelism -ge 16) {
+            $workerShardLimit = [Math]::Max(1, $parallelism - 4)
+        }
         $workerShardCount = [Math]::Min(
             $bucketWorkerMethods.Count,
             $workerShardLimit)
