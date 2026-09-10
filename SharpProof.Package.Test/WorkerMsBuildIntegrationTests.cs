@@ -2116,9 +2116,8 @@ public sealed class WorkerMsBuildIntegrationTests
         var first = await project.BuildAsync(
             verify: true,
             ("_SharpProofPackageNativeZ3Path", nativeZ3Path));
-        var invocationManifest = project.CopyCompilerManifestForInvocation();
-        var second = await project.RunVerificationTargetAsync(
-            ("_SharpProofCompilerManifestPath", invocationManifest),
+        var second = await project.BuildAsync(
+            verify: true,
             ("_SharpProofPackageNativeZ3Path", nativeZ3Path));
 
         using (Assert.EnterMultipleScope())
