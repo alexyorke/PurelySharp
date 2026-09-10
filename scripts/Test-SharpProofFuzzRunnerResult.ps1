@@ -4,6 +4,9 @@ param()
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Assert-SharpProofFuzzRunnerResult.ps1')
+. (Join-Path $PSScriptRoot 'SharpProof.FuzzEvidenceLifecycle.ps1')
+$retainedFuzzSeed = Get-SharpProofRetainedFuzzSeed `
+    -Path (Join-Path $PSScriptRoot '..\eng\fuzz\retained-seeds.json')
 
 $temporaryRoot = Join-Path ([IO.Path]::GetTempPath()) (
     'sharpproof-fuzz-result-' + [Guid]::NewGuid().ToString('N'))
@@ -125,8 +128,8 @@ try {
     if (-not $oversizedRejected) {
         throw 'An oversized fuzz runner result was accepted.'
     }
-    Assert-Accepted (New-CanonicalResult 5 23063) `
-        'canonical-retained' 5 23063
+    Assert-Accepted (New-CanonicalResult 5 $retainedFuzzSeed) `
+        'canonical-retained' 5 $retainedFuzzSeed
     $small = New-CanonicalResult 1 7
     foreach ($name in @($small.FrontendCoverage.Keys)) {
         $small.FrontendCoverage[$name] = 0

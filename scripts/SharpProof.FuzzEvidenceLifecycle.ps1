@@ -150,6 +150,21 @@ function Read-SharpProofRetainedFuzzSeedManifest {
     }
 }
 
+function Get-SharpProofRetainedFuzzSeed {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    $manifest = Read-SharpProofRetainedFuzzSeedManifest -Path $Path
+    $seeds = @($manifest.Seeds)
+    if ($seeds.Count -ne 1) {
+        throw 'The acceptance fuzz run requires exactly one retained seed.'
+    }
+    return [int]$seeds[0]
+}
+
 function Initialize-SharpProofFuzzEvidence {
     [CmdletBinding()]
     param(

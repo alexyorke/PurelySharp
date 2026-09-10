@@ -19,6 +19,8 @@ $contract = Get-Content -LiteralPath $contractPath -Raw | ConvertFrom-Json
 $pullRequestCases = Assert-SharpProofFuzzCaseBudget `
     -Value $contract.fuzz.pullRequestCases `
     -Name 'contract.fuzz.pullRequestCases'
+$retainedFuzzSeed = Get-SharpProofRetainedFuzzSeed `
+    -Path (Join-Path $repositoryRoot 'eng\fuzz\retained-seeds.json')
 
 Import-Module (Join-Path $acceptanceRoot 'SharpProof.AcceptanceTiming.psm1') -Force
 
@@ -664,7 +666,7 @@ try {
             '--cases',
             [string]$pullRequestCases,
             '--seed',
-            '23063',
+            [string]$retainedFuzzSeed,
             '--max-parallelism',
             [string]$contract.fuzz.maximumParallelism
         ) `
