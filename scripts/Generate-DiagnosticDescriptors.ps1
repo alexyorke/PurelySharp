@@ -16,20 +16,6 @@ if (-not [IO.File]::Exists($CatalogPath)) {
     throw "Diagnostic catalog not found: $CatalogPath"
 }
 
-function Assert-ExactMembers {
-    param(
-        [object]$Object,
-        [string[]]$Names,
-        [string]$Context
-    )
-
-    $actual = @($Object.PSObject.Properties.Name | Sort-Object)
-    $expected = @($Names | Sort-Object)
-    if (($actual -join '|') -ne ($expected -join '|')) {
-        throw "$Context must define exactly: $($Names -join ', ')."
-    }
-}
-
 function Resolve-RepositoryOutputPath {
     param([string]$RelativePath)
 
@@ -43,7 +29,7 @@ function Resolve-RepositoryOutputPath {
 
 $catalog = Get-Content -LiteralPath $CatalogPath -Raw |
     ConvertFrom-Json -Depth 100
-Assert-ExactMembers $catalog @('schemaVersion', 'outputs') 'Catalog'
+Assert-Properties $catalog @('schemaVersion', 'outputs') 'Catalog'
 if ([int](Get-RequiredMember $catalog 'schemaVersion' 'Catalog') -ne 1) {
     throw 'Only diagnostic catalog schema version 1 is supported.'
 }
@@ -61,7 +47,7 @@ $allIds = [Collections.Generic.HashSet[string]]::new(
     [StringComparer]::Ordinal)
 
 foreach ($output in $outputs) {
-    Assert-ExactMembers $output @(
+    Assert-Properties $output @(
         'name',
         'namespace',
         'className',
@@ -134,7 +120,7 @@ foreach ($output in $outputs) {
 
     for ($index = 0; $index -lt $diagnostics.Count; $index++) {
         $diagnostic = $diagnostics[$index]
-        Assert-ExactMembers $diagnostic @(
+        Assert-Properties $diagnostic @(
             'symbol',
             'id',
             'title',
