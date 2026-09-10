@@ -2,8 +2,8 @@ namespace SharpProof.Effects;
 
 internal sealed class CreationFlowCaptures
 {
-    private readonly HashSet<CaptureId> _ambiguous = [];
-    private readonly Dictionary<CaptureId, EffectRegionSet> _regions = [];
+    private readonly FlowCaptureTable<EffectRegionSet> _captures =
+        new(static (left, right) => left == right);
 
     internal void Record(IFlowCaptureOperation capture)
     {
@@ -18,30 +18,20 @@ internal sealed class CreationFlowCaptures
             // A later definition can reuse this capture ID at a control-flow
             // merge. Remember non-creation provenance even when no fresh
             // definition has been seen yet.
-            _ambiguous.Add(capture.Id);
+            _captures.MarkAmbiguous(capture.Id);
             return;
         }
 
         var region = EffectRegionSet.Create(
             EffectRegionId.Fresh(value.Syntax.SpanStart));
-        if (_regions.TryGetValue(capture.Id, out var existing))
-        {
-            if (existing != region)
-            {
-                _ambiguous.Add(capture.Id);
-            }
-            return;
-        }
-
-        _regions.Add(capture.Id, region);
+        _captures.Record(capture.Id, region);
     }
 
     internal bool TryResolve(
         IFlowCaptureReferenceOperation capture,
         out EffectRegionSet region)
     {
-        if (!_ambiguous.Contains(capture.Id) &&
-            _regions.TryGetValue(capture.Id, out region))
+        if (_captures.TryGet(capture.Id, out region))
         {
             return true;
         }

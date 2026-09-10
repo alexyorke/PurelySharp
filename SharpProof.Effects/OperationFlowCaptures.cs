@@ -2,8 +2,8 @@ namespace SharpProof.Effects;
 
 internal abstract class OperationFlowCaptures
 {
-    private readonly HashSet<CaptureId> _ambiguous = [];
-    private readonly Dictionary<CaptureId, IOperation> _capturedValues = [];
+    private readonly FlowCaptureTable<IOperation> _captures =
+        new(ManagedFlowResult.HasSameIdentity);
 
     internal void Record(IFlowCaptureOperation capture)
     {
@@ -12,17 +12,7 @@ internal abstract class OperationFlowCaptures
             return;
         }
 
-        if (_capturedValues.TryGetValue(capture.Id, out var existing))
-        {
-            if (!ManagedFlowResult.HasSameIdentity(existing, capture.Value))
-            {
-                _ambiguous.Add(capture.Id);
-            }
-
-            return;
-        }
-
-        _capturedValues.Add(capture.Id, capture.Value);
+        _captures.Record(capture.Id, capture.Value);
     }
 
     internal IOperation Resolve(IOperation operation)
@@ -30,8 +20,7 @@ internal abstract class OperationFlowCaptures
         var seen = new HashSet<CaptureId>();
         while (operation is IFlowCaptureReferenceOperation capture &&
                seen.Add(capture.Id) &&
-               !_ambiguous.Contains(capture.Id) &&
-               _capturedValues.TryGetValue(capture.Id, out var captured))
+               _captures.TryGet(capture.Id, out var captured))
         {
             operation = captured;
         }
