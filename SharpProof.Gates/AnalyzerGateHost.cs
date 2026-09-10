@@ -230,12 +230,8 @@ internal static class AnalyzerGateHost
 
     private static ImmutableArray<MetadataReference> CreateReferences()
     {
-        var trustedPlatformAssemblies =
-            (string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ??
-            throw new InvalidOperationException(
-                "Trusted platform assemblies are unavailable.");
+        var trustedPlatformAssemblies = TrustedPlatformAssemblyPaths.Get();
         ImmutableArray<MetadataReference> references = [.. trustedPlatformAssemblies
-            .Split(Path.PathSeparator)
             .Select(static path => MetadataReference.CreateFromFile(path))
             .Append(
                 MetadataReference.CreateFromFile(

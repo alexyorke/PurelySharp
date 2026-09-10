@@ -729,7 +729,7 @@ internal static class WorkerPerformanceProbe
             var compilation = CSharpCompilation.Create(
                 "UncooperativeWorker",
                 [syntaxTree],
-                GetTrustedPlatformAssemblyPaths()
+                TrustedPlatformAssemblyPaths.Get()
                     .Select(static reference =>
                         MetadataReference.CreateFromFile(reference)),
                 new CSharpCompilationOptions(
@@ -842,21 +842,12 @@ internal static class WorkerPerformanceProbe
                     "netstandard.dll"
                 ],
                 StringComparer.OrdinalIgnoreCase);
-            return [.. GetTrustedPlatformAssemblyPaths()
+            return [.. TrustedPlatformAssemblyPaths.Get()
                 .Where(path => names.Contains(Path.GetFileName(path)))
                 .Append(typeof(Contract).Assembly.Location)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(static path => path, StringComparer.Ordinal)];
         }
 
-        private static string[] GetTrustedPlatformAssemblyPaths()
-        {
-            var trustedPlatformAssemblies =
-                (string?)AppContext.GetData(
-                    "TRUSTED_PLATFORM_ASSEMBLIES") ??
-                throw new InvalidOperationException(
-                    "Trusted platform assemblies are unavailable.");
-            return trustedPlatformAssemblies.Split(Path.PathSeparator);
-        }
     }
 }
