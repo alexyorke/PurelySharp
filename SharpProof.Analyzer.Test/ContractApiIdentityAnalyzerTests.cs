@@ -361,11 +361,10 @@ public sealed class ContractApiIdentityAnalyzerTests
             """;
         var attributesPath =
             typeof(SharpProof.Attributes.Contract).Assembly.Location;
-        var directory = Path.Combine(
-            Path.GetTempPath(),
-            "SharpProofUnreadable-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(directory);
-        var copied = Path.Combine(directory, "SharpProof.Attributes.dll");
+        using var temporary = new TempDirectory("SharpProofUnreadable-");
+        var copied = Path.Combine(
+            temporary.FullName,
+            "SharpProof.Attributes.dll");
         File.Copy(attributesPath, copied);
 
         // Reference the copy, then delete it. Roslyn has already read the image,
@@ -373,7 +372,6 @@ public sealed class ContractApiIdentityAnalyzerTests
         // the path -- the same shape as an antivirus scanner or a dropped share.
         var reference = MetadataReference.CreateFromFile(copied);
         File.Delete(copied);
-        Directory.Delete(directory);
 
         var references = TestMetadataReferences.WithoutSharpProof
             .Append(reference);
