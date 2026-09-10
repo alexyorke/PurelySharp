@@ -572,11 +572,15 @@ try {
             else {
                 1L
             }
+        # Keep the package-layout fixture in one host. Its NUnit child pool
+        # already supplies the useful parallelism; four outer hosts duplicate
+        # startup and package-cache work and contend with the analyzer-heavy
+        # worker wave.
         $packageLayoutBuckets = @(New-SharpProofWeightedBuckets `
             -Methods $packageLayoutMethods `
             -HistoricalMilliseconds $priorPackageLayoutMethodMilliseconds `
             -DefaultMilliseconds $defaultPackageLayoutMethodMilliseconds `
-            -BucketCount ([Math]::Min(4, $parallelism)))
+            -BucketCount 1)
         $fixtureClasses = @(
             'CompilerProbeInputConsistencyTests|CompilerProbeSnapshotTests|SarifProjectionTests|VerifierDiagnosticTransportTests|VerifierProcessSupervisorBug202Tests|DependencyAuditScriptTests|LauncherArgumentTests',
             'FinalCompilationProbeTests',
@@ -688,9 +692,9 @@ try {
                         $bucket.EstimatedMilliseconds
                     })
                 # PackageLayoutSmokeTests enables NUnit child parallelism up
-                # to four workers. Charge those nested workers to the outer
-                # scheduler so package-layout shards do not oversubscribe the
-                # integration-test wave alongside worker shards.
+                # to four workers. Charge that nested pool to the outer
+                # scheduler so the package-layout host does not oversubscribe
+                # the integration-test wave alongside worker shards.
                 Slots = [Math]::Min(4, $parallelism)
             })
         }
