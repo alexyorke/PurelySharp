@@ -556,47 +556,42 @@ public sealed class ApiSpecTests
     [Test]
     public void ResolverRejectsARuntimeAssemblyCopiedIntoAReferencePackPath()
     {
-        var root = Path.Combine(
-            TestContext.CurrentContext.WorkDirectory,
-            "packs",
-            "Microsoft.NETCore.App.Ref",
-            Guid.NewGuid().ToString("N"));
+        using var temporary = new TempDirectory(
+            "api-spec-runtime-spoof-",
+            Path.Combine(
+                TestContext.CurrentContext.WorkDirectory,
+                "packs",
+                "Microsoft.NETCore.App.Ref"));
+        var root = temporary.FullName;
         var referenceDirectory = Path.Combine(root, "ref", "net8.0");
         Directory.CreateDirectory(referenceDirectory);
         var path = Path.Combine(referenceDirectory, "System.Private.CoreLib.dll");
         File.Copy(typeof(object).Assembly.Location, path);
-        try
-        {
-            var compilation = CSharpCompilation.Create(
-                "SpoofedReferenceFamily",
-                references: [MetadataReference.CreateFromFile(path)],
-                options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-            var declaration = Declaration(
-                "spoofed-reference-family",
-                "M:System.Math.Abs(System.Int32)",
-                "System.Math",
-                memberName: "Abs",
-                approvedAssemblies: [
-                    RuntimeAssemblyIdentity() with {
-                        ReferenceFamily =
-                            ApiSpecReferenceFamily.MicrosoftNetCoreReferencePack
-                    }
-                ]);
+        var compilation = CSharpCompilation.Create(
+            "SpoofedReferenceFamily",
+            references: [MetadataReference.CreateFromFile(path)],
+            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+        var declaration = Declaration(
+            "spoofed-reference-family",
+            "M:System.Math.Abs(System.Int32)",
+            "System.Math",
+            memberName: "Abs",
+            approvedAssemblies: [
+                RuntimeAssemblyIdentity() with {
+                    ReferenceFamily =
+                        ApiSpecReferenceFamily.MicrosoftNetCoreReferencePack
+                }
+            ]);
 
-            var resolved = new ApiSpecResolver(ApiSpecTable.Create([declaration]))
-                .Resolve(compilation);
+        var resolved = new ApiSpecResolver(ApiSpecTable.Create([declaration]))
+            .Resolve(compilation);
 
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(resolved.Specs, Is.Empty);
-                Assert.That(
-                    resolved.Failures.Single().Kind,
-                    Is.EqualTo(ApiSpecResolutionFailureKind.UnapprovedReferenceFamily));
-            }
-        }
-        finally
+        using (Assert.EnterMultipleScope())
         {
-            Directory.Delete(root, recursive: true);
+            Assert.That(resolved.Specs, Is.Empty);
+            Assert.That(
+                resolved.Failures.Single().Kind,
+                Is.EqualTo(ApiSpecResolutionFailureKind.UnapprovedReferenceFamily));
         }
     }
 
@@ -937,11 +932,11 @@ public sealed class ApiSpecTests
     }
 
     private static void AssertSharpProofPackageSpecRejected(
-        Func<(string Root, PortableExecutableReference Reference)> createPackage,
+        Func<(TempDirectory Root, PortableExecutableReference Reference)> createPackage,
         Func<PortableExecutableReference, string>? getPublicKeyToken = null)
     {
         var package = createPackage();
-        try
+        using (package.Root)
         {
             var publicKeyToken = getPublicKeyToken is null
                 ? string.Empty
@@ -964,10 +959,6 @@ public sealed class ApiSpecTests
                         ApiSpecResolutionFailureKind
                             .UnapprovedReferenceFamily));
             }
-        }
-        finally
-        {
-            Directory.Delete(package.Root, recursive: true);
         }
     }
 
@@ -1071,45 +1062,54 @@ public sealed class ApiSpecTests
     }
 
     private static (
-        string Root,
+        TempDirectory Root,
         PortableExecutableReference Reference)
         CreateSharpProofPackageReference(
             string source,
             ImmutableArray<byte> publicKey = default)
     {
-        var root = Path.Combine(
-            TestContext.CurrentContext.WorkDirectory,
-            "SharpProofPackage",
-            Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(root);
-        var path = Path.Combine(root, "SharpProof.Attributes.dll");
-        var options = new CSharpCompilationOptions(
-            OutputKind.DynamicallyLinkedLibrary);
-        if (!publicKey.IsDefaultOrEmpty)
+        var temporary = new TempDirectory(
+            "api-spec-package-",
+            Path.Combine(
+                TestContext.CurrentContext.WorkDirectory,
+                "SharpProofPackage"));
+        try
         {
-            options = options
-                .WithCryptoPublicKey(publicKey)
-                .WithDelaySign(true);
-        }
+            var path = Path.Combine(
+                temporary.FullName,
+                "SharpProof.Attributes.dll");
+            var options = new CSharpCompilationOptions(
+                OutputKind.DynamicallyLinkedLibrary);
+            if (!publicKey.IsDefaultOrEmpty)
+            {
+                options = options
+                    .WithCryptoPublicKey(publicKey)
+                    .WithDelaySign(true);
+            }
 
-        var compilation = CSharpCompilation.Create(
-            "SharpProof.Attributes",
-            [CSharpSyntaxTree.ParseText(source)],
-            [CoreReference],
-            options);
-        var emit = compilation.Emit(path);
-        if (!emit.Success)
+            var compilation = CSharpCompilation.Create(
+                "SharpProof.Attributes",
+                [CSharpSyntaxTree.ParseText(source)],
+                [CoreReference],
+                options);
+            var emit = compilation.Emit(path);
+            if (!emit.Success)
+            {
+                throw new InvalidOperationException(string.Join(
+                    Environment.NewLine,
+                    emit.Diagnostics.Select(static diagnostic =>
+                        diagnostic.ToString())));
+            }
+
+            return (
+                temporary,
+                MetadataReference.CreateFromFile(path));
+        }
+        catch
         {
-            Directory.Delete(root, recursive: true);
-            throw new InvalidOperationException(string.Join(
-                Environment.NewLine,
-                emit.Diagnostics.Select(static diagnostic =>
-                    diagnostic.ToString())));
+            temporary.Dispose();
+            throw;
         }
-
-        return (
-            root,
-            MetadataReference.CreateFromFile(path));
     }
 
     private static string GetPublicKeyToken(
