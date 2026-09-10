@@ -347,14 +347,14 @@ public sealed class DependencyAuditScriptTests
 
     private sealed class DependencyAuditWorkspace : IDisposable
     {
-        private readonly string _expectedParent;
+        private readonly TempDirectory _temporary;
 
         private DependencyAuditWorkspace(
-            string root,
-            string expectedParent)
+            TempDirectory temporary)
         {
-            Root = root;
-            _expectedParent = expectedParent;
+            _temporary = temporary;
+            Root = temporary.FullName;
+            var root = Root;
             SolutionPath = Path.Combine(root, "Fixture.sln");
             ConfigurationPath = Path.Combine(root, "NuGet.Config");
             ReportPath = Path.Combine(root, "report.json");
@@ -402,14 +402,18 @@ public sealed class DependencyAuditScriptTests
                 Path.Combine(
                     Path.GetTempPath(),
                     "SharpProof.DependencyAuditTests"));
-            Directory.CreateDirectory(parent);
-            var root = Path.Combine(
-                parent,
-                Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(root);
-            var workspace = new DependencyAuditWorkspace(root, parent);
-            workspace.Initialize();
-            return workspace;
+            var temporary = new TempDirectory(string.Empty, parent);
+            try
+            {
+                var workspace = new DependencyAuditWorkspace(temporary);
+                workspace.Initialize();
+                return workspace;
+            }
+            catch
+            {
+                temporary.Dispose();
+                throw;
+            }
         }
 
         internal JsonObject CreateCleanReport()
@@ -518,10 +522,7 @@ public sealed class DependencyAuditScriptTests
 
         public void Dispose()
         {
-            TestRepository.DeleteOwnedTemporaryDirectory(
-                Root,
-                Path.GetFileName(_expectedParent),
-                "Refusing to remove an unexpected audit directory.");
+            _temporary.Dispose();
         }
 
         private void Initialize()
