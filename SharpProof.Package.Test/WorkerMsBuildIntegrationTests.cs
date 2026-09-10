@@ -1455,7 +1455,7 @@ public sealed class WorkerMsBuildIntegrationTests
 
         Task<BuildResult> BuildAsync(string name, string features)
         {
-            return project.BuildAsync(
+            return project.BuildNoRestoreAsync(
                 verify: true,
                 ("BaseIntermediateOutputPath",
                     Path.Combine(project.Root, "obj-" + name) +
@@ -4018,6 +4018,17 @@ public sealed class WorkerMsBuildIntegrationTests
                 properties: properties);
         }
 
+        internal Task<BuildResult> BuildNoRestoreAsync(
+            bool? verify,
+            params (string Name, string Value)[] properties)
+        {
+            return BuildCoreAsync(
+                verify,
+                buildInParallel: null,
+                properties: properties,
+                forceNoRestore: true);
+        }
+
         internal Task<BuildResult> BuildSerialAsync(
             bool? verify,
             params (string Name, string Value)[] properties)
@@ -4041,7 +4052,8 @@ public sealed class WorkerMsBuildIntegrationTests
         private async Task<BuildResult> BuildCoreAsync(
             bool? verify,
             bool? buildInParallel,
-            (string Name, string Value)[] properties)
+            (string Name, string Value)[] properties,
+            bool forceNoRestore = false)
         {
             var restoreSensitive = properties.Any(
                 static property => IsRestoreSensitiveProperty(property.Name));
@@ -4049,7 +4061,8 @@ public sealed class WorkerMsBuildIntegrationTests
             {
                 _defaultRestoreCompleted = false;
             }
-            var skipRestore = _defaultRestoreCompleted &&
+            var skipRestore = forceNoRestore ||
+                _defaultRestoreCompleted &&
                 !restoreSensitive &&
                 File.Exists(Path.Combine(_root, "obj", "project.assets.json"));
             var arguments = new List<string> {
