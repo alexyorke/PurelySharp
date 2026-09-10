@@ -124,7 +124,7 @@ internal static class CorpusSnapshotFormat
         out CorpusObservation expectation)
     {
         expectation = null!;
-        if (!IsData(line))
+        if (string.IsNullOrEmpty(line) || line[0] == '#')
         {
             return false;
         }
@@ -158,11 +158,6 @@ internal static class CorpusSnapshotFormat
             semanticOutcome,
             diagnostics);
         return true;
-    }
-
-    private static bool IsData(string? line)
-    {
-        return !string.IsNullOrEmpty(line) && line[0] != '#';
     }
 
     private static InvalidDataException Invalid()
