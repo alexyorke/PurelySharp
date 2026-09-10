@@ -2539,17 +2539,20 @@ public sealed class PackageLayoutSmokeTests
 
     private sealed class PackageWorkspace : IDisposable
     {
-        private static readonly string s_sharedPackageCache = Path.Combine(
-            Path.GetTempPath(),
-            "SharpProof.Package.Layout.Test",
-            "package-cache-" + Guid.NewGuid().ToString("N"));
+        private static readonly TempDirectory s_sharedPackageCache =
+            TempDirectory.CreateOwned(
+                "SharpProof.Package.Layout.Test",
+                "package-cache-",
+                "Refusing to remove an unexpected shared package cache.");
+        private readonly TempDirectory _temporary;
         private readonly string _root;
 
-        private PackageWorkspace(string root)
+        private PackageWorkspace(TempDirectory temporary)
         {
-            _root = root;
-            PackageCache = s_sharedPackageCache;
-            ConsumerDirectory = Path.Combine(root, "consumer project");
+            _temporary = temporary;
+            _root = temporary.FullName;
+            PackageCache = s_sharedPackageCache.FullName;
+            ConsumerDirectory = Path.Combine(_root, "consumer project");
             ConsumerProject = Path.Combine(
                 ConsumerDirectory,
                 "Consumer.csproj");
@@ -2575,7 +2578,7 @@ public sealed class PackageLayoutSmokeTests
                 "SharpProof",
                 "mapped-result.sarif");
             LinkedSourcePath = Path.Combine(
-                root,
+                _root,
                 "shared source",
                 "LinkedSubject.cs");
             ProbeOutputPath = Path.Combine(
@@ -2636,23 +2639,27 @@ public sealed class PackageLayoutSmokeTests
 
         internal static PackageWorkspace Create()
         {
-            var root = Path.Combine(
-                Path.GetTempPath(),
+            var temporary = TempDirectory.CreateOwned(
                 "SharpProof.Package.Layout.Test",
-                Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(root);
-            File.Copy(
-                Path.Combine(TestRepository.FindRoot(), "global.json"),
-                Path.Combine(root, "global.json"));
-            return new PackageWorkspace(root);
+                string.Empty,
+                "Refusing to remove an unexpected package-layout workspace.");
+            try
+            {
+                File.Copy(
+                    Path.Combine(TestRepository.FindRoot(), "global.json"),
+                    Path.Combine(temporary.FullName, "global.json"));
+                return new PackageWorkspace(temporary);
+            }
+            catch
+            {
+                temporary.Dispose();
+                throw;
+            }
         }
 
         internal static void DisposeSharedPackageCache()
         {
-            TestRepository.DeleteOwnedTemporaryDirectory(
-                s_sharedPackageCache,
-                "SharpProof.Package.Layout.Test",
-                "Refusing to remove an unexpected shared package cache.");
+            s_sharedPackageCache.Dispose();
         }
 
         internal void WriteConsumer(string version, string packageId)
@@ -3168,9 +3175,7 @@ public sealed class PackageLayoutSmokeTests
 
         public void Dispose()
         {
-            TestRepository.DeleteOwnedTemporaryDirectory(
-                _root,
-                "SharpProof.Package.Layout.Test");
+            _temporary.Dispose();
         }
     }
 
@@ -3200,11 +3205,10 @@ public sealed class PackageLayoutSmokeTests
         }
         internal static ReleaseEvidenceWorkspace Create()
         {
-            var temporary = new TempDirectory(
+            var temporary = TempDirectory.CreateOwned(
+                "SharpProof.ReleaseEvidence.Test",
                 string.Empty,
-                Path.Combine(
-                    Path.GetTempPath(),
-                    "SharpProof.ReleaseEvidence.Test"));
+                "Refusing to remove an unexpected release-evidence directory.");
             try
             {
                 return new ReleaseEvidenceWorkspace(temporary);

@@ -573,12 +573,11 @@ public sealed class FinalCompilationProbeTests
 
     private sealed class ProbeWorkspace : IDisposable
     {
-        private static readonly string s_workspaceParent = Path.Combine(
-            Path.GetTempPath(),
-            "SharpProof.FinalProbe");
-        private static readonly string s_sharedPackageCache = Path.Combine(
-            s_workspaceParent,
-            "package-cache-" + Guid.NewGuid().ToString("N"));
+        private static readonly TempDirectory s_sharedPackageCache =
+            TempDirectory.CreateOwned(
+                "SharpProof.FinalProbe",
+                "package-cache-",
+                "Refusing to remove an unexpected shared package cache.");
         private readonly TempDirectory _temporary;
         private readonly string _root;
         private string _sharedCompilationServerId;
@@ -592,7 +591,7 @@ public sealed class FinalCompilationProbeTests
                 "direct");
             ProjectPath = Path.Combine(root, "Consumer.csproj");
             ArtifactDirectory = Path.Combine(root, "probe");
-            PackageCache = s_sharedPackageCache;
+            PackageCache = s_sharedPackageCache.FullName;
             CompilerManifestPath = Path.Combine(
                 root,
                 "published",
@@ -648,7 +647,10 @@ public sealed class FinalCompilationProbeTests
 
         internal static ProbeWorkspace Create()
         {
-            var temporary = new TempDirectory(string.Empty, s_workspaceParent);
+            var temporary = TempDirectory.CreateOwned(
+                "SharpProof.FinalProbe",
+                string.Empty,
+                "Refusing to remove an unexpected final-probe workspace.");
             try
             {
                 File.Copy(
@@ -665,10 +667,7 @@ public sealed class FinalCompilationProbeTests
 
         internal static void DisposeSharedPackageCache()
         {
-            TestRepository.DeleteOwnedTemporaryDirectory(
-                s_sharedPackageCache,
-                "SharpProof.FinalProbe",
-                "Refusing to remove an unexpected shared package cache.");
+            s_sharedPackageCache.Dispose();
         }
 
         internal void WriteConsumer(

@@ -853,11 +853,10 @@ public sealed class DefaultApiSpecCatalogGenerationTests
 
         internal static GenerationWorkspace Create()
         {
-            var temporary = new TempDirectory(
+            var temporary = TempDirectory.CreateOwned(
+                "SharpProof.ApiSpecCatalog.Test",
                 string.Empty,
-                Path.Combine(
-                    Path.GetTempPath(),
-                    "SharpProof.ApiSpecCatalog.Test"));
+                "Refusing to remove an unexpected API-spec catalog directory.");
             try
             {
                 return new GenerationWorkspace(temporary);

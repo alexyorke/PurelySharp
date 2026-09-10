@@ -44,145 +44,120 @@ public sealed class CoverageScriptTests
     [Test]
     public async Task RelativeHeadComparisonCannotHideEarlierTcbCommit()
     {
-        var repository = await CreateMultiCommitFixtureAsync();
-        try
-        {
-            var result = await RunCoverageScriptOnlyAsync(
-                repository,
-                comparisonRef: "HEAD^",
-                reportOnly: true);
+        using var temporary = await CreateMultiCommitFixtureAsync();
+        var repository = temporary.FullName;
+        var result = await RunCoverageScriptOnlyAsync(
+            repository,
+            comparisonRef: "HEAD^",
+            reportOnly: true);
 
-            Assert.That(result.ExitCode, Is.Not.Zero);
-            Assert.That(
-                result.Output + result.Error,
-                Does.Contain("durable explicit comparison authority"));
-        }
-        finally
-        {
-            DeleteTemporaryRepository(repository);
-        }
+        Assert.That(result.ExitCode, Is.Not.Zero);
+        Assert.That(
+            result.Output + result.Error,
+            Does.Contain("durable explicit comparison authority"));
     }
 
     [Test]
     public async Task ExplicitComparisonCoversEarlierTcbCommit()
     {
-        var repository = await CreateMultiCommitFixtureAsync();
-        try
-        {
-            var result = await RunCoverageAsync(
-                repository,
-                comparisonRef: "comparison",
-                reportOnly: true);
+        using var temporary = await CreateMultiCommitFixtureAsync();
+        var repository = temporary.FullName;
+        var result = await RunCoverageAsync(
+            repository,
+            comparisonRef: "comparison",
+            reportOnly: true);
 
-            Assert.That(result.ExitCode, Is.Zero, result.Error);
-            using var document = JsonDocument.Parse(result.Output);
-            Assert.That(
-                document.RootElement
-                    .GetProperty("changedTcb")
-                    .GetProperty("changedFiles")
-                    .GetInt32(),
-                Is.EqualTo(1));
-        }
-        finally
-        {
-            DeleteTemporaryRepository(repository);
-        }
+        Assert.That(result.ExitCode, Is.Zero, result.Error);
+        using var document = JsonDocument.Parse(result.Output);
+        Assert.That(
+            document.RootElement
+                .GetProperty("changedTcb")
+                .GetProperty("changedFiles")
+                .GetInt32(),
+            Is.EqualTo(1));
     }
 
     [Test]
     public async Task MissingAndUnusableComparisonAuthoritiesFailClosed()
     {
-        var repository = await CreateSingleCommitFixtureAsync();
-        try
-        {
-            var missing = await RunCoverageScriptOnlyAsync(
-                repository,
-                comparisonRef: null,
-                reportOnly: false);
-            var unusable = await RunCoverageScriptOnlyAsync(
-                repository,
-                comparisonRef: "missing-comparison-ref",
-                reportOnly: false,
-                includeWorkingTree: true);
-            await PrepareCoverageFixtureAsync(repository);
-            var localReport = await RunCoverageScriptOnlyAsync(
-                repository,
-                comparisonRef: null,
-                reportOnly: true);
+        using var temporary = await CreateSingleCommitFixtureAsync();
+        var repository = temporary.FullName;
+        var missing = await RunCoverageScriptOnlyAsync(
+            repository,
+            comparisonRef: null,
+            reportOnly: false);
+        var unusable = await RunCoverageScriptOnlyAsync(
+            repository,
+            comparisonRef: "missing-comparison-ref",
+            reportOnly: false,
+            includeWorkingTree: true);
+        await PrepareCoverageFixtureAsync(repository);
+        var localReport = await RunCoverageScriptOnlyAsync(
+            repository,
+            comparisonRef: null,
+            reportOnly: true);
 
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(missing.ExitCode, Is.Not.Zero);
-                Assert.That(
-                    missing.Output + missing.Error,
-                    Does.Contain("ComparisonRef is required"));
-                Assert.That(unusable.ExitCode, Is.Not.Zero);
-                Assert.That(localReport.ExitCode, Is.Zero, localReport.Error);
-            }
-        }
-        finally
+        using (Assert.EnterMultipleScope())
         {
-            DeleteTemporaryRepository(repository);
+            Assert.That(missing.ExitCode, Is.Not.Zero);
+            Assert.That(
+                missing.Output + missing.Error,
+                Does.Contain("ComparisonRef is required"));
+            Assert.That(unusable.ExitCode, Is.Not.Zero);
+            Assert.That(localReport.ExitCode, Is.Zero, localReport.Error);
         }
     }
 
     [Test]
     public async Task OneCommitRepositoryRejectsRelativeHeadAuthority()
     {
-        var repository = await CreateSingleCommitFixtureAsync();
-        try
-        {
-            var result = await RunCoverageScriptOnlyAsync(
-                repository,
-                comparisonRef: "HEAD^",
-                reportOnly: true);
+        using var temporary = await CreateSingleCommitFixtureAsync();
+        var repository = temporary.FullName;
+        var result = await RunCoverageScriptOnlyAsync(
+            repository,
+            comparisonRef: "HEAD^",
+            reportOnly: true);
 
-            Assert.That(result.ExitCode, Is.Not.Zero);
-            Assert.That(
-                result.Output + result.Error,
-                Does.Contain("durable explicit comparison authority"));
-        }
-        finally
-        {
-            DeleteTemporaryRepository(repository);
-        }
+        Assert.That(result.ExitCode, Is.Not.Zero);
+        Assert.That(
+            result.Output + result.Error,
+            Does.Contain("durable explicit comparison authority"));
     }
 
     [Test]
     public async Task ExplicitComparisonCoversTcbChangeThroughMergeCommit()
     {
-        var repository = await CreateSingleCommitFixtureAsync();
-        try
-        {
-            await ArchitectureRepository.AssertSuccessAsync(
-                ArchitectureRepository.RunProcessAsync(
+        using var temporary = await CreateSingleCommitFixtureAsync();
+        var repository = temporary.FullName;
+        await ArchitectureRepository.AssertSuccessAsync(
+            ArchitectureRepository.RunProcessAsync(
                 repository,
                 "git",
                 "branch",
                 "comparison"));
-            await ArchitectureRepository.AssertSuccessAsync(
-                ArchitectureRepository.RunProcessAsync(
+        await ArchitectureRepository.AssertSuccessAsync(
+            ArchitectureRepository.RunProcessAsync(
                 repository,
                 "git",
                 "switch",
                 "-c",
                 "trusted-change"));
-            await WriteTrustedSourceAsync(repository, value: 1);
-            await CommitAllAsync(repository, "trusted change");
-            await ArchitectureRepository.AssertSuccessAsync(
-                ArchitectureRepository.RunProcessAsync(
+        await WriteTrustedSourceAsync(repository, value: 1);
+        await CommitAllAsync(repository, "trusted change");
+        await ArchitectureRepository.AssertSuccessAsync(
+            ArchitectureRepository.RunProcessAsync(
                 repository,
                 "git",
                 "switch",
                 "-c",
                 "integration",
                 "comparison"));
-            await File.WriteAllTextAsync(
-                Path.Combine(repository, "unrelated.txt"),
-                "unrelated\n");
-            await CommitAllAsync(repository, "unrelated change");
-            await ArchitectureRepository.AssertSuccessAsync(
-                ArchitectureRepository.RunProcessAsync(
+        await File.WriteAllTextAsync(
+            Path.Combine(repository, "unrelated.txt"),
+            "unrelated\n");
+        await CommitAllAsync(repository, "unrelated change");
+        await ArchitectureRepository.AssertSuccessAsync(
+            ArchitectureRepository.RunProcessAsync(
                 repository,
                 "git",
                 "merge",
@@ -191,24 +166,19 @@ public sealed class CoverageScriptTests
                 "-m",
                 "merge trusted change"));
 
-            var result = await RunCoverageAsync(
-                repository,
-                comparisonRef: "comparison",
-                reportOnly: true);
+        var result = await RunCoverageAsync(
+            repository,
+            comparisonRef: "comparison",
+            reportOnly: true);
 
-            Assert.That(result.ExitCode, Is.Zero, result.Error);
-            using var document = JsonDocument.Parse(result.Output);
-            Assert.That(
-                document.RootElement
-                    .GetProperty("changedTcb")
-                    .GetProperty("changedFiles")
-                    .GetInt32(),
-                Is.EqualTo(1));
-        }
-        finally
-        {
-            DeleteTemporaryRepository(repository);
-        }
+        Assert.That(result.ExitCode, Is.Zero, result.Error);
+        using var document = JsonDocument.Parse(result.Output);
+        Assert.That(
+            document.RootElement
+                .GetProperty("changedTcb")
+                .GetProperty("changedFiles")
+                .GetInt32(),
+            Is.EqualTo(1));
     }
 
     [Test]
@@ -426,39 +396,32 @@ public sealed class CoverageScriptTests
     [TestCase("foreign-source")]
     public async Task AuthenticatedCoverageRejectsReportMutations(string mutation)
     {
-        var repository = await CreateSingleCommitFixtureAsync();
-        try
-        {
-            await PrepareCoverageFixtureAsync(repository);
-            var reportPath = Path.Combine(
-                repository,
-                "coverage",
-                "fixture.cobertura.xml");
-            ApplyCoverageMutation(reportPath, mutation);
+        using var temporary = await CreateSingleCommitFixtureAsync();
+        var repository = temporary.FullName;
+        await PrepareCoverageFixtureAsync(repository);
+        var reportPath = Path.Combine(
+            repository,
+            "coverage",
+            "fixture.cobertura.xml");
+        ApplyCoverageMutation(reportPath, mutation);
 
-            var result = await RunCoverageScriptOnlyAsync(
-                repository,
-                comparisonRef: null,
-                reportOnly: true);
+        var result = await RunCoverageScriptOnlyAsync(
+            repository,
+            comparisonRef: null,
+            reportOnly: true);
 
-            Assert.That(
-                result.ExitCode,
-                Is.Not.Zero,
-                mutation + ": " + result.Error + result.Output);
-        }
-        finally
-        {
-            DeleteTemporaryRepository(repository);
-        }
+        Assert.That(
+            result.ExitCode,
+            Is.Not.Zero,
+            mutation + ": " + result.Error + result.Output);
     }
 
     [Test]
     public async Task AuthenticatedCoverageAllowsLinesInsidePdbSequencePointSpans()
     {
-        var repository = await CreateSingleCommitFixtureAsync();
-        try
-        {
-            await File.WriteAllTextAsync(
+        using var temporary = await CreateSingleCommitFixtureAsync();
+        var repository = temporary.FullName;
+        await File.WriteAllTextAsync(
                 Path.Combine(repository, "Project", "Trusted.cs"),
                 "public static class Trusted\n" +
                 "{\n" +
@@ -466,23 +429,23 @@ public sealed class CoverageScriptTests
                 "        1 +\n" +
                 "        0;\n" +
                 "}\n");
-            await CommitAllAsync(repository, "multiline sequence point");
-            await PrepareCoverageFixtureAsync(repository);
+        await CommitAllAsync(repository, "multiline sequence point");
+        await PrepareCoverageFixtureAsync(repository);
 
-            var coverage = Path.Combine(repository, "coverage");
-            using var authority = JsonDocument.Parse(
+        var coverage = Path.Combine(repository, "coverage");
+        using var authority = JsonDocument.Parse(
                 await File.ReadAllTextAsync(Path.Combine(
                     coverage,
                     "coverage-authority.json")));
-            var sourceDocument = authority.RootElement
+        var sourceDocument = authority.RootElement
                 .GetProperty("modules")[0]
                 .GetProperty("documents")[0];
-            var startLines = sourceDocument
+        var startLines = sourceDocument
                 .GetProperty("sequencePoints")
                 .EnumerateArray()
                 .Select(static value => value.GetInt32())
                 .ToHashSet();
-            var interiorLine = sourceDocument
+        var interiorLine = sourceDocument
                 .GetProperty("sequencePointRanges")
                 .EnumerateArray()
                 .SelectMany(static range => Enumerable.Range(
@@ -491,42 +454,37 @@ public sealed class CoverageScriptTests
                     range.GetProperty("startLine").GetInt32() + 1))
                 .First(line => !startLines.Contains(line));
 
-            var reportPath = Path.Combine(
+        var reportPath = Path.Combine(
                 coverage,
                 "fixture.cobertura.xml");
-            var report = XDocument.Load(reportPath);
-            foreach (var line in report.Descendants("line"))
-            {
-                line.SetAttributeValue("hits", 0);
-            }
-            report.Descendants("class").First().Element("lines")!.Add(
+        var report = XDocument.Load(reportPath);
+        foreach (var line in report.Descendants("line"))
+        {
+            line.SetAttributeValue("hits", 0);
+        }
+        report.Descendants("class").First().Element("lines")!.Add(
                 new XElement(
                     "line",
                     new XAttribute("number", interiorLine),
                     new XAttribute("hits", 1)));
-            report.Save(reportPath, SaveOptions.DisableFormatting);
+        report.Save(reportPath, SaveOptions.DisableFormatting);
 
-            var result = await RunCoverageScriptOnlyAsync(
+        var result = await RunCoverageScriptOnlyAsync(
                 repository,
                 comparisonRef: null,
                 reportOnly: true);
 
-            Assert.That(result.ExitCode, Is.Zero, result.Error + result.Output);
-            using var summary = JsonDocument.Parse(result.Output);
-            var aggregate = summary.RootElement.GetProperty("aggregate");
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(
+        Assert.That(result.ExitCode, Is.Zero, result.Error + result.Output);
+        using var summary = JsonDocument.Parse(result.Output);
+        var aggregate = summary.RootElement.GetProperty("aggregate");
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
                     aggregate.GetProperty("coveredLines").GetInt32(),
                     Is.EqualTo(1));
-                Assert.That(
+            Assert.That(
                     aggregate.GetProperty("coverableLines").GetInt32(),
                     Is.GreaterThanOrEqualTo(1));
-            }
-        }
-        finally
-        {
-            DeleteTemporaryRepository(repository);
         }
     }
 
@@ -560,125 +518,106 @@ public sealed class CoverageScriptTests
     [Test]
     public async Task AuthenticatedCoverageIgnoresGeneratedObjDocuments()
     {
-        var repository = await CreateSingleCommitFixtureAsync();
-        try
-        {
-            await PrepareCoverageFixtureAsync(repository);
-            var reportPath = Path.Combine(
-                repository,
-                "coverage",
-                "fixture.cobertura.xml");
-            var report = XDocument.Load(reportPath);
-            report.Descendants("classes").First().Add(
+        using var temporary = await CreateSingleCommitFixtureAsync();
+        var repository = temporary.FullName;
+        await PrepareCoverageFixtureAsync(repository);
+        var reportPath = Path.Combine(
+            repository,
+            "coverage",
+            "fixture.cobertura.xml");
+        var report = XDocument.Load(reportPath);
+        report.Descendants("classes").First().Add(
+            new XElement(
+                "class",
+                new XAttribute(
+                    "name",
+                    "GeneratedLibraryImports"),
+                new XAttribute(
+                    "filename",
+                    "Project/obj/Release/net8.0/Generator/LibraryImports.g.cs"),
                 new XElement(
-                    "class",
-                    new XAttribute(
-                        "name",
-                        "GeneratedLibraryImports"),
-                    new XAttribute(
-                        "filename",
-                        "Project/obj/Release/net8.0/Generator/LibraryImports.g.cs"),
+                    "lines",
                     new XElement(
-                        "lines",
-                        new XElement(
-                            "line",
-                            new XAttribute("number", 1),
-                            new XAttribute("hits", 1)))));
-            report.Save(reportPath, SaveOptions.DisableFormatting);
+                        "line",
+                        new XAttribute("number", 1),
+                        new XAttribute("hits", 1)))));
+        report.Save(reportPath, SaveOptions.DisableFormatting);
 
-            var result = await RunCoverageScriptOnlyAsync(
-                repository,
-                comparisonRef: null,
-                reportOnly: true);
+        var result = await RunCoverageScriptOnlyAsync(
+            repository,
+            comparisonRef: null,
+            reportOnly: true);
 
-            Assert.That(result.ExitCode, Is.Zero, result.Error + result.Output);
-        }
-        finally
-        {
-            DeleteTemporaryRepository(repository);
-        }
+        Assert.That(result.ExitCode, Is.Zero, result.Error + result.Output);
     }
 
     [Test]
     public async Task AuthenticatedCoverageIgnoresVstestArchiveCopies()
     {
-        var repository = await CreateSingleCommitFixtureAsync();
-        try
-        {
-            await PrepareCoverageFixtureAsync(repository);
-            var coverage = Path.Combine(repository, "coverage");
-            var reportPath = Path.Combine(
-                coverage,
-                "fixture.cobertura.xml");
-            var archive = Path.Combine(coverage, "archive", "In", "host");
-            Directory.CreateDirectory(archive);
-            File.Copy(
-                reportPath,
-                Path.Combine(archive, "fixture.cobertura.xml"));
+        using var temporary = await CreateSingleCommitFixtureAsync();
+        var repository = temporary.FullName;
+        await PrepareCoverageFixtureAsync(repository);
+        var coverage = Path.Combine(repository, "coverage");
+        var reportPath = Path.Combine(
+            coverage,
+            "fixture.cobertura.xml");
+        var archive = Path.Combine(coverage, "archive", "In", "host");
+        Directory.CreateDirectory(archive);
+        File.Copy(
+            reportPath,
+            Path.Combine(archive, "fixture.cobertura.xml"));
 
-            var result = await RunCoverageScriptOnlyAsync(
-                repository,
-                comparisonRef: null,
-                reportOnly: true);
+        var result = await RunCoverageScriptOnlyAsync(
+            repository,
+            comparisonRef: null,
+            reportOnly: true);
 
-            Assert.That(result.ExitCode, Is.Zero, result.Error + result.Output);
-        }
-        finally
-        {
-            DeleteTemporaryRepository(repository);
-        }
+        Assert.That(result.ExitCode, Is.Zero, result.Error + result.Output);
     }
 
     [Test]
     public async Task AuthenticatedCoverageIgnoresNonProductionPackages()
     {
-        var repository = await CreateSingleCommitFixtureAsync();
-        try
-        {
-            await PrepareCoverageFixtureAsync(repository);
-            var reportPath = Path.Combine(
-                repository,
-                "coverage",
-                "fixture.cobertura.xml");
-            var report = XDocument.Load(reportPath);
-            report.Descendants("packages").First().Add(
+        using var temporary = await CreateSingleCommitFixtureAsync();
+        var repository = temporary.FullName;
+        await PrepareCoverageFixtureAsync(repository);
+        var reportPath = Path.Combine(
+            repository,
+            "coverage",
+            "fixture.cobertura.xml");
+        var report = XDocument.Load(reportPath);
+        report.Descendants("packages").First().Add(
+            new XElement(
+                "package",
+                new XAttribute("name", "Project.TestSupport"),
                 new XElement(
-                    "package",
-                    new XAttribute("name", "Project.TestSupport"),
+                    "classes",
                     new XElement(
-                        "classes",
+                        "class",
+                        new XAttribute("name", "ForeignSupport"),
+                        new XAttribute("filename", "ForeignSupport.cs"),
                         new XElement(
-                            "class",
-                            new XAttribute("name", "ForeignSupport"),
-                            new XAttribute("filename", "ForeignSupport.cs"),
+                            "lines",
                             new XElement(
-                                "lines",
-                                new XElement(
-                                    "line",
-                                    new XAttribute("number", 1),
-                                    new XAttribute("hits", 1)))))));
-            report.Save(reportPath, SaveOptions.DisableFormatting);
+                                "line",
+                                new XAttribute("number", 1),
+                                new XAttribute("hits", 1)))))));
+        report.Save(reportPath, SaveOptions.DisableFormatting);
 
-            var result = await RunCoverageScriptOnlyAsync(
-                repository,
-                comparisonRef: null,
-                reportOnly: true);
+        var result = await RunCoverageScriptOnlyAsync(
+            repository,
+            comparisonRef: null,
+            reportOnly: true);
 
-            Assert.That(result.ExitCode, Is.Zero, result.Error + result.Output);
-        }
-        finally
-        {
-            DeleteTemporaryRepository(repository);
-        }
+        Assert.That(result.ExitCode, Is.Zero, result.Error + result.Output);
     }
 
     [Test]
     public async Task ProductionInventoryExcludesCompilerGeneratedAccessors()
     {
-        var repository = await CreateSingleCommitFixtureAsync();
-        try
-        {
-            await File.WriteAllTextAsync(
+        using var temporary = await CreateSingleCommitFixtureAsync();
+        var repository = temporary.FullName;
+        await File.WriteAllTextAsync(
                 Path.Combine(repository, "Project", "Trusted.cs"),
                 "public static class Trusted\n" +
                 "{\n" +
@@ -688,35 +627,30 @@ public sealed class CoverageScriptTests
                 "    } = 1;\n" +
                 "    public static int Covered() => 1;\n" +
                 "}\n");
-            await PrepareCoverageFixtureAsync(repository);
-            using var authority = JsonDocument.Parse(
+        await PrepareCoverageFixtureAsync(repository);
+        using var authority = JsonDocument.Parse(
                 await File.ReadAllTextAsync(
                     Path.Combine(
                         repository,
                         "coverage",
                         "coverage-authority.json")));
-            var sourceDocument = authority.RootElement
+        var sourceDocument = authority.RootElement
                 .GetProperty("modules")[0]
                 .GetProperty("documents")[0];
-            var sequencePoints = sourceDocument
+        var sequencePoints = sourceDocument
                 .GetProperty("sequencePoints")
                 .EnumerateArray()
                 .Select(static value => value.GetInt32())
                 .ToArray();
-            var permittedRangeStarts = sourceDocument
+        var permittedRangeStarts = sourceDocument
                 .GetProperty("sequencePointRanges")
                 .EnumerateArray()
                 .Select(static value => value.GetProperty("startLine").GetInt32())
                 .ToArray();
 
-            Assert.That(sequencePoints, Does.Contain(7));
-            Assert.That(sequencePoints, Does.Not.Contain(5));
-            Assert.That(permittedRangeStarts, Does.Contain(5));
-        }
-        finally
-        {
-            DeleteTemporaryRepository(repository);
-        }
+        Assert.That(sequencePoints, Does.Contain(7));
+        Assert.That(sequencePoints, Does.Not.Contain(5));
+        Assert.That(permittedRangeStarts, Does.Contain(5));
     }
 
     private static async Task AssertChangedFilesAsync(
@@ -724,9 +658,7 @@ public sealed class CoverageScriptTests
         int expectedChangedFiles)
     {
         var root = TestRepository.FindRoot();
-        using var temporary = new TempDirectory(
-            "diff-",
-            Path.Combine(Path.GetTempPath(), TemporaryRepositoryRootName));
+        using var temporary = CreateTemporaryRepository("diff-");
         var repository = temporary.FullName;
         await ArchitectureGitRepository.InitializeAsync(
             repository,
@@ -816,9 +748,7 @@ public sealed class CoverageScriptTests
         IReadOnlyList<CoverageEntry> entries)
     {
         var root = TestRepository.FindRoot();
-        using var temporary = new TempDirectory(
-            "identity-",
-            Path.Combine(Path.GetTempPath(), TemporaryRepositoryRootName));
+        using var temporary = CreateTemporaryRepository("identity-");
         var repository = temporary.FullName;
         await InitializeRepositoryAsync(repository);
         await WriteIdentityFixtureAsync(root, repository, entries);
@@ -885,9 +815,7 @@ public sealed class CoverageScriptTests
         double minimumChangedTcbLinePercent = 100)
     {
         var root = TestRepository.FindRoot();
-        using var temporary = new TempDirectory(
-            "unmapped-",
-            Path.Combine(Path.GetTempPath(), TemporaryRepositoryRootName));
+        using var temporary = CreateTemporaryRepository("unmapped-");
         var repository = temporary.FullName;
         await InitializeRepositoryAsync(repository);
         var original = CreateChangedLineSource(
@@ -1020,22 +948,28 @@ public sealed class CoverageScriptTests
             ("core.quotePath", "true"));
     }
 
-    private static async Task<string> CreateSingleCommitFixtureAsync()
+    private static TempDirectory CreateTemporaryRepository(string prefix)
     {
-        var repository = Path.Combine(
-            Path.GetTempPath(),
+        return TempDirectory.CreateOwned(
             TemporaryRepositoryRootName,
-            "authority-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(repository);
+            prefix,
+            "Refusing to remove an unexpected coverage directory.");
+    }
+
+    private static async Task<TempDirectory> CreateSingleCommitFixtureAsync()
+    {
+        var temporary = CreateTemporaryRepository("authority-");
+        var repository = temporary.FullName;
         await InitializeRepositoryAsync(repository);
         await WriteFixtureAsync(TestRepository.FindRoot(), repository);
         await CommitAllAsync(repository, "root");
-        return repository;
+        return temporary;
     }
 
-    private static async Task<string> CreateMultiCommitFixtureAsync()
+    private static async Task<TempDirectory> CreateMultiCommitFixtureAsync()
     {
-        var repository = await CreateSingleCommitFixtureAsync();
+        var temporary = await CreateSingleCommitFixtureAsync();
+        var repository = temporary.FullName;
         await ArchitectureRepository.AssertSuccessAsync(
             ArchitectureRepository.RunProcessAsync(
             repository,
@@ -1048,7 +982,7 @@ public sealed class CoverageScriptTests
             Path.Combine(repository, "unrelated.txt"),
             "unrelated\n");
         await CommitAllAsync(repository, "unrelated tip");
-        return repository;
+        return temporary;
     }
 
     private static async Task<ProcessRunnerResult> RunCoverageAsync(
@@ -1539,14 +1473,6 @@ public sealed class CoverageScriptTests
             "commit",
             "-m",
             message));
-    }
-
-    private static void DeleteTemporaryRepository(string repository)
-    {
-        TestRepository.DeleteOwnedTemporaryDirectory(
-            repository,
-            TemporaryRepositoryRootName,
-            "Refusing to remove an unexpected coverage directory.");
     }
 
     private sealed record CoverageEntry(

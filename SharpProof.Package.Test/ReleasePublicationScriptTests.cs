@@ -932,14 +932,14 @@ public sealed class ReleasePublicationScriptTests
 
     private sealed class PublicationWorkspace : IDisposable
     {
-        private readonly string _expectedParent;
+        private readonly TempDirectory _temporary;
 
-        private PublicationWorkspace(string root, string expectedParent)
+        private PublicationWorkspace(TempDirectory temporary)
         {
-            Root = root;
-            _expectedParent = expectedParent;
-            PackageSource = Path.Combine(root, "packages");
-            RemoteSource = Path.Combine(root, "remote");
+            _temporary = temporary;
+            Root = temporary.FullName;
+            PackageSource = Path.Combine(Root, "packages");
+            RemoteSource = Path.Combine(Root, "remote");
             Directory.CreateDirectory(PackageSource);
             Directory.CreateDirectory(RemoteSource);
         }
@@ -959,13 +959,19 @@ public sealed class ReleasePublicationScriptTests
 
         internal static PublicationWorkspace Create()
         {
-            var parent = Path.GetFullPath(Path.Combine(
-                Path.GetTempPath(),
-                "SharpProof.ReleasePublication"));
-            Directory.CreateDirectory(parent);
-            var root = Path.Combine(parent, Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(root);
-            return new PublicationWorkspace(root, parent);
+            var temporary = TempDirectory.CreateOwned(
+                "SharpProof.ReleasePublication",
+                string.Empty,
+                "Refusing to remove an unexpected publication directory.");
+            try
+            {
+                return new PublicationWorkspace(temporary);
+            }
+            catch
+            {
+                temporary.Dispose();
+                throw;
+            }
         }
 
         internal void CopyAllPackages(PackagedProductFeed feed)
@@ -982,10 +988,7 @@ public sealed class ReleasePublicationScriptTests
 
         public void Dispose()
         {
-            TestRepository.DeleteOwnedTemporaryDirectory(
-                Root,
-                Path.GetFileName(_expectedParent),
-                "Refusing to remove an unexpected publication directory.");
+            _temporary.Dispose();
         }
     }
 

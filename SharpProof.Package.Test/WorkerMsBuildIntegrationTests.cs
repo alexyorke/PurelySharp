@@ -2664,28 +2664,19 @@ public sealed class WorkerMsBuildIntegrationTests
             Path.ChangeExtension(WorkerOutputPath(), ".deps.json"),
             Path.ChangeExtension(worker, ".deps.json"));
         await File.WriteAllTextAsync(result, sentinel);
-        try
-        {
-            var failed = await project.RunVerificationTargetAsync(
-                ("_SharpProofCompilerManifestPath", project.CompilerManifestPath),
-                ("SharpProofWorkerPath", worker),
-                ("_SharpProofTestWorkerPath", worker),
-                ("SharpProofVerifyResultFile", result));
+        var failed = await project.RunVerificationTargetAsync(
+            ("_SharpProofCompilerManifestPath", project.CompilerManifestPath),
+            ("SharpProofWorkerPath", worker),
+            ("_SharpProofTestWorkerPath", worker),
+            ("SharpProofVerifyResultFile", result));
 
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(failed.ExitCode, Is.Not.Zero, failed.Output);
-                Assert.That(File.Exists(result), Is.True, failed.Output);
-                Assert.That(
-                    await File.ReadAllTextAsync(result),
-                    Is.EqualTo(sentinel));
-            }
-        }
-        finally
+        using (Assert.EnterMultipleScope())
         {
-            TestRepository.DeleteOwnedTemporaryDirectory(
-                directory,
-                "SharpProof.Package.Test");
+            Assert.That(failed.ExitCode, Is.Not.Zero, failed.Output);
+            Assert.That(File.Exists(result), Is.True, failed.Output);
+            Assert.That(
+                await File.ReadAllTextAsync(result),
+                Is.EqualTo(sentinel));
         }
     }
 
@@ -3981,9 +3972,10 @@ public sealed class WorkerMsBuildIntegrationTests
             var name = explicitName ?? (useSpaces
                 ? "consumer project " + Guid.NewGuid().ToString("N")
                 : Guid.NewGuid().ToString("N"));
-            var temporary = new TempDirectory(
+            var temporary = TempDirectory.CreateOwned(
+                "SharpProof.Package.Test",
                 name,
-                Path.Combine(Path.GetTempPath(), "SharpProof.Package.Test"));
+                "Refusing to remove an unexpected package-test consumer directory.");
             try
             {
                 var root = temporary.FullName;

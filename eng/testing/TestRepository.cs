@@ -56,36 +56,4 @@ internal static class TestRepository
             "The packaged worker is supported only in the canonical Linux amd64 container.");
     }
 
-    internal static void DeleteOwnedTemporaryDirectory(
-        string path,
-        string rootName,
-        string errorMessage = "Refusing to remove an unexpected test directory.")
-    {
-        var resolved = Path.GetFullPath(path);
-        var expectedRoot = Path.GetFullPath(
-            Path.Combine(Path.GetTempPath(), rootName));
-        var relative = Path.GetRelativePath(expectedRoot, resolved);
-        if (Path.IsPathRooted(relative) ||
-            relative == "." ||
-            relative == ".." ||
-            relative.StartsWith(
-                ".." + Path.DirectorySeparatorChar,
-                StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException(errorMessage);
-        }
-
-        if (Directory.Exists(resolved))
-        {
-            foreach (var file in Directory.EnumerateFiles(
-                         resolved,
-                         "*",
-                         SearchOption.AllDirectories))
-            {
-                File.SetAttributes(file, FileAttributes.Normal);
-            }
-
-            Directory.Delete(resolved, recursive: true);
-        }
-    }
 }

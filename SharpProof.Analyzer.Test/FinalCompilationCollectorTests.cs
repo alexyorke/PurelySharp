@@ -1406,11 +1406,10 @@ public sealed class FinalCompilationCollectorTests
 
         internal CollectorWorkspace()
         {
-            _temporary = new TempDirectory(
+            _temporary = TempDirectory.CreateOwned(
+                "SharpProof.FinalCompilationCollector",
                 string.Empty,
-                System.IO.Path.Combine(
-                    System.IO.Path.GetTempPath(),
-                    "SharpProof.FinalCompilationCollector"));
+                "Refusing to remove an unexpected final-compilation collector directory.");
             Path = _temporary.FullName;
         }
 

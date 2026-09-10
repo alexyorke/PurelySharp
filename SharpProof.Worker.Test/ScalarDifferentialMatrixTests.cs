@@ -869,11 +869,10 @@ public sealed class ScalarDifferentialMatrixTests
 
         internal static DifferentialProject Create(string source)
         {
-            var temporary = new TempDirectory(
+            var temporary = TempDirectory.CreateOwned(
+                "SharpProof.ScalarDifferential",
                 string.Empty,
-                Path.Combine(
-                    Path.GetTempPath(),
-                    "SharpProof.ScalarDifferential"));
+                "Refusing to remove an unexpected scalar-differential directory.");
             try
             {
                 var sourcePath = Path.Combine(

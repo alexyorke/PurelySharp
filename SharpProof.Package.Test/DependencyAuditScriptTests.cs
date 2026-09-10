@@ -398,11 +398,10 @@ public sealed class DependencyAuditScriptTests
 
         internal static DependencyAuditWorkspace Create()
         {
-            var parent = Path.GetFullPath(
-                Path.Combine(
-                    Path.GetTempPath(),
-                    "SharpProof.DependencyAuditTests"));
-            var temporary = new TempDirectory(string.Empty, parent);
+            var temporary = TempDirectory.CreateOwned(
+                "SharpProof.DependencyAuditTests",
+                string.Empty,
+                "Refusing to remove an unexpected dependency-audit directory.");
             try
             {
                 var workspace = new DependencyAuditWorkspace(temporary);

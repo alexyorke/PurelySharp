@@ -6855,14 +6855,16 @@ public sealed class WorkerTests
                 sort: true);
         private static readonly ImmutableArray<MetadataReference>
             NetCoreReferencePack = CreateNetCoreReferencePack();
+        private readonly TempDirectory _temporary;
         private readonly List<string> _additionalReferencePaths = [];
         private bool _useNetCoreReferencePack;
 
-        private TestProject(string directory, string[] sourcePaths)
+        private TestProject(TempDirectory temporary, string[] sourcePaths)
         {
-            DirectoryPath = directory;
+            _temporary = temporary;
+            DirectoryPath = temporary.FullName;
             SourcePaths = sourcePaths;
-            CacheDirectory = Path.Combine(directory, "cache");
+            CacheDirectory = Path.Combine(DirectoryPath, "cache");
         }
 
         internal string DirectoryPath
@@ -6886,21 +6888,30 @@ public sealed class WorkerTests
         internal static TestProject Create(
             params (string FileName, string Source)[] sources)
         {
-            var directory = Path.Combine(
-                Path.GetTempPath(),
+            var temporary = TempDirectory.CreateOwned(
                 "SharpProof.Worker.Test",
-                Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(directory);
-            var sourcePaths = sources.Select(source =>
+                string.Empty,
+                "Refusing to remove an unexpected worker-test directory.");
+            try
             {
-                var sourcePath = Path.Combine(directory, source.FileName);
-                File.WriteAllText(
-                    sourcePath,
-                    source.Source,
-                    new System.Text.UTF8Encoding(false));
-                return sourcePath;
-            }).ToArray();
-            return new TestProject(directory, sourcePaths);
+                var sourcePaths = sources.Select(source =>
+                {
+                    var sourcePath = Path.Combine(
+                        temporary.FullName,
+                        source.FileName);
+                    File.WriteAllText(
+                        sourcePath,
+                        source.Source,
+                        new System.Text.UTF8Encoding(false));
+                    return sourcePath;
+                }).ToArray();
+                return new TestProject(temporary, sourcePaths);
+            }
+            catch
+            {
+                temporary.Dispose();
+                throw;
+            }
         }
 
         internal void UseNetCoreReferencePack()
@@ -6994,9 +7005,7 @@ public sealed class WorkerTests
 
         public void Dispose()
         {
-            TestRepository.DeleteOwnedTemporaryDirectory(
-                DirectoryPath,
-                "SharpProof.Worker.Test");
+            _temporary.Dispose();
         }
 
         private static ImmutableArray<MetadataReference>

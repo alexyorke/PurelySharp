@@ -12,24 +12,22 @@ public sealed class ProductionInventoryAuthorityTests
     [Test]
     public async Task InventoryBindsParseGeneratorAndGeneratedAuthorities()
     {
-        var repository = Path.Combine(
-            Path.GetTempPath(),
+        using var temporary = TempDirectory.CreateOwned(
             TemporaryRepositoryRootName,
-            "inventory-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(repository);
-        try
-        {
-            await InitializeRepositoryAsync(repository);
-            await WriteFixtureAsync(repository);
-            await CommitAllAsync(repository, "inventory fixture");
+            "inventory-",
+            "Refusing to remove an unexpected production-inventory directory.");
+        var repository = temporary.FullName;
+        await InitializeRepositoryAsync(repository);
+        await WriteFixtureAsync(repository);
+        await CommitAllAsync(repository, "inventory fixture");
 
-            var baseline = await RunInventoryAsync(repository);
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(baseline.RootElement.TryGetProperty("sourceUniverseSha256", out _), Is.False);
+        var baseline = await RunInventoryAsync(repository);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(baseline.RootElement.TryGetProperty("sourceUniverseSha256", out _), Is.False);
                 Assert.That(baseline.RootElement.TryGetProperty("generatedManifestSha256", out _), Is.False);
                 Assert.That(baseline.RootElement.TryGetProperty("pdbUniverseSha256", out _), Is.False);
-            }
+        }
 
             var projectPath = Path.Combine(repository, "Project", "Project.csproj");
             var project = await File.ReadAllTextAsync(projectPath);
@@ -91,53 +89,40 @@ public sealed class ProductionInventoryAuthorityTests
                 tcbMutation.ExitCode,
                 Is.Not.Zero,
                 "A TCB source outside the evaluated Compile universe must fail closed.");
-        }
-        finally
-        {
-            DeleteTemporaryRepository(repository);
-        }
     }
 
     [Test]
     public async Task InventoryRejectsMissingRepositoryAnalyzer()
     {
-        var repository = Path.Combine(
-            Path.GetTempPath(),
+        using var temporary = TempDirectory.CreateOwned(
             TemporaryRepositoryRootName,
-            "analyzer-" +
-            Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(repository);
-        try
-        {
-            await InitializeRepositoryAsync(repository);
-            await WriteFixtureAsync(repository);
-            var projectPath = Path.Combine(
+            "analyzer-",
+            "Refusing to remove an unexpected production-inventory directory.");
+        var repository = temporary.FullName;
+        await InitializeRepositoryAsync(repository);
+        await WriteFixtureAsync(repository);
+        var projectPath = Path.Combine(
                 repository,
                 "Project",
                 "Project.csproj");
-            var project = await File.ReadAllTextAsync(projectPath);
-            await File.WriteAllTextAsync(
+        var project = await File.ReadAllTextAsync(projectPath);
+        await File.WriteAllTextAsync(
                 projectPath,
                 project.Replace(
                     "    <Compile Include=\"**/*.cs\" Exclude=\"bin/**/*.cs;obj/**/*.cs\" />",
                     "    <Compile Include=\"**/*.cs\" Exclude=\"bin/**/*.cs;obj/**/*.cs\" />\n" +
                     "    <Analyzer Include=\"../tools/MissingAnalyzer.dll\" />",
                     StringComparison.Ordinal));
-            await CommitAllAsync(repository, "missing analyzer fixture");
+        await CommitAllAsync(repository, "missing analyzer fixture");
 
-            var result = await RunInventoryProcessAsync(repository);
+        var result = await RunInventoryProcessAsync(repository);
 
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(result.ExitCode, Is.Not.Zero);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.ExitCode, Is.Not.Zero);
                 Assert.That(
                     result.Error + result.Output,
                     Does.Contain("MissingAnalyzer.dll"));
-            }
-        }
-        finally
-        {
-            DeleteTemporaryRepository(repository);
         }
     }
 
@@ -295,14 +280,6 @@ public sealed class ProductionInventoryAuthorityTests
         await ArchitectureRepository.AssertSuccessAsync(
             ArchitectureRepository.RunProcessAsync(
                 repository, "git", "commit", "-m", message), includeOutput: true);
-    }
-
-    private static void DeleteTemporaryRepository(string repository)
-    {
-        TestRepository.DeleteOwnedTemporaryDirectory(
-            repository,
-            TemporaryRepositoryRootName,
-            "Refusing to remove an unexpected production-inventory directory.");
     }
 
 }

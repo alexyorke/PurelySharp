@@ -124,9 +124,10 @@ internal sealed class PackagedProductFeed : IDisposable
         }
 
         var repositoryRoot = TestRepository.FindRoot();
-        var temporary = new TempDirectory(
+        var temporary = TempDirectory.CreateOwned(
+            "SharpProof.PackagedProductFeed",
             string.Empty,
-            Path.Combine(Path.GetTempPath(), "SharpProof.PackagedProductFeed"));
+            "Refusing to remove an unexpected packaged-product-feed directory.");
         try
         {
             var sourceDirectory = Path.Combine(temporary.FullName, "feed");
