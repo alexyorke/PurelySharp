@@ -237,7 +237,7 @@ public sealed class CompilerSpecificationPackProviderTests
             foreach (var (json, message) in invalid)
             {
                 var error = Assert.Throws<InvalidDataException>((Action)(() =>
-                    ParseMethod(json)));
+                    ParseJson(s_parseMethod, json)));
                 Assert.That(error!.Message, Does.Contain(message), json);
             }
 
@@ -256,7 +256,7 @@ public sealed class CompilerSpecificationPackProviderTests
                      })
             {
                 var error = Assert.Throws<InvalidDataException>((Action)(() =>
-                    ParsePack(json)));
+                    ParseJson(s_parsePack, json)));
                 Assert.That(error!.Message, Does.Contain(message), json);
             }
 
@@ -374,16 +374,6 @@ public sealed class CompilerSpecificationPackProviderTests
     private static object ParseTerm(string json, int depth = 0)
     {
         return ParseJson(s_parseTerm, json, depth);
-    }
-
-    private static object ParseMethod(string json)
-    {
-        return ParseJson(s_parseMethod, json);
-    }
-
-    private static object ParsePack(string json)
-    {
-        return ParseJson(s_parsePack, json);
     }
 
     private static object ParseJson(
