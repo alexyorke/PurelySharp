@@ -866,8 +866,6 @@ internal static class Program
             return;
         }
 
-        var emptyManifest = WorkerResultAssembler.EmptyManifest();
-        var requestHash = WorkerProtocolJson.ComputeRequestHash(request);
         if (response is not
             {
                 RunStatus: WorkerRunStatus.TimedOut,
@@ -876,16 +874,22 @@ internal static class Program
                 ClaimResults.Length: 0,
                 Errors.Length: 1
             } ||
-            response.Errors[0].Code != "worker.timeout" ||
-            !WorkerProtocolJson.ValidateForRequest(
-                    response,
-                    requestHash,
-                    WorkerResultAssembler.EmptyInputHash,
-                    emptyManifest,
-                    request,
-                    expectedVersions,
-                    terminationGraceMilliseconds)
-                .IsValid)
+            response.Errors[0].Code != "worker.timeout")
+        {
+            return;
+        }
+
+        var emptyManifest = WorkerResultAssembler.EmptyManifest();
+        var requestHash = WorkerProtocolJson.ComputeRequestHash(request);
+        if (!WorkerProtocolJson.ValidateForRequest(
+                response,
+                requestHash,
+                WorkerResultAssembler.EmptyInputHash,
+                emptyManifest,
+                request,
+                expectedVersions,
+                terminationGraceMilliseconds)
+            .IsValid)
         {
             return;
         }
