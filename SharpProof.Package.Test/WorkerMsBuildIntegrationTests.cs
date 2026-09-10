@@ -2576,10 +2576,8 @@ public sealed class WorkerMsBuildIntegrationTests
             Throws.TypeOf<ArgumentException>());
     }
 
-    [TestCase("")]
-    [TestCase("cache")]
-    public async Task DirectLauncherRejectsCacheInsideWorkerRuntimeDirectory(
-        string relativeCacheSuffix)
+    [Test]
+    public async Task DirectLauncherRejectsCacheInsideWorkerRuntimeDirectory()
     {
         RequireContainerWorker();
         using var project = ConsumerProject.Create(IdentitySource);
@@ -2587,26 +2585,33 @@ public sealed class WorkerMsBuildIntegrationTests
         Assert.That(baseline.ExitCode, Is.Zero, baseline.Output);
 
         var workerDirectory = Path.GetDirectoryName(WorkerOutputPath())!;
-        var cachePath = Path.Combine(workerDirectory, relativeCacheSuffix);
         var projectDirectory = Path.GetDirectoryName(project.ProjectPath)!;
-        var relativeCache = Path.GetRelativePath(projectDirectory, cachePath);
-        string[] arguments = [
-            "verify",
-            "--worker", WorkerOutputPath(),
-            "--request", project.RequestPath,
-            "--result", project.ResultPath,
-            "--compiler-manifest", project.CompilerManifestPath,
-            "--cache-directory", relativeCache,
-            "--verify-policy", "advisory",
-            "--assumption-policy", "allow"
-        ];
+        foreach (var relativeCacheSuffix in new[] { string.Empty, "cache" })
+        {
+            var cachePath = Path.Combine(workerDirectory, relativeCacheSuffix);
+            var relativeCache = Path.GetRelativePath(
+                projectDirectory,
+                cachePath);
+            string[] arguments = [
+                "verify",
+                "--worker", WorkerOutputPath(),
+                "--request", project.RequestPath,
+                "--result", project.ResultPath,
+                "--compiler-manifest", project.CompilerManifestPath,
+                "--cache-directory", relativeCache,
+                "--verify-policy", "advisory",
+                "--assumption-policy", "allow"
+            ];
 
-        Assert.That(
-            LauncherArguments.TryParse(arguments, out var parsed),
-            Is.True);
-        Assert.That(
-            (Action)(() => parsed.CreateRequest(out _, out _)),
-            Throws.TypeOf<ArgumentException>());
+            Assert.That(
+                LauncherArguments.TryParse(arguments, out var parsed),
+                Is.True,
+                relativeCacheSuffix);
+            Assert.That(
+                (Action)(() => parsed.CreateRequest(out _, out _)),
+                Throws.TypeOf<ArgumentException>(),
+                relativeCacheSuffix);
+        }
     }
 
     [Test]
