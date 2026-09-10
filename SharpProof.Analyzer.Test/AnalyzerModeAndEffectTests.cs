@@ -2856,7 +2856,7 @@ public sealed class AnalyzerModeAndEffectTests
             }
             """,
             mode: null,
-            ["SP0047"],
+            [],
             new SharpProofAnalyzer(factory),
             features: "effects");
 
@@ -2927,7 +2927,7 @@ public sealed class AnalyzerModeAndEffectTests
             }
             """,
             mode: null,
-            ["SP0045", "SP0047"],
+            [],
             new SharpProofAnalyzer(factory),
             features: "effects");
 
@@ -3002,7 +3002,7 @@ public sealed class AnalyzerModeAndEffectTests
             }
             """,
             mode: null,
-            ["SP0047"],
+            [],
             new SharpProofAnalyzer(factory),
             features: "effects");
 
@@ -3068,7 +3068,7 @@ public sealed class AnalyzerModeAndEffectTests
             }
             """,
             mode: null,
-            ["SP0046"],
+            [],
             new SharpProofAnalyzer(factory),
             features: "effects");
 
@@ -3244,7 +3244,7 @@ public sealed class AnalyzerModeAndEffectTests
             }
             """,
             mode: null,
-            ["SP0046"],
+            [],
             new SharpProofAnalyzer(factory),
             features: "effects");
 
@@ -3297,7 +3297,7 @@ public sealed class AnalyzerModeAndEffectTests
             }
             """,
             mode: null,
-            ["SP0047"],
+            [],
             new SharpProofAnalyzer(factory),
             features: "effects");
 
@@ -3341,7 +3341,7 @@ public sealed class AnalyzerModeAndEffectTests
             }
             """,
             mode: null,
-            ["SP0046"],
+            [],
             new SharpProofAnalyzer(factory),
             features: "effects");
 
@@ -3425,7 +3425,7 @@ public sealed class AnalyzerModeAndEffectTests
             }
             """,
             mode: null,
-            ["SP0046"],
+            [],
             new SharpProofAnalyzer(factory),
             features: "effects",
             filePath: "Fixture.g.cs");
@@ -3570,7 +3570,7 @@ public sealed class AnalyzerModeAndEffectTests
             }
             """,
             mode: null,
-            ["SP0024"],
+            [],
             features: "effects");
         var messages = diagnostics.Select(diagnostic =>
             diagnostic.GetMessage(CultureInfo.InvariantCulture));
@@ -3603,7 +3603,7 @@ public sealed class AnalyzerModeAndEffectTests
             }
             """,
             mode: null,
-            ["SP0024"],
+            [],
             features: "contracts");
 
         AnalyzerTestHost.AssertIds(diagnostics, "SP0024");

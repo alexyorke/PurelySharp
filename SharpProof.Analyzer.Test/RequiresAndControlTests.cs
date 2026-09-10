@@ -478,7 +478,7 @@ public sealed class RequiresAndControlTests
             }
             """,
             "contracts",
-            ["SP0027"],
+            [],
             filePath: "Generated.Initializers.g.cs");
 
         Assert.That(diagnostics, Is.Empty);
@@ -583,7 +583,7 @@ public sealed class RequiresAndControlTests
             public sealed class Derived() : Base() { }
             """,
             "contracts",
-            ["SP0027"]);
+            []);
 
         Assert.That(diagnostics, Is.Empty);
     }
