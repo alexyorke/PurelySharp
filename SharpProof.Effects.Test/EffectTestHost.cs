@@ -92,7 +92,7 @@ internal static class EffectTestHost
             namespace SharpProof.Attributes {
                 public static class Contract {
                     public const string ConditionalSymbol =
-                        "SHARPPROOF_CONTRACTS";
+                        "{{Contract.ConditionalSymbol}}";
 
                     {{conditional}}
                     public static void Requires(bool condition) {
