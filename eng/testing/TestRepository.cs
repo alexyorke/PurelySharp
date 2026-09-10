@@ -9,25 +9,13 @@ internal static class TestRepository
         return Path.GetRelativePath(FindRoot(), path).Replace('\\', '/');
     }
 
-    internal static string FindRoot(string? start = null)
-    {
-        var directory = new DirectoryInfo(start ?? AppContext.BaseDirectory);
-        while (directory != null)
-        {
-            if (File.Exists(Path.Combine(directory.FullName, "SharpProof.sln")) &&
-                File.Exists(Path.Combine(
-                    directory.FullName,
-                    "SharpProof.Release.props")))
-            {
-                return directory.FullName;
-            }
-
-            directory = directory.Parent;
-        }
-
+    internal static string FindRoot(string? start = null) =>
+        RepositoryRoot.Find(
+            start,
+            "SharpProof.sln",
+            "SharpProof.Release.props") ??
         throw new DirectoryNotFoundException(
             "Could not locate the SharpProof repository root.");
-    }
 
     internal static JsonDocument ReadSchema(
         string projectDirectory,

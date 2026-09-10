@@ -85,6 +85,8 @@
                         '$(MSBuildProjectName)' == 'SharpProof.Worker.Test'">
     <Compile Include="$(MSBuildThisFileDirectory)eng\testing\TestRepository.cs"
              Link="TestRepository.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)eng\testing\RepositoryRoot.cs"
+             Link="RepositoryRoot.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(MSBuildProjectName)' == 'SharpProof.ArchitectureTest' OR

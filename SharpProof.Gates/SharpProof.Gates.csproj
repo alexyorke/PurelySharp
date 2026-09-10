@@ -8,6 +8,8 @@
                       Value="$(SharpProofSourceCommit)" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\eng\testing\RepositoryRoot.cs"
+             Link="RepositoryRoot.cs" />
     <Compile Include="..\scripts\SharpProof.SymbolPackageValidator.cs"
              Link="Release\SharpProof.SymbolPackageValidator.cs" />
     <Compile Include="..\scripts\SharpProof.JsonDefaults.cs"
