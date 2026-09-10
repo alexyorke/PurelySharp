@@ -153,7 +153,7 @@ executed assignment right-hand side contributes to that condition even when
 the assigned value is never read.
 
 `Contract.Assume` is explicit user evidence and must remain visible as
-`Justification.UserAssumed`. A diagnostic suppression changes reporting only; it
+`UserAssumedJustification`. A diagnostic suppression changes reporting only; it
 cannot sharpen a summary or proof. A trust declaration can authorize only an
 explicitly declared contract or effect summary. Trust without such a declaration
 leaves the result `Unknown`. A complete external API specification or trusted
