@@ -152,9 +152,8 @@ internal static class PackageBuildEstimator
                     nameof(samples));
             }
 
-            balancedRatios.Add(GeometricMean(
-                first.Ratio,
-                second.Ratio));
+            balancedRatios.Add(
+                Math.Sqrt(first.Ratio) * Math.Sqrt(second.Ratio));
         }
 
         var baselineFirstSorted = ValidateAndSort(baselineFirst);
@@ -170,11 +169,6 @@ internal static class PackageBuildEstimator
             MedianSorted(unannotatedAdvisoryFirstSorted),
             NearestRankPercentileSorted(ratiosSorted, 0.95),
             balanced);
-    }
-
-    private static double GeometricMean(double first, double second)
-    {
-        return Math.Sqrt(first) * Math.Sqrt(second);
     }
 
     private static double Midpoint(double first, double second)
