@@ -86,20 +86,8 @@ public sealed class DefaultApiSpecCatalogGenerationTests
     public async Task GeneratorIsDeterministicLfAndBomFree()
     {
         using var workspace = GenerationWorkspace.Create();
-        var first = await RunGeneratorAsync(
-            "-SourceOutputPath",
-            workspace.FirstSourcePath,
-            "-DocumentationOutputPath",
-            workspace.FirstDocumentationPath,
-            "-RuntimeWitnessOutputPath",
-            workspace.FirstRuntimeWitnessPath);
-        var second = await RunGeneratorAsync(
-            "-SourceOutputPath",
-            workspace.SecondSourcePath,
-            "-DocumentationOutputPath",
-            workspace.SecondDocumentationPath,
-            "-RuntimeWitnessOutputPath",
-            workspace.SecondRuntimeWitnessPath);
+        var first = await RunGeneratorAsync(workspace);
+        var second = await RunGeneratorAsync(workspace, useSecondOutputs: true);
 
         Assert.That(first.ExitCode, Is.Zero, first.Output);
         Assert.That(second.ExitCode, Is.Zero, second.Output);
@@ -141,27 +129,14 @@ public sealed class DefaultApiSpecCatalogGenerationTests
     public async Task VerificationRejectsStaleGeneratedOutput()
     {
         using var workspace = GenerationWorkspace.Create();
-        var generated = await RunGeneratorAsync(
-            "-SourceOutputPath",
-            workspace.FirstSourcePath,
-            "-DocumentationOutputPath",
-            workspace.FirstDocumentationPath,
-            "-RuntimeWitnessOutputPath",
-            workspace.FirstRuntimeWitnessPath);
+        var generated = await RunGeneratorAsync(workspace);
         Assert.That(generated.ExitCode, Is.Zero, generated.Output);
         await File.AppendAllTextAsync(
             workspace.FirstSourcePath,
             "// stale\n",
             new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
-        var verification = await RunGeneratorAsync(
-            "-SourceOutputPath",
-            workspace.FirstSourcePath,
-            "-DocumentationOutputPath",
-            workspace.FirstDocumentationPath,
-            "-RuntimeWitnessOutputPath",
-            workspace.FirstRuntimeWitnessPath,
-            "-Verify");
+        var verification = await RunGeneratorAsync(workspace, "-Verify");
 
         Assert.That(verification.ExitCode, Is.Not.Zero);
         Assert.That(
@@ -201,14 +176,9 @@ public sealed class DefaultApiSpecCatalogGenerationTests
             new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         var result = await RunGeneratorAsync(
+            workspace,
             "-CatalogPath",
-            workspace.CatalogInputPath,
-            "-SourceOutputPath",
-            workspace.FirstSourcePath,
-            "-DocumentationOutputPath",
-            workspace.FirstDocumentationPath,
-            "-RuntimeWitnessOutputPath",
-            workspace.FirstRuntimeWitnessPath);
+            workspace.CatalogInputPath);
 
         Assert.That(result.ExitCode, Is.Not.Zero, result.Output);
     }
@@ -274,14 +244,9 @@ public sealed class DefaultApiSpecCatalogGenerationTests
             new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         var result = await RunGeneratorAsync(
+            workspace,
             "-CatalogPath",
-            workspace.CatalogInputPath,
-            "-SourceOutputPath",
-            workspace.FirstSourcePath,
-            "-DocumentationOutputPath",
-            workspace.FirstDocumentationPath,
-            "-RuntimeWitnessOutputPath",
-            workspace.FirstRuntimeWitnessPath);
+            workspace.CatalogInputPath);
 
         Assert.That(result.ExitCode, Is.Not.Zero, result.Output);
         Assert.That(
@@ -343,10 +308,8 @@ public sealed class DefaultApiSpecCatalogGenerationTests
             root.ToJsonString(),
             new UTF8Encoding(false));
         var result = await RunGeneratorAsync(
-            "-CatalogPath", workspace.CatalogInputPath,
-            "-SourceOutputPath", workspace.FirstSourcePath,
-            "-DocumentationOutputPath", workspace.FirstDocumentationPath,
-            "-RuntimeWitnessOutputPath", workspace.FirstRuntimeWitnessPath);
+            workspace,
+            "-CatalogPath", workspace.CatalogInputPath);
 
         Assert.That(result.ExitCode, Is.Not.Zero, result.Output);
         Assert.That(result.Output, Does.Contain(expectedError));
@@ -785,6 +748,34 @@ public sealed class DefaultApiSpecCatalogGenerationTests
         return new GeneratorResult(
             result.ExitCode,
             result.Output + Environment.NewLine + result.Error);
+    }
+
+    private static Task<GeneratorResult> RunGeneratorAsync(
+        GenerationWorkspace workspace,
+        params string[] arguments)
+    {
+        return RunGeneratorAsync(workspace, false, arguments);
+    }
+
+    private static Task<GeneratorResult> RunGeneratorAsync(
+        GenerationWorkspace workspace,
+        bool useSecondOutputs,
+        params string[] arguments)
+    {
+        var sourcePath = useSecondOutputs
+            ? workspace.SecondSourcePath
+            : workspace.FirstSourcePath;
+        var documentationPath = useSecondOutputs
+            ? workspace.SecondDocumentationPath
+            : workspace.FirstDocumentationPath;
+        var runtimeWitnessPath = useSecondOutputs
+            ? workspace.SecondRuntimeWitnessPath
+            : workspace.FirstRuntimeWitnessPath;
+        return RunGeneratorAsync(
+            [.. arguments,
+                "-SourceOutputPath", sourcePath,
+                "-DocumentationOutputPath", documentationPath,
+                "-RuntimeWitnessOutputPath", runtimeWitnessPath]);
     }
 
     private static string CatalogPath()
