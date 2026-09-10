@@ -3669,6 +3669,7 @@ public sealed class WorkerMsBuildIntegrationTests
     {
         private static readonly Lazy<ProjectTemplate> s_projectTemplate =
             new(CreateProjectTemplate);
+        private readonly TempDirectory _temporary;
         private readonly string _root;
         private bool _defaultRestoreCompleted;
 
@@ -3688,9 +3689,11 @@ public sealed class WorkerMsBuildIntegrationTests
             string ProtocolPath,
             string BuildTasksPath);
 
-        private ConsumerProject(string root)
+        private ConsumerProject(TempDirectory temporary)
         {
-            _root = root;
+            _temporary = temporary;
+            _root = temporary.FullName;
+            var root = _root;
             ProjectPath = Path.Combine(root, "Consumer.csproj");
             RequestPath = Path.Combine(
                 root,
@@ -3997,24 +4000,31 @@ public sealed class WorkerMsBuildIntegrationTests
             var name = explicitName ?? (useSpaces
                 ? "consumer project " + Guid.NewGuid().ToString("N")
                 : Guid.NewGuid().ToString("N"));
-            var root = Path.Combine(
-                Path.GetTempPath(),
-                "SharpProof.Package.Test",
-                name);
-            Directory.CreateDirectory(root);
-            var template = s_projectTemplate.Value;
-            File.Copy(
-                Path.Combine(template.Repository, "global.json"),
-                Path.Combine(root, "global.json"));
-            File.WriteAllText(
-                Path.Combine(root, "Subject.cs"),
-                source,
-                new System.Text.UTF8Encoding(false));
-            File.WriteAllText(
-                Path.Combine(root, "Consumer.csproj"),
-                CreateProjectXml(properties),
-                new System.Text.UTF8Encoding(false));
-            return new ConsumerProject(root);
+            var temporary = new TempDirectory(
+                name,
+                Path.Combine(Path.GetTempPath(), "SharpProof.Package.Test"));
+            try
+            {
+                var root = temporary.FullName;
+                var template = s_projectTemplate.Value;
+                File.Copy(
+                    Path.Combine(template.Repository, "global.json"),
+                    Path.Combine(root, "global.json"));
+                File.WriteAllText(
+                    Path.Combine(root, "Subject.cs"),
+                    source,
+                    new System.Text.UTF8Encoding(false));
+                File.WriteAllText(
+                    Path.Combine(root, "Consumer.csproj"),
+                    CreateProjectXml(properties),
+                    new System.Text.UTF8Encoding(false));
+                return new ConsumerProject(temporary);
+            }
+            catch
+            {
+                temporary.Dispose();
+                throw;
+            }
         }
 
         internal Task<BuildResult> BuildAsync(
@@ -4355,9 +4365,7 @@ public sealed class WorkerMsBuildIntegrationTests
 
         public void Dispose()
         {
-            TestRepository.DeleteOwnedTemporaryDirectory(
-                _root,
-                "SharpProof.Package.Test");
+            _temporary.Dispose();
         }
 
         private static string CreateProjectXml(
