@@ -2546,37 +2546,6 @@ public sealed class WorkerMsBuildIntegrationTests
     }
 
     [Test]
-    public async Task DirectLauncherRejectsRelativeCacheAliasAfterManifestResolution()
-    {
-        RequireContainerWorker();
-        using var project = ConsumerProject.Create(IdentitySource);
-        var baseline = await project.BuildAsync(verify: true);
-        Assert.That(baseline.ExitCode, Is.Zero, baseline.Output);
-
-        var projectDirectory = Path.GetDirectoryName(project.ProjectPath)!;
-        var relativeManifest = Path.GetRelativePath(
-            projectDirectory,
-            project.CompilerManifestPath);
-        string[] arguments = [
-            "verify",
-            "--worker", WorkerOutputPath(),
-            "--request", project.RequestPath,
-            "--result", project.ResultPath,
-            "--compiler-manifest", project.CompilerManifestPath,
-            "--cache-directory", relativeManifest,
-            "--verify-policy", "advisory",
-            "--assumption-policy", "allow"
-        ];
-
-        Assert.That(
-            LauncherArguments.TryParse(arguments, out var parsed),
-            Is.True);
-        Assert.That(
-            (Action)(() => parsed.CreateRequest(out _, out _)),
-            Throws.TypeOf<ArgumentException>());
-    }
-
-    [Test]
     public async Task DirectLauncherRejectsCacheInsideWorkerRuntimeDirectory()
     {
         RequireContainerWorker();
@@ -2584,11 +2553,18 @@ public sealed class WorkerMsBuildIntegrationTests
         var baseline = await project.BuildAsync(verify: true);
         Assert.That(baseline.ExitCode, Is.Zero, baseline.Output);
 
-        var workerDirectory = Path.GetDirectoryName(WorkerOutputPath())!;
         var projectDirectory = Path.GetDirectoryName(project.ProjectPath)!;
-        foreach (var relativeCacheSuffix in new[] { string.Empty, "cache" })
+        var cachePaths = new[] {
+            project.CompilerManifestPath,
+            Path.Combine(
+                Path.GetDirectoryName(WorkerOutputPath())!,
+                string.Empty),
+            Path.Combine(
+                Path.GetDirectoryName(WorkerOutputPath())!,
+                "cache")
+        };
+        foreach (var cachePath in cachePaths)
         {
-            var cachePath = Path.Combine(workerDirectory, relativeCacheSuffix);
             var relativeCache = Path.GetRelativePath(
                 projectDirectory,
                 cachePath);
@@ -2606,11 +2582,11 @@ public sealed class WorkerMsBuildIntegrationTests
             Assert.That(
                 LauncherArguments.TryParse(arguments, out var parsed),
                 Is.True,
-                relativeCacheSuffix);
+                cachePath);
             Assert.That(
                 (Action)(() => parsed.CreateRequest(out _, out _)),
                 Throws.TypeOf<ArgumentException>(),
-                relativeCacheSuffix);
+                cachePath);
         }
     }
 
