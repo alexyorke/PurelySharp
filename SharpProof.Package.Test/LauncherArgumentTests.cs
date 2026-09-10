@@ -843,69 +843,64 @@ public sealed class LauncherArgumentTests
     public void CompilerManifestByteLimitIsEnforcedBeforeAllocation()
     {
         const int expectedLimit = 16 * 1024 * 1024;
+        using var temporary = new TempDirectory(
+            "sharpproof-compiler-manifest-limit-",
+            TestContext.CurrentContext.WorkDirectory);
         var path = Path.Combine(
-            TestContext.CurrentContext.WorkDirectory,
-            Guid.NewGuid().ToString("N") + ".json");
-        try
+            temporary.FullName,
+            "manifest.json");
+        Assert.That(
+            LauncherArguments.MaximumCompilerManifestBytes,
+            Is.EqualTo(expectedLimit));
+        using (var stream = File.Create(path))
         {
-            Assert.That(
-                LauncherArguments.MaximumCompilerManifestBytes,
-                Is.EqualTo(expectedLimit));
-            using (var stream = File.Create(path))
-            {
-                stream.SetLength(expectedLimit + 1L);
-            }
+            stream.SetLength(expectedLimit + 1L);
+        }
 
-            Assert.That(
-                (Action)(() => LauncherArguments.ReadCompilerManifest(path)),
-                Throws.TypeOf<InvalidDataException>());
-        }
-        finally
-        {
-            File.Delete(path);
-        }
+        Assert.That(
+            (Action)(() => LauncherArguments.ReadCompilerManifest(path)),
+            Throws.TypeOf<InvalidDataException>());
     }
 
     [Test]
     [Platform("Linux")]
     public void CompilerManifestFifoIsRejectedBeforeBlockingOpen()
     {
+        using var temporary = new TempDirectory(
+            "sharpproof-compiler-manifest-fifo-",
+            TestContext.CurrentContext.WorkDirectory);
         var path = Path.Combine(
-            TestContext.CurrentContext.WorkDirectory,
-            Guid.NewGuid().ToString("N") + ".fifo");
-        try
-        {
-            using var process = System.Diagnostics.Process.Start(
-                new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "mkfifo",
-                    UseShellExecute = false,
-                    ArgumentList = { path }
-                })!;
-            process.WaitForExit();
-            Assert.That(process.ExitCode, Is.Zero);
+            temporary.FullName,
+            "manifest.fifo");
+        using var process = System.Diagnostics.Process.Start(
+            new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "mkfifo",
+                UseShellExecute = false,
+                ArgumentList = { path }
+            })!;
+        process.WaitForExit();
+        Assert.That(process.ExitCode, Is.Zero);
 
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            Assert.That(
-                (Action)(() => LauncherArguments.ReadCompilerManifest(path)),
-                Throws.TypeOf<InvalidDataException>());
-            stopwatch.Stop();
-            Assert.That(
-                stopwatch.Elapsed,
-                Is.LessThan(TimeSpan.FromSeconds(1)));
-        }
-        finally
-        {
-            File.Delete(path);
-        }
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        Assert.That(
+            (Action)(() => LauncherArguments.ReadCompilerManifest(path)),
+            Throws.TypeOf<InvalidDataException>());
+        stopwatch.Stop();
+        Assert.That(
+            stopwatch.Elapsed,
+            Is.LessThan(TimeSpan.FromSeconds(1)));
     }
 
     [Test]
     public void WorkerResultByteLimitIsEnforcedBeforeDeserialization()
     {
+        using var temporary = new TempDirectory(
+            "sharpproof-worker-result-limit-",
+            TestContext.CurrentContext.WorkDirectory);
         var path = Path.Combine(
-            TestContext.CurrentContext.WorkDirectory,
-            Guid.NewGuid().ToString("N") + ".json");
+            temporary.FullName,
+            "result.json");
         var originalError = Console.Error;
         using var error = new StringWriter();
         try
@@ -936,19 +931,18 @@ public sealed class LauncherArgumentTests
         finally
         {
             Console.SetError(originalError);
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
         }
     }
 
     [Test]
     public void MalformedProtocolErrorsCannotInjectLauncherLogLines()
     {
+        using var temporary = new TempDirectory(
+            "sharpproof-malformed-protocol-",
+            TestContext.CurrentContext.WorkDirectory);
         var path = Path.Combine(
-            TestContext.CurrentContext.WorkDirectory,
-            Guid.NewGuid().ToString("N") + ".json");
+            temporary.FullName,
+            "result.json");
         var originalError = Console.Error;
         using var error = new StringWriter();
         try
@@ -989,10 +983,6 @@ public sealed class LauncherArgumentTests
         finally
         {
             Console.SetError(originalError);
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
         }
     }
 
@@ -1000,62 +990,58 @@ public sealed class LauncherArgumentTests
     [Platform("Linux")]
     public void WorkerResultFifoIsRejectedBeforeBlockingOpen()
     {
+        using var temporary = new TempDirectory(
+            "sharpproof-worker-result-fifo-",
+            TestContext.CurrentContext.WorkDirectory);
         var path = Path.Combine(
-            TestContext.CurrentContext.WorkDirectory,
-            Guid.NewGuid().ToString("N") + ".fifo");
-        try
-        {
-            using (var process = System.Diagnostics.Process.Start(
-                new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "mkfifo",
-                    UseShellExecute = false,
-                    ArgumentList = { path }
-                })!)
+            temporary.FullName,
+            "result.fifo");
+        using (var process = System.Diagnostics.Process.Start(
+            new System.Diagnostics.ProcessStartInfo
             {
-                process.WaitForExit();
-                Assert.That(process.ExitCode, Is.Zero);
+                FileName = "mkfifo",
+                UseShellExecute = false,
+                ArgumentList = { path }
+            })!)
+        {
+            process.WaitForExit();
+            Assert.That(process.ExitCode, Is.Zero);
+        }
+
+        var validation = Task.Run(() => Program.ValidateAndReport(
+            path,
+            new WorkerVerifyRequest(),
+            null,
+            null,
+            null,
+            out _,
+            out _));
+        var completed = Task.WhenAny(validation, Task.Delay(500))
+            .GetAwaiter()
+            .GetResult();
+        if (!ReferenceEquals(completed, validation))
+        {
+            using (var writer = new FileStream(
+                path,
+                FileMode.Open,
+                FileAccess.Write,
+                FileShare.ReadWrite))
+            {
+                writer.WriteByte((byte)'{');
             }
 
-            var validation = Task.Run(() => Program.ValidateAndReport(
-                path,
-                new WorkerVerifyRequest(),
-                null,
-                null,
-                null,
-                out _,
-                out _));
-            var completed = Task.WhenAny(validation, Task.Delay(500))
+            var unblocked = Task.WhenAny(validation, Task.Delay(5000))
                 .GetAwaiter()
                 .GetResult();
-            if (!ReferenceEquals(completed, validation))
-            {
-                using (var writer = new FileStream(
-                    path,
-                    FileMode.Open,
-                    FileAccess.Write,
-                    FileShare.ReadWrite))
-                {
-                    writer.WriteByte((byte)'{');
-                }
-
-                var unblocked = Task.WhenAny(validation, Task.Delay(5000))
-                    .GetAwaiter()
-                    .GetResult();
-                Assert.That(unblocked, Is.SameAs(validation));
-                _ = validation.Exception;
-            }
-
-            Assert.That(
-                completed,
-                Is.SameAs(validation),
-                "Worker-result validation must not wait for a FIFO writer.");
-            Assert.That(validation.GetAwaiter().GetResult(), Is.EqualTo(3));
+            Assert.That(unblocked, Is.SameAs(validation));
+            _ = validation.Exception;
         }
-        finally
-        {
-            File.Delete(path);
-        }
+
+        Assert.That(
+            completed,
+            Is.SameAs(validation),
+            "Worker-result validation must not wait for a FIFO writer.");
+        Assert.That(validation.GetAwaiter().GetResult(), Is.EqualTo(3));
     }
 
     [Test]
