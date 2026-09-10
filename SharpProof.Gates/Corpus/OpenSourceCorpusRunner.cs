@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Text;
 using Microsoft.CodeAnalysis;
@@ -275,32 +274,15 @@ internal static class OpenSourceCorpusRunner
 
     private sealed class RecordingSessionFactory(
         ImmutableDictionary<TargetKey, TargetInfo> targets)
-        : IAnalyzerSessionFactory
+        : AnalyzerSessionFactoryBase<string>(StringComparer.Ordinal)
     {
-        private readonly ConcurrentDictionary<
-            string,
-            AnalyzerSemanticOutcome> _outcomes =
-            new(StringComparer.Ordinal);
-
-        public AnalyzerSession Create(
-            Compilation compilation,
-            AnalyzerConfiguration configuration,
-            CancellationToken cancellationToken)
-        {
-            return new(
-                compilation,
-                configuration,
-                cancellationToken,
-                Record);
-        }
-
         internal ImmutableDictionary<string, AnalyzerSemanticOutcome>
             GetOutcomes()
         {
-            return _outcomes.ToImmutableDictionary(StringComparer.Ordinal);
+            return Outcomes.ToImmutableDictionary(StringComparer.Ordinal);
         }
 
-        private void Record(
+        protected override void Record(
             IMethodSymbol method,
             AnalyzerSemanticOutcome outcome)
         {
@@ -315,11 +297,7 @@ internal static class OpenSourceCorpusRunner
                     continue;
                 }
 
-                _outcomes.AddOrUpdate(
-                    target.Method.Id,
-                    outcome,
-                    (_, current) =>
-                        AnalyzerSemanticOutcomes.Combine(current, outcome));
+                RecordOutcome(target.Method.Id, outcome);
             }
         }
     }

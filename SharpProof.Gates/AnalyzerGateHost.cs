@@ -22,6 +22,69 @@ internal sealed record AnalyzerGateAnalysis(
     CompilationOptions CompilationOptions,
     ImmutableArray<AnalyzerMethodSemanticOutcome> SemanticOutcomes);
 
+internal abstract class AnalyzerSessionFactoryBase<TKey>(
+    IEqualityComparer<TKey> comparer)
+    : IAnalyzerSessionFactory
+    where TKey : notnull
+{
+    protected readonly ConcurrentDictionary<TKey, AnalyzerSemanticOutcome>
+        Outcomes = new(comparer);
+
+    public AnalyzerSession Create(
+        Compilation compilation,
+        AnalyzerConfiguration configuration,
+        CancellationToken cancellationToken) =>
+        new(compilation, configuration, cancellationToken, Record);
+
+    protected abstract void Record(
+        IMethodSymbol method,
+        AnalyzerSemanticOutcome outcome);
+
+    protected void RecordOutcome(
+        TKey key,
+        AnalyzerSemanticOutcome outcome) =>
+        Outcomes.AddOrUpdate(
+            key,
+            static (_, incoming) => incoming,
+            static (_, current, incoming) =>
+                AnalyzerSemanticOutcomes.Combine(current, incoming),
+            outcome);
+}
+
+internal readonly record struct MethodOutcomeKey(
+    IMethodSymbol Method,
+    SyntaxTree? SourceTree,
+    string SourceFilePath,
+    int SourceTreeOrdinal,
+    string MethodName,
+    Accessibility Accessibility,
+    int SourceStart);
+
+internal sealed class MethodOutcomeKeyComparer
+    : IEqualityComparer<MethodOutcomeKey>
+{
+    internal static MethodOutcomeKeyComparer Instance { get; } = new();
+
+    public bool Equals(MethodOutcomeKey left, MethodOutcomeKey right)
+    {
+        return ReferenceEquals(left.SourceTree, right.SourceTree) &&
+            left.SourceStart == right.SourceStart &&
+            SymbolEqualityComparer.Default.Equals(left.Method, right.Method);
+    }
+
+    public int GetHashCode(MethodOutcomeKey key)
+    {
+        var hash = new HashCode();
+        hash.Add(
+            key.SourceTree == null
+                ? 0
+                : RuntimeHelpers.GetHashCode(key.SourceTree));
+        hash.Add(key.SourceStart);
+        hash.Add(SymbolEqualityComparer.Default.GetHashCode(key.Method));
+        return hash.ToHashCode();
+    }
+}
+
 internal static class AnalyzerGateHost
 {
     internal static readonly CSharpParseOptions ParseOptions =
@@ -218,7 +281,8 @@ internal static class AnalyzerGateHost
 
     private sealed class RecordingAnalyzerSessionFactory(
         Compilation compilation)
-        : IAnalyzerSessionFactory
+        : AnalyzerSessionFactoryBase<MethodOutcomeKey>(
+            MethodOutcomeKeyComparer.Instance)
     {
         private readonly ImmutableDictionary<SyntaxTree, int> _treeOrdinals =
             compilation.SyntaxTrees
@@ -228,26 +292,9 @@ internal static class AnalyzerGateHost
                     static item => item.ordinal,
                     (IEqualityComparer<SyntaxTree>)
                         ReferenceEqualityComparer.Instance);
-        private readonly ConcurrentDictionary<
-            MethodOutcomeKey,
-            AnalyzerSemanticOutcome> _outcomes =
-                new(MethodOutcomeKeyComparer.Instance);
-
-        public AnalyzerSession Create(
-            Compilation compilation,
-            AnalyzerConfiguration configuration,
-            CancellationToken cancellationToken)
-        {
-            return new(
-                compilation,
-                configuration,
-                cancellationToken,
-                Record);
-        }
-
         internal ImmutableArray<AnalyzerMethodSemanticOutcome> GetOutcomes()
         {
-            return [.. _outcomes
+            return [.. Outcomes
                 .OrderBy(
                     static pair => pair.Key.SourceFilePath,
                     StringComparer.Ordinal)
@@ -263,7 +310,7 @@ internal static class AnalyzerGateHost
                     pair.Value))];
         }
 
-        private void Record(
+        protected override void Record(
             IMethodSymbol method,
             AnalyzerSemanticOutcome outcome)
         {
@@ -283,47 +330,8 @@ internal static class AnalyzerGateHost
                 method.MetadataName,
                 method.DeclaredAccessibility,
                 sourceLocation?.SourceSpan.Start ?? -1);
-            _outcomes.AddOrUpdate(
-                key,
-                outcome,
-                (_, current) =>
-                    AnalyzerSemanticOutcomes.Combine(current, outcome));
+            RecordOutcome(key, outcome);
         }
 
-        private readonly record struct MethodOutcomeKey(
-            IMethodSymbol Method,
-            SyntaxTree? SourceTree,
-            string SourceFilePath,
-            int SourceTreeOrdinal,
-            string MethodName,
-            Accessibility Accessibility,
-            int SourceStart);
-
-        private sealed class MethodOutcomeKeyComparer
-            : IEqualityComparer<MethodOutcomeKey>
-        {
-            internal static MethodOutcomeKeyComparer Instance { get; } = new();
-
-            public bool Equals(MethodOutcomeKey left, MethodOutcomeKey right)
-            {
-                return ReferenceEquals(left.SourceTree, right.SourceTree) &&
-                    left.SourceStart == right.SourceStart &&
-                    SymbolEqualityComparer.Default.Equals(
-                        left.Method,
-                        right.Method);
-            }
-
-            public int GetHashCode(MethodOutcomeKey key)
-            {
-                var hash = new HashCode();
-                hash.Add(
-                    key.SourceTree == null
-                        ? 0
-                        : RuntimeHelpers.GetHashCode(key.SourceTree));
-                hash.Add(key.SourceStart);
-                hash.Add(SymbolEqualityComparer.Default.GetHashCode(key.Method));
-                return hash.ToHashCode();
-            }
-        }
     }
 }
