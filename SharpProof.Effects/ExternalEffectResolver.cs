@@ -140,7 +140,7 @@ internal sealed class ExternalEffectResolver
     {
         return method.GetAttributes()
             .Concat(method.AssociatedSymbol is IPropertySymbol property ? property.GetAttributes() : [])
-            .Where(IsEffectContract);
+            .Where(attribute => IsAttribute(attribute, _effectContractAttribute));
     }
 
     private bool TryDecodeContract(
@@ -374,11 +374,6 @@ internal sealed class ExternalEffectResolver
         }
 
         return regions;
-    }
-
-    private bool IsEffectContract(AttributeData attribute)
-    {
-        return IsAttribute(attribute, _effectContractAttribute);
     }
 
     private static bool IsAttribute(AttributeData attribute, INamedTypeSymbol? attributeType)
