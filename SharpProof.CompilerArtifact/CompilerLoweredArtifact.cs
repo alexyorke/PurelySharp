@@ -697,9 +697,6 @@ internal static class CompilerLoweredArtifact
             throw new InvalidDataException("Lowered canonical variable roles are invalid.");
         }
 
-        var current = new HashSet<IrVarId>(variables
-            .Where(static item => item.Role is CompilerVariableRole.Receiver or CompilerVariableRole.Parameter)
-            .Select(static item => item.Variable));
         var currentByVariable = variables
             .Where(static item => item.Role is CompilerVariableRole.Receiver or CompilerVariableRole.Parameter)
             .ToDictionary(static item => item.Variable);
@@ -728,7 +725,7 @@ internal static class CompilerLoweredArtifact
                 CompilerVariableRole.Result =>
                     item.Ordinal == -1 && item.CurrentStateVariable == null && item.ModelLabel == "result",
                 CompilerVariableRole.PreState => item.Ordinal == -1 && item.CurrentStateVariable.HasValue &&
-                    current.Contains(item.CurrentStateVariable.Value) &&
+                    currentByVariable.ContainsKey(item.CurrentStateVariable.Value) &&
                     item.ModelLabel.StartsWith("pre:", StringComparison.Ordinal) &&
                     int.TryParse(item.ModelLabel.Substring(4), NumberStyles.None,
                         CultureInfo.InvariantCulture, out var ordinal) && ordinal >= 0,
