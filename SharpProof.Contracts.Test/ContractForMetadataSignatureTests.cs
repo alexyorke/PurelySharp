@@ -6,6 +6,7 @@ using System.Reflection.PortableExecutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using NUnit.Framework;
+using SharpProof.Attributes;
 using SharpProof.Ir;
 
 namespace SharpProof.Contracts.Test;
@@ -62,7 +63,7 @@ public sealed class ContractForMetadataSignatureTests
             """,
             new CSharpParseOptions(
                 LanguageVersion.CSharp12,
-                preprocessorSymbols: ["SHARPPROOF_CONTRACTS"]));
+                preprocessorSymbols: [Contract.ConditionalSymbol]));
         var compilation = CSharpCompilation.Create(
             "CompoundMetadataSignatureIdentity",
             [syntaxTree],
