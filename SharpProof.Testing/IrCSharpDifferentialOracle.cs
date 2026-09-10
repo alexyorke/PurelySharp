@@ -25,8 +25,7 @@ public sealed class IrCSharpDifferentialOracle(IrFactory factory)
 {
     private static readonly Lazy<ImmutableArray<MetadataReference>> References =
         new(CreateReferences, LazyThreadSafetyMode.ExecutionAndPublication);
-    private readonly IrFactory _factory =
-        factory ?? throw new ArgumentNullException(nameof(factory));
+    private readonly IrFactory _factory = ArgumentNullGuard.NotNull(factory, nameof(factory));
     private readonly IrInterpreter _interpreter = new(factory);
 
     public DifferentialResult Compare(

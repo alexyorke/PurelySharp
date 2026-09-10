@@ -50,7 +50,7 @@ public sealed class WellSortedIrGenerator(IrFactory factory, int seed)
         IrBinaryOperator.Equal, IrBinaryOperator.NotEqual, IrBinaryOperator.LessThan,
         IrBinaryOperator.LessThanOrEqual, IrBinaryOperator.GreaterThan, IrBinaryOperator.GreaterThanOrEqual];
 
-    private readonly IrFactory _factory = factory ?? throw new ArgumentNullException(nameof(factory));
+    private readonly IrFactory _factory = ArgumentNullGuard.NotNull(factory, nameof(factory));
     private readonly Random _random = new(seed);
     private readonly IrVarId _left = factory.CreateVariable("left", factory.IntegerType);
     private readonly IrVarId _right = factory.CreateVariable("right", factory.IntegerType);
