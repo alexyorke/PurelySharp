@@ -70,7 +70,22 @@ internal sealed partial class VerificationCache(string directory, long maximumBy
             }
             var json = await WorkerProtocolJson.ReadUtf8FileAsync(path, cancellationToken)
                 .ConfigureAwait(false);
-            var envelope = JsonSerializer.Deserialize<CacheEnvelope>(json, WorkerProtocolJson.SharedOptions);
+            CacheEnvelope? envelope;
+            try
+            {
+                envelope = JsonSerializer.Deserialize<CacheEnvelope>(
+                    json,
+                    WorkerProtocolJson.SharedOptions);
+            }
+            catch (JsonException)
+            {
+                TryQuarantineMalformedEntry(
+                    path,
+                    staged,
+                    cancellationToken,
+                    ref committed);
+                return null;
+            }
             if (envelope is not
                 {
                     SchemaVersion: WorkerCacheVersions.Current,
@@ -81,10 +96,30 @@ internal sealed partial class VerificationCache(string directory, long maximumBy
                 !string.Equals(envelopeInputHash, inputHash, StringComparison.Ordinal) ||
                 !string.Equals(payloadHash, HashText(envelopePayload), StringComparison.Ordinal))
             {
+                TryQuarantineMalformedEntry(
+                    path,
+                    staged,
+                    cancellationToken,
+                    ref committed);
                 return null;
             }
             cancellationToken.ThrowIfCancellationRequested();
-            var payload = JsonSerializer.Deserialize<CachePayload>(envelope.Payload, WorkerProtocolJson.SharedOptions);
+            CachePayload? payload;
+            try
+            {
+                payload = JsonSerializer.Deserialize<CachePayload>(
+                    envelope.Payload,
+                    WorkerProtocolJson.SharedOptions);
+            }
+            catch (JsonException)
+            {
+                TryQuarantineMalformedEntry(
+                    path,
+                    staged,
+                    cancellationToken,
+                    ref committed);
+                return null;
+            }
             if (payload is not
                 {
                     ManifestHash: var payloadManifestHash,
@@ -95,6 +130,11 @@ internal sealed partial class VerificationCache(string directory, long maximumBy
                 callables.Any(static result => result == null) ||
                 claims.Any(static result => result == null))
             {
+                TryQuarantineMalformedEntry(
+                    path,
+                    staged,
+                    cancellationToken,
+                    ref committed);
                 return null;
             }
 
@@ -462,6 +502,31 @@ internal sealed partial class VerificationCache(string directory, long maximumBy
     {
         committed = true;
         DiscardStaged(staged);
+    }
+
+    private void TryQuarantineMalformedEntry(
+        string path,
+        List<StagedEntry> staged,
+        CancellationToken cancellationToken,
+        ref bool committed)
+    {
+        try
+        {
+            ValidatePath(path);
+            cancellationToken.ThrowIfCancellationRequested();
+            var stagedPath = path + "." +
+                Guid.NewGuid().ToString("N") + ".eviction";
+            ValidatePath(stagedPath);
+            cancellationToken.ThrowIfCancellationRequested();
+            File.Move(path, stagedPath);
+            staged.Add(new StagedEntry(path, stagedPath));
+            CommitStaged(staged, ref committed);
+        }
+        catch (Exception exception) when (exception is
+            ArgumentException or IOException or UnauthorizedAccessException or
+            OverflowException)
+        {
+        }
     }
 
     private static void RestoreStaged(List<StagedEntry> staged)
