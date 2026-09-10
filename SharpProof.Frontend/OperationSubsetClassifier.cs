@@ -7,8 +7,9 @@ public static class OperationSubsetClassifier
             .Cast<OperationKind>()
             .Distinct()
             .OrderBy(static kind => (int)kind)];
-    private static readonly HashSet<OperationKind> s_knownOperationKindSet =
-        new(s_knownOperationKinds);
+    private static readonly ImmutableHashSet<OperationKind>
+        s_knownOperationKindSet =
+            ImmutableHashSet.CreateRange(s_knownOperationKinds);
 
     public static FrontendSubsetClassification Classify(OperationKind kind)
     {
