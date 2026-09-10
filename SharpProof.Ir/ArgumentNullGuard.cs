@@ -1,4 +1,3 @@
-#if SHARPPROOF_DATAFLOW_ARGUMENT_GUARD
 namespace System.Diagnostics.CodeAnalysis
 {
     [AttributeUsage(AttributeTargets.Parameter)]
@@ -6,7 +5,6 @@ namespace System.Diagnostics.CodeAnalysis
     {
     }
 }
-#endif
 
 #if SHARPPROOF_DATAFLOW_ARGUMENT_GUARD
 namespace SharpProof.Dataflow
@@ -83,11 +81,7 @@ namespace SharpProof
         }
 
         internal static T NotNull<T>(
-#if SHARPPROOF_DATAFLOW_ARGUMENT_GUARD
             [System.Diagnostics.CodeAnalysis.NotNull] T? value,
-#else
-            T? value,
-#endif
             string parameterName,
             string? message = null)
         {
