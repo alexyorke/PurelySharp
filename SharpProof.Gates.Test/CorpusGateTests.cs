@@ -125,35 +125,21 @@ public sealed class CorpusGateTests
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]
     public void CorpusContainmentRejectsSymlinkTargetsOutsideRoot()
     {
-        var root = Path.Combine(
-            Path.GetTempPath(),
-            "SharpProof.Gates.Test",
-            Guid.NewGuid().ToString("N"));
-        var outside = Path.Combine(
-            Path.GetTempPath(),
-            "SharpProof.Gates.Test",
-            Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(root);
-        Directory.CreateDirectory(outside);
+        using var outsideTemporary = new TempDirectory("SharpProof.Gates.Test-outside-");
+        using var rootTemporary = new TempDirectory("SharpProof.Gates.Test-root-");
+        var root = rootTemporary.FullName;
+        var outside = outsideTemporary.FullName;
         var target = Path.Combine(outside, "license.txt");
         var link = Path.Combine(root, "license.txt");
-        try
-        {
-            File.WriteAllText(target, "outside\n");
-            File.CreateSymbolicLink(link, target);
+        File.WriteAllText(target, "outside\n");
+        File.CreateSymbolicLink(link, target);
 
-            var exception = Assert.Throws<InvalidDataException>((Action)(() =>
-                OpenSourceCorpusCatalog.EnsureContained(root, link)));
+        var exception = Assert.Throws<InvalidDataException>((Action)(() =>
+            OpenSourceCorpusCatalog.EnsureContained(root, link)));
 
-            Assert.That(
-                exception!.Message,
-                Does.Contain("follows a link outside its directory"));
-        }
-        finally
-        {
-            Directory.Delete(root, recursive: true);
-            Directory.Delete(outside, recursive: true);
-        }
+        Assert.That(
+            exception!.Message,
+            Does.Contain("follows a link outside its directory"));
     }
 
     [Test]
