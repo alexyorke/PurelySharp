@@ -133,6 +133,31 @@ function New-SharpProofWeightedBuckets {
     return $buckets
 }
 
+function Get-SharpProofBucketMaximum {
+    param(
+        [Parameter(Mandatory = $true)][object[]]$Buckets,
+        [Parameter(Mandatory = $true)][hashtable]$HistoricalMilliseconds,
+        [Parameter(Mandatory = $true)][long]$DefaultMilliseconds
+    )
+
+    $maximum = 0L
+    foreach ($bucket in $Buckets) {
+        $estimate = 0L
+        foreach ($method in $bucket.Methods) {
+            $estimate += if ($HistoricalMilliseconds.ContainsKey($method)) {
+                [long]$HistoricalMilliseconds[$method]
+            }
+            else {
+                $DefaultMilliseconds
+            }
+        }
+        if ($estimate -gt $maximum) {
+            $maximum = $estimate
+        }
+    }
+    return $maximum
+}
+
 $script:SharpProofTrxTimingRowsCache = @{}
 
 function Get-TestMethodTimings {
@@ -552,24 +577,41 @@ try {
         $workerShardCount = [Math]::Min(
             $bucketWorkerMethods.Count,
             $workerShardLimit)
-        # At CI width, method durations include analyzer and nested-MSBuild
-        # contention from the other worker hosts.  Feeding those noisy
-        # samples back into LPT made the four buckets less even than the
-        # cold, count-balanced plan (paired p4 runs: 98-99s versus
-        # 106-109s in the test phase).  Keep historical weighting for wider
-        # local containers, where the extra lanes make those samples useful,
-        # but use deterministic count balancing for the p4-or-smaller wave.
-        $workerBucketHistory = if ($parallelism -le 4) {
-            @{}
-        }
-        else {
-            $priorMethodMilliseconds
-        }
-        $workerBuckets = @(New-SharpProofWeightedBuckets `
+        # Method durations include analyzer and nested-MSBuild contention, so
+        # historical LPT is not always a better CI-width plan.  Build both
+        # deterministic count-balanced and historical plans, and use history
+        # only when it predicts a materially shorter worker tail.  Wider
+        # containers retain the historical plan because their extra lanes make
+        # those samples useful and the existing wide-wave tuning depends on it.
+        $countBalancedBuckets = @(New-SharpProofWeightedBuckets `
             -Methods $bucketWorkerMethods `
-            -HistoricalMilliseconds $workerBucketHistory `
+            -HistoricalMilliseconds @{} `
             -DefaultMilliseconds 1L `
             -BucketCount $workerShardCount)
+        $weightedBuckets = @(New-SharpProofWeightedBuckets `
+            -Methods $bucketWorkerMethods `
+            -HistoricalMilliseconds $priorMethodMilliseconds `
+            -DefaultMilliseconds 1L `
+            -BucketCount $workerShardCount)
+        $countMaximum = Get-SharpProofBucketMaximum `
+            -Buckets $countBalancedBuckets `
+            -HistoricalMilliseconds $priorMethodMilliseconds `
+            -DefaultMilliseconds 1L
+        $weightedMaximum = Get-SharpProofBucketMaximum `
+            -Buckets $weightedBuckets `
+            -HistoricalMilliseconds $priorMethodMilliseconds `
+            -DefaultMilliseconds 1L
+        $workerBuckets = if ($parallelism -le 4) {
+            if ($weightedMaximum + 1000L -lt $countMaximum) {
+                $weightedBuckets
+            }
+            else {
+                $countBalancedBuckets
+            }
+        }
+        else {
+            $weightedBuckets
+        }
         $packageLayoutMethods = @($discoveredMethods[$packageLayoutClass])
         $packageLayoutFilter = "FullyQualifiedName~$packageLayoutClass"
         $defaultPackageLayoutMethodMilliseconds =

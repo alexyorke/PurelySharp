@@ -214,8 +214,9 @@ snapshots, compiler scratch, and test outputs off the host filesystem. Set
 `SHARPPROOF_TMPFS_SIZE` higher for unusually large package or coverage runs.
 Trusted mutations use 4 deterministic weighted lanes. Worker fixtures and
 package integration methods run in isolated processes; wider package waves use
-duration-weighted partitioning, while CI-width waves use count-balanced worker
-buckets because nested analyzer contention makes method timings noisy.
+duration-weighted partitioning. CI-width waves compare count-balanced and
+historical plans, using history only when it predicts a worker-tail reduction
+of at least one second because nested analyzer contention can make timings noisy.
 Override the
 Docker budget with
 `SHARPPROOF_CONTAINER_CPU_LIMIT` and `SHARPPROOF_CONTAINER_MEMORY_LIMIT`; the
