@@ -132,7 +132,7 @@ public sealed class AtomicFileTests
     private async Task AssertWriteUtf8LongDestinationAsync(
         Func<string, string, Task> write)
     {
-        var path = LongDestinationPath();
+        var path = Path.Combine(_root, new string('s', 220) + ".sarif");
         await write(path, "content\n");
 
         AssertPublished(path, "content\n");
@@ -146,8 +146,4 @@ public sealed class AtomicFileTests
         Assert.That(TemporaryFiles(path), Is.Empty);
     }
 
-    private string LongDestinationPath()
-    {
-        return Path.Combine(_root, new string('s', 220) + ".sarif");
-    }
 }
