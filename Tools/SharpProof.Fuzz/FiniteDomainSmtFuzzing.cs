@@ -549,66 +549,33 @@ public static class IrStructuralShrinker
             throw new ArgumentNullException(nameof(term));
         }
 
-        var candidates = new List<IrTerm>();
-        var seen = new HashSet<IrId>();
-        var originalSize = StructuralSize(term);
+        return StructuralShrinkCandidates.GetCandidates(
+            term,
+            IrTraversal.GetChildren,
+            static (parent, child) => parent.Type == child.Type,
+            StructuralSize,
+            static candidate => candidate.Id,
+            value => GetDomainCandidates(factory, value),
+            (value, index, replacement) => TryReplaceChild(
+                factory,
+                value,
+                index,
+                replacement),
+            EqualityComparer<IrId>.Default);
+    }
 
-        void Add(IrTerm candidate)
-        {
-            if (candidate.Id == term.Id)
-            {
-                return;
-            }
-
-            if (StructuralSize(candidate) >= originalSize)
-            {
-                return;
-            }
-
-            if (seen.Add(candidate.Id))
-            {
-                candidates.Add(candidate);
-            }
-        }
-
-        var children = IrTraversal.GetChildren(term);
-        foreach (var child in children)
-        {
-            if (child.Type == term.Type)
-            {
-                Add(child);
-            }
-        }
-
+    private static IEnumerable<IrTerm> GetDomainCandidates(
+        IrFactory factory,
+        IrTerm term)
+    {
         if (term.Type == factory.BooleanType)
         {
-            Add(factory.Boolean(false));
-            Add(factory.Boolean(true));
-        }
-        else if (term.Type == factory.IntegerType)
-        {
-            Add(factory.Integer(0));
-            Add(factory.Integer(1));
+            return [factory.Boolean(false), factory.Boolean(true)];
         }
 
-        for (var index = 0; index < children.Length; index++)
-        {
-            foreach (var childCandidate in GetCandidates(
-                         factory,
-                         children[index]))
-            {
-                var rebuilt = TryReplaceChild(
-                    factory,
-                    term,
-                    index,
-                    childCandidate);
-                if (rebuilt != null)
-                {
-                    Add(rebuilt);
-                }
-            }
-        }
-        return [.. candidates];
+        return term.Type == factory.IntegerType
+            ? [factory.Integer(0), factory.Integer(1)]
+            : [];
     }
 
     public static int StructuralSize(IrTerm term)

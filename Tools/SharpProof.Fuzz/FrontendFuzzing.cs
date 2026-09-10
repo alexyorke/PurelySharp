@@ -1889,75 +1889,42 @@ public static class CSharpStructuralShrinker
             throw new ArgumentNullException(nameof(expression));
         }
 
-        var candidates = new List<GeneratedCSharpExpression>();
-        var seen = new HashSet<string>(StringComparer.Ordinal);
+        return StructuralShrinkCandidates.GetCandidates(
+            expression,
+            static value => value.Children,
+            static (parent, child) => parent.Type == child.Type,
+            static value => value.NodeCount,
+            static value => value.Render(),
+            GetDomainCandidates,
+            TryReplaceChild,
+            StringComparer.Ordinal);
+    }
 
-        void Add(GeneratedCSharpExpression candidate)
+    private static IEnumerable<GeneratedCSharpExpression> GetDomainCandidates(
+        GeneratedCSharpExpression expression)
+    {
+        return expression.Type switch
         {
-            if (candidate.NodeCount >= expression.NodeCount)
-            {
-                return;
-            }
-
-            if (seen.Add(candidate.Render()))
-            {
-                candidates.Add(candidate);
-            }
-        }
-
-        foreach (var child in expression.Children)
-        {
-            if (child.Type == expression.Type)
-            {
-                Add(child);
-            }
-        }
-
-        switch (expression.Type)
-        {
-            case GeneratedExpressionType.Integer:
-                Add(GeneratedCSharpExpression.Integer(0));
-                Add(GeneratedCSharpExpression.Integer(1));
-                Add(GeneratedCSharpExpression.Left());
-                Add(GeneratedCSharpExpression.Right());
-                break;
-            case GeneratedExpressionType.Boolean:
-                Add(GeneratedCSharpExpression.Boolean(false));
-                Add(GeneratedCSharpExpression.Boolean(true));
-                Add(GeneratedCSharpExpression.Condition());
-                break;
-            case GeneratedExpressionType.String:
-                Add(GeneratedCSharpExpression.NullString());
-                Add(GeneratedCSharpExpression.String(""));
-                Add(GeneratedCSharpExpression.Text());
-                break;
-            case GeneratedExpressionType.Sequence:
-                Add(GeneratedCSharpExpression.Values());
-                break;
-            case GeneratedExpressionType.Reference:
-                Add(GeneratedCSharpExpression.Reference());
-                Add(GeneratedCSharpExpression.NullReference());
-                break;
-        }
-
-        for (var childIndex = 0;
-             childIndex < expression.Children.Length;
-             childIndex++)
-        {
-            foreach (var childCandidate in GetCandidates(
-                         expression.Children[childIndex]))
-            {
-                var rebuilt = TryReplaceChild(
-                    expression,
-                    childIndex,
-                    childCandidate);
-                if (rebuilt != null)
-                {
-                    Add(rebuilt);
-                }
-            }
-        }
-        return [.. candidates];
+            GeneratedExpressionType.Integer => [
+                GeneratedCSharpExpression.Integer(0),
+                GeneratedCSharpExpression.Integer(1),
+                GeneratedCSharpExpression.Left(),
+                GeneratedCSharpExpression.Right()],
+            GeneratedExpressionType.Boolean => [
+                GeneratedCSharpExpression.Boolean(false),
+                GeneratedCSharpExpression.Boolean(true),
+                GeneratedCSharpExpression.Condition()],
+            GeneratedExpressionType.String => [
+                GeneratedCSharpExpression.NullString(),
+                GeneratedCSharpExpression.String(""),
+                GeneratedCSharpExpression.Text()],
+            GeneratedExpressionType.Sequence => [
+                GeneratedCSharpExpression.Values()],
+            GeneratedExpressionType.Reference => [
+                GeneratedCSharpExpression.Reference(),
+                GeneratedCSharpExpression.NullReference()],
+            _ => []
+        };
     }
 
     private static GeneratedCSharpExpression? TryReplaceChild(
