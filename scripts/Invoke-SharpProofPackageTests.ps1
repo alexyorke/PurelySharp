@@ -590,15 +590,16 @@ try {
                 # postflight shards instead of becoming a cold-start tail.
                 if ($parallelism -le 4) { 1000L } else { 1L }
             }
-        # Keep the package-layout fixture in one host. Its NUnit child pool
-        # already supplies the useful parallelism; four outer hosts duplicate
-        # startup and package-cache work and contend with the analyzer-heavy
-        # worker wave.
+        # Split the layout fixture only on wider waves. Two hosts let the
+        # uneven restore/build methods overlap while each host retains its
+        # four-worker NUnit pool; a four-lane wave keeps one host so it does
+        # not serialize two full pools or duplicate package-cache startup.
+        $packageLayoutBucketCount = if ($parallelism -ge 8) { 2 } else { 1 }
         $packageLayoutBuckets = @(New-SharpProofWeightedBuckets `
             -Methods $packageLayoutMethods `
             -HistoricalMilliseconds $priorPackageLayoutMethodMilliseconds `
             -DefaultMilliseconds $defaultPackageLayoutMethodMilliseconds `
-            -BucketCount 1)
+            -BucketCount $packageLayoutBucketCount)
         $fixtureClasses = @(
             'CompilerProbeInputConsistencyTests|CompilerProbeSnapshotTests|SarifProjectionTests|VerifierDiagnosticTransportTests|VerifierProcessSupervisorBug202Tests|DependencyAuditScriptTests|LauncherArgumentTests',
             'FinalCompilationProbeTests',
