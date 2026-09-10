@@ -739,45 +739,35 @@ public sealed class LauncherArgumentTests
     [Platform("Linux")]
     public async Task MainLeavesRequestAndResultSentinelsWhenManifestIsMalformed()
     {
-        var directory = Path.Combine(
-            TestContext.CurrentContext.WorkDirectory,
-            Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(directory);
+        using var temporary = new TempDirectory(
+            "sharpproof-malformed-manifest-",
+            TestContext.CurrentContext.WorkDirectory);
+        var directory = temporary.FullName;
         var worker = Path.Combine(directory, "worker.dll");
         var request = Path.Combine(directory, "request.json");
         var result = Path.Combine(directory, "result.json");
         var manifest = Path.Combine(directory, "compiler-manifest.json");
         const string requestSentinel = "request sentinel";
         const string resultSentinel = "result sentinel";
-        try
-        {
-            await File.WriteAllTextAsync(request, requestSentinel);
-            await File.WriteAllTextAsync(result, resultSentinel);
-            await File.WriteAllTextAsync(manifest, "{ malformed manifest");
+        await File.WriteAllTextAsync(request, requestSentinel);
+        await File.WriteAllTextAsync(result, resultSentinel);
+        await File.WriteAllTextAsync(manifest, "{ malformed manifest");
 
-            var exitCode = await Program.Main([
-                "verify",
-                "--worker", worker,
-                "--request", request,
-                "--result", result,
-                "--compiler-manifest", manifest,
-                "--verify-policy", "advisory",
-                "--assumption-policy", "allow"
-            ]);
+        var exitCode = await Program.Main([
+            "verify",
+            "--worker", worker,
+            "--request", request,
+            "--result", result,
+            "--compiler-manifest", manifest,
+            "--verify-policy", "advisory",
+            "--assumption-policy", "allow"
+        ]);
 
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(exitCode, Is.EqualTo(2));
-                Assert.That(await File.ReadAllTextAsync(request), Is.EqualTo(requestSentinel));
-                Assert.That(await File.ReadAllTextAsync(result), Is.EqualTo(resultSentinel));
-            }
-        }
-        finally
+        using (Assert.EnterMultipleScope())
         {
-            if (Directory.Exists(directory))
-            {
-                Directory.Delete(directory, recursive: true);
-            }
+            Assert.That(exitCode, Is.EqualTo(2));
+            Assert.That(await File.ReadAllTextAsync(request), Is.EqualTo(requestSentinel));
+            Assert.That(await File.ReadAllTextAsync(result), Is.EqualTo(resultSentinel));
         }
     }
 
@@ -787,66 +777,52 @@ public sealed class LauncherArgumentTests
     public async Task MainFailsClosedWhenWorkerDependencyManifestIsMalformed()
     {
         var sourceWorker = typeof(SharpProofWorker).Assembly.Location;
-        var directory = Path.Combine(
-            TestContext.CurrentContext.WorkDirectory,
-            Guid.NewGuid().ToString("N"));
-        var ioDirectory = Path.Combine(
-            TestContext.CurrentContext.WorkDirectory,
-            Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(directory);
-        Directory.CreateDirectory(ioDirectory);
+        using var ioTemporary = new TempDirectory(
+            "sharpproof-malformed-worker-io-",
+            TestContext.CurrentContext.WorkDirectory);
+        using var workerTemporary = new TempDirectory(
+            "sharpproof-malformed-worker-",
+            TestContext.CurrentContext.WorkDirectory);
+        var directory = workerTemporary.FullName;
+        var ioDirectory = ioTemporary.FullName;
         var worker = Path.Combine(directory, "worker.dll");
+        File.Copy(sourceWorker, worker);
+        File.Copy(
+            Path.ChangeExtension(sourceWorker, ".runtimeconfig.json"),
+            Path.ChangeExtension(worker, ".runtimeconfig.json"));
+        await File.WriteAllTextAsync(
+            Path.ChangeExtension(worker, ".deps.json"),
+            "{ malformed dependency manifest");
+
+        var escaped = false;
+        var exitCode = 0;
         try
         {
-            File.Copy(sourceWorker, worker);
-            File.Copy(
-                Path.ChangeExtension(sourceWorker, ".runtimeconfig.json"),
-                Path.ChangeExtension(worker, ".runtimeconfig.json"));
-            await File.WriteAllTextAsync(
-                Path.ChangeExtension(worker, ".deps.json"),
-                "{ malformed dependency manifest");
-
-            var escaped = false;
-            var exitCode = 0;
-            try
-            {
-                exitCode = await Program.Main([
-                    "verify",
-                    "--worker", worker,
-                    "--request", Path.Combine(ioDirectory, "request.json"),
-                    "--result", Path.Combine(ioDirectory, "result.json"),
-                    "--compiler-manifest", Path.Combine(ioDirectory, "missing.json"),
-                    "--verify-policy", "advisory",
-                    "--assumption-policy", "allow"
-                ]);
-            }
-            catch (JsonException)
-            {
-                escaped = true;
-            }
-            catch (KeyNotFoundException)
-            {
-                escaped = true;
-            }
-            catch (InvalidOperationException)
-            {
-                escaped = true;
-            }
-
-            Assert.That(escaped, Is.False);
-            Assert.That(exitCode, Is.EqualTo(2));
+            exitCode = await Program.Main([
+                "verify",
+                "--worker", worker,
+                "--request", Path.Combine(ioDirectory, "request.json"),
+                "--result", Path.Combine(ioDirectory, "result.json"),
+                "--compiler-manifest", Path.Combine(ioDirectory, "missing.json"),
+                "--verify-policy", "advisory",
+                "--assumption-policy", "allow"
+            ]);
         }
-        finally
+        catch (JsonException)
         {
-            if (Directory.Exists(directory))
-            {
-                Directory.Delete(directory, recursive: true);
-            }
-            if (Directory.Exists(ioDirectory))
-            {
-                Directory.Delete(ioDirectory, recursive: true);
-            }
+            escaped = true;
         }
+        catch (KeyNotFoundException)
+        {
+            escaped = true;
+        }
+        catch (InvalidOperationException)
+        {
+            escaped = true;
+        }
+
+        Assert.That(escaped, Is.False);
+        Assert.That(exitCode, Is.EqualTo(2));
     }
 
     [Test]
