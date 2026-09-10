@@ -723,18 +723,14 @@ public sealed class IrFactory
             }
 
             return Intern(new StructuralKey(
-                    IrTermKind.Opaque, memberInfo.ReturnType.Value, member.Value, PurityKey(purity),
+                    IrTermKind.Opaque, memberInfo.ReturnType.Value, member.Value,
+                    IrOperatorCatalog.GetPurityKey(purity),
                     operation.IsDefault ? -1 : operation.Value, children: childIds),
                 (memberInfo.ReturnType, member, receiver, immutableArguments, purity, operation),
                 static (id, state) => new IrOpaqueTerm(
                     id, state.ReturnType, state.member, state.receiver,
                     state.immutableArguments, state.purity, state.operation));
         }
-    }
-
-    private static int PurityKey(IrOpaquePurity purity)
-    {
-        return IrOperatorCatalog.GetPurityKey(purity);
     }
 
     private static void ValidateName(string? value, string parameterName)
