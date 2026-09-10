@@ -1402,13 +1402,16 @@ public sealed class FinalCompilationCollectorTests
 
     private sealed class CollectorWorkspace : IDisposable
     {
+        private readonly TempDirectory _temporary;
+
         internal CollectorWorkspace()
         {
-            Path = System.IO.Path.Combine(
-                System.IO.Path.GetTempPath(),
-                "SharpProof.FinalCompilationCollector",
-                Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(Path);
+            _temporary = new TempDirectory(
+                string.Empty,
+                System.IO.Path.Combine(
+                    System.IO.Path.GetTempPath(),
+                    "SharpProof.FinalCompilationCollector"));
+            Path = _temporary.FullName;
         }
 
         internal string Path
@@ -1422,10 +1425,7 @@ public sealed class FinalCompilationCollectorTests
 
         public void Dispose()
         {
-            TestRepository.DeleteOwnedTemporaryDirectory(
-                Path,
-                "SharpProof.FinalCompilationCollector",
-                "Collector workspace escaped its temporary root.");
+            _temporary.Dispose();
         }
     }
 }
