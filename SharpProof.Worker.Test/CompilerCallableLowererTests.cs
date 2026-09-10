@@ -679,18 +679,13 @@ public sealed class CompilerCallableLowererTests
         string source,
         string methodName)
     {
-        var compilation = CreateCompilation(source);
+        var compilation = TestCompilation.Create(
+            "CompilerCallableLowererTests",
+            ("Subject.cs", source));
         var discovery = new ClaimManifestBuilder(compilation).Build();
         var target = discovery.Targets.Values.Single(candidate =>
             candidate.Method.MetadataName == methodName);
         return (compilation, target, new IrFactory());
-    }
-
-    private static CSharpCompilation CreateCompilation(string source)
-    {
-        return TestCompilation.Create(
-            "CompilerCallableLowererTests",
-            ("Subject.cs", source));
     }
 
     private sealed class UnsignaledCancellationBackend : ISmtBackend
