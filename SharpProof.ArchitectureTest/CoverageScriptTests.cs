@@ -885,50 +885,42 @@ public sealed class CoverageScriptTests
         double minimumChangedTcbLinePercent = 100)
     {
         var root = TestRepository.FindRoot();
-        var repository = Path.Combine(
-            Path.GetTempPath(),
-            TemporaryRepositoryRootName,
-            "unmapped-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(repository);
-        try
-        {
-            await InitializeRepositoryAsync(repository);
-            var original = CreateChangedLineSource(
-                originalLine,
-                generated,
-                targetClosesMethod);
-            await WriteChangedLineFixtureAsync(
-                root,
-                repository,
-                original,
-                minimumChangedTcbLinePercent);
-            await CommitAllAsync(repository, "root");
-            await ArchitectureRepository.AssertSuccessAsync(
-                ArchitectureRepository.RunProcessAsync(
-                repository,
-                "git",
-                "branch",
-                "comparison"));
+        using var temporary = new TempDirectory(
+            "unmapped-",
+            Path.Combine(Path.GetTempPath(), TemporaryRepositoryRootName));
+        var repository = temporary.FullName;
+        await InitializeRepositoryAsync(repository);
+        var original = CreateChangedLineSource(
+            originalLine,
+            generated,
+            targetClosesMethod);
+        await WriteChangedLineFixtureAsync(
+            root,
+            repository,
+            original,
+            minimumChangedTcbLinePercent);
+        await CommitAllAsync(repository, "root");
+        await ArchitectureRepository.AssertSuccessAsync(
+            ArchitectureRepository.RunProcessAsync(
+            repository,
+            "git",
+            "branch",
+            "comparison"));
 
-            var changed = CreateChangedLineSource(
-                changedLine,
-                generated,
-                targetClosesMethod);
-            await File.WriteAllTextAsync(
-                Path.Combine(repository, "Project", "Trusted.cs"),
-                changed.Text);
-            await CommitAllAsync(repository, "change trusted source");
+        var changed = CreateChangedLineSource(
+            changedLine,
+            generated,
+            targetClosesMethod);
+        await File.WriteAllTextAsync(
+            Path.Combine(repository, "Project", "Trusted.cs"),
+            changed.Text);
+        await CommitAllAsync(repository, "change trusted source");
 
-            var process = await RunCoverageAsync(
-                repository,
-                comparisonRef: "comparison",
-                reportOnly: true);
-            return new ChangedLineResult(process, changed.TargetLine);
-        }
-        finally
-        {
-            DeleteTemporaryRepository(repository);
-        }
+        var process = await RunCoverageAsync(
+            repository,
+            comparisonRef: "comparison",
+            reportOnly: true);
+        return new ChangedLineResult(process, changed.TargetLine);
     }
 
     private static SourceFixture CreateChangedLineSource(
