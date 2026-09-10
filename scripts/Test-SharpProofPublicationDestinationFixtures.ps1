@@ -1,19 +1,6 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet(
-        'registry-inherited','registry-distinct','targetless','fixture','http',
-        'relative','userinfo','query','fragment','symbol-without-main',
-        'fixture-uri-conflict','missing-fixture','changed-fixture',
-        'removed-symbol-projection','actions-targetless','actions-fixture',
-        'actions-registry-unchecked','actions-registry-absent',
-        'actions-symbol-preflight','actions-swapped',
-        'actions-removed-projection','mocked-main-missing',
-        'mocked-main-exists','mocked-main-error','mocked-main-query-base',
-        'fixture-empty','fixture-foreign','fixture-main-case-collision',
-        'fixture-symbol-case-collision','fixture-arbitrary-name',
-        'fixture-wrong-id','fixture-wrong-version','fixture-nested-collision',
-        'fixture-malformed','fixture-cross-role','fixture-duplicate')]
     [string]$Mutation
 )
 
@@ -72,6 +59,7 @@ try {
     $symbols = $null
     $fixturePath = $null
     switch ($Mutation) {
+        'registry-inherited' { }
         'registry-distinct' { $symbols = 'https://symbols.example.test/v3/index.json' }
         'targetless' { $main = $null }
         'fixture' { $main = $null; $fixturePath = $fixture }
@@ -145,6 +133,14 @@ try {
         }
         'changed-fixture' { $main = $null; $fixturePath = $fixture }
         'removed-symbol-projection' { $symbols = 'https://symbols.example.test/v3/index.json' }
+        'actions-targetless' { }
+        'actions-fixture' { }
+        'actions-registry-absent' { }
+        'actions-registry-unchecked' { }
+        'mocked-main-missing' { }
+        default {
+            throw "Unknown publication destination mutation: $Mutation"
+        }
     }
     $snapshot = New-SharpProofPublicationInputSnapshot `
         -PackageSource $packages -FixtureDirectory $fixturePath
