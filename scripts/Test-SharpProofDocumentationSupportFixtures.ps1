@@ -12,6 +12,7 @@ param(
         'wrong-container-cpu',
         'wrong-container-memory',
         'missing-resource-claim',
+        'missing-small-package-lane-claim',
         'duplicate-resource-claim',
         'resource-claim-case',
         'resource-claim-spacing',
@@ -54,6 +55,7 @@ $relativePath = switch ($Mutation) {
             'wrong-container-cpu',
             'wrong-container-memory',
             'missing-resource-claim',
+            'missing-small-package-lane-claim',
             'duplicate-resource-claim',
             'resource-claim-case',
             'resource-claim-spacing') } {
@@ -72,6 +74,9 @@ $containerMemoryMiB = [int]$acceptanceContract.container.defaultMemoryMiB
 $containerResourceClaim =
     "Containers use all CPUs available to Docker and up to " +
     "$containerMemoryMiB MiB by default."
+$smallPackageLaneClaim =
+    'Containers exposing four or fewer CPUs use every visible lane so rounding ' +
+    'does not leave a CI worker idle.'
 
 function Replace-Required {
     param(
@@ -147,6 +152,12 @@ try {
             $text = Replace-Required `
                 -InputText $text `
                 -OldValue $containerResourceClaim `
+                -NewValue ''
+        }
+        'missing-small-package-lane-claim' {
+            $text = Replace-Required `
+                -InputText $text `
+                -OldValue $smallPackageLaneClaim `
                 -NewValue ''
         }
         'duplicate-resource-claim' {

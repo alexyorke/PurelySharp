@@ -16,6 +16,7 @@ public sealed class DocumentationSupportContractTests
     [TestCase("wrong-container-cpu", false)]
     [TestCase("wrong-container-memory", false)]
     [TestCase("missing-resource-claim", false)]
+    [TestCase("missing-small-package-lane-claim", false)]
     [TestCase("duplicate-resource-claim", false)]
     [TestCase("resource-claim-case", false)]
     [TestCase("resource-claim-spacing", false)]

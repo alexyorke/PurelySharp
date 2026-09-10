@@ -209,8 +209,7 @@ Containers use all CPUs available to Docker and up to 40960 MiB by default.
 Semantic-test scheduling uses every container-visible CPU.
 Set `SHARPPROOF_SEMANTIC_TEST_PARALLELISM` to cap it between 1 and the visible CPU count.
 Package integration tests use 90% of container-visible CPU lanes by default.
-Containers exposing four or fewer CPUs use every visible lane so rounding does
-not leave a CI worker idle.
+Containers exposing four or fewer CPUs use every visible lane so rounding does not leave a CI worker idle.
 Other test-project concurrency auto-detects the available CPUs and uses one lane per 2 CPUs.
 Parallel prerequisite builds use 75% of container-visible CPU lanes by default.
 Trusted mutations use 4 deterministic weighted lanes.

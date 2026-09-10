@@ -998,6 +998,7 @@ $resourceClaims = @(
     "Semantic-test scheduling uses every container-visible CPU."
     ("Package integration tests use $packageTestCpuPercent% of " +
         "container-visible CPU lanes by default.")
+    "Containers exposing four or fewer CPUs use every visible lane so rounding does not leave a CI worker idle."
     ("Other test-project concurrency auto-detects the available CPUs " +
         "and uses one lane per $testProjectCpuDivisor CPUs.")
     ("Parallel prerequisite builds use $buildCpuPercent% of " +
