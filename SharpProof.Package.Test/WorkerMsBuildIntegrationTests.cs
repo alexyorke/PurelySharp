@@ -4089,7 +4089,15 @@ public sealed class WorkerMsBuildIntegrationTests
             {
                 arguments.Add(
                     "-p:SharpProofVerify=" +
-                    (verify.Value ? "true" : "false"));
+                        (verify.Value ? "true" : "false"));
+                if (!verify.Value)
+                {
+                    // These setup builds deliberately keep verification off;
+                    // no analyzer output is consumed before the follow-up
+                    // target invocation. Avoid paying for analyzer execution
+                    // while preserving the MSBuild/property checks under test.
+                    arguments.Add("-p:RunAnalyzersDuringBuild=false");
+                }
             }
 
             arguments.AddRange(properties.Select(static property =>
