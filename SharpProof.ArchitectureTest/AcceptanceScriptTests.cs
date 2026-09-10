@@ -170,6 +170,11 @@ public sealed class AcceptanceScriptTests
                 root, "eng", "acceptance", "SharpProof.AcceptanceTiming.psm1"),
             Path.Combine(
                 acceptance, "SharpProof.AcceptanceTiming.psm1"));
+        var fuzz = Path.Combine(fixture, "eng", "fuzz");
+        Directory.CreateDirectory(fuzz);
+        File.Copy(
+            Path.Combine(root, "eng", "fuzz", "retained-seeds.json"),
+            Path.Combine(fuzz, "retained-seeds.json"));
         var fixtureScripts = Path.Combine(fixture, "scripts");
         Directory.CreateDirectory(fixtureScripts);
         File.Copy(
