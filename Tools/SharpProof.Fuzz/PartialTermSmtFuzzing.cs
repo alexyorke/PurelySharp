@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using SharpProof.Host;
 using SharpProof.Ir;
 using SharpProof.Smt;
 using SharpProof.Verify;
@@ -138,10 +137,8 @@ public static class PartialTermSmtDifferentialOracle
             .OrderBy(static variable => variable.Value)
             .ToImmutableArray();
         var interpreter = new IrInterpreter(factory);
-        ContainerNativeLibrary.InstallZ3ResolverRequired(
-            typeof(Microsoft.Z3.Context).Assembly);
-        using var backend = new IrSmtBackend();
-        var kernel = new ProofKernel(backend);
+        using var session = FuzzSmtSession.Create();
+        var kernel = session.Kernel;
         var definedTrue = 0;
         var definedFalse = 0;
         var undefined = 0;
