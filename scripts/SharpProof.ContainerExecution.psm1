@@ -31,6 +31,14 @@ function Assert-SharpProofContainer {
     }
 }
 
+function Assert-SharpProofTestSwitches {
+    param([switch]$Fast, [switch]$NoBuild)
+
+    if ($Fast -and $NoBuild) {
+        throw '-Fast and -NoBuild cannot be combined.'
+    }
+}
+
 function Get-SharpProofDotnetWrapperPath {
     param()
 
@@ -1241,6 +1249,7 @@ function New-SharpProofIsolatedTestOutput {
 
 Export-ModuleMember -Function @(
     'Assert-SharpProofContainer',
+    'Assert-SharpProofTestSwitches',
     'Add-SharpProofStaticGraphArgument',
     'Get-SharpProofBuildParallelism',
     'Get-SharpProofPackageTestParallelism',

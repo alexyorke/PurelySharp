@@ -731,6 +731,10 @@ public sealed class BuildSchedulingTests
             root,
             "scripts",
             "Invoke-SharpProofChangedTests.ps1"));
+        var containerExecution = File.ReadAllText(Path.Combine(
+            root,
+            "scripts",
+            "SharpProof.ContainerExecution.psm1"));
         var documentation = File.ReadAllText(Path.Combine(
             root,
             "docs",
@@ -750,7 +754,9 @@ public sealed class BuildSchedulingTests
             }
             Assert.That(container,
                 Does.Contain("-Fast is supported only for non-qualifying"));
-            Assert.That(container,
+            Assert.That(containerExecution,
+                Does.Contain("function Assert-SharpProofTestSwitches"));
+            Assert.That(containerExecution,
                 Does.Contain("-Fast and -NoBuild cannot be combined"));
             Assert.That(documentation, Does.Contain("sp test-changed -Fast"));
             Assert.That(documentation,

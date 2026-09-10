@@ -22,9 +22,7 @@ Import-Module (Join-Path `
     $PSScriptRoot 'SharpProof.ContainerExecution.psm1') -Force
 Assert-SharpProofContainer `
     'Changed-project testing requires the canonical Linux container.'
-if ($Fast -and $NoBuild) {
-    throw '-Fast and -NoBuild cannot be combined.'
-}
+Assert-SharpProofTestSwitches -Fast:$Fast -NoBuild:$NoBuild
 $TimeoutSeconds = Resolve-SharpProofSolutionTestTimeoutSeconds `
     -RepositoryRoot $repositoryRoot `
     -TimeoutSeconds $TimeoutSeconds `

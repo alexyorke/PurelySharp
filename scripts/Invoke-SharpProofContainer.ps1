@@ -51,9 +51,7 @@ if ($NoBuild -and $Command -notin $reusableTestCommands) {
 if ($Fast -and $Command -notin $reusableTestCommands) {
     throw '-Fast is supported only for non-qualifying test commands.'
 }
-if ($Fast -and $NoBuild) {
-    throw '-Fast and -NoBuild cannot be combined.'
-}
+Assert-SharpProofTestSwitches -Fast:$Fast -NoBuild:$NoBuild
 if ($ReuseTestHarness -and $Command -ne 'package-tests') {
     throw '-ReuseTestHarness is supported only for package-tests.'
 }
