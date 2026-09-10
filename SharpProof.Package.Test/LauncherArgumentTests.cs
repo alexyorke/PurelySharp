@@ -463,54 +463,41 @@ public sealed class LauncherArgumentTests
     [Platform("Linux")]
     public void RequestProjectionRejectsSymbolicLinkPathBeforeManifestRead()
     {
-        var root = Path.Combine(
-            TestContext.CurrentContext.WorkDirectory,
-            "symbolic-link-path-" + Guid.NewGuid().ToString("N"));
+        using var temporary = new TempDirectory(
+            "symbolic-link-path-",
+            TestContext.CurrentContext.WorkDirectory);
+        var root = temporary.FullName;
         var target = Path.Combine(root, "target");
         var alias = Path.Combine(root, "alias");
         Directory.CreateDirectory(target);
         try
         {
-            try
-            {
-                Directory.CreateSymbolicLink(alias, target);
-            }
-            catch (IOException exception)
-            {
-                Assert.Ignore("The test host cannot create directory links: " + exception.Message);
-            }
-            catch (UnauthorizedAccessException exception)
-            {
-                Assert.Ignore("The test host cannot create directory links: " + exception.Message);
-            }
-            catch (PlatformNotSupportedException exception)
-            {
-                Assert.Ignore("The test host does not support directory links: " + exception.Message);
-            }
-
-            var arguments = ProjectionArguments(
-                worker: Path.Combine(root, "worker.dll"),
-                request: Path.Combine(root, "request.json"),
-                result: Path.Combine(alias, "result.json"),
-                compilerManifest: Path.Combine(root, "missing.json"));
-            Assert.That(
-                LauncherArguments.TryParse(arguments, out var parsed),
-                Is.True);
-            Assert.That(
-                (Action)(() => parsed.ValidateDistinctPaths(null)),
-                Throws.TypeOf<ArgumentException>());
+            Directory.CreateSymbolicLink(alias, target);
         }
-        finally
+        catch (IOException exception)
         {
-            if (Directory.Exists(alias))
-            {
-                Directory.Delete(alias);
-            }
-            if (Directory.Exists(root))
-            {
-                Directory.Delete(root, recursive: true);
-            }
+            Assert.Ignore("The test host cannot create directory links: " + exception.Message);
         }
+        catch (UnauthorizedAccessException exception)
+        {
+            Assert.Ignore("The test host cannot create directory links: " + exception.Message);
+        }
+        catch (PlatformNotSupportedException exception)
+        {
+            Assert.Ignore("The test host does not support directory links: " + exception.Message);
+        }
+
+        var arguments = ProjectionArguments(
+            worker: Path.Combine(root, "worker.dll"),
+            request: Path.Combine(root, "request.json"),
+            result: Path.Combine(alias, "result.json"),
+            compilerManifest: Path.Combine(root, "missing.json"));
+        Assert.That(
+            LauncherArguments.TryParse(arguments, out var parsed),
+            Is.True);
+        Assert.That(
+            (Action)(() => parsed.ValidateDistinctPaths(null)),
+            Throws.TypeOf<ArgumentException>());
     }
 
     [Test]
