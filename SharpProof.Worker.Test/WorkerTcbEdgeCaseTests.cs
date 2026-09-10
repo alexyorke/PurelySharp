@@ -57,25 +57,18 @@ public sealed class WorkerTcbEdgeCaseTests
             Assert.Ignore("The verifier host is Linux-only.");
         }
 
-        var root = Path.Combine(
-            TestContext.CurrentContext.WorkDirectory,
-            "symlink-rejection-" + Guid.NewGuid().ToString("N"));
+        using var temporary = new TempDirectory(
+            "symlink-rejection-",
+            TestContext.CurrentContext.WorkDirectory);
+        var root = temporary.FullName;
         var target = Path.Combine(root, "target");
         var link = Path.Combine(root, "link");
         Directory.CreateDirectory(target);
         Directory.CreateSymbolicLink(link, target);
-        try
-        {
-            Action canonicalize = () =>
-                LinuxPathIdentity.Canonicalize(
-                    Path.Combine(link, "SharpProof", "cache"));
-            Assert.Throws<ArgumentException>(canonicalize);
-        }
-        finally
-        {
-            Directory.Delete(link);
-            Directory.Delete(root, recursive: true);
-        }
+        Action canonicalize = () =>
+            LinuxPathIdentity.Canonicalize(
+                Path.Combine(link, "SharpProof", "cache"));
+        Assert.Throws<ArgumentException>(canonicalize);
     }
 
     [TestCase(
