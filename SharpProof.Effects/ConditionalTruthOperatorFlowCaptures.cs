@@ -8,9 +8,9 @@ internal sealed class ConditionalTruthOperatorFlowCaptures : OperationFlowCaptur
     {
         return capture.Syntax.AncestorsAndSelf().Any(static syntax => syntax is
             BinaryExpressionSyntax
-            {
-                RawKind: (int)Microsoft.CodeAnalysis.CSharp.SyntaxKind.LogicalAndExpression or
+        {
+            RawKind: (int)Microsoft.CodeAnalysis.CSharp.SyntaxKind.LogicalAndExpression or
                     (int)Microsoft.CodeAnalysis.CSharp.SyntaxKind.LogicalOrExpression
-            });
+        });
     }
 }

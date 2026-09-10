@@ -209,7 +209,7 @@ internal sealed class UsingDisposalEffectResolver
                 canMethodCompleteNormally));
     }
 
-    private bool CanDisposalCompleteNormally(
+    private static bool CanDisposalCompleteNormally(
         ResourceDisposalFacts facts,
         Func<IMethodSymbol, bool> canMethodCompleteNormally)
     {
