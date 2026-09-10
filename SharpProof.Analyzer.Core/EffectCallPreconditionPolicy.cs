@@ -21,13 +21,13 @@ internal sealed class AnalyzerEffectCallPreconditionPolicy(
     private readonly CancellationToken _cancellationToken =
         cancellationToken;
 
-    public EffectCallPreconditionStatus Assess(
+    public bool IsNotProven(
         EffectCallPreconditionContext context)
     {
         _cancellationToken.ThrowIfCancellationRequested();
         if (HasInvalidEntryInventory(context.Target))
         {
-            return EffectCallPreconditionStatus.NotProven;
+            return true;
         }
 
         var binding = _binder.BindRequires(
@@ -36,10 +36,7 @@ internal sealed class AnalyzerEffectCallPreconditionPolicy(
         if (binding is not
             { IsSuccess: true, Contracts: { } contracts })
         {
-            return _fallback.HasPotentialPreconditions(
-                    context.Target)
-                ? EffectCallPreconditionStatus.NotProven
-                : EffectCallPreconditionStatus.None;
+            return _fallback.HasPotentialPreconditions(context.Target);
         }
 
         var requires = contracts.Clauses
@@ -49,22 +46,18 @@ internal sealed class AnalyzerEffectCallPreconditionPolicy(
             .ToImmutableArray();
         if (requires.IsEmpty)
         {
-            return _fallback
-                .HasPotentialDirectOrClosedPreconditions(
-                    context.Target)
-                ? EffectCallPreconditionStatus.NotProven
-                : EffectCallPreconditionStatus.None;
+            return _fallback.HasPotentialDirectOrClosedPreconditions(
+                context.Target);
         }
 
-        if (AssessEntry(context.Caller) ==
-            EffectCallPreconditionStatus.NotProven)
+        if (IsNotProven(context.Caller))
         {
-            return EffectCallPreconditionStatus.NotProven;
+            return true;
         }
 
         if (context.Flow == null)
         {
-            return EffectCallPreconditionStatus.NotProven;
+            return true;
         }
 
         var variables = new Dictionary<
@@ -97,8 +90,7 @@ internal sealed class AnalyzerEffectCallPreconditionPolicy(
                     actual,
                     out var value))
             {
-                return EffectCallPreconditionStatus
-                    .NotProven;
+                return true;
             }
 
             if (variable.Role ==
@@ -106,8 +98,7 @@ internal sealed class AnalyzerEffectCallPreconditionPolicy(
                 actual.Type is { IsReferenceType: true } &&
                 !value.IsDefinitelyNonNull)
             {
-                return EffectCallPreconditionStatus
-                    .NotProven;
+                return true;
             }
 
             variables.Add(variable.Variable, value);
@@ -118,16 +109,14 @@ internal sealed class AnalyzerEffectCallPreconditionPolicy(
             }
         }
 
-        return requires.All(clause =>
+        return !requires.All(clause =>
             ManagedContractFacts.Evaluate(
                     clause.Condition,
                     variables,
                     definitelyStrings,
                     _factory.StringType)
                 .TryGetBoolean(out var established) &&
-            established)
-                ? EffectCallPreconditionStatus.Proven
-                : EffectCallPreconditionStatus.NotProven;
+            established);
     }
 
     private static bool TryEvaluateActual(
@@ -239,13 +228,13 @@ internal sealed class AnalyzerEffectCallPreconditionPolicy(
                 ordinal);
     }
 
-    public EffectCallPreconditionStatus AssessEntry(
+    public bool IsNotProven(
         IMethodSymbol method)
     {
         _cancellationToken.ThrowIfCancellationRequested();
         if (HasInvalidEntryInventory(method))
         {
-            return EffectCallPreconditionStatus.NotProven;
+            return true;
         }
 
         var binding = _binder.BindRequires(
@@ -254,10 +243,7 @@ internal sealed class AnalyzerEffectCallPreconditionPolicy(
         if (binding is not
             { IsSuccess: true, Contracts: { } })
         {
-            return _fallback.HasPotentialPreconditions(
-                    method)
-                ? EffectCallPreconditionStatus.NotProven
-                : EffectCallPreconditionStatus.None;
+            return _fallback.HasPotentialPreconditions(method);
         }
 
         if (method is
@@ -271,12 +257,10 @@ internal sealed class AnalyzerEffectCallPreconditionPolicy(
                     clause.Kind ==
                     BoundContractKind.Requires))
         {
-            return EffectCallPreconditionStatus.Proven;
+            return false;
         }
 
-        return _fallback.HasPotentialPreconditions(method)
-            ? EffectCallPreconditionStatus.NotProven
-            : EffectCallPreconditionStatus.None;
+        return _fallback.HasPotentialPreconditions(method);
     }
 
     private bool HasInvalidEntryInventory(

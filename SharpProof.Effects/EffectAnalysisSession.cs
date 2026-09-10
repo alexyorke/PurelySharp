@@ -218,7 +218,7 @@ public sealed class EffectAnalysisSession
         }
         var preconditionTarget = NormalizeMethodConstruction(target);
         var normalized = preconditionTarget.OriginalDefinition;
-        var preconditions = _callPreconditions.Assess(
+        var preconditions = _callPreconditions.IsNotProven(
             new EffectCallPreconditionContext(
                 caller,
                 preconditionTarget,
@@ -227,7 +227,7 @@ public sealed class EffectAnalysisSession
                 flow,
                 origin));
         var preconditionEvidence =
-            preconditions == EffectCallPreconditionStatus.NotProven
+            preconditions
                 ? EffectSummaryOperations.IncompleteAnalysis(
                     EffectAnalysisIncompleteReason
                         .CallPreconditionNotProven)
@@ -353,9 +353,8 @@ public sealed class EffectAnalysisSession
     internal EffectSummary ResolveEntryPreconditions(
         IMethodSymbol method)
     {
-        return _callPreconditions.AssessEntry(
-                NormalizeMethodConstruction(method)) ==
-            EffectCallPreconditionStatus.NotProven
+        return _callPreconditions.IsNotProven(
+                NormalizeMethodConstruction(method))
                 ? EffectSummaryOperations.IncompleteAnalysis(
                     EffectAnalysisIncompleteReason
                         .CallPreconditionNotProven)

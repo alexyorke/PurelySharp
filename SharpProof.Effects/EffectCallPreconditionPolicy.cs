@@ -5,10 +5,10 @@ namespace SharpProof.Effects;
 
 internal interface IEffectCallPreconditionPolicy
 {
-    EffectCallPreconditionStatus AssessEntry(
+    bool IsNotProven(
         IMethodSymbol method);
 
-    EffectCallPreconditionStatus Assess(
+    bool IsNotProven(
         EffectCallPreconditionContext context);
 }
 
@@ -71,18 +71,16 @@ internal sealed class ConservativeEffectCallPreconditionPolicy
                         .ExecutionAndPublication));
     }
 
-    public EffectCallPreconditionStatus Assess(
+    public bool IsNotProven(
         EffectCallPreconditionContext context)
     {
-        return AssessEntry(context.Target);
+        return HasPotentialPreconditions(context.Target);
     }
 
-    public EffectCallPreconditionStatus AssessEntry(
+    public bool IsNotProven(
         IMethodSymbol method)
     {
-        return HasPotentialPreconditions(method)
-            ? EffectCallPreconditionStatus.NotProven
-            : EffectCallPreconditionStatus.None;
+        return HasPotentialPreconditions(method);
     }
 
     internal bool HasPotentialPreconditions(

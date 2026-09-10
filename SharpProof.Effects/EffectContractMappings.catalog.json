@@ -36,11 +36,6 @@
       {"name":"Complete","value":0},
       {"name":"Incomplete","value":1}
     ]},
-    {"name":"EffectCallPreconditionStatus","access":"internal","flags":false,"members":[
-      {"name":"None","value":0},
-      {"name":"Proven","value":1},
-      {"name":"NotProven","value":2}
-    ]},
     {"name":"EffectContractResolutionKind","access":"internal","flags":false,"members":[
       {"name":"Missing","value":0},
       {"name":"Untrusted","value":1},

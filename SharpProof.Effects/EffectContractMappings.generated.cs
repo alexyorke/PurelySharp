@@ -52,13 +52,6 @@ public enum EffectCompleteness
     Incomplete = 1
 }
 
-internal enum EffectCallPreconditionStatus
-{
-    None = 0,
-    Proven = 1,
-    NotProven = 2
-}
-
 internal enum EffectContractResolutionKind
 {
     Missing = 0,
