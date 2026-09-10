@@ -75,9 +75,7 @@ public sealed class DataflowGraph<T>
         }
         _predecessors = Freeze(predecessors);
         _successors = Freeze(successors);
-        _cyclicBlocks = FindCyclicBlocks(
-            _successors,
-            _predecessors);
+        _cyclicBlocks = FindCyclicBlocks(_successors);
     }
 
     public ImmutableArray<DataflowBlock<T>> Blocks
@@ -152,78 +150,87 @@ public sealed class DataflowGraph<T>
     }
 
     private static ImmutableArray<bool> FindCyclicBlocks(
-        ImmutableArray<ImmutableArray<int>> successors,
-        ImmutableArray<ImmutableArray<int>> predecessors)
+        ImmutableArray<ImmutableArray<int>> successors)
     {
-        var visited = new bool[successors.Length];
-        var finishOrder = new List<int>(successors.Length);
+        var discovery = new int[successors.Length];
+        var lowLink = new int[successors.Length];
+        var onStack = new bool[successors.Length];
+        for (var blockId = 0; blockId < discovery.Length; blockId++)
+        {
+            discovery[blockId] = -1;
+        }
+
+        var active = new Stack<int>(successors.Length);
         var pending = new Stack<(int BlockId, int NextSuccessor)>();
+        var component = new List<int>();
+        var result = new bool[successors.Length];
+        var nextDiscovery = 0;
         for (var start = 0; start < successors.Length; start++)
         {
-            if (visited[start])
+            if (discovery[start] >= 0)
             {
                 continue;
             }
 
-            visited[start] = true;
+            discovery[start] = nextDiscovery;
+            lowLink[start] = nextDiscovery++;
+            active.Push(start);
+            onStack[start] = true;
             pending.Push((start, 0));
             while (pending.Count != 0)
             {
                 var (current, nextSuccessor) = pending.Pop();
-                if (nextSuccessor >= successors[current].Length)
+                if (nextSuccessor < successors[current].Length)
                 {
-                    finishOrder.Add(current);
-                    continue;
-                }
-
-                pending.Push((current, nextSuccessor + 1));
-                var next = successors[current][nextSuccessor];
-                if (visited[next])
-                {
-                    continue;
-                }
-
-                visited[next] = true;
-                pending.Push((next, 0));
-            }
-        }
-
-        Array.Clear(visited, 0, visited.Length);
-        var result = new bool[successors.Length];
-        var component = new List<int>();
-        var componentPending = new Stack<int>();
-        for (var index = finishOrder.Count - 1; index >= 0; index--)
-        {
-            var start = finishOrder[index];
-            if (visited[start])
-            {
-                continue;
-            }
-
-            component.Clear();
-            visited[start] = true;
-            componentPending.Push(start);
-            while (componentPending.Count != 0)
-            {
-                var current = componentPending.Pop();
-                component.Add(current);
-                foreach (var predecessor in predecessors[current])
-                {
-                    if (visited[predecessor])
+                    pending.Push((current, nextSuccessor + 1));
+                    var next = successors[current][nextSuccessor];
+                    if (discovery[next] < 0)
                     {
-                        continue;
+                        discovery[next] = nextDiscovery;
+                        lowLink[next] = nextDiscovery++;
+                        active.Push(next);
+                        onStack[next] = true;
+                        pending.Push((next, 0));
+                    }
+                    else if (onStack[next] && discovery[next] < lowLink[current])
+                    {
+                        lowLink[current] = discovery[next];
                     }
 
-                    visited[predecessor] = true;
-                    componentPending.Push(predecessor);
+                    continue;
                 }
-            }
 
-            var cyclic = component.Count > 1 ||
-                successors[component[0]].Contains(component[0]);
-            foreach (var blockId in component)
-            {
-                result[blockId] = cyclic;
+                if (lowLink[current] == discovery[current])
+                {
+                    component.Clear();
+                    int member;
+                    do
+                    {
+                        member = active.Pop();
+                        onStack[member] = false;
+                        component.Add(member);
+                    }
+                    while (member != current);
+
+                    var cyclic = component.Count > 1 ||
+                        successors[current].Contains(current);
+                    if (cyclic)
+                    {
+                        foreach (var blockId in component)
+                        {
+                            result[blockId] = true;
+                        }
+                    }
+                }
+
+                if (pending.Count != 0)
+                {
+                    var parent = pending.Peek().BlockId;
+                    if (lowLink[current] < lowLink[parent])
+                    {
+                        lowLink[parent] = lowLink[current];
+                    }
+                }
             }
         }
 

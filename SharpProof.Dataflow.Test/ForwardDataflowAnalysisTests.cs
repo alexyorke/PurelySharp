@@ -110,6 +110,38 @@ public sealed class ForwardDataflowAnalysisTests
     }
 
     [Test]
+    public void CycleClassificationMarksOnlyCyclicComponents()
+    {
+        var graph = new DataflowGraph<int>(
+            Enumerable.Range(0, 9)
+                .Select(static id => new DataflowBlock<int>(id, value => value)),
+            [
+                new(0, 1),
+                new(1, 2),
+                new(2, 1),
+                new(2, 3),
+                new(3, 4),
+                new(4, 5),
+                new(5, 4),
+                new(6, 6),
+                new(7, 8)
+            ]);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(graph.IsCyclicBlock(0), Is.False);
+            Assert.That(graph.IsCyclicBlock(1), Is.True);
+            Assert.That(graph.IsCyclicBlock(2), Is.True);
+            Assert.That(graph.IsCyclicBlock(3), Is.False);
+            Assert.That(graph.IsCyclicBlock(4), Is.True);
+            Assert.That(graph.IsCyclicBlock(5), Is.True);
+            Assert.That(graph.IsCyclicBlock(6), Is.True);
+            Assert.That(graph.IsCyclicBlock(7), Is.False);
+            Assert.That(graph.IsCyclicBlock(8), Is.False);
+        }
+    }
+
+    [Test]
     public void SparseAcyclicCycleClassificationCompletesWithinLinearBudget()
     {
         const int blockCount = 30_000;
