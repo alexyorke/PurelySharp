@@ -3238,11 +3238,8 @@ public sealed class WorkerMsBuildIntegrationTests
                 }
             ]
         };
-        var path = Path.Combine(
-            Path.GetTempPath(),
-            "SharpProof.Package.Test",
-            Guid.NewGuid().ToString("N") + ".json");
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        using var temporary = new TempDirectory("SharpProof.Package.Test-");
+        var path = Path.Combine(temporary.FullName, "response.json");
         var originalOutput = Console.Out;
         var originalError = Console.Error;
         using var output = new StringWriter(CultureInfo.InvariantCulture);
