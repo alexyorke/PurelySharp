@@ -133,10 +133,7 @@ public sealed class IntervalDomain : ClosedAbstractDomain<IntervalValue>
         var upper = left.UpperBound.HasValue && right.UpperBound.HasValue
             ? (long?)Math.Max(left.UpperBound.Value, right.UpperBound.Value)
             : null;
-        var difference = BigInteger.Abs(left.Remainder - right.Remainder);
-        var modulus = BigInteger.GreatestCommonDivisor(
-            BigInteger.GreatestCommonDivisor(left.Modulus, right.Modulus), difference);
-        var remainder = modulus.IsZero ? left.Remainder : Normalize(left.Remainder, modulus);
+        var (modulus, remainder) = GetCongruenceHull(left, right);
         return Create(lower, upper, modulus, remainder);
     }
 
@@ -152,7 +149,7 @@ public sealed class IntervalDomain : ClosedAbstractDomain<IntervalValue>
             return previous;
         }
 
-        var joined = Join(previous, candidate);
+        var (modulus, remainder) = GetCongruenceHull(previous, candidate);
         var lower = previous.LowerBound.HasValue &&
                     candidate.LowerBound.HasValue &&
                     candidate.LowerBound.Value >= previous.LowerBound.Value
@@ -163,7 +160,17 @@ public sealed class IntervalDomain : ClosedAbstractDomain<IntervalValue>
                     candidate.UpperBound.Value <= previous.UpperBound.Value
             ? previous.UpperBound
             : null;
-        return Create(lower, upper, joined.Modulus, joined.Remainder);
+        return Create(lower, upper, modulus, remainder);
+    }
+
+    private static (BigInteger Modulus, BigInteger Remainder) GetCongruenceHull(
+        IntervalValue left, IntervalValue right)
+    {
+        var difference = BigInteger.Abs(left.Remainder - right.Remainder);
+        var modulus = BigInteger.GreatestCommonDivisor(
+            BigInteger.GreatestCommonDivisor(left.Modulus, right.Modulus), difference);
+        var remainder = modulus.IsZero ? left.Remainder : Normalize(left.Remainder, modulus);
+        return (modulus, remainder);
     }
 
     public override IntervalValue Havoc(IntervalValue value)
