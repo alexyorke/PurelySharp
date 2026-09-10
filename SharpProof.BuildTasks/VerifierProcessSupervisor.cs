@@ -23,7 +23,7 @@ internal static partial class VerifierProcessSupervisor
                 0,
                 0) != 0)
         {
-            return 125;
+            return LinuxProcessControlConstants.EnvironmentFailureExitCode;
         }
         if (LinuxPrctl.ControlProcess(
                 LinuxProcessControlConstants.SetDumpable,
@@ -32,7 +32,7 @@ internal static partial class VerifierProcessSupervisor
                 0,
                 0) != 0)
         {
-            return 125;
+            return LinuxProcessControlConstants.EnvironmentFailureExitCode;
         }
 
         var cleanupDescriptorReserves = Enumerable
@@ -51,7 +51,7 @@ internal static partial class VerifierProcessSupervisor
             {
                 CloseDescriptors(cleanupDescriptorReserves);
                 cleanupDescriptorReserves = [];
-                return 125;
+                return LinuxProcessControlConstants.EnvironmentFailureExitCode;
             }
         }
 
@@ -80,7 +80,7 @@ internal static partial class VerifierProcessSupervisor
                 : string.Empty;
             if (!IsValidNonce(nonce))
             {
-                return 125;
+                return LinuxProcessControlConstants.EnvironmentFailureExitCode;
             }
             Console.Out.WriteLine(LinuxWorkerProcess.ArmedMessage + " " + nonce);
             Console.Out.Flush();
@@ -104,7 +104,7 @@ internal static partial class VerifierProcessSupervisor
             if (!process.Start())
             {
                 WriteCleanupReceipt(nonce);
-                return 125;
+                return LinuxProcessControlConstants.EnvironmentFailureExitCode;
             }
 
             while (!process.WaitForExit(25) &&
@@ -135,18 +135,18 @@ internal static partial class VerifierProcessSupervisor
             {
                 // Do not keep the build task alive indefinitely when a
                 // hostile or stuck descendant cannot be reaped.
-                return 125;
+                return LinuxProcessControlConstants.EnvironmentFailureExitCode;
             }
             if (!process.HasExited && !process.WaitForExit(1000))
             {
-                return 125;
+                return LinuxProcessControlConstants.EnvironmentFailureExitCode;
             }
             ReapOwnedDescendants();
             WriteCleanupReceipt(nonce);
             return cancellation.IsCancellationRequested
                 ? 143
                 : hadDescendants
-                    ? 124
+                    ? LinuxProcessControlConstants.TimeoutExitCode
                     : directExitCode;
         }
         finally
@@ -184,7 +184,7 @@ internal static partial class VerifierProcessSupervisor
                 0,
                 0) != 0)
         {
-            return 125;
+            return LinuxProcessControlConstants.EnvironmentFailureExitCode;
         }
         using var process = new Process
         {
@@ -201,7 +201,7 @@ internal static partial class VerifierProcessSupervisor
         }
         return process.Start()
             ? WaitForWorkerExit(process)
-            : 125;
+            : LinuxProcessControlConstants.EnvironmentFailureExitCode;
     }
 
     private static int WaitForWorkerExit(Process process)

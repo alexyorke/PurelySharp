@@ -168,7 +168,7 @@ public sealed partial class LinuxWorkerProcess : IDisposable
         return Terminate(process, stopwatch, finalLimit)
             ? new LinuxWorkerCompletion(
                 LinuxWorkerCompletionKind.TimedOut,
-                124)
+                LinuxProcessControlConstants.TimeoutExitCode)
             : new LinuxWorkerCompletion(
                 LinuxWorkerCompletionKind.Exited,
                 process.ExitCode);
@@ -383,4 +383,7 @@ internal static class LinuxProcessControlConstants
     internal const int SignalKill = 9;
     internal const int SignalTerminate = 15;
     internal const int SignalStop = 19;
+    // Match GNU timeout's conventional status codes at process boundaries.
+    internal const int TimeoutExitCode = 124;
+    internal const int EnvironmentFailureExitCode = 125;
 }

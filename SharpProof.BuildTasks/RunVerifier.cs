@@ -303,7 +303,8 @@ public sealed partial class RunVerifier : Microsoft.Build.Utilities.Task,
             var supervisorArmed = outputResult?.SupervisorArmed == true ||
                 supervisorArmedSignal.Task.IsCompletedSuccessfully;
             var authenticationRequired = supervisorArmed ||
-                process.HasExited && process.ExitCode != 125;
+                process.HasExited &&
+                process.ExitCode != LinuxProcessControlConstants.EnvironmentFailureExitCode;
             var deferAuthentication =
                 canceled ||
                 ShouldDeferSupervisorAuthentication(
@@ -322,7 +323,7 @@ public sealed partial class RunVerifier : Microsoft.Build.Utilities.Task,
             ExitCode = containmentFailed
                 ? -1
                 : timedOut
-                    ? 124
+                    ? LinuxProcessControlConstants.TimeoutExitCode
                     : process.ExitCode;
         }
         catch (Exception exception)
@@ -1008,7 +1009,8 @@ public sealed partial class RunVerifier : Microsoft.Build.Utilities.Task,
                     LauncherProcessReserveMilliseconds));
             if (readiness == SupervisorReadiness.ExitedBeforeArmed)
             {
-                return process.ExitCode == 125;
+                return process.ExitCode ==
+                    LinuxProcessControlConstants.EnvironmentFailureExitCode;
             }
             if (readiness != SupervisorReadiness.Armed)
             {
@@ -1029,7 +1031,8 @@ public sealed partial class RunVerifier : Microsoft.Build.Utilities.Task,
             if (terminateSent && boundedWait > 0 &&
                 process.WaitForExit(boundedWait))
             {
-                return process.ExitCode != 125;
+                return process.ExitCode !=
+                    LinuxProcessControlConstants.EnvironmentFailureExitCode;
             }
             if (terminateSent && !process.HasExited)
             {
