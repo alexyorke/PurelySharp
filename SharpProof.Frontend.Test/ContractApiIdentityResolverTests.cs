@@ -79,74 +79,67 @@ public sealed class ContractApiIdentityResolverTests
     public void UnapprovedContractPayloadRejectsSamePackageAttributes(
         bool validContractShape)
     {
-        var temporaryDirectory = CreateTemporaryDirectory();
-        try
+        using var temporary = new TempDirectory("SharpProof.Frontend.Test-");
+        var path = Path.Combine(
+            temporary.FullName,
+            "SharpProof.Attributes.dll");
+        File.WriteAllBytes(
+            path,
+            EmitContractImage(validContractShape));
+        var reference = MetadataReference.CreateFromFile(path);
+        var compilation = CreateConsumer(reference);
+        var resolver =
+            ContractApiIdentityResolver.ForCompilation(compilation);
+        var method = compilation.GetTypeByMetadataName("Target")!
+            .GetMembers("Read")
+            .OfType<IMethodSymbol>()
+            .Single();
+        var attributes = method.GetAttributes()
+            .Concat(method.Parameters.SelectMany(static parameter =>
+                parameter.GetAttributes()))
+            .Concat(method.GetReturnTypeAttributes())
+            .ToImmutableArray();
+
+        using (Assert.EnterMultipleScope())
         {
-            var path = Path.Combine(
-                temporaryDirectory,
-                "SharpProof.Attributes.dll");
-            File.WriteAllBytes(
-                path,
-                EmitContractImage(validContractShape));
-            var reference = MetadataReference.CreateFromFile(path);
-            var compilation = CreateConsumer(reference);
-            var resolver =
-                ContractApiIdentityResolver.ForCompilation(compilation);
-            var method = compilation.GetTypeByMetadataName("Target")!
-                .GetMembers("Read")
-                .OfType<IMethodSymbol>()
-                .Single();
-            var attributes = method.GetAttributes()
-                .Concat(method.Parameters.SelectMany(static parameter =>
-                    parameter.GetAttributes()))
-                .Concat(method.GetReturnTypeAttributes())
-                .ToImmutableArray();
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(resolver.Contract, Is.Null);
-                Assert.That(
-                    resolver.ResolveAttribute(ContractApiMetadata.NotNull),
-                    Is.Null);
-                Assert.That(
-                    resolver.ResolveAttribute(ContractApiMetadata.Positive),
-                    Is.Null);
-                Assert.That(
-                    resolver.ResolveAttribute(ContractApiMetadata.InRange),
-                    Is.Null);
-                Assert.That(
-                    resolver.ResolveAttribute(ContractApiMetadata.EffectContract),
-                    Is.Null);
-                Assert.That(
-                    resolver.ResolveAttribute(ContractApiMetadata.Trusted),
-                    Is.Null);
-            }
-
-            var rejected = attributes.Select(attribute =>
-            {
-                Assert.That(
-                    resolver.TryGetRejectedAttributeMetadataName(
-                        attribute,
-                        out var metadataName),
-                    Is.True);
-                return metadataName;
-            });
+            Assert.That(resolver.Contract, Is.Null);
             Assert.That(
-                rejected,
-                Is.EquivalentTo(new[]
-                {
-                    ContractApiMetadata.Trusted,
-                    ContractApiMetadata.EffectContract,
-                    ContractApiMetadata.NotNull,
-                    ContractApiMetadata.Positive,
-                    ContractApiMetadata.InRange,
-                    ContractApiMetadata.NotNull
-                }));
+                resolver.ResolveAttribute(ContractApiMetadata.NotNull),
+                Is.Null);
+            Assert.That(
+                resolver.ResolveAttribute(ContractApiMetadata.Positive),
+                Is.Null);
+            Assert.That(
+                resolver.ResolveAttribute(ContractApiMetadata.InRange),
+                Is.Null);
+            Assert.That(
+                resolver.ResolveAttribute(ContractApiMetadata.EffectContract),
+                Is.Null);
+            Assert.That(
+                resolver.ResolveAttribute(ContractApiMetadata.Trusted),
+                Is.Null);
         }
-        finally
+
+        var rejected = attributes.Select(attribute =>
         {
-            Directory.Delete(temporaryDirectory, recursive: true);
-        }
+            Assert.That(
+                resolver.TryGetRejectedAttributeMetadataName(
+                    attribute,
+                    out var metadataName),
+                Is.True);
+            return metadataName;
+        });
+        Assert.That(
+            rejected,
+            Is.EquivalentTo(new[]
+            {
+                ContractApiMetadata.Trusted,
+                ContractApiMetadata.EffectContract,
+                ContractApiMetadata.NotNull,
+                ContractApiMetadata.Positive,
+                ContractApiMetadata.InRange,
+                ContractApiMetadata.NotNull
+            }));
     }
 
     private static CSharpCompilation CreateConsumer(
@@ -292,29 +285,6 @@ public sealed class ContractApiIdentityResolverTests
                 result.Diagnostics.Select(static diagnostic =>
                     diagnostic.ToString())));
         return stream.ToArray();
-    }
-
-    private static string CreateTemporaryDirectory()
-    {
-        var root = Path.GetFullPath(Path.Combine(
-            Path.GetTempPath(),
-            "SharpProof.Frontend.Test"));
-        var path = Path.GetFullPath(Path.Combine(
-            root,
-            Guid.NewGuid().ToString("N")));
-        var expectedPrefix =
-            root.TrimEnd(Path.DirectorySeparatorChar) +
-            Path.DirectorySeparatorChar;
-        if (!path.StartsWith(
-                expectedPrefix,
-                StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException(
-                "Temporary test directory escaped its intended root.");
-        }
-
-        Directory.CreateDirectory(path);
-        return path;
     }
 
     private static void AssertNoErrors(Compilation compilation)

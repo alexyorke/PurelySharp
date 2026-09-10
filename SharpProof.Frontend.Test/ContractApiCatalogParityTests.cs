@@ -160,45 +160,38 @@ public sealed class ContractApiCatalogParityTests
             _ => throw new ArgumentOutOfRangeException(nameof(mutation))
         };
 
-        var temporaryDirectory = Path.Combine(
-            TestContext.CurrentContext.WorkDirectory,
-            "contract-api-catalog-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(temporaryDirectory);
-        try
+        using var temporary = new TempDirectory(
+            "contract-api-catalog-",
+            TestContext.CurrentContext.WorkDirectory);
+        var temporaryDirectory = temporary.FullName;
+        var catalogPath = Path.Combine(temporaryDirectory, "catalog.json");
+        var outputPath = Path.Combine(temporaryDirectory, "generated.cs");
+        await File.WriteAllTextAsync(catalogPath, catalog);
+        var start = ProcessRunner.CreateStartInfo(
+            Environment.CurrentDirectory,
+            "pwsh",
+            new[]
         {
-            var catalogPath = Path.Combine(temporaryDirectory, "catalog.json");
-            var outputPath = Path.Combine(temporaryDirectory, "generated.cs");
-            await File.WriteAllTextAsync(catalogPath, catalog);
-            var start = ProcessRunner.CreateStartInfo(
-                Environment.CurrentDirectory,
-                "pwsh",
-                new[]
-            {
-                "-NoLogo",
-                "-NoProfile",
-                "-File",
-                Path.Combine(repository, "scripts", "Generate-ContractApiCatalog.ps1"),
-                "-CatalogPath",
-                catalogPath,
-                "-OutputPath",
-                outputPath
-            });
+            "-NoLogo",
+            "-NoProfile",
+            "-File",
+            Path.Combine(repository, "scripts", "Generate-ContractApiCatalog.ps1"),
+            "-CatalogPath",
+            catalogPath,
+            "-OutputPath",
+            outputPath
+        });
 
-            var result = await ProcessRunner.RunCapturedAsync(
-                start,
-                CancellationToken.None);
-            var output = result.Output + result.Error;
+        var result = await ProcessRunner.RunCapturedAsync(
+            start,
+            CancellationToken.None);
+        var output = result.Output + result.Error;
 
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(result.ExitCode, Is.Not.Zero, output);
-                Assert.That(output, Does.Contain(expectedError));
-                Assert.That(File.Exists(outputPath), Is.False);
-            }
-        }
-        finally
+        using (Assert.EnterMultipleScope())
         {
-            Directory.Delete(temporaryDirectory, recursive: true);
+            Assert.That(result.ExitCode, Is.Not.Zero, output);
+            Assert.That(output, Does.Contain(expectedError));
+            Assert.That(File.Exists(outputPath), Is.False);
         }
     }
 
