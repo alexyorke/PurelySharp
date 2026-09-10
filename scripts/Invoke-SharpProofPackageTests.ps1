@@ -682,6 +682,11 @@ try {
                     else {
                         $bucket.EstimatedMilliseconds
                     })
+                # PackageLayoutSmokeTests enables NUnit child parallelism up
+                # to four workers. Charge those nested workers to the outer
+                # scheduler so package-layout shards do not oversubscribe the
+                # integration-test wave alongside worker shards.
+                Slots = [Math]::Min(4, $parallelism)
             })
         }
         foreach ($bucket in @($workerBuckets | Where-Object {
