@@ -719,29 +719,13 @@ try {
         foreach ($bucket in @($workerBuckets | Where-Object {
                     $_.Methods.Count -gt 0
                 })) {
-            $filter = @($bucket.Methods | ForEach-Object {
-                    "FullyQualifiedName~$workerClass.$_"
-                }) -join '|'
-            # Keep count-balanced membership at CI width, but use the
-            # completed filter's wall time to prioritize launch order.  The
-            # bucket estimate is intentionally not fed back into membership:
-            # concurrent analyzer builds make per-method samples too noisy for
-            # a stable p4 partition.
-            $historicalMilliseconds =
-                Get-SharpProofHistoricalFilterMilliseconds $filter
-            $priorityMilliseconds = if ($null -ne $historicalMilliseconds) {
-                [long][Math]::Max(1, $historicalMilliseconds)
-            }
-            else {
-                [long][Math]::Max(
-                    1,
-                    [long]$bucket.Methods.Count * 3000L)
-            }
             $shards.Add([pscustomobject]@{
                 Name = 'worker-' + ($bucket.Index + 1).ToString(
                     'D2', [Globalization.CultureInfo]::InvariantCulture)
-                Filter = $filter
-                EstimatedMilliseconds = $priorityMilliseconds
+                Filter = @($bucket.Methods | ForEach-Object {
+                    "FullyQualifiedName~$workerClass.$_"
+                }) -join '|'
+                EstimatedMilliseconds = $bucket.EstimatedMilliseconds
                 Slots = 1
             })
         }
