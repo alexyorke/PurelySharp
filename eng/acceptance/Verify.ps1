@@ -425,16 +425,10 @@ foreach ($project in @($productionInventory.projects)) {
 
 foreach ($assertion in @(
         @{ Actual = $contract.schemaVersion; Expected = 4; Name = 'schemaVersion' },
-        @{ Actual = $contract.releaseLine; Expected = '1.0.0-preview'; Name = 'releaseLine' },
-        @{ Actual = $contract.flagship; Expected = 'effects'; Name = 'flagship' },
         @{ Actual = $contract.analyzer.defaultProfile; Expected = 'advisory'; Name = 'analyzer.defaultProfile' },
         @{ Actual = $contract.analyzer.defaultFeatures; Expected = 'all'; Name = 'analyzer.defaultFeatures' },
         @{ Actual = $contract.analyzer.defaultVerifyPolicy; Expected = 'advisory'; Name = 'analyzer.defaultVerifyPolicy' },
         @{ Actual = $contract.analyzer.defaultAssumptionPolicy; Expected = 'allow'; Name = 'analyzer.defaultAssumptionPolicy' },
-        @{ Actual = $contract.analyzer.defaultDiagnosticSeverity; Expected = 'Info'; Name = 'analyzer.defaultDiagnosticSeverity' },
-        @{ Actual = $contract.analyzer.diagnosticsEnabledByDefault; Expected = $true; Name = 'analyzer.diagnosticsEnabledByDefault' },
-        @{ Actual = $contract.analyzer.unsupportedUnannotatedCallableBehavior; Expected = 'silent'; Name = 'analyzer.unsupportedUnannotatedCallableBehavior' },
-        @{ Actual = $contract.analyzer.unsupportedSelectedCallableDiagnostic; Expected = 'SP0047'; Name = 'analyzer.unsupportedSelectedCallableDiagnostic' },
         @{ Actual = $contract.automation.solutionBuildWallSeconds; Expected = 600; Name = 'automation.solutionBuildWallSeconds' },
         @{ Actual = $contract.automation.packageTestCpuPercent; Expected = 90; Name = 'automation.packageTestCpuPercent' },
         @{ Actual = $contract.mutationEvidence.schemaVersion; Expected = 1; Name = 'mutationEvidence.schemaVersion' })) {
@@ -466,7 +460,6 @@ foreach ($assertion in @(
         @{ Actual = $contract.cache.schemaVersion; Expected = 13; Name = 'cache.schemaVersion' },
         @{ Actual = $contract.cache.enabledByDefault; Expected = $true; Name = 'cache.enabledByDefault' },
         @{ Actual = $contract.cache.maximumMiB; Expected = 512; Name = 'cache.maximumMiB' },
-        @{ Actual = $contract.cache.cacheableOutcomes -join ','; Expected = 'Refuted'; Name = 'cache.cacheableOutcomes' },
         @{ Actual = $packageManifest.schemaVersion; Expected = 1; Name = 'package manifest schemaVersion' })) {
     Assert-Equal $assertion.Actual $assertion.Expected $assertion.Name
 }

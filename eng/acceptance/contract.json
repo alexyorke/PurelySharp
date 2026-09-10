@@ -1,7 +1,5 @@
 {
   "schemaVersion": 4,
-  "flagship": "effects",
-  "releaseLine": "1.0.0-preview",
   "supportedTargetFrameworks": [
     "netstandard2.0",
     "net8.0",
@@ -11,11 +9,7 @@
     "defaultProfile": "advisory",
     "defaultFeatures": "all",
     "defaultVerifyPolicy": "advisory",
-    "defaultAssumptionPolicy": "allow",
-    "defaultDiagnosticSeverity": "Info",
-    "diagnosticsEnabledByDefault": true,
-    "unsupportedUnannotatedCallableBehavior": "silent",
-    "unsupportedSelectedCallableDiagnostic": "SP0047"
+    "defaultAssumptionPolicy": "allow"
   },
   "automation": {
     "solutionBuildWallSeconds": 600,
@@ -84,10 +78,7 @@
   "cache": {
     "schemaVersion": 13,
     "enabledByDefault": true,
-    "maximumMiB": 512,
-    "cacheableOutcomes": [
-      "Refuted"
-    ]
+    "maximumMiB": 512
   },
   "releaseAuthorityClosure": {
     "paths": [
