@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.CodeAnalysis.Text;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
+using SharpProof.CompilerSupport;
 // This capture runs only in the build-time compiler collector.
 namespace SharpProof.CompilerArtifact;
 #pragma warning disable RS1035 // Build-only compiler evidence must hash final reference images.
@@ -97,9 +98,6 @@ internal static class CompilerCompilationCapture
         textLength = 0;
         return false;
     }
-
-    private const string CommandLineAdditionalTextTypeName =
-        "Microsoft.CodeAnalysis.AdditionalTextFile";
 
     internal readonly struct ReferenceCaptureLimits
     {
@@ -473,20 +471,9 @@ internal static class CompilerCompilationCapture
             return snapshot.CapturedText;
         }
 
-        var providerType = file.GetType();
-        if (providerType.Assembly != typeof(AdditionalText).Assembly ||
-            !string.Equals(
-                providerType.FullName,
-                CommandLineAdditionalTextTypeName,
-                StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException(
-                "An additional file does not expose a stable compiler input snapshot.");
-        }
-
-        return file.GetText(cancellationToken) ??
-            throw new InvalidOperationException(
-                "An additional file has no compiler text.");
+        return CompilerAdditionalTextStability.GetStableAdditionalText(
+            file,
+            cancellationToken);
     }
 
     internal static string ComputeTextSha256(SourceText text)

@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using SharpProof.CompilerSupport;
 using static SharpProof.CompilerProbe.TestAsset.CompilerProbeSourceHelpers;
 
 namespace SharpProof.CompilerProbe.TestAsset;
@@ -11,9 +12,6 @@ internal static class CompilerProbeSnapshot
         BindingFlags.Instance |
         BindingFlags.Public |
         BindingFlags.NonPublic;
-    private const string CommandLineAdditionalTextTypeName =
-        "Microsoft.CodeAnalysis.AdditionalTextFile";
-
     private static readonly ConditionalWeakTable<Type, PortableImageMethod>
         PortableImageMethods = new();
     private static readonly ConditionalWeakTable<Type, CompilationProperty>
@@ -606,20 +604,9 @@ internal static class CompilerProbeSnapshot
         // Lazy<SourceText> for both generators and analyzers. A custom provider
         // has no equivalent consistency guarantee, so it cannot back this
         // final-compilation authority.
-        var providerType = file.GetType();
-        if (providerType.Assembly != typeof(AdditionalText).Assembly ||
-            !string.Equals(
-                providerType.FullName,
-                CommandLineAdditionalTextTypeName,
-                StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException(
-                "An additional file does not expose a stable compiler input snapshot.");
-        }
-
-        return file.GetText(cancellationToken) ??
-            throw new InvalidOperationException(
-                "An additional file has no compiler text.");
+        return CompilerAdditionalTextStability.GetStableAdditionalText(
+            file,
+            cancellationToken);
     }
 
 }
