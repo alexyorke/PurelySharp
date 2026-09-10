@@ -1258,11 +1258,6 @@ internal sealed class ManagedAbstractFlow
             return ManagedFlowState.Join(left, right);
         }
 
-        public override ManagedFlowState Widen(ManagedFlowState previous, ManagedFlowState candidate)
-        {
-            return Join(previous, candidate);
-        }
-
         public override ManagedFlowState Havoc(ManagedFlowState value)
         {
             return value.Forget();

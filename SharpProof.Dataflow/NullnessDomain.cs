@@ -41,11 +41,6 @@ public sealed class NullnessDomain : ClosedAbstractDomain<NullnessValue>
         return NullnessValue.MaybeNull;
     }
 
-    public override NullnessValue Widen(NullnessValue previous, NullnessValue candidate)
-    {
-        return Join(previous, candidate);
-    }
-
     public override NullnessValue Havoc(NullnessValue value)
     {
         Validate(value);

@@ -216,13 +216,6 @@ public sealed class EffectSummaryDomain : ClosedAbstractDomain<EffectSummary>
             left.AnalysisIncompleteReason | right.AnalysisIncompleteReason);
     }
 
-    public override EffectSummary Widen(
-        EffectSummary previous,
-        EffectSummary next)
-    {
-        return Join(previous, next);
-    }
-
     public override EffectSummary Havoc(EffectSummary value)
     {
         value = ArgumentNullGuard.NotNull(value, nameof(value));
