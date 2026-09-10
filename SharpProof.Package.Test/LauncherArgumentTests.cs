@@ -1062,9 +1062,10 @@ public sealed class LauncherArgumentTests
     [Platform("Linux")]
     public void DotNetHostMustBeAbsoluteInstalledAndOutsideProject()
     {
-        var project = Path.Combine(
-            TestContext.CurrentContext.WorkDirectory,
-            Guid.NewGuid().ToString("N"));
+        using var temporary = new TempDirectory(
+            "sharpproof-dotnet-host-",
+            TestContext.CurrentContext.WorkDirectory);
+        var project = temporary.FullName;
         var fakeRoot = Path.Combine(project, "fake-sdk");
         var fakeHost = Path.Combine(fakeRoot, "dotnet");
         Directory.CreateDirectory(Path.Combine(fakeRoot, "host", "fxr"));
@@ -1072,29 +1073,22 @@ public sealed class LauncherArgumentTests
         var actualHost = Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ??
             throw new InvalidOperationException(
                 "The test host did not disclose its dotnet host path.");
-        try
-        {
-            Assert.That(
-                Program.ValidateDotNetHostPath(actualHost, project),
-                Is.EqualTo(Path.GetFullPath(actualHost)));
-            Assert.That(
-                (Action)(() => _ = Program.ValidateDotNetHostPath(
-                    actualHost,
-                    Path.GetPathRoot(actualHost)!)),
-                Throws.TypeOf<InvalidOperationException>());
-            Assert.That(
-                (Action)(() => _ = Program.ValidateDotNetHostPath(
-                    "dotnet", project)),
-                Throws.TypeOf<InvalidOperationException>());
-            Assert.That(
-                (Action)(() => _ = Program.ValidateDotNetHostPath(
-                    fakeHost, project)),
-                Throws.TypeOf<InvalidOperationException>());
-        }
-        finally
-        {
-            Directory.Delete(project, recursive: true);
-        }
+        Assert.That(
+            Program.ValidateDotNetHostPath(actualHost, project),
+            Is.EqualTo(Path.GetFullPath(actualHost)));
+        Assert.That(
+            (Action)(() => _ = Program.ValidateDotNetHostPath(
+                actualHost,
+                Path.GetPathRoot(actualHost)!)),
+            Throws.TypeOf<InvalidOperationException>());
+        Assert.That(
+            (Action)(() => _ = Program.ValidateDotNetHostPath(
+                "dotnet", project)),
+            Throws.TypeOf<InvalidOperationException>());
+        Assert.That(
+            (Action)(() => _ = Program.ValidateDotNetHostPath(
+                fakeHost, project)),
+            Throws.TypeOf<InvalidOperationException>());
     }
 
     [TestCase(1_000, 1_000)]
