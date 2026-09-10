@@ -316,9 +316,10 @@ internal static class CorpusCatalog
                 ($"Corpus_{suffix}", $"Focus_{suffix}", $"Identity_{suffix}", "input")
         };
         var prelude = CreatePrelude(variant, helperName, inputName);
-        var body = ReplaceTokens(
-            seed.Body,
-            inputName);
+        var body = seed.Body.Replace(
+            "$INPUT$",
+            inputName,
+            StringComparison.Ordinal);
         var members = seed.AdditionalMembers;
         if (variant == CorpusVariant.AlphaRenameContractFormals)
         {
@@ -430,13 +431,6 @@ internal static class CorpusCatalog
                 "Contract.Requires(contractValue >= 0 && " +
                 "contractValue <= 10); }",
                 StringComparison.Ordinal);
-    }
-
-    private static string ReplaceTokens(
-        string value,
-        string input)
-    {
-        return value.Replace("$INPUT$", input, StringComparison.Ordinal);
     }
 
     internal static string VariantKey(CorpusVariant variant)
