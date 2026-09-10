@@ -29,15 +29,10 @@ COPY --from=minimum-sdk /usr/share/dotnet/sdk/9.0.300 /usr/share/dotnet/sdk/9.0.
 COPY --from=minimum-framework /usr/share/dotnet/packs/Microsoft.NETCore.App.Ref/8.0.16 /usr/share/dotnet/packs/Microsoft.NETCore.App.Ref/8.0.16
 COPY --from=minimum-framework /usr/share/dotnet/packs/Microsoft.AspNetCore.App.Ref/8.0.16 /usr/share/dotnet/packs/Microsoft.AspNetCore.App.Ref/8.0.16
 COPY --from=minimum-framework /usr/share/dotnet/packs/Microsoft.NETCore.App.Host.linux-x64/8.0.16 /usr/share/dotnet/packs/Microsoft.NETCore.App.Host.linux-x64/8.0.16
-RUN ln -s /opt/microsoft/powershell/7/pwsh /usr/local/bin/pwsh \
-    && dotnet --version \
-    && dotnet --list-sdks | grep -F '9.0.300 [/usr/share/dotnet/sdk]' \
-    && test -d /usr/share/dotnet/packs/Microsoft.NETCore.App.Ref/8.0.16 \
-    && test -d /usr/share/dotnet/packs/Microsoft.AspNetCore.App.Ref/8.0.16 \
-    && dotnet --list-runtimes | grep -F 'Microsoft.NETCore.App 8.0.29' \
-    && pwsh -NoLogo -NoProfile -Command '$PSVersionTable.PSVersion.ToString()'
-
 COPY eng/container/toolchain.json /opt/sharpproof/toolchain.json
+RUN ln -s /opt/microsoft/powershell/7/pwsh /usr/local/bin/pwsh \
+    && pwsh -NoLogo -NoProfile -Command '$catalog = Get-Content -LiteralPath /opt/sharpproof/toolchain.json -Raw | ConvertFrom-Json; if ((dotnet --version) -cne [string]$catalog.dotnet.sdkVersion) { throw "The base .NET SDK does not match the toolchain catalog." }; if ((dotnet --list-sdks) -notcontains ("{0} [/usr/share/dotnet/sdk]" -f $catalog.dotnet.minimumSdkVersion)) { throw "The minimum .NET SDK does not match the toolchain catalog." }; foreach ($pack in @("Microsoft.NETCore.App.Ref", "Microsoft.AspNetCore.App.Ref", "Microsoft.NETCore.App.Host.linux-x64")) { $path = Join-Path "/usr/share/dotnet/packs/$pack" ([string]$catalog.dotnet.minimumSdkFrameworkVersion); if (-not (Test-Path -LiteralPath $path -PathType Container)) { throw "The minimum-SDK framework pack is missing: $path" } }; if ((dotnet --list-runtimes) -notcontains ("Microsoft.NETCore.App {0} [/usr/share/dotnet/shared/Microsoft.NETCore.App]" -f $catalog.dotnet.testRuntimeVersion)) { throw "The test runtime does not match the toolchain catalog." }; $PSVersionTable.PSVersion.ToString()'
+
 COPY eng/container/Prepare-NativePayload.ps1 /opt/sharpproof/Prepare-NativePayload.ps1
 RUN pwsh -NoLogo -NoProfile -File /opt/sharpproof/Prepare-NativePayload.ps1 \
         -CatalogPath /opt/sharpproof/toolchain.json \
