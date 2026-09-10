@@ -162,6 +162,11 @@ public static class ForwardDataflowAnalysis
                         $"Block {blockId} transfer must be monotone as its input grows.");
                 }
 
+                if (domain.LessThanOrEqual(transferred, outputs[blockId]))
+                {
+                    continue;
+                }
+
                 var monotoneOutput = domain.Join(outputs[blockId], transferred);
                 if (!domain.AreEquivalent(outputs[blockId], monotoneOutput))
                 {
