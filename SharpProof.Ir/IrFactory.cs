@@ -696,16 +696,11 @@ public sealed class IrFactory
         ArgumentNullGuard.NotNull(arguments, nameof(arguments));
         var argumentBuilder =
             ImmutableArray.CreateBuilder<IrTerm>(arguments.Length);
-        var childIdBuilder =
-            ImmutableArray.CreateBuilder<int>(arguments.Length + 1);
-        childIdBuilder.Add(receiver?.Id.Value ?? -1);
         foreach (var argument in arguments)
         {
             argumentBuilder.Add(argument);
-            childIdBuilder.Add(argument.Id.Value);
         }
         var immutableArguments = argumentBuilder.MoveToImmutable();
-        var childIds = childIdBuilder.MoveToImmutable();
 
         lock (_gate)
         {
@@ -721,11 +716,19 @@ public sealed class IrFactory
             {
                 GetOperationInfoCore(operation, nameof(operation));
             }
+            var childIdBuilder =
+                ImmutableArray.CreateBuilder<int>(immutableArguments.Length + 1);
+            childIdBuilder.Add(receiver?.Id.Value ?? -1);
+            foreach (var argument in immutableArguments)
+            {
+                childIdBuilder.Add(argument.Id.Value);
+            }
 
             return Intern(new StructuralKey(
                     IrTermKind.Opaque, memberInfo.ReturnType.Value, member.Value,
                     IrOperatorCatalog.GetPurityKey(purity),
-                    operation.IsDefault ? -1 : operation.Value, children: childIds),
+                    operation.IsDefault ? -1 : operation.Value,
+                    children: childIdBuilder.MoveToImmutable()),
                 (memberInfo.ReturnType, member, receiver, immutableArguments, purity, operation),
                 static (id, state) => new IrOpaqueTerm(
                     id, state.ReturnType, state.member, state.receiver,
