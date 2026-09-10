@@ -352,10 +352,12 @@ internal static class PerformanceGate
         for (var index = 0; index < iterations; index++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var compilation = CreateTimingCompilation(
+            var compilation = AnalyzerGateHost.CreateCompilation(
                 source,
-                kind,
-                index);
+                "SharpProof_" +
+                kind +
+                "_" +
+                index.ToString(CultureInfo.InvariantCulture));
             _ = compilation.GetDiagnostics(cancellationToken);
             diagnosticCount += AnalyzeUnannotatedAdvisory(
                 compilation,
@@ -374,19 +376,6 @@ internal static class PerformanceGate
             sessionFactory.CreateCount,
             sessionFactory.ApiSpecCreateCount,
             sessionFactory.EffectAnalysisCreateCount);
-    }
-
-    private static CSharpCompilation CreateTimingCompilation(
-        string source,
-        string kind,
-        int index)
-    {
-        return AnalyzerGateHost.CreateCompilation(
-            source,
-            "SharpProof_" +
-            kind +
-            "_" +
-            index.ToString(CultureInfo.InvariantCulture));
     }
 
     private static async Task<PackageBuildTiming>
