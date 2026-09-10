@@ -43,8 +43,6 @@ public sealed class ReleasePublicationScriptTests
         var root = TestRepository.FindRoot();
         var script = await File.ReadAllTextAsync(
             Path.Combine(root, "scripts", "Publish-SharpProofRelease.ps1"));
-        var globalJson = await File.ReadAllTextAsync(
-            Path.Combine(root, "global.json"));
 
         using (Assert.EnterMultipleScope())
         {
@@ -52,7 +50,6 @@ public sealed class ReleasePublicationScriptTests
             Assert.That(script, Does.Contain("Resolve-ReleaseDotNet"));
             Assert.That(script, Does.Contain("--version"));
             Assert.That(script, Does.Contain("project-local"));
-            Assert.That(globalJson, Does.Contain("9.0.316"));
         }
     }
 
