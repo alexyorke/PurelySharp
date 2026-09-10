@@ -724,139 +724,123 @@ public sealed class CoverageScriptTests
         int expectedChangedFiles)
     {
         var root = TestRepository.FindRoot();
-        var repository = Path.Combine(
-            Path.GetTempPath(),
-            TemporaryRepositoryRootName,
-            "diff-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(repository);
-        try
-        {
-            await ArchitectureGitRepository.InitializeAsync(
-                repository,
-                "coverage-script@example.invalid",
-                "Coverage Script Test",
-                ("core.autocrlf", "false"));
+        using var temporary = new TempDirectory(
+            "diff-",
+            Path.Combine(Path.GetTempPath(), TemporaryRepositoryRootName));
+        var repository = temporary.FullName;
+        await ArchitectureGitRepository.InitializeAsync(
+            repository,
+            "coverage-script@example.invalid",
+            "Coverage Script Test",
+            ("core.autocrlf", "false"));
 
-            await WriteFixtureAsync(root, repository);
-            await ArchitectureRepository.AssertSuccessAsync(
-                ArchitectureRepository.RunProcessAsync(
+        await WriteFixtureAsync(root, repository);
+        await ArchitectureRepository.AssertSuccessAsync(
+            ArchitectureRepository.RunProcessAsync(
                 repository,
                 "git",
                 "add",
                 "--",
                 "."));
-            await ArchitectureRepository.AssertSuccessAsync(
-                ArchitectureRepository.RunProcessAsync(
+        await ArchitectureRepository.AssertSuccessAsync(
+            ArchitectureRepository.RunProcessAsync(
                 repository,
                 "git",
                 "commit",
                 "-m",
                 "root"));
-            await ArchitectureRepository.AssertSuccessAsync(
-                ArchitectureRepository.RunProcessAsync(
+        await ArchitectureRepository.AssertSuccessAsync(
+            ArchitectureRepository.RunProcessAsync(
                 repository,
                 "git",
                 "branch",
                 "feature"));
 
-            await ArchitectureRepository.AssertSuccessAsync(
-                ArchitectureRepository.RunProcessAsync(
+        await ArchitectureRepository.AssertSuccessAsync(
+            ArchitectureRepository.RunProcessAsync(
                 repository,
                 "git",
                 "switch",
                 "-c",
                 "comparison"));
-            await WriteTrustedSourceAsync(repository, value: 1);
-            await CommitAllAsync(repository, "comparison TCB change");
+        await WriteTrustedSourceAsync(repository, value: 1);
+        await CommitAllAsync(repository, "comparison TCB change");
 
-            await ArchitectureRepository.AssertSuccessAsync(
-                ArchitectureRepository.RunProcessAsync(
+        await ArchitectureRepository.AssertSuccessAsync(
+            ArchitectureRepository.RunProcessAsync(
                 repository,
                 "git",
                 "switch",
                 "feature"));
-            if (featureChangesTcb)
-            {
-                await WriteTrustedSourceAsync(repository, value: 1);
-            }
-            else
-            {
-                await File.WriteAllTextAsync(
-                    Path.Combine(repository, "feature.txt"),
-                    "feature branch\n");
-            }
-            await CommitAllAsync(repository, "feature change");
-
+        if (featureChangesTcb)
+        {
+            await WriteTrustedSourceAsync(repository, value: 1);
+        }
+        else
+        {
             await File.WriteAllTextAsync(
-                Path.Combine(repository, "README.md"),
-                "unrelated working-tree change\n");
-            var status = await ArchitectureRepository.AssertSuccessAsync(
-                ArchitectureRepository.RunProcessAsync(
+                Path.Combine(repository, "feature.txt"),
+                "feature branch\n");
+        }
+        await CommitAllAsync(repository, "feature change");
+
+        await File.WriteAllTextAsync(
+            Path.Combine(repository, "README.md"),
+            "unrelated working-tree change\n");
+        var status = await ArchitectureRepository.AssertSuccessAsync(
+            ArchitectureRepository.RunProcessAsync(
                 repository,
                 "git",
                 "status",
                 "--porcelain"));
-            Assert.That(status.Output, Does.Contain("README.md"));
+        Assert.That(status.Output, Does.Contain("README.md"));
 
-            await PrepareCoverageFixtureAsync(repository);
+        await PrepareCoverageFixtureAsync(repository);
 
-            var result = await RunCoverageScriptOnlyAsync(
-                repository,
-                comparisonRef: "comparison",
-                reportOnly: true,
-                includeWorkingTree: true);
-            Assert.That(result.ExitCode, Is.Zero, result.Error);
-            using var document = JsonDocument.Parse(result.Output);
-            Assert.That(
-                document.RootElement
-                    .GetProperty("changedTcb")
-                    .GetProperty("changedFiles")
-                    .GetInt32(),
-                Is.EqualTo(expectedChangedFiles));
-        }
-        finally
-        {
-            DeleteTemporaryRepository(repository);
-        }
+        var result = await RunCoverageScriptOnlyAsync(
+            repository,
+            comparisonRef: "comparison",
+            reportOnly: true,
+            includeWorkingTree: true);
+        Assert.That(result.ExitCode, Is.Zero, result.Error);
+        using var document = JsonDocument.Parse(result.Output);
+        Assert.That(
+            document.RootElement
+                .GetProperty("changedTcb")
+                .GetProperty("changedFiles")
+                .GetInt32(),
+            Is.EqualTo(expectedChangedFiles));
     }
 
     private static async Task<ProcessRunnerResult> RunCoverageIdentityFixtureAsync(
         IReadOnlyList<CoverageEntry> entries)
     {
         var root = TestRepository.FindRoot();
-        var repository = Path.Combine(
-            Path.GetTempPath(),
-            TemporaryRepositoryRootName,
-            "identity-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(repository);
-        try
-        {
-            await InitializeRepositoryAsync(repository);
-            await WriteIdentityFixtureAsync(root, repository, entries);
-            await CommitAllAsync(repository, "root");
-            await ArchitectureRepository.AssertSuccessAsync(
-                ArchitectureRepository.RunProcessAsync(
+        using var temporary = new TempDirectory(
+            "identity-",
+            Path.Combine(Path.GetTempPath(), TemporaryRepositoryRootName));
+        var repository = temporary.FullName;
+        await InitializeRepositoryAsync(repository);
+        await WriteIdentityFixtureAsync(root, repository, entries);
+        await CommitAllAsync(repository, "root");
+        await ArchitectureRepository.AssertSuccessAsync(
+            ArchitectureRepository.RunProcessAsync(
                 repository,
                 "git",
                 "branch",
                 "comparison"));
-            foreach (var entry in entries)
-            {
-                await WriteSourceAsync(repository, entry.SourcePath, value: 1);
-            }
-            await CommitAllAsync(repository, "change trusted sources");
-
-            await PrepareCoverageFixtureAsync(repository);
-
-            return await RunCoverageScriptOnlyAsync(
-                repository,
-                comparisonRef: "comparison",
-                reportOnly: true);
-        }
-        finally
+        foreach (var entry in entries)
         {
-            DeleteTemporaryRepository(repository);
+            await WriteSourceAsync(repository, entry.SourcePath, value: 1);
         }
+        await CommitAllAsync(repository, "change trusted sources");
+
+        await PrepareCoverageFixtureAsync(repository);
+
+        return await RunCoverageScriptOnlyAsync(
+            repository,
+            comparisonRef: "comparison",
+            reportOnly: true);
     }
 
     private static IEnumerable<TestCaseData>
