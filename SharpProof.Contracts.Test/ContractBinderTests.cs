@@ -1553,7 +1553,7 @@ public sealed class ContractBinderTests
             """);
 
         var result = owner.Bind(
-            foreign.GetMethodSymbol("Foreign", "Analyze"));
+            foreign.GetMethod("Foreign", "Analyze"));
 
         using (Assert.EnterMultipleScope())
         {
@@ -1673,13 +1673,6 @@ public sealed class ContractBinderTests
             return _binder.Bind(method);
         }
 
-        internal IMethodSymbol GetMethodSymbol(
-            string typeName,
-            string methodName)
-        {
-            return GetMethod(typeName, methodName);
-        }
-
         internal ContractBindingResult Bind(
             string typeName,
             string methodName,
@@ -1752,7 +1745,7 @@ public sealed class ContractBinderTests
             return _binder.BindRequires(target);
         }
 
-        private IMethodSymbol GetMethod(
+        internal IMethodSymbol GetMethod(
             string typeName,
             string methodName)
         {
