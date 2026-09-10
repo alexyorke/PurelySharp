@@ -259,7 +259,10 @@
           "accessibility": "private",
           "returnType": "string",
           "name": "Format",
-          "parameters": [{"type": "IrTerm", "name": "term"}],
+          "parameters": [
+            {"type": "IrTerm", "name": "term"},
+            {"type": "int", "name": "depth"}
+          ],
           "target": "term",
           "cases": [
             {"pattern": "IrBooleanTerm value", "expression": "value.Value ? \"true\" : \"false\""},
@@ -267,13 +270,13 @@
             {"pattern": "IrStringTerm value", "expression": "Quote(_factory.GetString(value.Value))"},
             {"pattern": "IrNullTerm", "expression": "\"((\" + TypeName(term.Type) + \")null)\""},
             {"pattern": "IrVariableTerm value", "expression": "\"v\" + value.Variable.Value.ToString(CultureInfo.InvariantCulture)"},
-            {"pattern": "IrOpaqueTerm value", "expression": "FormatOpaque(value)"},
-            {"pattern": "IrUnaryTerm value", "expression": "\"(\" + IrOperatorCatalog.Get(value.Operator).Token + FormatChild(value.Operand) + \")\""},
-            {"pattern": "IrBinaryTerm value", "expression": "\"(\" + FormatChild(value.Left) + \" \" + IrOperatorCatalog.Get(value.Operator).Token + \" \" + FormatChild(value.Right) + \")\""},
-            {"pattern": "IrConditionalTerm value", "expression": "\"(\" + FormatChild(value.Condition) + \" ? \" + FormatChild(value.WhenTrue) + \" : \" + FormatChild(value.WhenFalse) + \")\""},
-            {"pattern": "IrCastTerm value", "expression": "\"((\" + TypeName(value.Type) + \")\" + FormatChild(value.Operand) + \")\""},
-            {"pattern": "IrLengthTerm value", "expression": "\"len(\" + FormatChild(value.Value) + \")\""},
-            {"pattern": "IrSequenceAccessTerm value", "expression": "FormatChild(value.Sequence) + \"[\" + FormatChild(value.Index) + \"]\""}
+            {"pattern": "IrOpaqueTerm value", "expression": "FormatOpaque(value, depth)"},
+            {"pattern": "IrUnaryTerm value", "expression": "\"(\" + IrOperatorCatalog.Get(value.Operator).Token + FormatChild(value.Operand, depth) + \")\""},
+            {"pattern": "IrBinaryTerm value", "expression": "\"(\" + FormatChild(value.Left, depth) + \" \" + IrOperatorCatalog.Get(value.Operator).Token + \" \" + FormatChild(value.Right, depth) + \")\""},
+            {"pattern": "IrConditionalTerm value", "expression": "\"(\" + FormatChild(value.Condition, depth) + \" ? \" + FormatChild(value.WhenTrue, depth) + \" : \" + FormatChild(value.WhenFalse, depth) + \")\""},
+            {"pattern": "IrCastTerm value", "expression": "\"((\" + TypeName(value.Type) + \")\" + FormatChild(value.Operand, depth) + \")\""},
+            {"pattern": "IrLengthTerm value", "expression": "\"len(\" + FormatChild(value.Value, depth) + \")\""},
+            {"pattern": "IrSequenceAccessTerm value", "expression": "FormatChild(value.Sequence, depth) + \"[\" + FormatChild(value.Index, depth) + \"]\""}
           ],
           "fallback": "throw new InvalidOperationException(\"Unknown IR term kind: \" + term.Kind + \".\")"
         }

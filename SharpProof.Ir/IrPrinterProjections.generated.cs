@@ -10,7 +10,8 @@ namespace SharpProof.Ir;
 public sealed partial class IrPrinter
 {
     private string Format(
-        IrTerm term
+        IrTerm term,
+        int depth
     )
     {
         return term switch
@@ -20,13 +21,13 @@ public sealed partial class IrPrinter
             IrStringTerm value => Quote(_factory.GetString(value.Value)),
             IrNullTerm => "((" + TypeName(term.Type) + ")null)",
             IrVariableTerm value => "v" + value.Variable.Value.ToString(CultureInfo.InvariantCulture),
-            IrOpaqueTerm value => FormatOpaque(value),
-            IrUnaryTerm value => "(" + IrOperatorCatalog.Get(value.Operator).Token + FormatChild(value.Operand) + ")",
-            IrBinaryTerm value => "(" + FormatChild(value.Left) + " " + IrOperatorCatalog.Get(value.Operator).Token + " " + FormatChild(value.Right) + ")",
-            IrConditionalTerm value => "(" + FormatChild(value.Condition) + " ? " + FormatChild(value.WhenTrue) + " : " + FormatChild(value.WhenFalse) + ")",
-            IrCastTerm value => "((" + TypeName(value.Type) + ")" + FormatChild(value.Operand) + ")",
-            IrLengthTerm value => "len(" + FormatChild(value.Value) + ")",
-            IrSequenceAccessTerm value => FormatChild(value.Sequence) + "[" + FormatChild(value.Index) + "]",
+            IrOpaqueTerm value => FormatOpaque(value, depth),
+            IrUnaryTerm value => "(" + IrOperatorCatalog.Get(value.Operator).Token + FormatChild(value.Operand, depth) + ")",
+            IrBinaryTerm value => "(" + FormatChild(value.Left, depth) + " " + IrOperatorCatalog.Get(value.Operator).Token + " " + FormatChild(value.Right, depth) + ")",
+            IrConditionalTerm value => "(" + FormatChild(value.Condition, depth) + " ? " + FormatChild(value.WhenTrue, depth) + " : " + FormatChild(value.WhenFalse, depth) + ")",
+            IrCastTerm value => "((" + TypeName(value.Type) + ")" + FormatChild(value.Operand, depth) + ")",
+            IrLengthTerm value => "len(" + FormatChild(value.Value, depth) + ")",
+            IrSequenceAccessTerm value => FormatChild(value.Sequence, depth) + "[" + FormatChild(value.Index, depth) + "]",
             _ => throw new InvalidOperationException("Unknown IR term kind: " + term.Kind + ".")
         };
     }
