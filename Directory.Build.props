@@ -101,6 +101,7 @@
                         '$(MSBuildProjectName)' == 'SharpProof.Gates.Test' OR
                         '$(MSBuildProjectName)' == 'SharpProof.Analyzer.Test' OR
                         '$(MSBuildProjectName)' == 'SharpProof.Frontend.Test' OR
+                        '$(MSBuildProjectName)' == 'SharpProof.Ir.Test' OR
                         '$(MSBuildProjectName)' == 'SharpProof.Specs.Test' OR
                         '$(MSBuildProjectName)' == 'SharpProof.Worker.Test'">
     <Compile Include="$(MSBuildThisFileDirectory)eng\testing\TempDirectory.cs"

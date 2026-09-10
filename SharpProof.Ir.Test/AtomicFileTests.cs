@@ -11,23 +11,21 @@ namespace SharpProof.Ir.Test;
     Justification = "These tests intentionally exercise AtomicFile's synchronous API.")]
 public sealed class AtomicFileTests
 {
+    private TempDirectory? _temporary;
     private string _root = null!;
 
     [SetUp]
     public void SetUp()
     {
-        _root = Path.Combine(
-            Path.GetTempPath(), "SharpProof.AtomicFile." + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(_root);
+        _temporary = new TempDirectory("SharpProof.AtomicFile.");
+        _root = _temporary.FullName;
     }
 
     [TearDown]
     public void TearDown()
     {
-        if (Directory.Exists(_root))
-        {
-            Directory.Delete(_root, recursive: true);
-        }
+        _temporary?.Dispose();
+        _temporary = null;
     }
 
     [Test]
