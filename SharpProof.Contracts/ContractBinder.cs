@@ -335,25 +335,24 @@ public sealed class ContractBinder
         bool requiresOnly,
         ImmutableArray<BoundContractClause>.Builder clauses)
     {
-        for (var index = 0; index < target.Parameters.Length; index++)
+        foreach (var site in ClosedContractAttributeValidator.EnumerateValueSites(
+                     target,
+                     includeReturn: !requiresOnly))
         {
-            var result = BindValueAttributes(
-                target.Parameters[index].GetAttributes(), target.Parameters[index].Type, target.Parameters[index].RefKind,
-                _factory.Variable(variables.Parameters[index]),
-                BoundContractKind.Requires, clauses);
-            if (result != ContractBindingFailure.None)
-            {
-                return result;
-            }
-        }
-        if (!requiresOnly)
-        {
-            var result = BindValueAttributes(
-                target.GetReturnTypeAttributes(), target.ReturnType, RefKind.None,
-                variables.Result.HasValue
+            var value = site.IsReturn
+                ? variables.Result.HasValue
                     ? _factory.Variable(variables.Result.Value)
-                    : null,
-                BoundContractKind.Ensures, clauses);
+                    : null
+                : _factory.Variable(variables.Parameters[site.ParameterIndex]);
+            var result = BindValueAttributes(
+                site.Attributes,
+                site.Type,
+                site.RefKind,
+                value,
+                site.IsReturn
+                    ? BoundContractKind.Ensures
+                    : BoundContractKind.Requires,
+                clauses);
             if (result != ContractBindingFailure.None)
             {
                 return result;

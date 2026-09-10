@@ -26,6 +26,40 @@ internal readonly struct ClosedContractAttributeValidation(
 
 internal static class ClosedContractAttributeValidator
 {
+    internal static IEnumerable<(
+        ITypeSymbol Type,
+        RefKind RefKind,
+        ImmutableArray<AttributeData> Attributes,
+        Location Fallback,
+        int ParameterIndex,
+        bool IsReturn)> EnumerateValueSites(
+        IMethodSymbol method,
+        bool includeReturn)
+    {
+        for (var index = 0; index < method.Parameters.Length; index++)
+        {
+            var parameter = method.Parameters[index];
+            yield return (
+                parameter.Type,
+                parameter.RefKind,
+                parameter.GetAttributes(),
+                parameter.Locations.FirstOrDefault() ?? Location.None,
+                index,
+                false);
+        }
+
+        if (includeReturn)
+        {
+            yield return (
+                method.ReturnType,
+                RefKind.None,
+                method.GetReturnTypeAttributes(),
+                method.Locations.FirstOrDefault() ?? Location.None,
+                -1,
+                true);
+        }
+    }
+
     internal static ClosedContractAttributeValidation Validate(
         AttributeData attribute,
         ITypeSymbol type,
