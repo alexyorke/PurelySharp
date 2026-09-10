@@ -726,16 +726,10 @@ internal static class WorkerPerformanceProbe
                 """,
                 CSharpParseOptions.Default.WithLanguageVersion(
                     LanguageVersion.CSharp12));
-            var trustedPlatformAssemblies =
-                (string?)AppContext.GetData(
-                    "TRUSTED_PLATFORM_ASSEMBLIES") ??
-                throw new InvalidOperationException(
-                    "Trusted platform assemblies are unavailable.");
             var compilation = CSharpCompilation.Create(
                 "UncooperativeWorker",
                 [syntaxTree],
-                trustedPlatformAssemblies
-                    .Split(Path.PathSeparator)
+                GetTrustedPlatformAssemblyPaths()
                     .Select(static reference =>
                         MetadataReference.CreateFromFile(reference)),
                 new CSharpCompilationOptions(
@@ -841,11 +835,6 @@ internal static class WorkerPerformanceProbe
 
         private static string[] GetReferences()
         {
-            var trustedPlatformAssemblies =
-                (string?)AppContext.GetData(
-                    "TRUSTED_PLATFORM_ASSEMBLIES") ??
-                throw new InvalidOperationException(
-                    "Trusted platform assemblies are unavailable.");
             var names = new HashSet<string>(
                 [
                     "System.Private.CoreLib.dll",
@@ -853,12 +842,21 @@ internal static class WorkerPerformanceProbe
                     "netstandard.dll"
                 ],
                 StringComparer.OrdinalIgnoreCase);
-            return [.. trustedPlatformAssemblies
-                .Split(Path.PathSeparator)
+            return [.. GetTrustedPlatformAssemblyPaths()
                 .Where(path => names.Contains(Path.GetFileName(path)))
                 .Append(typeof(Contract).Assembly.Location)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(static path => path, StringComparer.Ordinal)];
+        }
+
+        private static string[] GetTrustedPlatformAssemblyPaths()
+        {
+            var trustedPlatformAssemblies =
+                (string?)AppContext.GetData(
+                    "TRUSTED_PLATFORM_ASSEMBLIES") ??
+                throw new InvalidOperationException(
+                    "Trusted platform assemblies are unavailable.");
+            return trustedPlatformAssemblies.Split(Path.PathSeparator);
         }
     }
 }
