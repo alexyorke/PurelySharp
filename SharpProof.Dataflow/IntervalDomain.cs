@@ -130,7 +130,9 @@ public sealed class IntervalDomain : ClosedAbstractDomain<IntervalValue>
         var lower = left.LowerBound.HasValue && right.LowerBound.HasValue
             ? (long?)Math.Min(left.LowerBound.Value, right.LowerBound.Value)
             : null;
-        var upper = HullUpper(left.UpperBound, right.UpperBound);
+        var upper = left.UpperBound.HasValue && right.UpperBound.HasValue
+            ? (long?)Math.Max(left.UpperBound.Value, right.UpperBound.Value)
+            : null;
         var difference = BigInteger.Abs(left.Remainder - right.Remainder);
         var modulus = BigInteger.GreatestCommonDivisor(
             BigInteger.GreatestCommonDivisor(left.Modulus, right.Modulus), difference);
@@ -216,11 +218,6 @@ public sealed class IntervalDomain : ClosedAbstractDomain<IntervalValue>
 
         return (inner.Modulus % outer.Modulus).IsZero &&
                Normalize(inner.Remainder, outer.Modulus) == outer.Remainder;
-    }
-
-    private static long? HullUpper(long? left, long? right)
-    {
-        return left.HasValue && right.HasValue ? Math.Max(left.Value, right.Value) : null;
     }
 
     private static bool TryCongruentBoundary(
