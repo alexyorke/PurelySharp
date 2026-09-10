@@ -224,6 +224,7 @@ public sealed class PackageLayoutSmokeTests
             workspace.ConsumerProject,
             "-c",
             "Release",
+            "--no-build",
             "--no-restore",
             "--nologo",
             "/nodeReuse:false");
