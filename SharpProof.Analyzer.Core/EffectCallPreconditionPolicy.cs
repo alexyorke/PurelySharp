@@ -169,12 +169,12 @@ internal sealed class AnalyzerEffectCallPreconditionPolicy(
 
         var parameter =
             context.Target.Parameters[variable.Ordinal];
+        var isReducedExtension = context.Origin is IInvocationOperation
+        {
+            TargetMethod.ReducedFrom: not null
+        };
         var isReducedReceiver =
-            context.Origin is IInvocationOperation
-            {
-                TargetMethod.ReducedFrom: not null
-            } &&
-            variable.Ordinal == 0;
+            isReducedExtension && variable.Ordinal == 0;
         if (isReducedReceiver)
         {
             return CallArgumentAliasPolicy.Classify(
@@ -187,10 +187,7 @@ internal sealed class AnalyzerEffectCallPreconditionPolicy(
         var argument = FindArgument(
             context.Origin,
             variable.Ordinal,
-            context.Origin is IInvocationOperation
-            {
-                TargetMethod.ReducedFrom: not null
-            });
+            isReducedExtension);
         return CallArgumentAliasPolicy.Classify(
             parameter.RefKind,
             actual,
