@@ -3,28 +3,6 @@ internal static class AtomicFile
 {
     private static readonly UTF8Encoding Utf8 = new(false);
 
-    private readonly struct StagedFile : IDisposable
-    {
-        internal StagedFile(string destination)
-        {
-            Destination = destination;
-            Temporary = PrepareStaged(destination);
-        }
-
-        private string Destination { get; }
-        internal string Temporary { get; }
-
-        internal void Publish()
-        {
-            PublishStaged(Temporary, Destination);
-        }
-
-        public void Dispose()
-        {
-            TryDeleteStaged(Temporary);
-        }
-    }
-
     internal static string PrepareStaged(string path)
     {
         var destination = Path.GetFullPath(path);
@@ -91,9 +69,16 @@ internal static class AtomicFile
 
     internal static void WriteUtf8(string path, string content)
     {
-        using var staged = new StagedFile(path);
-        File.WriteAllText(staged.Temporary, content, Utf8);
-        staged.Publish();
+        var temporary = PrepareStaged(path);
+        try
+        {
+            File.WriteAllText(temporary, content, Utf8);
+            PublishStaged(temporary, path);
+        }
+        finally
+        {
+            TryDeleteStaged(temporary);
+        }
     }
 
     internal static Task WriteUtf8Async(
@@ -105,14 +90,21 @@ internal static class AtomicFile
     internal static async Task WriteBytesAsync(
         string path, byte[] content, CancellationToken cancellationToken = default)
     {
-        using var staged = new StagedFile(path);
-        using (var stream = new FileStream(staged.Temporary, FileMode.CreateNew,
-                   FileAccess.Write, FileShare.None, 4096, useAsync: true))
+        var temporary = PrepareStaged(path);
+        try
         {
-            await stream.WriteAsync(content, 0, content.Length, cancellationToken)
-                .ConfigureAwait(false);
-        }
+            using (var stream = new FileStream(temporary, FileMode.CreateNew,
+                       FileAccess.Write, FileShare.None, 4096, useAsync: true))
+            {
+                await stream.WriteAsync(content, 0, content.Length, cancellationToken)
+                    .ConfigureAwait(false);
+            }
 
-        staged.Publish();
+            PublishStaged(temporary, path);
+        }
+        finally
+        {
+            TryDeleteStaged(temporary);
+        }
     }
 }

@@ -171,11 +171,15 @@ public sealed class IntervalDomain : ClosedAbstractDomain<IntervalValue>
         return value.IsBottom ? Bottom : Top;
     }
 
-    public IntervalValue AssumeAtLeast(IntervalValue value, long lowerBound) =>
-        RestrictBound(value, lowerBound, atLeast: true);
+    public IntervalValue AssumeAtLeast(IntervalValue value, long lowerBound)
+    {
+        return RestrictBound(value, lowerBound, atLeast: true);
+    }
 
-    public IntervalValue AssumeAtMost(IntervalValue value, long upperBound) =>
-        RestrictBound(value, upperBound, atLeast: false);
+    public IntervalValue AssumeAtMost(IntervalValue value, long upperBound)
+    {
+        return RestrictBound(value, upperBound, atLeast: false);
+    }
 
     private IntervalValue RestrictBound(
         IntervalValue value, long bound, bool atLeast)
