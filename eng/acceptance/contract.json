@@ -92,7 +92,6 @@
   "releaseAuthorityClosure": {
     "paths": [
       ".github/actions/prepare-qualified-packages/action.yml",
-      ".github/workflows/nightly.yml",
       ".github/workflows/package-consumers.yml",
       "SharpProof.Analyzer.Core/AnalyzerDiagnostic.catalog.json",
       "SharpProof.CompilerArtifact/CompilerArtifactModel.schema.json",
@@ -105,7 +104,6 @@
       "SharpProof.Package/SharpProof.nuspec",
       "SharpProof.Package/buildTransitive/SharpProof.ConsumerContract.props",
       "SharpProof.Package/buildTransitive/SharpProof.props",
-      "SharpProof.Package/buildTransitive/SharpProof.targets",
       "SharpProof.Specs/DefaultApiSpecCatalog.json",
       "SharpProof.Verifier/SharpProof.Verifier.nuspec",
       "SharpProof.Verifier/buildTransitive/SharpProof.Verifier.props",
