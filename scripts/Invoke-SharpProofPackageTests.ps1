@@ -541,13 +541,9 @@ try {
         else {
             $workerMethods
         }
-        # Keep low-width runs at one bucket per lane. At wider widths, create
-        # a modest oversubscription of serial worker shards so duration skew
-        # can be absorbed by the scheduler without increasing process fan-out.
+        # Keep one worker bucket per available lane. Additional buckets add
+        # another wave of test-host startup without increasing concurrency.
         $workerShardLimit = [Math]::Max(1, $parallelism)
-        if ($parallelism -ge 4) {
-            $workerShardLimit = [int][Math]::Ceiling($parallelism * 1.5)
-        }
         $workerShardCount = [Math]::Min(
             $bucketWorkerMethods.Count,
             $workerShardLimit)
