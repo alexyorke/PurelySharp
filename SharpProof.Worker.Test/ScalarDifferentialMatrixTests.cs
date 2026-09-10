@@ -977,7 +977,9 @@ public sealed class ScalarDifferentialMatrixTests
                     SourceHashAlgorithm.Sha256),
                 parseOptions,
                 _sourcePath);
-            var references = GetReferences();
+            var references = TestMetadataReferences.ForFileNames(
+                RequiredReferenceFileNames,
+                sort: true);
             return _compilation = CSharpCompilation.Create(
                 "ScalarDifferential",
                 [syntaxTree],
@@ -988,13 +990,6 @@ public sealed class ScalarDifferentialMatrixTests
                     nullableContextOptions: NullableContextOptions.Enable,
                     deterministic: true,
                     concurrentBuild: false));
-        }
-
-        private static ImmutableArray<MetadataReference> GetReferences()
-        {
-            return TestMetadataReferences.ForFileNames(
-                RequiredReferenceFileNames,
-                sort: true);
         }
 
         internal static Assembly? ResolveContractAssembly(
