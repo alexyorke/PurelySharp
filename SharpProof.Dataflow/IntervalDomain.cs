@@ -127,7 +127,9 @@ public sealed class IntervalDomain : ClosedAbstractDomain<IntervalValue>
             return left;
         }
 
-        var lower = HullLower(left.LowerBound, right.LowerBound);
+        var lower = left.LowerBound.HasValue && right.LowerBound.HasValue
+            ? (long?)Math.Min(left.LowerBound.Value, right.LowerBound.Value)
+            : null;
         var upper = HullUpper(left.UpperBound, right.UpperBound);
         var difference = BigInteger.Abs(left.Remainder - right.Remainder);
         var modulus = BigInteger.GreatestCommonDivisor(
@@ -214,11 +216,6 @@ public sealed class IntervalDomain : ClosedAbstractDomain<IntervalValue>
 
         return (inner.Modulus % outer.Modulus).IsZero &&
                Normalize(inner.Remainder, outer.Modulus) == outer.Remainder;
-    }
-
-    private static long? HullLower(long? left, long? right)
-    {
-        return left.HasValue && right.HasValue ? Math.Min(left.Value, right.Value) : null;
     }
 
     private static long? HullUpper(long? left, long? right)
