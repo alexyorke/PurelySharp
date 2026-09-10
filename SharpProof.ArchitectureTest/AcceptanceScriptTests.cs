@@ -165,6 +165,11 @@ public sealed class AcceptanceScriptTests
         File.Copy(
             Path.Combine(root, "eng", "acceptance", "contract.json"),
             Path.Combine(acceptance, "contract.json"));
+        File.Copy(
+            Path.Combine(
+                root, "eng", "acceptance", "SharpProof.AcceptanceTiming.psm1"),
+            Path.Combine(
+                acceptance, "SharpProof.AcceptanceTiming.psm1"));
         var fixtureScripts = Path.Combine(fixture, "scripts");
         Directory.CreateDirectory(fixtureScripts);
         File.Copy(
@@ -177,6 +182,11 @@ public sealed class AcceptanceScriptTests
                 root, "scripts", "Assert-SharpProofFuzzRunnerResult.ps1"),
             Path.Combine(
                 fixtureScripts, "Assert-SharpProofFuzzRunnerResult.ps1"));
+        File.Copy(
+            Path.Combine(
+                root, "scripts", "Assert-SharpProofJsonProperties.ps1"),
+            Path.Combine(
+                fixtureScripts, "Assert-SharpProofJsonProperties.ps1"));
         File.Copy(
             Path.Combine(
                 root, "scripts", "SharpProof.ContainerExecution.psm1"),

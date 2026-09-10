@@ -11,18 +11,8 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-$verify = [IO.File]::ReadAllText(
-    (Join-Path $repositoryRoot 'eng/acceptance/Verify.ps1'))
-$begin = '# BEGIN ACCEPTANCE TIMELINE AUTHORITY'
-$end = '# END ACCEPTANCE TIMELINE AUTHORITY'
-$start = $verify.IndexOf($begin, [StringComparison]::Ordinal)
-$finish = $verify.IndexOf($end, [StringComparison]::Ordinal)
-if ($start -lt 0 -or $finish -le $start) {
-    throw 'Acceptance timing authority region is unavailable.'
-}
-Invoke-Expression $verify.Substring(
-    $start + $begin.Length,
-    $finish - ($start + $begin.Length))
+Import-Module (Join-Path $repositoryRoot `
+    'eng/acceptance/SharpProof.AcceptanceTiming.psm1') -Force
 
 $names = @(
     'restore','static-validation','build','semantic-tests',

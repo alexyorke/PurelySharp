@@ -112,6 +112,7 @@
       "SharpProof.Verifier/buildTransitive/SharpProof.Verifier.targets",
       "SharpProof.Worker.Launcher/LauncherArguments.catalog.json",
       "SharpProof.Worker.Protocol/ProtocolModel.schema.json",
+      "eng/acceptance/SharpProof.AcceptanceTiming.psm1",
       "eng/acceptance/Verify.ps1",
       "eng/acceptance/preview-evidence.v1.json",
       "eng/container/entrypoint.sh",
@@ -569,6 +570,7 @@
         "scripts/Test-SharpProofCoverage.ps1",
         "scripts/SharpProof.ContainerExecution.psm1",
         "SharpProof.Semantic.Tests.slnf",
+        "eng/acceptance/SharpProof.AcceptanceTiming.psm1",
         "eng/acceptance/Verify.ps1",
         "eng/acceptance/preview-evidence.v1.json"
         ]
