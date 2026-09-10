@@ -145,20 +145,14 @@ function Assert-Identifier
 {
     param([string]$Value, [string]$Context)
 
-    if ($Value -notmatch '^[A-Za-z_][A-Za-z0-9_]*$')
-    {
-        throw "$Context is not a C# identifier: '$Value'."
-    }
+    [void](Identifier $Value $Context)
 }
 
 function Assert-TypeName
 {
     param([string]$Value, [string]$Context)
 
-    if ($Value -notmatch '^[A-Za-z_(][A-Za-z0-9_?.<>, \[\]()]*$')
-    {
-        throw "$Context is not an approved C# type: '$Value'."
-    }
+    [void](TypeName $Value $Context)
 }
 
 function Required([object]$Object, [string]$Name, [string]$Context)
