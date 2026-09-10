@@ -16,6 +16,7 @@ $ErrorActionPreference = 'Stop'
 $global:LASTEXITCODE = 0
 $resolvedRepositoryRoot = (Resolve-Path -LiteralPath $RepositoryRoot -ErrorAction Stop).Path
 Import-Module (Join-Path $PSScriptRoot 'SharpProof.ContainerExecution.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'SharpProof.PEMetadata.psm1') -Force
 $pathSeparator = [IO.Path]::DirectorySeparatorChar
 $repositoryPrefix = [IO.Path]::GetFullPath($resolvedRepositoryRoot.TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar) + $pathSeparator)
 
@@ -254,8 +255,7 @@ function Get-PortablePdbModule {
         $metadata = $metadataProvider.GetMetadataReader()
         $assembly = $metadata.GetAssemblyDefinition()
         $assemblyName = $metadata.GetString($assembly.Name)
-        $module = $metadata.GetModuleDefinition()
-        $mvid = $metadata.GetGuid($module.Mvid).ToString('D')
+        $mvid = Get-SharpProofMetadataModuleVersionId -Reader $metadata
         $codeViewEntries = @($peReader.ReadDebugDirectory() | Where-Object { $_.Type -eq [System.Reflection.PortableExecutable.DebugDirectoryEntryType]::CodeView })
         if ($codeViewEntries.Count -ne 1 -or -not $codeViewEntries[0].IsPortableCodeView) { throw "Production inventory assembly must contain exactly one portable CodeView entry: '$AssemblyPath'." }
         $codeView = $peReader.ReadCodeViewDebugDirectoryData($codeViewEntries[0])

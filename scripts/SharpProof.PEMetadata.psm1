@@ -1,6 +1,16 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+function Get-SharpProofMetadataModuleVersionId {
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.Reflection.Metadata.MetadataReader]$Reader
+    )
+
+    $module = $Reader.GetModuleDefinition()
+    return $Reader.GetGuid($module.Mvid).ToString('D')
+}
+
 function Get-SharpProofModuleVersionId {
     param(
         [Parameter(Mandatory = $true)]
@@ -17,8 +27,7 @@ function Get-SharpProofModuleVersionId {
             }
             $metadata = [Reflection.Metadata.PEReaderExtensions]::GetMetadataReader(
                 $peReader)
-            return $metadata.GetGuid(
-                $metadata.GetModuleDefinition().Mvid).ToString('D')
+            return Get-SharpProofMetadataModuleVersionId -Reader $metadata
         }
         finally {
             $peReader.Dispose()
@@ -29,4 +38,5 @@ function Get-SharpProofModuleVersionId {
     }
 }
 
-Export-ModuleMember -Function Get-SharpProofModuleVersionId
+Export-ModuleMember -Function Get-SharpProofModuleVersionId,
+    Get-SharpProofMetadataModuleVersionId
