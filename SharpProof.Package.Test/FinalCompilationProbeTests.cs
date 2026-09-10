@@ -579,12 +579,15 @@ public sealed class FinalCompilationProbeTests
         private static readonly string s_sharedPackageCache = Path.Combine(
             s_workspaceParent,
             "package-cache-" + Guid.NewGuid().ToString("N"));
+        private readonly TempDirectory _temporary;
         private readonly string _root;
         private string _sharedCompilationServerId;
 
-        private ProbeWorkspace(string root)
+        private ProbeWorkspace(TempDirectory temporary)
         {
-            _root = root;
+            _temporary = temporary;
+            _root = temporary.FullName;
+            var root = _root;
             _sharedCompilationServerId = CreateSharedCompilationServerId(
                 "direct");
             ProjectPath = Path.Combine(root, "Consumer.csproj");
@@ -645,14 +648,19 @@ public sealed class FinalCompilationProbeTests
 
         internal static ProbeWorkspace Create()
         {
-            var root = Path.Combine(
-                s_workspaceParent,
-                Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(root);
-            File.Copy(
-                Path.Combine(TestRepository.FindRoot(), "global.json"),
-                Path.Combine(root, "global.json"));
-            return new ProbeWorkspace(root);
+            var temporary = new TempDirectory(string.Empty, s_workspaceParent);
+            try
+            {
+                File.Copy(
+                    Path.Combine(TestRepository.FindRoot(), "global.json"),
+                    Path.Combine(temporary.FullName, "global.json"));
+                return new ProbeWorkspace(temporary);
+            }
+            catch
+            {
+                temporary.Dispose();
+                throw;
+            }
         }
 
         internal static void DisposeSharedPackageCache()
@@ -852,10 +860,7 @@ public sealed class FinalCompilationProbeTests
 
         public void Dispose()
         {
-            TestRepository.DeleteOwnedTemporaryDirectory(
-                _root,
-                "SharpProof.FinalProbe",
-                "Refusing to remove an unexpected test directory.");
+            _temporary.Dispose();
         }
 
         private static string CreateProjectXml(
