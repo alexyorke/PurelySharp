@@ -95,29 +95,22 @@ public sealed class ProtocolJsonTests
     [Test]
     public void BoundedUtf8FileReaderRejectsOversizedAndInvalidFiles()
     {
+        using var temporary = new TempDirectory(
+            "protocol-json-",
+            TestContext.CurrentContext.WorkDirectory);
         var path = Path.Combine(
-            TestContext.CurrentContext.WorkDirectory,
-            "protocol-json-" + Guid.NewGuid().ToString("N") + ".json");
-        try
-        {
-            File.WriteAllBytes(path, new byte[WorkerProtocolJson.MaximumJsonBytes + 1]);
+            temporary.FullName,
+            "manifest.json");
+        File.WriteAllBytes(path, new byte[WorkerProtocolJson.MaximumJsonBytes + 1]);
 
-            Assert.Throws<InvalidDataException>(
-                (Action)(() => WorkerProtocolJson.ReadUtf8File(path)));
-            Func<Task> readAsync = () => WorkerProtocolJson.ReadUtf8FileAsync(path);
-            Assert.ThrowsAsync<InvalidDataException>(readAsync);
+        Assert.Throws<InvalidDataException>(
+            (Action)(() => WorkerProtocolJson.ReadUtf8File(path)));
+        Func<Task> readAsync = () => WorkerProtocolJson.ReadUtf8FileAsync(path);
+        Assert.ThrowsAsync<InvalidDataException>(readAsync);
 
-            File.WriteAllBytes(path, [0xff]);
-            Assert.Throws<DecoderFallbackException>(
-                (Action)(() => WorkerProtocolJson.ReadUtf8File(path)));
-        }
-        finally
-        {
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
-        }
+        File.WriteAllBytes(path, [0xff]);
+        Assert.Throws<DecoderFallbackException>(
+            (Action)(() => WorkerProtocolJson.ReadUtf8File(path)));
     }
 
     [Test]
@@ -144,40 +137,33 @@ public sealed class ProtocolJsonTests
     [Platform("Linux")]
     public void BoundedUtf8FileReaderRejectsGrowthAfterOpen()
     {
+        using var temporary = new TempDirectory(
+            "protocol-json-growth-",
+            TestContext.CurrentContext.WorkDirectory);
         var path = Path.Combine(
-            TestContext.CurrentContext.WorkDirectory,
-            "protocol-json-" + Guid.NewGuid().ToString("N") + ".json");
-        try
+            temporary.FullName,
+            "manifest.json");
+        File.WriteAllBytes(
+            path,
+            new byte[WorkerProtocolJson.MaximumJsonBytes]);
+
+        using (var reader = OpenReader())
         {
-            File.WriteAllBytes(
-                path,
-                new byte[WorkerProtocolJson.MaximumJsonBytes]);
-
-            using (var reader = OpenReader())
-            {
-                AppendByte();
-                Assert.Throws<InvalidDataException>(
-                    (Action)(() => reader.ReadToEnd()));
-            }
-
-            File.WriteAllBytes(
-                path,
-                new byte[WorkerProtocolJson.MaximumJsonBytes]);
-            using (var reader = OpenReader())
-            {
-                AppendByte();
-                Func<Task> readAsync = async () =>
-                    await reader.ReadToEndAsync();
-                Assert.ThrowsAsync<InvalidDataException>(
-                    readAsync);
-            }
+            AppendByte();
+            Assert.Throws<InvalidDataException>(
+                (Action)(() => reader.ReadToEnd()));
         }
-        finally
+
+        File.WriteAllBytes(
+            path,
+            new byte[WorkerProtocolJson.MaximumJsonBytes]);
+        using (var reader = OpenReader())
         {
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
+            AppendByte();
+            Func<Task> readAsync = async () =>
+                await reader.ReadToEndAsync();
+            Assert.ThrowsAsync<InvalidDataException>(
+                readAsync);
         }
 
         StreamReader OpenReader()
@@ -205,57 +191,53 @@ public sealed class ProtocolJsonTests
     [Platform("Linux")]
     public void BoundedUtf8FileReaderRejectsFifoBeforeBlockingOpen()
     {
+        using var temporary = new TempDirectory(
+            "protocol-json-fifo-",
+            TestContext.CurrentContext.WorkDirectory);
         var path = Path.Combine(
-            TestContext.CurrentContext.WorkDirectory,
-            "protocol-json-" + Guid.NewGuid().ToString("N") + ".fifo");
-        try
-        {
-            using (var process = System.Diagnostics.Process.Start(
-                new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "mkfifo",
-                    UseShellExecute = false,
-                    ArgumentList = { path }
-                })!)
+            temporary.FullName,
+            "manifest.fifo");
+        using (var process = System.Diagnostics.Process.Start(
+            new System.Diagnostics.ProcessStartInfo
             {
-                process.WaitForExit();
-                Assert.That(process.ExitCode, Is.Zero);
+                FileName = "mkfifo",
+                UseShellExecute = false,
+                ArgumentList = { path }
+            })!)
+        {
+            process.WaitForExit();
+            Assert.That(process.ExitCode, Is.Zero);
+        }
+
+        var read = Task.Run(() => WorkerProtocolJson.ReadUtf8File(path));
+        var completed = Task.WhenAny(read, Task.Delay(500))
+            .GetAwaiter()
+            .GetResult();
+        if (!ReferenceEquals(completed, read))
+        {
+            using (var writer = new FileStream(
+                path,
+                FileMode.Open,
+                FileAccess.Write,
+                FileShare.ReadWrite))
+            {
+                writer.WriteByte((byte)'{');
             }
 
-            var read = Task.Run(() => WorkerProtocolJson.ReadUtf8File(path));
-            var completed = Task.WhenAny(read, Task.Delay(500))
+            var unblocked = Task.WhenAny(read, Task.Delay(5000))
                 .GetAwaiter()
                 .GetResult();
-            if (!ReferenceEquals(completed, read))
-            {
-                using (var writer = new FileStream(
-                    path,
-                    FileMode.Open,
-                    FileAccess.Write,
-                    FileShare.ReadWrite))
-                {
-                    writer.WriteByte((byte)'{');
-                }
-
-                var unblocked = Task.WhenAny(read, Task.Delay(5000))
-                    .GetAwaiter()
-                    .GetResult();
-                Assert.That(unblocked, Is.SameAs(read));
-                _ = read.Exception;
-            }
-
-            Assert.That(
-                completed,
-                Is.SameAs(read),
-                "Opening a FIFO must not wait for a writer.");
-            Assert.That(
-                (Action)(() => _ = read.GetAwaiter().GetResult()),
-                Throws.TypeOf<InvalidDataException>());
+            Assert.That(unblocked, Is.SameAs(read));
+            _ = read.Exception;
         }
-        finally
-        {
-            File.Delete(path);
-        }
+
+        Assert.That(
+            completed,
+            Is.SameAs(read),
+            "Opening a FIFO must not wait for a writer.");
+        Assert.That(
+            (Action)(() => _ = read.GetAwaiter().GetResult()),
+            Throws.TypeOf<InvalidDataException>());
     }
 
     [Test]
