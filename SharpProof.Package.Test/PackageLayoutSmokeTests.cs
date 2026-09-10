@@ -2711,6 +2711,7 @@ public sealed class PackageLayoutSmokeTests
                     <SelfContained>false</SelfContained>
                     <SharpProofProfile>off</SharpProofProfile>
                     <SharpProofVerify>false</SharpProofVerify>
+                    <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
                     <NuGetAudit>false</NuGetAudit>
                   </PropertyGroup>
                   <ItemGroup>
