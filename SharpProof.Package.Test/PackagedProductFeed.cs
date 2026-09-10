@@ -153,6 +153,7 @@ internal sealed class PackagedProductFeed : IDisposable
                 "--nologo",
                 "/nodeReuse:false",
                 "-p:GeneratePackageOnBuild=false",
+                "-p:RunAnalyzersDuringBuild=false",
                 "--output",
                 sourceDirectory);
             if (result.ExitCode != 0)
