@@ -1541,7 +1541,8 @@ public sealed class PackageLayoutSmokeTests
             "--nologo",
             "/nodeReuse:false",
             "--configfile",
-            nugetConfig
+            nugetConfig,
+            "-p:NuGetAudit=false"
         };
         arguments.Add("--packages");
         arguments.Add(workspace.PackageCache);

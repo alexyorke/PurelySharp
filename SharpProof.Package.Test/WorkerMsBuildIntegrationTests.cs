@@ -4125,7 +4125,8 @@ public sealed class WorkerMsBuildIntegrationTests
                 ProjectPath,
                 "--nologo",
                 "/nodeReuse:false",
-                "-p:SharpProofVerify=false"
+                "-p:SharpProofVerify=false",
+                "-p:NuGetAudit=false"
             };
             arguments.AddRange(properties.Select(static property =>
                 "-p:" + property.Name + "=" + property.Value));

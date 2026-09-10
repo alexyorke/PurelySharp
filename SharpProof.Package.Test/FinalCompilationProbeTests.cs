@@ -820,7 +820,8 @@ public sealed class FinalCompilationProbeTests
                 "--configfile",
                 nugetConfig,
                 "--packages",
-                PackageCache
+                PackageCache,
+                "-p:NuGetAudit=false"
             ]);
         }
 
