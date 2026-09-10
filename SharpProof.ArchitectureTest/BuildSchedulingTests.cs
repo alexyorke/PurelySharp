@@ -516,7 +516,7 @@ public sealed class BuildSchedulingTests
     }
 
     [Test]
-    public async Task PackageSchedulerUsesMeasuredProcessorBudgetUnlessCapped()
+    public async Task PackageSchedulerUsesAllSmallContainerLanesOrMeasuredBudgetUnlessCapped()
     {
         var root = TestRepository.FindRoot();
         var module = Path.Combine(
@@ -542,6 +542,9 @@ public sealed class BuildSchedulingTests
         using var document = JsonDocument.Parse(process.Output);
         var result = document.RootElement;
         var visible = result.GetProperty("visible").GetInt32();
+        var expectedAutomatic = visible <= 4
+            ? visible
+            : Math.Max(1, (int)Math.Floor(visible * 0.90));
         var package = await File.ReadAllTextAsync(Path.Combine(
             root,
             "scripts",
@@ -550,7 +553,7 @@ public sealed class BuildSchedulingTests
         {
             Assert.That(
                 result.GetProperty("automatic").GetInt32(),
-                Is.EqualTo(Math.Max(1, (int)Math.Floor(visible * 0.90))));
+                Is.EqualTo(expectedAutomatic));
             Assert.That(result.GetProperty("capped").GetInt32(), Is.EqualTo(1));
             Assert.That(
                 package,

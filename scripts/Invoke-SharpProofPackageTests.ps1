@@ -570,7 +570,12 @@ try {
                             [double]$packageLayoutMethods.Count))
             }
             else {
-                1L
+                # A fresh CI-width run has no method history. The layout
+                # host launches nested MSBuild processes and is substantially
+                # heavier than a single worker method; give it a conservative
+                # one-second estimate so it starts before the exclusive
+                # postflight shards instead of becoming a cold-start tail.
+                if ($parallelism -le 4) { 1000L } else { 1L }
             }
         # Keep the package-layout fixture in one host. Its NUnit child pool
         # already supplies the useful parallelism; four outer hosts duplicate

@@ -484,8 +484,21 @@ function Get-SharpProofPackageTestParallelism {
         [string]$RepositoryRoot
     )
 
-    return Get-SharpProofConfiguredParallelism `
+    $parallelism = Get-SharpProofConfiguredParallelism `
         $RepositoryRoot 'package'
+    # The package wave reserves slots for nested NUnit/MSBuild workers. On a
+    # small CI container, flooring the 90% budget from four to three leaves a
+    # whole lane idle and lengthens the worker tail. Use every visible lane at
+    # that width; explicit SHARPPROOF_TEST_PROJECT_PARALLELISM still wins.
+    $visibleProcessors = [Environment]::ProcessorCount
+    $override = [Environment]::GetEnvironmentVariable(
+        'SHARPPROOF_TEST_PROJECT_PARALLELISM',
+        [EnvironmentVariableTarget]::Process)
+    if ([string]::IsNullOrWhiteSpace($override) -and
+        $visibleProcessors -le 4) {
+        return $visibleProcessors
+    }
+    return $parallelism
 }
 
 function Get-SharpProofBuildParallelism {
