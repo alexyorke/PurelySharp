@@ -850,14 +850,16 @@ public sealed class ScalarDifferentialMatrixTests
 
     private sealed class DifferentialProject : IDisposable
     {
+        private readonly TempDirectory _temporary;
         private readonly string _sourcePath;
         private CompilerCallablePreparation[] _callables = [];
         private CSharpCompilation? _compilation;
 
-        private DifferentialProject(string directory, string sourcePath)
+        private DifferentialProject(TempDirectory temporary)
         {
-            DirectoryPath = directory;
-            _sourcePath = sourcePath;
+            _temporary = temporary;
+            DirectoryPath = temporary.FullName;
+            _sourcePath = Path.Combine(DirectoryPath, "Subject.cs");
         }
 
         internal string DirectoryPath
@@ -867,17 +869,27 @@ public sealed class ScalarDifferentialMatrixTests
 
         internal static DifferentialProject Create(string source)
         {
-            var directory = Path.Combine(
-                Path.GetTempPath(),
-                "SharpProof.ScalarDifferential",
-                Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(directory);
-            var sourcePath = Path.Combine(directory, "Subject.cs");
-            File.WriteAllText(
-                sourcePath,
-                source,
-                new System.Text.UTF8Encoding(false));
-            return new DifferentialProject(directory, sourcePath);
+            var temporary = new TempDirectory(
+                string.Empty,
+                Path.Combine(
+                    Path.GetTempPath(),
+                    "SharpProof.ScalarDifferential"));
+            try
+            {
+                var sourcePath = Path.Combine(
+                    temporary.FullName,
+                    "Subject.cs");
+                File.WriteAllText(
+                    sourcePath,
+                    source,
+                    new System.Text.UTF8Encoding(false));
+                return new DifferentialProject(temporary);
+            }
+            catch
+            {
+                temporary.Dispose();
+                throw;
+            }
         }
 
         internal WorkerVerifyRequest CreateRequest()
@@ -949,9 +961,7 @@ public sealed class ScalarDifferentialMatrixTests
 
         public void Dispose()
         {
-            TestRepository.DeleteOwnedTemporaryDirectory(
-                DirectoryPath,
-                "SharpProof.ScalarDifferential");
+            _temporary.Dispose();
         }
 
         private CSharpCompilation CreateCompilation()
