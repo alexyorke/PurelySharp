@@ -441,13 +441,6 @@ try {
             'SharpProof.Verifier/SharpProof.Verifier.csproj',
             '-c', 'Release', '--no-restore',
             '-p:GeneratePackageOnBuild=false')
-        if ($Configuration -ceq 'Release') {
-            # The Release test-harness build already builds every project
-            # referenced by Verifier. Re-evaluating those project references
-            # here only races on shared outputs; the root has no package
-            # payload of its own, so build it without dependencies.
-            $packageProductBuildArguments += '--no-dependencies'
-        }
         if ($Fast) {
             $packageProductBuildArguments +=
                 '-p:RunAnalyzersDuringBuild=false'
