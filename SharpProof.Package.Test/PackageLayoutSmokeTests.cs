@@ -2366,15 +2366,10 @@ public sealed class PackageLayoutSmokeTests
         return reader.ReadToEnd();
     }
 
-    private static async Task<ProcessResult> RunDotNetAsync(
+    private static Task<ProcessResult> RunDotNetAsync(
         string workingDirectory,
-        params string[] arguments)
-    {
-        return await RunProcessAsync(
-            workingDirectory,
-            "dotnet",
-            arguments);
-    }
+        params string[] arguments) =>
+        RunProcessAsync(workingDirectory, "dotnet", arguments);
 
     private static async Task<ProcessResult> RunProcessAsync(
         string workingDirectory,
