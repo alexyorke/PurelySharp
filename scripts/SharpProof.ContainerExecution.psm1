@@ -233,6 +233,53 @@ function Invoke-SharpProofCheckedCommand {
     }
 }
 
+function Initialize-SharpProofFixtureRepository {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$RepositoryRoot,
+
+        [AllowEmptyString()]
+        [string]$UserEmail = 'fixture@sharpproof.test',
+
+        [AllowEmptyString()]
+        [string]$InitialBranch = '',
+
+        [AllowEmptyCollection()]
+        [string[]]$Paths = @(),
+
+        [AllowEmptyString()]
+        [string]$CommitMessage = ''
+    )
+
+    [IO.Directory]::CreateDirectory($RepositoryRoot) | Out-Null
+    $initArguments = if ([string]::IsNullOrEmpty($InitialBranch)) {
+        @()
+    }
+    else {
+        @('-c', "init.defaultBranch=$InitialBranch")
+    }
+    Invoke-SharpProofCheckedCommand -Command 'git' -Arguments @(
+        $initArguments + @('-C', $RepositoryRoot, 'init', '--quiet'))
+    Invoke-SharpProofCheckedCommand -Command 'git' -Arguments @(
+        '-C', $RepositoryRoot, 'config', 'user.email', $UserEmail)
+    Invoke-SharpProofCheckedCommand -Command 'git' -Arguments @(
+        '-C', $RepositoryRoot, 'config', 'user.name', 'SharpProof Fixture')
+
+    if (-not [string]::IsNullOrEmpty($CommitMessage)) {
+        $addArguments = if ($Paths.Count -eq 0) {
+            @('--', '.')
+        }
+        else {
+            @('--') + $Paths
+        }
+        Invoke-SharpProofCheckedCommand -Command 'git' -Arguments @(
+            @('-C', $RepositoryRoot, 'add') + $addArguments)
+        Invoke-SharpProofCheckedCommand -Command 'git' -Arguments @(
+            '-C', $RepositoryRoot, 'commit', '--quiet', '-m', $CommitMessage)
+    }
+}
+
 function Invoke-SharpProofGitText {
     [CmdletBinding()]
     param(
@@ -1206,6 +1253,7 @@ Export-ModuleMember -Function @(
     'Invoke-SharpProofCheckedCommand',
     'Write-SharpProofFailureOutput',
     'Invoke-SharpProofGitText',
+    'Initialize-SharpProofFixtureRepository',
     'Invoke-SharpProofTimedPhase',
     'Invoke-SharpProofParallelDotnetBuilds',
     'Invoke-SharpProofParallelDotnetTests',

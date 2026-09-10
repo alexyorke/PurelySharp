@@ -266,11 +266,9 @@ function Test-MutationReuseValidation {
         }
     }
 
-    & git -C $repository init --quiet
-    & git -C $repository config user.email fixture@sharpproof.test
-    & git -C $repository config user.name 'SharpProof Fixture'
-    & git -C $repository add -- .
-    & git -C $repository commit --quiet -m fixture
+    Initialize-SharpProofFixtureRepository `
+        -RepositoryRoot $repository `
+        -CommitMessage fixture
     $commit = (& git -C $repository rev-parse HEAD).Trim()
     $evidencePath = Join-Path $evidenceDirectory 'trusted-mutations.json'
     $campaignSentinel = Join-Path $repository 'campaign-launched'

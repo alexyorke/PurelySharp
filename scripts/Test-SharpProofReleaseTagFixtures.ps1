@@ -3,6 +3,7 @@ param()
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'SharpProof.ContainerExecution.psm1') -Force
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $fixtureRoot = Join-Path ([IO.Path]::GetTempPath()) (
     'SharpProof-release-tag-' + [Guid]::NewGuid().ToString('N'))
@@ -44,10 +45,9 @@ try {
     [IO.Directory]::CreateDirectory($fixtureRoot) | Out-Null
     & git -c init.defaultBranch=master init --bare --quiet $remote
     Assert-GitSucceeded 'creating the local fixture remote'
-    & git -c init.defaultBranch=master init --quiet $checkout
-    Assert-GitSucceeded 'creating the fixture checkout'
-    & git -C $checkout config user.email fixture@sharpproof.test
-    & git -C $checkout config user.name 'SharpProof Fixture'
+    Initialize-SharpProofFixtureRepository `
+        -RepositoryRoot $checkout `
+        -InitialBranch master
     [IO.Directory]::CreateDirectory((Join-Path $checkout 'scripts')) | Out-Null
     Copy-Item -LiteralPath (
         Join-Path $repositoryRoot 'scripts/Invoke-SharpProofReleaseContainer.ps1') `

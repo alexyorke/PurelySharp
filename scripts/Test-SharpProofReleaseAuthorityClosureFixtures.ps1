@@ -53,12 +53,10 @@ $manifest = 'SharpProof.Verifier/SharpProof.Verifier.nuspec'
         Write-FixtureFile $leaf "# $leaf`n"
     }
     Write-FixtureFile 'SharpProof.Verifier/SharpProof.Verifier.nuspec' '<package />'
-    & git -c init.defaultBranch=master -C $fixture init --quiet
-    & git -C $fixture config user.email fixture@sharpproof.test
-    & git -C $fixture config user.name 'SharpProof Fixture'
-    & git -C $fixture add -- .
-    & git -C $fixture commit --quiet -m canonical
-    if ($LASTEXITCODE -ne 0) { throw 'Could not initialize closure fixture.' }
+    Initialize-SharpProofFixtureRepository `
+        -RepositoryRoot $fixture `
+        -InitialBranch master `
+        -CommitMessage canonical
 
     $canonical = @(Get-FixtureClosure)
     $requiredLeaves = @(

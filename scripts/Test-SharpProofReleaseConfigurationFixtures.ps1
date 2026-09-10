@@ -172,12 +172,9 @@ cat "$GH_FIXTURE_ROOT/$file.json"
 '@ | Set-Content -LiteralPath (Join-Path $mockBin 'gh') -Encoding utf8NoBOM
     & chmod +x (Join-Path $mockBin 'gh')
     if ($LASTEXITCODE -ne 0) { throw 'Could not make the fixture gh executable.' }
-    & git -C $fixture init --quiet
-    & git -C $fixture config user.email fixture@sharpproof.test
-    & git -C $fixture config user.name 'SharpProof Fixture'
-    & git -C $fixture add -- .
-    & git -C $fixture commit --quiet -m fixture
-    if ($LASTEXITCODE -ne 0) { throw 'Could not initialize fixture repository.' }
+    Initialize-SharpProofFixtureRepository `
+        -RepositoryRoot $fixture `
+        -CommitMessage fixture
 
     $oldPath = $env:PATH
     $oldFixtureRoot = $env:GH_FIXTURE_ROOT

@@ -3,6 +3,7 @@ param()
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'SharpProof.ContainerExecution.psm1') -Force
 . (Join-Path $PSScriptRoot 'SharpProof.FuzzEvidenceLifecycle.ps1')
 
 $seedToday = Get-SharpProofRotatingSeed -UtcDate ([DateTime]::new(2026, 8, 31))
@@ -40,15 +41,12 @@ try {
 
     $gitRoot = Join-Path $root 'source'
     [IO.Directory]::CreateDirectory($gitRoot) | Out-Null
-    & git -C $gitRoot init --quiet
-    & git -C $gitRoot config user.name 'SharpProof Fixture'
-    & git -C $gitRoot config user.email 'fixture@sharpproof.invalid'
     [IO.File]::WriteAllText((Join-Path $gitRoot 'tracked.txt'), 'clean')
-    & git -C $gitRoot add -- tracked.txt
-    & git -C $gitRoot commit --quiet -m baseline
-    if ($LASTEXITCODE -ne 0) {
-        throw 'The fuzz source-state fixture could not create its baseline.'
-    }
+    Initialize-SharpProofFixtureRepository `
+        -RepositoryRoot $gitRoot `
+        -UserEmail 'fixture@sharpproof.invalid' `
+        -Paths 'tracked.txt' `
+        -CommitMessage baseline
     $expectedCommit = (& git -C $gitRoot rev-parse HEAD).Trim()
     $actualCommit = Get-SharpProofCleanFuzzSourceCommit `
         -RepositoryRoot $gitRoot
