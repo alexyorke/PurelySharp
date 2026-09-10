@@ -3178,11 +3178,14 @@ public sealed class PackageLayoutSmokeTests
 
     private sealed class ReleaseEvidenceWorkspace : IDisposable
     {
+        private readonly TempDirectory _temporary;
         private readonly string _root;
 
-        private ReleaseEvidenceWorkspace(string root)
+        private ReleaseEvidenceWorkspace(TempDirectory temporary)
         {
-            _root = root;
+            _temporary = temporary;
+            _root = temporary.FullName;
+            var root = _root;
             OutputDirectory = Path.Combine(root, "output");
             ManifestPath = Path.Combine(
                 OutputDirectory,
@@ -3199,21 +3202,25 @@ public sealed class PackageLayoutSmokeTests
         }
         internal static ReleaseEvidenceWorkspace Create()
         {
-            var root = Path.Combine(
-                Path.GetTempPath(),
-                "SharpProof.ReleaseEvidence.Test",
-                Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(root);
-            return new ReleaseEvidenceWorkspace(root);
+            var temporary = new TempDirectory(
+                string.Empty,
+                Path.Combine(
+                    Path.GetTempPath(),
+                    "SharpProof.ReleaseEvidence.Test"));
+            try
+            {
+                return new ReleaseEvidenceWorkspace(temporary);
+            }
+            catch
+            {
+                temporary.Dispose();
+                throw;
+            }
         }
 
         public void Dispose()
         {
-            TestRepository.DeleteOwnedTemporaryDirectory(
-                _root,
-                "SharpProof.ReleaseEvidence.Test",
-                "Refusing to remove an unexpected release-evidence " +
-                "test directory.");
+            _temporary.Dispose();
         }
     }
 
