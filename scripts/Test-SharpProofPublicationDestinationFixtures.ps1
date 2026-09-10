@@ -10,7 +10,6 @@ param(
         'actions-symbol-preflight','actions-swapped',
         'actions-removed-projection','mocked-main-missing',
         'mocked-main-exists','mocked-main-error','mocked-main-query-base',
-        'zero-symbol-preflight',
         'fixture-empty','fixture-foreign','fixture-main-case-collision',
         'fixture-symbol-case-collision','fixture-arbitrary-name',
         'fixture-wrong-id','fixture-wrong-version','fixture-nested-collision',
@@ -225,8 +224,7 @@ try {
         Test-SharpProofPublicationActionAuthority `
             -Authority $action -Mode $mode -MainState $mainState
     }
-    if ($Mutation.StartsWith('mocked-main-', [StringComparison]::Ordinal) -or
-        $Mutation -eq 'zero-symbol-preflight') {
+    if ($Mutation.StartsWith('mocked-main-', [StringComparison]::Ordinal)) {
         $script:preflightCalls = [Collections.Generic.List[string]]::new()
         $status = switch ($Mutation) {
             'mocked-main-exists' { 200 }

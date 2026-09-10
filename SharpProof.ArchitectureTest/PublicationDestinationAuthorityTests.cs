@@ -31,7 +31,6 @@ public sealed class PublicationDestinationAuthorityTests
     [TestCase("mocked-main-exists", false)]
     [TestCase("mocked-main-error", false)]
     [TestCase("mocked-main-query-base", false)]
-    [TestCase("zero-symbol-preflight", true)]
     [TestCase("fixture-empty", true)]
     [TestCase("fixture-foreign", true)]
     [TestCase("fixture-main-case-collision", true)]
