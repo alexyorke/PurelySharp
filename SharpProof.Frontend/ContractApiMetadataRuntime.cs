@@ -29,6 +29,16 @@ internal static partial class ContractApiMetadata
         return ContractMethodCandidateNameSet.Contains(name);
     }
 
+    internal static bool IsAttribute(
+        AttributeData attribute,
+        INamedTypeSymbol? expected)
+    {
+        return expected != null &&
+            SymbolEqualityComparer.Default.Equals(
+                attribute.AttributeClass?.OriginalDefinition,
+                expected.OriginalDefinition);
+    }
+
     internal static bool TryGetAttribute(
         string metadataName,
         out ContractApiAttributeDescriptor descriptor)

@@ -203,17 +203,9 @@ internal sealed class ConservativeEffectCallPreconditionPolicy
     private bool IsClosedPrecondition(
         AttributeData attribute)
     {
-        var type = attribute.AttributeClass?.OriginalDefinition;
-        return type != null &&
-            (SymbolEqualityComparer.Default.Equals(
-                 type,
-                 _notNull?.OriginalDefinition) ||
-             SymbolEqualityComparer.Default.Equals(
-                 type,
-                 _positive?.OriginalDefinition) ||
-             SymbolEqualityComparer.Default.Equals(
-                 type,
-                 _inRange?.OriginalDefinition));
+        return ContractApiMetadata.IsAttribute(attribute, _notNull) ||
+            ContractApiMetadata.IsAttribute(attribute, _positive) ||
+            ContractApiMetadata.IsAttribute(attribute, _inRange);
     }
 
     private static ImmutableHashSet<INamedTypeSymbol>

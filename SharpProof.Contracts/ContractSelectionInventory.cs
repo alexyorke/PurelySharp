@@ -275,10 +275,7 @@ internal sealed class ContractSelectionInventory
         AttributeData attribute,
         INamedTypeSymbol? expected)
     {
-        return expected != null &&
-        SymbolEqualityComparer.Default.Equals(
-            attribute.AttributeClass?.OriginalDefinition,
-            expected.OriginalDefinition);
+        return ContractApiMetadata.IsAttribute(attribute, expected);
     }
 
     internal static bool? GetControlSelection(
