@@ -157,7 +157,9 @@ internal static class EffectContractDiagnostics
         var declaredValid = contract.Kind != EffectContractResolutionKind.Invalid;
         var declaredComplete = entrySummaryReachable && projection.IsComplete &&
             contract.Kind is not (EffectContractResolutionKind.Incomplete or EffectContractResolutionKind.Missing);
-        var incompleteReason = MapIncompleteReason(summary);
+        var incompleteReason =
+            EffectEvaluationProjections.MapIncompleteReason(
+                summary.AnalysisIncompleteReason);
         EffectDirectWitness? purityViolation = null;
         EffectDirectWitness? allocationViolation = null;
         EffectDirectWitness? capabilityViolation = null;
@@ -333,13 +335,6 @@ internal static class EffectContractDiagnostics
                 includeDiagnosticPayload ? location : Location.None,
                 includeDiagnosticPayload ? arguments : []));
         }
-    }
-
-    private static EffectEvaluationReason MapIncompleteReason(
-        EffectSummary summary)
-    {
-        return EffectEvaluationProjections.MapIncompleteReason(
-            summary.AnalysisIncompleteReason);
     }
 
     private static (EffectContractCapabilityKind Value, bool IsValid) DecodeCapabilities(
