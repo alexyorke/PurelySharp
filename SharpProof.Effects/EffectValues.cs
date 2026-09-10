@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using SharpProof.Roslyn;
 
 namespace SharpProof.Effects;
 
@@ -338,15 +339,10 @@ internal static class EffectTypeFacts
 {
     internal static bool IsDerivedFrom(INamedTypeSymbol type, INamedTypeSymbol expectedBase)
     {
-        for (var current = type; current != null; current = current.BaseType)
-        {
-            if (SymbolEqualityComparer.Default.Equals(current, expectedBase))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return RoslynSymbolFacts.IsOrDerivesFrom(
+            type,
+            expectedBase,
+            compareOriginalDefinitions: false);
     }
 
     internal static CatchSelection GetExceptionCatchSelection(

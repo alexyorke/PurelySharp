@@ -7,7 +7,8 @@ internal static class RoslynSymbolFacts
     internal static bool IsOrDerivesFrom(
         ITypeSymbol? type,
         ITypeSymbol? possibleBase,
-        bool includeSelf = true)
+        bool includeSelf = true,
+        bool compareOriginalDefinitions = true)
     {
         if (possibleBase == null)
         {
@@ -19,11 +20,17 @@ internal static class RoslynSymbolFacts
         {
             current = current?.BaseType;
         }
+        var expected = compareOriginalDefinitions
+            ? possibleBase.OriginalDefinition
+            : possibleBase;
         for (; current != null; current = current.BaseType)
         {
+            var candidate = compareOriginalDefinitions
+                ? current.OriginalDefinition
+                : current;
             if (SymbolEqualityComparer.Default.Equals(
-                    current.OriginalDefinition,
-                    possibleBase.OriginalDefinition))
+                    candidate,
+                    expected))
             {
                 return true;
             }
