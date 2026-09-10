@@ -771,7 +771,8 @@ internal static partial class PortableIrGraphCodec
             _cancellationToken.ThrowIfCancellationRequested();
             Require(row.ParameterTypes != null, "Portable IR member parameters cannot be null.");
             var member = _factory.GetOrCreateMember(
-                Identity(row.Identity), Type(row.DeclaringType), row.Name,
+                Item(row.Identity, _identities, "identity"),
+                Type(row.DeclaringType), row.Name,
                 Type(row.ReturnType), row.IsStatic, [.. row.ParameterTypes.Select(Type)]);
             Require(_distinctMembers.Add(member), "Portable IR member equality partitions collapse.");
             return member;
@@ -956,11 +957,6 @@ internal static partial class PortableIrGraphCodec
         {
             Check(index, _types.Length, "type");
             return DecodeType(index);
-        }
-
-        private IrIdentityId Identity(int index)
-        {
-            return Item(index, _identities, "identity");
         }
 
         private IrVarId Variable(int index)
