@@ -299,7 +299,7 @@ public static partial class WorkerProtocolJson
                 "Expected runtime provenance is invalid.",
                 nameof(expectedVersions));
         }
-        var maximumElapsedMilliseconds = WorkerExecutionEnvelope.MaximumElapsedMilliseconds(
+        var maximumElapsedMilliseconds = WorkerExecutionEnvelope.MaximumElapsedMillisecondsAfterValidation(
             expectedRequest, terminationGraceMilliseconds);
         return ValidateResponse(
             response, expectedInputHash, expectedManifest,
