@@ -78,42 +78,35 @@ public sealed class WorkerProgramTests
             Assert.Ignore("The direct worker is supported only in the Linux container.");
         }
 
-        var temporaryDirectory = new TempDirectory(
+        using var temporaryDirectory = new TempDirectory(
             "SharpProof-worker-malformed-");
         var directory = temporaryDirectory.FullName;
         var requestPath = Path.Combine(directory, "request.json");
         var resultPath = Path.Combine(directory, "result.json");
-        try
-        {
-            await File.WriteAllTextAsync(requestPath, "{");
-            var host = Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet";
-            using var process = LinuxWorkerProcess.Start(
-                host,
-                [typeof(SharpProofWorker).Assembly.Location,
-                    "verify", "--request", requestPath,
-                    "--result", resultPath, "--start-stdin"],
-                directory);
-            var completion = process.WaitForExit(
-                TimeSpan.FromSeconds(10),
-                TimeSpan.FromSeconds(11));
+        await File.WriteAllTextAsync(requestPath, "{");
+        var host = Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet";
+        using var process = LinuxWorkerProcess.Start(
+            host,
+            [typeof(SharpProofWorker).Assembly.Location,
+                "verify", "--request", requestPath,
+                "--result", resultPath, "--start-stdin"],
+            directory);
+        var completion = process.WaitForExit(
+            TimeSpan.FromSeconds(10),
+            TimeSpan.FromSeconds(11));
 
-            var response = WorkerProtocolJson.DeserializeResponse(
-                await File.ReadAllTextAsync(resultPath))!;
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(completion.Kind, Is.EqualTo(LinuxWorkerCompletionKind.Exited));
-                Assert.That(completion.ExitCode, Is.Zero);
-                Assert.That(
-                    response.FailureReason,
-                    Is.EqualTo(WorkerRunFailureReason.InvalidRequest));
-                Assert.That(
-                    response.Errors.Select(static error => error.Code),
-                    Does.Contain("request.malformed"));
-            }
-        }
-        finally
+        var response = WorkerProtocolJson.DeserializeResponse(
+            await File.ReadAllTextAsync(resultPath))!;
+        using (Assert.EnterMultipleScope())
         {
-            temporaryDirectory.Dispose();
+            Assert.That(completion.Kind, Is.EqualTo(LinuxWorkerCompletionKind.Exited));
+            Assert.That(completion.ExitCode, Is.Zero);
+            Assert.That(
+                response.FailureReason,
+                Is.EqualTo(WorkerRunFailureReason.InvalidRequest));
+            Assert.That(
+                response.Errors.Select(static error => error.Code),
+                Does.Contain("request.malformed"));
         }
     }
 
@@ -267,71 +260,64 @@ public sealed class WorkerProgramTests
     [NonParallelizable]
     public async Task InvalidProjectedRequestDisposesRuntimeSnapshotBeforeReturning()
     {
-        var temporaryDirectory = new TempDirectory(
+        using var temporaryDirectory = new TempDirectory(
             "SharpProof.Worker.Test-");
         var directory = temporaryDirectory.FullName;
         var manifestPath = Path.Combine(directory, "compiler-manifest.json");
         var requestPath = Path.Combine(directory, "request.json");
         var resultPath = Path.Combine(directory, "result.json");
-        try
+        var compilation = new CompilerCompilationSnapshot
         {
-            var compilation = new CompilerCompilationSnapshot
+            ProjectDirectory = directory,
+            AssemblyName = "Subject",
+            AssemblyIdentity =
+                "Subject, Version=1.0.0.0, Culture=neutral, " +
+                "PublicKeyToken=null",
+            TargetFramework = "net9.0",
+            CompilerVersion = "1.0.0.0",
+            CompilerMvid = Guid.NewGuid().ToString("D"),
+            CSharpCompilerVersion = "1.0.0.0",
+            CSharpCompilerMvid = Guid.NewGuid().ToString("D"),
+            Options = new CompilerCompilationOptionsSnapshot
             {
-                ProjectDirectory = directory,
-                AssemblyName = "Subject",
-                AssemblyIdentity =
-                    "Subject, Version=1.0.0.0, Culture=neutral, " +
-                    "PublicKeyToken=null",
-                TargetFramework = "net9.0",
-                CompilerVersion = "1.0.0.0",
-                CompilerMvid = Guid.NewGuid().ToString("D"),
-                CSharpCompilerVersion = "1.0.0.0",
-                CSharpCompilerMvid = Guid.NewGuid().ToString("D"),
-                Options = new CompilerCompilationOptionsSnapshot
-                {
-                    ResolverPolicy = CompilerResolverPolicy.EvidenceOnly
-                }
-            };
-            var manifest = new WorkerClaimManifest();
-            WorkerProtocolJson.SealManifest(manifest);
-            var artifact = new CompilerManifestArtifact
-            {
-                Features = WorkerFeatureSet.All,
-                Compilation = compilation,
-                CompilationSha256 = CompilationFingerprint.ComputeSha256(compilation, []),
-                Manifest = manifest
-            };
-            artifact.FeatureScopeSha256 =
-                CompilerFeatureScopeFingerprint.ComputeSha256(artifact);
-            await File.WriteAllTextAsync(
-                manifestPath,
-                CompilerManifestArtifactJson.Serialize(artifact));
-
-            var arguments = new[] {
-                "verify",
-                "--worker", typeof(SharpProofWorker).Assembly.Location,
-                "--request", requestPath,
-                "--result", resultPath,
-                "--compiler-manifest", manifestPath,
-                "--verify-policy", "advisory",
-                "--assumption-policy", "allow",
-                "--max-parallelism", "0"
-            };
-            var exitCode = await InvokeLauncherAsync(arguments);
-
-            Assert.That(exitCode, Is.EqualTo(2));
-            Assert.That(File.Exists(requestPath), Is.False);
-
-            arguments[^1] = "1";
-            var validExitCode = await InvokeLauncherAsync(arguments);
-            Assert.That(validExitCode, Is.Zero);
-            Assert.That(File.Exists(requestPath), Is.True);
-            Assert.That(File.Exists(resultPath), Is.True);
-        }
-        finally
+                ResolverPolicy = CompilerResolverPolicy.EvidenceOnly
+            }
+        };
+        var manifest = new WorkerClaimManifest();
+        WorkerProtocolJson.SealManifest(manifest);
+        var artifact = new CompilerManifestArtifact
         {
-            temporaryDirectory.Dispose();
-        }
+            Features = WorkerFeatureSet.All,
+            Compilation = compilation,
+            CompilationSha256 = CompilationFingerprint.ComputeSha256(compilation, []),
+            Manifest = manifest
+        };
+        artifact.FeatureScopeSha256 =
+            CompilerFeatureScopeFingerprint.ComputeSha256(artifact);
+        await File.WriteAllTextAsync(
+            manifestPath,
+            CompilerManifestArtifactJson.Serialize(artifact));
+
+        var arguments = new[] {
+            "verify",
+            "--worker", typeof(SharpProofWorker).Assembly.Location,
+            "--request", requestPath,
+            "--result", resultPath,
+            "--compiler-manifest", manifestPath,
+            "--verify-policy", "advisory",
+            "--assumption-policy", "allow",
+            "--max-parallelism", "0"
+        };
+        var exitCode = await InvokeLauncherAsync(arguments);
+
+        Assert.That(exitCode, Is.EqualTo(2));
+        Assert.That(File.Exists(requestPath), Is.False);
+
+        arguments[^1] = "1";
+        var validExitCode = await InvokeLauncherAsync(arguments);
+        Assert.That(validExitCode, Is.Zero);
+        Assert.That(File.Exists(requestPath), Is.True);
+        Assert.That(File.Exists(resultPath), Is.True);
     }
 
     [Test]
