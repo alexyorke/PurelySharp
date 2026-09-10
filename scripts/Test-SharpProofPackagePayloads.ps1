@@ -6,29 +6,36 @@ function Get-SharpProofArchiveAssemblyName {
         [IO.Compression.ZipArchiveEntry]$Entry
     )
 
-    $temporary = Join-Path `
-        ([IO.Path]::GetTempPath()) `
-        ('sharpproof-assembly-' + [Guid]::NewGuid().ToString('N') + '.dll')
+    $assemblyStream = [IO.MemoryStream]::new()
     try {
         $input = $Entry.Open()
         try {
-            $output = [IO.File]::Create($temporary)
-            try {
-                $input.CopyTo($output)
-            }
-            finally {
-                $output.Dispose()
-            }
+            $input.CopyTo($assemblyStream)
         }
         finally {
             $input.Dispose()
         }
-        return [Reflection.AssemblyName]::GetAssemblyName($temporary).Name
+        $assemblyStream.Position = 0
+        $peReader = [Reflection.PortableExecutable.PEReader]::new(
+            $assemblyStream)
+        try {
+            $metadata = [Reflection.Metadata.PEReaderExtensions]::GetMetadataReader(
+                $peReader,
+                [Reflection.Metadata.MetadataReaderOptions]::None)
+            return $metadata.GetAssemblyDefinition().GetAssemblyName().Name
+        }
+        catch [InvalidOperationException] {
+            throw [BadImageFormatException]::new(
+                $_.Exception.Message,
+                $Entry.FullName,
+                $_.Exception)
+        }
+        finally {
+            $peReader.Dispose()
+        }
     }
     finally {
-        if ([IO.File]::Exists($temporary)) {
-            [IO.File]::Delete($temporary)
-        }
+        $assemblyStream.Dispose()
     }
 }
 
