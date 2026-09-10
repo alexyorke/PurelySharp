@@ -592,16 +592,8 @@ internal static partial class RequiresCallSiteTreeAnalyzer
 
         private static bool IsInsideNameOf(IOperation value)
         {
-            for (var operation = value.Parent;
-                 operation != null;
-                 operation = operation.Parent)
-            {
-                if (operation is INameOfOperation)
-                {
-                    return true;
-                }
-            }
-            return false;
+            return OperationAncestors.Of(value).Any(static operation =>
+                operation is INameOfOperation);
         }
 
         private bool TryGetLocalDestination(
@@ -903,20 +895,14 @@ internal static partial class RequiresCallSiteTreeAnalyzer
                 ILocalReferenceOperation reference,
                 out int commitEnd)
             {
-                for (var operation = reference.Parent;
-                     operation != null;
-                     operation = operation.Parent)
+                var argument = OperationAncestors.Of(reference)
+                    .OfType<IArgumentOperation>()
+                    .FirstOrDefault();
+                if (argument?.Parameter?.RefKind == RefKind.Out)
                 {
-                    if (operation is IArgumentOperation argument)
-                    {
-                        if (argument.Parameter?.RefKind == RefKind.Out)
-                        {
-                            commitEnd = argument.Parent?.Syntax.Span.End ??
-                                argument.Syntax.Span.End;
-                            return true;
-                        }
-                        break;
-                    }
+                    commitEnd = argument.Parent?.Syntax.Span.End ??
+                        argument.Syntax.Span.End;
+                    return true;
                 }
                 commitEnd = -1;
                 return false;
@@ -1241,16 +1227,9 @@ internal static partial class RequiresCallSiteTreeAnalyzer
         private static ISimpleAssignmentOperation? GetEnclosingSimpleAssignment(
             ILocalReferenceOperation reference)
         {
-            for (var operation = reference.Parent;
-                 operation != null;
-                 operation = operation.Parent)
-            {
-                if (operation is ISimpleAssignmentOperation)
-                {
-                    return (ISimpleAssignmentOperation)operation;
-                }
-            }
-            return null;
+            return OperationAncestors.Of(reference)
+                .OfType<ISimpleAssignmentOperation>()
+                .FirstOrDefault();
         }
 
         private static bool IsAssignedStorage(
@@ -1435,17 +1414,9 @@ internal static partial class RequiresCallSiteTreeAnalyzer
                 ILocalReferenceOperation reference,
                 string[]? tuplePath)
         {
-            IIsPatternOperation? match = null;
-            for (var current = reference.Parent;
-                 current != null;
-                 current = current.Parent)
-            {
-                if (current is IIsPatternOperation isPattern)
-                {
-                    match = isPattern;
-                    break;
-                }
-            }
+            var match = OperationAncestors.Of(reference)
+                .OfType<IIsPatternOperation>()
+                .FirstOrDefault();
             if (match == null)
             {
                 return [];

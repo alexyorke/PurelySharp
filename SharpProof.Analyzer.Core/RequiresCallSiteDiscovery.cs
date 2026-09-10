@@ -1065,26 +1065,15 @@ internal sealed partial class RequiresCallSiteDiscovery(
 
     private static bool IsInsideLoop(IOperation operation)
     {
-        return Ancestors(operation).Any(static ancestor =>
+        return OperationAncestors.Of(operation).Any(static ancestor =>
             ancestor is ILoopOperation);
     }
 
     private static bool IsInsideNestedCallable(IOperation operation)
     {
-        return Ancestors(operation).Any(static ancestor =>
+        return OperationAncestors.Of(operation).Any(static ancestor =>
             ancestor is IAnonymousFunctionOperation or
                 ILocalFunctionOperation);
-    }
-
-    private static IEnumerable<IOperation> Ancestors(
-        IOperation operation)
-    {
-        for (var current = operation.Parent;
-             current != null;
-             current = current.Parent)
-        {
-            yield return current;
-        }
     }
 
     private static bool TryGetMethodReference(
@@ -2039,7 +2028,7 @@ internal sealed partial class RequiresCallSiteDiscovery(
                 property, getter, setter, null);
         }
         if (getter == null ||
-            Ancestors(property).Any(static ancestor =>
+            OperationAncestors.Of(property).Any(static ancestor =>
                 ancestor is INameOfOperation))
         {
             return [];
