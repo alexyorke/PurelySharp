@@ -6850,7 +6850,9 @@ public sealed class WorkerTests
     private sealed class TestProject : IDisposable
     {
         private static readonly ImmutableArray<MetadataReference>
-            DefaultReferences = CreateReferences();
+            DefaultReferences = TestMetadataReferences.ForFileNames(
+                RequiredReferenceFileNames,
+                sort: true);
         private static readonly ImmutableArray<MetadataReference>
             NetCoreReferencePack = CreateNetCoreReferencePack();
         private readonly List<string> _additionalReferencePaths = [];
@@ -6995,13 +6997,6 @@ public sealed class WorkerTests
             TestRepository.DeleteOwnedTemporaryDirectory(
                 DirectoryPath,
                 "SharpProof.Worker.Test");
-        }
-
-        private static ImmutableArray<MetadataReference> CreateReferences()
-        {
-            return TestMetadataReferences.ForFileNames(
-                RequiredReferenceFileNames,
-                sort: true);
         }
 
         private static ImmutableArray<MetadataReference>
