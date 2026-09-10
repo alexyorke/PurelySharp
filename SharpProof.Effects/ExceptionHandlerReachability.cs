@@ -35,6 +35,10 @@ internal sealed class ExceptionHandlerReachability(
         _incrementTargetCompletionCache = new();
     private readonly Dictionary<IMethodSymbol, bool> _methodCompletionCache =
         new(SymbolEqualityComparer.Default);
+    private readonly Dictionary<
+        IMethodSymbol,
+        Dictionary<int, PotentialExceptions>> _callableExceptionsCache =
+        new(SymbolEqualityComparer.Default);
     private readonly Dictionary<IMethodSymbol, ReturnNullability>
         _returnNullabilityCache = new(SymbolEqualityComparer.Default);
     private readonly Dictionary<
@@ -2949,6 +2953,20 @@ internal sealed class ExceptionHandlerReachability(
         {
             return UnknownPotential;
         }
+        if (activeMethods.Contains(method))
+        {
+            return EmptyPotential;
+        }
+
+        var cacheResult = activeMethods.Count == 0;
+        if (cacheResult &&
+            _callableExceptionsCache.TryGetValue(
+                method,
+                out var resultsByDepth) &&
+            resultsByDepth.TryGetValue(depth, out var cached))
+        {
+            return cached;
+        }
         if (!activeMethods.Add(method))
         {
             return EmptyPotential;
@@ -2956,13 +2974,14 @@ internal sealed class ExceptionHandlerReachability(
 
         try
         {
+            PotentialExceptions result;
             if (method is
                 {
                     MethodKind: MethodKind.Constructor,
                     IsImplicitlyDeclared: true
                 })
             {
-                return EffectMethodNodeBuilder
+                result = EffectMethodNodeBuilder
                     .IsSourceImplicitParameterlessConstructor(method)
                     ? GetImplicitConstructorExceptions(
                         method,
@@ -2970,23 +2989,37 @@ internal sealed class ExceptionHandlerReachability(
                         depth)
                     : EmptyPotential;
             }
-            if (method.DeclaringSyntaxReferences.Length != 1)
+            else if (method.DeclaringSyntaxReferences.Length != 1)
             {
-                return UnknownPotential;
+                result = UnknownPotential;
             }
-
-            var declaration = method.DeclaringSyntaxReferences[0].GetSyntax();
-            var model = SharpProof.Frontend.Host.CompilationModelProvider
-                .GetSemanticModel(compilation, declaration.SyntaxTree);
-            var operation = model.GetOperation(declaration) ??
-                GetBodyOperation(declaration, model);
-            return operation == null
-                ? UnknownPotential
-                : GetPotentialExceptions(
-                    operation,
-                    activeMethods,
-                    depth,
-                    keepEscaping: true);
+            else
+            {
+                var declaration = method.DeclaringSyntaxReferences[0].GetSyntax();
+                var model = SharpProof.Frontend.Host.CompilationModelProvider
+                    .GetSemanticModel(compilation, declaration.SyntaxTree);
+                var operation = model.GetOperation(declaration) ??
+                    GetBodyOperation(declaration, model);
+                result = operation == null
+                    ? UnknownPotential
+                    : GetPotentialExceptions(
+                        operation,
+                        activeMethods,
+                        depth,
+                        keepEscaping: true);
+            }
+            if (cacheResult)
+            {
+                if (!_callableExceptionsCache.TryGetValue(
+                        method,
+                        out resultsByDepth))
+                {
+                    resultsByDepth = new();
+                    _callableExceptionsCache.Add(method, resultsByDepth);
+                }
+                resultsByDepth[depth] = result;
+            }
+            return result;
         }
         catch (ArgumentException)
         {

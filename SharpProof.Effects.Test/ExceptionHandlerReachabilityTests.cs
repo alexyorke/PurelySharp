@@ -116,6 +116,86 @@ public sealed class ExceptionHandlerReachabilityTests
         }
     }
 
+    [Test]
+    public void RepeatedAndRecursiveCallsPreserveCatchReachability()
+    {
+        var compilation = EffectTestHost.CreateCompilation(
+            """
+            using System;
+
+            public static class Sample {
+                public static void Leaf() {
+                    throw new InvalidOperationException();
+                }
+
+                public static void Repeated() {
+                    try {
+                        Leaf();
+                        Leaf();
+                    }
+                    catch (InvalidOperationException) {
+                    }
+                }
+
+                public static void First() {
+                    Second();
+                }
+
+                public static void Second() {
+                    First();
+                    throw new ApplicationException();
+                }
+
+                public static void Indirect() {
+                    try {
+                        First();
+                    }
+                    catch (ApplicationException) {
+                    }
+                }
+            }
+            """);
+        var session = new EffectAnalysisSession(compilation);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                IsCatchReachable(compilation, session, "Repeated"),
+                Is.True);
+            Assert.That(
+                IsCatchReachable(compilation, session, "Indirect"),
+                Is.True);
+        }
+    }
+
+    [Test]
+    public void CallableExceptionWalkHonorsDepthCutoff()
+    {
+        const int lastForwardingMethod = 34;
+        var forwardingMethods = string.Join(
+            Environment.NewLine,
+            Enumerable.Range(0, lastForwardingMethod)
+                .Select(index =>
+                    $"public static void M{index}() {{ M{index + 1}(); }}"));
+        var compilation = EffectTestHost.CreateCompilation(
+            $$"""
+            public static class Sample {
+                {{forwardingMethods}}
+                public static void M{{lastForwardingMethod}}() { }
+            }
+            """);
+        var session = new EffectAnalysisSession(compilation);
+        var reachability = EffectTestHost.CreateHandlerReachability(
+            compilation,
+            EffectTestHost.SampleMethod(compilation, "M0"),
+            session);
+
+        Assert.That(
+            reachability.CanMethodThrow(
+                EffectTestHost.SampleMethod(compilation, "M0")),
+            Is.True);
+    }
+
     private static bool IsCatchReachable(
         Compilation compilation,
         EffectAnalysisSession session,
