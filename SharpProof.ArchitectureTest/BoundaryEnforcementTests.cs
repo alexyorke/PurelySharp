@@ -54,7 +54,8 @@ public sealed class BoundaryEnforcementTests
         ]),
         ("SharpProof.Dataflow", [
             "SharpProof.Analyzer.Core",
-            "SharpProof.Dataflow.Test"
+            "SharpProof.Dataflow.Test",
+            "SharpProof.Effects"
         ]),
         ("SharpProof.Effects", [
             "SharpProof.Analyzer",
