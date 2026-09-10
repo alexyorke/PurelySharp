@@ -19,6 +19,7 @@ internal static class OpenSourceCorpusRunner
         CancellationToken cancellationToken)
     {
         var parsedFiles = OpenSourceCorpusCatalog.GetParsedFiles(document);
+        var declarationIndexes = OpenSourceCorpusCatalog.GetDeclarationIndexes(document);
         var trees = ImmutableArray.CreateBuilder<SyntaxTree>(
             document.Files.Length + 1);
         trees.Add(CSharpSyntaxTree.ParseText(
@@ -69,8 +70,10 @@ internal static class OpenSourceCorpusRunner
                     .GetCompilationUnitRoot(cancellationToken);
             if (methodsByFile.TryGetValue(key, out var methods))
             {
-                var declarationIndex =
-                    OpenSourceCorpusCatalog.BuildDeclarationIndex(root);
+                var declarationIndex = declarationIndexes is not null &&
+                    declarationIndexes.TryGetValue(key, out var cachedIndex)
+                    ? cachedIndex
+                    : OpenSourceCorpusCatalog.BuildDeclarationIndex(root);
                 var selected = methods.ToImmutableDictionary(
                     method => OpenSourceCorpusCatalog.FindDeclaration(
                         declarationIndex,

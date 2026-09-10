@@ -54,6 +54,19 @@ internal static class OpenSourceCorpusCatalog
             : null;
     }
 
+    internal static ImmutableDictionary<
+        string,
+        ImmutableDictionary<
+            (int StartLine, int EndLine),
+            ImmutableArray<MethodDeclarationSyntax>>>?
+        GetDeclarationIndexes(OpenSourceCorpusDocument document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        return ParsedFiles.TryGetValue(document, out var validation)
+            ? validation.DeclarationIndexes
+            : null;
+    }
+
     internal static int GetSourceFileCount(
         OpenSourceCorpusDocument document)
     {
@@ -292,15 +305,27 @@ internal static class OpenSourceCorpusCatalog
 
         return new ValidationResult(
             files.ToImmutableDictionary(StringComparer.Ordinal),
+            declarationIndexes.ToImmutableDictionary(StringComparer.Ordinal),
             sourceFileCount);
     }
 
     private sealed class ValidationResult(
         ImmutableDictionary<string, CompilationUnitSyntax> parsedFiles,
+        ImmutableDictionary<
+            string,
+            ImmutableDictionary<
+                (int StartLine, int EndLine),
+                ImmutableArray<MethodDeclarationSyntax>>> declarationIndexes,
         int sourceFileCount)
     {
         internal ImmutableDictionary<string, CompilationUnitSyntax> ParsedFiles { get; } =
             parsedFiles;
+        internal ImmutableDictionary<
+            string,
+            ImmutableDictionary<
+                (int StartLine, int EndLine),
+                ImmutableArray<MethodDeclarationSyntax>>> DeclarationIndexes { get; } =
+            declarationIndexes;
         internal int SourceFileCount { get; } = sourceFileCount;
     }
 
