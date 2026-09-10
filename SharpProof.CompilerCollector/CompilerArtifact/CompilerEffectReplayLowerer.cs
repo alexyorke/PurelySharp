@@ -269,7 +269,9 @@ internal static class CompilerEffectReplayLowerer
                 IInvocationOperation invocation) when
                 witness.Kind == EffectDirectEventKinds.ToWireName(
                     EffectDirectEventKind.MonitorCall) &&
-                IsDefiniteMonitorCall(frameworkTypes.MonitorType, invocation):
+                MonitorFacts.IsExplicitMonitorCall(
+                    invocation,
+                    frameworkTypes.MonitorType):
                 eventKind = CompilerEffectReplayEventKind.MonitorCall;
                 memberIdentity = CompilerIdentityBridge.CreateSymbolDisplay(
                     invocation.TargetMethod);
@@ -388,15 +390,6 @@ internal static class CompilerEffectReplayLowerer
                 type.ContainingAssembly,
                 exceptionType.ContainingAssembly) &&
             EffectTypeFacts.IsDerivedFrom(type, exceptionType);
-    }
-
-    private static bool IsDefiniteMonitorCall(
-        INamedTypeSymbol? monitorType,
-        IInvocationOperation invocation)
-    {
-        return MonitorFacts.IsExplicitMonitorCall(
-            invocation,
-            monitorType);
     }
 
     private static bool IsDefiniteEmptyLock(
