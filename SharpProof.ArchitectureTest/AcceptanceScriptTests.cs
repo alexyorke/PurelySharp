@@ -8,7 +8,6 @@ namespace SharpProof.ArchitectureTest;
 public sealed class AcceptanceScriptTests
 {
     [TestCase("canonical", true)]
-    [TestCase("zero-restore", true)]
     [TestCase("nonzero-restore", true)]
     [TestCase("boundary-equality", true)]
     [TestCase("restore-failure", true)]

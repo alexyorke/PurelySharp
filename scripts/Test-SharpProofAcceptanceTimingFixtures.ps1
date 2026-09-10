@@ -2,7 +2,7 @@
 param(
     [Parameter(Mandatory = $true)]
     [ValidateSet(
-        'canonical','zero-restore','nonzero-restore','boundary-equality',
+        'canonical','nonzero-restore','boundary-equality',
         'restore-failure','phase-order','phase-overlap','before-start',
         'after-completion','wrong-total')]
     [string]$Mutation
@@ -36,7 +36,7 @@ $phases = [Collections.Generic.List[object]]::new()
 foreach ($name in $names) {
     $duration = if ($name -ceq 'restore' -and
         $Mutation -eq 'nonzero-restore') { 25L } else { 10L }
-    if ($Mutation -in @('zero-restore','boundary-equality') -and
+    if ($Mutation -eq 'boundary-equality' -and
         $name -ceq 'restore') { $duration = 0L }
     $phaseStart = $outerStart.AddMilliseconds($cursor)
     $cursor += $duration
