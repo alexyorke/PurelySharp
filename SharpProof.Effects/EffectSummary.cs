@@ -192,14 +192,9 @@ public sealed class EffectSummaryDomain : ClosedAbstractDomain<EffectSummary>
         left = ArgumentNullGuard.NotNull(left, nameof(left));
         right = ArgumentNullGuard.NotNull(right, nameof(right));
 
-        if (left.IsBottom)
+        if (left.IsBottom || right.IsBottom)
         {
-            return right;
-        }
-
-        if (right.IsBottom)
-        {
-            return left;
+            return left.IsBottom ? right : left;
         }
 
         return new EffectSummary(

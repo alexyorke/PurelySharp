@@ -98,14 +98,9 @@ public sealed class SequenceCardinalityDomain : ClosedAbstractDomain<SequenceCar
     {
         Validate(left.Kind);
         Validate(right.Kind);
-        if (left.IsBottom)
+        if (left.IsBottom || right.IsBottom)
         {
-            return right;
-        }
-
-        if (right.IsBottom)
-        {
-            return left;
+            return left.IsBottom ? right : left;
         }
 
         return Create(

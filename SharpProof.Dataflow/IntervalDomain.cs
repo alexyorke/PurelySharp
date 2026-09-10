@@ -117,14 +117,9 @@ public sealed class IntervalDomain : ClosedAbstractDomain<IntervalValue>
 
     public override IntervalValue Join(IntervalValue left, IntervalValue right)
     {
-        if (left.IsBottom)
+        if (left.IsBottom || right.IsBottom)
         {
-            return right;
-        }
-
-        if (right.IsBottom)
-        {
-            return left;
+            return left.IsBottom ? right : left;
         }
 
         var lower = left.LowerBound.HasValue && right.LowerBound.HasValue

@@ -1992,14 +1992,9 @@ internal readonly record struct ManagedAbstractValue(
 
     internal static ManagedAbstractValue Join(ManagedAbstractValue left, ManagedAbstractValue right)
     {
-        if (left.IsBottom)
+        if (left.IsBottom || right.IsBottom)
         {
-            return right;
-        }
-
-        if (right.IsBottom)
-        {
-            return left;
+            return left.IsBottom ? right : left;
         }
 
         if (left.IsUnknown || right.IsUnknown)
