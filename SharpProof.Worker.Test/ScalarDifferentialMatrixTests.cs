@@ -151,7 +151,13 @@ public sealed class ScalarDifferentialMatrixTests
             "checked(-value)",
             long.MaxValue,
             -long.MaxValue),
-        UnaryOverflow("NegateOverflow", "checked(-value)", long.MinValue)
+        new(
+            "NegateOverflow",
+            "checked(-value)",
+            [long.MinValue],
+            null,
+            typeof(OverflowException),
+            IrExceptionKind.Overflow)
     ];
 
     private static readonly string[] RequiredReferenceFileNames = [
@@ -811,20 +817,6 @@ public sealed class ScalarDifferentialMatrixTests
         long expected)
     {
         return new(methodName, expression, [value], expected, null, null);
-    }
-
-    private static ArithmeticCase UnaryOverflow(
-        string methodName,
-        string expression,
-        long value)
-    {
-        return new(
-            methodName,
-            expression,
-            [value],
-            null,
-            typeof(OverflowException),
-            IrExceptionKind.Overflow);
     }
 
     private static string ToLongLiteral(long value)
