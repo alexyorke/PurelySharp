@@ -118,7 +118,8 @@ internal static partial class RequiresCallSiteTreeAnalyzer
                 semanticModel.Compilation,
                 cancellationToken);
         private readonly INamedTypeSymbol? _delegateType =
-            semanticModel.Compilation.GetTypeByMetadataName("System.Delegate");
+            semanticModel.Compilation.GetTypeByMetadataName(
+                FrameworkTypeMetadataNames.Delegate);
         private readonly INamedTypeSymbol? _expressionTreeType =
             semanticModel.Compilation.GetTypeByMetadataName(
                 FrameworkTypeMetadataNames.ExpressionOfT);

@@ -12,6 +12,7 @@ public static class FrameworkTypeMetadataNames
         "System.ArrayTypeMismatchException";
     public const string ConditionalAttribute =
         "System.Diagnostics.ConditionalAttribute";
+    public const string Delegate = "System.Delegate";
     public const string DivideByZeroException =
         "System.DivideByZeroException";
     public const string Exception = "System.Exception";
@@ -25,6 +26,7 @@ public static class FrameworkTypeMetadataNames
     public const string InvalidCastException = "System.InvalidCastException";
     public const string InvalidOperationException =
         "System.InvalidOperationException";
+    public const string IAsyncDisposable = "System.IAsyncDisposable";
     public const string IDisposable = "System.IDisposable";
     public const string IFormattable = "System.IFormattable";
     public const string IFormatProvider = "System.IFormatProvider";
