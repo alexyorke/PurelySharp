@@ -7,4 +7,10 @@
     <NoWarn>$(NoWarn);NU5128</NoWarn>
     <NoPackageAnalysis>true</NoPackageAnalysis>
   </PropertyGroup>
+  <Target Name="_SharpProofPrepareCommonNuspecProperties">
+    <PropertyGroup>
+      <_SharpProofNuspecPrefix>version=$(SharpProofPackageVersion);configuration=$(Configuration);repositorycommit=$(RepositoryCommit)</_SharpProofNuspecPrefix>
+      <_SharpProofNuspecSuffix>authors=$(Authors);license=$(PackageLicenseExpression);readme=$(PackageReadmeFile);copyright=$(PackageCopyright);projecturl=$(PackageProjectUrl);repositorytype=$(RepositoryType);repositoryurl=$(RepositoryUrl)</_SharpProofNuspecSuffix>
+    </PropertyGroup>
+  </Target>
 </Project>

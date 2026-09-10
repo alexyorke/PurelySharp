@@ -25,10 +25,11 @@
                       PrivateAssets="all"
                       TreatAsPackageReference="false" />
   </ItemGroup>
-  <Target Name="_SharpProofPrepareNuspecProperties"
-          BeforeTargets="GenerateNuspec">
+  <Target Name="_SharpProofPreparePackageNuspecProperties"
+          BeforeTargets="GenerateNuspec"
+          DependsOnTargets="_SharpProofPrepareCommonNuspecProperties">
     <PropertyGroup>
-      <NuspecProperties>version=$(SharpProofPackageVersion);configuration=$(Configuration);repositorycommit=$(RepositoryCommit);authors=$(Authors);license=$(PackageLicenseExpression);readme=$(PackageReadmeFile);copyright=$(PackageCopyright);projecturl=$(PackageProjectUrl);repositorytype=$(RepositoryType);repositoryurl=$(RepositoryUrl)</NuspecProperties>
+      <NuspecProperties>$(_SharpProofNuspecPrefix);$(_SharpProofNuspecSuffix)</NuspecProperties>
     </PropertyGroup>
   </Target>
 </Project>
