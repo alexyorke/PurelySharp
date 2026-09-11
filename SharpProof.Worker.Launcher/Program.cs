@@ -1009,9 +1009,9 @@ internal sealed partial class LauncherArguments
         ValidateDistinctPaths(
             runtimeSnapshot,
             cacheEnabled
-                ? WorkerCachePath.Resolve(
+                ? Program.NormalizeAbsolutePath(WorkerCachePath.Resolve(
                     Optional("cache-directory"),
-                    artifact.Compilation.ProjectDirectory)
+                    artifact.Compilation.ProjectDirectory))
                 : null);
         return request;
     }
@@ -1056,8 +1056,7 @@ internal sealed partial class LauncherArguments
             ..publicationPaths
         ];
         var writablePaths = writableCandidates
-            .OfType<string>()
-            .Select(LinuxPathIdentity.Canonicalize);
+            .OfType<string>();
         if (writablePaths.Any(path => runtimeDirectories.Any(directory =>
                 LinuxPathIdentity.IsSameOrDescendant(path, directory))))
         {
