@@ -182,8 +182,7 @@ internal sealed class CompilerSpecificationPackProvider
         {
             resultExpression = Instantiate(
                 definition.Result,
-                parameters,
-                depth: 0);
+                parameters);
         }
         catch (ArgumentException)
         {
@@ -275,14 +274,8 @@ internal sealed class CompilerSpecificationPackProvider
 
     private IrTerm Instantiate(
         Term term,
-        ImmutableArray<IrVarId> parameters,
-        int depth)
+        ImmutableArray<IrVarId> parameters)
     {
-        if (depth > MaximumTermDepth)
-        {
-            throw new ArgumentException("A specification-pack term is too deep.");
-        }
-
         IrTerm result = term switch
         {
             ParameterTerm parameter when
@@ -293,15 +286,15 @@ internal sealed class CompilerSpecificationPackProvider
             IntegerTerm integer => _factory.Integer(integer.Value),
             UnaryTerm unary => _factory.Unary(
                 unary.Operator,
-                Instantiate(unary.Operand, parameters, depth + 1)),
+                Instantiate(unary.Operand, parameters)),
             BinaryTerm binary => _factory.Binary(
                 binary.Operator,
-                Instantiate(binary.Left, parameters, depth + 1),
-                Instantiate(binary.Right, parameters, depth + 1)),
+                Instantiate(binary.Left, parameters),
+                Instantiate(binary.Right, parameters)),
             ConditionalTerm conditional => _factory.Conditional(
-                Instantiate(conditional.Condition, parameters, depth + 1),
-                Instantiate(conditional.WhenTrue, parameters, depth + 1),
-                Instantiate(conditional.WhenFalse, parameters, depth + 1)),
+                Instantiate(conditional.Condition, parameters),
+                Instantiate(conditional.WhenTrue, parameters),
+                Instantiate(conditional.WhenFalse, parameters)),
             _ => throw new ArgumentException(
                 "A specification-pack term is invalid.")
         };

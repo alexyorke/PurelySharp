@@ -288,12 +288,6 @@ public sealed class CompilerSpecificationPackProviderTests
                 (Action)(() => Instantiate(ParseTerm(
                     """{"kind":"parameter","type":"Boolean","ordinal":0}"""))),
                 Throws.TypeOf<ArgumentException>());
-            Assert.That(
-                (Action)(() => Instantiate(
-                    ParseTerm(
-                        """{"kind":"boolean","type":"Boolean","value":true}"""),
-                    65)),
-                Throws.TypeOf<ArgumentException>());
             using var array = JsonDocument.Parse("[]");
             Assert.That(
                 (Action)(() => Invoke(
@@ -388,7 +382,7 @@ public sealed class CompilerSpecificationPackProviderTests
         return Invoke(method, instance: null, arguments);
     }
 
-    private static IrTerm Instantiate(object term, int depth = 0)
+    private static IrTerm Instantiate(object term)
     {
         var factory = new IrFactory();
         var provider = new CompilerSpecificationPackProvider(factory, []);
@@ -398,7 +392,7 @@ public sealed class CompilerSpecificationPackProviderTests
         return (IrTerm)Invoke(
             s_instantiate,
             provider,
-            [term, ImmutableArray.Create(parameter), depth]);
+            [term, ImmutableArray.Create(parameter)]);
     }
 
     private static object Invoke(
