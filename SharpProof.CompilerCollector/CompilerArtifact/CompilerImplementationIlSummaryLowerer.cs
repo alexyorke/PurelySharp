@@ -569,6 +569,14 @@ internal static class CompilerImplementationIlSummaryLowerer
             _resolvedMethods = new();
         private bool _mayThrow;
 
+        private readonly record struct BlockContext(
+            IrBlockId Block,
+            Dictionary<int, IrBlockId> Blocks,
+            ImmutableArray<IrVarId> Locals,
+            ImmutableArray<ScalarType> LocalTypes,
+            Stack<IlValue> Stack,
+            IrProgramBuilder Builder);
+
         internal CompilerImplementationIlAbstentionReason FailureReason
         {
             get;
@@ -692,6 +700,13 @@ internal static class CompilerImplementationIlSummaryLowerer
 
                 var terminated = false;
                 var instructionIndex = instructionIndexes[start];
+                var context = new BlockContext(
+                    block,
+                    blocks,
+                    locals,
+                    localTypes,
+                    stack,
+                    builder);
                 for (; instructionIndex < instructions.Length &&
                        instructions[instructionIndex].Offset < end;
                      instructionIndex++)
@@ -699,18 +714,13 @@ internal static class CompilerImplementationIlSummaryLowerer
                     var instruction = instructions[instructionIndex];
                     if (!ExecuteInstruction(
                             instruction,
-                            block,
-                            blocks,
-                            locals,
-                            localTypes,
-                            stack,
-                            builder,
+                            in context,
                             out terminated))
                     {
                         return null;
                     }
 
-                    if (stack.Count > _body.MaxStack)
+                    if (context.Stack.Count > _body.MaxStack)
                     {
                         return null;
                     }
@@ -754,12 +764,7 @@ internal static class CompilerImplementationIlSummaryLowerer
 
         private bool ExecuteInstruction(
             DecodedInstruction instruction,
-            IrBlockId block,
-            Dictionary<int, IrBlockId> blocks,
-            ImmutableArray<IrVarId> locals,
-            ImmutableArray<ScalarType> localTypes,
-            Stack<IlValue> stack,
-            IrProgramBuilder builder,
+            in BlockContext context,
             out bool terminated)
         {
             terminated = false;
@@ -774,12 +779,12 @@ internal static class CompilerImplementationIlSummaryLowerer
                     return PushArgument(
                         (int)instruction.OpCode -
                         (int)ILOpCode.Ldarg_0,
-                        stack);
+                        context.Stack);
                 case ILOpCode.Ldarg_s:
                 case ILOpCode.Ldarg:
                     return PushArgument(
                         checked((int)instruction.Operand),
-                        stack);
+                        context.Stack);
                 case ILOpCode.Ldloc_0:
                 case ILOpCode.Ldloc_1:
                 case ILOpCode.Ldloc_2:
@@ -787,16 +792,12 @@ internal static class CompilerImplementationIlSummaryLowerer
                     return PushLocal(
                         (int)instruction.OpCode -
                         (int)ILOpCode.Ldloc_0,
-                        locals,
-                        localTypes,
-                        stack);
+                        in context);
                 case ILOpCode.Ldloc_s:
                 case ILOpCode.Ldloc:
                     return PushLocal(
                         checked((int)instruction.Operand),
-                        locals,
-                        localTypes,
-                        stack);
+                        in context);
                 case ILOpCode.Stloc_0:
                 case ILOpCode.Stloc_1:
                 case ILOpCode.Stloc_2:
@@ -805,53 +806,45 @@ internal static class CompilerImplementationIlSummaryLowerer
                         (int)instruction.OpCode -
                         (int)ILOpCode.Stloc_0,
                         instruction,
-                        block,
-                        locals,
-                        localTypes,
-                        stack,
-                        builder);
+                        in context);
                 case ILOpCode.Stloc_s:
                 case ILOpCode.Stloc:
                     return StoreLocal(
                         checked((int)instruction.Operand),
                         instruction,
-                        block,
-                        locals,
-                        localTypes,
-                        stack,
-                        builder);
+                        in context);
                 case ILOpCode.Ldc_i4_m1:
-                    stack.Push(Integer(-1));
+                    context.Stack.Push(Integer(-1));
                     return true;
                 case >= ILOpCode.Ldc_i4_0 and <= ILOpCode.Ldc_i4_8:
-                    stack.Push(Integer(
+                    context.Stack.Push(Integer(
                         (int)instruction.OpCode -
                         (int)ILOpCode.Ldc_i4_0));
                     return true;
                 case ILOpCode.Ldc_i4_s:
                 case ILOpCode.Ldc_i4:
-                    stack.Push(Integer(
+                    context.Stack.Push(Integer(
                         checked((int)instruction.Operand)));
                     return true;
                 case ILOpCode.Ldc_i8:
-                    stack.Push(new IlValue(
+                    context.Stack.Push(new IlValue(
                         _factory.Integer(instruction.Operand),
                         SpecialType.System_Int64));
                     return true;
                 case ILOpCode.Dup:
-                    if (!TryPeek(stack, out var duplicated))
+                    if (!TryPeek(context.Stack, out var duplicated))
                     {
                         return false;
                     }
 
-                    stack.Push(duplicated);
+                    context.Stack.Push(duplicated);
                     return true;
                 case ILOpCode.Pop:
-                    return TryPop(stack, out _);
+                    return TryPop(context.Stack, out _);
                 case ILOpCode.Ceq:
                 case ILOpCode.Cgt:
                 case ILOpCode.Clt:
-                    return Compare(instruction.OpCode, stack);
+                    return Compare(instruction.OpCode, context.Stack);
                 case ILOpCode.Add:
                 case ILOpCode.Sub:
                 case ILOpCode.Mul:
@@ -862,44 +855,40 @@ internal static class CompilerImplementationIlSummaryLowerer
                 case ILOpCode.Rem:
                     return Arithmetic(
                         instruction,
-                        block,
-                        stack,
-                        builder);
+                        in context);
                 case ILOpCode.And:
                 case ILOpCode.Or:
                 case ILOpCode.Xor:
                     return BooleanBinary(
                         instruction.OpCode,
-                        stack);
+                        context.Stack);
                 case ILOpCode.Neg:
-                    return Negate(stack);
+                    return Negate(context.Stack);
                 case ILOpCode.Call:
                     return Call(
                         instruction,
-                        block,
-                        stack,
-                        builder);
+                        in context);
                 case ILOpCode.Br:
                 case ILOpCode.Br_s:
-                    if (stack.Count != 0)
+                    if (context.Stack.Count != 0)
                     {
                         return false;
                     }
 
-                    builder.Goto(
-                        block,
+                    context.Builder.Goto(
+                        context.Block,
                         Operation(instruction.Offset),
-                        blocks[instruction.BranchTarget]);
+                        context.Blocks[instruction.BranchTarget]);
                     terminated = true;
                     return true;
                 case ILOpCode.Brtrue:
                 case ILOpCode.Brtrue_s:
                 case ILOpCode.Brfalse:
                 case ILOpCode.Brfalse_s:
-                    if (!TryPop(stack, out var branchValue) ||
+                    if (!TryPop(context.Stack, out var branchValue) ||
                         !TryBoolean(branchValue, out var branchCondition) ||
-                        stack.Count != 0 ||
-                        !blocks.TryGetValue(
+                        context.Stack.Count != 0 ||
+                        !context.Blocks.TryGetValue(
                             instruction.NextOffset,
                             out var fallthrough))
                     {
@@ -908,14 +897,14 @@ internal static class CompilerImplementationIlSummaryLowerer
 
                     var whenTrue = instruction.OpCode is
                         ILOpCode.Brtrue or ILOpCode.Brtrue_s
-                            ? blocks[instruction.BranchTarget]
+                            ? context.Blocks[instruction.BranchTarget]
                             : fallthrough;
                     var whenFalse = instruction.OpCode is
                         ILOpCode.Brtrue or ILOpCode.Brtrue_s
                             ? fallthrough
-                            : blocks[instruction.BranchTarget];
-                    builder.Branch(
-                        block,
+                            : context.Blocks[instruction.BranchTarget];
+                    context.Builder.Branch(
+                        context.Block,
                         Operation(instruction.Offset),
                         branchCondition,
                         whenTrue,
@@ -936,37 +925,37 @@ internal static class CompilerImplementationIlSummaryLowerer
                 case ILOpCode.Blt_s:
                     if (!BranchComparison(
                             instruction,
-                            stack,
+                            context.Stack,
                             out var comparison) ||
-                        stack.Count != 0 ||
-                        !blocks.TryGetValue(
+                        context.Stack.Count != 0 ||
+                        !context.Blocks.TryGetValue(
                             instruction.NextOffset,
                             out var comparisonFallthrough))
                     {
                         return false;
                     }
 
-                    builder.Branch(
-                        block,
+                    context.Builder.Branch(
+                        context.Block,
                         Operation(instruction.Offset),
                         comparison,
-                        blocks[instruction.BranchTarget],
+                        context.Blocks[instruction.BranchTarget],
                         comparisonFallthrough);
                     terminated = true;
                     return true;
                 case ILOpCode.Ret:
-                    if (!TryPop(stack, out var returned) ||
+                    if (!TryPop(context.Stack, out var returned) ||
                         !TryCoerce(
                             returned,
                             _method.ReturnType.SpecialType,
                             out returned) ||
-                        stack.Count != 0)
+                        context.Stack.Count != 0)
                     {
                         return false;
                     }
 
-                    builder.Return(
-                        block,
+                    context.Builder.Return(
+                        context.Block,
                         Operation(instruction.Offset),
                         returned.Term);
                     terminated = true;
@@ -1079,9 +1068,7 @@ internal static class CompilerImplementationIlSummaryLowerer
 
         private bool Call(
             DecodedInstruction instruction,
-            IrBlockId block,
-            Stack<IlValue> stack,
-            IrProgramBuilder builder)
+            in BlockContext context)
         {
             var handle = MetadataTokens.Handle(
                 checked((int)instruction.Operand));
@@ -1117,7 +1104,7 @@ internal static class CompilerImplementationIlSummaryLowerer
             var terms = new IrTerm[target.Parameters.Length];
             for (var index = terms.Length - 1; index >= 0; index--)
             {
-                if (!TryPop(stack, out var argument) ||
+                if (!TryPop(context.Stack, out var argument) ||
                     !TryCoerce(
                         argument,
                         target.Parameters[index].Type.SpecialType,
@@ -1152,15 +1139,15 @@ internal static class CompilerImplementationIlSummaryLowerer
                 "il:call:" + instruction.Offset.ToString(
                     CultureInfo.InvariantCulture),
                 _mapper.GetTypeId(target.ReturnType));
-            var call = builder.Call(
-                block,
+            var call = context.Builder.Call(
+                context.Block,
                 Operation(instruction.Offset),
                 result,
                 member,
                 null,
                 terms);
             _calls.Add(call.Id, dependency);
-            stack.Push(new IlValue(
+            context.Stack.Push(new IlValue(
                 _factory.Variable(result),
                 target.ReturnType.SpecialType));
             _mayThrow |= dependency.Effects ==
@@ -1218,12 +1205,10 @@ internal static class CompilerImplementationIlSummaryLowerer
 
         private bool Arithmetic(
             DecodedInstruction instruction,
-            IrBlockId block,
-            Stack<IlValue> stack,
-            IrProgramBuilder builder)
+            in BlockContext context)
         {
-            if (!TryPop(stack, out var right) ||
-                !TryPop(stack, out var left) ||
+            if (!TryPop(context.Stack, out var right) ||
+                !TryPop(context.Stack, out var left) ||
                 left.SpecialType != right.SpecialType ||
                 left.Term.Type != _factory.IntegerType)
             {
@@ -1261,12 +1246,12 @@ internal static class CompilerImplementationIlSummaryLowerer
                     return false;
                 }
 
-                builder.Assume(
-                    block,
+                context.Builder.Assume(
+                    context.Block,
                     Operation(instruction.Offset),
                     InRange(raw, minimum, maximum));
                 _mayThrow = true;
-                stack.Push(new IlValue(raw, left.SpecialType));
+                context.Stack.Push(new IlValue(raw, left.SpecialType));
                 return true;
             }
 
@@ -1275,7 +1260,7 @@ internal static class CompilerImplementationIlSummaryLowerer
                 return false;
             }
 
-            stack.Push(new IlValue(
+            context.Stack.Push(new IlValue(
                 WrapInt32(raw),
                 SpecialType.System_Int32));
             return true;
@@ -1492,44 +1477,38 @@ internal static class CompilerImplementationIlSummaryLowerer
 
         private bool PushLocal(
             int index,
-            ImmutableArray<IrVarId> locals,
-            ImmutableArray<ScalarType> localTypes,
-            Stack<IlValue> stack)
+            in BlockContext context)
         {
-            if (index < 0 || index >= locals.Length)
+            if (index < 0 || index >= context.Locals.Length)
             {
                 return false;
             }
 
-            stack.Push(new IlValue(
-                _factory.Variable(locals[index]),
-                localTypes[index].SpecialType));
+            context.Stack.Push(new IlValue(
+                _factory.Variable(context.Locals[index]),
+                context.LocalTypes[index].SpecialType));
             return true;
         }
 
         private bool StoreLocal(
             int index,
             DecodedInstruction instruction,
-            IrBlockId block,
-            ImmutableArray<IrVarId> locals,
-            ImmutableArray<ScalarType> localTypes,
-            Stack<IlValue> stack,
-            IrProgramBuilder builder)
+            in BlockContext context)
         {
-            if (index < 0 || index >= locals.Length ||
-                !TryPop(stack, out var value) ||
+            if (index < 0 || index >= context.Locals.Length ||
+                !TryPop(context.Stack, out var value) ||
                 !TryCoerce(
                     value,
-                    localTypes[index].SpecialType,
+                    context.LocalTypes[index].SpecialType,
                     out value))
             {
                 return false;
             }
 
-            builder.Assign(
-                block,
+            context.Builder.Assign(
+                context.Block,
                 Operation(instruction.Offset),
-                locals[index],
+                context.Locals[index],
                 value.Term);
             return true;
         }
