@@ -569,7 +569,7 @@ public sealed class SharpProofWorker : IDisposable
                 error = "The injected SMT backend was interrupted and cannot be reused.";
                 return LaneCreationResult.InfrastructureFailure;
             }
-            lanes = [CreateLane(_backend, budgets.MaximumExpressionDepth, null, null,
+            lanes = [new VerificationLane(_backend, budgets.MaximumExpressionDepth, null, null,
                 _readConsumedResourceCount)];
             return LaneCreationResult.Success;
         }
@@ -585,7 +585,7 @@ public sealed class SharpProofWorker : IDisposable
                     throw new InvalidOperationException("The backend factory returned the same backend for multiple lanes.");
                 }
 
-                created.Add(CreateLane(backend, budgets.MaximumExpressionDepth,
+                created.Add(new VerificationLane(backend, budgets.MaximumExpressionDepth,
                     backend as IDisposable, _backendFactory));
             }
             lanes = [.. created];
@@ -627,28 +627,22 @@ public sealed class SharpProofWorker : IDisposable
         return (callables, [.. claims]);
     }
 
-    private static VerificationLane CreateLane(
-        ISmtBackend backend, int maximumExpressionDepth,
-        IDisposable? owner, Func<ISmtBackend>? factory, Func<long>? resourceReader = null)
-    {
-        return new(backend, new CallableVerifier(backend, maximumExpressionDepth),
-            resourceReader ?? ReadResources(backend), owner, factory);
-    }
-
     private static Func<long>? ReadResources(ISmtBackend backend)
     {
         return backend is IrSmtBackend concrete ? () => concrete.ConsumedResourceCount : null;
     }
 
     private sealed class VerificationLane(
-        ISmtBackend backend, CallableVerifier verifier, Func<long>? readConsumedResourceCount,
-        IDisposable? ownedBackend, Func<ISmtBackend>? backendFactory)
+        ISmtBackend backend, int maximumExpressionDepth,
+        IDisposable? ownedBackend, Func<ISmtBackend>? backendFactory, Func<long>? resourceReader = null)
     {
         private readonly Func<ISmtBackend>? _backendFactory = backendFactory;
         private IDisposable? _ownedBackend = ownedBackend;
-        internal ISmtBackend Backend { get; private set; } = backend;
-        internal CallableVerifier Verifier { get; private set; } = verifier;
-        internal Func<long>? ReadConsumedResourceCount { get; private set; } = readConsumedResourceCount;
+        private (ISmtBackend Backend, CallableVerifier Verifier, Func<long>? ResourceReader)
+            _backend = ProjectBackend(backend, maximumExpressionDepth, resourceReader);
+        internal ISmtBackend Backend => _backend.Backend;
+        internal CallableVerifier Verifier => _backend.Verifier;
+        internal Func<long>? ReadConsumedResourceCount => _backend.ResourceReader;
         internal LaneRenewalResult Renew(
             VerificationLane[] lanes,
             int maximumExpressionDepth)
@@ -682,9 +676,7 @@ public sealed class SharpProofWorker : IDisposable
                     _ownedBackend = null;
                     priorOwner?.Dispose();
                     replacementOwner = replacement as IDisposable;
-                    Backend = replacement;
-                    Verifier = new CallableVerifier(replacement, maximumExpressionDepth);
-                    ReadConsumedResourceCount = ReadResources(replacement);
+                    _backend = ProjectBackend(replacement, maximumExpressionDepth);
                     _ownedBackend = replacementOwner;
                     return LaneRenewalResult.Success;
                 }
@@ -697,6 +689,13 @@ public sealed class SharpProofWorker : IDisposable
                         : LaneRenewalResult.InfrastructureFailure;
                 }
             }
+        }
+        private static (ISmtBackend, CallableVerifier, Func<long>?) ProjectBackend(
+            ISmtBackend backend, int maximumExpressionDepth,
+            Func<long>? resourceReader = null)
+        {
+            return (backend, new CallableVerifier(backend, maximumExpressionDepth),
+                resourceReader ?? ReadResources(backend));
         }
         internal void DisposeOwnedBackend()
         {
