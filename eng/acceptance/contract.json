@@ -112,7 +112,6 @@
       "eng/fuzz/retained-seeds.json",
       "eng/release/environment-contract.json",
       "eng/release/first-party-assemblies.json",
-      "eng/release/package-dependency-contract.json",
       "eng/release/third-party-components.json",
       "eng/mutations/trusted-mutations.json",
       "scripts/Assert-SharpProofFuzzRunnerResult.ps1",
@@ -265,8 +264,7 @@
           "SharpProof.Ir/IrSemanticTerms.cs",
           "SharpProof.Summaries/IrRelationalSummary.cs",
           "SharpProof.Summaries/IrRelationalSummaryBuilder.cs",
-          "SharpProof.Summaries/IrRelationalSummaryInstantiator.cs",
-          "SharpProof.Specs/RelationalSpecPackCatalog.json"
+          "SharpProof.Summaries/IrRelationalSummaryInstantiator.cs"
         ],
         "rationale": "These files construct, authenticate, instantiate, and consume the sealed interprocedural relation trusted by the worker."
       },
@@ -313,8 +311,10 @@
         "name": "apiSpecificationCatalog",
         "paths": [
           "SharpProof.Specs/DefaultApiSpecCatalog.json",
+          "SharpProof.Specs/RelationalSpecPackCatalog.json",
           "scripts/Generate-ApiSpecCatalog.ps1",
-          "SharpProof.Specs/DefaultApiSpecCatalog.generated.cs"
+          "SharpProof.Specs/DefaultApiSpecCatalog.generated.cs",
+          "SharpProof.Specs/RelationalSpecPackCatalog.generated.cs"
         ]
       },
       {
@@ -532,6 +532,7 @@
         "SharpProof.Ir/IrInterpreter.cs",
           "SharpProof.Ir/IrProgramInterpreter.cs",
           "SharpProof.CompilerArtifact/CompilerEffectClaimArtifactCodec.cs",
+          "SharpProof.CompilerArtifact/CompilerResponseEvidenceAuthority.cs",
           "SharpProof.Worker/CallableCounterexampleReplayer.cs",
           "SharpProof.Worker/EffectCounterexampleReplayer.cs"
         ]
@@ -688,7 +689,6 @@
           "SharpProof.Verifier/SharpProof.Verifier.nuspec",
           "eng/coverage/baseline.json",
           "eng/release/first-party-assemblies.json",
-          "eng/release/package-dependency-contract.json",
           "eng/release/third-party-components.json",
           "scripts/Assert-SharpProofStandaloneGateResult.ps1",
           "scripts/Get-SharpProofDevCheckPlan.ps1",

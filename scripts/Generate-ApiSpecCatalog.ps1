@@ -13,6 +13,12 @@ param(
     [string]$RuntimeWitnessOutputPath,
 
     [Parameter()]
+    [string]$RelationalCatalogPath,
+
+    [Parameter()]
+    [string]$RelationalSourceOutputPath,
+
+    [Parameter()]
     [Alias('Check')]
     [switch]$Verify
 )
@@ -31,8 +37,15 @@ $DocumentationOutputPath = Resolve-SharpProofPath $DocumentationOutputPath (
     Join-Path $repositoryRoot 'docs\api-spec-catalog.generated.md')
 $RuntimeWitnessOutputPath = Resolve-SharpProofPath $RuntimeWitnessOutputPath (
     Join-Path $repositoryRoot 'SharpProof.Specs.Test\ApiSpecRuntimeWitnesses.generated.cs')
+$RelationalCatalogPath = Resolve-SharpProofPath $RelationalCatalogPath (
+    Join-Path $repositoryRoot 'SharpProof.Specs\RelationalSpecPackCatalog.json')
+$RelationalSourceOutputPath = Resolve-SharpProofPath $RelationalSourceOutputPath (
+    Join-Path $repositoryRoot 'SharpProof.Specs\RelationalSpecPackCatalog.generated.cs')
 if (-not [IO.File]::Exists($CatalogPath)) {
     throw "API-spec catalog not found: $CatalogPath"
+}
+if (-not [IO.File]::Exists($RelationalCatalogPath)) {
+    throw "Relational specification-pack catalog not found: $RelationalCatalogPath"
 }
 
 function ConvertTo-WitnessFactoryName {
@@ -483,6 +496,184 @@ function Format-Term {
         }
         default {
             throw "$Context contains unsupported term kind '$kind'."
+        }
+    }
+}
+
+function Assert-CanonicalRelationalIdentifier {
+    param(
+        [Parameter(Mandatory = $true)][object]$Value,
+        [Parameter(Mandatory = $true)][string]$Context
+    )
+
+    $text = Assert-Text -Value $Value -Context $Context
+    if ($text -cnotmatch '^[a-z0-9.-]+$') {
+        throw "$Context is not a canonical identifier."
+    }
+    return $text
+}
+
+function Format-RelationalTerm {
+    param(
+        [Parameter(Mandatory = $true)][object]$Term,
+        [Parameter(Mandatory = $true)][string]$Context,
+        [Parameter(Mandatory = $true)][string[]]$ParameterTypes,
+        [int]$Depth = 0
+    )
+
+    if ($Depth -gt 64) {
+        throw "$Context is too deep."
+    }
+    $kind = Assert-Text `
+        -Value (Get-RequiredProperty $Term 'kind' $Context) `
+        -Context "$Context.kind"
+    $typeName = Assert-SpecEnumValue `
+        -Value (Get-RequiredProperty $Term 'type' $Context) `
+        -Type 'IrTypeKind' `
+        -Context "$Context.type"
+    if ($typeName -notin @('Boolean', 'Integer')) {
+        throw "$Context has unsupported relational scalar type '$typeName'."
+    }
+    $type = "IrTypeKind.$typeName"
+    switch -CaseSensitive ($kind) {
+        'parameter' {
+            Assert-ExactProperties $Term @('kind', 'type', 'ordinal') $Context
+            $ordinal = Assert-JsonInt32 `
+                -Value (Get-RequiredProperty $Term 'ordinal' $Context) `
+                -Context "$Context.ordinal"
+            if ($ordinal -lt 0 -or $ordinal -ge $ParameterTypes.Count -or
+                $ParameterTypes[$ordinal] -cne $typeName) {
+                throw "$Context references an invalid parameter slot or type."
+            }
+            return [pscustomobject]@{
+                Source = "new SpecVariableDeclaration(SpecVariableRole.Parameter, $ordinal, $type)"
+                Type = $typeName
+            }
+        }
+        'boolean' {
+            Assert-ExactProperties $Term @('kind', 'type', 'value') $Context
+            $value = Assert-Boolean `
+                -Value (Get-RequiredProperty $Term 'value' $Context) `
+                -Context "$Context.value" `
+                -TypeDescription 'a JSON boolean'
+            if ($typeName -cne 'Boolean') {
+                throw "$Context boolean type must be Boolean."
+            }
+            return [pscustomobject]@{
+                Source = 'new SpecBooleanDeclaration(' + $(if ($value) { 'true' } else { 'false' }) + ')'
+                Type = 'Boolean'
+            }
+        }
+        'integer' {
+            Assert-ExactProperties $Term @('kind', 'type', 'value') $Context
+            $value = Assert-JsonInt64 `
+                -Value (Get-RequiredProperty $Term 'value' $Context) `
+                -Context "$Context.value"
+            if ($typeName -cne 'Integer') {
+                throw "$Context integer type must be Integer."
+            }
+            return [pscustomobject]@{
+                Source = 'new SpecIntegerDeclaration(' +
+                    $value.ToString([Globalization.CultureInfo]::InvariantCulture) + ')'
+                Type = 'Integer'
+            }
+        }
+        'unary' {
+            Assert-ExactProperties $Term @('kind', 'type', 'operator', 'operand') $Context
+            $operator = Assert-SpecEnumValue `
+                -Value (Get-RequiredProperty $Term 'operator' $Context) `
+                -Type 'IrUnaryOperator' `
+                -Context "$Context.operator"
+            $operand = Format-RelationalTerm `
+                -Term (Get-RequiredProperty $Term 'operand' $Context) `
+                -Context "$Context.operand" `
+                -ParameterTypes $ParameterTypes `
+                -Depth ($Depth + 1)
+            $requiredType = if ($operator -ceq 'Not') { 'Boolean' } else { 'Integer' }
+            if ($typeName -cne $requiredType -or $operand.Type -cne $requiredType) {
+                throw "$Context unary operator has incompatible types."
+            }
+            return [pscustomobject]@{
+                Source = "new SpecUnaryDeclaration(IrUnaryOperator.$operator, $($operand.Source), $type)"
+                Type = $typeName
+            }
+        }
+        'binary' {
+            Assert-ExactProperties $Term @('kind', 'type', 'operator', 'left', 'right') $Context
+            $operator = Assert-SpecEnumValue `
+                -Value (Get-RequiredProperty $Term 'operator' $Context) `
+                -Type 'IrBinaryOperator' `
+                -Context "$Context.operator"
+            if ($operator -ceq 'StringConcat') {
+                throw "$Context contains unsupported relational binary operator '$operator'."
+            }
+            $left = Format-RelationalTerm `
+                -Term (Get-RequiredProperty $Term 'left' $Context) `
+                -Context "$Context.left" `
+                -ParameterTypes $ParameterTypes `
+                -Depth ($Depth + 1)
+            $right = Format-RelationalTerm `
+                -Term (Get-RequiredProperty $Term 'right' $Context) `
+                -Context "$Context.right" `
+                -ParameterTypes $ParameterTypes `
+                -Depth ($Depth + 1)
+            $arithmetic = @('Add', 'Subtract', 'Multiply', 'Divide', 'Remainder')
+            $logical = @('AndAlso', 'OrElse')
+            $comparison = @(
+                'LessThan', 'LessThanOrEqual', 'GreaterThan', 'GreaterThanOrEqual')
+            $valid = if ($operator -cin $arithmetic) {
+                $typeName -ceq 'Integer' -and
+                    $left.Type -ceq 'Integer' -and $right.Type -ceq 'Integer'
+            }
+            elseif ($operator -cin $logical) {
+                $typeName -ceq 'Boolean' -and
+                    $left.Type -ceq 'Boolean' -and $right.Type -ceq 'Boolean'
+            }
+            elseif ($operator -cin $comparison) {
+                $typeName -ceq 'Boolean' -and
+                    $left.Type -ceq 'Integer' -and $right.Type -ceq 'Integer'
+            }
+            else {
+                $operator -cin @('Equal', 'NotEqual') -and
+                    $typeName -ceq 'Boolean' -and $left.Type -ceq $right.Type
+            }
+            if (-not $valid) {
+                throw "$Context binary operator has incompatible types."
+            }
+            return [pscustomobject]@{
+                Source = "new SpecBinaryDeclaration(IrBinaryOperator.$operator, $($left.Source), $($right.Source), $type)"
+                Type = $typeName
+            }
+        }
+        'conditional' {
+            Assert-ExactProperties `
+                $Term @('kind', 'type', 'condition', 'whenTrue', 'whenFalse') $Context
+            $condition = Format-RelationalTerm `
+                -Term (Get-RequiredProperty $Term 'condition' $Context) `
+                -Context "$Context.condition" `
+                -ParameterTypes $ParameterTypes `
+                -Depth ($Depth + 1)
+            $whenTrue = Format-RelationalTerm `
+                -Term (Get-RequiredProperty $Term 'whenTrue' $Context) `
+                -Context "$Context.whenTrue" `
+                -ParameterTypes $ParameterTypes `
+                -Depth ($Depth + 1)
+            $whenFalse = Format-RelationalTerm `
+                -Term (Get-RequiredProperty $Term 'whenFalse' $Context) `
+                -Context "$Context.whenFalse" `
+                -ParameterTypes $ParameterTypes `
+                -Depth ($Depth + 1)
+            if ($condition.Type -cne 'Boolean' -or
+                $whenTrue.Type -cne $typeName -or $whenFalse.Type -cne $typeName) {
+                throw "$Context conditional has incompatible types."
+            }
+            return [pscustomobject]@{
+                Source = "new SpecConditionalDeclaration($($condition.Source), $($whenTrue.Source), $($whenFalse.Source), $type)"
+                Type = $typeName
+            }
+        }
+        default {
+            throw "$Context contains unsupported relational term kind '$kind'."
         }
     }
 }
@@ -1110,6 +1301,178 @@ $source.Add('    }')
 $source.Add('}')
 $sourceText = $source -join "`n"
 
+$relationalText = [IO.File]::ReadAllText($RelationalCatalogPath)
+$relational = $relationalText | ConvertFrom-Json -Depth 100
+Assert-ExactProperties $relational @('schema', 'schemaVersion', 'packs') 'relational catalog'
+$relationalSchemaVersion = Assert-JsonInt32 `
+    -Value (Get-RequiredProperty $relational 'schemaVersion' 'relational catalog') `
+    -Context 'relational catalog.schemaVersion'
+if ($relational.schema -cne 'SharpProof.RelationalSpecPackCatalog' -or
+    $relationalSchemaVersion -ne 1) {
+    throw 'The relational specification-pack catalog schema is unsupported.'
+}
+$relationalPacks = @(Get-RequiredArrayProperty $relational 'packs' 'relational catalog')
+if ($relationalPacks.Count -eq 0) {
+    throw 'The relational specification-pack catalog is empty.'
+}
+$previousPack = $null
+$relationalRows = [Collections.Generic.List[object]]::new()
+foreach ($pack in $relationalPacks) {
+    Assert-ExactProperties $pack @('id', 'version', 'evidence', 'methods') 'relational pack'
+    $packId = Assert-CanonicalRelationalIdentifier $pack.id 'relational pack.id'
+    $packVersion = Assert-CanonicalRelationalIdentifier $pack.version 'relational pack.version'
+    [void](Assert-Text $pack.evidence 'relational pack.evidence')
+    if ($null -ne $previousPack -and
+        [StringComparer]::Ordinal.Compare($previousPack, $packId) -ge 0) {
+        throw 'Relational specification-pack identifiers must be unique and sorted.'
+    }
+    $previousPack = $packId
+    $methods = @(Get-RequiredArrayProperty $pack 'methods' "relational pack[$packId]")
+    if ($methods.Count -eq 0) {
+        throw "Relational specification pack '$packId' cannot be empty."
+    }
+    $previousMethod = $null
+    $methodRows = [Collections.Generic.List[object]]::new()
+    foreach ($method in $methods) {
+        $methodContext = "relational pack[$packId].methods[]"
+        Assert-ExactProperties `
+            $method `
+            @('documentationCommentId', 'assemblies', 'parameterTypes', 'resultType', 'result') `
+            $methodContext
+        $documentationId = Assert-Text $method.documentationCommentId "$methodContext.documentationCommentId"
+        if (-not $documentationId.StartsWith('M:', [StringComparison]::Ordinal)) {
+            throw "$methodContext has an invalid method identity."
+        }
+        if ($null -ne $previousMethod -and
+            [StringComparer]::Ordinal.Compare($previousMethod, $documentationId) -ge 0) {
+            throw "Relational specification-pack methods must be unique and sorted."
+        }
+        $previousMethod = $documentationId
+
+        $assemblies = @(Get-RequiredArrayProperty $method 'assemblies' $methodContext)
+        if ($assemblies.Count -eq 0) {
+            throw "$methodContext requires an assembly identity."
+        }
+        $previousAssembly = $null
+        $assemblySources = [Collections.Generic.List[string]]::new()
+        foreach ($assembly in $assemblies) {
+            Assert-ExactProperties $assembly @('name', 'publicKeyToken') "$methodContext.assemblies[]"
+            $name = Assert-Text $assembly.name "$methodContext.assemblies[].name"
+            $token = Assert-Text `
+                $assembly.publicKeyToken `
+                "$methodContext.assemblies[].publicKeyToken" `
+                -AllowEmpty
+            if ($token.Length -ne 0 -and $token -cnotmatch '^[0-9a-f]{16}$') {
+                throw "$methodContext has an invalid public-key token."
+            }
+            $assemblyKey = $name + '|' + $token
+            if ($null -ne $previousAssembly -and
+                [StringComparer]::Ordinal.Compare($previousAssembly, $assemblyKey) -ge 0) {
+                throw 'Relational specification-pack assemblies must be unique and sorted.'
+            }
+            $previousAssembly = $assemblyKey
+            $assemblySources.Add(
+                'new ApiSpecAssemblyIdentity(' +
+                (ConvertTo-CSharpString $name) + ', ' +
+                (ConvertTo-CSharpString $token) + ')')
+        }
+
+        $parameterValues = @(Get-RequiredArrayProperty $method 'parameterTypes' $methodContext)
+        $parameterTypes = @($parameterValues | ForEach-Object {
+            $value = Assert-SpecEnumValue $_ 'IrTypeKind' "$methodContext.parameterTypes[]"
+            if ($value -notin @('Boolean', 'Integer')) {
+                throw "$methodContext has an unsupported parameter scalar type."
+            }
+            $value
+        })
+        $resultType = Assert-SpecEnumValue $method.resultType 'IrTypeKind' "$methodContext.resultType"
+        if ($resultType -notin @('Boolean', 'Integer')) {
+            throw "$methodContext has an unsupported result scalar type."
+        }
+        $result = Format-RelationalTerm `
+            -Term $method.result `
+            -Context "$methodContext.result" `
+            -ParameterTypes $parameterTypes
+        if ($result.Type -cne $resultType) {
+            throw "$methodContext result expression has the wrong type."
+        }
+        $methodRows.Add([pscustomobject]@{
+            DocumentationId = $documentationId
+            Assemblies = @($assemblySources)
+            ParameterTypes = @($parameterTypes)
+            ResultType = $resultType
+            Result = $result.Source
+        })
+    }
+    $relationalRows.Add([pscustomobject]@{
+        Id = $packId
+        Version = $packVersion
+        Methods = @($methodRows)
+    })
+}
+
+$relationalDigest = (Get-FileHash `
+    -LiteralPath $RelationalCatalogPath `
+    -Algorithm SHA256).Hash.ToLowerInvariant()
+$relationalSource = New-SharpProofGeneratedHeader `
+    -Generator 'scripts/Generate-ApiSpecCatalog.ps1' `
+    -Source 'SharpProof.Specs/RelationalSpecPackCatalog.json.' `
+    -Nullable
+$relationalSource.Add('namespace SharpProof.Specs;')
+$relationalSource.Add('')
+$relationalSource.Add('internal sealed record RelationalSpecPackCatalog(')
+$relationalSource.Add('    ImmutableDictionary<string, RelationalSpecPack> Packs,')
+$relationalSource.Add('    int Version, string EvidenceSha256);')
+$relationalSource.Add('')
+$relationalSource.Add('internal sealed record RelationalSpecPack(')
+$relationalSource.Add('    string Id, string Version,')
+$relationalSource.Add('    ImmutableArray<RelationalSpecPackMethod> Methods);')
+$relationalSource.Add('')
+$relationalSource.Add('internal sealed record RelationalSpecPackMethod(')
+$relationalSource.Add('    string DocumentationCommentId,')
+$relationalSource.Add('    ImmutableArray<ApiSpecAssemblyIdentity> Assemblies,')
+$relationalSource.Add('    ImmutableArray<IrTypeKind> ParameterTypes,')
+$relationalSource.Add('    IrTypeKind ResultType, SpecTermDeclaration Result,')
+$relationalSource.Add('    string EvidenceSha256 = "", string EvidenceIdentity = "");')
+$relationalSource.Add('')
+$relationalSource.Add('internal static class RelationalSpecPackCatalogData')
+$relationalSource.Add('{')
+$relationalSource.Add('    internal static RelationalSpecPackCatalog Catalog { get; } = Create();')
+$relationalSource.Add('')
+$relationalSource.Add('    private static RelationalSpecPackCatalog Create()')
+$relationalSource.Add('    {')
+$relationalSource.Add('        var packs = ImmutableDictionary.CreateBuilder<string, RelationalSpecPack>(')
+$relationalSource.Add('            StringComparer.Ordinal);')
+foreach ($pack in $relationalRows) {
+    $relationalSource.Add('        packs.Add(')
+    $relationalSource.Add('            ' + (ConvertTo-CSharpString $pack.Id) + ',')
+    $relationalSource.Add('            new RelationalSpecPack(')
+    $relationalSource.Add('                ' + (ConvertTo-CSharpString $pack.Id) + ',')
+    $relationalSource.Add('                ' + (ConvertTo-CSharpString $pack.Version) + ',')
+    $relationalSource.Add('                [')
+    foreach ($method in $pack.Methods) {
+        $assemblySource = '[' + ($method.Assemblies -join ', ') + ']'
+        $parameterSource = '[' + (($method.ParameterTypes | ForEach-Object {
+            "IrTypeKind.$_"
+        }) -join ', ') + ']'
+        $relationalSource.Add('                    new RelationalSpecPackMethod(')
+        $relationalSource.Add('                        ' +
+            (ConvertTo-CSharpString $method.DocumentationId) + ',')
+        $relationalSource.Add("                        $assemblySource,")
+        $relationalSource.Add("                        $parameterSource,")
+        $relationalSource.Add("                        IrTypeKind.$($method.ResultType),")
+        $relationalSource.Add("                        $($method.Result)),")
+    }
+    $relationalSource.Add('                ]));')
+}
+$relationalSource.Add('        return new RelationalSpecPackCatalog(')
+$relationalSource.Add('            packs.ToImmutable(),')
+$relationalSource.Add("            $relationalSchemaVersion,")
+$relationalSource.Add('            ' + (ConvertTo-CSharpString $relationalDigest) + ');')
+$relationalSource.Add('    }')
+$relationalSource.Add('}')
+$relationalSourceText = $relationalSource -join "`n"
+
 $documentation = [Collections.Generic.List[string]]::new()
 $documentation.Add('<!-- <auto-generated> -->')
 $documentation.Add(
@@ -1276,6 +1639,8 @@ $runtimeWitnessText = $runtimeWitnessSource -join "`n"
     [IO.Path]::GetDirectoryName($DocumentationOutputPath)) | Out-Null
 [IO.Directory]::CreateDirectory(
     [IO.Path]::GetDirectoryName($RuntimeWitnessOutputPath)) | Out-Null
+[IO.Directory]::CreateDirectory(
+    [IO.Path]::GetDirectoryName($RelationalSourceOutputPath)) | Out-Null
 $generatorCommand = '.\scripts\Generate-ApiSpecCatalog.ps1'
 Update-SharpProofGeneratedFile `
     -Path $SourceOutputPath `
@@ -1295,7 +1660,13 @@ Update-SharpProofGeneratedFile `
     -DisplayPath $RuntimeWitnessOutputPath `
     -GeneratorCommand $generatorCommand `
     -Verify:$Verify
+Update-SharpProofGeneratedFile `
+    -Path $RelationalSourceOutputPath `
+    -Content $relationalSourceText `
+    -DisplayPath $RelationalSourceOutputPath `
+    -GeneratorCommand $generatorCommand `
+    -Verify:$Verify
 $verb = if ($Verify) { 'Verified' } else { 'Generated' }
 Write-Host (
     "$verb deterministic API-spec catalog source, documentation, " +
-    'and runtime witnesses.')
+    'runtime witnesses, and relational catalog source.')

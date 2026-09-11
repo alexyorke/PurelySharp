@@ -102,6 +102,7 @@ public sealed class BoundaryEnforcementTests
             "SharpProof.Worker.Launcher"
         ]),
         ("SharpProof.Smt", ["SharpProof.Smt.Test"]),
+        ("SharpProof.Specs", ["SharpProof.CompilerCollector"]),
         ("SharpProof.Verify", [
             "SharpProof.Fuzz",
             "SharpProof.Smt.Test",
@@ -539,13 +540,13 @@ public sealed class BoundaryEnforcementTests
             @"SharpProof.Worker\SharpProof.Worker.csproj",
             @"Tools\SharpProof.Fuzz\SharpProof.Fuzz.csproj"
         ];
-        var actual = File.ReadLines(
-                Path.Combine(TestRepository.FindRoot(), "SharpProof.sln"))
-            .Select(line => Regex.Match(
-                line,
-                "^Project\\(.*\\) = \".*\", \"(?<path>[^\"]+\\.csproj)\""))
-            .Where(static match => match.Success)
-            .Select(static match => match.Groups["path"].Value)
+        var actual = XDocument.Load(
+                Path.Combine(TestRepository.FindRoot(), "SharpProof.slnx"))
+            .Descendants("Project")
+            .Select(static project => (string?)project.Attribute("Path"))
+            .Where(static path =>
+                path?.EndsWith(".csproj", StringComparison.Ordinal) == true)
+            .Select(static path => path!.Replace('/', '\\'))
             .ToArray();
 
         Assert.That(actual, Is.EquivalentTo(expected));

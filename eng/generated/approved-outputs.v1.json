@@ -34,6 +34,7 @@
     "SharpProof.Meta.Analyzers/MetaDiagnosticDescriptors.generated.cs",
     "SharpProof.Specs/DeclarativeModels.generated.cs",
     "SharpProof.Specs/DefaultApiSpecCatalog.generated.cs",
+    "SharpProof.Specs/RelationalSpecPackCatalog.generated.cs",
     "SharpProof.Verify/DeclarativeModels.generated.cs",
     "SharpProof.Verify/VerificationProjections.generated.cs",
     "SharpProof.Worker.Launcher/LauncherArguments.generated.cs",

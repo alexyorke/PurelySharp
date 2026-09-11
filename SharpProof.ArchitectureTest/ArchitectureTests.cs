@@ -100,16 +100,14 @@ public sealed class ArchitectureTests
                 .Value,
             Is.EqualTo("true"));
 
-        var solution = File.ReadAllText(
-            Path.Combine(root, "SharpProof.sln"));
-        var projects = Regex.Matches(
-                solution,
-                "\"([^\"]+\\.csproj)\"",
-                RegexOptions.CultureInvariant)
-            .Select(static match =>
-                match.Groups[1].Value.Replace(
-                    '\\',
-                    Path.DirectorySeparatorChar))
+        var projects = XDocument.Load(
+                Path.Combine(root, "SharpProof.slnx"))
+            .Descendants("Project")
+            .Select(static project => (string?)project.Attribute("Path"))
+            .Where(static path =>
+                path?.EndsWith(".csproj", StringComparison.Ordinal) == true)
+            .Select(static path => path!.Replace(
+                '/', Path.DirectorySeparatorChar))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
         Assert.That(projects, Is.Not.Empty);
@@ -130,10 +128,7 @@ public sealed class ArchitectureTests
             ["SharpProof.Analyzer"] = ["SharpProof.Analyzer.Core"],
             ["SharpProof.Analyzer.Core"] = [
                 "SharpProof.Contracts",
-                "SharpProof.Effects",
-                "SharpProof.Frontend",
-                "SharpProof.Ir",
-                "SharpProof.Specs"
+                "SharpProof.Effects"
             ],
             ["SharpProof.Attributes"] = [],
             ["SharpProof.BuildTasks"] = [
@@ -150,13 +145,7 @@ public sealed class ArchitectureTests
             ["SharpProof.CompilerCollector"] = [
                 "SharpProof.Analyzer.Core",
                 "SharpProof.CompilerArtifact",
-                "SharpProof.Contracts",
-                "SharpProof.Effects",
-                "SharpProof.Frontend",
-                "SharpProof.Ir",
-                "SharpProof.Specs",
-                "SharpProof.Summaries",
-                "SharpProof.Worker.Protocol"
+                "SharpProof.Summaries"
             ],
             ["SharpProof.ContractForGenerator"] = [],
             ["SharpProof.Specs"] = ["SharpProof.Ir"],
@@ -168,40 +157,29 @@ public sealed class ArchitectureTests
             ["SharpProof.Fuzz"] = [
                 "SharpProof.Frontend",
                 "SharpProof.Host",
-                "SharpProof.Ir",
                 "SharpProof.Smt",
-                "SharpProof.Testing",
-                "SharpProof.Verify"
+                "SharpProof.Testing"
             ],
-            ["SharpProof.Contracts"] = [
-                "SharpProof.Frontend",
-                "SharpProof.Ir"
-            ],
+            ["SharpProof.Contracts"] = ["SharpProof.Frontend"],
             ["SharpProof.Effects"] = [
                 "SharpProof.Dataflow",
                 "SharpProof.Frontend",
                 "SharpProof.Specs"
             ],
-            ["SharpProof.Verify"] = ["SharpProof.Ir", "SharpProof.Specs"],
-            ["SharpProof.Smt"] = ["SharpProof.Ir", "SharpProof.Verify"],
+            ["SharpProof.Verify"] = ["SharpProof.Specs"],
+            ["SharpProof.Smt"] = ["SharpProof.Verify"],
             ["SharpProof.Summaries"] = ["SharpProof.Ir"],
             ["SharpProof.Worker.Protocol"] = [],
             ["SharpProof.Worker"] = [
                 "SharpProof.CompilerArtifact",
                 "SharpProof.Dataflow",
                 "SharpProof.Host",
-                "SharpProof.Ir",
-                "SharpProof.Smt",
-                "SharpProof.Specs",
-                "SharpProof.Verify",
-                "SharpProof.Worker.Protocol"
+                "SharpProof.Smt"
             ],
             ["SharpProof.Worker.Launcher"] = [
                 "SharpProof.CompilerArtifact",
                 "SharpProof.Host",
-                "SharpProof.Ir",
-                "SharpProof.Specs",
-                "SharpProof.Worker.Protocol"
+                "SharpProof.Specs"
             ]
         };
 
@@ -1139,7 +1117,7 @@ public sealed class ArchitectureTests
             "function Invoke-DependencyAudit",
             StringComparison.Ordinal);
         var restore = container.IndexOf(
-            "Invoke-DotNet @('restore', 'SharpProof.sln', '--locked-mode')",
+            "Invoke-DotNet @('restore', 'SharpProof.slnx', '--locked-mode')",
             auditHelper,
             StringComparison.Ordinal);
         var audit = container.IndexOf(
@@ -1178,7 +1156,7 @@ public sealed class ArchitectureTests
             StringComparison.Ordinal);
         var branch = container[branchStart..branchEnd];
         var restore = branch.IndexOf(
-            "Invoke-DotNet @('restore', 'SharpProof.sln', '--locked-mode')",
+            "Invoke-DotNet @('restore', 'SharpProof.slnx', '--locked-mode')",
             StringComparison.Ordinal);
         var consumer = branch.IndexOf(
             "Test-SharpProofPackageConsumers.ps1",
@@ -2068,8 +2046,8 @@ public sealed class ArchitectureTests
             "MaximumLoweringDepth");
         var termDepth = ReadIntegerConstant(
             root,
-            "SharpProof.CompilerCollector/CompilerArtifact/CompilerSpecificationPackProvider.cs",
-            "MaximumTermDepth");
+            "SharpProof.Specs/ApiSpecTermValidator.cs",
+            "MaximumExpressionDepth");
         var dependencyDepth = ReadIntegerConstant(
             root,
             "SharpProof.CompilerCollector/CompilerArtifact/CompilerRelationalSummaryProvider.cs",

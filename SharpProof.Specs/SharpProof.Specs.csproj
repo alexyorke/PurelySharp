@@ -8,7 +8,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="Polyfills\NotNullAttribute.cs" />
-    <EmbeddedResource Include="RelationalSpecPackCatalog.json"
-                      LogicalName="SharpProof.Specs.RelationalSpecPackCatalog.json" />
+    <InternalsVisibleTo Include="SharpProof.CompilerCollector" />
   </ItemGroup>
 </Project>
