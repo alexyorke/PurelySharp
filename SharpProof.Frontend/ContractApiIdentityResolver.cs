@@ -521,14 +521,14 @@ internal sealed class ContractApiIdentityResolver
         int parameterCount)
     {
         if (GetSingleMethod(contract, name) is not
-        {
-            MethodKind: MethodKind.Ordinary,
-            DeclaredAccessibility: Accessibility.Public,
-            IsStatic: true,
-            Arity: 1,
-            ReturnsByRef: false,
-            ReturnsByRefReadonly: false
-        } method ||
+            {
+                MethodKind: MethodKind.Ordinary,
+                DeclaredAccessibility: Accessibility.Public,
+                IsStatic: true,
+                Arity: 1,
+                ReturnsByRef: false,
+                ReturnsByRefReadonly: false
+            } method ||
             method.Parameters.Length != parameterCount ||
             !HasUnconstrainedTypeParameter(method.TypeParameters[0]) ||
             !SymbolEqualityComparer.Default.Equals(
