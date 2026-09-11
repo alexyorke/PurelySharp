@@ -714,6 +714,7 @@ internal static class CompilerLoweredArtifact
             {
                 sourceOrdinal = currentVariable.Ordinal;
                 sourceInterval = currentVariable.SourceIntegerInterval;
+                canonical.Remove(currentState);
             }
             var scalarDomain = ScalarDomain(sourceInterval);
             var shape = item.Role switch
@@ -741,9 +742,7 @@ internal static class CompilerLoweredArtifact
                 throw new InvalidDataException("A lowered canonical variable is invalid.");
             }
         }
-        if (variables.Where(static item => item.Role == CompilerVariableRole.PreState)
-            .Select(static item => item.CurrentStateVariable!.Value).Distinct().Count() !=
-            variables.Count(static item => item.Role == CompilerVariableRole.PreState))
+        if (canonical.Count != variables.Length - variables.Count(static item => item.CurrentStateVariable.HasValue))
         {
             throw new InvalidDataException("Lowered pre-state variables are not injective.");
         }
