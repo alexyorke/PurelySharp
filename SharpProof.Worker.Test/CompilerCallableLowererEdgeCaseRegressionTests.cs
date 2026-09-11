@@ -9,7 +9,7 @@ using SharpProof.Worker.Protocol;
 namespace SharpProof.Worker.Test;
 
 [TestFixture]
-public sealed class CompilerCallableLowererWaveSixRegressionTests
+public sealed class CompilerCallableLowererEdgeCaseRegressionTests
 {
     [Test]
     public void SignedInt64SourceIntervalsAreProjected()
@@ -131,10 +131,10 @@ public sealed class CompilerCallableLowererWaveSixRegressionTests
         string source)
     {
         var compilation = TestCompilation.Create(
-            "CompilerCallableLowererWaveSixRegressionTests",
+            "CompilerCallableLowererEdgeCaseRegressionTests",
             (Path.Combine(
                     TestContext.CurrentContext.WorkDirectory,
-                    "CompilerCallableLowererWaveSixSubject.cs"),
+                    "CompilerCallableLowererEdgeCaseSubject.cs"),
                 source));
 
         var discovery = new ClaimManifestBuilder(compilation).Build();

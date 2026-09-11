@@ -4,7 +4,7 @@ using SharpProof.Specs;
 namespace SharpProof.Effects.Test;
 
 [TestFixture]
-public sealed class OperationCompletionWaveFiveRegressionTests
+public sealed class OperationCompletionEdgeCaseRegressionTests
 {
     [Test]
     public void NonexhaustiveSwitchExpressionWithReturningArmMayComplete()
