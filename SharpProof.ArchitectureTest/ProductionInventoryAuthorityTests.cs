@@ -25,70 +25,70 @@ public sealed class ProductionInventoryAuthorityTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(baseline.RootElement.TryGetProperty("sourceUniverseSha256", out _), Is.False);
-                Assert.That(baseline.RootElement.TryGetProperty("generatedManifestSha256", out _), Is.False);
-                Assert.That(baseline.RootElement.TryGetProperty("pdbUniverseSha256", out _), Is.False);
+            Assert.That(baseline.RootElement.TryGetProperty("generatedManifestSha256", out _), Is.False);
+            Assert.That(baseline.RootElement.TryGetProperty("pdbUniverseSha256", out _), Is.False);
         }
 
-            var projectPath = Path.Combine(repository, "Project", "Project.csproj");
-            var project = await File.ReadAllTextAsync(projectPath);
-            await File.WriteAllTextAsync(
-                projectPath,
-                project.Replace(
-                    "<DefineConstants>BASE</DefineConstants>",
-                    "<DefineConstants>BASE;MUTATED_PARSE</DefineConstants>",
-                    StringComparison.Ordinal));
-            var parseMutation = await RunInventoryAsync(repository);
-            Assert.That(
-                parseMutation.RootElement.GetProperty("projects")[0]
-                    .GetProperty("parseOptions").GetProperty("preprocessorSymbols")
-                    .EnumerateArray().Select(static symbol => symbol.GetString())
-                    .ToArray(),
-                Does.Contain("MUTATED_PARSE"),
-                "The inventory must still expose evaluated parse options.");
+        var projectPath = Path.Combine(repository, "Project", "Project.csproj");
+        var project = await File.ReadAllTextAsync(projectPath);
+        await File.WriteAllTextAsync(
+            projectPath,
+            project.Replace(
+                "<DefineConstants>BASE</DefineConstants>",
+                "<DefineConstants>BASE;MUTATED_PARSE</DefineConstants>",
+                StringComparison.Ordinal));
+        var parseMutation = await RunInventoryAsync(repository);
+        Assert.That(
+            parseMutation.RootElement.GetProperty("projects")[0]
+                .GetProperty("parseOptions").GetProperty("preprocessorSymbols")
+                .EnumerateArray().Select(static symbol => symbol.GetString())
+                .ToArray(),
+            Does.Contain("MUTATED_PARSE"),
+            "The inventory must still expose evaluated parse options.");
 
-            var manifestPath = Path.Combine(
-                repository,
-                "eng",
-                "generated",
-                "approved-outputs.v1.json");
-            await File.WriteAllTextAsync(
-                manifestPath,
-                "{\"schemaVersion\":1,\"outputs\":[]}\n");
-            var generatedMutation = await RunInventoryProcessAsync(repository);
-            Assert.That(
-                generatedMutation.ExitCode,
-                Is.Not.Zero,
-                "Removing a generated output from the approved manifest must fail closed.");
+        var manifestPath = Path.Combine(
+            repository,
+            "eng",
+            "generated",
+            "approved-outputs.v1.json");
+        await File.WriteAllTextAsync(
+            manifestPath,
+            "{\"schemaVersion\":1,\"outputs\":[]}\n");
+        var generatedMutation = await RunInventoryProcessAsync(repository);
+        Assert.That(
+            generatedMutation.ExitCode,
+            Is.Not.Zero,
+            "Removing a generated output from the approved manifest must fail closed.");
 
-            await File.WriteAllTextAsync(
-                manifestPath,
-                "{\"schemaVersion\":1,\"outputs\":[\"Project/Generated.g.cs\"]}\n");
-            var authority = await RunInventoryAsync(repository);
-            await File.WriteAllTextAsync(
-                Path.Combine(repository, "authority.json"),
-                authority.RootElement.GetRawText() + "\n");
-            await File.WriteAllTextAsync(
-                Path.Combine(repository, "contract.json"),
-                "{\"trustedKernel\":{\"paths\":[\"Project/Foreign.cs\"]},\"trustedComputingBase\":{\"components\":[]}}\n");
-            await File.WriteAllTextAsync(
-                Path.Combine(repository, "tcb-probe.ps1"),
-                "Set-StrictMode -Version Latest\n" +
-                ". (Join-Path $PSScriptRoot 'scripts/Get-SharpProofTcbPaths.ps1')\n" +
-                "$authority = Get-Content (Join-Path $PSScriptRoot 'authority.json') -Raw | ConvertFrom-Json\n" +
-                "$contract = Get-Content (Join-Path $PSScriptRoot 'contract.json') -Raw | ConvertFrom-Json\n" +
-                "Get-SharpProofTcbPaths -Contract $contract -ProductionInventory $authority | Out-Null\n");
-            var tcbMutation = await ArchitectureRepository.RunProcessAsync(
-                repository,
-                "pwsh",
-                "-NoLogo",
-                "-NoProfile",
-                "-NonInteractive",
-                "-File",
-                Path.Combine(repository, "tcb-probe.ps1"));
-            Assert.That(
-                tcbMutation.ExitCode,
-                Is.Not.Zero,
-                "A TCB source outside the evaluated Compile universe must fail closed.");
+        await File.WriteAllTextAsync(
+            manifestPath,
+            "{\"schemaVersion\":1,\"outputs\":[\"Project/Generated.g.cs\"]}\n");
+        var authority = await RunInventoryAsync(repository);
+        await File.WriteAllTextAsync(
+            Path.Combine(repository, "authority.json"),
+            authority.RootElement.GetRawText() + "\n");
+        await File.WriteAllTextAsync(
+            Path.Combine(repository, "contract.json"),
+            "{\"trustedKernel\":{\"paths\":[\"Project/Foreign.cs\"]},\"trustedComputingBase\":{\"components\":[]}}\n");
+        await File.WriteAllTextAsync(
+            Path.Combine(repository, "tcb-probe.ps1"),
+            "Set-StrictMode -Version Latest\n" +
+            ". (Join-Path $PSScriptRoot 'scripts/Get-SharpProofTcbPaths.ps1')\n" +
+            "$authority = Get-Content (Join-Path $PSScriptRoot 'authority.json') -Raw | ConvertFrom-Json\n" +
+            "$contract = Get-Content (Join-Path $PSScriptRoot 'contract.json') -Raw | ConvertFrom-Json\n" +
+            "Get-SharpProofTcbPaths -Contract $contract -ProductionInventory $authority | Out-Null\n");
+        var tcbMutation = await ArchitectureRepository.RunProcessAsync(
+            repository,
+            "pwsh",
+            "-NoLogo",
+            "-NoProfile",
+            "-NonInteractive",
+            "-File",
+            Path.Combine(repository, "tcb-probe.ps1"));
+        Assert.That(
+            tcbMutation.ExitCode,
+            Is.Not.Zero,
+            "A TCB source outside the evaluated Compile universe must fail closed.");
     }
 
     [Test]
@@ -102,17 +102,17 @@ public sealed class ProductionInventoryAuthorityTests
         await InitializeRepositoryAsync(repository);
         await WriteFixtureAsync(repository);
         var projectPath = Path.Combine(
-                repository,
-                "Project",
-                "Project.csproj");
+            repository,
+            "Project",
+            "Project.csproj");
         var project = await File.ReadAllTextAsync(projectPath);
         await File.WriteAllTextAsync(
-                projectPath,
-                project.Replace(
-                    "    <Compile Include=\"**/*.cs\" Exclude=\"bin/**/*.cs;obj/**/*.cs\" />",
-                    "    <Compile Include=\"**/*.cs\" Exclude=\"bin/**/*.cs;obj/**/*.cs\" />\n" +
-                    "    <Analyzer Include=\"../tools/MissingAnalyzer.dll\" />",
-                    StringComparison.Ordinal));
+            projectPath,
+            project.Replace(
+                "    <Compile Include=\"**/*.cs\" Exclude=\"bin/**/*.cs;obj/**/*.cs\" />",
+                "    <Compile Include=\"**/*.cs\" Exclude=\"bin/**/*.cs;obj/**/*.cs\" />\n" +
+                "    <Analyzer Include=\"../tools/MissingAnalyzer.dll\" />",
+                StringComparison.Ordinal));
         await CommitAllAsync(repository, "missing analyzer fixture");
 
         var result = await RunInventoryProcessAsync(repository);
@@ -120,9 +120,9 @@ public sealed class ProductionInventoryAuthorityTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.ExitCode, Is.Not.Zero);
-                Assert.That(
-                    result.Error + result.Output,
-                    Does.Contain("MissingAnalyzer.dll"));
+            Assert.That(
+                result.Error + result.Output,
+                Does.Contain("MissingAnalyzer.dll"));
         }
     }
 
@@ -281,5 +281,4 @@ public sealed class ProductionInventoryAuthorityTests
             ArchitectureRepository.RunProcessAsync(
                 repository, "git", "commit", "-m", message), includeOutput: true);
     }
-
 }
