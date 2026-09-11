@@ -183,16 +183,13 @@ public sealed class AnalyzerArchitectureTests
     }
 
     [Test]
-    public void OperationKindGateIsExhaustiveAndFutureKindsFailClosed()
+    public void OperationKindGateCatalogIsExhaustive()
     {
         var runtimeKinds = Enum.GetValues<OperationKind>().Distinct().ToArray();
 
         Assert.That(
             OperationSubsetClassifier.GetKnownOperationKinds(),
             Is.EquivalentTo(runtimeKinds));
-        Assert.That(OperationSubsetClassifier.Classify(
-                (OperationKind)int.MaxValue).IsExact,
-            Is.False);
     }
 
     [Test]

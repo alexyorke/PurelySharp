@@ -11,13 +11,6 @@ public static class OperationSubsetClassifier
         s_knownOperationKindSet =
             ImmutableHashSet.CreateRange(s_knownOperationKinds);
 
-    public static FrontendSubsetClassification Classify(OperationKind kind)
-    {
-        return Classify(
-            OperationSupportStage.ContractExpressionLowering,
-            kind);
-    }
-
     internal static FrontendSubsetClassification Classify(
         OperationSupportStage stage,
         OperationKind kind)
@@ -57,7 +50,9 @@ public static class OperationSubsetClassifier
         var builder = new StringBuilder();
         foreach (var kind in GetKnownOperationKinds())
         {
-            var classification = Classify(kind);
+            var classification = Classify(
+                OperationSupportStage.ContractExpressionLowering,
+                kind);
             builder.Append(((int)kind).ToString(CultureInfo.InvariantCulture));
             builder.Append('|');
             builder.Append(Enum.GetName(typeof(OperationKind), kind));

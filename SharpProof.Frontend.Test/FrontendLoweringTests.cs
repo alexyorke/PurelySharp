@@ -911,13 +911,14 @@ public sealed class FrontendLoweringTests
     [Test]
     public void OperationKindClassifierSnapshotIsClosedAndExhaustive()
     {
+        var stage = OperationSupportStage.ContractExpressionLowering;
         var kinds = OperationSubsetClassifier.GetKnownOperationKinds();
         Assert.That(kinds, Is.Not.Empty);
         Assert.That(kinds, Is.Ordered);
         Assert.That(kinds.Distinct().Count(), Is.EqualTo(kinds.Length));
         foreach (var kind in kinds)
         {
-            var classification = OperationSubsetClassifier.Classify(kind);
+            var classification = OperationSubsetClassifier.Classify(stage, kind);
             Assert.That(
                 classification.Decision,
                 Is.AnyOf(
@@ -931,7 +932,9 @@ public sealed class FrontendLoweringTests
                 kind.ToString());
         }
         Assert.That(
-            OperationSubsetClassifier.Classify((OperationKind)int.MaxValue).Abstention,
+            OperationSubsetClassifier.Classify(
+                stage,
+                (OperationKind)int.MaxValue).Abstention,
             Is.EqualTo(FrontendAbstention.UnknownOperationKind));
         var snapshot = OperationSubsetClassifier.CreateSnapshot();
         Assert.That(snapshot.Split('\n'), Has.Length.GreaterThan(100));
@@ -949,8 +952,10 @@ public sealed class FrontendLoweringTests
     [Test]
     public void FieldReferencesAreAdmittedToContractExpressionStage()
     {
+        var stage = OperationSupportStage.ContractExpressionLowering;
         Assert.That(
-            OperationSubsetClassifier.Classify(OperationKind.FieldReference).IsExact,
+            OperationSubsetClassifier.Classify(stage, OperationKind.FieldReference)
+                .IsExact,
             Is.True);
     }
 
