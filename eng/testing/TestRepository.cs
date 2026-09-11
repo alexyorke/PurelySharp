@@ -19,13 +19,11 @@ internal static class TestRepository
 
     internal static JsonDocument ReadSchema(
         string projectDirectory,
-        string schemaFileName)
-    {
-        return JsonDocument.Parse(File.ReadAllText(Path.Combine(
+        string schemaFileName) =>
+        JsonDocument.Parse(File.ReadAllText(Path.Combine(
             FindRoot(),
             projectDirectory,
             schemaFileName)));
-    }
 
     internal static void RequireCanonicalContainer()
     {

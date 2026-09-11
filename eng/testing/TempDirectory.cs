@@ -34,8 +34,12 @@ internal sealed class TempDirectory : IDisposable
         if (string.IsNullOrWhiteSpace(rootName) ||
             Path.IsPathRooted(rootName) ||
             rootName is "." or ".." ||
-            rootName.Contains(Path.DirectorySeparatorChar) ||
-            rootName.Contains(Path.AltDirectorySeparatorChar))
+            rootName.Contains(
+                Path.DirectorySeparatorChar.ToString(),
+                StringComparison.Ordinal) ||
+            rootName.Contains(
+                Path.AltDirectorySeparatorChar.ToString(),
+                StringComparison.Ordinal))
         {
             throw new ArgumentException(
                 "The temporary root name must be one relative directory segment.",

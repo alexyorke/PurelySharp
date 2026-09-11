@@ -9,7 +9,7 @@ namespace SharpProof.Ir.Test;
     "Performance",
     "CA1849",
     Justification = "These tests intentionally exercise AtomicFile's synchronous API.")]
-public sealed class AtomicFileTests
+public sealed class AtomicFileTests : IDisposable
 {
     private TempDirectory? _temporary;
     private string _root = null!;
@@ -23,6 +23,11 @@ public sealed class AtomicFileTests
 
     [TearDown]
     public void TearDown()
+    {
+        Dispose();
+    }
+
+    public void Dispose()
     {
         _temporary?.Dispose();
         _temporary = null;
