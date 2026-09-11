@@ -173,9 +173,7 @@ internal sealed class AnalyzerEffectCallPreconditionPolicy(
         {
             TargetMethod.ReducedFrom: not null
         };
-        var isReducedReceiver =
-            isReducedExtension && variable.Ordinal == 0;
-        if (isReducedReceiver)
+        if (isReducedExtension && variable.Ordinal == 0)
         {
             return CallArgumentAliasPolicy.Classify(
                 parameter.RefKind,
@@ -184,10 +182,17 @@ internal sealed class AnalyzerEffectCallPreconditionPolicy(
                 isSyntheticReceiver: true);
         }
 
-        var argument = FindArgument(
-            context.Origin,
+        var arguments = context.Origin switch
+        {
+            IInvocationOperation invocation => invocation.Arguments,
+            IObjectCreationOperation creation => creation.Arguments,
+            _ => []
+        };
+        var argument = CallArgumentEvaluationPolicy.FindArgument(
+            arguments,
             variable.Ordinal,
-            isReducedExtension);
+            isReducedExtension,
+            requireReplayable: false);
         return CallArgumentAliasPolicy.Classify(
             parameter.RefKind,
             actual,
@@ -196,33 +201,6 @@ internal sealed class AnalyzerEffectCallPreconditionPolicy(
                 context.Target.IsExtensionMethod &&
                 variable.Ordinal == 0 &&
                 argument?.Syntax is not ArgumentSyntax);
-    }
-
-    private static IArgumentOperation? FindArgument(
-        IOperation origin,
-        int normalizedOrdinal,
-        bool isReducedExtension)
-    {
-        var ordinal = isReducedExtension
-            ? normalizedOrdinal - 1
-            : normalizedOrdinal;
-        if (ordinal < 0)
-        {
-            return null;
-        }
-
-        var arguments = origin switch
-        {
-            IInvocationOperation invocation =>
-                invocation.Arguments,
-            IObjectCreationOperation creation =>
-                creation.Arguments,
-            _ => []
-        };
-        return arguments.FirstOrDefault(
-            argument =>
-                argument.Parameter?.Ordinal ==
-                ordinal);
     }
 
     public bool IsNotProven(
@@ -277,4 +255,41 @@ internal sealed class AnalyzerEffectCallPreconditionPolicy(
                 !clause.IsValid);
     }
 
+}
+
+internal static class CallArgumentEvaluationPolicy
+{
+    internal static IArgumentOperation? FindArgument(
+        ImmutableArray<IArgumentOperation> arguments,
+        int normalizedOrdinal,
+        bool isReducedExtension,
+        bool requireReplayable)
+    {
+        var ordinal = isReducedExtension
+            ? normalizedOrdinal - 1
+            : normalizedOrdinal;
+        IArgumentOperation? result = null;
+        foreach (var argument in arguments)
+        {
+            if (argument.Parameter?.Ordinal != ordinal)
+            {
+                continue;
+            }
+
+            if (!requireReplayable)
+            {
+                return argument;
+            }
+
+            if (result != null ||
+                argument.ArgumentKind == ArgumentKind.ParamArray)
+            {
+                return null;
+            }
+
+            result = argument;
+        }
+
+        return result;
+    }
 }

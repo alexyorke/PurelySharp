@@ -731,28 +731,11 @@ internal static partial class RequiresCallSiteAnalyzer
     {
         var isReducedExtension =
             callSite.TargetMethod.ReducedFrom != null;
-        var ordinal = isReducedExtension
-            ? variable.Ordinal - 1
-            : variable.Ordinal;
-        IArgumentOperation? result = null;
-        foreach (var argument in callSite.Arguments)
-        {
-            if (argument.Parameter?.Ordinal != ordinal)
-            {
-                continue;
-            }
-
-            if (argument.ArgumentKind ==
-                    ArgumentKind.ParamArray ||
-                result != null)
-            {
-                return null;
-            }
-
-            result = argument;
-        }
-
-        return result;
+        return CallArgumentEvaluationPolicy.FindArgument(
+            callSite.Arguments,
+            variable.Ordinal,
+            isReducedExtension,
+            requireReplayable: true);
     }
 
 }
