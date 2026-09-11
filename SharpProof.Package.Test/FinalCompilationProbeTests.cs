@@ -972,8 +972,10 @@ public sealed class FinalCompilationProbeTests
                 "Failed to escape an MSBuild value.");
         }
 
-        private static void WriteUtf8(string path, string contents) =>
+        private static void WriteUtf8(string path, string contents)
+        {
             File.WriteAllText(path, contents, new UTF8Encoding(false));
+        }
     }
 
     private sealed record ProcessResult(int ExitCode, string Output);

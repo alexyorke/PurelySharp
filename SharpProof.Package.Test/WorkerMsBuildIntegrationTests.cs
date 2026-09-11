@@ -4316,8 +4316,10 @@ public sealed class WorkerMsBuildIntegrationTests
 
         private static ProjectTemplate CreateProjectTemplate()
         {
-            static string EscapePath(params string[] parts) =>
-                SecurityElement.Escape(Path.Combine(parts));
+            static string EscapePath(params string[] parts)
+            {
+                return SecurityElement.Escape(Path.Combine(parts));
+            }
 
             var repository = TestRepository.FindRoot();
             var nativeZ3Path = EscapePath(ContainerContract.ResolveZ3LibraryRequired());

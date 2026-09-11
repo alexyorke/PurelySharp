@@ -2303,8 +2303,10 @@ public sealed class PackageLayoutSmokeTests
 
     private static Task<ProcessResult> RunDotNetAsync(
         string workingDirectory,
-        params string[] arguments) =>
-        RunProcessAsync(workingDirectory, "dotnet", arguments);
+        params string[] arguments)
+    {
+        return RunProcessAsync(workingDirectory, "dotnet", arguments);
+    }
 
     private static async Task<ProcessResult> RunProcessAsync(
         string workingDirectory,
@@ -2470,8 +2472,10 @@ public sealed class PackageLayoutSmokeTests
                     "CollectorDependency"));
     }
 
-    private static Task WriteUtf8Async(string path, string contents) =>
-        File.WriteAllTextAsync(path, contents, new UTF8Encoding(false));
+    private static Task WriteUtf8Async(string path, string contents)
+    {
+        return File.WriteAllTextAsync(path, contents, new UTF8Encoding(false));
+    }
 
     private sealed class PackageWorkspace : IDisposable
     {
@@ -3102,8 +3106,10 @@ public sealed class PackageLayoutSmokeTests
             _temporary.Dispose();
         }
 
-        private static void WriteUtf8(string path, string contents) =>
+        private static void WriteUtf8(string path, string contents)
+        {
             File.WriteAllText(path, contents, new UTF8Encoding(false));
+        }
     }
 
     private sealed class ReleaseEvidenceWorkspace : IDisposable

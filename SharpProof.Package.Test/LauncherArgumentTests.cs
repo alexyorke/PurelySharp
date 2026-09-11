@@ -1878,6 +1878,8 @@ public sealed class LauncherArgumentTests
         ];
     }
 
-    private static string[] ValidArguments() =>
-        ProjectionArguments(compilerManifest: "compiler-manifest.json");
+    private static string[] ValidArguments()
+    {
+        return ProjectionArguments(compilerManifest: "compiler-manifest.json");
+    }
 }
