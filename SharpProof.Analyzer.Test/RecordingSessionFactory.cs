@@ -22,14 +22,19 @@ internal sealed class RecordingSessionFactory : IAnalyzerSessionFactory
     internal ConcurrentDictionary<string, int> OutcomeCounts =>
         _outcomeCounts;
     internal int CreateCount => Volatile.Read(ref _createCount);
-    internal AnalyzerSemanticOutcome GetNamedOutcome(string name) =>
-        _methodOutcomes.Single(pair =>
+    internal AnalyzerSemanticOutcome GetNamedOutcome(string name)
+    {
+        return _methodOutcomes.Single(pair =>
                 string.Equals(pair.Key.Name, name, StringComparison.Ordinal))
             .Value;
-    internal IEnumerable<AnalyzerSemanticOutcome> GetOutcomes(MethodKind kind) =>
-        _methodOutcomes
+    }
+
+    internal IEnumerable<AnalyzerSemanticOutcome> GetOutcomes(MethodKind kind)
+    {
+        return _methodOutcomes
             .Where(pair => pair.Key.Kind == kind)
             .Select(static pair => pair.Value);
+    }
     internal AnalyzerSession? Session
     {
         get;
@@ -71,10 +76,12 @@ internal sealed class RecordingSessionFactory : IAnalyzerSessionFactory
         string Name,
         int SpanStart)
     {
-        internal static MethodIdentity Create(IMethodSymbol method) =>
-            new(
+        internal static MethodIdentity Create(IMethodSymbol method)
+        {
+            return new(
                 method.MethodKind,
                 method.Name,
                 method.DeclaringSyntaxReferences.FirstOrDefault()?.Span.Start ?? -1);
+        }
     }
 }
