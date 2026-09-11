@@ -1,6 +1,6 @@
 # Active code reduction queue
 Resolved proposals are removed from this file after implementation, validation, or a current-tree refutation. The original survey remains available in Git history; this file is intentionally only the active queue.
-Inventory after deduplication: 234 canonical queue IDs represented by 181 deferred rows (0 pending). Resolved and refuted proposals are removed; repeated and superseded rows are merged into canonical rows.
+Inventory after deduplication: 233 canonical queue IDs represented by 181 deferred rows (0 pending). Resolved and refuted proposals are removed; repeated and superseded rows are merged into canonical rows.
 
 Each pending row must be rechecked against the current tree, applied in a compatible batch, validated with the smallest relevant containerized test target, and then removed here.
 
@@ -176,7 +176,7 @@ Each pending row must be rechecked against the current tree, applied in a compat
 - **R0136, R0137, R0138, R0141, R0144**: R0136, R0137, R0138, R0141, R0144 | Gates proposals combine test-fixture churn with CLI envelope or model-shape changes; retain explicit gate boundaries.
 - **R0155**: R155 | Trimming generic `.gitignore` boilerplate is not a code reduction and has negligible maintenance value.
 - **R0156, R0160**: R156, R160 | Release-authority closure and transaction recovery are security/recovery behavior and are deferred.
-- **R0169, R0171, R0173, R0174, R0175, R0176, R0177, R0180, R0181, R0182, R0183, R0184, R0185, R0194**: R0169, R0171, R0173, R0174, R0175, R0176, R0177, R0180, R0181, R0182, R0183, R0184, R0185, R0194 | **Partially applied.** R0171 now table-drives 40 homogeneous single-source/exact-result analyzer tests. R0178's successful build/process checks and R0179's launcher argument vectors are fully shared. Remaining cross-suite fixture and parameterization proposals require separate current-tree validation.
+- **R0169, R0171, R0173, R0175, R0176, R0177, R0180, R0181, R0182, R0183, R0184, R0185, R0194**: R0169, R0171, R0173, R0175, R0176, R0177, R0180, R0181, R0182, R0183, R0184, R0185, R0194 | **Partially applied.** R0171 now table-drives 40 homogeneous single-source/exact-result analyzer tests. R0174's nested-call-site location assertions, R0178's successful build/process checks, and R0179's launcher argument vectors are fully shared. Remaining cross-suite fixture and parameterization proposals require separate current-tree validation.
 - **R0202**: R0202 | Literal catalogs and NuGet metadata require an authority decision, not automatic replacement by another indirection.
 - **R0227**: R227 | The approximation types are a documented reserved design slot.
 - **R1066**: R1066 | Portable IR canonical-image validation intentionally compares deterministic wire bytes. The generated graph and nested rows are mutable and lack equality; a hand-written structural comparer would duplicate every schema field and silently drift. Defer until a schema-generated comparer can preserve nullable fields, nested locations, order-sensitive arrays, documentation IDs, cancellation checks, and mutation coverage.

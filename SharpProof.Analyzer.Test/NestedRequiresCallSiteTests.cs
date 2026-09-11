@@ -349,18 +349,9 @@ public sealed class NestedRequiresCallSiteTests
 
         var diagnostics = await Analyze(source);
 
-        AssertRequiresDiagnostics(diagnostics, 5);
-        Assert.That(
-            diagnostics.Select(static diagnostic =>
-                diagnostic.Location.SourceSpan.Start),
-            Is.EqualTo(new[]
-            {
-                source.IndexOf("Positive(-4)", StringComparison.Ordinal),
-                source.IndexOf("Positive(-2)", StringComparison.Ordinal),
-                source.IndexOf("Positive(-3)", StringComparison.Ordinal),
-                source.IndexOf("Positive(-5)", StringComparison.Ordinal),
-                source.IndexOf("Positive(-7)", StringComparison.Ordinal)
-            }.OrderBy(static position => position)));
+        AssertRequiresAt(diagnostics, source, false,
+            "Positive(-4)", "Positive(-2)", "Positive(-3)",
+            "Positive(-5)", "Positive(-7)");
     }
 
     [Test]
@@ -384,11 +375,7 @@ public sealed class NestedRequiresCallSiteTests
             """;
         var diagnostics = await Analyze(source);
 
-        AssertRequiresDiagnostics(diagnostics, 1);
-        Assert.That(
-            diagnostics[0].Location.SourceSpan.Start,
-            Is.EqualTo(source.IndexOf(
-                "Positive(-2)", StringComparison.Ordinal)));
+        AssertRequiresAt(diagnostics, source, false, "Positive(-2)");
     }
 
     [Test]
@@ -467,15 +454,8 @@ public sealed class NestedRequiresCallSiteTests
             source,
             allowCompilationErrors: true);
 
-        AssertRequiresDiagnostics(diagnostics, 2);
-        Assert.That(
-            diagnostics.Select(static diagnostic =>
-                diagnostic.Location.SourceSpan.Start),
-            Is.EqualTo(new[]
-            {
-                source.IndexOf("Positive(-2)", StringComparison.Ordinal),
-                source.IndexOf("Positive(-3)", StringComparison.Ordinal)
-            }));
+        AssertRequiresAt(diagnostics, source, false,
+            "Positive(-2)", "Positive(-3)");
     }
 
     [Test]
@@ -506,11 +486,7 @@ public sealed class NestedRequiresCallSiteTests
 
         var diagnostics = await Analyze(source);
 
-        AssertRequiresDiagnostics(diagnostics, 1);
-        Assert.That(
-            diagnostics[0].Location.SourceSpan.Start,
-            Is.EqualTo(source.IndexOf(
-                "Positive(-2)", StringComparison.Ordinal)));
+        AssertRequiresAt(diagnostics, source, false, "Positive(-2)");
     }
 
     [Test]
@@ -546,15 +522,8 @@ public sealed class NestedRequiresCallSiteTests
 
         var diagnostics = await Analyze(source);
 
-        AssertRequiresDiagnostics(diagnostics, 2);
-        Assert.That(
-            diagnostics.Select(static diagnostic =>
-                diagnostic.Location.SourceSpan.Start),
-            Is.EquivalentTo(new[]
-            {
-                source.IndexOf("Positive(-1)", StringComparison.Ordinal),
-                source.IndexOf("Positive(-2)", StringComparison.Ordinal)
-            }));
+        AssertRequiresAt(diagnostics, source, true,
+            "Positive(-1)", "Positive(-2)");
     }
 
     [Test]
@@ -656,11 +625,7 @@ public sealed class NestedRequiresCallSiteTests
 
         var diagnostics = await Analyze(source);
 
-        AssertRequiresDiagnostics(diagnostics, 1);
-        Assert.That(
-            diagnostics[0].Location.SourceSpan.Start,
-            Is.EqualTo(source.IndexOf(
-                "Positive(-4)", StringComparison.Ordinal)));
+        AssertRequiresAt(diagnostics, source, false, "Positive(-4)");
     }
 
     [Test]
@@ -689,11 +654,7 @@ public sealed class NestedRequiresCallSiteTests
 
         var diagnostics = await Analyze(source);
 
-        AssertRequiresDiagnostics(diagnostics, 1);
-        Assert.That(
-            diagnostics[0].Location.SourceSpan.Start,
-            Is.EqualTo(source.IndexOf(
-                "Positive(-2)", StringComparison.Ordinal)));
+        AssertRequiresAt(diagnostics, source, false, "Positive(-2)");
     }
 
     [Test]
@@ -722,11 +683,7 @@ public sealed class NestedRequiresCallSiteTests
 
         var diagnostics = await Analyze(source);
 
-        AssertRequiresDiagnostics(diagnostics, 1);
-        Assert.That(
-            diagnostics[0].Location.SourceSpan.Start,
-            Is.EqualTo(source.IndexOf(
-                "Positive(-2)", StringComparison.Ordinal)));
+        AssertRequiresAt(diagnostics, source, false, "Positive(-2)");
     }
 
     [Test]
@@ -758,11 +715,7 @@ public sealed class NestedRequiresCallSiteTests
 
         var diagnostics = await Analyze(source);
 
-        AssertRequiresDiagnostics(diagnostics, 1);
-        Assert.That(
-            diagnostics[0].Location.SourceSpan.Start,
-            Is.EqualTo(source.IndexOf(
-                "Positive(-2)", StringComparison.Ordinal)));
+        AssertRequiresAt(diagnostics, source, false, "Positive(-2)");
     }
 
     [Test]
@@ -795,11 +748,7 @@ public sealed class NestedRequiresCallSiteTests
 
         var diagnostics = await Analyze(source);
 
-        AssertRequiresDiagnostics(diagnostics, 1);
-        Assert.That(
-            diagnostics[0].Location.SourceSpan.Start,
-            Is.EqualTo(source.IndexOf(
-                "Positive(-2)", StringComparison.Ordinal)));
+        AssertRequiresAt(diagnostics, source, false, "Positive(-2)");
     }
 
     [Test]
@@ -877,11 +826,7 @@ public sealed class NestedRequiresCallSiteTests
 
         var diagnostics = await Analyze(source);
 
-        AssertRequiresDiagnostics(diagnostics, 1);
-        Assert.That(
-            diagnostics[0].Location.SourceSpan.Start,
-            Is.EqualTo(source.IndexOf(
-                "Positive(-1)", StringComparison.Ordinal)));
+        AssertRequiresAt(diagnostics, source, false, "Positive(-1)");
     }
 
     [Test]
@@ -979,15 +924,8 @@ public sealed class NestedRequiresCallSiteTests
 
         var diagnostics = await Analyze(source);
 
-        AssertRequiresDiagnostics(diagnostics, 2);
-        Assert.That(
-            diagnostics[0].Location.SourceSpan.Start,
-            Is.EqualTo(source.IndexOf(
-                "Positive(-2)", StringComparison.Ordinal)));
-        Assert.That(
-            diagnostics[1].Location.SourceSpan.Start,
-            Is.EqualTo(source.IndexOf(
-                "Positive(-5)", StringComparison.Ordinal)));
+        AssertRequiresAt(diagnostics, source, false,
+            "Positive(-2)", "Positive(-5)");
     }
 
     [Test]
@@ -1019,11 +957,7 @@ public sealed class NestedRequiresCallSiteTests
 
         var diagnostics = await Analyze(source);
 
-        AssertRequiresDiagnostics(diagnostics, 1);
-        Assert.That(
-            diagnostics.Single().Location.SourceSpan.Start,
-            Is.EqualTo(source.IndexOf(
-                "Positive(-1)", StringComparison.Ordinal)));
+        AssertRequiresAt(diagnostics, source, false, "Positive(-1)");
     }
 
     [Test]
@@ -1121,17 +1055,9 @@ public sealed class NestedRequiresCallSiteTests
 
         var diagnostics = await Analyze(source);
 
-        AssertRequiresDiagnostics(diagnostics, 5);
-        Assert.That(
-            diagnostics.Select(diagnostic =>
-                diagnostic.Location.SourceSpan.Start),
-            Is.EquivalentTo(new[] {
-                source.IndexOf("Positive(-1)", StringComparison.Ordinal),
-                source.IndexOf("Positive(-2)", StringComparison.Ordinal),
-                source.IndexOf("Positive(-3)", StringComparison.Ordinal),
-                source.IndexOf("Positive(-4)", StringComparison.Ordinal),
-                source.IndexOf("Positive(-5)", StringComparison.Ordinal)
-            }));
+        AssertRequiresAt(diagnostics, source, true,
+            "Positive(-1)", "Positive(-2)", "Positive(-3)",
+            "Positive(-4)", "Positive(-5)");
     }
 
     [Test]
@@ -1308,25 +1234,12 @@ public sealed class NestedRequiresCallSiteTests
             source,
             allowCompilationErrors: true);
 
-        AssertRequiresDiagnostics(diagnostics, 14);
-        Assert.That(
-            diagnostics.Select(diagnostic => diagnostic.Location.SourceSpan.Start),
-            Is.EquivalentTo(new[] {
-                source.IndexOf("Positive(-1)", StringComparison.Ordinal),
-                source.IndexOf("Positive(-2)", StringComparison.Ordinal),
-                source.IndexOf("Positive(-4)", StringComparison.Ordinal),
-                source.IndexOf("Positive(-5)", StringComparison.Ordinal),
-                source.IndexOf("Positive(-6)", StringComparison.Ordinal),
-                source.IndexOf("Positive(-7)", StringComparison.Ordinal),
-                source.IndexOf("Positive(-8)", StringComparison.Ordinal),
-                source.IndexOf("Positive(-9)", StringComparison.Ordinal),
-                source.IndexOf("Positive(-10)", StringComparison.Ordinal),
-                source.IndexOf("Positive(-11)", StringComparison.Ordinal),
-                source.IndexOf("Positive(-12)", StringComparison.Ordinal),
-                source.IndexOf("Positive(-13)", StringComparison.Ordinal),
-                source.IndexOf("Positive(-14)", StringComparison.Ordinal),
-                source.IndexOf("Positive(-15)", StringComparison.Ordinal)
-            }));
+        AssertRequiresAt(diagnostics, source, true,
+            "Positive(-1)", "Positive(-2)", "Positive(-4)",
+            "Positive(-5)", "Positive(-6)", "Positive(-7)",
+            "Positive(-8)", "Positive(-9)", "Positive(-10)",
+            "Positive(-11)", "Positive(-12)", "Positive(-13)",
+            "Positive(-14)", "Positive(-15)");
     }
 
     [Test]
@@ -1361,15 +1274,8 @@ public sealed class NestedRequiresCallSiteTests
 
         var diagnostics = await Analyze(source);
 
-        AssertRequiresDiagnostics(diagnostics, 2);
-        Assert.That(
-            diagnostics.Select(static diagnostic =>
-                diagnostic.Location.SourceSpan.Start),
-            Is.EquivalentTo(new[]
-            {
-                source.IndexOf("Positive(-1)", StringComparison.Ordinal),
-                source.IndexOf("Positive(-2)", StringComparison.Ordinal)
-            }));
+        AssertRequiresAt(diagnostics, source, true,
+            "Positive(-1)", "Positive(-2)");
     }
 
     [Test]
@@ -1442,15 +1348,8 @@ public sealed class NestedRequiresCallSiteTests
 
         var diagnostics = await Analyze(source);
 
-        AssertRequiresDiagnostics(diagnostics, 2);
-        Assert.That(
-            diagnostics.Select(static diagnostic =>
-                diagnostic.Location.SourceSpan.Start),
-            Is.EquivalentTo(new[]
-            {
-                source.IndexOf("Positive(-1)", StringComparison.Ordinal),
-                source.IndexOf("Positive(-2)", StringComparison.Ordinal)
-            }));
+        AssertRequiresAt(diagnostics, source, true,
+            "Positive(-1)", "Positive(-2)");
     }
 
     [Test]
@@ -1695,6 +1594,26 @@ public sealed class NestedRequiresCallSiteTests
                 : new SharpProofAnalyzer(
                     sessionFactory),
             allowCompilationErrors: allowCompilationErrors);
+    }
+
+    private static void AssertRequiresAt(
+        ImmutableArray<Diagnostic> diagnostics,
+        string source,
+        bool unordered,
+        params string[] markers)
+    {
+        AssertRequiresDiagnostics(diagnostics, markers.Length);
+        var actual = diagnostics.Select(static diagnostic =>
+            diagnostic.Location.SourceSpan.Start);
+        var expected = markers.Select(marker =>
+            source.IndexOf(marker, StringComparison.Ordinal));
+        if (unordered)
+        {
+            Assert.That(actual, Is.EquivalentTo(expected));
+            return;
+        }
+
+        Assert.That(actual, Is.EqualTo(expected.Order()));
     }
 
     private static void AssertRequiresDiagnostics(
