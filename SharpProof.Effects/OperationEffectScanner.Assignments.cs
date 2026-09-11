@@ -137,9 +137,42 @@ internal sealed partial class OperationEffectScanner
             return result.Summary;
         }
 
+        result = result.Then(ScanCompoundOperator(assignment));
+        if (!result.CompletesNormally)
+        {
+            return result.Summary;
+        }
+
+        // The operator result has no standalone IOperation. Passing a null
+        // actual keeps call-precondition projection fail-closed. Its ownership
+        // is unknown because a user-defined operator may return any region.
+        result = result.Then(new EffectStep(
+            ResolveOperatorEffects(
+                assignment.OutConversion.MethodSymbol,
+                [EffectRegionSet.Unknown],
+                [null],
+                assignment),
+            _completionEvaluator.CanCompleteCompoundOutConversion(
+                assignment)));
+        if (result.CompletesNormally)
+        {
+            return CommitWrite(
+                result,
+                assignment.Target,
+                assignment.Value,
+                evaluatedLocation,
+                valueIsStoredDirectly: false);
+        }
+
+        return result.Summary;
+    }
+
+    private EffectStep ScanCompoundOperator(
+        ICompoundAssignmentOperation assignment)
+    {
         var skipsLiftedOperator =
             _conversionEffects.SkipsLiftedOperator(assignment);
-        result = result.Then(new EffectStep(
+        return new EffectStep(
             EffectSummaryOperations.Join(
                 skipsLiftedOperator
                     ? EffectSummary.Empty
@@ -160,31 +193,7 @@ internal sealed partial class OperationEffectScanner
                     assignment.IsChecked,
                     assignment,
                     skipsLiftedOperator)),
-            _completionEvaluator.CanCompleteCompoundOperator(assignment)));
-        if (!result.CompletesNormally)
-        {
-            return result.Summary;
-        }
-
-        // The operator result has no standalone IOperation. Passing a null
-        // actual keeps call-precondition projection fail-closed. Its ownership
-        // is unknown because a user-defined operator may return any region.
-        result = result.Then(new EffectStep(
-            ResolveOperatorEffects(
-                assignment.OutConversion.MethodSymbol,
-                [EffectRegionSet.Unknown],
-                [null],
-                assignment),
-            _completionEvaluator.CanCompleteCompoundOutConversion(
-                assignment)));
-        return !result.CompletesNormally
-            ? result.Summary
-            : CommitWrite(
-                result,
-                assignment.Target,
-                assignment.Value,
-                evaluatedLocation,
-                valueIsStoredDirectly: false);
+            _completionEvaluator.CanCompleteCompoundOperator(assignment));
     }
 
     private EffectSummary ResolveCompoundOperatorEffects(
