@@ -188,16 +188,7 @@ internal sealed class OperationCompletionEvaluator
 
     private bool CanCompleteTry(ITryOperation @try)
     {
-        if (@try.Finally != null && !CanCompleteNormally(@try.Finally))
-        {
-            return false;
-        }
-
-        return CanCompleteNormally(@try.Body) ||
-            @try.Catches.Any(catchClause =>
-                (catchClause.Filter == null ||
-                 CanCompleteNormally(catchClause.Filter)) &&
-                CanCompleteNormally(catchClause.Handler));
+        return TryCompletionFacts.CanComplete(@try, CanCompleteNormally);
     }
 
     private bool CanCompletePatternEvaluation(

@@ -2539,16 +2539,7 @@ internal sealed class DefiniteOperationFacts(Compilation compilation, Cancellati
 
     private bool TryMayCompleteNormally(ITryOperation @try)
     {
-        if (@try.Finally != null && !MayCompleteNormally(@try.Finally))
-        {
-            return false;
-        }
-
-        return MayCompleteNormally(@try.Body) ||
-            @try.Catches.Any(catchClause =>
-                (catchClause.Filter == null ||
-                 MayCompleteNormally(catchClause.Filter)) &&
-                MayCompleteNormally(catchClause.Handler));
+        return TryCompletionFacts.CanComplete(@try, MayCompleteNormally);
     }
 
     private bool MayCompleteRecursivePattern(
