@@ -92,21 +92,21 @@ public sealed class DefaultApiSpecCatalogGenerationTests
         Assert.That(first.ExitCode, Is.Zero, first.Output);
         Assert.That(second.ExitCode, Is.Zero, second.Output);
         var firstSource =
-            await File.ReadAllBytesAsync(workspace.FirstSourcePath);
+            await File.ReadAllBytesAsync(workspace.FirstOutputs.SourcePath);
         var secondSource =
-            await File.ReadAllBytesAsync(workspace.SecondSourcePath);
+            await File.ReadAllBytesAsync(workspace.SecondOutputs.SourcePath);
         var firstDocumentation =
             await File.ReadAllBytesAsync(
-                workspace.FirstDocumentationPath);
+                workspace.FirstOutputs.DocumentationPath);
         var secondDocumentation =
             await File.ReadAllBytesAsync(
-                workspace.SecondDocumentationPath);
+                workspace.SecondOutputs.DocumentationPath);
         var firstRuntimeWitness =
             await File.ReadAllBytesAsync(
-                workspace.FirstRuntimeWitnessPath);
+                workspace.FirstOutputs.RuntimeWitnessPath);
         var secondRuntimeWitness =
             await File.ReadAllBytesAsync(
-                workspace.SecondRuntimeWitnessPath);
+                workspace.SecondOutputs.RuntimeWitnessPath);
         Assert.That(secondSource, Is.EqualTo(firstSource));
         Assert.That(
             secondDocumentation,
@@ -132,7 +132,7 @@ public sealed class DefaultApiSpecCatalogGenerationTests
         var generated = await RunGeneratorAsync(workspace);
         Assert.That(generated.ExitCode, Is.Zero, generated.Output);
         await File.AppendAllTextAsync(
-            workspace.FirstSourcePath,
+            workspace.FirstOutputs.SourcePath,
             "// stale\n",
             new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
@@ -349,10 +349,8 @@ public sealed class DefaultApiSpecCatalogGenerationTests
             new UTF8Encoding(false));
 
         var result = await RunGeneratorAsync(
-            "-CatalogPath", workspace.CatalogInputPath,
-            "-SourceOutputPath", workspace.FirstSourcePath,
-            "-DocumentationOutputPath", workspace.FirstDocumentationPath,
-            "-RuntimeWitnessOutputPath", workspace.FirstRuntimeWitnessPath);
+            workspace,
+            "-CatalogPath", workspace.CatalogInputPath);
 
         Assert.That(result.ExitCode, Is.Not.Zero, result.Output);
         Assert.That(result.Output, Does.Contain(expectedError));
@@ -762,20 +760,14 @@ public sealed class DefaultApiSpecCatalogGenerationTests
         bool useSecondOutputs,
         params string[] arguments)
     {
-        var sourcePath = useSecondOutputs
-            ? workspace.SecondSourcePath
-            : workspace.FirstSourcePath;
-        var documentationPath = useSecondOutputs
-            ? workspace.SecondDocumentationPath
-            : workspace.FirstDocumentationPath;
-        var runtimeWitnessPath = useSecondOutputs
-            ? workspace.SecondRuntimeWitnessPath
-            : workspace.FirstRuntimeWitnessPath;
+        var outputs = useSecondOutputs
+            ? workspace.SecondOutputs
+            : workspace.FirstOutputs;
         return RunGeneratorAsync(
             [.. arguments,
-                "-SourceOutputPath", sourcePath,
-                "-DocumentationOutputPath", documentationPath,
-                "-RuntimeWitnessOutputPath", runtimeWitnessPath]);
+                "-SourceOutputPath", outputs.SourcePath,
+                "-DocumentationOutputPath", outputs.DocumentationPath,
+                "-RuntimeWitnessOutputPath", outputs.RuntimeWitnessPath]);
     }
 
     private static string CatalogPath()
@@ -798,6 +790,11 @@ public sealed class DefaultApiSpecCatalogGenerationTests
         int ExitCode,
         string Output);
 
+    private readonly record struct GeneratorOutputs(
+        string SourcePath,
+        string DocumentationPath,
+        string RuntimeWitnessPath);
+
     private sealed class GenerationWorkspace : IDisposable
     {
         private readonly TempDirectory _temporary;
@@ -809,20 +806,17 @@ public sealed class DefaultApiSpecCatalogGenerationTests
             _root = temporary.FullName;
             var root = _root;
             CatalogInputPath = Path.Combine(root, "catalog.json");
-            FirstSourcePath = Path.Combine(root, "first.generated.cs");
-            FirstDocumentationPath =
-                Path.Combine(root, "first.generated.md");
-            FirstRuntimeWitnessPath =
-                Path.Combine(root, "first.runtime.generated.cs");
-            SecondSourcePath =
-                Path.Combine(root, "second.generated.cs");
-            SecondDocumentationPath =
-                Path.Combine(root, "second.generated.md");
-            SecondRuntimeWitnessPath =
-                Path.Combine(root, "second.runtime.generated.cs");
+            FirstOutputs = new GeneratorOutputs(
+                Path.Combine(root, "first.generated.cs"),
+                Path.Combine(root, "first.generated.md"),
+                Path.Combine(root, "first.runtime.generated.cs"));
+            SecondOutputs = new GeneratorOutputs(
+                Path.Combine(root, "second.generated.cs"),
+                Path.Combine(root, "second.generated.md"),
+                Path.Combine(root, "second.runtime.generated.cs"));
         }
 
-        internal string FirstSourcePath
+        internal GeneratorOutputs FirstOutputs
         {
             get;
         }
@@ -830,23 +824,7 @@ public sealed class DefaultApiSpecCatalogGenerationTests
         {
             get;
         }
-        internal string FirstDocumentationPath
-        {
-            get;
-        }
-        internal string FirstRuntimeWitnessPath
-        {
-            get;
-        }
-        internal string SecondSourcePath
-        {
-            get;
-        }
-        internal string SecondDocumentationPath
-        {
-            get;
-        }
-        internal string SecondRuntimeWitnessPath
+        internal GeneratorOutputs SecondOutputs
         {
             get;
         }
