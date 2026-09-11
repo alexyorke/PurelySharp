@@ -296,19 +296,10 @@ public sealed class WorkerMsBuildIntegrationTests
             var result = run.GetProperty("results")[0];
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(
-                    sarif.RootElement.GetProperty("version").GetString(),
-                    Is.EqualTo("2.1.0"));
-                Assert.That(
-                    run.GetProperty("invocations")[0]
-                        .GetProperty("executionSuccessful").GetBoolean(),
-                    Is.True);
-                Assert.That(
-                    result.GetProperty("ruleId").GetString(),
-                    Is.EqualTo("SharpProof.Proven"));
-                Assert.That(
-                    result.GetProperty("kind").GetString(),
-                    Is.EqualTo("pass"));
+                JsonAssert.Equal(sarif.RootElement, "version", "2.1.0");
+                JsonAssert.Equal(run, "invocations[0].executionSuccessful", true);
+                JsonAssert.Equal(result, "ruleId", "SharpProof.Proven");
+                JsonAssert.Equal(result, "kind", "pass");
             }
         }
 
@@ -436,10 +427,7 @@ public sealed class WorkerMsBuildIntegrationTests
             Assert.That(
                 WorkerProtocolJson.ComputeSha256(manifestBytes),
                 Is.EqualTo(request.CompilerManifest.Sha256));
-            Assert.That(
-                manifestDocument.RootElement.GetProperty("manifest")
-                    .GetProperty("hash").GetString(),
-                Is.EqualTo(response.Manifest.Hash));
+            JsonAssert.Equal(manifestDocument.RootElement, "manifest.hash", response.Manifest.Hash);
             Assert.That(
                 response.ClaimResults.Single().Outcome,
                 Is.EqualTo(WorkerClaimOutcome.Proven));
@@ -1524,13 +1512,8 @@ public sealed class WorkerMsBuildIntegrationTests
                 Is.EqualTo(request));
             Assert.That(await File.ReadAllTextAsync(project.ResultPath),
                 Is.Not.EqualTo(result));
-            Assert.That(
-                invocation.GetProperty("executionSuccessful").GetBoolean(),
-                Is.False);
-            Assert.That(
-                invocation.GetProperty("toolExecutionNotifications")[0]
-                    .GetProperty("descriptor").GetProperty("id").GetString(),
-                Is.EqualTo("worker.malformed_result"));
+            JsonAssert.Equal(invocation, "executionSuccessful", false);
+            JsonAssert.Equal(invocation, "toolExecutionNotifications[0].descriptor.id", "worker.malformed_result");
         }
     }
 
@@ -1763,9 +1746,7 @@ public sealed class WorkerMsBuildIntegrationTests
             Assert.That(
                 publishedResponse.Errors.Select(static error => error.Code),
                 Does.Contain("worker.malformed_result"));
-            Assert.That(
-                invocation.GetProperty("executionSuccessful").GetBoolean(),
-                Is.False);
+            JsonAssert.Equal(invocation, "executionSuccessful", false);
         }
     }
 
@@ -3526,15 +3507,9 @@ public sealed class WorkerMsBuildIntegrationTests
                         module.GetProperty("sha256").GetString() ?? string.Empty))]);
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(
-                    root.GetProperty("schema").GetString(),
-                    Is.EqualTo("SharpProof.CompilerManifest"));
-                Assert.That(
-                    root.GetProperty("schemaVersion").GetInt32(),
-                    Is.EqualTo(CompilerManifestArtifactVersions.Current));
-                Assert.That(
-                    root.GetProperty("protocolVersion").GetString(),
-                    Is.EqualTo(WorkerProtocolVersions.Current));
+                JsonAssert.Equal(root, "schema", "SharpProof.CompilerManifest");
+                JsonAssert.Equal(root, "schemaVersion", CompilerManifestArtifactVersions.Current);
+                JsonAssert.Equal(root, "protocolVersion", WorkerProtocolVersions.Current);
                 Assert.That(
                     artifact.CompilationSha256,
                     Does.Match("^[0-9a-f]{64}$"));

@@ -388,12 +388,8 @@ public sealed class PackageLayoutSmokeTests
 
         using var document = JsonDocument.Parse(firstManifest);
         var root = document.RootElement;
-        Assert.That(
-            root.GetProperty("schemaVersion").GetInt32(),
-            Is.EqualTo(2));
-        Assert.That(
-            root.GetProperty("packageVersion").GetString(),
-            Is.EqualTo(feed.Version));
+        JsonAssert.Equal(root, "schemaVersion", 2);
+        JsonAssert.Equal(root, "packageVersion", feed.Version);
         var artifacts = root.GetProperty("artifacts")
             .EnumerateArray()
             .ToArray();
@@ -415,10 +411,7 @@ public sealed class PackageLayoutSmokeTests
                 throw new InvalidDataException(
                     "Release artifact fileName is null.");
             var path = Path.Combine(feed.Source, fileName);
-            Assert.That(
-                artifact.GetProperty("bytes").GetInt64(),
-                Is.EqualTo(new FileInfo(path).Length),
-                fileName);
+            JsonAssert.Equal(artifact, "bytes", new FileInfo(path).Length, fileName);
         }
         var thirdPartyComponents = root
             .GetProperty("thirdPartyComponents")
@@ -1066,11 +1059,7 @@ public sealed class PackageLayoutSmokeTests
                    await File.ReadAllTextAsync(
                        workspace.CompilerManifestPath)))
         {
-            Assert.That(
-                manifest.RootElement
-                    .GetProperty("schemaVersion")
-                    .GetInt32(),
-                Is.EqualTo(CompilerManifestArtifactVersions.Current));
+            JsonAssert.Equal(manifest.RootElement, "schemaVersion", CompilerManifestArtifactVersions.Current);
             var effectClaims = manifest.RootElement
                 .GetProperty("callables")
                 .EnumerateArray()
@@ -1137,15 +1126,8 @@ public sealed class PackageLayoutSmokeTests
 
         using var result = JsonDocument.Parse(
             await File.ReadAllTextAsync(workspace.ResultPath));
-        Assert.That(
-            result.RootElement.GetProperty("runStatus").GetString(),
-            Is.EqualTo("Complete"));
-        Assert.That(
-            result.RootElement
-                .GetProperty("summary")
-                .GetProperty("cacheStatus")
-                .GetString(),
-            Is.EqualTo("Miss"));
+        JsonAssert.Equal(result.RootElement, "runStatus", "Complete");
+        JsonAssert.Equal(result.RootElement, "summary.cacheStatus", "Miss");
         var claims = result.RootElement
             .GetProperty("claimResults")
             .EnumerateArray()
@@ -1233,12 +1215,8 @@ public sealed class PackageLayoutSmokeTests
                 .ToArray();
             Assert.That(claims, Has.Length.EqualTo(1));
             var location = claims[0].GetProperty("location");
-            Assert.That(
-                location.GetProperty("path").GetString(),
-                Is.EqualTo("mapped/contracts/Identity.cs"));
-            Assert.That(
-                location.GetProperty("line").GetInt32(),
-                Is.EqualTo(73));
+            JsonAssert.Equal(location, "path", "mapped/contracts/Identity.cs");
+            JsonAssert.Equal(location, "line", 73);
         }
 
         using var sarif = JsonDocument.Parse(
@@ -1253,14 +1231,8 @@ public sealed class PackageLayoutSmokeTests
         var physicalLocation = refuted
             .GetProperty("locations")[0]
             .GetProperty("physicalLocation");
-        Assert.That(
-            physicalLocation.GetProperty("artifactLocation")
-                .GetProperty("uri").GetString(),
-            Is.EqualTo("mapped/contracts/Identity.cs"));
-        Assert.That(
-            physicalLocation.GetProperty("region")
-                .GetProperty("startLine").GetInt32(),
-            Is.EqualTo(73));
+        JsonAssert.Equal(physicalLocation, "artifactLocation.uri", "mapped/contracts/Identity.cs");
+        JsonAssert.Equal(physicalLocation, "region.startLine", 73);
     }
 
     [Test]
@@ -1662,15 +1634,9 @@ public sealed class PackageLayoutSmokeTests
                 "portableReferences",
                 "additionalFiles"
             ]));
-        Assert.That(
-            root.GetProperty("schema").GetString(),
-            Is.EqualTo(CompilerProbeContract.SchemaName));
-        Assert.That(
-            root.GetProperty("schemaVersion").GetInt32(),
-            Is.EqualTo(CompilerProbeContract.SchemaVersion));
-        Assert.That(
-            root.GetProperty("assembly").GetProperty("name").GetString(),
-            Is.EqualTo("Consumer"));
+        JsonAssert.Equal(root, "schema", CompilerProbeContract.SchemaName);
+        JsonAssert.Equal(root, "schemaVersion", CompilerProbeContract.SchemaVersion);
+        JsonAssert.Equal(root, "assembly.name", "Consumer");
 
         var syntaxTrees = root.GetProperty("syntaxTrees")
             .EnumerateArray()
@@ -1724,22 +1690,12 @@ public sealed class PackageLayoutSmokeTests
                     "." + CompilerProbeContract.GeneratedMethodName +
                     "(int)"));
         var parseOptions = subjectTree.GetProperty("parseOptions");
-        Assert.That(
-            parseOptions.GetProperty("languageVersion").GetString(),
-            Is.EqualTo("CSharp13"));
-        Assert.That(
-            parseOptions.GetProperty("specifiedLanguageVersion").GetString(),
-            Is.EqualTo("CSharp13"));
+        JsonAssert.Equal(parseOptions, "languageVersion", "CSharp13");
+        JsonAssert.Equal(parseOptions, "specifiedLanguageVersion", "CSharp13");
         var options = root.GetProperty("options");
-        Assert.That(
-            options.GetProperty("nullableContextOptions").GetString(),
-            Is.EqualTo("Annotations"));
-        Assert.That(
-            options.GetProperty("optimizationLevel").GetString(),
-            Is.EqualTo("Debug"));
-        Assert.That(
-            options.GetProperty("platform").GetString(),
-            Is.EqualTo("X64"));
+        JsonAssert.Equal(options, "nullableContextOptions", "Annotations");
+        JsonAssert.Equal(options, "optimizationLevel", "Debug");
+        JsonAssert.Equal(options, "platform", "X64");
         Assert.That(options.GetProperty("allowUnsafe").GetBoolean(), Is.True);
         Assert.That(options.GetProperty("checkOverflow").GetBoolean(), Is.True);
         Assert.That(options.GetProperty("deterministic").GetBoolean(), Is.True);
@@ -1763,9 +1719,7 @@ public sealed class PackageLayoutSmokeTests
                 CompilerProbeContract.GlobalValueOptionKey &&
             string.IsNullOrEmpty(
                 option.GetProperty("path").GetString()));
-        Assert.That(
-            globalOption.GetProperty("value").GetString(),
-            Is.EqualTo(globalValue));
+        JsonAssert.Equal(globalOption, "value", globalValue);
         var outputOption = consumedOptions.Single(option =>
             option.GetProperty("key").GetString() ==
                 CompilerProbeContract.OutputPathOptionKey);
@@ -1780,9 +1734,7 @@ public sealed class PackageLayoutSmokeTests
                     "/" + CompilerProbeContract.AdditionalFileName,
                     StringComparison.Ordinal) ==
             true);
-        Assert.That(
-            metadataOption.GetProperty("value").GetString(),
-            Is.EqualTo(metadataValue));
+        JsonAssert.Equal(metadataOption, "value", metadataValue);
 
         var additionalFile = root.GetProperty("additionalFiles")
             .EnumerateArray()
@@ -1792,9 +1744,7 @@ public sealed class PackageLayoutSmokeTests
                         "/" + CompilerProbeContract.AdditionalFileName,
                         StringComparison.Ordinal) ==
                 true);
-        Assert.That(
-            additionalFile.GetProperty("metadataValue").GetString(),
-            Is.EqualTo(metadataValue));
+        JsonAssert.Equal(additionalFile, "metadataValue", metadataValue);
         Assert.That(
             additionalFile.GetProperty("textSha256").GetString(),
             Is.EqualTo(TextChecksum(input + "\n")).IgnoreCase);

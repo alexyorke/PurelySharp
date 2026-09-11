@@ -1441,56 +1441,24 @@ public sealed class LauncherArgumentTests
             Assert.That(
                 root.GetProperty("$schema").GetString(),
                 Does.EndWith("sarif-2.1.0.json"));
-            Assert.That(
-                root.GetProperty("version").GetString(),
-                Is.EqualTo("2.1.0"));
-            Assert.That(
-                run.GetProperty("invocations")[0]
-                    .GetProperty("executionSuccessful").GetBoolean(),
-                Is.True);
+            JsonAssert.Equal(root, "version", "2.1.0");
+            JsonAssert.Equal(run, "invocations[0].executionSuccessful", true);
             Assert.That(results.GetArrayLength(), Is.EqualTo(2));
-            Assert.That(
-                results[0].GetProperty("ruleId").GetString(),
-                Is.EqualTo("SharpProof.Refuted"));
-            Assert.That(
-                results[0].GetProperty("kind").GetString(),
-                Is.EqualTo("fail"));
-            Assert.That(
-                results[0].GetProperty("level").GetString(),
-                Is.EqualTo("error"));
-            Assert.That(
-                results[0].GetProperty("partialFingerprints")
-                    .GetProperty("sharpProofSemanticId/v1").GetString(),
-                Is.EqualTo("claim-1"));
+            JsonAssert.Equal(results[0], "ruleId", "SharpProof.Refuted");
+            JsonAssert.Equal(results[0], "kind", "fail");
+            JsonAssert.Equal(results[0], "level", "error");
+            JsonAssert.Equal(results[0], "partialFingerprints.sharpProofSemanticId/v1", "claim-1");
             var physicalLocation = results[0].GetProperty("locations")[0]
                 .GetProperty("physicalLocation");
-            Assert.That(
-                physicalLocation.GetProperty("artifactLocation")
-                    .GetProperty("uri").GetString(),
-                Is.EqualTo("file:///C:/source/Subject.cs"));
-            Assert.That(
-                physicalLocation.GetProperty("region")
-                    .GetProperty("startLine").GetInt32(),
-                Is.EqualTo(2));
-            Assert.That(
-                physicalLocation.GetProperty("region")
-                    .GetProperty("startColumn").GetInt32(),
-                Is.EqualTo(5));
-            Assert.That(
-                results[1].GetProperty("ruleId").GetString(),
-                Is.EqualTo("SP0047"));
-            Assert.That(
-                results[1].GetProperty("level").GetString(),
-                Is.EqualTo("error"));
+            JsonAssert.Equal(physicalLocation, "artifactLocation.uri", "file:///C:/source/Subject.cs");
+            JsonAssert.Equal(physicalLocation, "region.startLine", 2);
+            JsonAssert.Equal(physicalLocation, "region.startColumn", 5);
+            JsonAssert.Equal(results[1], "ruleId", "SP0047");
+            JsonAssert.Equal(results[1], "level", "error");
             var assumption = run.GetProperty("invocations")[0]
                 .GetProperty("toolExecutionNotifications")[0];
-            Assert.That(
-                assumption.GetProperty("descriptor")
-                    .GetProperty("id").GetString(),
-                Is.EqualTo("SP0048"));
-            Assert.That(
-                assumption.GetProperty("level").GetString(),
-                Is.EqualTo("error"));
+            JsonAssert.Equal(assumption, "descriptor.id", "SP0048");
+            JsonAssert.Equal(assumption, "level", "error");
         }
     }
 
@@ -1530,9 +1498,7 @@ public sealed class LauncherArgumentTests
         using var vacuity = JsonDocument.Parse(
             SarifProjection.Serialize(
                 request, response, SarifProjectDirectory));
-        Assert.That(
-            ResultEvidence(vacuity).GetProperty("vacuity").GetString(),
-            Is.EqualTo("NoModeledNormalReturn"));
+        JsonAssert.Equal(ResultEvidence(vacuity), "vacuity", "NoModeledNormalReturn");
 
         manifest.Callables[0].SelectedFeatures = [
             WorkerSelectedFeature.Effects
@@ -1551,9 +1517,7 @@ public sealed class LauncherArgumentTests
         using var certainty = JsonDocument.Parse(
             SarifProjection.Serialize(
                 request, response, SarifProjectDirectory));
-        Assert.That(
-            ResultEvidence(certainty).GetProperty("effectCertainty").GetString(),
-            Is.EqualTo("CompleteMayEffectSummary"));
+        JsonAssert.Equal(ResultEvidence(certainty), "effectCertainty", "CompleteMayEffectSummary");
 
         response.ClaimResults[0].Outcome = WorkerClaimOutcome.Refuted;
         response.ClaimResults[0].EffectCertainty =
@@ -1584,24 +1548,14 @@ public sealed class LauncherArgumentTests
             .GetProperty("results")[0];
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(
-                projected.GetProperty("ruleId").GetString(),
-                Is.EqualTo("SharpProof.Refuted"));
+            JsonAssert.Equal(projected, "ruleId", "SharpProof.Refuted");
             Assert.That(
                 projected.GetProperty("message").GetProperty("text")
                     .GetString(),
                 Does.Contain("concrete explicit-throw")
                     .And.Contain("witness.cs:9:7"));
-            Assert.That(
-                projected.GetProperty("locations")[0]
-                    .GetProperty("physicalLocation")
-                    .GetProperty("region")
-                    .GetProperty("startLine").GetInt32(),
-                Is.EqualTo(9));
-            Assert.That(
-                ResultEvidence(refuted).GetProperty("effectWitness")
-                    .GetProperty("kind").GetString(),
-                Is.EqualTo("explicit-throw"));
+            JsonAssert.Equal(projected, "locations[0].physicalLocation.region.startLine", 9);
+            JsonAssert.Equal(ResultEvidence(refuted), "effectWitness.kind", "explicit-throw");
         }
 
         static JsonElement ResultEvidence(JsonDocument document)
@@ -1662,15 +1616,9 @@ public sealed class LauncherArgumentTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(
-                result.GetProperty("ruleId").GetString(),
-                Is.EqualTo("SharpProof." + outcome));
-            Assert.That(
-                result.GetProperty("kind").GetString(),
-                Is.EqualTo(expectedKind));
-            Assert.That(
-                result.GetProperty("level").GetString(),
-                Is.EqualTo(expectedLevel));
+            JsonAssert.Equal(result, "ruleId", "SharpProof." + outcome);
+            JsonAssert.Equal(result, "kind", expectedKind);
+            JsonAssert.Equal(result, "level", expectedLevel);
         }
     }
 
@@ -1814,21 +1762,10 @@ public sealed class LauncherArgumentTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(
-                invocation.GetProperty("executionSuccessful").GetBoolean(),
-                Is.False);
-            Assert.That(
-                invocation.GetProperty("properties")
-                    .GetProperty("runStatus").GetString(),
-                Is.EqualTo("Failed"));
-            Assert.That(
-                invocation.GetProperty("toolExecutionNotifications")[0]
-                    .GetProperty("descriptor").GetProperty("id").GetString(),
-                Is.EqualTo("infrastructure.test"));
-            Assert.That(
-                invocation.GetProperty("toolExecutionNotifications")[1]
-                    .GetProperty("descriptor").GetProperty("id").GetString(),
-                Is.EqualTo("SP0048"));
+            JsonAssert.Equal(invocation, "executionSuccessful", false);
+            JsonAssert.Equal(invocation, "properties.runStatus", "Failed");
+            JsonAssert.Equal(invocation, "toolExecutionNotifications[0].descriptor.id", "infrastructure.test");
+            JsonAssert.Equal(invocation, "toolExecutionNotifications[1].descriptor.id", "SP0048");
         }
     }
 
