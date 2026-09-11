@@ -30,11 +30,6 @@
     "managedAssemblyBytes": 247808
   },
   "support": {
-    "verifierPackageId": "SharpProof.Verifier",
-    "msbuildRuntimeType": "Core",
-    "nativeHostInstallSupported": false,
-    "arm64Supported": false,
-    "sharedNetworkPublicationSupported": false
-  },
-  "resourceContract": "eng/acceptance/contract.json"
+    "verifierPackageId": "SharpProof.Verifier"
+  }
 }
