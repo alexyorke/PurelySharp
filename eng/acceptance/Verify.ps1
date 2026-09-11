@@ -121,21 +121,6 @@ function Write-AcceptanceTimingEvidence {
     if ($timingWritten) {
         return
     }
-    if ($Status -eq 'passed') {
-        $expectedPhases = @(
-            $contract.automation.acceptanceTimingPhases |
-                ForEach-Object { [string]$_ })
-        $actualPhases = @($timingPhases | ForEach-Object name)
-        if (($actualPhases -join ',') -cne ($expectedPhases -join ',')) {
-            throw (
-                'Acceptance timing phases do not match the acceptance ' +
-                "contract. Expected '$($expectedPhases -join ',')'; " +
-                "actual '$($actualPhases -join ',')'.")
-        }
-    }
-    $script:timingWritten = $true
-    [IO.Directory]::CreateDirectory($timingDirectory) | Out-Null
-    $temporary = $timingOutput + '.' + [Guid]::NewGuid().ToString('N') + '.tmp'
     $totalMilliseconds = [long]$timingStopwatch.Elapsed.TotalMilliseconds
     $timingCompletedUtc = $timingStartedUtc.AddMilliseconds(
         $totalMilliseconds)
@@ -146,6 +131,9 @@ function Write-AcceptanceTimingEvidence {
         -Phases @($timingPhases) `
         -ExpectedPhaseNames @($contract.automation.acceptanceTimingPhases) `
         -RequireComplete ($Status -in @('passed','incomplete'))
+    $script:timingWritten = $true
+    [IO.Directory]::CreateDirectory($timingDirectory) | Out-Null
+    $temporary = $timingOutput + '.' + [Guid]::NewGuid().ToString('N') + '.tmp'
     [pscustomobject]@{
         schemaVersion = 1
         command = 'acceptance'
