@@ -44,20 +44,9 @@ public static class IrRelationalSummaryBuilder
         IrRelationalSummaryBuildLimits? limits = null,
         bool mayThrow = false)
     {
-        if (program == null)
-        {
-            throw new ArgumentNullException(nameof(program));
-        }
-
-        if (signature == null)
-        {
-            throw new ArgumentNullException(nameof(signature));
-        }
-
-        if (initialEnvironment == null)
-        {
-            throw new ArgumentNullException(nameof(initialEnvironment));
-        }
+        ArgumentNullGuard.NotNull(program, nameof(program));
+        ArgumentNullGuard.NotNull(signature, nameof(signature));
+        ArgumentNullGuard.NotNull(initialEnvironment, nameof(initialEnvironment));
 
         limits ??= IrRelationalSummaryBuildLimits.Default;
         calls ??= ImmutableDictionary<IrInstructionId, IrRelationalSummary>.Empty;

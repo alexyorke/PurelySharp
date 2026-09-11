@@ -8,15 +8,8 @@ public static class IrRelationalSummaryInstantiator
         IReadOnlyList<IrTerm> arguments,
         int instanceOrdinal)
     {
-        if (summary == null)
-        {
-            throw new ArgumentNullException(nameof(summary));
-        }
-
-        if (arguments == null)
-        {
-            throw new ArgumentNullException(nameof(arguments));
-        }
+        ArgumentNullGuard.NotNull(summary, nameof(summary));
+        ArgumentNullGuard.NotNull(arguments, nameof(arguments));
 
         if (instanceOrdinal < 0)
         {

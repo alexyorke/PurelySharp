@@ -25,10 +25,7 @@ internal static class AtomicFile
 
     internal static void WriteStagedBytes(string temporary, byte[] content)
     {
-        if (content == null)
-        {
-            throw new ArgumentNullException(nameof(content));
-        }
+        ArgumentNullGuard.NotNull(content, nameof(content));
         using var stream = new FileStream(
             temporary,
             FileMode.CreateNew,

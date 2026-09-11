@@ -4,10 +4,7 @@ internal static class Utf16WellFormedness
 {
     internal static bool IsWellFormed(string value)
     {
-        if (value == null)
-        {
-            throw new ArgumentNullException(nameof(value));
-        }
+        ArgumentNullGuard.NotNull(value, nameof(value));
         for (var index = 0; index < value.Length; index++)
         {
             var current = value[index];
