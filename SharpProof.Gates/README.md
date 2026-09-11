@@ -30,8 +30,10 @@ floor. The runner adds `EnforcePure` to each selected declaration without
 rewriting its body or dependencies and analyzes the pinned upstream project as
 one compilation.
 
-Every synthetic seed is rendered in ten source forms, for 280 independently
-compiled metamorphic cases:
+Compiler-bound `Requires` seeds are rendered in ten source forms, while the
+effect-contract seeds are rendered in nine forms because they have no contract
+formals to alpha-rename. Together they produce 262 independently compiled
+metamorphic cases:
 
 1. baseline;
 2. method, class, parameter, and helper rename;
@@ -41,10 +43,11 @@ compiled metamorphic cases:
 6. a local temporary;
 7. an `if (true)` wrapper;
 8. a named argument replacing a positional argument;
-9. alpha-renamed contract formals;
+9. alpha-renamed contract formals (compiler-bound seeds only);
 10. reordered independent statements.
 
-Together these produce 480 recorded cases. The runner compares real
+Together with the 200 open-source cases, these produce 462 recorded cases.
+The runner compares real
 `SharpProofAnalyzer` output with
 `Corpus/expected.canonical.snapshot`. Each entry records the analyzer's
 internal semantic outcome independently of diagnostics, so diagnostic silence
