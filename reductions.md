@@ -1,6 +1,6 @@
 # Active code reduction queue
 Resolved proposals are removed from this file after implementation, validation, or a current-tree refutation. The original survey remains available in Git history; this file is intentionally only the active queue.
-Inventory after deduplication: 252 canonical queue IDs represented by 191 deferred rows (0 pending). Resolved and refuted proposals are removed; repeated and superseded rows are merged into canonical rows.
+Inventory after deduplication: 250 canonical queue IDs represented by 189 deferred rows (0 pending). Resolved and refuted proposals are removed; repeated and superseded rows are merged into canonical rows.
 
 Each pending row must be rechecked against the current tree, applied in a compatible batch, validated with the smallest relevant containerized test target, and then removed here.
 
@@ -160,8 +160,6 @@ Each pending row must be rechecked against the current tree, applied in a compat
 - **R0007, R0008, R0009**: R007-R009 | Compiler-probe JSON bytes, artifact authority, and IL opcode admission are compatibility/soundness boundaries; defer to focused format work.
 - **R0013**: R013 | Re-threading recursive API-spec validation through mutable context changes soundness-critical state ownership for cosmetic call-site savings.
 - **R0019, R0224**: R019, R224 | These remove public or semantically meaningful summary facets; write-only repository evidence is not enough.
-- **R0020**: R020 | The dataflow arithmetic is a real capability even if production callers are absent; deletion can be revisited as an explicit feature/API decision.
-- **R0022**: R022 | A generic bottom-up fold would obscure two small performance-sensitive algorithms and add delegate/short-circuit machinery.
 - **R0024**: R024 | `ClosedAbstractDomain.Merge` and `Compare` are public API, and `OwnedCount` supports a load-bearing disposal test.
 - **R2433**: R2433 | `WorkerProtocolJson` targets `netstandard2.0`, whose `StreamReader` API has no `ReadToEndAsync(CancellationToken)` overload. The direct API change fails compilation (`CS1501`); retain the current pre/post cancellation checks until a target-compatible cancellable loop can be designed without changing strict UTF-8, byte-bound/overflow probing, or BOM handling. | `SharpProof.Worker.Protocol/ProtocolJson.cs:58-66`; validation failure from `SharpProof.Worker.Test` `ProtocolJsonTests` (`CS1501` on `ReadToEndAsync(cancellationToken)`)
 - **R0027, R0029, R0030, R0031**: R0027, R0029, R0030, R0031 | Generalizing process, temporary-directory, and package-test setup changes cleanup/lifetime semantics across many fixtures; defer after the shared root/default work already removed the exact duplication.
