@@ -85,11 +85,6 @@ public abstract class CancelableBuildTask : Microsoft.Build.Utilities.Task,
         }
     }
 
-    protected static IEnumerable<string> Present(params string?[] paths)
-    {
-        return paths.Where(static path => !string.IsNullOrWhiteSpace(path))!;
-    }
-
     internal static string ResolveProjectRelativePath(
         string? projectDirectory,
         string path)
