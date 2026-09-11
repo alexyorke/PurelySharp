@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('corpus', 'performance')]
+    [ValidateSet('performance')]
     [string]$Gate,
 
     [Parameter(Mandatory = $true)]

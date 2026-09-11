@@ -12,21 +12,6 @@ $temporaryRoot = Join-Path ([IO.Path]::GetTempPath()) (
     'sharpproof-gate-evidence-' + [Guid]::NewGuid().ToString('N'))
 [IO.Directory]::CreateDirectory($temporaryRoot) | Out-Null
 
-function New-CorpusResult {
-    return [ordered]@{
-        Passed = $true; CaseCount = 1; BaseCaseCount = 1
-        OpenSourceMethodCount = 1; SupportedOpenSourceMethodCount = 1
-        OpenSourceFileCount = 1; SyntheticSeedCount = 1; VariantCount = 1
-        DiagnosticCount = 0; SupportedCaseCount = 1
-        IntentionallyUnsupportedCaseCount = 0; SupportedUnknownCount = 0
-        UnknownCount = 0; SilentUnknownCount = 0; TotalUnknownCount = 0
-        UnknownRate = 0.0; SilentUnknownRate = 0.0; TotalUnknownRate = 0.0
-        CacheReplayCount = 1; ConcurrentReplayCount = 1
-        UnknownReasons = [object[]]@(); AllowedDegradations = [object[]]@()
-        Failures = [object[]]@()
-    }
-}
-
 function New-PerformanceResult {
     return [ordered]@{
         Passed = $true; Warmups = 1; Samples = 1
@@ -66,11 +51,7 @@ function New-Envelope([string]$Gate) {
         Executable = [ordered]@{
             Mvid = $mvid
         }
-        Result = if ($Gate -ceq 'corpus') {
-            New-CorpusResult
-        } else {
-            New-PerformanceResult
-        }
+        Result = New-PerformanceResult
     }
 }
 
@@ -106,11 +87,10 @@ function Assert-Rejected([object]$Value, [string]$Gate, [string]$Name) {
 }
 
 try {
-    Assert-Accepted (New-Envelope 'corpus') 'corpus' 'valid-corpus'
     Assert-Accepted (New-Envelope 'performance') 'performance' 'valid-performance'
-    Assert-Rejected ([ordered]@{}) 'corpus' 'empty-object'
+    Assert-Rejected ([ordered]@{}) 'performance' 'empty-object'
 
-    $duplicateJson = (New-Envelope 'corpus' | ConvertTo-Json -Depth 12).Replace(
+    $duplicateJson = (New-Envelope 'performance' | ConvertTo-Json -Depth 12).Replace(
         '"SchemaVersion": 1,',
         '"SchemaVersion": 1,"SchemaVersion": 1,')
     $duplicatePath = Join-Path $temporaryRoot 'duplicate-key.json'
@@ -118,7 +98,7 @@ try {
     $duplicateRejected = $false
     try {
         Assert-SharpProofStandaloneGateResult `
-            -Path $duplicatePath -ExpectedGate corpus `
+            -Path $duplicatePath -ExpectedGate performance `
             -ExpectedCommit $commit -ExpectedMvid $mvid | Out-Null
     }
     catch { $duplicateRejected = $true }
@@ -126,28 +106,28 @@ try {
         throw 'Duplicate standalone gate JSON properties were accepted.'
     }
 
-    $fixture = New-Envelope 'corpus'; $fixture.SchemaVersion = 2
-    Assert-Rejected $fixture 'corpus' 'wrong-schema'
-    $fixture = New-Envelope 'corpus'; $fixture.Gate = 'performance'
-    Assert-Rejected $fixture 'corpus' 'wrong-gate'
-    $fixture = New-Envelope 'corpus'; $fixture.Passed = $false
-    Assert-Rejected $fixture 'corpus' 'false-envelope-status'
-    $fixture = New-Envelope 'corpus'; $fixture.Result.Passed = $false
-    Assert-Rejected $fixture 'corpus' 'false-result-status'
-    $fixture = New-Envelope 'corpus'; $fixture.SourceCommit = 'f' * 40
-    Assert-Rejected $fixture 'corpus' 'stale-commit'
-    $fixture = New-Envelope 'corpus'; $fixture.Executable.Mvid = [Guid]::Empty.ToString('D')
-    Assert-Rejected $fixture 'corpus' 'wrong-mvid'
-    $fixture = New-Envelope 'corpus'; $fixture.Remove('Result')
-    Assert-Rejected $fixture 'corpus' 'missing-field'
-    $fixture = New-Envelope 'corpus'; $fixture['Extra'] = 'decoy'
-    Assert-Rejected $fixture 'corpus' 'extra-field'
+    $fixture = New-Envelope 'performance'; $fixture.SchemaVersion = 2
+    Assert-Rejected $fixture 'performance' 'wrong-schema'
+    $fixture = New-Envelope 'performance'; $fixture.Gate = 'corpus'
+    Assert-Rejected $fixture 'performance' 'wrong-gate'
+    $fixture = New-Envelope 'performance'; $fixture.Passed = $false
+    Assert-Rejected $fixture 'performance' 'false-envelope-status'
+    $fixture = New-Envelope 'performance'; $fixture.Result.Passed = $false
+    Assert-Rejected $fixture 'performance' 'false-result-status'
+    $fixture = New-Envelope 'performance'; $fixture.SourceCommit = 'f' * 40
+    Assert-Rejected $fixture 'performance' 'stale-commit'
+    $fixture = New-Envelope 'performance'; $fixture.Executable.Mvid = [Guid]::Empty.ToString('D')
+    Assert-Rejected $fixture 'performance' 'wrong-mvid'
+    $fixture = New-Envelope 'performance'; $fixture.Remove('Result')
+    Assert-Rejected $fixture 'performance' 'missing-field'
+    $fixture = New-Envelope 'performance'; $fixture['Extra'] = 'decoy'
+    Assert-Rejected $fixture 'performance' 'extra-field'
     $fixture = New-Envelope 'performance'; $fixture.Result.Remove('Samples')
     Assert-Rejected $fixture 'performance' 'missing-result-field'
     $fixture = New-Envelope 'performance'; $fixture.Result['Decoy'] = 1
     Assert-Rejected $fixture 'performance' 'extra-result-field'
-    $fixture = New-Envelope 'corpus'; $fixture.Result.Failures = $null
-    Assert-Rejected $fixture 'corpus' 'null-failures'
+    $fixture = New-Envelope 'performance'; $fixture.Result.Failures = $null
+    Assert-Rejected $fixture 'performance' 'null-failures'
 }
 finally {
     Remove-Item -LiteralPath $temporaryRoot -Recurse -Force

@@ -7,7 +7,7 @@ function Assert-SharpProofStandaloneGateResult {
     param(
         [Parameter(Mandatory = $true)][string]$Path,
         [Parameter(Mandatory = $true)]
-        [ValidateSet('corpus', 'performance')][string]$ExpectedGate,
+        [ValidateSet('performance')][string]$ExpectedGate,
         [Parameter(Mandatory = $true)][string]$ExpectedCommit,
         [Parameter(Mandatory = $true)][string]$ExpectedMvid
     )
@@ -69,15 +69,6 @@ function Assert-SharpProofStandaloneGateResult {
         throw 'The standalone gate result has the wrong executable identity.'
     }
 
-    $corpusProperties = @(
-        'Passed', 'CaseCount', 'BaseCaseCount', 'OpenSourceMethodCount',
-        'SupportedOpenSourceMethodCount', 'OpenSourceFileCount',
-        'SyntheticSeedCount', 'VariantCount', 'DiagnosticCount',
-        'SupportedCaseCount', 'IntentionallyUnsupportedCaseCount',
-        'SupportedUnknownCount', 'UnknownCount', 'SilentUnknownCount',
-        'TotalUnknownCount', 'UnknownRate', 'SilentUnknownRate',
-        'TotalUnknownRate', 'CacheReplayCount', 'ConcurrentReplayCount',
-        'UnknownReasons', 'AllowedDegradations', 'Failures')
     $performanceProperties = @(
         'Passed', 'Warmups', 'Samples', 'PackageBuildEstimatorVersion',
         'PackageBuildSdk', 'PackageBuildSamples', 'OrderBalancedRatios',
@@ -94,19 +85,13 @@ function Assert-SharpProofStandaloneGateResult {
         'IdeEditP95Milliseconds', 'IdeEditMaximumMilliseconds',
         'IdeDiagnosticReplayFailureCount', 'CancellationP95Milliseconds',
         'ForcedTerminationMilliseconds', 'Failures')
-    $expectedResultProperties = if ($ExpectedGate -ceq 'corpus') {
-        $corpusProperties
-    } else {
-        $performanceProperties
-    }
     Assert-SharpProofExactJsonProperties -Actual $document.Result.PSObject.Properties.Name `
         -Description "$ExpectedGate result" `
-        -Expected $expectedResultProperties
+        -Expected $performanceProperties
     foreach ($property in $document.Result.PSObject.Properties) {
         if ($property.Name -ceq 'Passed') { continue }
         if ($property.Name -in @(
-                'UnknownReasons', 'AllowedDegradations', 'Failures',
-                'PackageBuildSamples', 'OrderBalancedRatios')) {
+                'Failures', 'PackageBuildSamples', 'OrderBalancedRatios')) {
             if ($property.Value -isnot [Array]) {
                 throw "The $ExpectedGate result property '$($property.Name)' must be an array."
             }
@@ -125,31 +110,16 @@ function Assert-SharpProofStandaloneGateResult {
             throw "The $ExpectedGate result property '$($property.Name)' must be numeric."
         }
     }
-    if ($ExpectedGate -ceq 'corpus') {
-        foreach ($reason in @($document.Result.UnknownReasons)) {
-            Assert-SharpProofExactJsonProperties -Actual $reason.PSObject.Properties.Name `
-                -Description 'Corpus unknown-reason row' `
-                -Expected @('Reason', 'Count')
-        }
-        if (@($document.Result.AllowedDegradations | Where-Object {
-                    $_ -isnot [string]
-                }).Count -ne 0) {
-            throw 'Corpus allowed degradations must be strings.'
-        }
-    }
-    else {
-            Assert-SharpProofExactJsonProperties -Actual $document.Result.PackageBuildSdk.PSObject.Properties.Name `
-                -Description 'Performance SDK identity' `
-                -Expected @(
-                'ConfiguredVersion', 'RollForward', 'ResolvedVersion')
-        foreach ($sample in @($document.Result.PackageBuildSamples)) {
-            Assert-SharpProofExactJsonProperties -Actual $sample.PSObject.Properties.Name `
-                -Description 'Performance package-build sample' `
-                -Expected @(
-                    'Index', 'UnannotatedAdvisoryFirst',
-                    'BaselineMilliseconds',
-                    'UnannotatedAdvisoryMilliseconds', 'Ratio')
-        }
+    Assert-SharpProofExactJsonProperties -Actual $document.Result.PackageBuildSdk.PSObject.Properties.Name `
+        -Description 'Performance SDK identity' `
+        -Expected @('ConfiguredVersion', 'RollForward', 'ResolvedVersion')
+    foreach ($sample in @($document.Result.PackageBuildSamples)) {
+        Assert-SharpProofExactJsonProperties -Actual $sample.PSObject.Properties.Name `
+            -Description 'Performance package-build sample' `
+            -Expected @(
+                'Index', 'UnannotatedAdvisoryFirst',
+                'BaselineMilliseconds',
+                'UnannotatedAdvisoryMilliseconds', 'Ratio')
     }
     if ($document.Result.Passed -isnot [bool] -or
         -not $document.Result.Passed -or
