@@ -781,34 +781,11 @@ public sealed class ClaimManifestBuilderTests
             static target => target.Method.Name,
             StringComparer.Ordinal);
 
-        using (Assert.EnterMultipleScope())
-        {
-            Assert.That(targets, Has.Count.EqualTo(3));
-            Assert.That(targets, Does.ContainKey("Async"));
-            Assert.That(targets, Does.ContainKey("DelegateCall"));
-            Assert.That(targets, Does.ContainKey("Generic"));
-            Assert.That(
-                targets.Values.All(static target =>
-                    !target.IsVerifierSupported),
-                Is.True);
-            Assert.That(
-                targets.Values.SelectMany(static target =>
-                    target.EffectClaims).Select(static claim =>
-                    claim.Evidence.Outcome),
-                Is.All.EqualTo(WorkerClaimOutcome.Unknown));
-            Assert.That(
-                targets.Values.SelectMany(static target =>
-                    target.EffectClaims).Select(static claim =>
-                    claim.Evidence.Reason),
-                Is.All.EqualTo(
-                    WorkerClaimReason.UnsupportedContract));
-            Assert.That(
-                targets.Values.SelectMany(static target =>
-                    target.EffectClaims).All(static claim =>
-                    claim.Evidence.Witness == null &&
-                    claim.Evidence.Replay == null),
-                Is.True);
-        }
+        AssertUnsupportedEffectTargets(
+            targets,
+            "Async",
+            "DelegateCall",
+            "Generic");
     }
 
     [Test]
@@ -862,33 +839,10 @@ public sealed class ClaimManifestBuilderTests
             static target => target.Method.Name,
             StringComparer.Ordinal);
 
-        using (Assert.EnterMultipleScope())
-        {
-            Assert.That(targets, Has.Count.EqualTo(2));
-            Assert.That(targets, Does.ContainKey(".cctor"));
-            Assert.That(targets, Does.ContainKey("get_Value"));
-            Assert.That(
-                targets.Values.All(static target =>
-                    !target.IsVerifierSupported),
-                Is.True);
-            Assert.That(
-                targets.Values.SelectMany(static target =>
-                    target.EffectClaims).Select(static claim =>
-                    claim.Evidence.Outcome),
-                Is.All.EqualTo(WorkerClaimOutcome.Unknown));
-            Assert.That(
-                targets.Values.SelectMany(static target =>
-                    target.EffectClaims).Select(static claim =>
-                    claim.Evidence.Reason),
-                Is.All.EqualTo(
-                    WorkerClaimReason.UnsupportedContract));
-            Assert.That(
-                targets.Values.SelectMany(static target =>
-                    target.EffectClaims).All(static claim =>
-                    claim.Evidence.Witness == null &&
-                    claim.Evidence.Replay == null),
-                Is.True);
-        }
+        AssertUnsupportedEffectTargets(
+            targets,
+            ".cctor",
+            "get_Value");
     }
 
     [Test]
@@ -2377,6 +2331,41 @@ public sealed class ClaimManifestBuilderTests
             }
         }
         """;
+    }
+
+    private static void AssertUnsupportedEffectTargets(
+        IReadOnlyDictionary<string, ManifestCallableTarget> targets,
+        params string[] expectedNames)
+    {
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(targets, Has.Count.EqualTo(expectedNames.Length));
+            foreach (var expectedName in expectedNames)
+            {
+                Assert.That(targets, Does.ContainKey(expectedName));
+            }
+            Assert.That(
+                targets.Values.All(static target =>
+                    !target.IsVerifierSupported),
+                Is.True);
+            Assert.That(
+                targets.Values.SelectMany(static target =>
+                    target.EffectClaims).Select(static claim =>
+                    claim.Evidence.Outcome),
+                Is.All.EqualTo(WorkerClaimOutcome.Unknown));
+            Assert.That(
+                targets.Values.SelectMany(static target =>
+                    target.EffectClaims).Select(static claim =>
+                    claim.Evidence.Reason),
+                Is.All.EqualTo(
+                    WorkerClaimReason.UnsupportedContract));
+            Assert.That(
+                targets.Values.SelectMany(static target =>
+                    target.EffectClaims).All(static claim =>
+                    claim.Evidence.Witness == null &&
+                    claim.Evidence.Replay == null),
+                Is.True);
+        }
     }
 
     private static string LocalReferenceSource(string firstName, string predicateName)

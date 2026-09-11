@@ -3142,11 +3142,8 @@ public sealed class EffectAnalysisTests
             Is.False);
     }
 
-    [Test]
-    public void FreshArrayContentsDoNotBecomeFreshOwnedAliases()
-    {
-        var result = Analyze(
-            """
+    [TestCase(
+        """
             public sealed class Box {
                 public int Value;
             }
@@ -3159,16 +3156,9 @@ public sealed class EffectAnalysisTests
                 }
             }
             """,
-            "Mutate");
-
-        AssertFreshContainerAlias(result);
-    }
-
-    [Test]
-    public void FreshObjectContentsDoNotBecomeFreshOwnedAliases()
-    {
-        var result = Analyze(
-            """
+        TestName = "FreshArrayContentsDoNotBecomeFreshOwnedAliases")]
+    [TestCase(
+        """
             public sealed class Box {
                 public int Value;
             }
@@ -3183,16 +3173,9 @@ public sealed class EffectAnalysisTests
                 }
             }
             """,
-            "Mutate");
-
-        AssertFreshContainerAlias(result);
-    }
-
-    [Test]
-    public void NestedFreshContainerContentsDoNotBecomeFreshOwnedAliases()
-    {
-        var result = Analyze(
-            """
+        TestName = "FreshObjectContentsDoNotBecomeFreshOwnedAliases")]
+    [TestCase(
+        """
             public sealed class Box {
                 public int Value;
             }
@@ -3205,7 +3188,10 @@ public sealed class EffectAnalysisTests
                 }
             }
             """,
-            "Mutate");
+        TestName = "NestedFreshContainerContentsDoNotBecomeFreshOwnedAliases")]
+    public void FreshContainerContentsDoNotBecomeFreshOwnedAliases(string source)
+    {
+        var result = Analyze(source, "Mutate");
 
         AssertFreshContainerAlias(result);
     }
@@ -4377,11 +4363,8 @@ public sealed class EffectAnalysisTests
         Assert.That(result.Projection.IsComplete, Is.True);
     }
 
-    [Test]
-    public void ReducedSourceExtensionRemapsItsReceiverArgument()
-    {
-        var compilation = EffectTestHost.CreateCompilation(
-            """
+    [TestCase(
+        """
             public sealed class Box {
                 public int Value;
             }
@@ -4393,23 +4376,19 @@ public sealed class EffectAnalysisTests
             public static class Sample {
                 public static void Invoke(Box value) => value.Mutate();
             }
-            """);
-        var result = new EffectAnalysisSession(compilation).Analyze(
-            Method(compilation, "Invoke"));
-
-        AssertParameterWritesRemap(result);
-    }
-
-    [Test]
-    public void RefParameterWritesRemapToTheCaller()
-    {
-        var compilation = EffectTestHost.CreateCompilation(
-            """
+            """,
+        TestName = "ReducedSourceExtensionRemapsItsReceiverArgument")]
+    [TestCase(
+        """
             public static class Sample {
                 private static void Set(ref int value) => value = 1;
                 public static void Invoke(ref int value) => Set(ref value);
             }
-            """);
+            """,
+        TestName = "RefParameterWritesRemapToTheCaller")]
+    public void ParameterWritesRemapToTheCaller(string source)
+    {
+        var compilation = EffectTestHost.CreateCompilation(source);
         var result = new EffectAnalysisSession(compilation).Analyze(
             Method(compilation, "Invoke"));
 
@@ -5050,32 +5029,16 @@ public sealed class EffectAnalysisTests
             Is.True);
     }
 
-    [Test]
-    public void SealedReferenceArrayStoreOmitsArrayTypeMismatchException()
-    {
-        var result = Analyze(
-            """
+    [TestCase(
+        """
             public static class Sample {
                 public static void Store(string[] values, string value) =>
                     values[0] = value;
             }
             """,
-            "Store");
-
-        AssertThrows(
-            result.Summary,
-            "System.NullReferenceException",
-            "System.IndexOutOfRangeException");
-        AssertDoesNotThrow(
-            result.Summary,
-            "System.ArrayTypeMismatchException");
-    }
-
-    [Test]
-    public void DefinitelyNullReferenceArrayStoreOmitsArrayTypeMismatchException()
-    {
-        var result = Analyze(
-            """
+        TestName = "SealedReferenceArrayStoreOmitsArrayTypeMismatchException")]
+    [TestCase(
+        """
             #nullable enable
             using SharpProof.Attributes;
 
@@ -5086,7 +5049,10 @@ public sealed class EffectAnalysisTests
                 }
             }
             """,
-            "Store");
+        TestName = "DefinitelyNullReferenceArrayStoreOmitsArrayTypeMismatchException")]
+    public void ArrayStoreOmitsArrayTypeMismatchException(string source)
+    {
+        var result = Analyze(source, "Store");
 
         AssertThrows(
             result.Summary,

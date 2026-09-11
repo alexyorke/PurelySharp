@@ -6638,22 +6638,16 @@ public sealed class WorkerTests
         var result = response.ClaimResults.Single();
         var originalCore = result.ProofCore.ToArray();
         result.ProofCore = ["fabricated:999"];
-        var fabricated = WorkerProtocolJson.Validate(
-            response, response.InputHash, response.Manifest, authority);
-        Assert.That(
-            fabricated.Errors.Select(static error => error.Code),
-            Does.Contain("response.proof_core_authority"));
+        AssertArtifactAuthorityError(
+            response, authority, "response.proof_core_authority");
 
         result.ProofCore = originalCore;
         var usedAssumption = result.Assumptions.Single(
             assumption => assumption.Kind == WorkerAssumptionKind.UserAssume &&
                 assumption.Id == assumptionId);
         usedAssumption.Used = !usedAssumption.Used;
-        var forgedUsage = WorkerProtocolJson.Validate(
-            response, response.InputHash, response.Manifest, authority);
-        Assert.That(
-            forgedUsage.Errors.Select(static error => error.Code),
-            Does.Contain("response.assumption_usage_authority"));
+        AssertArtifactAuthorityError(
+            response, authority, "response.assumption_usage_authority");
     }
 
     [TestCase("variable")]
@@ -6692,11 +6686,8 @@ public sealed class WorkerTests
                 break;
         }
 
-        var forged = WorkerProtocolJson.Validate(
-            response, response.InputHash, response.Manifest, authority);
-        Assert.That(
-            forged.Errors.Select(static error => error.Code),
-            Does.Contain("response.model_authority"));
+        AssertArtifactAuthorityError(
+            response, authority, "response.model_authority");
     }
 
     [TestCase("kind")]
@@ -6726,11 +6717,8 @@ public sealed class WorkerTests
                 break;
         }
 
-        var forged = WorkerProtocolJson.Validate(
-            response, response.InputHash, response.Manifest, authority);
-        Assert.That(
-            forged.Errors.Select(static error => error.Code),
-            Does.Contain("response.effect_witness_authority"));
+        AssertArtifactAuthorityError(
+            response, authority, "response.effect_witness_authority");
     }
 
     [Test]
@@ -6755,19 +6743,25 @@ public sealed class WorkerTests
 
         var result = response.ClaimResults.Single();
         result.Vacuity = WorkerVacuityKind.None;
-        var forgedVacuity = WorkerProtocolJson.Validate(
-            response, response.InputHash, response.Manifest, authority);
-        Assert.That(
-            forgedVacuity.Errors.Select(static error => error.Code),
-            Does.Contain("response.vacuity_authority"));
+        AssertArtifactAuthorityError(
+            response, authority, "response.vacuity_authority");
 
         result.Vacuity = WorkerVacuityKind.ContradictoryPreconditions;
         result.ProofCore = ["assume:0"];
-        var forgedCore = WorkerProtocolJson.Validate(
+        AssertArtifactAuthorityError(
+            response, authority, "response.proof_core_authority");
+    }
+
+    private static void AssertArtifactAuthorityError(
+        WorkerVerifyResponse response,
+        CompilerResponseEvidenceAuthority authority,
+        string expectedCode)
+    {
+        var validation = WorkerProtocolJson.Validate(
             response, response.InputHash, response.Manifest, authority);
         Assert.That(
-            forgedCore.Errors.Select(static error => error.Code),
-            Does.Contain("response.proof_core_authority"));
+            validation.Errors.Select(static error => error.Code),
+            Does.Contain(expectedCode));
     }
 
     private static CompilerResponseEvidenceAuthority CreateResponseAuthority(

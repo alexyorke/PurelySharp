@@ -1,6 +1,6 @@
 # Active code reduction queue
 Resolved proposals are removed from this file after implementation, validation, or a current-tree refutation. The original survey remains available in Git history; this file is intentionally only the active queue.
-Inventory after deduplication: 215 canonical queue IDs represented by 175 deferred rows (0 pending). Resolved and refuted proposals are removed; repeated and superseded rows are merged into canonical rows.
+Inventory after deduplication: 166 canonical queue IDs represented by 165 deferred rows (0 pending). Resolved and refuted proposals are removed; repeated and superseded rows are merged into canonical rows.
 
 Each pending row must be rechecked against the current tree, applied in a compatible batch, validated with the smallest relevant containerized test target, and then removed here.
 
@@ -149,28 +149,18 @@ Each pending row must be rechecked against the current tree, applied in a compat
 - **R2509**: R2509 | **Deferred.** Lowering is keyed by operation while purity is keyed by operation plus depth and short-circuits on different child sets. Sharing traversal facts would require a depth-aware result model and must preserve conservative depth-limit behavior; retain the separate caches.
 - **R2226**: R2226 | **Deferred.** The worklist-order hook is an internal, low-overhead seam used to exercise the production solver's actual scheduling path. Removing it would either duplicate solver logic in tests or add conditional test-only build plumbing; keep the seam and its permutation validation.
 
-- **R0007, R0008, R0009**: R007-R009 | Compiler-probe JSON bytes, artifact authority, and IL opcode admission are compatibility/soundness boundaries; defer to focused format work.
 - **R0013**: R013 | Re-threading recursive API-spec validation through mutable context changes soundness-critical state ownership for cosmetic call-site savings.
 - **R0024**: R024 | Retain `Z3ExpressionOwner.OwnedCount`; the disposal regression test uses it to verify ownership count before disposal and zero ownership after cleanup.
 - **R2433**: R2433 | `WorkerProtocolJson` targets `netstandard2.0`, whose `StreamReader` API has no `ReadToEndAsync(CancellationToken)` overload. The direct API change fails compilation (`CS1501`); retain the current pre/post cancellation checks until a target-compatible cancellable loop can be designed without changing strict UTF-8, byte-bound/overflow probing, or BOM handling. | `SharpProof.Worker.Protocol/ProtocolJson.cs:58-66`; validation failure from `SharpProof.Worker.Test` `ProtocolJsonTests` (`CS1501` on `ReadToEndAsync(cancellationToken)`)
-- **R0029, R0030**: R0029, R0030 | Partially applied; the broad shared process-runner slice and collision-worker staging helper are resolved. Remaining temporary-directory and package-test/RunVerifier setup cases have distinct cleanup, ownership, environment, lifetime, or diagnostic semantics; defer until a broader fixture contract is designed.
-- **R0032, R0033, R0034**: R032-R034 | These are broad Effects/Gates control-flow and process-lifetime refactors; the copies have environment-specific predicates and failure semantics.
-- **R0038, R0039, R0041**: R038-R039, R041 | These alter soundness-sensitive traversal, pattern, or replay-candidate ordering; defer to a dedicated semantic refactor.
-- **R0066, R0067, R0068, R0070**: R0066, R0067, R0068, R0070 | These change sample/pilot inheritance, scheduled validation, packaged imports, workflow setup, or automatic production-project classification.
-- **R0072, R0074, R0076**: R072, R074, R076 | Shared shard/coverage/timing orchestration would centralize timeout, process, and atomic-publication semantics; treat as dedicated infrastructure work.
-- **R0078, R0079, R0080, R0082, R0083, R0084, R0085**: R078-R080, R082-R085 | Soundness-critical recursive traversal, dispatch, alias, and abstract-value changes are deferred as requested.
+- **R0030**: R0030 | Remaining temporary-directory and package-test/RunVerifier setup cases have distinct cleanup, ownership, environment, lifetime, or diagnostic semantics; defer until a broader fixture contract is designed.
+- **R0038**: R038 | Soundness-sensitive traversal changes require a dedicated semantic refactor.
+- **R0076**: R076 | Shared timing orchestration would centralize timeout, process, and atomic-publication semantics; treat as dedicated infrastructure work.
+- **R0082**: R082 | The remaining soundness-critical traversal change is deferred as requested.
 - **R0081**: R081 | The unreachable conversion arm represents intended null-receiver behavior; deleting it would hide a latent soundness bug rather than simplify a working path.
-- **R0088, R0091, R0095, R0096, R0105**: R0088, R0091, R0095, R0096, R0105 | These parameterize or abstract large test fixtures; keep named failure isolation and local arrange/assert evidence in this reduction pass.
-- **R0097, R0098, R0170**: R095, R097, R098, R170 | Formatting-only line-count reductions do not improve maintenance.
-- **R0100, R0102, R0103**: R0100, R0102, R0103 | Cross-project metadata-reference and verification-algorithm helpers have ordering, filtering, identity, or performance differences that need dedicated design.
-- **R0110, R0111, R0112, R0114**: R110-R112, R114 | Release identity, Git byte capture, package IDs, and canonical JSON comparison are release-authority code and remain explicit.
+- **R0100**: R0100 | The remaining cross-project metadata-reference helper has ordering, filtering, identity, or performance differences that need dedicated design.
+- **R0111**: R111 | Git byte capture is release-authority code and remains explicit.
 - **R0118**: R118 | A new build-task base class changes the task hierarchy and cancellation surface used by packaged MSBuild tasks.
-- **R0119**: R119 | The fuzz oracle compilation paths have distinct failure-isolation behavior; defer their unification.
-- **R0125, R0126, R0127, R0129**: R125-R127, R129 | Acceptance assertions, CPU budgeting, and container command execution are operational authority paths, not formatting helpers.
-- **R0131, R0133, R0134**: R131, R133-R134 | Docker target aliases, CI environment scope, and permission declarations are user/CI behavior and security documentation.
-- **R0136, R0137, R0138, R0141, R0144**: R0136, R0137, R0138, R0141, R0144 | Gates proposals combine test-fixture churn with CLI envelope or model-shape changes; retain explicit gate boundaries.
-- **R0155**: R155 | Trimming generic `.gitignore` boilerplate is not a code reduction and has negligible maintenance value.
-- **R0156, R0160**: R156, R160 | Release-authority closure and transaction recovery are security/recovery behavior and are deferred.
+- **R0156**: R156 | Release-authority closure is security behavior and is deferred.
 - **R0202**: R0202 | Literal catalogs and NuGet metadata require an authority decision, not automatic replacement by another indirection.
 - **R0227**: R227 | The approximation types are a documented reserved design slot.
 - **R1066**: R1066 | Portable IR canonical-image validation intentionally compares deterministic wire bytes. The generated graph and nested rows are mutable and lack equality; a hand-written structural comparer would duplicate every schema field and silently drift. Defer until a schema-generated comparer can preserve nullable fields, nested locations, order-sensitive arrays, documentation IDs, cancellation checks, and mutation coverage.
