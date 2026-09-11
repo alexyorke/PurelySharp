@@ -16,7 +16,10 @@ public sealed class SharedTestInfrastructureTests
             "SharpProof.Contracts.Test",
             "SharpProof.Effects.Test",
             "SharpProof.Frontend.Test",
+            "SharpProof.Meta.Analyzers.Test",
             "SharpProof.Specs.Test",
+            "SharpProof.Testing",
+            Path.Combine("Tools", "SharpProof.Fuzz"),
             "SharpProof.Worker.Test"
         };
         var directReads = projects

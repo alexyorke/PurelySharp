@@ -13,7 +13,9 @@ namespace SharpProof.Meta.Analyzers.Test;
 public sealed class SharpProofSoundnessAnalyzerTests
 {
     private static readonly ImmutableArray<MetadataReference> PlatformReferences =
-        CreatePlatformReferences();
+        TestMetadataReferences.WithAdditionalPaths(
+            [typeof(Compilation).Assembly.Location, typeof(CSharpCompilation).Assembly.Location],
+            sort: false);
 
     [TestCase("\"ir_literal\"", false, "ir_literal")]
     [TestCase("parameter", false, null)]
@@ -3510,16 +3512,4 @@ public sealed class SharpProofSoundnessAnalyzerTests
             """).SetName("NestedSemanticPatternIsRejectedOnce");
     }
 
-    private static ImmutableArray<MetadataReference> CreatePlatformReferences()
-    {
-        var trustedAssemblies =
-            (string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ??
-            throw new InvalidOperationException("Trusted platform assemblies are unavailable.");
-        return [.. trustedAssemblies
-            .Split(Path.PathSeparator)
-            .Append(typeof(Compilation).Assembly.Location)
-            .Append(typeof(CSharpCompilation).Assembly.Location)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Select(static path => MetadataReference.CreateFromFile(path))];
-    }
 }

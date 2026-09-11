@@ -896,7 +896,9 @@ public static class FrontendDifferentialOracle
 {
     private const string SemanticEdgeMethodPrefix = "EdgeTarget";
     private static readonly Lazy<ImmutableArray<MetadataReference>> References =
-        new(CreateReferences, LazyThreadSafetyMode.ExecutionAndPublication);
+        new(
+            static () => TestMetadataReferences.SortedDistinctPlatform,
+            LazyThreadSafetyMode.ExecutionAndPublication);
 
     public static FrontendDifferentialResult Compare(
         GeneratedCSharpCase generated,
@@ -1759,19 +1761,6 @@ public static class FrontendDifferentialOracle
             char item => item == expected,
             _ => false
         };
-    }
-
-    private static ImmutableArray<MetadataReference> CreateReferences()
-    {
-        var trustedAssemblies =
-            (string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ??
-            throw new InvalidOperationException(
-                "Trusted platform assemblies are unavailable.");
-        return [.. trustedAssemblies
-            .Split(Path.PathSeparator)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(static path => path, StringComparer.OrdinalIgnoreCase)
-            .Select(static path => MetadataReference.CreateFromFile(path))];
     }
 
     private static FrontendDifferentialResult Agreement(

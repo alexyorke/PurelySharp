@@ -115,12 +115,21 @@
                         '$(MSBuildProjectName)' == 'SharpProof.Contracts.Test' OR
                         '$(MSBuildProjectName)' == 'SharpProof.Frontend.Test' OR
                         '$(MSBuildProjectName)' == 'SharpProof.Effects.Test' OR
+                        '$(MSBuildProjectName)' == 'SharpProof.Fuzz' OR
+                        '$(MSBuildProjectName)' == 'SharpProof.Meta.Analyzers.Test' OR
                         '$(MSBuildProjectName)' == 'SharpProof.Package.Test' OR
                         '$(MSBuildProjectName)' == 'SharpProof.Specs.Test' OR
+                        '$(MSBuildProjectName)' == 'SharpProof.Testing' OR
                         '$(MSBuildProjectName)' == 'SharpProof.Worker.Test'">
     <Compile Include="$(MSBuildThisFileDirectory)eng\testing\TestMetadataReferences.cs"
              Link="TestMetadataReferences.cs" />
   </ItemGroup>
+
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'SharpProof.Fuzz' OR
+                            '$(MSBuildProjectName)' == 'SharpProof.Meta.Analyzers.Test' OR
+                            '$(MSBuildProjectName)' == 'SharpProof.Testing'">
+    <DefineConstants>$(DefineConstants);SHARPPROOF_PLATFORM_REFERENCES_ONLY</DefineConstants>
+  </PropertyGroup>
 
   <ItemGroup Condition="'$(MSBuildProjectName)' == 'SharpProof.Contracts.Test' OR
                         '$(MSBuildProjectName)' == 'SharpProof.Worker.Test'">

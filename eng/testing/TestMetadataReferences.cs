@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
+#if !SHARPPROOF_PLATFORM_REFERENCES_ONLY
 using SharpProof.Attributes;
+#endif
 
 internal static class TestMetadataReferences
 {
@@ -12,8 +14,12 @@ internal static class TestMetadataReferences
             static reference => reference.Display ?? string.Empty,
             StringComparer.Ordinal)];
 
+    internal static ImmutableArray<MetadataReference> SortedDistinctPlatform { get; } =
+        WithAdditionalPaths([], sort: true);
+
+#if !SHARPPROOF_PLATFORM_REFERENCES_ONLY
     internal static ImmutableArray<MetadataReference> WithSharpProof { get; } =
-        AddSharpProofReference(Platform);
+        WithAdditionalPaths([typeof(Contract).Assembly.Location], sort: false);
 
     internal static ImmutableArray<MetadataReference> WithoutSharpProof { get; } =
         [.. Platform.Where(static reference => !string.Equals(
@@ -46,6 +52,24 @@ internal static class TestMetadataReferences
         return [.. paths.Select(static path =>
             (MetadataReference)MetadataReference.CreateFromFile(path))];
     }
+#endif
+
+    internal static ImmutableArray<MetadataReference> WithAdditionalPaths(
+        IEnumerable<string> additionalPaths,
+        bool sort)
+    {
+        IEnumerable<string> paths = Platform
+            .Select(static reference => reference.Display!)
+            .Concat(additionalPaths)
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+        if (sort)
+        {
+            paths = paths.OrderBy(static path => path, StringComparer.OrdinalIgnoreCase);
+        }
+
+        return [.. paths.Select(static path =>
+            (MetadataReference)MetadataReference.CreateFromFile(path))];
+    }
 
     private static ImmutableArray<MetadataReference> CreatePlatformReferences()
     {
@@ -58,18 +82,4 @@ internal static class TestMetadataReferences
             .Select(static path => MetadataReference.CreateFromFile(path))];
     }
 
-    private static ImmutableArray<MetadataReference> AddSharpProofReference(
-        ImmutableArray<MetadataReference> platform)
-    {
-        var location = typeof(Contract).Assembly.Location;
-        if (platform.Any(reference => string.Equals(
-                reference.Display,
-                location,
-                StringComparison.OrdinalIgnoreCase)))
-        {
-            return platform;
-        }
-
-        return platform.Add(MetadataReference.CreateFromFile(location));
-    }
 }

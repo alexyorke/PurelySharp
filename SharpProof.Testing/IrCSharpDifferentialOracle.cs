@@ -24,7 +24,9 @@ public sealed record DifferentialResult(
 public sealed class IrCSharpDifferentialOracle
 {
     private static readonly Lazy<ImmutableArray<MetadataReference>> References =
-        new(CreateReferences, LazyThreadSafetyMode.ExecutionAndPublication);
+        new(
+            static () => TestMetadataReferences.SortedDistinctPlatform,
+            LazyThreadSafetyMode.ExecutionAndPublication);
     private readonly IrFactory _factory;
     private readonly IrInterpreter _interpreter;
 
@@ -612,15 +614,4 @@ public sealed class IrCSharpDifferentialOracle
                   " while the IR reported " + interpreted.Status + ".");
     }
 
-    private static ImmutableArray<MetadataReference> CreateReferences()
-    {
-        var trustedAssemblies =
-            (string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ??
-            throw new InvalidOperationException("Trusted platform assemblies are unavailable.");
-        return [.. trustedAssemblies
-            .Split(Path.PathSeparator)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(static value => value, StringComparer.OrdinalIgnoreCase)
-            .Select(static path => MetadataReference.CreateFromFile(path))];
-    }
 }
