@@ -2079,24 +2079,9 @@ public sealed class SharpProofSoundnessAnalyzerTests
             Does.Contain("SPMETA003"));
     }
 
-    [Test]
-    public async Task RejectsArbitraryWorkerMainCancellationTranslation()
+    [TestCaseSource(nameof(CancellationTranslationCountCases))]
+    public async Task ReportsOneCancellationTranslationDiagnostic(string source)
     {
-        const string source =
-            """
-            using System;
-            using System.Threading.Tasks;
-            namespace SharpProof.Worker {
-                static class Program {
-                    internal static async Task<int> Main(string[] args) {
-                        await Task.Yield();
-                        try { throw new OperationCanceledException(); }
-                        catch (OperationCanceledException) { return 4; }
-                    }
-                }
-            }
-            """;
-
         var diagnostics = await Analyze(source);
         Assert.That(
             diagnostics.Count(static diagnostic =>
@@ -2104,80 +2089,6 @@ public sealed class SharpProofSoundnessAnalyzerTests
             Is.EqualTo(1));
     }
 
-    [Test]
-    public async Task CallerCancellationRethrowCheckDoesNotAuthorizeArbitraryFallback()
-    {
-        const string source =
-            """
-            using System;
-            using System.Threading;
-            using System.Threading.Tasks;
-
-            namespace SharpProof.Worker {
-                sealed class CallableVerificationResult { }
-
-                static class CallableVerificationPolicy {
-                    private static async Task<CallableVerificationResult>
-                        VerifyTargetAsync(
-                            object verifier,
-                            object target,
-                            object budgets,
-                            object parallelism,
-                            object resourceGate,
-                            object projectBoundary,
-                            CancellationToken callerCancellation) {
-                        await Task.Yield();
-                        try { throw new OperationCanceledException(); }
-                        catch (OperationCanceledException) {
-                            callerCancellation.ThrowIfCancellationRequested();
-                            return new CallableVerificationResult();
-                        }
-                    }
-                }
-            }
-            """;
-
-        var diagnostics = await Analyze(source);
-        Assert.That(
-            diagnostics.Count(static diagnostic =>
-                diagnostic.Id == "SPMETA003"),
-            Is.EqualTo(1));
-    }
-
-    [Test]
-    public async Task RejectsBodyBlindWorkerVerifyAsyncCancellationTranslation()
-    {
-        const string source =
-            """
-            using System;
-            using System.Threading;
-            using System.Threading.Tasks;
-            namespace SharpProof.Worker.Protocol {
-                sealed class WorkerVerifyRequest { }
-                sealed class WorkerVerifyResponse { }
-            }
-            namespace SharpProof.Worker {
-                using SharpProof.Worker.Protocol;
-                sealed class SharpProofWorker {
-                    internal async Task<WorkerVerifyResponse> VerifyAsync(
-                        WorkerVerifyRequest request,
-                        CancellationToken cancellationToken) {
-                        await Task.Yield();
-                        try { throw new OperationCanceledException(); }
-                        catch (OperationCanceledException) {
-                            return new WorkerVerifyResponse();
-                        }
-                    }
-                }
-            }
-            """;
-
-        var diagnostics = await Analyze(source);
-        Assert.That(
-            diagnostics.Count(static diagnostic =>
-                diagnostic.Id == "SPMETA003"),
-            Is.EqualTo(1));
-    }
 
     [Test]
     public async Task WorkerVerifyAsyncRefKindOverloadDoesNotCrashAnalysis()
@@ -2220,50 +2131,6 @@ public sealed class SharpProofSoundnessAnalyzerTests
         Assert.That(
             diagnostics.Select(static diagnostic => diagnostic.Id),
             Does.Not.Contain("AD0001"));
-    }
-
-    [Test]
-    public async Task WorkerCancellationResponseHelperMustPublishResponse()
-    {
-        const string source =
-            """
-            using System;
-            using System.Threading.Tasks;
-
-            namespace SharpProof.Worker.Protocol {
-                sealed class WorkerVerifyResponse { }
-                enum WorkerRunStatus { Canceled }
-                static class WorkerResultAssembler {
-                    internal static WorkerVerifyResponse Create(
-                        WorkerRunStatus runStatus) => new();
-                }
-            }
-
-            namespace SharpProof.Worker {
-                using SharpProof.Worker.Protocol;
-
-                static class Program {
-                    internal static async Task<int> Main(string[] args) {
-                        async Task<int> Respond(
-                            WorkerVerifyResponse response) {
-                            await Task.Yield();
-                            return 0;
-                        }
-                        try { throw new OperationCanceledException(); }
-                        catch (OperationCanceledException) {
-                            return await Respond(WorkerResultAssembler.Create(
-                                WorkerRunStatus.Canceled));
-                        }
-                    }
-                }
-            }
-            """;
-
-        var diagnostics = await Analyze(source);
-        Assert.That(
-            diagnostics.Count(static diagnostic =>
-                diagnostic.Id == "SPMETA003"),
-            Is.EqualTo(1));
     }
 
     [TestCase("", 0)]
@@ -3455,6 +3322,114 @@ public sealed class SharpProofSoundnessAnalyzerTests
             diagnostics.Count(static diagnostic =>
                 diagnostic.Id == "SPMETA003"),
             Is.EqualTo(2));
+    }
+
+    private static IEnumerable<TestCaseData> CancellationTranslationCountCases()
+    {
+        yield return new TestCaseData(
+            """
+            using System;
+            using System.Threading.Tasks;
+            namespace SharpProof.Worker {
+                static class Program {
+                    internal static async Task<int> Main(string[] args) {
+                        await Task.Yield();
+                        try { throw new OperationCanceledException(); }
+                        catch (OperationCanceledException) { return 4; }
+                    }
+                }
+            }
+            """)
+            .SetName("RejectsArbitraryWorkerMainCancellationTranslation");
+        yield return new TestCaseData(
+            """
+            using System;
+            using System.Threading;
+            using System.Threading.Tasks;
+
+            namespace SharpProof.Worker {
+                sealed class CallableVerificationResult { }
+
+                static class CallableVerificationPolicy {
+                    private static async Task<CallableVerificationResult>
+                        VerifyTargetAsync(
+                            object verifier,
+                            object target,
+                            object budgets,
+                            object parallelism,
+                            object resourceGate,
+                            object projectBoundary,
+                            CancellationToken callerCancellation) {
+                        await Task.Yield();
+                        try { throw new OperationCanceledException(); }
+                        catch (OperationCanceledException) {
+                            callerCancellation.ThrowIfCancellationRequested();
+                            return new CallableVerificationResult();
+                        }
+                    }
+                }
+            }
+            """)
+            .SetName("CallerCancellationRethrowCheckDoesNotAuthorizeArbitraryFallback");
+        yield return new TestCaseData(
+            """
+            using System;
+            using System.Threading;
+            using System.Threading.Tasks;
+            namespace SharpProof.Worker.Protocol {
+                sealed class WorkerVerifyRequest { }
+                sealed class WorkerVerifyResponse { }
+            }
+            namespace SharpProof.Worker {
+                using SharpProof.Worker.Protocol;
+                sealed class SharpProofWorker {
+                    internal async Task<WorkerVerifyResponse> VerifyAsync(
+                        WorkerVerifyRequest request,
+                        CancellationToken cancellationToken) {
+                        await Task.Yield();
+                        try { throw new OperationCanceledException(); }
+                        catch (OperationCanceledException) {
+                            return new WorkerVerifyResponse();
+                        }
+                    }
+                }
+            }
+            """)
+            .SetName("RejectsBodyBlindWorkerVerifyAsyncCancellationTranslation");
+        yield return new TestCaseData(
+            """
+            using System;
+            using System.Threading.Tasks;
+
+            namespace SharpProof.Worker.Protocol {
+                sealed class WorkerVerifyResponse { }
+                enum WorkerRunStatus { Canceled }
+                static class WorkerResultAssembler {
+                    internal static WorkerVerifyResponse Create(
+                        WorkerRunStatus runStatus) => new();
+                }
+            }
+
+            namespace SharpProof.Worker {
+                using SharpProof.Worker.Protocol;
+
+                static class Program {
+                    internal static async Task<int> Main(string[] args) {
+                        async Task<int> Respond(
+                            WorkerVerifyResponse response) {
+                            await Task.Yield();
+                            return 0;
+                        }
+                        try { throw new OperationCanceledException(); }
+                        catch (OperationCanceledException) {
+                            return await Respond(WorkerResultAssembler.Create(
+                                WorkerRunStatus.Canceled));
+                        }
+                    }
+                }
+            }
+            """)
+            .SetName("WorkerCancellationResponseHelperMustPublishResponse");
     }
 
     private static void AssertSemanticCacheDiagnostics(
