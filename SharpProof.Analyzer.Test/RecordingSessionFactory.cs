@@ -14,12 +14,22 @@ internal sealed class RecordingSessionFactory : IAnalyzerSessionFactory
         new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, int> _outcomeCounts =
         new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<MethodIdentity, AnalyzerSemanticOutcome>
+        _methodOutcomes = new();
 
     internal ConcurrentDictionary<string, AnalyzerSemanticOutcome> Outcomes =>
         _outcomes;
     internal ConcurrentDictionary<string, int> OutcomeCounts =>
         _outcomeCounts;
     internal int CreateCount => Volatile.Read(ref _createCount);
+    internal AnalyzerSemanticOutcome GetNamedOutcome(string name) =>
+        _methodOutcomes.Single(pair =>
+                string.Equals(pair.Key.Name, name, StringComparison.Ordinal))
+            .Value;
+    internal IEnumerable<AnalyzerSemanticOutcome> GetOutcomes(MethodKind kind) =>
+        _methodOutcomes
+            .Where(pair => pair.Key.Kind == kind)
+            .Select(static pair => pair.Value);
     internal AnalyzerSession? Session
     {
         get;
@@ -38,6 +48,11 @@ internal sealed class RecordingSessionFactory : IAnalyzerSessionFactory
             cancellationToken,
             (method, outcome) =>
             {
+                _methodOutcomes.AddOrUpdate(
+                    MethodIdentity.Create(method),
+                    outcome,
+                    (_, current) =>
+                        AnalyzerSemanticOutcomes.Combine(current, outcome));
                 _outcomeCounts.AddOrUpdate(
                     method.Name,
                     1,
@@ -49,5 +64,17 @@ internal sealed class RecordingSessionFactory : IAnalyzerSessionFactory
                         AnalyzerSemanticOutcomes.Combine(current, outcome));
             });
         return Session;
+    }
+
+    private readonly record struct MethodIdentity(
+        MethodKind Kind,
+        string Name,
+        int SpanStart)
+    {
+        internal static MethodIdentity Create(IMethodSymbol method) =>
+            new(
+                method.MethodKind,
+                method.Name,
+                method.DeclaringSyntaxReferences.FirstOrDefault()?.Span.Start ?? -1);
     }
 }

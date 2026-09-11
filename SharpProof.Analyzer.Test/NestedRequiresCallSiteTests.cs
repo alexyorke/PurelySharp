@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using NUnit.Framework;
@@ -1628,73 +1627,4 @@ public sealed class NestedRequiresCallSiteTests
                 diagnostic.Location.SourceSpan.Start)));
     }
 
-    private sealed class RecordingSessionFactory :
-        IAnalyzerSessionFactory
-    {
-        private readonly ConcurrentDictionary<
-            MethodIdentity,
-            AnalyzerSemanticOutcome> _outcomes =
-                new();
-
-        public AnalyzerSession Create(
-            Compilation compilation,
-            AnalyzerConfiguration configuration,
-            CancellationToken cancellationToken)
-        {
-            return new AnalyzerSession(
-                compilation,
-                configuration,
-                cancellationToken,
-                (method, outcome) =>
-                    _outcomes.AddOrUpdate(
-                        MethodIdentity.Create(method),
-                        outcome,
-                        (_, current) =>
-                            AnalyzerSemanticOutcomes
-                                .Combine(
-                                    current,
-                                    outcome)));
-        }
-
-        internal AnalyzerSemanticOutcome
-            GetNamedOutcome(string name)
-        {
-            return _outcomes.Single(pair =>
-                    string.Equals(
-                        pair.Key.Name,
-                        name,
-                        StringComparison.Ordinal))
-                .Value;
-        }
-
-        internal ImmutableArray<
-            AnalyzerSemanticOutcome> GetOutcomes(
-                MethodKind kind)
-        {
-            return [
-                .. _outcomes
-                    .Where(pair =>
-                        pair.Key.Kind == kind)
-                    .Select(static pair =>
-                        pair.Value)
-            ];
-        }
-    }
-
-    private readonly record struct MethodIdentity(
-        MethodKind Kind,
-        string Name,
-        int SpanStart)
-    {
-        internal static MethodIdentity Create(
-            IMethodSymbol method)
-        {
-            return new(
-                method.MethodKind,
-                method.Name,
-                method.DeclaringSyntaxReferences
-                    .FirstOrDefault()?.Span.Start ??
-                    -1);
-        }
-    }
 }
