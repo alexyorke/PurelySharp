@@ -90,33 +90,23 @@ internal static class SpecResultDomainProjection
         }
 
         var memo = new Dictionary<IrId, IrTerm>();
-        return Visit(root);
-        IrTerm Visit(IrTerm term)
-        {
-            if (memo.TryGetValue(term.Id, out var cached))
+        return IrTraversal.FoldBottomUp(root, memo, (term, _, rewritten) => term switch
             {
-                return cached;
-            }
-
-            var result = term switch
-            {
-                IrUnaryTerm unary => factory.Unary(unary.Operator, Visit(unary.Operand)),
-                IrBinaryTerm binary => VisitBinary(binary),
-                IrConditionalTerm conditional => factory.Conditional(Visit(conditional.Condition),
-                    Visit(conditional.WhenTrue), Visit(conditional.WhenFalse)),
-                IrCastTerm cast => factory.Cast(cast.Type, Visit(cast.Operand)),
-                IrLengthTerm length => VisitLength(length),
+                IrUnaryTerm unary => factory.Unary(unary.Operator, rewritten[unary.Operand.Id]),
+                IrBinaryTerm binary => factory.Binary(binary.Operator, rewritten[binary.Left.Id], rewritten[binary.Right.Id]),
+                IrConditionalTerm conditional => factory.Conditional(rewritten[conditional.Condition.Id],
+                    rewritten[conditional.WhenTrue.Id], rewritten[conditional.WhenFalse.Id]),
+                IrCastTerm cast => factory.Cast(cast.Type, rewritten[cast.Operand.Id]),
+                IrLengthTerm { Value: IrVariableTerm variable } length
+                    when projections.TryGetValue(variable.Variable, out var projection) &&
+                    projection.LengthVariable is { } proxy => factory.Variable(proxy),
+                IrLengthTerm length => factory.Length(rewritten[length.Value.Id]),
                 _ => term
-            };
-            memo.Add(term.Id, result);
-            return result;
-        }
-        IrTerm VisitBinary(IrBinaryTerm binary)
-        {
-            return binary.Operator is IrBinaryOperator.Equal or IrBinaryOperator.NotEqual &&
-            RewriteEquality(binary) is { } equality ? equality :
-                factory.Binary(binary.Operator, Visit(binary.Left), Visit(binary.Right));
-        }
+            },
+            term => term is IrOpaqueTerm or IrSequenceAccessTerm ? (true, term) :
+                term is IrBinaryTerm binary &&
+                binary.Operator is IrBinaryOperator.Equal or IrBinaryOperator.NotEqual &&
+                RewriteEquality(binary) is { } equality ? (true, equality) : (false, null!));
 
         IrTerm? RewriteEquality(IrBinaryTerm binary)
         {
@@ -138,12 +128,6 @@ internal static class SpecResultDomainProjection
             var nonNull = factory.Variable(proxy);
             return binary.Operator == IrBinaryOperator.NotEqual ? nonNull :
                 factory.Unary(IrUnaryOperator.Not, nonNull);
-        }
-        IrTerm VisitLength(IrLengthTerm length)
-        {
-            return length.Value is IrVariableTerm variable && projections.TryGetValue(variable.Variable, out var projection) &&
-            projection.LengthVariable is { } proxy
-                ? factory.Variable(proxy) : factory.Length(Visit(length.Value));
         }
     }
     private static IrVarId CreateProxy(
