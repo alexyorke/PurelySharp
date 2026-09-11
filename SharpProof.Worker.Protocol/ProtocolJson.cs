@@ -117,24 +117,32 @@ public static partial class WorkerProtocolJson
                 $"The JSON file exceeds the {MaximumJsonBytes} byte limit.");
         }
 
-        var stream = new FileStream(
+        FileStream? stream = new FileStream(
             path,
             FileMode.Open,
             FileAccess.Read,
             FileShare.Read,
             bufferSize: 81920,
             options: FileOptions.SequentialScan);
-        if (stream.Length != fileLength)
+        try
         {
-            stream.Dispose();
-            throw new InvalidDataException(
-                "The JSON file changed while it was opened.");
-        }
+            if (stream.Length != fileLength)
+            {
+                throw new InvalidDataException(
+                    "The JSON file changed while it was opened.");
+            }
 
-        return new BoundedReadStream(
-            stream,
-            MaximumJsonBytes,
-            $"The JSON file exceeds the {MaximumJsonBytes} byte limit.");
+            var bounded = new BoundedReadStream(
+                stream,
+                MaximumJsonBytes,
+                $"The JSON file exceeds the {MaximumJsonBytes} byte limit.");
+            stream = null;
+            return bounded;
+        }
+        finally
+        {
+            stream?.Dispose();
+        }
     }
 
     public static string SerializeResponse(WorkerVerifyResponse response)

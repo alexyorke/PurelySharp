@@ -8,18 +8,22 @@ public static class WorkerExecutionEnvelope
     public static long MaximumElapsedMilliseconds(
         WorkerVerifyRequest request,
         int terminationGraceMilliseconds)
-        => CalculateMaximumElapsedMilliseconds(
+    {
+        return CalculateMaximumElapsedMilliseconds(
             request,
             terminationGraceMilliseconds,
             validateRequest: true);
+    }
 
     internal static long MaximumElapsedMillisecondsAfterValidation(
         WorkerVerifyRequest request,
         int terminationGraceMilliseconds)
-        => CalculateMaximumElapsedMilliseconds(
+    {
+        return CalculateMaximumElapsedMilliseconds(
             request,
             terminationGraceMilliseconds,
             validateRequest: false);
+    }
 
     private static long CalculateMaximumElapsedMilliseconds(
         WorkerVerifyRequest request,

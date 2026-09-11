@@ -4,7 +4,7 @@ public static partial class WorkerProtocolJson
 {
     private static string CreateManifestPayload(WorkerClaimManifest manifest)
     {
-        var writer = new ManifestWriter();
+        using var writer = new ManifestWriter();
         WriteManifestPayload(manifest, writer);
         return writer.ToString();
     }
