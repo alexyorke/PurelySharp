@@ -190,9 +190,7 @@ internal static class CompilerEffectReplayLowerer
                     Constructor: { } constructor,
                     Type: INamedTypeSymbol type
                 } creation)
-                when witness.Kind == EffectDirectEventKinds.ToWireName(
-                         EffectDirectEventKind.ManagedObjectAllocation) &&
-                     IsDefiniteObjectAllocation(
+                when IsDefiniteObjectAllocation(
                          creation,
                          apiSpecs,
                          cancellationToken):
@@ -213,10 +211,8 @@ internal static class CompilerEffectReplayLowerer
             case (
                 EffectDirectEventKind.ManagedArrayAllocation,
                 IArrayCreationOperation { Type: IArrayTypeSymbol type } array)
-                 when witness.Kind == EffectDirectEventKinds.ToWireName(
-                          EffectDirectEventKind.ManagedArrayAllocation) &&
-                     DefiniteOperationFacts.IsDirectArrayCreationComplete(
-                         array):
+                 when DefiniteOperationFacts.IsDirectArrayCreationComplete(
+                          array):
                 eventKind =
                     CompilerEffectReplayEventKind.ManagedArrayAllocation;
                 memberIdentity = string.Empty;
@@ -232,8 +228,6 @@ internal static class CompilerEffectReplayLowerer
             case (
                 EffectDirectEventKind.ExplicitThrow,
                 IThrowOperation { Exception: { } exception }) when
-                witness.Kind == EffectDirectEventKinds.ToWireName(
-                    EffectDirectEventKind.ExplicitThrow) &&
                 witness.ExceptionType is { } exactExceptionType &&
                 DefiniteOperationFacts.UnwrapHarmlessValue(exception) is
                     IObjectCreationOperation
@@ -267,8 +261,6 @@ internal static class CompilerEffectReplayLowerer
             case (
                 EffectDirectEventKind.MonitorCall,
                 IInvocationOperation invocation) when
-                witness.Kind == EffectDirectEventKinds.ToWireName(
-                    EffectDirectEventKind.MonitorCall) &&
                 MonitorFacts.IsExplicitMonitorCall(
                     invocation,
                     frameworkTypes.MonitorType):
@@ -290,8 +282,6 @@ internal static class CompilerEffectReplayLowerer
             case (
                 EffectDirectEventKind.EmptyLock,
                 ILockOperation @lock) when
-                witness.Kind == EffectDirectEventKinds.ToWireName(
-                    EffectDirectEventKind.EmptyLock) &&
                 IsDefiniteEmptyLock(
                     @lock,
                     apiSpecs,
