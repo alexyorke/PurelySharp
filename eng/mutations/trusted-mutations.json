@@ -545,7 +545,7 @@
   },
   {
     "name": "counterexample-replay-polarity",
-    "file": "SharpProof.Worker/CallableCounterexampleReplayer.cs",
+    "file": "SharpProof.CompilerArtifact/CompilerResponseEvidenceAuthority.cs",
     "original": "evaluated.Value is { Kind: IrValueKind.Boolean, Boolean: false }",
     "mutated": "evaluated.Value is { Kind: IrValueKind.Boolean, Boolean: true }",
     "project": "SharpProof.Worker.Test/SharpProof.Worker.Test.csproj",
@@ -1513,9 +1513,9 @@
   },
   {
     "name": "relational-counterexample-classification",
-    "file": "SharpProof.Worker/CallableCounterexampleReplayer.cs",
-    "original": "                            body.SummaryCalls.ContainsKey(call.Id))",
-    "mutated": "                            false)",
+    "file": "SharpProof.CompilerArtifact/CompilerResponseEvidenceAuthority.cs",
+    "original": "                      body.SummaryCalls.ContainsKey(call.Id))",
+    "mutated": "                      false)",
     "project": "SharpProof.Worker.Test/SharpProof.Worker.Test.csproj",
     "filter": "FullyQualifiedName~ExecutedRelationalSummaryCallIsNotAReplayableCounterexample"
   },

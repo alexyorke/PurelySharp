@@ -747,135 +747,30 @@ internal sealed class CompilerResponseEvidenceAuthority :
                 target,
                 model,
                 cancellationToken) ||
-            target.Body is not { } body)
+            target.Body == null)
+        {
+            return false;
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        var ensures = target.Clauses.Where(static clause =>
+            clause.Kind == CompilerContractKind.Ensures).ToArray();
+        var ordinal = Array.FindIndex(
+            ensures,
+            clause => clause.ClaimId == result.ClaimId);
+        if (ordinal < 0)
         {
             return false;
         }
 
         try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            var final = model.ToBuilder();
-            if (body.Kind == CompilerPreparedBodyKind.Program)
-            {
-                if (body.Program is not { } program ||
-                    !ReferenceEquals(program.Factory, target.Factory))
-                {
-                    return false;
-                }
-
-                var initial = ImmutableDictionary.CreateBuilder<IrVarId, IrValue>();
-                foreach (var binding in body.ParameterBindings)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (!model.TryGetValue(binding.Value, out var value))
-                    {
-                        return false;
-                    }
-
-                    initial[binding.Key] = value;
-                }
-
-                var maximumSteps = program.Blocks.Sum(
-                    static block => (long)block.Instructions.Length);
-                if (maximumSteps is < 1 or > CompilerPreparedBody.MaximumInstructions)
-                {
-                    return false;
-                }
-
-                var execution = new IrProgramInterpreter(target.Factory).Execute(
-                    program,
-                    initial.ToImmutable(),
-                    (int)maximumSteps,
-                    cancellationToken);
-                if (execution.Status != IrProgramExecutionStatus.Returned)
-                {
-                    return false;
-                }
-
-                foreach (var binding in body.ParameterBindings)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (!execution.Values.TryGetValue(binding.Key, out var value))
-                    {
-                        return false;
-                    }
-
-                    final[binding.Value] = value;
-                }
-
-                var results = target.Variables.Where(static variable =>
-                    variable.Role == CompilerVariableRole.Result).ToArray();
-                if (results.Length > 1 || results.Length == 1 &&
-                    (execution.ReturnValue == null ||
-                     execution.ReturnValue.Type != target.Factory.GetVariableInfo(
-                         results[0].Variable).Type))
-                {
-                    return false;
-                }
-
-                if (results.Length == 1)
-                {
-                    final[results[0].Variable] = execution.ReturnValue!;
-                }
-            }
-            else if (body.Kind != CompilerPreparedBodyKind.Trivial ||
-                     body.Program != null ||
-                     !body.ParameterBindings.IsEmpty ||
-                     !body.SpecCalls.IsEmpty ||
-                     !body.SummaryCalls.IsEmpty ||
-                     target.Variables.Any(static variable =>
-                         variable.Role == CompilerVariableRole.Result))
-            {
-                return false;
-            }
-
-            foreach (var variable in target.Variables.Where(static variable =>
-                         variable.Role == CompilerVariableRole.PreState))
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (!variable.CurrentStateVariable.HasValue ||
-                    !model.TryGetValue(variable.CurrentStateVariable.Value, out var value) ||
-                    value.Type != target.Factory.GetVariableInfo(variable.Variable).Type)
-                {
-                    return false;
-                }
-
-                final[variable.Variable] = value;
-            }
-
-            foreach (var variable in target.Variables)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (!final.TryGetValue(variable.Variable, out var value))
-                {
-                    continue;
-                }
-
-                if (!CompilerSourceIntegerDomain.Contains(
-                        variable.SourceIntegerInterval,
-                        value))
-                {
-                    return false;
-                }
-            }
-
-            var ensures = target.Clauses.Where(static clause =>
-                clause.Kind == CompilerContractKind.Ensures).ToArray();
-            var ordinal = Array.FindIndex(
-                ensures,
-                clause => clause.ClaimId == result.ClaimId);
-            if (ordinal < 0)
-            {
-                return false;
-            }
-
-            var evaluated = new IrInterpreter(target.Factory).Evaluate(
+            return CompilerCallablePostconditionReplay.Replay(
+                target,
+                model,
                 ensures[ordinal].Condition,
-                final,
-                cancellationToken);
-            return evaluated.Status == IrEvaluationStatus.Value &&
-                evaluated.Value is { Kind: IrValueKind.Boolean, Boolean: false };
+                rejectUnexpectedReturnValue: false,
+                cancellationToken) == CompilerCallableReplayStatus.Refuted;
         }
         catch (Exception exception) when (
             exception is ArgumentException or InvalidOperationException or
@@ -885,4 +780,153 @@ internal sealed class CompilerResponseEvidenceAuthority :
         }
     }
 
+}
+
+internal enum CompilerCallableReplayStatus
+{
+    Refuted,
+    PostconditionUndefined,
+    UnsupportedRegisteredCall,
+    Failed
+}
+
+internal static class CompilerCallablePostconditionReplay
+{
+    internal static CompilerCallableReplayStatus Replay(
+        CompilerCallablePreparation target,
+        ImmutableDictionary<IrVarId, IrValue> model,
+        IrTerm postcondition,
+        bool rejectUnexpectedReturnValue,
+        CancellationToken cancellationToken)
+    {
+        if (target.Body is not { } body)
+        {
+            return CompilerCallableReplayStatus.Failed;
+        }
+
+        var factory = target.Factory;
+        var final = model.ToBuilder();
+        var results = target.Variables.Where(static variable =>
+            variable.Role == CompilerVariableRole.Result).ToArray();
+        if (body.Kind == CompilerPreparedBodyKind.Program)
+        {
+            if (body.Program is not { } program ||
+                !ReferenceEquals(program.Factory, factory))
+            {
+                return CompilerCallableReplayStatus.Failed;
+            }
+
+            var initial = ImmutableDictionary.CreateBuilder<IrVarId, IrValue>();
+            foreach (var binding in body.ParameterBindings)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!model.TryGetValue(binding.Value, out var value))
+                {
+                    return CompilerCallableReplayStatus.Failed;
+                }
+
+                initial[binding.Key] = value;
+            }
+
+            var maximumSteps = program.Blocks.Sum(
+                static block => (long)block.Instructions.Length);
+            if (maximumSteps is < 1 or > CompilerPreparedBody.MaximumInstructions)
+            {
+                return CompilerCallableReplayStatus.Failed;
+            }
+
+            var execution = new IrProgramInterpreter(factory).Execute(
+                program,
+                initial.ToImmutable(),
+                (int)maximumSteps,
+                cancellationToken);
+            if (execution.Status != IrProgramExecutionStatus.Returned)
+            {
+                return execution is
+                {
+                    Status: IrProgramExecutionStatus.Unsupported,
+                    Instruction: IrCallInstruction call
+                } && (body.SpecCalls.ContainsKey(call.Id) ||
+                      body.SummaryCalls.ContainsKey(call.Id))
+                    ? CompilerCallableReplayStatus.UnsupportedRegisteredCall
+                    : CompilerCallableReplayStatus.Failed;
+            }
+
+            foreach (var binding in body.ParameterBindings)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!execution.Values.TryGetValue(binding.Key, out var value))
+                {
+                    return CompilerCallableReplayStatus.Failed;
+                }
+
+                final[binding.Value] = value;
+            }
+
+            if (results.Length > 1 ||
+                results.Length == 0 && rejectUnexpectedReturnValue &&
+                execution.ReturnValue != null ||
+                results.Length == 1 &&
+                (execution.ReturnValue == null ||
+                 execution.ReturnValue.Type != factory.GetVariableInfo(
+                     results[0].Variable).Type))
+            {
+                return CompilerCallableReplayStatus.Failed;
+            }
+
+            if (results.Length == 1)
+            {
+                final[results[0].Variable] = execution.ReturnValue!;
+            }
+        }
+        else if (body.Kind != CompilerPreparedBodyKind.Trivial ||
+                 body.Program != null ||
+                 !body.ParameterBindings.IsEmpty ||
+                 !body.SpecCalls.IsEmpty ||
+                 !body.SummaryCalls.IsEmpty ||
+                 results.Length != 0)
+        {
+            return CompilerCallableReplayStatus.Failed;
+        }
+
+        foreach (var variable in target.Variables.Where(static variable =>
+                     variable.Role == CompilerVariableRole.PreState))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!variable.CurrentStateVariable.HasValue ||
+                !model.TryGetValue(variable.CurrentStateVariable.Value, out var value) ||
+                value.Type != factory.GetVariableInfo(variable.Variable).Type)
+            {
+                return CompilerCallableReplayStatus.Failed;
+            }
+
+            final[variable.Variable] = value;
+        }
+
+        foreach (var variable in target.Variables)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (final.TryGetValue(variable.Variable, out var value) &&
+                !CompilerSourceIntegerDomain.Contains(
+                    variable.SourceIntegerInterval,
+                    value))
+            {
+                return CompilerCallableReplayStatus.Failed;
+            }
+        }
+
+        var evaluated = new IrInterpreter(factory).Evaluate(
+            postcondition,
+            final,
+            cancellationToken);
+        if (evaluated.Status == IrEvaluationStatus.Exception)
+        {
+            return CompilerCallableReplayStatus.PostconditionUndefined;
+        }
+
+        return evaluated.Status == IrEvaluationStatus.Value &&
+               evaluated.Value is { Kind: IrValueKind.Boolean, Boolean: false }
+            ? CompilerCallableReplayStatus.Refuted
+            : CompilerCallableReplayStatus.Failed;
+    }
 }
