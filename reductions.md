@@ -1,6 +1,6 @@
 # Active code reduction queue
 Resolved proposals are removed from this file after implementation, validation, or a current-tree refutation. The original survey remains available in Git history; this file is intentionally only the active queue.
-Inventory after deduplication: 238 canonical queue IDs represented by 182 deferred rows (0 pending). Resolved and refuted proposals are removed; repeated and superseded rows are merged into canonical rows.
+Inventory after deduplication: 237 canonical queue IDs represented by 182 deferred rows (0 pending). Resolved and refuted proposals are removed; repeated and superseded rows are merged into canonical rows.
 
 Each pending row must be rechecked against the current tree, applied in a compatible batch, validated with the smallest relevant containerized test target, and then removed here.
 
@@ -178,7 +178,7 @@ Each pending row must be rechecked against the current tree, applied in a compat
 - **R0156, R0160**: R156, R160 | Release-authority closure and transaction recovery are security/recovery behavior and are deferred.
 - **R0169, R0171, R0173, R0174, R0175, R0176, R0177, R0178, R0179, R0180, R0181, R0182, R0183, R0184, R0185, R0194**: R0169, R0171, R0173, R0174, R0175, R0176, R0177, R0178, R0179, R0180, R0181, R0182, R0183, R0184, R0185, R0194 | Cross-suite fixture and parameterization proposals still need current-tree validation.
 - **R0202**: R0202 | Literal catalogs and NuGet metadata require an authority decision, not automatic replacement by another indirection.
-- **R0217, R0218**: R0217, R0218 | The remaining low-level parameterization and shared-host proposals still need current-tree validation.
+- **R0217**: R0217 | The remaining soundness-analyzer parameterization mixes exact counts, partial containment, message, location, and multi-assertion oracles. Partition exact-count subsets before replacing named tests; a broad table would change failure contracts.
 - **R0227**: R227 | The approximation types are a documented reserved design slot.
 - **R1066**: R1066 | Portable IR canonical-image validation intentionally compares deterministic wire bytes. The generated graph and nested rows are mutable and lack equality; a hand-written structural comparer would duplicate every schema field and silently drift. Defer until a schema-generated comparer can preserve nullable fields, nested locations, order-sensitive arrays, documentation IDs, cancellation checks, and mutation coverage.
 - **R1090**: R1090 | `CollectSourceMethods` intentionally combines syntax discovery for local functions, property/indexer accessors, primary constructors, and partial-method normalization. A symbol-only traversal would miss or add declared methods; a safe optimization requires a hybrid redesign with explicit result-set/order tests.

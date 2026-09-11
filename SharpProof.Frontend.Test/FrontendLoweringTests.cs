@@ -129,32 +129,13 @@ public sealed class FrontendLoweringTests
             Is.EqualTo(11L));
     }
 
-    [Test]
-    public void LookalikeAndHiddenLengthMembersAreNeverIntrinsic()
+    [TestCaseSource(nameof(ClassificationCases))]
+    public void ClassificationCasesRemainClosedAndExact(
+        string members,
+        FrontendSubsetDecision decision,
+        FrontendAbstention abstention)
     {
-        AssertClassification(
-            """
-            public sealed class Lookalike {
-                public long LongLength => 1L;
-            }
-            public static long Target(Lookalike value) =>
-                value.LongLength;
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.UnsupportedMemberAccess);
-        AssertClassification(
-            """
-            public class Base {
-                public int Length => 1;
-            }
-            public sealed class Derived : Base {
-                public new int Length => 2;
-            }
-            public static long Target(Derived value) =>
-                value.Length;
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.UnsupportedMemberAccess);
+        AssertClassification(members, decision, abstention);
     }
 
     [Test]
@@ -189,139 +170,6 @@ public sealed class FrontendLoweringTests
             Is.EqualTo(false));
     }
 
-    [Test]
-    public void OverflowAndConversionShapesAreExactOnlyWhenRepresentable()
-    {
-        AssertClassification(
-            """
-            public static long Target(long value) => checked(value + 1L);
-            """,
-            FrontendSubsetDecision.Exact,
-            FrontendAbstention.None);
-        AssertClassification(
-            """
-            public static long Target(long value) => unchecked(value + 1L);
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.UncheckedOverflowSemantics);
-        AssertClassification(
-            """
-            public static int Target(int value) => checked(value + 1);
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.UnsupportedType);
-        AssertClassification(
-            """
-            public static int Target(int left, int right) => left / right;
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.UnsupportedType);
-        AssertClassification(
-            """
-            public static uint Target(uint left, uint right) => left % right;
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.UnsupportedType);
-        AssertClassification(
-            """
-            public static long Target(int value) => value;
-            """,
-            FrontendSubsetDecision.Exact,
-            FrontendAbstention.None);
-        AssertClassification(
-            """
-            public static int Target(long value) => checked((int)value);
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.ConversionMayChangeValue);
-        AssertClassification(
-            """
-            public static string Target(object value) => (string)value;
-            """,
-            FrontendSubsetDecision.Exact,
-            FrontendAbstention.None);
-    }
-
-    [Test]
-    public void UnsupportedIntegralDomainsCannotMasqueradeAsReferenceEquality()
-    {
-        AssertClassification(
-            """
-            public static bool Target(ulong left, ulong right) => left == right;
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.UnsupportedType);
-        AssertClassification(
-            """
-            public static bool Target(nint left, nint right) => left == right;
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.UnsupportedType);
-        AssertClassification(
-            """
-            public static bool Target(nuint left, nuint right) => left == right;
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.UnsupportedType);
-    }
-
-    [Test]
-    public void UnsupportedValueDomainsCannotMasqueradeAsReferenceEquality()
-    {
-        AssertClassification(
-            """
-            public static bool Target<T>(T left, T right)
-                where T : class => left == right;
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.UnsupportedType);
-        AssertClassification(
-            """
-            public static bool Target(double left, double right) => left == right;
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.UnsupportedType);
-        AssertClassification(
-            """
-            public enum Choice {
-                First,
-                Second
-            }
-            public static bool Target(Choice left, Choice right) => left == right;
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.UnsupportedType);
-        AssertClassification(
-            """
-            public delegate int Transformer(int value);
-            public static bool Target(
-                Transformer left,
-                Transformer right) => left == right;
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.UnsupportedType);
-        AssertClassification(
-            """
-            public static bool Target(
-                System.Delegate left,
-                System.Delegate right) => left == right;
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.UnsupportedType);
-    }
-
-    [Test]
-    public void StructThisCannotMasqueradeAsAnExactReferenceValue()
-    {
-        AssertClassification(
-            """
-            public struct Token {
-                public Token Target() => this;
-            }
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.UnsupportedType);
-    }
 
     [Test]
     public void NullPointerConversionCannotMasqueradeAsAnExactNullReference()
@@ -373,45 +221,6 @@ public sealed class FrontendLoweringTests
         }
     }
 
-    [Test]
-    public void AbstractAndInterfaceReferenceEqualityLowersExactly()
-    {
-        AssertClassification(
-            """
-            public abstract class Base {}
-            public static bool Target(Base left, Base right) => left == right;
-            """,
-            FrontendSubsetDecision.Exact,
-            FrontendAbstention.None);
-        AssertClassification(
-            """
-            public interface IItem {}
-            public static bool Target(IItem left, IItem right) => left == right;
-            """,
-            FrontendSubsetDecision.Exact,
-            FrontendAbstention.None);
-    }
-
-    [Test]
-    public void AssignableReferenceEqualityUsesTheCommonComparisonType()
-    {
-        AssertClassification(
-            """
-            public static bool Target(object left, string right) =>
-                left == right;
-            """,
-            FrontendSubsetDecision.Exact,
-            FrontendAbstention.None);
-        AssertClassification(
-            """
-            public class Base {}
-            public sealed class Derived : Base {}
-            public static bool Target(Base left, Derived right) =>
-                left != right;
-            """,
-            FrontendSubsetDecision.Exact,
-            FrontendAbstention.None);
-    }
 
     [Test]
     public void DefaultAndUnknownSubsetDecisionsCannotBecomeExact()
@@ -449,36 +258,6 @@ public sealed class FrontendLoweringTests
             Is.EqualTo(false));
     }
 
-    [Test]
-    public void NullableAndEnumConstantsCannotBypassClosedTypeAbstention()
-    {
-        AssertClassification(
-            """
-            public static long? Target() => (long?)1L;
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.UnsupportedType);
-        AssertClassification(
-            """
-            public enum Choice {
-                First = 1
-            }
-            public static Choice Target() => Choice.First;
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.UnsupportedType);
-    }
-
-    [Test]
-    public void LiftedUnaryOperatorsUseTheLiftedOperatorAbstention()
-    {
-        AssertClassification(
-            """
-            public static long? Target(long? value) => -value;
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.LiftedOperator);
-    }
 
     [Test]
     public void NamedOptionalAndExtensionInvocationsCloseTheSubset()
@@ -997,102 +776,6 @@ public sealed class FrontendLoweringTests
     }
 
     [Test]
-    public void ConstantFoldingCannotBypassTheClosedOperationCatalog()
-    {
-        AssertClassification(
-            """
-            private const long Value = 7L;
-            public static long Target() => Value;
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.UnsupportedOperationKind);
-        AssertClassification(
-            """
-            public static string Target() => nameof(Subject);
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.UnsupportedOperationKind);
-        AssertClassification(
-            """
-            public static int Target() => sizeof(int);
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.UnsupportedOperationKind);
-        AssertClassification(
-            """
-            public static string Target() => $"proof";
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.UnsupportedOperationKind);
-        AssertClassification(
-            """
-            public static string Target() =>
-                true ? nameof(Subject) : "other";
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.UnsupportedOperationKind);
-        AssertClassification(
-            """
-            private const long Value = 7L;
-            public static long Target(long input) => Value + input;
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.UnsupportedOperationKind);
-        AssertClassification(
-            """
-            public static bool Target(string input) =>
-                nameof(Subject) == input;
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.UnsupportedOperationKind);
-    }
-
-    [Test]
-    public void ConstantFoldingCannotBypassOperatorSemantics()
-    {
-        AssertClassification(
-            """
-            public static long Target() => unchecked(1L + 2L);
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.UncheckedOverflowSemantics);
-    }
-
-    [Test]
-    public void CatalogIntegerBoundariesRemainExactConstants()
-    {
-        AssertClassification(
-            """
-            public static long Target() => long.MinValue;
-            """,
-            FrontendSubsetDecision.Exact,
-            FrontendAbstention.None);
-        AssertClassification(
-            """
-            public static int Target() => int.MaxValue;
-            """,
-            FrontendSubsetDecision.Exact,
-            FrontendAbstention.None);
-    }
-
-    [Test]
-    public void NegativeIntegerLiteralsRemainExactConstants()
-    {
-        AssertClassification(
-            """
-            public static long Target() => -1L;
-            """,
-            FrontendSubsetDecision.Exact,
-            FrontendAbstention.None);
-        AssertClassification(
-            """
-            public static long Target(long input) => unchecked(-input);
-            """,
-            FrontendSubsetDecision.ClosedAbstention,
-            FrontendAbstention.UncheckedOverflowSemantics);
-    }
-
-    [Test]
     public void DeepExactExpressionAbstainsBeforeRecursiveLoweringExhaustsTheStack()
     {
         var expression = string.Join(
@@ -1115,6 +798,312 @@ public sealed class FrontendLoweringTests
                 Is.EqualTo(FrontendAbstention.ExpressionDepthLimit));
             Assert.That(result.Term, Is.TypeOf<IrOpaqueTerm>());
         }
+    }
+
+    private static System.Collections.Generic.IEnumerable<TestCaseData> ClassificationCases()
+    {
+        yield return new TestCaseData(
+            """
+            public sealed class Lookalike {
+                public long LongLength => 1L;
+            }
+            public static long Target(Lookalike value) =>
+                value.LongLength;
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.UnsupportedMemberAccess)
+            .SetName("LookalikeAndHiddenLengthMembers_LookalikeLongLength");
+        yield return new TestCaseData(
+            """
+            public class Base {
+                public int Length => 1;
+            }
+            public sealed class Derived : Base {
+                public new int Length => 2;
+            }
+            public static long Target(Derived value) =>
+                value.Length;
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.UnsupportedMemberAccess)
+            .SetName("LookalikeAndHiddenLengthMembers_HiddenLengthMember");
+        yield return new TestCaseData(
+            """
+            public static long Target(long value) => checked(value + 1L);
+            """,
+            FrontendSubsetDecision.Exact,
+            FrontendAbstention.None)
+            .SetName("OverflowAndConversionShapes_CheckedLongAddition");
+        yield return new TestCaseData(
+            """
+            public static long Target(long value) => unchecked(value + 1L);
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.UncheckedOverflowSemantics)
+            .SetName("OverflowAndConversionShapes_UncheckedLongAddition");
+        yield return new TestCaseData(
+            """
+            public static int Target(int value) => checked(value + 1);
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.UnsupportedType)
+            .SetName("OverflowAndConversionShapes_CheckedIntAddition");
+        yield return new TestCaseData(
+            """
+            public static int Target(int left, int right) => left / right;
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.UnsupportedType)
+            .SetName("OverflowAndConversionShapes_IntDivision");
+        yield return new TestCaseData(
+            """
+            public static uint Target(uint left, uint right) => left % right;
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.UnsupportedType)
+            .SetName("OverflowAndConversionShapes_UIntRemainder");
+        yield return new TestCaseData(
+            """
+            public static long Target(int value) => value;
+            """,
+            FrontendSubsetDecision.Exact,
+            FrontendAbstention.None)
+            .SetName("OverflowAndConversionShapes_WideningIntToLong");
+        yield return new TestCaseData(
+            """
+            public static int Target(long value) => checked((int)value);
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.ConversionMayChangeValue)
+            .SetName("OverflowAndConversionShapes_CheckedLongToInt");
+        yield return new TestCaseData(
+            """
+            public static string Target(object value) => (string)value;
+            """,
+            FrontendSubsetDecision.Exact,
+            FrontendAbstention.None)
+            .SetName("OverflowAndConversionShapes_ObjectToStringCast");
+        yield return new TestCaseData(
+            """
+            public static bool Target(ulong left, ulong right) => left == right;
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.UnsupportedType)
+            .SetName("UnsupportedIntegralDomains_UInt64");
+        yield return new TestCaseData(
+            """
+            public static bool Target(nint left, nint right) => left == right;
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.UnsupportedType)
+            .SetName("UnsupportedIntegralDomains_NInt");
+        yield return new TestCaseData(
+            """
+            public static bool Target(nuint left, nuint right) => left == right;
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.UnsupportedType)
+            .SetName("UnsupportedIntegralDomains_NUInt");
+        yield return new TestCaseData(
+            """
+            public static bool Target<T>(T left, T right)
+                where T : class => left == right;
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.UnsupportedType)
+            .SetName("UnsupportedValueDomains_ConstrainedGeneric");
+        yield return new TestCaseData(
+            """
+            public static bool Target(double left, double right) => left == right;
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.UnsupportedType)
+            .SetName("UnsupportedValueDomains_Double");
+        yield return new TestCaseData(
+            """
+            public enum Choice {
+                First,
+                Second
+            }
+            public static bool Target(Choice left, Choice right) => left == right;
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.UnsupportedType)
+            .SetName("UnsupportedValueDomains_Enum");
+        yield return new TestCaseData(
+            """
+            public delegate int Transformer(int value);
+            public static bool Target(
+                Transformer left,
+                Transformer right) => left == right;
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.UnsupportedType)
+            .SetName("UnsupportedValueDomains_Delegate");
+        yield return new TestCaseData(
+            """
+            public static bool Target(
+                System.Delegate left,
+                System.Delegate right) => left == right;
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.UnsupportedType)
+            .SetName("UnsupportedValueDomains_SystemDelegate");
+        yield return new TestCaseData(
+            """
+            public struct Token {
+                public Token Target() => this;
+            }
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.UnsupportedType)
+            .SetName("StructThis_UnsupportedValue");
+        yield return new TestCaseData(
+            """
+            public abstract class Base {}
+            public static bool Target(Base left, Base right) => left == right;
+            """,
+            FrontendSubsetDecision.Exact,
+            FrontendAbstention.None)
+            .SetName("AbstractAndInterfaceReferenceEquality_AbstractClass");
+        yield return new TestCaseData(
+            """
+            public interface IItem {}
+            public static bool Target(IItem left, IItem right) => left == right;
+            """,
+            FrontendSubsetDecision.Exact,
+            FrontendAbstention.None)
+            .SetName("AbstractAndInterfaceReferenceEquality_Interface");
+        yield return new TestCaseData(
+            """
+            public static bool Target(object left, string right) =>
+                left == right;
+            """,
+            FrontendSubsetDecision.Exact,
+            FrontendAbstention.None)
+            .SetName("AssignableReferenceEquality_ObjectAndString");
+        yield return new TestCaseData(
+            """
+            public class Base {}
+            public sealed class Derived : Base {}
+            public static bool Target(Base left, Derived right) =>
+                left != right;
+            """,
+            FrontendSubsetDecision.Exact,
+            FrontendAbstention.None)
+            .SetName("AssignableReferenceEquality_BaseAndDerived");
+        yield return new TestCaseData(
+            """
+            public static long? Target() => (long?)1L;
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.UnsupportedType)
+            .SetName("NullableAndEnumConstants_NullableLong");
+        yield return new TestCaseData(
+            """
+            public enum Choice {
+                First = 1
+            }
+            public static Choice Target() => Choice.First;
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.UnsupportedType)
+            .SetName("NullableAndEnumConstants_EnumConstant");
+        yield return new TestCaseData(
+            """
+            public static long? Target(long? value) => -value;
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.LiftedOperator)
+            .SetName("LiftedUnaryOperators_NullableLong");
+        yield return new TestCaseData(
+            """
+            private const long Value = 7L;
+            public static long Target() => Value;
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.UnsupportedOperationKind)
+            .SetName("ConstantFolding_ConstField");
+        yield return new TestCaseData(
+            """
+            public static string Target() => nameof(Subject);
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.UnsupportedOperationKind)
+            .SetName("ConstantFolding_Nameof");
+        yield return new TestCaseData(
+            """
+            public static int Target() => sizeof(int);
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.UnsupportedOperationKind)
+            .SetName("ConstantFolding_Sizeof");
+        yield return new TestCaseData(
+            """
+            public static string Target() => $"proof";
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.UnsupportedOperationKind)
+            .SetName("ConstantFolding_InterpolatedString");
+        yield return new TestCaseData(
+            """
+            public static string Target() =>
+                true ? nameof(Subject) : "other";
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.UnsupportedOperationKind)
+            .SetName("ConstantFolding_Conditional");
+        yield return new TestCaseData(
+            """
+            private const long Value = 7L;
+            public static long Target(long input) => Value + input;
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.UnsupportedOperationKind)
+            .SetName("ConstantFolding_ConstFieldWithInput");
+        yield return new TestCaseData(
+            """
+            public static bool Target(string input) =>
+                nameof(Subject) == input;
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.UnsupportedOperationKind)
+            .SetName("ConstantFolding_NameofComparison");
+        yield return new TestCaseData(
+            """
+            public static long Target() => unchecked(1L + 2L);
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.UncheckedOverflowSemantics)
+            .SetName("ConstantFolding_UnsupportedUncheckedAddition");
+        yield return new TestCaseData(
+            """
+            public static long Target() => long.MinValue;
+            """,
+            FrontendSubsetDecision.Exact,
+            FrontendAbstention.None)
+            .SetName("CatalogIntegerBoundaries_LongMinValue");
+        yield return new TestCaseData(
+            """
+            public static int Target() => int.MaxValue;
+            """,
+            FrontendSubsetDecision.Exact,
+            FrontendAbstention.None)
+            .SetName("CatalogIntegerBoundaries_IntMaxValue");
+        yield return new TestCaseData(
+            """
+            public static long Target() => -1L;
+            """,
+            FrontendSubsetDecision.Exact,
+            FrontendAbstention.None)
+            .SetName("NegativeIntegerLiterals_LongNegativeOne");
+        yield return new TestCaseData(
+            """
+            public static long Target(long input) => unchecked(-input);
+            """,
+            FrontendSubsetDecision.ClosedAbstention,
+            FrontendAbstention.UncheckedOverflowSemantics)
+            .SetName("NegativeIntegerLiterals_UncheckedNegation");
     }
 
     private static void AssertClassification(
