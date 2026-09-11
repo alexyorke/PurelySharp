@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using NUnit.Framework;
 using SharpProof.Attributes;
 using SharpProof.Ir;
+using SharpProof.Testing;
 
 namespace SharpProof.Contracts.Test;
 
@@ -1501,28 +1502,8 @@ public sealed class ContractBinderTests
     [Test]
     public void SourceShadowedRuntimeContractApiCannotBecomeProofEvidence()
     {
-        const string source =
-            """
-            namespace SharpProof.Attributes {
-                public static class Contract {
-                    public static void Requires(bool condition) {
-                        System.Console.WriteLine(condition);
-                    }
-                    public static void Ensures(bool condition) {
-                        System.Console.WriteLine(condition);
-                    }
-                    public static void Assume(bool condition) {
-                        System.Console.WriteLine(condition);
-                    }
-                }
-            }
-            public static class Target {
-                public static int Read(int value) {
-                    SharpProof.Attributes.Contract.Ensures(value > 0);
-                    return value;
-                }
-            }
-            """;
+        var source = ContractIntrinsicValidationFixtures
+            .SourceShadowedRuntimeContract("Target");
         var subject = ContractSubject.Create(source);
 
         var result = subject.Bind("Target", "Read");

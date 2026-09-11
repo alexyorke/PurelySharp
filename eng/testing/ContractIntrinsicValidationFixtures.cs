@@ -2,6 +2,29 @@ namespace SharpProof.Testing;
 
 internal static class ContractIntrinsicValidationFixtures
 {
+    internal static string SourceShadowedRuntimeContract(string typeName) =>
+        $$"""
+        namespace SharpProof.Attributes {
+            public static class Contract {
+                public static void Requires(bool condition) {
+                    System.Console.WriteLine(condition);
+                }
+                public static void Ensures(bool condition) {
+                    System.Console.WriteLine(condition);
+                }
+                public static void Assume(bool condition) {
+                    System.Console.WriteLine(condition);
+                }
+            }
+        }
+        public static class {{typeName}} {
+            public static int Read(int value) {
+                SharpProof.Attributes.Contract.Ensures(value > 0);
+                return value;
+            }
+        }
+        """;
+
     internal const string DirectContract =
         """
         using SharpProof.Attributes;

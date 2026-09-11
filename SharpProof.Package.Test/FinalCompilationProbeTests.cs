@@ -678,59 +678,53 @@ public sealed class FinalCompilationProbeTests
         {
             _sharedCompilationServerId = CreateSharedCompilationServerId(
                 "direct");
-            File.WriteAllText(
+            WriteUtf8(
                 SubjectPath,
                 """
                 namespace ProbeConsumer;
                 public static class Subject {
                     public static int Identity(int value) => value;
                 }
-                """,
-                new System.Text.UTF8Encoding(false));
-            File.WriteAllText(
+                """);
+            WriteUtf8(
                 Path.Combine(
                     _root,
                     CompilerProbeContract.AdditionalFileName),
-                "probe-input\n",
-                new System.Text.UTF8Encoding(false));
-            File.WriteAllText(
+                "probe-input\n");
+            WriteUtf8(
                 ProjectPath,
                 CreateProjectXml(
                     targetFrameworks,
                     enableProbe,
                     profile,
-                    designTimeBuild),
-                new System.Text.UTF8Encoding(false));
+                    designTimeBuild));
         }
 
         internal void WritePackedConsumer(string packageVersion)
         {
             _sharedCompilationServerId = CreateSharedCompilationServerId(
                 "packed");
-            File.WriteAllText(
+            WriteUtf8(
                 SubjectPath,
                 """
                 namespace ProbeConsumer;
                 public static class Subject {
                     public static int Identity(int value) => value;
                 }
-                """,
-                new UTF8Encoding(false));
+                """);
             WriteProbeInput("initial-generator-input");
-            File.WriteAllText(
+            WriteUtf8(
                 ProjectPath,
-                CreatePackedProjectXml(packageVersion),
-                new UTF8Encoding(false));
+                CreatePackedProjectXml(packageVersion));
         }
 
         internal void WriteProbeInput(string value)
         {
-            File.WriteAllText(
+            WriteUtf8(
                 Path.Combine(
                     _root,
                     CompilerProbeContract.AdditionalFileName),
-                value + "\n",
-                new UTF8Encoding(false));
+                value + "\n");
         }
 
         internal Task<ProcessResult> BuildAsync()
@@ -977,6 +971,9 @@ public sealed class FinalCompilationProbeTests
                 value,
                 "Failed to escape an MSBuild value.");
         }
+
+        private static void WriteUtf8(string path, string contents) =>
+            File.WriteAllText(path, contents, new UTF8Encoding(false));
     }
 
     private sealed record ProcessResult(int ExitCode, string Output);

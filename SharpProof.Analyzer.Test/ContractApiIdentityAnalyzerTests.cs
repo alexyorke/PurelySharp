@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using NUnit.Framework;
+using SharpProof.Testing;
 
 namespace SharpProof.Analyzer.Test;
 
@@ -11,28 +12,8 @@ public sealed class ContractApiIdentityAnalyzerTests
     [Test]
     public async Task SourceShadowedRuntimeClauseIsVisiblyIncomplete()
     {
-        const string source =
-            """
-            namespace SharpProof.Attributes {
-                public static class Contract {
-                    public static void Requires(bool condition) {
-                        System.Console.WriteLine(condition);
-                    }
-                    public static void Ensures(bool condition) {
-                        System.Console.WriteLine(condition);
-                    }
-                    public static void Assume(bool condition) {
-                        System.Console.WriteLine(condition);
-                    }
-                }
-            }
-            public static class Subject {
-                public static int Read(int value) {
-                    SharpProof.Attributes.Contract.Ensures(value > 0);
-                    return value;
-                }
-            }
-            """;
+        var source = ContractIntrinsicValidationFixtures
+            .SourceShadowedRuntimeContract("Subject");
 
         var diagnostics = await Analyze(source);
 

@@ -733,7 +733,7 @@ public sealed class PackageLayoutSmokeTests
         var configuredPackageRoot = Path.Combine(
             root,
             "configured;package");
-        await File.WriteAllTextAsync(
+        await WriteUtf8Async(
             packageProject,
             $"""
                 <Project Sdk="Microsoft.NET.Sdk">
@@ -747,8 +747,7 @@ public sealed class PackageLayoutSmokeTests
                   <Import Project="{EscapeMsBuildImportPath(Path.Combine(packageBuild.FullName, "SharpProof.props"))}" />
                   <Import Project="{EscapeMsBuildImportPath(Path.Combine(packageBuild.FullName, "SharpProof.targets"))}" />
                 </Project>
-                """,
-            new UTF8Encoding(false));
+                """);
         var packageEvaluation = await RunDotNetAsync(
             root,
             "msbuild",
@@ -786,7 +785,7 @@ public sealed class PackageLayoutSmokeTests
                 sourcePackageBuild.FullName,
                 "SharpProof.ConsumerContract.props"));
         var sourceProject = Path.Combine(root, "SourceConsumer.csproj");
-        await File.WriteAllTextAsync(
+        await WriteUtf8Async(
             sourceProject,
             $"""
             <Project Sdk="Microsoft.NET.Sdk">
@@ -796,8 +795,7 @@ public sealed class PackageLayoutSmokeTests
               </PropertyGroup>
               <Import Project="{EscapeMsBuildImportPath(sourceProps)}" />
             </Project>
-            """,
-            new UTF8Encoding(false));
+            """);
         var sourceEvaluation = await RunDotNetAsync(
             root,
             "msbuild",
@@ -2472,6 +2470,9 @@ public sealed class PackageLayoutSmokeTests
                     "CollectorDependency"));
     }
 
+    private static Task WriteUtf8Async(string path, string contents) =>
+        File.WriteAllTextAsync(path, contents, new UTF8Encoding(false));
+
     private sealed class PackageWorkspace : IDisposable
     {
         private static readonly TempDirectory s_sharedPackageCache =
@@ -2644,7 +2645,7 @@ public sealed class PackageLayoutSmokeTests
         {
             WriteSource("public static class Subject { public static int Value => 1; }");
             var escapedVersion = SecurityElement.Escape(version);
-            File.WriteAllText(
+            WriteUtf8(
                 ConsumerProject,
                 $"""
                 <Project Sdk="Microsoft.NET.Sdk">
@@ -2670,8 +2671,7 @@ public sealed class PackageLayoutSmokeTests
                         Overwrite="true" />
                   </Target>
                 </Project>
-                """,
-                new System.Text.UTF8Encoding(false));
+                """);
         }
 
         internal void WriteEffectReplayVerifierConsumer(string version)
@@ -2791,7 +2791,7 @@ public sealed class PackageLayoutSmokeTests
                                       PrivateAssets="all" />
                   """
                 : string.Empty;
-            File.WriteAllText(
+            WriteUtf8(
                 ConsumerProject,
                 $"""
                 <Project Sdk="Microsoft.NET.Sdk">
@@ -2810,8 +2810,7 @@ public sealed class PackageLayoutSmokeTests
                     {referenceAssemblies}
                   </ItemGroup>
                 </Project>
-                """,
-                new System.Text.UTF8Encoding(false));
+                """);
         }
 
         internal void WriteSourceConsumerEvaluationProject(
@@ -2826,7 +2825,7 @@ public sealed class PackageLayoutSmokeTests
             var consumerProps = SecurityElement.Escape(Path.Combine(
                 TestRepository.FindRoot(),
                 "SharpProof.AnalyzerConsumer.props"));
-            File.WriteAllText(
+            WriteUtf8(
                 ConsumerProject,
                 $"""
                 <Project Sdk="Microsoft.NET.Sdk">
@@ -2836,8 +2835,7 @@ public sealed class PackageLayoutSmokeTests
                   </PropertyGroup>
                   <Import Project="{consumerProps}" />
                 </Project>
-                """,
-                new System.Text.UTF8Encoding(false));
+                """);
         }
 
         internal string WriteMappedSourceConsumerSolution()
@@ -2850,7 +2848,7 @@ public sealed class PackageLayoutSmokeTests
                 MappedAnalyzerItemsPath);
             var configurationsPath = SecurityElement.Escape(
                 MappedProjectConfigurationsPath);
-            File.WriteAllText(
+            WriteUtf8(
                 ConsumerProject,
                 $"""
                 <Project Sdk="Microsoft.NET.Sdk">
@@ -2868,8 +2866,7 @@ public sealed class PackageLayoutSmokeTests
                                       Overwrite="true" />
                   </Target>
                 </Project>
-                """,
-                new System.Text.UTF8Encoding(false));
+                """);
 
             const string consumerGuid =
                 "{2D442BC0-F301-4913-B82B-178DB3AE1012}";
@@ -2896,7 +2893,7 @@ public sealed class PackageLayoutSmokeTests
             var solution = Path.Combine(
                 ConsumerDirectory,
                 "MappedConsumer.sln");
-            File.WriteAllText(
+            WriteUtf8(
                 solution,
                 $"""
                 Microsoft Visual Studio Solution File, Format Version 12.00
@@ -2926,8 +2923,7 @@ public sealed class PackageLayoutSmokeTests
                         {generatorGuid}.Debug|Any CPU.Build.0 = Release|Any CPU
                     EndGlobalSection
                 EndGlobal
-                """,
-                new System.Text.UTF8Encoding(false));
+                """);
             return solution;
 
             string GetSolutionPath(
@@ -2946,7 +2942,7 @@ public sealed class PackageLayoutSmokeTests
         {
             Directory.CreateDirectory(
                 Path.GetDirectoryName(LinkedSourcePath)!);
-            File.WriteAllText(
+            WriteUtf8(
                 LinkedSourcePath,
                 """
                 using SharpProof.Attributes;
@@ -2960,12 +2956,11 @@ public sealed class PackageLayoutSmokeTests
                         return value;
                     }
                 }
-                """,
-                new System.Text.UTF8Encoding(false));
+                """);
             var escapedVersion = SecurityElement.Escape(version);
             var escapedSource =
                 SecurityElement.Escape(LinkedSourcePath);
-            File.WriteAllText(
+            WriteUtf8(
                 ConsumerProject,
                 $"""
                 <Project Sdk="Microsoft.NET.Sdk">
@@ -2985,8 +2980,7 @@ public sealed class PackageLayoutSmokeTests
                                       Version="{escapedVersion}" />
                   </ItemGroup>
                 </Project>
-                """,
-                new System.Text.UTF8Encoding(false));
+                """);
         }
 
         internal void WriteAnalyzerConsumer(
@@ -2997,19 +2991,18 @@ public sealed class PackageLayoutSmokeTests
             params string[] enabledDiagnosticIds)
         {
             WriteSource(source);
-            File.WriteAllText(
+            WriteUtf8(
                 Path.Combine(ConsumerDirectory, ".globalconfig"),
                 string.Join(
                     "\n",
                     enabledDiagnosticIds
                         .Select(static id =>
                             "dotnet_diagnostic." + id + ".severity = warning")
-                        .Prepend("is_global = true")) + "\n",
-                new System.Text.UTF8Encoding(false));
+                        .Prepend("is_global = true")) + "\n");
             var escapedVersion = SecurityElement.Escape(version);
             var escapedPackageId = SecurityElement.Escape(packageId);
             var escapedFeatures = SecurityElement.Escape(features);
-            File.WriteAllText(
+            WriteUtf8(
                 ConsumerProject,
                 $"""
                 <Project Sdk="Microsoft.NET.Sdk">
@@ -3025,16 +3018,14 @@ public sealed class PackageLayoutSmokeTests
                                       Version="{escapedVersion}" />
                   </ItemGroup>
                 </Project>
-                """,
-                new System.Text.UTF8Encoding(false));
+                """);
         }
 
         internal void WriteSource(string source)
         {
-            File.WriteAllText(
+            WriteUtf8(
                 Path.Combine(ConsumerDirectory, "Subject.cs"),
-                source,
-                new System.Text.UTF8Encoding(false));
+                source);
         }
 
         internal void WriteCompilerProbeConsumer(string version)
@@ -3059,7 +3050,7 @@ public sealed class PackageLayoutSmokeTests
                 ProductBuildOutputs.CompilerProbeAssemblyPath());
             var escapedAlias = SecurityElement.Escape(
                 typeof(Assert).Assembly.Location);
-            File.WriteAllText(
+            WriteUtf8(
                 ConsumerProject,
                 $"""
                 <Project Sdk="Microsoft.NET.Sdk">
@@ -3096,22 +3087,23 @@ public sealed class PackageLayoutSmokeTests
                     </Reference>
                   </ItemGroup>
                 </Project>
-                """,
-                new System.Text.UTF8Encoding(false));
+                """);
         }
 
         internal void WriteProbeInput(string value)
         {
-            File.WriteAllText(
+            WriteUtf8(
                 ProbeInputPath,
-                value + "\n",
-                new System.Text.UTF8Encoding(false));
+                value + "\n");
         }
 
         public void Dispose()
         {
             _temporary.Dispose();
         }
+
+        private static void WriteUtf8(string path, string contents) =>
+            File.WriteAllText(path, contents, new UTF8Encoding(false));
     }
 
     private sealed class ReleaseEvidenceWorkspace : IDisposable
