@@ -563,14 +563,11 @@ try {
         else {
             $workerMethods
         }
-        # Keep low-width runs at one worker bucket per available lane. On a
-        # wide local container, leave a small amount of headroom for the
-        # fixture hosts' nested workers and avoid paying for a long tail of
-        # tiny vstest processes after the heavy workers finish.
+        # Keep one worker bucket per available lane. Nested fixture workers
+        # are charged separately through each shard's Slots reservation, so
+        # reducing the bucket count only makes the heavy integration methods
+        # share a process and creates a longer tail.
         $workerShardLimit = [Math]::Max(1, $parallelism)
-        if ($parallelism -ge 16) {
-            $workerShardLimit = [Math]::Max(1, $parallelism - 4)
-        }
         $workerShardCount = [Math]::Min(
             $bucketWorkerMethods.Count,
             $workerShardLimit)
