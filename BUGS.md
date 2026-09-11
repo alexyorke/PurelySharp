@@ -13,7 +13,7 @@ Priority definitions:
 
 - **BUG-146 [P0] - Source-location authority is not bound to claim ownership:** CompilerManifestArtifact validates owner and location pairs against mutable manifest rows and source geometry but never independently binds a predicate or callable to that span. Resealed evidence can report a verified claim at another valid source location while passing authority checks.
 
-## P1 - High (25)
+## P1 - High (0)
 
 
 ## P2 - Medium (0)
