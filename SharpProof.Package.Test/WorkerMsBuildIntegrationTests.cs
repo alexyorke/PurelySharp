@@ -2948,11 +2948,6 @@ public sealed class WorkerMsBuildIntegrationTests
             .Single(static target =>
                 target.Attribute("Name")?.Value ==
                 "_SharpProofCleanupInvocation");
-        var invocationDirectoryValidation = targets
-            .Descendants("Target")
-            .Single(static target =>
-                target.Attribute("Name")?.Value ==
-                "_SharpProofValidateInvocationDirectory");
         var invocation = verifyCore
             .Descendants("SharpProof.BuildTasks.RunVerifier")
             .Single();
@@ -2973,10 +2968,9 @@ public sealed class WorkerMsBuildIntegrationTests
             .Single(static onError =>
                 onError.Attribute("ExecuteTargets")?.Value ==
                 "_SharpProofCleanupInvocation");
+        var cleanupElements = cleanup.Elements().ToList();
         var cleanupRemove = cleanup.Elements("RemoveDir").Single();
-        var cleanupSafetyErrors = invocationDirectoryValidation
-            .Elements("Error")
-            .ToArray();
+        var cleanupSafetyErrors = cleanup.Elements("Error").ToArray();
         var verifyCoreElements = verifyCore.Elements().ToList();
         var runnerTask = targets.Descendants("UsingTask")
             .Single(static task => task.Attribute("TaskName")?.Value ==
@@ -3056,7 +3050,7 @@ public sealed class WorkerMsBuildIntegrationTests
                 Is.EqualTo("'$(_SharpProofInvocationId)' != ''"));
             Assert.That(
                 cleanupRemove.Attribute("Directories")?.Value,
-                Is.EqualTo("$(_SharpProofInvocationDirectoryFullPath)"));
+                Is.EqualTo("$(_SharpProofCleanupInvocationDirectoryFullPath)"));
             Assert.That(
                 cleanupSafetyErrors.Count(static error =>
                     error.Attribute("Text")?.Value.Contains(
@@ -3070,9 +3064,9 @@ public sealed class WorkerMsBuildIntegrationTests
                         StringComparison.Ordinal) == true),
                 Is.EqualTo(1));
             Assert.That(
-                cleanup.Attribute("DependsOnTargets")?.Value
-                    .Split(';', StringSplitOptions.RemoveEmptyEntries),
-                Does.Contain("_SharpProofValidateInvocationDirectory"),
+                cleanupSafetyErrors.Select(error =>
+                    cleanupElements.IndexOf(error)),
+                Is.All.LessThan(cleanupElements.IndexOf(cleanupRemove)),
                 "Cleanup validation must run before RemoveDir.");
             Assert.That(
                 cleanupCall.Attribute("Condition"),
