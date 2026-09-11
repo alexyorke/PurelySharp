@@ -508,11 +508,11 @@ internal static class CompilerLoweredArtifact
         cancellationToken.ThrowIfCancellationRequested();
         var postconditionClaims = claims.Where(static item => item.Kind == WorkerClaimKind.Postcondition).ToArray();
         var loweredClaims = clauses.Where(static item => item.Kind == CompilerContractKind.Ensures).ToArray();
-        if (loweredClaims.Length != postconditionClaims.Length ||
-            !loweredClaims.Select(static item => item.ClaimId!).SequenceEqual(
-                postconditionClaims.Select(static item => item.ClaimId), StringComparer.Ordinal) ||
-            !loweredClaims.Select(static item => ManifestEvidence(item.Evidence)).SequenceEqual(
-                postconditionClaims.Select(static item => item.Evidence)))
+        if (!ClaimsMatchManifest(
+                loweredClaims.Select(static item => (
+                    item.ClaimId,
+                    ManifestEvidence(item.Evidence))).ToArray(),
+                postconditionClaims))
         {
             throw new InvalidDataException("Lowered claims do not equal the manifest.");
         }
@@ -574,6 +574,16 @@ internal static class CompilerLoweredArtifact
                 cancellationToken),
             Compilation = compilation
         };
+    }
+
+    internal static bool ClaimsMatchManifest(
+        (string? ClaimId, WorkerClaimEvidence Evidence)[] lowered,
+        WorkerClaimManifestEntry[] manifest)
+    {
+        return lowered.Select(static item => item.ClaimId).SequenceEqual(
+                manifest.Select(static item => item.ClaimId), StringComparer.Ordinal) &&
+            lowered.Select(static item => item.Evidence).SequenceEqual(
+                manifest.Select(static item => item.Evidence));
     }
 
     private static int[] ExternalVariableIndices(

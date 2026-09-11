@@ -780,32 +780,15 @@ internal static class CompilerManifestArtifactJson
                 return false;
             }
 
-            var postconditionIndex = 0;
-            foreach (var clause in clauses)
-            {
-                if (clause?.Kind != CompilerContractKind.Ensures)
-                {
-                    continue;
-                }
-
-                if (postconditionIndex >= postconditions.Length)
-                {
-                    return false;
-                }
-
-                var postcondition = postconditions[postconditionIndex++]!;
-                if (!string.Equals(
-                        clause.ClaimId,
-                        postcondition.ClaimId,
-                        StringComparison.Ordinal) ||
-                    CompilerLoweredArtifact.ManifestEvidence(clause.Evidence) !=
-                        postcondition.Evidence)
-                {
-                    return false;
-                }
-            }
-
-            if (postconditionIndex != postconditions.Length)
+            if (!CompilerLoweredArtifact.ClaimsMatchManifest(
+                    clauses
+                        .Where(static clause => clause?.Kind == CompilerContractKind.Ensures)
+                        .OfType<CompilerClauseArtifact>()
+                        .Select(static clause => (
+                            clause.ClaimId,
+                            CompilerLoweredArtifact.ManifestEvidence(clause.Evidence)))
+                        .ToArray(),
+                    postconditions))
             {
                 return false;
             }
