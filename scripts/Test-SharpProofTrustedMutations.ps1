@@ -689,10 +689,7 @@ try {
     foreach ($completedResult in $completedResults) {
         $results.Add($completedResult)
     }
-    foreach ($mutation in $mutations) {
-        if ($completedMutationNames.Contains([string]$mutation.Name)) {
-            continue
-        }
+    foreach ($mutation in $pendingMutations) {
         $path = Join-Path $sourceRoot $mutation.File
         $originalContent = [IO.File]::ReadAllText($path)
         $mutatedContent = $originalContent.Replace(
