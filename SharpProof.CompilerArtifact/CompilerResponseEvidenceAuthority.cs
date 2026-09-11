@@ -727,7 +727,6 @@ internal sealed class CompilerResponseEvidenceAuthority :
         out ImmutableDictionary<IrVarId, IrValue> model,
         CancellationToken cancellationToken = default)
     {
-        model = ImmutableDictionary<IrVarId, IrValue>.Empty;
         var variables = target.Variables.ToDictionary(
             static variable => variable.ModelLabel,
             StringComparer.Ordinal);
