@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Globalization;
 using SharpProof.Ir;
 using SharpProof.Worker.Protocol;
@@ -37,6 +38,48 @@ internal static class CompilerModelValues
 
         value = null!;
         return false;
+    }
+
+    internal static bool TryCreateModel(
+        IrFactory factory,
+        IReadOnlyDictionary<string, CompilerCanonicalVariable> variables,
+        IEnumerable<IrVarId> requiredInputs,
+        WorkerModelValue[]? rows,
+        bool requireInputRole,
+        out ImmutableDictionary<IrVarId, IrValue> model)
+    {
+        model = ImmutableDictionary<IrVarId, IrValue>.Empty;
+        if (rows == null)
+        {
+            return false;
+        }
+
+        var result = ImmutableDictionary.CreateBuilder<IrVarId, IrValue>();
+        foreach (var row in rows)
+        {
+            if (row == null ||
+                !variables.TryGetValue(row.Variable, out var variable) ||
+                (requireInputRole && variable.Role is not
+                    (CompilerVariableRole.Receiver or CompilerVariableRole.Parameter)) ||
+                !TryCreateValue(factory, variable, row, out var value) ||
+                result.ContainsKey(variable.Variable))
+            {
+                return false;
+            }
+
+            result.Add(variable.Variable, value);
+        }
+
+        foreach (var variable in requiredInputs)
+        {
+            if (!result.ContainsKey(variable))
+            {
+                return false;
+            }
+        }
+
+        model = result.ToImmutable();
+        return true;
     }
 
     internal static bool EntryAssumptionsHold(

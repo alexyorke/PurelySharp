@@ -728,7 +728,25 @@ internal sealed class CompilerResponseEvidenceAuthority :
         CancellationToken cancellationToken = default)
     {
         model = ImmutableDictionary<IrVarId, IrValue>.Empty;
-        if (!TryCreateModel(target, result.Model, out model) ||
+        var variables = target.Variables.ToDictionary(
+            static variable => variable.ModelLabel,
+            StringComparer.Ordinal);
+        var requiredInputs = target.Variables.Where(variable =>
+                variable.Role is (CompilerVariableRole.Receiver or
+                    CompilerVariableRole.Parameter) &&
+                (target.Factory.GetVariableInfo(variable.Variable).Type ==
+                    target.Factory.BooleanType ||
+                 target.Factory.GetVariableInfo(variable.Variable).Type ==
+                    target.Factory.IntegerType))
+            .Select(static variable => variable.Variable)
+            .ToArray();
+        if (!CompilerModelValues.TryCreateModel(
+                target.Factory,
+                variables,
+                requiredInputs,
+                result.Model,
+                requireInputRole: true,
+                out model) ||
             !CompilerModelValues.EntryAssumptionsHold(
                 target,
                 model,
@@ -870,63 +888,5 @@ internal sealed class CompilerResponseEvidenceAuthority :
             return false;
         }
     }
-
-    private static bool TryCreateModel(
-        CompilerCallablePreparation target,
-        WorkerModelValue[]? rows,
-        out ImmutableDictionary<IrVarId, IrValue> model)
-    {
-        model = ImmutableDictionary<IrVarId, IrValue>.Empty;
-        if (rows == null)
-        {
-            return false;
-        }
-
-        var variables = target.Variables.ToDictionary(
-            static variable => variable.ModelLabel,
-            StringComparer.Ordinal);
-        var required = target.Variables.Where(variable =>
-                variable.Role is (CompilerVariableRole.Receiver or
-                    CompilerVariableRole.Parameter) &&
-                (target.Factory.GetVariableInfo(variable.Variable).Type ==
-                    target.Factory.BooleanType ||
-                 target.Factory.GetVariableInfo(variable.Variable).Type ==
-                    target.Factory.IntegerType))
-            .ToArray();
-        var result = ImmutableDictionary.CreateBuilder<IrVarId, IrValue>();
-        foreach (var row in rows)
-        {
-            if (row == null ||
-                !variables.TryGetValue(row.Variable, out var variable) ||
-                variable.Role is not (CompilerVariableRole.Receiver or
-                    CompilerVariableRole.Parameter) ||
-                !CompilerModelValues.TryCreateValue(
-                    target.Factory,
-                    variable,
-                    row,
-                    out var value) ||
-                result.ContainsKey(variable.Variable))
-            {
-                return false;
-            }
-
-            result.Add(variable.Variable, value);
-        }
-
-        foreach (var variable in required)
-        {
-            var type = target.Factory.GetVariableInfo(variable.Variable).Type;
-            if ((type != target.Factory.BooleanType &&
-                 type != target.Factory.IntegerType) ||
-                !result.ContainsKey(variable.Variable))
-            {
-                return false;
-            }
-        }
-
-        model = result.ToImmutable();
-        return true;
-    }
-
 
 }

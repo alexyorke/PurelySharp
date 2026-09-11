@@ -692,7 +692,13 @@ internal sealed partial class VerificationCache(string directory, long maximumBy
                 !targetByCallable.TryGetValue(
                     declaration.CallableId,
                     out var preparedTarget) ||
-                !TryCreateModel(preparedTarget, claim.Model, out var model))
+                !CompilerModelValues.TryCreateModel(
+                    preparedTarget.Target.Factory,
+                    preparedTarget.VariablesByLabel,
+                    preparedTarget.RequiredInputs,
+                    claim.Model,
+                    requireInputRole: false,
+                    out var model))
             {
                 return false;
             }
@@ -760,52 +766,6 @@ internal sealed partial class VerificationCache(string directory, long maximumBy
             variablesByLabel,
             requiredInputs,
             postconditionOrdinals);
-    }
-
-    private static bool TryCreateModel(
-        ReplayTarget preparedTarget,
-        WorkerModelValue[] rows,
-        out ImmutableDictionary<IrVarId, IrValue> model)
-    {
-        model = ImmutableDictionary<IrVarId, IrValue>.Empty;
-        if (rows == null)
-        {
-            return false;
-        }
-
-        var result = ImmutableDictionary.CreateBuilder<IrVarId, IrValue>();
-        foreach (var row in rows)
-        {
-            if (row == null ||
-                !preparedTarget.VariablesByLabel.TryGetValue(
-                    row.Variable,
-                    out var variable) ||
-                !CompilerModelValues.TryCreateValue(
-                    preparedTarget.Target.Factory,
-                    variable,
-                    row,
-                    out var value) ||
-                !result.TryAdd(variable.Variable, value))
-            {
-                return false;
-            }
-        }
-
-        foreach (var variable in preparedTarget.RequiredInputs)
-        {
-            // Replay models intentionally contain only values needed by the
-            // counterexample. Non-scalar inputs cannot be materialized by the
-            // scalar model codec, but that is harmless when the replay does
-            // not reference them. Scalar inputs remain mandatory so missing
-            // values cannot be mistaken for a concrete execution.
-            if (!result.ContainsKey(variable))
-            {
-                return false;
-            }
-        }
-
-        model = result.ToImmutable();
-        return true;
     }
 
     private sealed record ReplayTarget(
