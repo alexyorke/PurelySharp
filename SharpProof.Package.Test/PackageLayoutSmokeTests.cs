@@ -165,8 +165,7 @@ public sealed class PackageLayoutSmokeTests
         var feed = await PackagedProductFeed.GetAsync();
         using var workspace = PackageWorkspace.Create();
         workspace.WriteRuntimeAssetIsolationConsumer(feed.Version);
-        var restore = await RestoreConsumerAsync(workspace, feed);
-        Assert.That(restore.ExitCode, Is.Zero, restore.Output);
+        var restore = await BuildOkAsync(RestoreConsumerAsync(workspace, feed));
 
         var assetsPath = Path.Combine(
             workspace.ConsumerDirectory,
@@ -201,14 +200,13 @@ public sealed class PackageLayoutSmokeTests
             }
         }
 
-        var runtimeItems = await RunDotNetAsync(
+        var runtimeItems = await BuildOkAsync(RunDotNetAsync(
             workspace.ConsumerDirectory,
             "msbuild",
             workspace.ConsumerProject,
             "-t:CaptureRuntimeAssets",
             "--nologo",
-            "/nodeReuse:false");
-        Assert.That(runtimeItems.ExitCode, Is.Zero, runtimeItems.Output);
+            "/nodeReuse:false"));
         Assert.That(
             await File.ReadAllTextAsync(Path.Combine(
                 workspace.ConsumerDirectory,
@@ -216,9 +214,8 @@ public sealed class PackageLayoutSmokeTests
                 "runtime-assets.txt")),
             Does.Not.Contain("libz3.so"));
 
-        var build = await BuildAnalyzerConsumerAsync(workspace);
-        Assert.That(build.ExitCode, Is.Zero, build.Output);
-        var publish = await RunDotNetAsync(
+        var build = await BuildOkAsync(BuildAnalyzerConsumerAsync(workspace));
+        var publish = await BuildOkAsync(RunDotNetAsync(
             workspace.ConsumerDirectory,
             "publish",
             workspace.ConsumerProject,
@@ -227,8 +224,7 @@ public sealed class PackageLayoutSmokeTests
             "--no-build",
             "--no-restore",
             "--nologo",
-            "/nodeReuse:false");
-        Assert.That(publish.ExitCode, Is.Zero, publish.Output);
+            "/nodeReuse:false"));
         Assert.That(
             Directory.EnumerateFiles(
                 workspace.ConsumerDirectory,
@@ -329,12 +325,11 @@ public sealed class PackageLayoutSmokeTests
     {
         var feed = await PackagedProductFeed.GetAsync();
         var repositoryRoot = TestRepository.FindRoot();
-        var revision = await RunProcessAsync(
+        var revision = await BuildOkAsync(RunProcessAsync(
             repositoryRoot,
             "git",
             "rev-parse",
-            "HEAD");
-        Assert.That(revision.ExitCode, Is.Zero, revision.Output);
+            "HEAD"));
         var commit = revision.Output.Trim();
         Assert.That(
             commit,
@@ -373,18 +368,16 @@ public sealed class PackageLayoutSmokeTests
             "-OutputDirectory",
             workspace.OutputDirectory
         };
-        var firstRun = await RunProcessAsync(
+        var firstRun = await BuildOkAsync(RunProcessAsync(
             TestRepository.FindRoot(),
             "pwsh",
-            arguments);
-        Assert.That(firstRun.ExitCode, Is.Zero, firstRun.Output);
+            arguments));
         var firstManifest = await File.ReadAllBytesAsync(
             workspace.ManifestPath);
-        var secondRun = await RunProcessAsync(
+        var secondRun = await BuildOkAsync(RunProcessAsync(
             TestRepository.FindRoot(),
             "pwsh",
-            arguments);
-        Assert.That(secondRun.ExitCode, Is.Zero, secondRun.Output);
+            arguments));
         Assert.That(
             await File.ReadAllBytesAsync(workspace.ManifestPath),
             Is.EqualTo(firstManifest));
@@ -448,7 +441,7 @@ public sealed class PackageLayoutSmokeTests
             TestRepository.FindRoot(),
             "scripts",
             "Test-SharpProofReleaseArtifacts.ps1");
-        var validation = await RunProcessAsync(
+        var validation = await BuildOkAsync(RunProcessAsync(
             TestRepository.FindRoot(),
             "pwsh",
             [
@@ -460,8 +453,7 @@ public sealed class PackageLayoutSmokeTests
                 workspace.OutputDirectory,
                 "-ExpectedTag",
                 "v" + feed.Version
-            ]);
-        Assert.That(validation.ExitCode, Is.Zero, validation.Output);
+            ]));
     }
 
     [Test]
@@ -470,8 +462,7 @@ public sealed class PackageLayoutSmokeTests
         var feed = await PackagedProductFeed.GetAsync();
         using var workspace = PackageWorkspace.Create();
         workspace.WriteConsumer(feed.Version, PackagedProductFeed.PortablePackageId);
-        var restore = await RestoreConsumerAsync(workspace, feed);
-        Assert.That(restore.ExitCode, Is.Zero, restore.Output);
+        var restore = await BuildOkAsync(RestoreConsumerAsync(workspace, feed));
 
         var unsupportedCompiler = await RunDotNetAsync(
             workspace.ConsumerDirectory,
@@ -529,24 +520,22 @@ public sealed class PackageLayoutSmokeTests
             Is.Zero,
             disabledRuntimeContracts.Output);
 
-        var disabledItems = await RunDotNetAsync(
+        var disabledItems = await BuildOkAsync(RunDotNetAsync(
             workspace.ConsumerDirectory,
             "msbuild",
             workspace.ConsumerProject,
             "-getItem:Analyzer",
             "-p:SharpProofProfile=off",
-            "--nologo");
-        Assert.That(disabledItems.ExitCode, Is.Zero, disabledItems.Output);
+            "--nologo"));
         Assert.That(
             GetPackagedAnalyzerItems(disabledItems.Output),
             Is.Empty);
-        var enabledItems = await RunDotNetAsync(
+        var enabledItems = await BuildOkAsync(RunDotNetAsync(
             workspace.ConsumerDirectory,
             "msbuild",
             workspace.ConsumerProject,
             "-getItem:Analyzer",
-            "--nologo");
-        Assert.That(enabledItems.ExitCode, Is.Zero, enabledItems.Output);
+            "--nologo"));
         Assert.That(
             enabledItems.Output,
             Does.Contain("SharpProof.Analyzer.dll")
@@ -569,7 +558,7 @@ public sealed class PackageLayoutSmokeTests
                 .Select(static item => item.FileName),
             Is.EquivalentTo(ExpectedAnalyzerDependencyFileNames));
 
-        var analyzerBuild = await RunDotNetAsync(
+        var analyzerBuild = await BuildOkAsync(RunDotNetAsync(
             workspace.ConsumerDirectory,
             "build",
             workspace.ConsumerProject,
@@ -577,8 +566,7 @@ public sealed class PackageLayoutSmokeTests
             "Release",
             "--no-restore",
             "--nologo",
-            "/nodeReuse:false");
-        Assert.That(analyzerBuild.ExitCode, Is.Zero, analyzerBuild.Output);
+            "/nodeReuse:false"));
         Assert.That(analyzerBuild.Output, Does.Contain("SP0045"));
 
         var explicitVerification = await RunDotNetAsync(
@@ -625,8 +613,7 @@ public sealed class PackageLayoutSmokeTests
         workspace.WritePassingVerifierConsumer(
             feed.Version,
             PackagedProductFeed.VerifierPackageId);
-        var restore = await RestoreConsumerAsync(workspace, feed);
-        Assert.That(restore.ExitCode, Is.Zero, restore.Output);
+        var restore = await BuildOkAsync(RestoreConsumerAsync(workspace, feed));
 
         AssertPackagedAnalyzerItems(
             await EvaluatePackagedAnalyzerItemsAsync(workspace),
@@ -876,7 +863,7 @@ public sealed class PackageLayoutSmokeTests
         using var workspace = PackageWorkspace.Create();
         var solution = workspace.WriteMappedSourceConsumerSolution();
 
-        var evaluation = await RunDotNetAsync(
+        var evaluation = await BuildOkAsync(RunDotNetAsync(
             workspace.ConsumerDirectory,
             "msbuild",
             solution,
@@ -884,9 +871,7 @@ public sealed class PackageLayoutSmokeTests
             "-property:Configuration=Debug",
             "-property:Platform=Any CPU",
             "-property:DesignTimeBuild=true",
-            "--nologo");
-
-        Assert.That(evaluation.ExitCode, Is.Zero, evaluation.Output);
+            "--nologo"));
         Assert.That(
             await File.ReadAllLinesAsync(
                 workspace.MappedProjectConfigurationsPath),
@@ -944,22 +929,20 @@ public sealed class PackageLayoutSmokeTests
         var feed = await PackagedProductFeed.GetAsync();
         using var workspace = PackageWorkspace.Create();
         workspace.WriteFrameworkConsumer(feed.Version, targetFramework);
-        var restore = await RestoreConsumerAsync(
+        var restore = await BuildOkAsync(RestoreConsumerAsync(
             workspace,
             feed,
             includeNetStandardFrameworkPackages:
                 targetFramework == "netstandard2.0",
             includeNet472ReferenceAssemblies:
-                targetFramework == "net472");
-        Assert.That(restore.ExitCode, Is.Zero, restore.Output);
+                targetFramework == "net472"));
 
-        var enabledItems = await RunDotNetAsync(
+        var enabledItems = await BuildOkAsync(RunDotNetAsync(
             workspace.ConsumerDirectory,
             "msbuild",
             workspace.ConsumerProject,
             "-getItem:Analyzer",
-            "--nologo");
-        Assert.That(enabledItems.ExitCode, Is.Zero, enabledItems.Output);
+            "--nologo"));
         var packagedAnalyzerItems =
             GetPackagedAnalyzerItems(enabledItems.Output);
         Assert.That(
@@ -980,10 +963,9 @@ public sealed class PackageLayoutSmokeTests
         // compile on each target; analyzer diagnostics are covered by the
         // dedicated analyzer regression fixtures below. Avoid running the
         // analyzer for these build-only compatibility checks.
-        var build = await BuildAnalyzerConsumerAsync(
+        var build = await BuildOkAsync(BuildAnalyzerConsumerAsync(
             workspace,
-            runAnalyzers: false);
-        Assert.That(build.ExitCode, Is.Zero, build.Output);
+            runAnalyzers: false));
     }
 
     [Test]
@@ -994,16 +976,14 @@ public sealed class PackageLayoutSmokeTests
         workspace.WritePassingVerifierConsumer(
             feed.Version,
             PackagedProductFeed.VerifierPackageId);
-        var restore = await RestoreConsumerAsync(workspace, feed);
-        Assert.That(restore.ExitCode, Is.Zero, restore.Output);
+        var restore = await BuildOkAsync(RestoreConsumerAsync(workspace, feed));
 
-        var enabledItems = await RunDotNetAsync(
+        var enabledItems = await BuildOkAsync(RunDotNetAsync(
             workspace.ConsumerDirectory,
             "msbuild",
             workspace.ConsumerProject,
             "-getItem:Analyzer",
-            "--nologo");
-        Assert.That(enabledItems.ExitCode, Is.Zero, enabledItems.Output);
+            "--nologo"));
         var packagedAnalyzerItems =
             GetPackagedAnalyzerItems(enabledItems.Output);
         Assert.That(
@@ -1022,8 +1002,7 @@ public sealed class PackageLayoutSmokeTests
                 .Select(static item => item.FileName),
             Is.EquivalentTo(ExpectedAnalyzerDependencyFileNames));
 
-        var advisory = await BuildAnalyzerConsumerAsync(workspace);
-        Assert.That(advisory.ExitCode, Is.Zero, advisory.Output);
+        var advisory = await BuildOkAsync(BuildAnalyzerConsumerAsync(workspace));
         Assert.That(advisory.Output, Does.Not.Contain("SP0045"));
 
         var verification = await RunDotNetAsync(
@@ -1053,8 +1032,7 @@ public sealed class PackageLayoutSmokeTests
         var feed = await PackagedProductFeed.GetAsync();
         using var workspace = PackageWorkspace.Create();
         workspace.WriteEffectReplayVerifierConsumer(feed.Version);
-        var restore = await RestoreConsumerAsync(workspace, feed);
-        Assert.That(restore.ExitCode, Is.Zero, restore.Output);
+        var restore = await BuildOkAsync(RestoreConsumerAsync(workspace, feed));
 
         var verification = await RunDotNetAsync(
             workspace.ConsumerDirectory,
@@ -1200,8 +1178,7 @@ public sealed class PackageLayoutSmokeTests
         var feed = await PackagedProductFeed.GetAsync();
         using var workspace = PackageWorkspace.Create();
         workspace.WriteLinkedMappedVerifierConsumer(feed.Version);
-        var restore = await RestoreConsumerAsync(workspace, feed);
-        Assert.That(restore.ExitCode, Is.Zero, restore.Output);
+        var restore = await BuildOkAsync(RestoreConsumerAsync(workspace, feed));
 
         var verification = await RunDotNetAsync(
             workspace.ConsumerDirectory,
@@ -1294,8 +1271,7 @@ public sealed class PackageLayoutSmokeTests
         workspace.WriteConsumer(
             feed.Version,
             PackagedProductFeed.VerifierPackageId);
-        var restore = await RestoreConsumerAsync(workspace, feed);
-        Assert.That(restore.ExitCode, Is.Zero, restore.Output);
+        var restore = await BuildOkAsync(RestoreConsumerAsync(workspace, feed));
 
         var verification = await RunDotNetAsync(
             workspace.ConsumerDirectory,
@@ -1343,11 +1319,9 @@ public sealed class PackageLayoutSmokeTests
             """,
             "all",
             "SP0027");
-        var restore = await RestoreConsumerAsync(workspace, feed);
-        Assert.That(restore.ExitCode, Is.Zero, restore.Output);
+        var restore = await BuildOkAsync(RestoreConsumerAsync(workspace, feed));
 
-        var validBuild = await BuildAnalyzerConsumerAsync(workspace);
-        Assert.That(validBuild.ExitCode, Is.Zero, validBuild.Output);
+        var validBuild = await BuildOkAsync(BuildAnalyzerConsumerAsync(workspace));
         Assert.That(validBuild.Output, Does.Contain("SP0027"));
 
         workspace.WriteSource(
@@ -1423,8 +1397,7 @@ public sealed class PackageLayoutSmokeTests
             """,
             "effects",
             "SP0047");
-        var restore = await RestoreConsumerAsync(workspace, feed);
-        Assert.That(restore.ExitCode, Is.Zero, restore.Output);
+        var restore = await BuildOkAsync(RestoreConsumerAsync(workspace, feed));
 
         var build = await BuildAnalyzerConsumerAsync(workspace);
         using (Assert.EnterMultipleScope())
@@ -1447,27 +1420,23 @@ public sealed class PackageLayoutSmokeTests
         using var workspace = PackageWorkspace.Create();
         workspace.WriteCompilerProbeConsumer(
             feed.Version);
-        var restore = await RestoreConsumerAsync(workspace, feed);
-        Assert.That(restore.ExitCode, Is.Zero, restore.Output);
+        var restore = await BuildOkAsync(RestoreConsumerAsync(workspace, feed));
 
-        var withoutPath =
-            await RebuildCompilerProbeConsumerAsync(workspace);
-        Assert.That(withoutPath.ExitCode, Is.Zero, withoutPath.Output);
+        var withoutPath = await BuildOkAsync(
+            RebuildCompilerProbeConsumerAsync(workspace));
         Assert.That(File.Exists(workspace.ProbeOutputPath), Is.False);
-        var profileOff = await RebuildCompilerProbeConsumerAsync(
+        var profileOff = await BuildOkAsync(RebuildCompilerProbeConsumerAsync(
             workspace,
             ("SharpProofProfile", "off"),
             (
                 CompilerProbeContract.OutputPathPropertyName,
-                workspace.ProbeOutputPath));
-        Assert.That(profileOff.ExitCode, Is.Zero, profileOff.Output);
+                workspace.ProbeOutputPath)));
         Assert.That(File.Exists(workspace.ProbeOutputPath), Is.False);
 
-        var first = await RebuildProbeAsync(
+        var first = await BuildOkAsync(RebuildProbeAsync(
             workspace,
             "first-global",
-            "first-metadata");
-        Assert.That(first.ExitCode, Is.Zero, first.Output);
+            "first-metadata"));
         Assert.That(
             File.Exists(workspace.ProbeOutputPath),
             Is.True,
@@ -1479,21 +1448,19 @@ public sealed class PackageLayoutSmokeTests
             "first-input",
             "first-global",
             "first-metadata");
-        var noOp = await RebuildProbeAsync(
+        var noOp = await BuildOkAsync(RebuildProbeAsync(
             workspace,
             "first-global",
-            "first-metadata");
-        Assert.That(noOp.ExitCode, Is.Zero, noOp.Output);
+            "first-metadata"));
         Assert.That(
             await File.ReadAllBytesAsync(workspace.ProbeOutputPath),
             Is.EqualTo(firstBytes));
 
         workspace.WriteProbeInput("second-input");
-        var changedInput = await RebuildProbeAsync(
+        var changedInput = await BuildOkAsync(RebuildProbeAsync(
             workspace,
             "first-global",
-            "first-metadata");
-        Assert.That(changedInput.ExitCode, Is.Zero, changedInput.Output);
+            "first-metadata"));
         var inputBytes =
             await File.ReadAllBytesAsync(workspace.ProbeOutputPath);
         VerifyProbeSnapshot(
@@ -1505,14 +1472,10 @@ public sealed class PackageLayoutSmokeTests
             inputBytes,
             Is.Not.EqualTo(firstBytes));
 
-        var changedConfiguration = await RebuildProbeAsync(
+        var changedConfiguration = await BuildOkAsync(RebuildProbeAsync(
             workspace,
             "second-global",
-            "second-metadata");
-        Assert.That(
-            changedConfiguration.ExitCode,
-            Is.Zero,
-            changedConfiguration.Output);
+            "second-metadata"));
         var configuredBytes =
             await File.ReadAllBytesAsync(workspace.ProbeOutputPath);
         VerifyProbeSnapshot(
@@ -2380,6 +2343,14 @@ public sealed class PackageLayoutSmokeTests
                 "Package entry was not found: " + entryPath);
         using var reader = new StreamReader(entry.Open());
         return reader.ReadToEnd();
+    }
+
+    private static async Task<ProcessResult> BuildOkAsync(
+        Task<ProcessResult> resultTask)
+    {
+        var result = await resultTask;
+        Assert.That(result.ExitCode, Is.Zero, result.Output);
+        return result;
     }
 
     private static Task<ProcessResult> RunDotNetAsync(

@@ -753,15 +753,8 @@ public sealed class LauncherArgumentTests
         await File.WriteAllTextAsync(result, resultSentinel);
         await File.WriteAllTextAsync(manifest, "{ malformed manifest");
 
-        var exitCode = await Program.Main([
-            "verify",
-            "--worker", worker,
-            "--request", request,
-            "--result", result,
-            "--compiler-manifest", manifest,
-            "--verify-policy", "advisory",
-            "--assumption-policy", "allow"
-        ]);
+        var exitCode = await Program.Main(
+            ProjectionArguments(worker, request, result, manifest));
 
         using (Assert.EnterMultipleScope())
         {
@@ -798,15 +791,11 @@ public sealed class LauncherArgumentTests
         var exitCode = 0;
         try
         {
-            exitCode = await Program.Main([
-                "verify",
-                "--worker", worker,
-                "--request", Path.Combine(ioDirectory, "request.json"),
-                "--result", Path.Combine(ioDirectory, "result.json"),
-                "--compiler-manifest", Path.Combine(ioDirectory, "missing.json"),
-                "--verify-policy", "advisory",
-                "--assumption-policy", "allow"
-            ]);
+            exitCode = await Program.Main(ProjectionArguments(
+                worker: worker,
+                request: Path.Combine(ioDirectory, "request.json"),
+                result: Path.Combine(ioDirectory, "result.json"),
+                compilerManifest: Path.Combine(ioDirectory, "missing.json")));
         }
         catch (JsonException)
         {
@@ -1952,16 +1941,6 @@ public sealed class LauncherArgumentTests
         ];
     }
 
-    private static string[] ValidArguments()
-    {
-        return [
-        "verify",
-        "--worker", "worker.dll",
-        "--request", "request.json",
-        "--result", "result.json",
-        "--compiler-manifest", "compiler-manifest.json",
-        "--verify-policy", "advisory",
-        "--assumption-policy", "allow"
-    ];
-    }
+    private static string[] ValidArguments() =>
+        ProjectionArguments(compilerManifest: "compiler-manifest.json");
 }
