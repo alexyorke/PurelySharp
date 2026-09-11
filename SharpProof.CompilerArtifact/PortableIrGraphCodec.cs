@@ -803,7 +803,8 @@ internal static partial class PortableIrGraphCodec
                 Variable,
                 Member,
                 Operation,
-                TermsAtDepth,
+                (indices, currentDepth) =>
+                    [.. indices.Select(selectedIndex => DecodeTerm(selectedIndex, currentDepth + 1))],
                 value => Wire(value, OpaquePurities),
                 value => Wire(value, UnaryOperators),
                 value => Wire(value, BinaryOperators),
@@ -816,11 +817,6 @@ internal static partial class PortableIrGraphCodec
             _terms[index] = term;
             _termState[index] = 2;
             return term;
-        }
-
-        private IrTerm[] TermsAtDepth(int[] indices, int depth)
-        {
-            return [.. indices.Select(index => DecodeTerm(index, depth + 1))];
         }
 
         private (IrProgram? Program, IrInstruction[] Instructions) DecodeProgram()

@@ -1,6 +1,6 @@
 # Active code reduction queue
 Resolved proposals are removed from this file after implementation, validation, or a current-tree refutation. The original survey remains available in Git history; this file is intentionally only the active queue.
-Inventory after deduplication: 216 canonical queue IDs represented by 176 deferred rows (0 pending). Resolved and refuted proposals are removed; repeated and superseded rows are merged into canonical rows.
+Inventory after deduplication: 215 canonical queue IDs represented by 175 deferred rows (0 pending). Resolved and refuted proposals are removed; repeated and superseded rows are merged into canonical rows.
 
 Each pending row must be rechecked against the current tree, applied in a compatible batch, validated with the smallest relevant containerized test target, and then removed here.
 
@@ -108,7 +108,6 @@ Each pending row must be rechecked against the current tree, applied in a compat
 - **R3560**: R3560 | **Partially applied; remaining repository-root helper unification is deferred.** The four duplicate `-Fast` + `-NoBuild` guards now call `Assert-SharpProofTestSwitches` from `scripts/SharpProof.ContainerExecution.psm1`, preserving the exact rejection. The broader PowerShell/C# repository-root convergence remains unsafe because their marker, failure, and path semantics differ.
 - **R0298**: R298 | **Partially applied; remaining portion deferred.** `Test-SharpProofCoverage.ps1` now reuses `Get-OrdinalSortedUniqueStrings` for its already-unique path sets. The `Get-RequiredProperty` helpers remain separate because the API-catalog and release versions intentionally differ in null, error, and array-return semantics.
 
-- **R0282**: R282 | **Deferred.** The remaining `PortableIrGraphCodec.Decoder.TermsAtDepth` propagation is recursive IR soundness logic; the safe non-recursive forwarder was already inlined.
 - **R0341**: R341 | **Deferred.** Raw trusted-platform-assembly acquisition is already shared by `AnalyzerGateHost` and `WorkerPerformanceProbe` through `TrustedPlatformAssemblyPaths.Get`. The remaining functional readers are `TestMetadataReferences`, the Meta analyzer tests, and the Testing/Fuzz differential oracles; they intentionally differ in ordering, case-insensitive deduplication, Roslyn-reference appending, and SharpProof-reference ownership. A generic helper would require new cross-project wiring and could alter reference sets or authority boundaries. The former broad R0729 inventory is stale and is merged here rather than implemented wholesale.
 - **R0807**: R807 | **Deferred.** The remaining variable-validation passes enforce distinct canonical IDs, role shape, and pre-state injectivity with separate error/order contracts; further fusion needs a validated accumulator design.
 - **R0983**: R983 | **Deferred.** Open-dispatch, disposal, and invocation paths intentionally use different predicates and policies; a uniform helper would change soundness behavior.
