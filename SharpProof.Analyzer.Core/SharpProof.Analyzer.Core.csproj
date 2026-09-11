@@ -20,9 +20,6 @@
   <ItemGroup>
     <ProjectReference Include="..\SharpProof.Contracts\SharpProof.Contracts.csproj" />
     <ProjectReference Include="..\SharpProof.Effects\SharpProof.Effects.csproj" />
-    <ProjectReference Include="..\SharpProof.Frontend\SharpProof.Frontend.csproj" />
-    <ProjectReference Include="..\SharpProof.Ir\SharpProof.Ir.csproj" />
-    <ProjectReference Include="..\SharpProof.Specs\SharpProof.Specs.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="SharpProof.Analyzer.Test" />

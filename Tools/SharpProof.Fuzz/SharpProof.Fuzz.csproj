@@ -17,11 +17,9 @@
   <ItemGroup>
     <Compile Include="..\..\scripts\SharpProof.JsonDefaults.cs"
              Link="SharpProof.JsonDefaults.cs" />
-    <ProjectReference Include="..\..\SharpProof.Ir\SharpProof.Ir.csproj" />
     <ProjectReference Include="..\..\SharpProof.Frontend\SharpProof.Frontend.csproj" />
     <ProjectReference Include="..\..\SharpProof.Host\SharpProof.Host.csproj" />
     <ProjectReference Include="..\..\SharpProof.Smt\SharpProof.Smt.csproj" />
     <ProjectReference Include="..\..\SharpProof.Testing\SharpProof.Testing.csproj" />
-    <ProjectReference Include="..\..\SharpProof.Verify\SharpProof.Verify.csproj" />
   </ItemGroup>
 </Project>

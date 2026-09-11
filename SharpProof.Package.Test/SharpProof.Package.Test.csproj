@@ -22,7 +22,6 @@
                       ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\SharpProof.Attributes\SharpProof.Attributes.csproj" />
     <ProjectReference Include="..\SharpProof.CompilerProbe.TestAsset\SharpProof.CompilerProbe.TestAsset.csproj" />
-    <ProjectReference Include="..\SharpProof.Host\SharpProof.Host.csproj" />
     <ProjectReference Include="..\SharpProof.Package\SharpProof.Package.csproj"
                       ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\SharpProof.Verifier\SharpProof.Verifier.csproj"
@@ -31,7 +30,6 @@
                       PrivateAssets="all"
                       TreatAsPackageReference="false" />
     <ProjectReference Include="..\SharpProof.Worker.Launcher\SharpProof.Worker.Launcher.csproj" />
-    <ProjectReference Include="..\SharpProof.Worker.Protocol\SharpProof.Worker.Protocol.csproj" />
     <ProjectReference Include="..\SharpProof.Worker\SharpProof.Worker.csproj" />
   </ItemGroup>
 </Project>

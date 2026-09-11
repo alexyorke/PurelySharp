@@ -7,7 +7,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SharpProof.Effects\SharpProof.Effects.csproj" />
-    <ProjectReference Include="..\SharpProof.Ir\SharpProof.Ir.csproj" />
     <ProjectReference Include="..\SharpProof.Verify\SharpProof.Verify.csproj" />
   </ItemGroup>
 </Project>
