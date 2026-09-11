@@ -74,8 +74,8 @@ public sealed class ContractBinder
             target,
             implementationBody,
             requiresOnly: false,
-            cancellationToken: CancellationToken.None,
-            cache: _bindings);
+            cache: _bindings,
+            cancellationToken: CancellationToken.None);
     }
 
     public ContractBindingResult BindRequires(
@@ -87,8 +87,8 @@ public sealed class ContractBinder
             target,
             implementationBody,
             requiresOnly: true,
-            cancellationToken: CancellationToken.None,
-            cache: _requiresBindings);
+            cache: _requiresBindings,
+            cancellationToken: CancellationToken.None);
     }
 
     internal ContractBindingResult BindRequires(
@@ -101,8 +101,8 @@ public sealed class ContractBinder
             target,
             implementationBody: null,
             requiresOnly: true,
-            cancellationToken: cancellationToken,
-            cache: _requiresBindings);
+            cache: _requiresBindings,
+            cancellationToken: cancellationToken);
     }
 
     public ContractClauseInventory GetClauseInventory(IMethodSymbol target)
@@ -114,13 +114,15 @@ public sealed class ContractBinder
         IMethodSymbol target,
         IOperation? implementationBody,
         bool requiresOnly,
-        CancellationToken cancellationToken,
-        ConcurrentDictionary<IMethodSymbol, ContractBindingResult> cache) =>
-        implementationBody == null
+        ConcurrentDictionary<IMethodSymbol, ContractBindingResult> cache,
+        CancellationToken cancellationToken)
+    {
+        return implementationBody == null
             ? cache.GetOrAdd(
                 target,
                 value => BindCore(value, null, requiresOnly, cancellationToken))
             : BindCore(target, implementationBody, requiresOnly, cancellationToken);
+    }
 
     private ContractBindingResult BindCore(
         IMethodSymbol target,

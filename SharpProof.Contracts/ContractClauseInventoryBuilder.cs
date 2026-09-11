@@ -154,8 +154,8 @@ public sealed class ContractClauseInventoryBuilder(Compilation compilation)
                     model,
                     body,
                     ownedByCallable,
-                    cancellationToken,
-                    directClauseCache), invocation,
+                    directClauseCache,
+                    cancellationToken), invocation,
                     GetTreeOrdinal(invocation.Syntax.SyntaxTree)));
             }
         }
@@ -221,9 +221,9 @@ public sealed class ContractClauseInventoryBuilder(Compilation compilation)
         SemanticModel model,
         SyntaxNode body,
         bool ownedByCallable,
-        CancellationToken cancellationToken,
         Dictionary<(SyntaxTree Tree, int Start, int Length), bool>
-            directClauseCache)
+            directClauseCache,
+        CancellationToken cancellationToken)
     {
         if (!ownedByCallable)
         {
@@ -239,9 +239,9 @@ public sealed class ContractClauseInventoryBuilder(Compilation compilation)
                 invocation,
                 model,
                 body,
-                cancellationToken,
                 directClauseCache,
-                out var placement))
+                out var placement,
+                cancellationToken))
         {
             return placement;
         }
@@ -270,10 +270,10 @@ public sealed class ContractClauseInventoryBuilder(Compilation compilation)
         IInvocationOperation invocation,
         SemanticModel model,
         SyntaxNode body,
-        CancellationToken cancellationToken,
         Dictionary<(SyntaxTree Tree, int Start, int Length), bool>
             directClauseCache,
-        out ContractClausePlacement placement)
+        out ContractClausePlacement placement,
+        CancellationToken cancellationToken)
     {
         if (body is not BlockSyntax and not CompilationUnitSyntax)
         {
@@ -297,8 +297,8 @@ public sealed class ContractClauseInventoryBuilder(Compilation compilation)
             if (!IsDirectClause(
                     model,
                     prior,
-                    cancellationToken,
-                    directClauseCache))
+                    directClauseCache,
+                    cancellationToken))
             {
                 placement = ContractClausePlacement.Late;
                 return true;
@@ -335,9 +335,9 @@ public sealed class ContractClauseInventoryBuilder(Compilation compilation)
     private bool IsDirectClause(
         SemanticModel model,
         StatementSyntax statement,
-        CancellationToken cancellationToken,
         Dictionary<(SyntaxTree Tree, int Start, int Length), bool>
-            directClauseCache)
+            directClauseCache,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (statement is not ExpressionStatementSyntax expression)
