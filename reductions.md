@@ -1,6 +1,6 @@
 # Active code reduction queue
 Resolved proposals are removed from this file after implementation, validation, or a current-tree refutation. The original survey remains available in Git history; this file is intentionally only the active queue.
-Inventory after deduplication: 250 canonical queue IDs represented by 189 deferred rows (0 pending). Resolved and refuted proposals are removed; repeated and superseded rows are merged into canonical rows.
+Inventory after deduplication: 247 canonical queue IDs represented by 187 deferred rows (0 pending). Resolved and refuted proposals are removed; repeated and superseded rows are merged into canonical rows.
 
 Each pending row must be rechecked against the current tree, applied in a compatible batch, validated with the smallest relevant containerized test target, and then removed here.
 
@@ -156,11 +156,9 @@ Each pending row must be rechecked against the current tree, applied in a compat
 - **R2509**: R2509 | **Deferred.** Lowering is keyed by operation while purity is keyed by operation plus depth and short-circuits on different child sets. Sharing traversal facts would require a depth-aware result model and must preserve conservative depth-limit behavior; retain the separate caches.
 - **R2226**: R2226 | **Deferred.** The worklist-order hook is an internal, low-overhead seam used to exercise the production solver's actual scheduling path. Removing it would either duplicate solver logic in tests or add conditional test-only build plumbing; keep the seam and its permutation validation.
 
-- **R0001**: R001 | Positional records would change constructor visibility and equality semantics.
 - **R0007, R0008, R0009**: R007-R009 | Compiler-probe JSON bytes, artifact authority, and IL opcode admission are compatibility/soundness boundaries; defer to focused format work.
 - **R0013**: R013 | Re-threading recursive API-spec validation through mutable context changes soundness-critical state ownership for cosmetic call-site savings.
-- **R0019, R0224**: R019, R224 | These remove public or semantically meaningful summary facets; write-only repository evidence is not enough.
-- **R0024**: R024 | `ClosedAbstractDomain.Merge` and `Compare` are public API, and `OwnedCount` supports a load-bearing disposal test.
+- **R0024**: R024 | Retain `Z3ExpressionOwner.OwnedCount`; the disposal regression test uses it to verify ownership count before disposal and zero ownership after cleanup.
 - **R2433**: R2433 | `WorkerProtocolJson` targets `netstandard2.0`, whose `StreamReader` API has no `ReadToEndAsync(CancellationToken)` overload. The direct API change fails compilation (`CS1501`); retain the current pre/post cancellation checks until a target-compatible cancellable loop can be designed without changing strict UTF-8, byte-bound/overflow probing, or BOM handling. | `SharpProof.Worker.Protocol/ProtocolJson.cs:58-66`; validation failure from `SharpProof.Worker.Test` `ProtocolJsonTests` (`CS1501` on `ReadToEndAsync(cancellationToken)`)
 - **R0027, R0029, R0030, R0031**: R0027, R0029, R0030, R0031 | Generalizing process, temporary-directory, and package-test setup changes cleanup/lifetime semantics across many fixtures; defer after the shared root/default work already removed the exact duplication.
 - **R0032, R0033, R0034**: R032-R034 | These are broad Effects/Gates control-flow and process-lifetime refactors; the copies have environment-specific predicates and failure semantics.
