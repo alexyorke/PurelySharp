@@ -257,11 +257,6 @@ typed `CounterexampleNotReplayable`; other unsupported or inconsistent replay
 state fails the run as `CounterexampleReplayFailed`. Instructions on
 unselected paths do not block a concrete replay.
 
-Effect replay uses a separate compiler-neutral event interpreter rather than
-SMT or user-code execution. It admits only an unconditional definite managed
-object/array allocation with completed operands and no unmodeled static
-initialization. Other definite effect candidates become
-`CounterexampleNotReplayable`; may-only conflicts remain
-`EffectContractNotEstablished`. Structural artifact tamper is a
-`CompilerManifestMismatch`, while semantic replay disagreement is the fatal
-`CounterexampleReplayFailed`. Effect results are not cacheable.
+Effect replay admission and outcomes follow the maintained
+[effect replay boundary](coverage-and-limits.md#outcomes-accountability-and-cache-boundary).
+Effect results are not cacheable.

@@ -155,7 +155,7 @@ return shape.
 The worker composes quantifier-free callee relations inferred from exact
 acyclic source bodies, exact implementation PE bodies, or explicitly enabled
 audited specification packs. Each origin produces the same typed IR relation;
-Z3 proves the resulting caller obligation, while schema-1 evidence records the
+Z3 proves the resulting caller obligation, while summary-schema-2 evidence records the
 complete transitive dependency closure. This remains a direct static scalar
 boundary, not general recursive, virtual, or heap-aware source-callee modular
 verification. The analyzer
@@ -235,12 +235,10 @@ pack schema version 1. Every selected
 effect-attribute occurrence also has one compiler-sealed `Proven`, candidate
 `Refuted`, or typed `Unknown` evidence record. Repeated attributes retain
 distinct claim IDs while sharing their effective combined
-constraint/evidence. Schema 11 retains the ordered,
-compiler-neutral replay event for an unconditional definite managed object or
-array allocation. It seals the selected-constraint hash, semantic-operation
-hash, exact compiler tree/span identity, type/member identity, mapped location,
-and expected witness. Callable IDs, claim ownership, and user-assumption IDs
-remain tied to the sealed manifest.
+constraint/evidence. Current effect-event admission and replay boundaries are
+maintained in [Coverage and limits](coverage-and-limits.md#outcomes-accountability-and-cache-boundary).
+Callable IDs, claim ownership, and user-assumption IDs remain tied to the sealed
+manifest.
 The semantic-operation hash is a canonical consistency check over those
 compiler-produced event fields, not an independent source binding. Compiler
 contract discovery, effect analysis, and event lowering are therefore

@@ -75,7 +75,8 @@ This is a not-proven diagnostic. It does not claim a replayed impure trace.
 Reserved as a live-analyzer diagnostic. The current path-insensitive
 may-effect analyzer never emits SP0013. Separately, the opt-in container worker
 can publish a typed effect `Refuted` result after independently replaying the
-schema-10 event for an unconditional definite managed object/array allocation.
+compiler-sealed event for an unconditional definite managed object/array
+allocation; see the [effect replay boundary](coverage-and-limits.md#outcomes-accountability-and-cache-boundary).
 
 A possible allocation is reported as SP0045 instead.
 
