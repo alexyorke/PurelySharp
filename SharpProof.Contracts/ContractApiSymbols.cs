@@ -13,8 +13,13 @@ internal sealed class ContractApiSymbols(
 
     internal static ContractApiSymbols? TryCreate(Compilation compilation)
     {
-        var clauses = ContractClauseSymbols.TryCreate(compilation);
-        if (clauses == null)
+        var identity = ContractApiIdentityResolver.ForCompilation(compilation);
+        var clauses = identity.Contract is { } contract
+            ? new ContractClauseSymbols(contract)
+            : null;
+        if (clauses == null ||
+            identity.Result is not { } result ||
+            identity.Old is not { } old)
         {
             return null;
         }
@@ -22,58 +27,11 @@ internal sealed class ContractApiSymbols(
         var selections =
             ContractSelectionInventory.ForCompilation(compilation);
 
-        IMethodSymbol? result = null;
-        IMethodSymbol? old = null;
-        foreach (var member in clauses.ContractType.GetMembers())
-        {
-            if (member is not IMethodSymbol method ||
-                !method.IsStatic ||
-                method.Arity != 1)
-            {
-                continue;
-            }
-
-            if (method.Name == ContractApiMetadata.ResultMethodName &&
-                method.Parameters.Length == 0)
-            {
-                if (!TrySetUnique(ref result, method))
-                {
-                    return null;
-                }
-            }
-            else if (method.Name == ContractApiMetadata.OldMethodName &&
-                     method.Parameters.Length == 1)
-            {
-                if (!TrySetUnique(ref old, method))
-                {
-                    return null;
-                }
-            }
-        }
-
-        if (result == null || old == null)
-        {
-            return null;
-        }
-
         return new ContractApiSymbols(
             clauses,
             result,
             old,
             selections);
-    }
-
-    private static bool TrySetUnique(
-        ref IMethodSymbol? slot,
-        IMethodSymbol candidate)
-    {
-        if (slot is not null)
-        {
-            return false;
-        }
-
-        slot = candidate;
-        return true;
     }
 
     internal bool IsResult(IMethodSymbol method)

@@ -53,17 +53,31 @@ internal sealed class ContractApiIdentityResolver
             ContractApiMetadata.ConditionalAttribute);
         var candidate = compilation.GetTypeByMetadataName(
             ContractApiMetadata.Contract);
-        Contract = IsTrustedReferenceType(
+        var shape = IsTrustedReferenceType(
                 candidate,
                 ContractApiMetadata.Contract) &&
             HasTrustedAttributesPayload(
-                candidate!.ContainingAssembly) &&
-            HasValidContractShape(candidate!)
+                candidate!.ContainingAssembly)
+                ? GetValidContractShape(candidate!)
+                : null;
+        Contract = shape is not null
                 ? candidate
                 : null;
+        Result = shape?.Result;
+        Old = shape?.Old;
     }
 
     internal INamedTypeSymbol? Contract
+    {
+        get;
+    }
+
+    internal IMethodSymbol? Result
+    {
+        get;
+    }
+
+    internal IMethodSymbol? Old
     {
         get;
     }
@@ -399,26 +413,34 @@ internal sealed class ContractApiIdentityResolver
         InheritsFrom(candidate, _attribute);
     }
 
-    private bool HasValidContractShape(INamedTypeSymbol contract)
+    private (IMethodSymbol Result, IMethodSymbol Old)? GetValidContractShape(
+        INamedTypeSymbol contract)
     {
-        return contract is
+        if (contract is not
+            {
+                TypeKind: TypeKind.Class,
+                IsStatic: true,
+                Arity: 0
+            } ||
+            !HasConditionalSymbol(contract) ||
+            !HasSingleClause(contract, ContractApiMetadata.RequiresMethodName) ||
+            !HasSingleClause(contract, ContractApiMetadata.EnsuresMethodName) ||
+            !HasSingleClause(contract, ContractApiMetadata.AssumeMethodName))
         {
-            TypeKind: TypeKind.Class,
-            IsStatic: true,
-            Arity: 0
-        } &&
-        HasConditionalSymbol(contract) &&
-        HasSingleClause(contract, ContractApiMetadata.RequiresMethodName) &&
-        HasSingleClause(contract, ContractApiMetadata.EnsuresMethodName) &&
-        HasSingleClause(contract, ContractApiMetadata.AssumeMethodName) &&
-        HasSingleGenericIdentityMethod(
+            return null;
+        }
+
+        var result = GetSingleGenericIdentityMethod(
             contract,
             ContractApiMetadata.ResultMethodName,
-            parameterCount: 0) &&
-        HasSingleGenericIdentityMethod(
+            parameterCount: 0);
+        var old = GetSingleGenericIdentityMethod(
             contract,
             ContractApiMetadata.OldMethodName,
             parameterCount: 1);
+        return result is { } resultMethod && old is { } oldMethod
+            ? (resultMethod, oldMethod)
+            : null;
     }
 
     private bool HasSingleClause(
@@ -493,12 +515,12 @@ internal sealed class ContractApiIdentityResolver
             };
     }
 
-    private static bool HasSingleGenericIdentityMethod(
+    private static IMethodSymbol? GetSingleGenericIdentityMethod(
         INamedTypeSymbol contract,
         string name,
         int parameterCount)
     {
-        return GetSingleMethod(contract, name) is
+        if (GetSingleMethod(contract, name) is not
         {
             MethodKind: MethodKind.Ordinary,
             DeclaredAccessibility: Accessibility.Public,
@@ -506,22 +528,27 @@ internal sealed class ContractApiIdentityResolver
             Arity: 1,
             ReturnsByRef: false,
             ReturnsByRefReadonly: false
-        } method &&
-            method.Parameters.Length == parameterCount &&
-            HasUnconstrainedTypeParameter(method.TypeParameters[0]) &&
-            SymbolEqualityComparer.Default.Equals(
+        } method ||
+            method.Parameters.Length != parameterCount ||
+            !HasUnconstrainedTypeParameter(method.TypeParameters[0]) ||
+            !SymbolEqualityComparer.Default.Equals(
                 method.ReturnType,
-                method.TypeParameters[0]) &&
-            (parameterCount == 0 || method.Parameters[0] is
+                method.TypeParameters[0]) ||
+            (parameterCount != 0 && (method.Parameters[0] is not
             {
                 RefKind: RefKind.None,
                 ScopedKind: ScopedKind.None,
                 IsParams: false,
                 IsOptional: false
-            } parameter &&
-            SymbolEqualityComparer.Default.Equals(
+            } parameter ||
+            !SymbolEqualityComparer.Default.Equals(
                 parameter.Type,
-                method.TypeParameters[0]));
+                method.TypeParameters[0]))))
+        {
+            return null;
+        }
+
+        return method;
     }
 
     private static IMethodSymbol? GetSingleMethod(
