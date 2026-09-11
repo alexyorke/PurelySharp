@@ -106,7 +106,7 @@ public sealed class DependencyAutomationTests
             Assert.That(
                 workflow,
                 Does.Not.Contain(
-                    "list SharpProof.sln package\n" +
+                    "list SharpProof.slnx package\n" +
                     "          --vulnerable"));
         }
     }
@@ -135,7 +135,7 @@ public sealed class DependencyAutomationTests
             Assert.That(
                 workflow,
                 Does.Not.Contain(
-                    "list SharpProof.sln package"));
+                    "list SharpProof.slnx package"));
             Assert.That(
                 workflow,
                 Does.Not.Contain("--vulnerable"));

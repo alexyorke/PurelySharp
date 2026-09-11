@@ -169,7 +169,7 @@ changes so the Worker dependency closure is rebuilt.
 The same `-NoBuild` fast path is available on `sp test`, `sp semantic-tests`,
 `sp portable-tests`, and `sp package-tests`; use it only when the matching
 configuration and package outputs already exist in this workspace.
-When `sp test -Target SharpProof.sln` is run without a filter, the ordinary
+When `sp test -Target SharpProof.slnx` is run without a filter, the ordinary
 solution lane runs every non-package test and then hands `SharpProof.Package.Test`
 to the dedicated package scheduler. That scheduler builds and packs the product
 feed once, reuses the already-built test harness, and shards the package tests

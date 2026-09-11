@@ -7,7 +7,7 @@ param(
     [ValidateSet('Debug', 'Release')]
     [string]$Configuration = 'Debug',
 
-    [string]$Target = 'SharpProof.sln',
+    [string]$Target = 'SharpProof.slnx',
 
     [string]$PackageSource = '',
 
@@ -132,7 +132,7 @@ function Invoke-SolutionTests([string]$SolutionPath) {
         Invoke-DotNet @('restore', $SolutionPath, '--locked-mode')
     }
     $isMainSolution = [IO.Path]::GetFileName($SolutionPath) -ceq
-        'SharpProof.sln'
+        'SharpProof.slnx'
     $runPackageTestsSeparately = $isMainSolution -and
         [string]::IsNullOrWhiteSpace($TestFilter)
     $testProjectParallelism = Get-SharpProofTestProjectParallelism `
@@ -186,22 +186,22 @@ function Invoke-ForcedTerminationGateTest([string]$BuildConfiguration) {
 function Invoke-SharpProofSolutionBuild(
     [string]$BuildConfiguration,
     [string[]]$AdditionalBuildArguments = @()) {
-    Invoke-DotNet @('restore', 'SharpProof.sln', '--locked-mode')
+    Invoke-DotNet @('restore', 'SharpProof.slnx', '--locked-mode')
     $buildArguments = @(
-        'build', 'SharpProof.sln', '--configuration', $BuildConfiguration,
+        'build', 'SharpProof.slnx', '--configuration', $BuildConfiguration,
         '--no-restore')
     $buildArguments += $AdditionalBuildArguments
     Invoke-DotNet $buildArguments
 }
 
 function Invoke-DependencyAudit {
-    Invoke-DotNet @('restore', 'SharpProof.sln', '--locked-mode')
+    Invoke-DotNet @('restore', 'SharpProof.slnx', '--locked-mode')
     $output = Join-Path $repositoryRoot (
         'artifacts/dependency-audit/dependency-audit.json')
     Invoke-RequiredScript 'scripts/Test-SharpProofDependencyAudit.ps1' `
         'Dependency audit failed.' `
         @{
-            SolutionPath = Join-Path $repositoryRoot 'SharpProof.sln'
+            SolutionPath = Join-Path $repositoryRoot 'SharpProof.slnx'
             NuGetConfigurationPath = Join-Path $repositoryRoot 'NuGet.Config'; OutputPath = $output
         }
 }
@@ -222,7 +222,7 @@ switch ($Command) {
     'security' {
         Invoke-DependencyAudit
         Invoke-DotNet @(
-            'build', 'SharpProof.sln', '--configuration', 'Release',
+            'build', 'SharpProof.slnx', '--configuration', 'Release',
             '--no-restore')
     }
     'contract' {
@@ -264,9 +264,9 @@ switch ($Command) {
 
         # Build the complete source tree once with the self lane disabled so
         # every analyzer and generator output is available as a stable input.
-        Invoke-DotNet @('restore', 'SharpProof.sln', '--locked-mode')
+        Invoke-DotNet @('restore', 'SharpProof.slnx', '--locked-mode')
         Invoke-DotNet @(
-            'build', 'SharpProof.sln', '--configuration', $Configuration,
+            'build', 'SharpProof.slnx', '--configuration', $Configuration,
             '--no-restore', '--nologo',
             '-p:SharpProofSelfApplication=false',
             '-p:SharpProofProfile=off',
@@ -376,6 +376,7 @@ switch ($Command) {
             break
         }
         if ($Target.EndsWith('.sln', [StringComparison]::OrdinalIgnoreCase) -or
+            $Target.EndsWith('.slnx', [StringComparison]::OrdinalIgnoreCase) -or
             $Target.EndsWith('.slnf', [StringComparison]::OrdinalIgnoreCase)) {
             Invoke-SolutionTests $Target
             break
@@ -424,7 +425,7 @@ switch ($Command) {
         if ([string]::IsNullOrWhiteSpace($PackageSource)) {
             throw 'package-consumers requires -PackageSource.'
         }
-        Invoke-DotNet @('restore', 'SharpProof.sln', '--locked-mode')
+        Invoke-DotNet @('restore', 'SharpProof.slnx', '--locked-mode')
         $consumerArguments = @{
             Configuration = $Configuration
             PackageSource = $PackageSource
@@ -599,7 +600,7 @@ switch ($Command) {
                 '/p:GeneratePackageOnBuild=false',
                 $repositoryCommitProperty)
         Invoke-DotNet @(
-            'pack', 'SharpProof.sln', '--configuration', 'Release',
+            'pack', 'SharpProof.slnx', '--configuration', 'Release',
             '--output', $output, '--no-build', '--no-restore',
             '/p:GeneratePackageOnBuild=false',
             $repositoryCommitProperty)

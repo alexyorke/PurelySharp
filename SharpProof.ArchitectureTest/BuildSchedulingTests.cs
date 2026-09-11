@@ -214,9 +214,9 @@ public sealed class BuildSchedulingTests
             Assert.That(semantic,
                 Does.Contain("Remove-Item -LiteralPath $semanticBuildFilter"));
             Assert.That(semantic,
-                Does.Not.Contain("'restore', 'SharpProof.sln'"));
+                Does.Not.Contain("'restore', 'SharpProof.slnx'"));
             Assert.That(semantic,
-                Does.Not.Contain("'build', 'SharpProof.sln'"));
+                Does.Not.Contain("'build', 'SharpProof.slnx'"));
         }
     }
 
@@ -406,15 +406,15 @@ public sealed class BuildSchedulingTests
     }
 
     private static readonly string[] BuildSolution =
-        ["build", "SharpProof.sln", "--no-restore", "-graphBuild"];
+        ["build", "SharpProof.slnx", "--no-restore", "-graphBuild"];
     private static readonly string[] TestFilter =
         ["test", "SharpProof.Dev.Tests.slnf", "--no-build", "-graphBuild"];
     private static readonly string[] BuildProject =
         ["build", "SharpProof.Ir/SharpProof.Ir.csproj"];
     private static readonly string[] RestoreSolution =
-        ["restore", "SharpProof.sln"];
+        ["restore", "SharpProof.slnx"];
     private static readonly string[] Existing =
-        ["build", "SharpProof.sln", "-graphBuild"];
+        ["build", "SharpProof.slnx", "-graphBuild"];
 
     [Test]
     public async Task SolutionBuildsAndTestsUseStaticGraphScheduling()
@@ -426,11 +426,11 @@ public sealed class BuildSchedulingTests
         var command = $$"""
             Import-Module '{{escapedModule}}' -Force
             [ordered]@{
-                buildSolution = @(Add-SharpProofStaticGraphArgument -Arguments @('build', 'SharpProof.sln', '--no-restore'))
+                buildSolution = @(Add-SharpProofStaticGraphArgument -Arguments @('build', 'SharpProof.slnx', '--no-restore'))
                 testFilter = @(Add-SharpProofStaticGraphArgument -Arguments @('test', 'SharpProof.Dev.Tests.slnf', '--no-build'))
                 buildProject = @(Add-SharpProofStaticGraphArgument -Arguments @('build', 'SharpProof.Ir/SharpProof.Ir.csproj'))
-                restoreSolution = @(Add-SharpProofStaticGraphArgument -Arguments @('restore', 'SharpProof.sln'))
-                existing = @(Add-SharpProofStaticGraphArgument -Arguments @('build', 'SharpProof.sln', '-graphBuild'))
+                restoreSolution = @(Add-SharpProofStaticGraphArgument -Arguments @('restore', 'SharpProof.slnx'))
+                existing = @(Add-SharpProofStaticGraphArgument -Arguments @('build', 'SharpProof.slnx', '-graphBuild'))
             } | ConvertTo-Json -Compress
             """;
 

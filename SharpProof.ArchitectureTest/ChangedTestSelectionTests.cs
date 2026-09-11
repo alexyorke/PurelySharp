@@ -99,8 +99,8 @@ public sealed class ChangedTestSelectionTests
             "{\"automation\":{\"testProjectCpuDivisor\":1}}\n");
         await File.WriteAllTextAsync(changedPath, "<Project />\n");
         await File.WriteAllTextAsync(
-            Path.Combine(root, "SharpProof.sln"),
-            string.Empty);
+            Path.Combine(root, "SharpProof.slnx"),
+            "<Solution />\n");
         await File.WriteAllTextAsync(
             Path.Combine(
                 root,

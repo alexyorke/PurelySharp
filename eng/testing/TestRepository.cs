@@ -12,7 +12,7 @@ internal static class TestRepository
     internal static string FindRoot(string? start = null) =>
         RepositoryRoot.Find(
             start,
-            "SharpProof.sln",
+            "SharpProof.slnx",
             "SharpProof.Release.props") ??
         throw new DirectoryNotFoundException(
             "Could not locate the SharpProof repository root.");

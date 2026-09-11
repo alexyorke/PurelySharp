@@ -409,7 +409,7 @@ try {
             -Timings $phaseTimings -RecordOnFailure -Action {
             Invoke-SharpProofRequiredDotnet `
                 -Arguments @(
-                    'restore', 'SharpProof.sln', '--locked-mode',
+                    'restore', 'SharpProof.slnx', '--locked-mode',
                     '/nodeReuse:false') `
                 -TimeoutSeconds $TimeoutSeconds `
                 -Quiet:$Quiet
@@ -473,7 +473,7 @@ try {
             -Timings $phaseTimings -RecordOnFailure -Action {
             Invoke-SharpProofRequiredDotnet `
                 -Arguments @(
-                    'pack', 'SharpProof.sln', '-c', 'Release',
+                    'pack', 'SharpProof.slnx', '-c', 'Release',
                     '--no-restore', '--no-build', '--nologo',
                     '/nodeReuse:false', '--output', $feed,
                     '/p:GeneratePackageOnBuild=false') `

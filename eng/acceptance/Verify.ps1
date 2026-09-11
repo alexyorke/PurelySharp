@@ -168,7 +168,7 @@ Import-Module (Join-Path $repositoryRoot 'scripts\SharpProof.ContainerExecution.
 
 Start-AcceptanceTimingPhase -Name 'restore'
 Invoke-SharpProofRequiredDotnet -Arguments @(
-    'restore', 'SharpProof.sln', '--locked-mode') `
+    'restore', 'SharpProof.slnx', '--locked-mode') `
     -TimeoutSeconds 300
 Complete-AcceptanceTimingPhase
 
@@ -593,7 +593,7 @@ try {
     if (-not $SkipBuild) {
         Start-AcceptanceTimingPhase -Name 'build'
         Invoke-SharpProofRequiredDotnet `
-            -Arguments @('build', 'SharpProof.sln', '-c', $Configuration, '--no-restore') `
+            -Arguments @('build', 'SharpProof.slnx', '-c', $Configuration, '--no-restore') `
             -TimeoutSeconds ([int]$contract.automation.solutionBuildWallSeconds)
         Complete-AcceptanceTimingPhase
     }

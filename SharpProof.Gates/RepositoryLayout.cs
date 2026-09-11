@@ -5,7 +5,7 @@ internal static class RepositoryLayout
     public static string FindRoot(string? start = null) =>
         RepositoryRoot.Find(
             start,
-            "SharpProof.sln",
+            "SharpProof.slnx",
             "eng/acceptance/contract.json") ??
         throw new InvalidOperationException(
             "Could not locate the SharpProof repository root.");

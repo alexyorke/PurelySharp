@@ -46,7 +46,7 @@ try {
     $whitespaceArguments = @(
         'format',
         'whitespace',
-        'SharpProof.sln',
+        'SharpProof.slnx',
         '--no-restore',
         '--verbosity',
         'minimal'
@@ -54,7 +54,7 @@ try {
     $styleArguments = @(
         'format',
         'style',
-        'SharpProof.sln',
+        'SharpProof.slnx',
         '--severity',
         'warn',
         '--no-restore',

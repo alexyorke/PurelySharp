@@ -74,7 +74,7 @@ if (-not $NoBuild) {
     try {
         [pscustomobject]@{
             solution = [ordered]@{
-                path = 'SharpProof.sln'
+                path = 'SharpProof.slnx'
                 projects = $semanticBuildProjects
             }
         } | ConvertTo-Json -Depth 4 |

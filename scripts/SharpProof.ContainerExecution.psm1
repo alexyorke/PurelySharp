@@ -396,7 +396,7 @@ function Add-SharpProofStaticGraphArgument {
 
     if ($Arguments.Count -lt 2 -or
         $Arguments[0] -notin @('build', 'test') -or
-        [IO.Path]::GetExtension($Arguments[1]) -notin @('.sln', '.slnf') -or
+        [IO.Path]::GetExtension($Arguments[1]) -notin @('.sln', '.slnx', '.slnf') -or
         $Arguments -contains '-graphBuild' -or
         $Arguments -contains '/graphBuild') {
         return $Arguments

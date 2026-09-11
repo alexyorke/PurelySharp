@@ -79,7 +79,7 @@ $campaign = [Diagnostics.Stopwatch]::StartNew()
 
 Invoke-SharpProofTimedPhase -Name 'restore' -Timings $timings -Action {
     & $dotnetWrapper -TimeoutSeconds $TimeoutSeconds `
-        restore SharpProof.sln --locked-mode /nodeReuse:false
+        restore SharpProof.slnx --locked-mode /nodeReuse:false
     if ($LASTEXITCODE -ne 0) {
         throw 'Developer-check restore failed.'
     }
@@ -90,7 +90,7 @@ Invoke-SharpProofTimedPhase -Name 'build' -Timings $timings -Action {
         Name = 'solution-' +
             ([string]$solutionBuildCommand.configuration).ToLowerInvariant()
         Arguments = @(
-            'build', 'SharpProof.sln', '-c',
+            'build', 'SharpProof.slnx', '-c',
             [string]$solutionBuildCommand.configuration,
             '--no-restore')
     })

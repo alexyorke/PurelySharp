@@ -13,7 +13,7 @@
     "vscode": {
       "settings": {
         "terminal.integrated.defaultProfile.linux": "bash",
-        "dotnet.defaultSolution": "SharpProof.sln"
+        "dotnet.defaultSolution": "SharpProof.slnx"
       },
       "extensions": [
         "ms-dotnettools.csharp",

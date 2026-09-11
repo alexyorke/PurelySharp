@@ -139,7 +139,7 @@ internal sealed class PackagedProductFeed : IDisposable
             var result = await RunDotNetAsync(
                 repositoryRoot,
                 "pack",
-                "SharpProof.sln",
+                "SharpProof.slnx",
                 "-c",
                 "Release",
                 "--nologo",
@@ -151,7 +151,7 @@ internal sealed class PackagedProductFeed : IDisposable
             if (result.ExitCode != 0)
             {
                 throw new InvalidOperationException(
-                    "Packing SharpProof.sln failed." +
+                    "Packing SharpProof.slnx failed." +
                     Environment.NewLine + result.Output);
             }
             return CreateValidated(

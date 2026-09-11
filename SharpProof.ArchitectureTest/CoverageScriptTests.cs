@@ -1443,14 +1443,10 @@ public sealed class CoverageScriptTests
     {
         Directory.CreateDirectory(Path.Combine(repository, "eng", "generated"));
         await File.WriteAllTextAsync(
-            Path.Combine(repository, "SharpProof.sln"),
-            "Microsoft Visual Studio Solution File, Format Version 12.00\n" +
-            "Project(\"{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}\") = " +
-            "\"Project\", \"Project/Project.csproj\", " +
-            "\"{11111111-1111-1111-1111-111111111111}\"\n" +
-            "EndProject\n" +
-            "Global\n" +
-            "EndGlobal\n");
+            Path.Combine(repository, "SharpProof.slnx"),
+            "<Solution>\n" +
+            "  <Project Path=\"Project/Project.csproj\" />\n" +
+            "</Solution>\n");
         await File.WriteAllTextAsync(
             Path.Combine(repository, "eng", "generated", "approved-outputs.v1.json"),
             approveTrustedSource

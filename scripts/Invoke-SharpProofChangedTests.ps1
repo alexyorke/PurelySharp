@@ -125,7 +125,7 @@ foreach ($changedPath in $changedPaths) {
     }
     if ($changedPath -match '^Directory\.' -or
         $changedPath -match '^[^/]+\.(props|targets)$' -or
-        $changedPath -in @('global.json', 'NuGet.Config', 'SharpProof.sln')) {
+        $changedPath -in @('global.json', 'NuGet.Config', 'SharpProof.slnx')) {
         $globalImpact = $true
         continue
     }
@@ -242,7 +242,7 @@ if ($selectedRelative.Count -gt 0) {
             '.sharpproof-changed-' + [Guid]::NewGuid().ToString('N') + '.slnf')
         [pscustomobject]@{
             solution = [ordered]@{
-                path = 'SharpProof.sln'
+                path = 'SharpProof.slnx'
                 projects = $selectedRelative
             }
         } | ConvertTo-Json -Depth 4 |

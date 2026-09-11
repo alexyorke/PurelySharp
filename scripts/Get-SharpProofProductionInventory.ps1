@@ -165,10 +165,31 @@ function Get-GeneratorSourceRecords {
 }
 
 function Get-SolutionProjectPaths {
-    $solution = Get-Content -LiteralPath (Join-Path $resolvedRepositoryRoot 'SharpProof.sln') -Raw
+    $solutionPath = Join-Path $resolvedRepositoryRoot 'SharpProof.slnx'
+    try {
+        [xml]$solution = [IO.File]::ReadAllText($solutionPath)
+    }
+    catch {
+        throw "SharpProof.slnx is not valid XML: $($_.Exception.Message)"
+    }
     $paths = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-    foreach ($match in [regex]::Matches($solution, 'Project\("[^"]+"\)\s*=\s*"[^"]+",\s*"(?<path>[^"]+\.csproj)"', [Text.RegularExpressions.RegexOptions]::CultureInvariant)) { [void]$paths.Add($match.Groups['path'].Value.Replace('\', '/')) }
-    if ($paths.Count -eq 0) { throw 'SharpProof.sln contains no project paths.' }
+    foreach ($project in @($solution.SelectNodes('/Solution//Project'))) {
+        $pathAttribute = $project.Attributes['Path']
+        if ($null -eq $pathAttribute -or
+            [string]::IsNullOrWhiteSpace($pathAttribute.Value)) {
+            throw 'SharpProof.slnx contains a project without a Path.'
+        }
+        if ([IO.Path]::GetExtension($pathAttribute.Value) -cne '.csproj') {
+            continue
+        }
+        $path = Resolve-RepositoryPath `
+            -Candidate $pathAttribute.Value `
+            -Description $pathAttribute.Value
+        if (-not $paths.Add($path)) {
+            throw "SharpProof.slnx contains duplicate project path '$path'."
+        }
+    }
+    if ($paths.Count -eq 0) { throw 'SharpProof.slnx contains no project paths.' }
     return @($paths | Sort-Object)
 }
 

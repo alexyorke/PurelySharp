@@ -1,6 +1,6 @@
 {
   "solution": {
-    "path": "SharpProof.sln",
+    "path": "SharpProof.slnx",
     "projects": [
       "SharpProof.Analyzer.Test\\SharpProof.Analyzer.Test.csproj",
       "SharpProof.ArchitectureTest\\SharpProof.ArchitectureTest.csproj",

@@ -12,7 +12,7 @@ param(
     [ValidateSet('Debug', 'Release')]
     [string]$Configuration = 'Debug',
 
-    [string]$Target = 'SharpProof.sln',
+    [string]$Target = 'SharpProof.slnx',
 
     [string]$TestFilter = '',
 

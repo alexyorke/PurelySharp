@@ -355,7 +355,7 @@ public sealed class DependencyAuditScriptTests
             _temporary = temporary;
             Root = temporary.FullName;
             var root = Root;
-            SolutionPath = Path.Combine(root, "Fixture.sln");
+            SolutionPath = Path.Combine(root, "Fixture.slnx");
             ConfigurationPath = Path.Combine(root, "NuGet.Config");
             ReportPath = Path.Combine(root, "report.json");
             OutputPath = Path.Combine(root, "evidence.json");
@@ -526,20 +526,13 @@ public sealed class DependencyAuditScriptTests
 
         private void Initialize()
         {
-            const string projectType =
-                "{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}";
-            var alphaId = Guid.NewGuid().ToString("B").ToUpperInvariant();
-            var betaId = Guid.NewGuid().ToString("B").ToUpperInvariant();
             File.WriteAllText(
                 SolutionPath,
-                $"""
-                Microsoft Visual Studio Solution File, Format Version 12.00
-                Project("{projectType}") = "Alpha", "Alpha\Alpha.csproj", "{alphaId}"
-                EndProject
-                Project("{projectType}") = "Beta", "Beta\Beta.csproj", "{betaId}"
-                EndProject
-                Global
-                EndGlobal
+                """
+                <Solution>
+                  <Project Path="Alpha/Alpha.csproj" />
+                  <Project Path="Beta/Beta.csproj" />
+                </Solution>
                 """);
             foreach (var projectPath in ProjectPaths)
             {

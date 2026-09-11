@@ -491,7 +491,7 @@ try {
     }
 
     $restoreRun = Invoke-IsolatedDotnet `
-        -Arguments @('restore', 'SharpProof.sln') `
+        -Arguments @('restore', 'SharpProof.slnx') `
         -LogName 'restore.log'
     $restoreElapsedMilliseconds = $restoreRun.ElapsedMilliseconds
     if ($restoreRun.ExitCode -ne 0) {
