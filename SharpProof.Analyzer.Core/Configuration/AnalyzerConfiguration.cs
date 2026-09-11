@@ -264,12 +264,10 @@ internal sealed class AnalyzerConfiguration
         SharpProofProfile.Advisory;
     }
 
-    private static SharpProofFeatures ParseFeatures(string value)
-    {
-        return Is(value, "effects") ? SharpProofFeatures.Effects :
-            Is(value, "contracts") ? SharpProofFeatures.Contracts :
-            SharpProofFeatures.All;
-    }
+    private static SharpProofFeatures ParseFeatures(string value) =>
+        Enum.TryParse(value.Trim(), true, out SharpProofFeatures features)
+            ? features
+            : SharpProofFeatures.All;
 
     private static bool Is(string value, string expected)
     {
