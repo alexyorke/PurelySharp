@@ -470,73 +470,6 @@ public sealed class SharpProofSoundnessAnalyzerTests
             Is.Zero);
     }
 
-    [Test]
-    public async Task SemanticCacheWritesClassifyCanonicalEnumValues()
-    {
-        var diagnostics = await Analyze(
-            """
-            namespace SharpProof.Verify;
-            enum Answer {
-                Unknown = 0,
-                Alias = Unknown,
-                Proven = 1,
-                Abstained = 2
-            }
-            static class ExternalConstants {
-                internal const int Unknown = 0;
-            }
-            sealed class ProofCache {
-                internal void Write(Answer answer) { }
-            }
-            sealed class C {
-                void Alias(ProofCache cache) =>
-                    cache.Write(Answer.Alias);
-                void ExternalConstant(ProofCache cache) =>
-                    cache.Write((Answer)ExternalConstants.Unknown);
-                void DefaultUnknown(ProofCache cache) =>
-                    cache.Write(default);
-                void Abstention(ProofCache cache) =>
-                    cache.Write(Answer.Abstained);
-                void Safe(ProofCache cache) =>
-                    cache.Write(Answer.Proven);
-            }
-            """);
-
-        AssertSemanticCacheDiagnostics(diagnostics, 4);
-    }
-
-    [Test]
-    public async Task SemanticCacheWritesClassifyNumericEnumConversions()
-    {
-        var diagnostics = await Analyze(
-            """
-            namespace SharpProof.Verify;
-            enum Answer {
-                Unknown = 0,
-                Proven = 1,
-                Abstained = 2
-            }
-            sealed class ProofCache {
-                internal void Write(Answer answer) { }
-            }
-            sealed class C {
-                void M(ProofCache cache, int runtimeValue) {
-                    var unknown = 0;
-                    var proven = 1;
-                    var abstained = 2;
-                    var undefined = 42;
-                    cache.Write((Answer)unknown);
-                    cache.Write((Answer)proven);
-                    cache.Write((Answer)abstained);
-                    cache.Write((Answer)undefined);
-                    cache.Write((Answer)runtimeValue);
-                }
-            }
-            """);
-
-        AssertSemanticCacheDiagnostics(diagnostics, 4);
-    }
-
     [TestCaseSource(nameof(SemanticCacheWriteDiagnosticCountCases))]
     public async Task ReportsSemanticCacheWriteDiagnosticCount(
         string body,
@@ -549,42 +482,21 @@ public sealed class SharpProofSoundnessAnalyzerTests
             Is.EqualTo(expectedCount));
     }
 
-    [Test]
-    public async Task SemanticCacheWritesUnwrapNestedOrdinaryConversions()
-    {
-        var diagnostics = await Analyze(
-            """
-            namespace SharpProof.Verify;
-            enum Answer { Unknown, Proven }
-            interface IAnswerStore {
-                Answer Latest { set; }
-                void Write(Answer answer);
-            }
-            sealed class ProofCache : IAnswerStore {
-                public Answer Latest { set { } }
-                public void Write(Answer answer) { }
-            }
-            sealed class C {
-                void WrappedValue(ProofCache cache) {
-                    cache.Write((Answer)(object)Answer.Unknown);
-                    cache.Latest = (Answer)(object)Answer.Unknown;
-                }
-                void WrappedReceiver(ProofCache cache) {
-                    ((IAnswerStore)(object)cache).Write(Answer.Unknown);
-                    ((IAnswerStore)(object)cache).Latest = Answer.Unknown;
-                }
-            }
-            """);
-
-        AssertSemanticCacheDiagnostics(diagnostics, 4);
-    }
-
     [TestCaseSource(nameof(SemanticCacheWriteOracleCases))]
     public async Task ReportsSemanticCacheWriteOracle(
         string body,
         int expectedCount)
     {
         var diagnostics = await Analyze(SemanticCacheWriteFixture(body));
+        AssertSemanticCacheDiagnostics(diagnostics, expectedCount);
+    }
+
+    [TestCaseSource(nameof(SemanticCacheDiagnosticOracleCases))]
+    public async Task ReportsSemanticCacheDiagnosticOracle(
+        string source,
+        int expectedCount)
+    {
+        var diagnostics = await Analyze(source);
         AssertSemanticCacheDiagnostics(diagnostics, expectedCount);
     }
 
@@ -651,111 +563,6 @@ public sealed class SharpProofSoundnessAnalyzerTests
         }
     }
 
-    [Test]
-    public async Task SemanticCacheWritesRetainPreAssignmentValuesOnExceptionalPaths()
-    {
-        var diagnostics = await Analyze(
-            """
-            namespace SharpProof.Verify;
-            enum Answer { Unknown, Proven }
-            sealed class AssignmentFailureException : System.Exception { }
-            sealed class ProofCache {
-                internal void Write(Answer answer) { }
-            }
-            sealed class C {
-                private static Answer CompleteOrThrow(bool fail) {
-                    if (fail) throw new AssignmentFailureException();
-                    return Answer.Proven;
-                }
-
-                void M(ProofCache cache, bool fail) {
-                    object answer = Answer.Unknown;
-                    try {
-                        answer = CompleteOrThrow(fail);
-                    }
-                    catch (AssignmentFailureException) {
-                        cache.Write((Answer)answer);
-                    }
-                }
-
-                void SafeOverwriteBeforeThrow(ProofCache cache) {
-                    object answer = Answer.Unknown;
-                    try {
-                        answer = Answer.Proven;
-                        throw new AssignmentFailureException();
-                    }
-                    catch (AssignmentFailureException) {
-                        cache.Write((Answer)answer);
-                    }
-                }
-            }
-            """);
-
-        AssertSemanticCacheDiagnostics(diagnostics, 1);
-    }
-
-    [Test]
-    public async Task SemanticCacheWritesRejectCoalesceAndCompoundAssignments()
-    {
-        var diagnostics = await Analyze(
-            """
-            namespace SharpProof.Verify;
-            enum Answer { Proven, Unknown }
-            sealed class ProofCache {
-                internal Answer? Latest { get; set; }
-                internal Answer? this[string key] {
-                    get => Answer.Proven;
-                    set { }
-                }
-                internal Answer Combined { get; set; }
-                internal Answer this[int key] {
-                    get => Answer.Proven;
-                    set { }
-                }
-            }
-            sealed class C {
-                void M(ProofCache cache) {
-                    cache.Latest ??= Answer.Unknown;
-                    cache["key"] ??= Answer.Unknown;
-                    cache.Combined |= Answer.Unknown;
-                    cache[0] |= Answer.Unknown;
-                }
-            }
-            """);
-
-        AssertSemanticCacheDiagnostics(diagnostics, 4);
-    }
-
-    [Test]
-    public async Task SemanticCacheWritesFollowGenericForwardedArguments()
-    {
-        var diagnostics = await Analyze(
-            """
-            namespace SharpProof.Verify;
-            enum Answer { Unknown, Proven }
-            sealed class ProofCache<T> {
-                internal void Write(T answer) { }
-            }
-            static class CacheForwarder {
-                internal static void Forward<T>(
-                    ProofCache<T> cache,
-                    T answer) =>
-                    cache.Write(answer);
-            }
-            sealed class C {
-                void M(
-                    ProofCache<Answer> answers,
-                    ProofCache<string> strings) {
-                    CacheForwarder.Forward(answers, Answer.Unknown);
-                    CacheForwarder.Forward(answers, Answer.Proven);
-                    CacheForwarder.Forward(strings, "Unknown");
-                }
-            }
-            """);
-
-        AssertSemanticCacheDiagnostics(diagnostics, 1);
-    }
-
     [TestCase("SetAsync")]
     [TestCase("Put")]
     [TestCase("Store")]
@@ -783,77 +590,6 @@ public sealed class SharpProofSoundnessAnalyzerTests
             Is.EqualTo(1));
     }
 
-    [Test]
-    public async Task SemanticCacheGetOrAddInspectsValueFactories()
-    {
-        var diagnostics = await Analyze(
-            """
-            using System;
-            namespace SharpProof.Verify;
-            enum Answer { Unknown, TimedOut, Failed, Proven }
-            sealed class ProofCache {
-                internal Answer GetOrAdd(
-                    string key,
-                    Func<string, Answer> valueFactory) =>
-                    valueFactory(key);
-            }
-            sealed class C {
-                private static Answer CreateFailure(string key) =>
-                    Answer.Failed;
-                private static Answer CreateSafe(string key) =>
-                    Answer.Proven;
-
-                void M(ProofCache cache, bool condition) {
-                    cache.GetOrAdd("unknown", _ => Answer.Unknown);
-                    cache.GetOrAdd("timeout", _ => {
-                        var answer = Answer.TimedOut;
-                        return answer;
-                    });
-                    cache.GetOrAdd("failure", CreateFailure);
-                    cache.GetOrAdd(
-                        "conditional",
-                        _ => condition ? Answer.Proven : Answer.Unknown);
-                    cache.GetOrAdd("safe", _ => Answer.Proven);
-                    cache.GetOrAdd("safe-helper", CreateSafe);
-                }
-            }
-            """);
-
-        AssertSemanticCacheDiagnostics(diagnostics, 4);
-    }
-
-    [Test]
-    public async Task WorkerVerifyResponseIsAConservativeSemanticCacheValue()
-    {
-        var diagnostics = await Analyze(
-            """
-            namespace SharpProof.Worker.Protocol {
-                sealed class WorkerVerifyResponse { }
-            }
-            namespace SharpProof.Worker {
-                using SharpProof.Worker.Protocol;
-                sealed class VerificationCache {
-                    internal static bool IsCacheable(
-                        WorkerVerifyResponse response) => true;
-                    internal void TryWrite(WorkerVerifyResponse response) { }
-                }
-                sealed class C {
-                    void M(VerificationCache cache,
-                        WorkerVerifyResponse response) =>
-                        cache.TryWrite(response);
-                    void Guarded(VerificationCache cache,
-                        WorkerVerifyResponse response) {
-                        if (VerificationCache.IsCacheable(response)) {
-                            cache.TryWrite(response);
-                        }
-                    }
-                }
-            }
-            """);
-
-        AssertSemanticCacheDiagnostics(diagnostics, 1);
-    }
-
     [TestCaseSource(nameof(CSharpExpressionConstructionCases))]
     public async Task ReportsCSharpExpressionTextConstruction(string source)
     {
@@ -865,31 +601,16 @@ public sealed class SharpProofSoundnessAnalyzerTests
             Is.EqualTo(1));
     }
 
-    [Test]
-    public async Task AllowsOrdinaryInterpolatedFormattingAndValueDecoys()
+    [TestCaseSource(nameof(DoesNotContainDiagnosticCases))]
+    public async Task AllowsNoExpectedDiagnostic(
+        string source,
+        string expectedId)
     {
-        const string source =
-            """
-            namespace SharpProof.Frontend;
-            static class C {
-                private const string Fragment = " is not null";
-                internal static string Ordinary(string name) =>
-                    $"Name: {name}";
-                internal static string Formatted(int value) =>
-                    $"Value: {value:D}";
-                internal static string Aligned(string value) =>
-                    $"Value: {value,10}";
-                internal static string ValueOnly() => $"{Fragment}";
-                internal static string FormatDecoy(int value) =>
-                    $"{value: is not null}";
-            }
-            """;
-
         var diagnostics = await Analyze(source);
 
         Assert.That(
             diagnostics.Select(static diagnostic => diagnostic.Id),
-            Does.Not.Contain("SPMETA009"));
+            Does.Not.Contain(expectedId));
     }
 
     [TestCaseSource(nameof(SemanticPatternControlFlowCases))]
@@ -901,46 +622,6 @@ public sealed class SharpProofSoundnessAnalyzerTests
             diagnostics.Count(static diagnostic =>
                 diagnostic.Id == "SPMETA004"),
             Is.EqualTo(1));
-    }
-
-    [Test]
-    public async Task AllowsNonsemanticAndNonconstantPatternControls()
-    {
-        const string source =
-            """
-            namespace SharpProof.Frontend;
-            static class C {
-                internal static bool OrdinaryIs(string reason) =>
-                    reason is "ordinary";
-                internal static bool NullIs(string reason) => reason is null;
-                internal static bool OrdinarySwitch(string reason) {
-                    switch (reason) {
-                        case "ordinary": return true;
-                        default: return false;
-                    }
-                }
-                internal static bool OrdinaryExpression(string reason) =>
-                    reason switch {
-                        "ordinary" => true,
-                        _ => false
-                    };
-                internal static int Relational(int value) => value switch {
-                    > 0 => 1,
-                    _ => 0
-                };
-                internal static string DefaultOnly(string reason) {
-                    switch (reason) {
-                        default: return reason;
-                    }
-                }
-            }
-            """;
-
-        var diagnostics = await Analyze(source);
-
-        Assert.That(
-            diagnostics.Select(static diagnostic => diagnostic.Id),
-            Does.Not.Contain("SPMETA004"));
     }
 
     [TestCaseSource(nameof(AllowedEmptyDiagnosticsCases))]
@@ -1022,23 +703,6 @@ public sealed class SharpProofSoundnessAnalyzerTests
         Assert.That(
             diagnostics.Select(static diagnostic => diagnostic.Id),
             Does.Contain("SPMETA010"));
-    }
-
-    [Test]
-    public async Task AllowsStaticAbstractInterfaceMembersWithoutStorage()
-    {
-        const string source =
-            """
-            namespace SharpProof.Analyzer;
-            public interface IStorageFree {
-                static abstract int Value { get; }
-                static abstract event System.Action Changed;
-            }
-            """;
-
-        var diagnostics = await Analyze(source);
-        Assert.That(diagnostics.Select(static diagnostic => diagnostic.Id),
-            Does.Not.Contain("SPMETA002"));
     }
 
     [TestCase("SharpProof.Meta.Analyzers")]
@@ -1227,44 +891,6 @@ public sealed class SharpProofSoundnessAnalyzerTests
             diagnostics.Count(static diagnostic =>
                 diagnostic.Id == "SPMETA004"),
             Is.EqualTo(5));
-    }
-
-    [Test]
-    public async Task AllowsStaticImmutableAndNonStorageMemberForms()
-    {
-        const string source =
-            """
-            using System;
-            namespace SharpProof.Analyzer {
-                sealed class Critical {
-                    internal static int Immutable { get; } = 1;
-                    internal int InstanceState { get; set; }
-                    internal event Action? InstanceChanged;
-                    internal static int Computed {
-                        get => 1;
-                        set { }
-                    }
-                    internal static event Action? CustomChanged {
-                        add { }
-                        remove { }
-                    }
-                    internal void Raise() => InstanceChanged?.Invoke();
-                }
-            }
-            namespace SharpProof.Effects {
-                sealed class Noncritical {
-                    internal static int State { get; set; }
-                    internal static event Action? Changed;
-                    internal static void Raise() => Changed?.Invoke();
-                }
-            }
-            """;
-
-        var diagnostics = await Analyze(source);
-
-        Assert.That(
-            diagnostics.Select(static diagnostic => diagnostic.Id),
-            Does.Not.Contain("SPMETA002"));
     }
 
     [Test]
@@ -3368,6 +2994,335 @@ public sealed class SharpProofSoundnessAnalyzerTests
             """,
             4)
             .SetName("SemanticCacheWritesInspectVirtualAndInterfaceProducerImplementations");
+    }
+
+    private static IEnumerable<TestCaseData> SemanticCacheDiagnosticOracleCases()
+    {
+        yield return new TestCaseData(
+            """
+            namespace SharpProof.Verify;
+            enum Answer {
+                Unknown = 0,
+                Alias = Unknown,
+                Proven = 1,
+                Abstained = 2
+            }
+            static class ExternalConstants {
+                internal const int Unknown = 0;
+            }
+            sealed class ProofCache {
+                internal void Write(Answer answer) { }
+            }
+            sealed class C {
+                void Alias(ProofCache cache) =>
+                    cache.Write(Answer.Alias);
+                void ExternalConstant(ProofCache cache) =>
+                    cache.Write((Answer)ExternalConstants.Unknown);
+                void DefaultUnknown(ProofCache cache) =>
+                    cache.Write(default);
+                void Abstention(ProofCache cache) =>
+                    cache.Write(Answer.Abstained);
+                void Safe(ProofCache cache) =>
+                    cache.Write(Answer.Proven);
+            }
+            """,
+            4)
+            .SetName("SemanticCacheWritesClassifyCanonicalEnumValues");
+        yield return new TestCaseData(
+            """
+            namespace SharpProof.Verify;
+            enum Answer {
+                Unknown = 0,
+                Proven = 1,
+                Abstained = 2
+            }
+            sealed class ProofCache {
+                internal void Write(Answer answer) { }
+            }
+            sealed class C {
+                void M(ProofCache cache, int runtimeValue) {
+                    var unknown = 0;
+                    var proven = 1;
+                    var abstained = 2;
+                    var undefined = 42;
+                    cache.Write((Answer)unknown);
+                    cache.Write((Answer)proven);
+                    cache.Write((Answer)abstained);
+                    cache.Write((Answer)undefined);
+                    cache.Write((Answer)runtimeValue);
+                }
+            }
+            """,
+            4)
+            .SetName("SemanticCacheWritesClassifyNumericEnumConversions");
+        yield return new TestCaseData(
+            """
+            namespace SharpProof.Verify;
+            enum Answer { Unknown, Proven }
+            interface IAnswerStore {
+                Answer Latest { set; }
+                void Write(Answer answer);
+            }
+            sealed class ProofCache : IAnswerStore {
+                public Answer Latest { set { } }
+                public void Write(Answer answer) { }
+            }
+            sealed class C {
+                void WrappedValue(ProofCache cache) {
+                    cache.Write((Answer)(object)Answer.Unknown);
+                    cache.Latest = (Answer)(object)Answer.Unknown;
+                }
+                void WrappedReceiver(ProofCache cache) {
+                    ((IAnswerStore)(object)cache).Write(Answer.Unknown);
+                    ((IAnswerStore)(object)cache).Latest = Answer.Unknown;
+                }
+            }
+            """,
+            4)
+            .SetName("SemanticCacheWritesUnwrapNestedOrdinaryConversions");
+        yield return new TestCaseData(
+            """
+            namespace SharpProof.Verify;
+            enum Answer { Unknown, Proven }
+            sealed class AssignmentFailureException : System.Exception { }
+            sealed class ProofCache {
+                internal void Write(Answer answer) { }
+            }
+            sealed class C {
+                private static Answer CompleteOrThrow(bool fail) {
+                    if (fail) throw new AssignmentFailureException();
+                    return Answer.Proven;
+                }
+
+                void M(ProofCache cache, bool fail) {
+                    object answer = Answer.Unknown;
+                    try {
+                        answer = CompleteOrThrow(fail);
+                    }
+                    catch (AssignmentFailureException) {
+                        cache.Write((Answer)answer);
+                    }
+                }
+
+                void SafeOverwriteBeforeThrow(ProofCache cache) {
+                    object answer = Answer.Unknown;
+                    try {
+                        answer = Answer.Proven;
+                        throw new AssignmentFailureException();
+                    }
+                    catch (AssignmentFailureException) {
+                        cache.Write((Answer)answer);
+                    }
+                }
+            }
+            """,
+            1)
+            .SetName("SemanticCacheWritesRetainPreAssignmentValuesOnExceptionalPaths");
+        yield return new TestCaseData(
+            """
+            namespace SharpProof.Verify;
+            enum Answer { Proven, Unknown }
+            sealed class ProofCache {
+                internal Answer? Latest { get; set; }
+                internal Answer? this[string key] {
+                    get => Answer.Proven;
+                    set { }
+                }
+                internal Answer Combined { get; set; }
+                internal Answer this[int key] {
+                    get => Answer.Proven;
+                    set { }
+                }
+            }
+            sealed class C {
+                void M(ProofCache cache) {
+                    cache.Latest ??= Answer.Unknown;
+                    cache["key"] ??= Answer.Unknown;
+                    cache.Combined |= Answer.Unknown;
+                    cache[0] |= Answer.Unknown;
+                }
+            }
+            """,
+            4)
+            .SetName("SemanticCacheWritesRejectCoalesceAndCompoundAssignments");
+        yield return new TestCaseData(
+            """
+            namespace SharpProof.Verify;
+            enum Answer { Unknown, Proven }
+            sealed class ProofCache<T> {
+                internal void Write(T answer) { }
+            }
+            static class CacheForwarder {
+                internal static void Forward<T>(
+                    ProofCache<T> cache,
+                    T answer) =>
+                    cache.Write(answer);
+            }
+            sealed class C {
+                void M(
+                    ProofCache<Answer> answers,
+                    ProofCache<string> strings) {
+                    CacheForwarder.Forward(answers, Answer.Unknown);
+                    CacheForwarder.Forward(answers, Answer.Proven);
+                    CacheForwarder.Forward(strings, "Unknown");
+                }
+            }
+            """,
+            1)
+            .SetName("SemanticCacheWritesFollowGenericForwardedArguments");
+        yield return new TestCaseData(
+            """
+            using System;
+            namespace SharpProof.Verify;
+            enum Answer { Unknown, TimedOut, Failed, Proven }
+            sealed class ProofCache {
+                internal Answer GetOrAdd(
+                    string key,
+                    Func<string, Answer> valueFactory) =>
+                    valueFactory(key);
+            }
+            sealed class C {
+                private static Answer CreateFailure(string key) =>
+                    Answer.Failed;
+                private static Answer CreateSafe(string key) =>
+                    Answer.Proven;
+
+                void M(ProofCache cache, bool condition) {
+                    cache.GetOrAdd("unknown", _ => Answer.Unknown);
+                    cache.GetOrAdd("timeout", _ => {
+                        var answer = Answer.TimedOut;
+                        return answer;
+                    });
+                    cache.GetOrAdd("failure", CreateFailure);
+                    cache.GetOrAdd(
+                        "conditional",
+                        _ => condition ? Answer.Proven : Answer.Unknown);
+                    cache.GetOrAdd("safe", _ => Answer.Proven);
+                    cache.GetOrAdd("safe-helper", CreateSafe);
+                }
+            }
+            """,
+            4)
+            .SetName("SemanticCacheGetOrAddInspectsValueFactories");
+        yield return new TestCaseData(
+            """
+            namespace SharpProof.Worker.Protocol {
+                sealed class WorkerVerifyResponse { }
+            }
+            namespace SharpProof.Worker {
+                using SharpProof.Worker.Protocol;
+                sealed class VerificationCache {
+                    internal static bool IsCacheable(
+                        WorkerVerifyResponse response) => true;
+                    internal void TryWrite(WorkerVerifyResponse response) { }
+                }
+                sealed class C {
+                    void M(VerificationCache cache,
+                        WorkerVerifyResponse response) =>
+                        cache.TryWrite(response);
+                    void Guarded(VerificationCache cache,
+                        WorkerVerifyResponse response) {
+                        if (VerificationCache.IsCacheable(response)) {
+                            cache.TryWrite(response);
+                        }
+                    }
+                }
+            }
+            """,
+            1)
+            .SetName("WorkerVerifyResponseIsAConservativeSemanticCacheValue");
+    }
+
+    private static IEnumerable<TestCaseData> DoesNotContainDiagnosticCases()
+    {
+        yield return new TestCaseData(
+            """
+            namespace SharpProof.Frontend;
+            static class C {
+                private const string Fragment = " is not null";
+                internal static string Ordinary(string name) =>
+                    $"Name: {name}";
+                internal static string Formatted(int value) =>
+                    $"Value: {value:D}";
+                internal static string Aligned(string value) =>
+                    $"Value: {value,10}";
+                internal static string ValueOnly() => $"{Fragment}";
+                internal static string FormatDecoy(int value) =>
+                    $"{value: is not null}";
+            }
+            """,
+            "SPMETA009")
+            .SetName("AllowsOrdinaryInterpolatedFormattingAndValueDecoys");
+        yield return new TestCaseData(
+            """
+            namespace SharpProof.Frontend;
+            static class C {
+                internal static bool OrdinaryIs(string reason) =>
+                    reason is "ordinary";
+                internal static bool NullIs(string reason) => reason is null;
+                internal static bool OrdinarySwitch(string reason) {
+                    switch (reason) {
+                        case "ordinary": return true;
+                        default: return false;
+                    }
+                }
+                internal static bool OrdinaryExpression(string reason) =>
+                    reason switch {
+                        "ordinary" => true,
+                        _ => false
+                    };
+                internal static int Relational(int value) => value switch {
+                    > 0 => 1,
+                    _ => 0
+                };
+                internal static string DefaultOnly(string reason) {
+                    switch (reason) {
+                        default: return reason;
+                    }
+                }
+            }
+            """,
+            "SPMETA004")
+            .SetName("AllowsNonsemanticAndNonconstantPatternControls");
+        yield return new TestCaseData(
+            """
+            namespace SharpProof.Analyzer;
+            public interface IStorageFree {
+                static abstract int Value { get; }
+                static abstract event System.Action Changed;
+            }
+            """,
+            "SPMETA002")
+            .SetName("AllowsStaticAbstractInterfaceMembersWithoutStorage");
+        yield return new TestCaseData(
+            """
+            using System;
+            namespace SharpProof.Analyzer {
+                sealed class Critical {
+                    internal static int Immutable { get; } = 1;
+                    internal int InstanceState { get; set; }
+                    internal event Action? InstanceChanged;
+                    internal static int Computed {
+                        get => 1;
+                        set { }
+                    }
+                    internal static event Action? CustomChanged {
+                        add { }
+                        remove { }
+                    }
+                    internal void Raise() => InstanceChanged?.Invoke();
+                }
+            }
+            namespace SharpProof.Effects {
+                sealed class Noncritical {
+                    internal static int State { get; set; }
+                    internal static event Action? Changed;
+                    internal static void Raise() => Changed?.Invoke();
+                }
+            }
+            """,
+            "SPMETA002")
+            .SetName("AllowsStaticImmutableAndNonStorageMemberForms");
     }
 
     private static void AssertSemanticCacheDiagnostics(
