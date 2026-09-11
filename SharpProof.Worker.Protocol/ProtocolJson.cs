@@ -139,20 +139,14 @@ public static partial class WorkerProtocolJson
 
     public static string SerializeResponse(WorkerVerifyResponse response)
     {
-        if (response == null)
-        {
-            throw new ArgumentNullException(nameof(response));
-        }
+        ArgumentNullGuard.NotNull(response, nameof(response));
         Canonicalize(response);
         return SerializeCanonicalResponse(response);
     }
 
     internal static string SerializeCanonicalResponse(WorkerVerifyResponse response)
     {
-        if (response == null)
-        {
-            throw new ArgumentNullException(nameof(response));
-        }
+        ArgumentNullGuard.NotNull(response, nameof(response));
         return SerializeBounded(response);
     }
 

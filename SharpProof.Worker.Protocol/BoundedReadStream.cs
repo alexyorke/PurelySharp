@@ -165,10 +165,7 @@ internal sealed class BoundedReadStream : Stream
         int offset,
         int count)
     {
-        if (buffer == null)
-        {
-            throw new ArgumentNullException(nameof(buffer));
-        }
+        ArgumentNullGuard.NotNull(buffer, nameof(buffer));
         if (offset < 0)
         {
             throw new ArgumentOutOfRangeException(nameof(offset));

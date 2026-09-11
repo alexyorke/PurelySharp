@@ -183,10 +183,7 @@ internal sealed class CompilerResponseEvidenceAuthority :
     public IEnumerable<string> Validate(WorkerVerifyResponse response,
         CancellationToken cancellationToken = default)
     {
-        if (response == null)
-        {
-            throw new ArgumentNullException(nameof(response));
-        }
+        ArgumentNullGuard.NotNull(response, nameof(response));
 
         var errors = new HashSet<string>(StringComparer.Ordinal);
         var claims = (response.ClaimResults ?? [])

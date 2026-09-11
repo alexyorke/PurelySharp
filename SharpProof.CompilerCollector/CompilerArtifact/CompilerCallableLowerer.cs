@@ -63,11 +63,9 @@ internal sealed class CompilerCallableLowerer
         }
 
         var contracts = binding.Contracts!;
-        var manifestAssumptions = target.Entry.Assumptions;
-        if (manifestAssumptions is null)
-        {
-            throw new ArgumentNullException(nameof(target.Entry.Assumptions));
-        }
+        var manifestAssumptions = ArgumentNullGuard.NotNull(
+            target.Entry.Assumptions,
+            nameof(target.Entry.Assumptions));
         var preconditions = ImmutableArray.CreateBuilder<WorkerAssumptionEvidence>();
         var userAssumptions = ImmutableArray.CreateBuilder<WorkerAssumptionEvidence>();
         foreach (var evidence in manifestAssumptions)

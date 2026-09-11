@@ -12,22 +12,10 @@ internal static class WorkerResultAssembler
         WorkerCacheStatus cacheStatus,
         long elapsedMilliseconds)
     {
-        if (response is null)
-        {
-            throw new ArgumentNullException(nameof(response));
-        }
-        if (requestHash is null)
-        {
-            throw new ArgumentNullException(nameof(requestHash));
-        }
-        if (budgets is null)
-        {
-            throw new ArgumentNullException(nameof(budgets));
-        }
-        if (versions is null)
-        {
-            throw new ArgumentNullException(nameof(versions));
-        }
+        ArgumentNullGuard.NotNull(response, nameof(response));
+        ArgumentNullGuard.NotNull(requestHash, nameof(requestHash));
+        ArgumentNullGuard.NotNull(budgets, nameof(budgets));
+        ArgumentNullGuard.NotNull(versions, nameof(versions));
         response.RequestHash = requestHash;
         response.Summary.CacheStatus = cacheStatus;
         response.Summary.CacheHit = cacheStatus == WorkerCacheStatus.Hit;
@@ -76,10 +64,7 @@ internal static class WorkerResultAssembler
 
     private static WorkerBudgets CloneBudgets(WorkerBudgets value)
     {
-        if (value is null)
-        {
-            throw new ArgumentNullException(nameof(value));
-        }
+        ArgumentNullGuard.NotNull(value, nameof(value));
 
         return new WorkerBudgets
         {
