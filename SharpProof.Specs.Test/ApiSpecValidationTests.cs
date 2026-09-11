@@ -186,6 +186,47 @@ public sealed class ApiSpecValidationTests
     }
 
     [Test]
+    public void EveryDefinedEffectFlagIsAcceptedForACompatibleTarget()
+    {
+        var effects = Enum.GetValues(typeof(SpecEffect))
+            .Cast<SpecEffect>()
+            .Where(static effect => effect != SpecEffect.Unknown)
+            .Aggregate(
+                SpecEffect.None,
+                static (all, effect) => all | effect);
+        var declaration = Declaration(
+            "all-defined-effects",
+            resultType: null,
+            SpecNullness.NotApplicable,
+            SpecCardinality.NotApplicable,
+            [],
+            effects,
+            isStatic: false,
+            parameterTypes: [IrTypeKind.Integer]);
+
+        Assert.That(
+            ApiSpecTable.Create([declaration]).Templates,
+            Has.Length.EqualTo(1));
+    }
+
+    [Test]
+    public void UndefinedEffectFlagsAreRejected()
+    {
+        var declaration = Declaration(
+            "undefined-effect",
+            resultType: null,
+            SpecNullness.NotApplicable,
+            SpecCardinality.NotApplicable,
+            [],
+            (SpecEffect)(1 << 12));
+
+        Assert.That(
+            () => ApiSpecTable.Create([declaration]),
+            Throws.ArgumentException.With.Message.Contains(
+                "effect facet contains undefined flags"));
+    }
+
+    [Test]
     public void StaticallyUnreachablePartialBranchesAreTotal()
     {
         var partial = PartialDivision();

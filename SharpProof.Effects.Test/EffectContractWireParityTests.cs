@@ -111,6 +111,11 @@ public sealed class EffectContractWireParityTests
             Is.EqualTo(Enum.GetValues<EffectContractCapabilityKind>().Aggregate(
                 EffectContractCapabilityKind.None,
                 static (all, value) => all | value)));
+        Assert.That(
+            EffectContractMetadata.AllIncompleteReasons,
+            Is.EqualTo(Enum.GetValues<EffectAnalysisIncompleteReason>().Aggregate(
+                EffectAnalysisIncompleteReason.None,
+                static (all, value) => all | value)));
     }
 
     [Test]

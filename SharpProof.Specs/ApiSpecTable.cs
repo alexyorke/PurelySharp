@@ -2,19 +2,12 @@ namespace SharpProof.Specs;
 
 public sealed partial class ApiSpecTable
 {
-    private const SpecEffect DefinedEffects =
-        SpecEffect.Unknown |
-        SpecEffect.ReadsReceiverState |
-        SpecEffect.ReadsArgumentState |
-        SpecEffect.WritesReceiverState |
-        SpecEffect.WritesArgumentState |
-        SpecEffect.ReadsAmbientState |
-        SpecEffect.WritesAmbientState |
-        SpecEffect.InputOutput |
-        SpecEffect.Synchronization |
-        SpecEffect.NativeCode |
-        SpecEffect.Reflection |
-        SpecEffect.Nondeterminism;
+    private static readonly SpecEffect DefinedEffects =
+        Enum.GetValues(typeof(SpecEffect))
+            .Cast<SpecEffect>()
+            .Aggregate(
+                SpecEffect.None,
+                static (all, value) => all | value);
     private static long s_nextScope;
     private readonly ImmutableDictionary<string, ApiSpecTemplate> _byWitness;
     private readonly long _scope;
