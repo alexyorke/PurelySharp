@@ -1,6 +1,6 @@
 # Active code reduction queue
 Resolved proposals are removed from this file after implementation, validation, or a current-tree refutation. The original survey remains available in Git history; this file is intentionally only the active queue.
-Inventory after deduplication: 241 canonical queue IDs represented by 184 deferred rows (0 pending). Resolved and refuted proposals are removed; repeated and superseded rows are merged into canonical rows.
+Inventory after deduplication: 240 canonical queue IDs represented by 184 deferred rows (0 pending). Resolved and refuted proposals are removed; repeated and superseded rows are merged into canonical rows.
 
 Each pending row must be rechecked against the current tree, applied in a compatible batch, validated with the smallest relevant containerized test target, and then removed here.
 
@@ -159,7 +159,7 @@ Each pending row must be rechecked against the current tree, applied in a compat
 - **R0013**: R013 | Re-threading recursive API-spec validation through mutable context changes soundness-critical state ownership for cosmetic call-site savings.
 - **R0024**: R024 | Retain `Z3ExpressionOwner.OwnedCount`; the disposal regression test uses it to verify ownership count before disposal and zero ownership after cleanup.
 - **R2433**: R2433 | `WorkerProtocolJson` targets `netstandard2.0`, whose `StreamReader` API has no `ReadToEndAsync(CancellationToken)` overload. The direct API change fails compilation (`CS1501`); retain the current pre/post cancellation checks until a target-compatible cancellable loop can be designed without changing strict UTF-8, byte-bound/overflow probing, or BOM handling. | `SharpProof.Worker.Protocol/ProtocolJson.cs:58-66`; validation failure from `SharpProof.Worker.Test` `ProtocolJsonTests` (`CS1501` on `ReadToEndAsync(cancellationToken)`)
-- **R0027, R0029, R0030**: R0027, R0029, R0030 | Partially applied; the collision-worker staging helper (R0031) and the original external-process-runner test slice are already shared/resolved. Remaining process, temporary-directory, and package-test setup proposals change cleanup/lifetime semantics across fixtures; defer until a broader fixture contract is designed.
+- **R0029, R0030**: R0029, R0030 | Partially applied; the broad shared process-runner slice and collision-worker staging helper are resolved. Remaining temporary-directory and package-test/RunVerifier setup cases have distinct cleanup, ownership, environment, lifetime, or diagnostic semantics; defer until a broader fixture contract is designed.
 - **R0032, R0033, R0034**: R032-R034 | These are broad Effects/Gates control-flow and process-lifetime refactors; the copies have environment-specific predicates and failure semantics.
 - **R0038, R0039, R0041**: R038-R039, R041 | These alter soundness-sensitive traversal, pattern, or replay-candidate ordering; defer to a dedicated semantic refactor.
 - **R0066, R0067, R0068, R0070**: R0066, R0067, R0068, R0070 | These change sample/pilot inheritance, scheduled validation, packaged imports, workflow setup, or automatic production-project classification.
