@@ -2506,9 +2506,7 @@ internal sealed class ExceptionHandlerReachability(
     private bool CanDisposalsCompleteNormally(
         IUsingDeclarationOperation declaration)
     {
-        return declaration.DeclarationGroup.Declarations
-            .SelectMany(static item => item.Declarators)
-            .Reverse()
+        return UsingDisposalGraph.ReverseDeclarators(declaration.DeclarationGroup)
             .All(declarator => CanDisposalCompleteNormally(
                 declarator.Symbol.Type,
                 declarator.Initializer?.Value,

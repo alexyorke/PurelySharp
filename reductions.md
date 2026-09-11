@@ -1,6 +1,6 @@
 # Active code reduction queue
 Resolved proposals are removed from this file after implementation, validation, or a current-tree refutation. The original survey remains available in Git history; this file is intentionally only the active queue.
-Inventory after deduplication: 253 canonical queue IDs represented by 192 deferred rows (0 pending). Resolved and refuted proposals are removed; repeated and superseded rows are merged into canonical rows.
+Inventory after deduplication: 252 canonical queue IDs represented by 191 deferred rows (0 pending). Resolved and refuted proposals are removed; repeated and superseded rows are merged into canonical rows.
 
 Each pending row must be rechecked against the current tree, applied in a compatible batch, validated with the smallest relevant containerized test target, and then removed here.
 
@@ -17,7 +17,6 @@ Each pending row must be rechecked against the current tree, applied in a compat
 - **R4014**: **Deferred.** Returned-state bottom transfer guards protect cancellation/refinement semantics; deleting them requires a complete dataflow law and edge-case proof. | `SharpProof.Meta.Analyzers`; dataflow tests
 - **R4018**: **Deferred.** Post-canonicalization validation is a deliberate trust boundary even for locally owned artifacts; merging it would weaken mutation detection. | `SharpProof.CompilerArtifact/CompilerManifestArtifact.cs`
 - **R4029**: **Deferred.** Nested generated-code checks have distinct root/recursive and provider semantics; narrowing them requires a stable-options contract and analyzer tests. | `SharpProof.CompilerArtifact`; generated-code analyzer
-- **R4067**: **Deferred.** Disposal completion loops share shape but differ in exception folding and cleanup ownership; a common helper risks changing analyzer behavior. | `SharpProof.Effects/UsingDisposalEffectResolver.cs`; `ExceptionHandlerReachability.cs`
 - **R4068**: **Deferred.** Initializer helpers intentionally differ in implicit-member admission and ordering; merging them would change deterministic discovery semantics. | `SharpProof.Analyzer.Core/RequiresCallSiteDiscovery.cs`
 - **R4071**: **Deferred.** Fuzz counts repeat across language authorities with different contract meanings; consolidation is policy work, not a safe source reduction. | `scripts/Invoke-SharpProofFuzzCampaign.ps1`; `eng/acceptance/contract.json`
 - **R4072**: **Deferred.** Removing the direct OpenCode plugin dependency requires clean-install and host-load evidence; package-lock pruning is an external runtime contract. | `.opencode/package.json`; `.opencode/package-lock.json`

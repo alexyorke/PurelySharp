@@ -4,6 +4,10 @@ namespace SharpProof.Effects;
 
 internal static class UsingDisposalGraph
 {
+    internal static IEnumerable<IVariableDeclaratorOperation> ReverseDeclarators(
+        IVariableDeclarationGroupOperation group) =>
+        group.Declarations.SelectMany(static item => item.Declarators).Reverse();
+
     internal static (
         List<(ITypeSymbol Type, IOperation Resource, IOperation Origin)> Acquired,
         int ReachableDisposalCount) AcquireResources(
