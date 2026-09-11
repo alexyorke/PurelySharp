@@ -115,8 +115,7 @@ internal sealed class ExceptionHandlerReachability(
 
         var potential = GetPotentialExceptions(
             protectedBlock,
-            new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default),
-            depth: 0,
+            TraversalContext.Create(),
             keepEscaping: false);
         _potentialExceptionsCache.Add(protectedBlock, potential);
         return potential;
@@ -124,8 +123,7 @@ internal sealed class ExceptionHandlerReachability(
 
     private PotentialExceptions GetPotentialExceptions(
         IOperation root,
-        HashSet<IMethodSymbol> activeMethods,
-        int depth,
+        TraversalContext traversal,
         bool keepEscaping)
     {
         var known = ImmutableHashSet.CreateBuilder<INamedTypeSymbol>(
@@ -212,8 +210,7 @@ internal sealed class ExceptionHandlerReachability(
                     Add(
                         GetRethrowExceptions(
                             thrown,
-                            activeMethods,
-                            depth),
+                            traversal),
                         thrown);
                     continue;
                 }
@@ -221,8 +218,7 @@ internal sealed class ExceptionHandlerReachability(
                 Add(
                     GetPotentialExceptions(
                         exception,
-                        activeMethods,
-                        depth,
+                        traversal,
                         keepEscaping),
                     exception);
                 var operandCompletes = canCompleteNormally(exception);
@@ -297,8 +293,7 @@ internal sealed class ExceptionHandlerReachability(
                                 ? UnknownPotential
                                 : GetCallableExceptions(
                                     invocation.TargetMethod,
-                                    activeMethods,
-                                    depth + 1),
+                                    traversal.Next),
                             invocation);
                     }
                 }
@@ -339,8 +334,7 @@ internal sealed class ExceptionHandlerReachability(
                                 ? UnknownPotential
                                 : GetCallableExceptions(
                                     copyConstructor ?? clone,
-                                    activeMethods,
-                                    depth + 1),
+                                    traversal.Next),
                             withOperation);
                     }
                 }
@@ -384,7 +378,7 @@ internal sealed class ExceptionHandlerReachability(
                             Add))
                     {
                         Add(
-                            ResolveDispatch(accessor, activeMethods, depth),
+                            ResolveDispatch(accessor, traversal),
                             eventAssignment);
                     }
                 }
@@ -418,8 +412,7 @@ internal sealed class ExceptionHandlerReachability(
                             AddPropertySetterExceptions(
                                 property,
                                 simple,
-                                activeMethods,
-                                depth,
+                                traversal,
                                 Add);
                         }
                     }
@@ -477,8 +470,7 @@ internal sealed class ExceptionHandlerReachability(
                     AddPropertySetterExceptions(
                         property,
                         coalesce,
-                        activeMethods,
-                        depth,
+                        traversal,
                         Add);
                 }
                 PushChildren(coalesce);
@@ -496,8 +488,7 @@ internal sealed class ExceptionHandlerReachability(
                     AddCompoundCallablePotential(
                         compound.InConversion.MethodSymbol,
                         compound,
-                        activeMethods,
-                        depth,
+                        traversal,
                         Add);
                 var priorPhasesComplete = inConversionCompletes &&
                     canCompleteNormally(compound.Value);
@@ -509,21 +500,18 @@ internal sealed class ExceptionHandlerReachability(
                         AddFormattedValuePotential(
                             compound.Target,
                             compound,
-                            activeMethods,
-                            depth,
+                            traversal,
                             Add) &&
                         AddFormattedValuePotential(
                             compound.Value,
                             compound,
-                            activeMethods,
-                            depth,
+                            traversal,
                             Add)
                     : priorPhasesComplete &&
                         (skipsOperator || AddCompoundCallablePotential(
                                 compound.OperatorMethod,
                                 compound,
-                                activeMethods,
-                                depth,
+                                traversal,
                                 Add)) &&
                         (skipsOperator || !(compound.OperatorKind is
                                 BinaryOperatorKind.Divide or
@@ -541,8 +529,7 @@ internal sealed class ExceptionHandlerReachability(
                     AddCompoundCallablePotential(
                         compound.OutConversion.MethodSymbol,
                         compound,
-                        activeMethods,
-                        depth,
+                        traversal,
                         Add);
                 if (outConversionCompletes &&
                     canCompoundValueComplete(compound) &&
@@ -551,8 +538,7 @@ internal sealed class ExceptionHandlerReachability(
                     AddPropertySetterExceptions(
                         property,
                         compound,
-                        activeMethods,
-                        depth,
+                        traversal,
                         Add);
                 }
                 PushChildren(compound);
@@ -579,8 +565,7 @@ internal sealed class ExceptionHandlerReachability(
                         Add(
                             ResolveDispatch(
                                 incrementOperator,
-                                activeMethods,
-                                depth),
+                                traversal),
                             increment);
                     }
                 }
@@ -597,8 +582,7 @@ internal sealed class ExceptionHandlerReachability(
                     AddPropertySetterExceptions(
                         property,
                         increment,
-                        activeMethods,
-                        depth,
+                        traversal,
                         Add);
                 }
                 PushChildren(increment);
@@ -643,8 +627,7 @@ internal sealed class ExceptionHandlerReachability(
                                         : EmptyPotential
                                     : GetCallableExceptions(
                                         constructor,
-                                        activeMethods,
-                                        depth + 1);
+                                        traversal.Next);
                         Add(
                             constructorExceptions,
                             creation);
@@ -672,8 +655,7 @@ internal sealed class ExceptionHandlerReachability(
                             : GetFormattedValueExceptions(
                                 interpolation.Expression,
                                 interpolation,
-                                activeMethods,
-                                depth),
+                                traversal),
                         interpolation);
                 }
                 PushChildren(interpolation);
@@ -690,15 +672,13 @@ internal sealed class ExceptionHandlerReachability(
                         GetFormattedValueExceptions(
                             concatenation.LeftOperand,
                             concatenation,
-                            activeMethods,
-                            depth),
+                            traversal),
                         concatenation);
                     Add(
                         GetFormattedValueExceptions(
                             concatenation.RightOperand,
                             concatenation,
-                            activeMethods,
-                            depth),
+                            traversal),
                         concatenation);
                 }
                 PushChildren(concatenation);
@@ -731,8 +711,7 @@ internal sealed class ExceptionHandlerReachability(
                             Add(
                                 ResolveDispatch(
                                     truthOperator,
-                                    activeMethods,
-                                    depth),
+                                    traversal),
                                 binary);
                         }
                         priorPhasesComplete = initializationCompletes &&
@@ -757,8 +736,7 @@ internal sealed class ExceptionHandlerReachability(
                         Add(
                             ResolveDispatch(
                                 binaryOperator,
-                                activeMethods,
-                                depth),
+                                traversal),
                             binary);
                     }
                 }
@@ -788,8 +766,7 @@ internal sealed class ExceptionHandlerReachability(
                         Add(
                             ResolveDispatch(
                                 operatorMethod,
-                                activeMethods,
-                                depth),
+                                traversal),
                             operation);
                     }
                 }
@@ -826,8 +803,7 @@ internal sealed class ExceptionHandlerReachability(
                 Add(
                     GetUsingDisposalExceptions(
                         operation,
-                        activeMethods,
-                        depth),
+                        traversal),
                     operation);
                 PushChildren(operation);
                 continue;
@@ -837,8 +813,7 @@ internal sealed class ExceptionHandlerReachability(
                 Add(
                     GetNestedTryExceptions(
                         nestedTry,
-                        activeMethods,
-                        depth),
+                        traversal),
                     nestedTry);
                 continue;
             }
@@ -847,8 +822,7 @@ internal sealed class ExceptionHandlerReachability(
                 Add(
                     GetForEachExceptions(
                         forEach,
-                        activeMethods,
-                        depth,
+                        traversal,
                         out var reachesBody),
                     forEach);
                 remaining.Push(forEach.Collection);
@@ -910,8 +884,7 @@ internal sealed class ExceptionHandlerReachability(
                                 ? EmptyPotential
                                 : GetCallableExceptions(
                                     accessor,
-                                    activeMethods,
-                                    depth + 1),
+                                    traversal.Next),
                             propertyReference);
                     }
                 }
@@ -931,7 +904,7 @@ internal sealed class ExceptionHandlerReachability(
                     IMethodSymbol deconstruct)
                 {
                     Add(
-                        ResolveDispatch(deconstruct, activeMethods, depth),
+                        ResolveDispatch(deconstruct, traversal),
                         recursivePattern);
                     if (!deconstruct.IsVirtual &&
                         !deconstruct.IsAbstract &&
@@ -955,7 +928,7 @@ internal sealed class ExceptionHandlerReachability(
                                 listPattern,
                                 member)
                             ? EmptyPotential
-                            : ResolveDispatch(member, activeMethods, depth),
+                            : ResolveDispatch(member, traversal),
                         listPattern);
                 }
                 PushSequentialCore(listPattern.Patterns, remaining);
@@ -1079,8 +1052,7 @@ internal sealed class ExceptionHandlerReachability(
                             Add(
                                 ResolveDispatch(
                                     getAwaiter,
-                                    activeMethods,
-                                    depth),
+                                    traversal),
                                 awaitOperation);
                             phaseCompletes =
                                 canMethodCompleteNormally(getAwaiter);
@@ -1112,8 +1084,7 @@ internal sealed class ExceptionHandlerReachability(
                         Add(
                             ResolveDispatch(
                                 isCompleted,
-                                activeMethods,
-                                depth),
+                                traversal),
                             awaitOperation);
                         phaseCompletes = isCompleted == null ||
                             canMethodCompleteNormally(isCompleted);
@@ -1126,8 +1097,7 @@ internal sealed class ExceptionHandlerReachability(
                         Add(
                             ResolveDispatch(
                                 continuation,
-                                activeMethods,
-                                depth),
+                                traversal),
                             awaitOperation);
                     }
                     var getResult = info.GetResultMethod;
@@ -1136,8 +1106,7 @@ internal sealed class ExceptionHandlerReachability(
                         Add(
                             ResolveDispatch(
                                 getResult,
-                                activeMethods,
-                                depth),
+                                traversal),
                             awaitOperation);
                     }
                 }
@@ -1922,8 +1891,7 @@ internal sealed class ExceptionHandlerReachability(
 
     private PotentialExceptions GetNestedTryExceptions(
         ITryOperation nestedTry,
-        HashSet<IMethodSymbol> activeMethods,
-        int depth)
+        TraversalContext traversal)
     {
         if (nestedTry.Syntax is not TryStatementSyntax syntax)
         {
@@ -1933,8 +1901,7 @@ internal sealed class ExceptionHandlerReachability(
             .GetSemanticModel(compilation, syntax.SyntaxTree);
         var body = GetPotentialExceptions(
             nestedTry.Body,
-            activeMethods,
-            depth,
+            traversal,
             keepEscaping: false);
         var escapingBody = FromThrowSet(
             EffectExceptionFlow.KeepEscapingThroughTry(
@@ -1966,8 +1933,7 @@ internal sealed class ExceptionHandlerReachability(
                 result,
                 GetPotentialExceptions(
                     catchOperation.Handler,
-                    activeMethods,
-                    depth,
+                    traversal,
                     keepEscaping: false));
             finallyReachable |= canCompleteNormally(
                 catchOperation.Handler) ||
@@ -1982,8 +1948,7 @@ internal sealed class ExceptionHandlerReachability(
         }
         var finallyExceptions = GetPotentialExceptions(
             finallyOperation,
-            activeMethods,
-            depth,
+            traversal,
             keepEscaping: false);
         return canCompleteNormally(finallyOperation)
             ? Union(result, finallyExceptions)
@@ -1994,15 +1959,13 @@ internal sealed class ExceptionHandlerReachability(
     {
         var potential = GetRethrowExceptions(
             thrown,
-            new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default),
-            depth: 0);
+            TraversalContext.Create());
         return EffectThrowSet.Create(potential.Known, potential.Unknown);
     }
 
     private PotentialExceptions GetRethrowExceptions(
         IThrowOperation thrown,
-        HashSet<IMethodSymbol> activeMethods,
-        int depth)
+        TraversalContext traversal)
     {
         ICatchClauseOperation? catchOperation = null;
         for (var current = thrown.Parent; current != null; current = current.Parent)
@@ -2033,8 +1996,7 @@ internal sealed class ExceptionHandlerReachability(
 
         var incoming = GetPotentialExceptions(
             protectedBlock,
-            activeMethods,
-            depth,
+            traversal,
             keepEscaping: false);
         return new PotentialExceptions(
             incoming.Known
@@ -2185,20 +2147,18 @@ internal sealed class ExceptionHandlerReachability(
     private void AddPropertySetterExceptions(
         IPropertyReferenceOperation property,
         IOperation origin,
-        HashSet<IMethodSymbol> activeMethods,
-        int depth,
+        TraversalContext traversal,
         Action<PotentialExceptions, IOperation> add)
     {
         var setter = property.Property.SetMethod;
         add(
-            ResolveDispatch(setter, activeMethods, depth),
+            ResolveDispatch(setter, traversal),
             origin);
     }
 
     private PotentialExceptions GetUsingDisposalExceptions(
         IOperation operation,
-        HashSet<IMethodSymbol> activeMethods,
-        int depth)
+        TraversalContext traversal)
     {
         if (operation is IUsingOperation { IsAsynchronous: true } or
             IUsingDeclarationOperation { IsAsynchronous: true })
@@ -2245,8 +2205,7 @@ internal sealed class ExceptionHandlerReachability(
                     item.Type,
                     item.Resource,
                     item.Origin,
-                    activeMethods,
-                    depth);
+                    traversal);
                 result = Union(result, disposal);
                 if (!CanDisposalUnwind(
                         item.Type,
@@ -2264,8 +2223,7 @@ internal sealed class ExceptionHandlerReachability(
                 resources.Type,
                 resources,
                 operation,
-                activeMethods,
-                depth)
+                traversal)
             : EmptyPotential;
     }
 
@@ -2564,8 +2522,7 @@ internal sealed class ExceptionHandlerReachability(
 
     private PotentialExceptions GetForEachExceptions(
         IForEachLoopOperation forEach,
-        HashSet<IMethodSymbol> activeMethods,
-        int depth,
+        TraversalContext traversal,
         out bool reachesBody)
     {
         reachesBody = false;
@@ -2608,8 +2565,7 @@ internal sealed class ExceptionHandlerReachability(
                 GetImplicitCallableExceptions(
                     getEnumerator,
                     forEach,
-                    activeMethods,
-                    depth,
+                    traversal,
                     out var getEnumeratorCompletes));
             if (!getEnumeratorCompletes)
             {
@@ -2653,8 +2609,7 @@ internal sealed class ExceptionHandlerReachability(
             moveNextExceptions = GetImplicitCallableExceptions(
                 moveNext,
                 forEach,
-                activeMethods,
-                depth,
+                traversal,
                 out moveNextCompletes);
             result = Union(result, moveNextExceptions);
             if (moveNextCompletes &&
@@ -2665,8 +2620,7 @@ internal sealed class ExceptionHandlerReachability(
                     GetImplicitCallableExceptions(
                         getCurrent,
                         forEach,
-                        activeMethods,
-                        depth,
+                        traversal,
                         out reachesBody));
             }
             else
@@ -2686,8 +2640,7 @@ internal sealed class ExceptionHandlerReachability(
                 GetImplicitCallableExceptions(
                     elementConversion,
                     forEach,
-                    activeMethods,
-                    depth,
+                    traversal,
                     out reachesBody));
         }
         if ((moveNextCompletes || moveNextExceptions.Unknown ||
@@ -2699,8 +2652,7 @@ internal sealed class ExceptionHandlerReachability(
                 GetImplicitCallableExceptions(
                     dispose,
                     forEach,
-                    activeMethods,
-                    depth,
+                    traversal,
                     out _));
         }
         return result;
@@ -2709,8 +2661,7 @@ internal sealed class ExceptionHandlerReachability(
     private PotentialExceptions GetImplicitCallableExceptions(
         IMethodSymbol method,
         IOperation origin,
-        HashSet<IMethodSymbol> activeMethods,
-        int depth,
+        TraversalContext traversal,
         out bool completesNormally)
     {
         var result = EmptyPotential;
@@ -2732,27 +2683,23 @@ internal sealed class ExceptionHandlerReachability(
                 ? UnknownPotential
                 : GetCallableExceptions(
                     method,
-                    activeMethods,
-                    depth + 1));
+                    traversal.Next));
     }
 
     private PotentialExceptions GetFormattedValueExceptions(
         IOperation operand,
         IOperation origin,
-        HashSet<IMethodSymbol> activeMethods,
-        int depth)
+        TraversalContext traversal)
     {
         return GetFormattedValueExceptions(
             origin,
-            activeMethods,
-            depth,
+            traversal,
             ResolveFormattedValueMethod(operand, origin));
     }
 
     private PotentialExceptions GetFormattedValueExceptions(
         IOperation origin,
-        HashSet<IMethodSymbol> activeMethods,
-        int depth,
+        TraversalContext traversal,
         FormattedValueResolution resolution)
     {
         if (!resolution.IsRequired)
@@ -2777,23 +2724,20 @@ internal sealed class ExceptionHandlerReachability(
             result,
             GetCallableExceptions(
                 target,
-                activeMethods,
-                depth + 1));
+                traversal.Next));
     }
 
     private bool AddFormattedValuePotential(
         IOperation operand,
         IOperation origin,
-        HashSet<IMethodSymbol> activeMethods,
-        int depth,
+        TraversalContext traversal,
         Action<PotentialExceptions, IOperation> add)
     {
         var resolution = ResolveFormattedValueMethod(operand, origin);
         add(
             GetFormattedValueExceptions(
                 origin,
-                activeMethods,
-                depth,
+                traversal,
                 resolution),
             origin);
 
@@ -2915,8 +2859,7 @@ internal sealed class ExceptionHandlerReachability(
         ITypeSymbol? resourceType,
         IOperation? resource,
         IOperation origin,
-        HashSet<IMethodSymbol> activeMethods,
-        int depth)
+        TraversalContext traversal)
     {
         if (resourceType == null || resource == null ||
             !canCompleteNormally(resource) ||
@@ -2934,39 +2877,37 @@ internal sealed class ExceptionHandlerReachability(
                 ? UnknownPotential
                 : GetCallableExceptions(
                     dispose,
-                    activeMethods,
-                    depth + 1);
+                    traversal.Next);
     }
 
     private PotentialExceptions GetCallableExceptions(
         IMethodSymbol method,
-        HashSet<IMethodSymbol> activeMethods,
-        int depth)
+        TraversalContext traversal)
     {
         method = method.OriginalDefinition;
         if (isKnownNonThrowing(method))
         {
             return EmptyPotential;
         }
-        if (depth > 32)
+        if (traversal.Depth > 32)
         {
             return UnknownPotential;
         }
-        if (activeMethods.Contains(method))
+        if (traversal.ActiveMethods.Contains(method))
         {
             return EmptyPotential;
         }
 
-        var cacheResult = activeMethods.Count == 0;
+        var cacheResult = traversal.ActiveMethods.Count == 0;
         if (cacheResult &&
             _callableExceptionsCache.TryGetValue(
                 method,
                 out var resultsByDepth) &&
-            resultsByDepth.TryGetValue(depth, out var cached))
+            resultsByDepth.TryGetValue(traversal.Depth, out var cached))
         {
             return cached;
         }
-        if (!activeMethods.Add(method))
+        if (!traversal.ActiveMethods.Add(method))
         {
             return EmptyPotential;
         }
@@ -2984,8 +2925,7 @@ internal sealed class ExceptionHandlerReachability(
                     .IsSourceImplicitParameterlessConstructor(method)
                     ? GetImplicitConstructorExceptions(
                         method,
-                        activeMethods,
-                        depth)
+                        traversal)
                     : EmptyPotential;
             }
             else if (method.DeclaringSyntaxReferences.Length != 1)
@@ -3003,8 +2943,7 @@ internal sealed class ExceptionHandlerReachability(
                     ? UnknownPotential
                     : GetPotentialExceptions(
                         operation,
-                        activeMethods,
-                        depth,
+                        traversal,
                         keepEscaping: true);
             }
             if (cacheResult)
@@ -3016,7 +2955,7 @@ internal sealed class ExceptionHandlerReachability(
                     resultsByDepth = new();
                     _callableExceptionsCache.Add(method, resultsByDepth);
                 }
-                resultsByDepth[depth] = result;
+                resultsByDepth[traversal.Depth] = result;
             }
             return result;
         }
@@ -3026,14 +2965,13 @@ internal sealed class ExceptionHandlerReachability(
         }
         finally
         {
-            activeMethods.Remove(method);
+            traversal.ActiveMethods.Remove(method);
         }
     }
 
     private PotentialExceptions GetImplicitConstructorExceptions(
         IMethodSymbol constructor,
-        HashSet<IMethodSymbol> activeMethods,
-        int depth)
+        TraversalContext traversal)
     {
         if (constructor.ContainingType.IsValueType)
         {
@@ -3046,24 +2984,21 @@ internal sealed class ExceptionHandlerReachability(
             ? UnknownPotential
             : GetCallableExceptions(
                 baseConstructor,
-                activeMethods,
-                depth + 1);
+                traversal.Next);
     }
 
     internal bool CanMethodThrow(IMethodSymbol method)
     {
         var potential = GetCallableExceptions(
             method,
-            new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default),
-            depth: 0);
+            TraversalContext.Create());
         return potential.Unknown || !potential.Known.IsEmpty;
     }
 
     private bool AddCompoundCallablePotential(
         IMethodSymbol? method,
         IOperation origin,
-        HashSet<IMethodSymbol> activeMethods,
-        int depth,
+        TraversalContext traversal,
         Action<PotentialExceptions, IOperation> add)
     {
         if (method == null)
@@ -3075,18 +3010,17 @@ internal sealed class ExceptionHandlerReachability(
             return false;
         }
 
-        add(ResolveDispatch(method, activeMethods, depth), origin);
+        add(ResolveDispatch(method, traversal), origin);
         return CanMethodCompleteCached(method);
     }
 
     private PotentialExceptions ResolveDispatch(
         IMethodSymbol? method,
-        HashSet<IMethodSymbol> activeMethods,
-        int depth)
+        TraversalContext traversal)
     {
         return method == null || method.IsAbstract || method.IsVirtual
             ? UnknownPotential
-            : GetCallableExceptions(method, activeMethods, depth + 1);
+            : GetCallableExceptions(method, traversal.Next);
     }
 
     private PotentialExceptions KeepEscaping(
@@ -3306,6 +3240,15 @@ internal sealed class ExceptionHandlerReachability(
         ImmutableHashSet<INamedTypeSymbol> Known,
         bool Unknown);
 
+    private readonly record struct TraversalContext(
+        HashSet<IMethodSymbol> ActiveMethods,
+        int Depth)
+    {
+        public static TraversalContext Create() =>
+            new(new(SymbolEqualityComparer.Default), 0);
+
+        public TraversalContext Next => new(ActiveMethods, Depth + 1);
+    }
 
     private sealed record SwitchCaseReachability(
         ISwitchCaseOperation Case,

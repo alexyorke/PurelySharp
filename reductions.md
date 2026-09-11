@@ -153,7 +153,6 @@ Each pending row must be rechecked against the current tree, applied in a compat
 - **R0030**: R0030 | Remaining temporary-directory and package-test/RunVerifier setup cases have distinct cleanup, ownership, environment, lifetime, or diagnostic semantics; defer until a broader fixture contract is designed.
 - **R0038**: R038 | Soundness-sensitive traversal changes require a dedicated semantic refactor.
 - **R0076**: R076 | Shared timing orchestration would centralize timeout, process, and atomic-publication semantics; treat as dedicated infrastructure work.
-- **R0082**: R082 | The remaining soundness-critical traversal change is deferred as requested.
 - **R0081**: R081 | The unreachable conversion arm represents intended null-receiver behavior; deleting it would hide a latent soundness bug rather than simplify a working path.
 - **R0100**: R0100 | The remaining cross-project metadata-reference helper has ordering, filtering, identity, or performance differences that need dedicated design.
 - **R0111**: R111 | Git byte capture is release-authority code and remains explicit.
