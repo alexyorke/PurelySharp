@@ -39,7 +39,11 @@ public sealed class ProtocolJsonTests
         int smallSize,
         int largeSize)
     {
-        ArgumentNullException.ThrowIfNull(measure);
+        if (measure is null)
+        {
+            throw CreateArgumentNullException(nameof(measure));
+        }
+
         _ = measure(CreateValidationScalingResponse(4));
         var small = measure(
             CreateValidationScalingResponse(smallSize));
@@ -913,6 +917,11 @@ public sealed class ProtocolJsonTests
     public void RequestBoundValidationAuthenticatesRuntimeProvenance(
         string propertyName)
     {
+        if (propertyName is null)
+        {
+            throw CreateArgumentNullException(nameof(propertyName));
+        }
+
         ArgumentException.ThrowIfNullOrEmpty(propertyName);
         var response = CreateResponse(CreateManifest());
         var expected = CreateExpectedVersions();
@@ -2447,6 +2456,12 @@ public sealed class ProtocolJsonTests
         {
             _ = WorkerProtocolJson.DeserializeResponse(json);
         }
+    }
+
+    private static ArgumentNullException CreateArgumentNullException(
+        string parameterName)
+    {
+        return new ArgumentNullException(parameterName);
     }
 
     private static void SetUnknown(
