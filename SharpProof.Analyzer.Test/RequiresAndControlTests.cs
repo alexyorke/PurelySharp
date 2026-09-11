@@ -845,6 +845,42 @@ public sealed class RequiresAndControlTests
                 }
             }
             """, "SP0027"),
+        QuietCase(
+            "NontransparentWrappersRemainFailClosedForDirectReplay",
+            NontransparentWrappersRemainFailClosedForDirectReplaySource),
+        QuietCase(
+            "MemberInitializersStopAfterNonCompletingOperands",
+            MemberInitializersStopAfterNonCompletingOperandsSource),
+        QuietCase(
+            "MemberInitializerSequencesStopAfterNonCompletion",
+            MemberInitializerSequencesStopAfterNonCompletionSource),
+        QuietCase(
+            "PrimaryConstructorStopsAfterNonCompletingArgument",
+            PrimaryConstructorStopsAfterNonCompletingArgumentSource),
+        QuietCase(
+            "PrimaryConstructorHonorsNestedEvaluationOrder",
+            PrimaryConstructorHonorsNestedEvaluationOrderSource),
+        QuietCase(
+            "PrimaryConstructorStopsAtNonCompletingSwitchGuard",
+            PrimaryConstructorStopsAtNonCompletingSwitchGuardSource),
+        QuietCase(
+            "UnknownInvocationArgumentAndEnsuresAbstainSilently",
+            UnknownInvocationArgumentAndEnsuresAbstainSilentlySource),
+        QuietCase(
+            "NonCompletingCallPrefixCannotProduceARefutation",
+            NonCompletingCallPrefixCannotProduceARefutationSource),
+        QuietCase(
+            "NonCompletingPrefixSuppressesAccessorAndListPatternRefutations",
+            NonCompletingPrefixSuppressesAccessorAndListPatternRefutationsSource),
+        QuietCase(
+            "ApprovedApiResultFactsDischargeCallSitePreconditions",
+            ApprovedApiResultFactsDischargeCallSitePreconditionsSource),
+        QuietCase(
+            "ObjectInitializerEffectsFollowConstructorPreconditions",
+            ObjectInitializerEffectsFollowConstructorPreconditionsSource),
+        QuietCase(
+            "DirectClauseSourceDoesNotMixInCompanionPreconditions",
+            DirectClauseSourceDoesNotMixInCompanionPreconditionsSource),
     ];
 
     private static TestCaseData RequiresCase(
@@ -854,13 +890,16 @@ public sealed class RequiresAndControlTests
         int expectedCount = 1) =>
         DiagnosticCase(name, source, "contracts", [], false, expectedId, expectedCount);
 
+    private static TestCaseData QuietCase(string name, string source) =>
+        DiagnosticCase(name, source, "contracts", ["SP0027"], false, null);
+
     private static TestCaseData DiagnosticCase(
         string name,
         string source,
         string? mode,
         string[] enabledIds,
         bool allowCompilationErrors,
-        string expectedId,
+        string? expectedId,
         int expectedCount = 1) =>
         new TestCaseData(
                 source,
@@ -877,7 +916,7 @@ public sealed class RequiresAndControlTests
         string? mode,
         string[] enabledIds,
         bool allowCompilationErrors,
-        string expectedId,
+        string? expectedId,
         int expectedCount)
     {
         var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
@@ -886,14 +925,18 @@ public sealed class RequiresAndControlTests
             enabledIds,
             allowCompilationErrors: allowCompilationErrors);
 
-        AnalyzerTestHost.AssertIds(diagnostics, expectedId, expectedCount);
+        if (expectedId is null)
+        {
+            Assert.That(diagnostics, Is.Empty);
+        }
+        else
+        {
+            AnalyzerTestHost.AssertIds(diagnostics, expectedId, expectedCount);
+        }
     }
 
 
-    [Test]
-    public async Task NontransparentWrappersRemainFailClosedForDirectReplay()
-    {
-        var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
+    private const string NontransparentWrappersRemainFailClosedForDirectReplaySource =
             """
             using SharpProof.Attributes;
 
@@ -907,12 +950,7 @@ public sealed class RequiresAndControlTests
                 public static int Checked() => checked(Positive(-2));
                 public static int NullableSuppression() => Positive(-3)!;
             }
-            """,
-            "contracts",
-            ["SP0027"]);
-
-        Assert.That(diagnostics, Is.Empty);
-    }
+            """;
 
     [Test]
     public async Task ParenthesizedGeneratedCallRemainsQuiet()
@@ -1015,10 +1053,7 @@ public sealed class RequiresAndControlTests
     }
 
 
-    [Test]
-    public async Task MemberInitializersStopAfterNonCompletingOperands()
-    {
-        var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
+    private static readonly string MemberInitializersStopAfterNonCompletingOperandsSource =
             NonCompletingGuardSource +
             """
             public sealed class Subject {
@@ -1026,17 +1061,9 @@ public sealed class RequiresAndControlTests
                 private int Property { get; } =
                     Guard.Fail() + Guard.Positive(-2);
             }
-            """,
-            "contracts",
-            ["SP0027"]);
+            """;
 
-        Assert.That(diagnostics, Is.Empty);
-    }
-
-    [Test]
-    public async Task MemberInitializerSequencesStopAfterNonCompletion()
-    {
-        var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
+    private static readonly string MemberInitializerSequencesStopAfterNonCompletionSource =
             NonCompletingGuardSource +
             """
             public sealed class Subject {
@@ -1048,12 +1075,7 @@ public sealed class RequiresAndControlTests
                 private static int staticSecond = Guard.Positive(-4);
                 private static int StaticThird { get; } = Guard.Positive(-5);
             }
-            """,
-            "contracts",
-            ["SP0027"]);
-
-        Assert.That(diagnostics, Is.Empty);
-    }
+            """;
 
     [Test]
     public async Task PartialMemberInitializersStopAfterEarlierPartDoesNotComplete()
@@ -1179,10 +1201,7 @@ public sealed class RequiresAndControlTests
         }
     }
 
-    [Test]
-    public async Task PrimaryConstructorStopsAfterNonCompletingArgument()
-    {
-        var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
+    private const string PrimaryConstructorStopsAfterNonCompletingArgumentSource =
             """
             using System;
             using SharpProof.Attributes;
@@ -1200,17 +1219,9 @@ public sealed class RequiresAndControlTests
             public sealed class Derived(int marker) : Base(
                 (string?)null ?? throw new InvalidOperationException(),
                 Guard.Positive(-1)) { }
-            """,
-            "contracts",
-            ["SP0027"]);
+            """;
 
-        Assert.That(diagnostics, Is.Empty);
-    }
-
-    [Test]
-    public async Task PrimaryConstructorHonorsNestedEvaluationOrder()
-    {
-        var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
+    private const string PrimaryConstructorHonorsNestedEvaluationOrderSource =
             """
             using System;
             using SharpProof.Attributes;
@@ -1252,17 +1263,9 @@ public sealed class RequiresAndControlTests
                 Guard.FailBool()
                     ? new CheckedBox(Guard.Positive(-1))
                     : new CheckedBox(0)) { }
-            """,
-            "contracts",
-            ["SP0027"]);
+            """;
 
-        Assert.That(diagnostics, Is.Empty);
-    }
-
-    [Test]
-    public async Task PrimaryConstructorStopsAtNonCompletingSwitchGuard()
-    {
-        var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
+    private const string PrimaryConstructorStopsAtNonCompletingSwitchGuardSource =
             """
             using System;
             using SharpProof.Attributes;
@@ -1280,12 +1283,7 @@ public sealed class RequiresAndControlTests
                     _ when Guard.FailBool() => Guard.Positive(-1),
                     _ => 0
                 }) { }
-            """,
-            "contracts",
-            ["SP0027"]);
-
-        Assert.That(diagnostics, Is.Empty);
-    }
+            """;
 
     [Test]
     public async Task GeneratedCodeAttributeSuppressesMemberInitializerCalls()
@@ -1761,10 +1759,7 @@ public sealed class RequiresAndControlTests
     }
 
 
-    [Test]
-    public async Task UnknownInvocationArgumentAndEnsuresAbstainSilently()
-    {
-        var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
+    private const string UnknownInvocationArgumentAndEnsuresAbstainSilentlySource =
             """
             using SharpProof.Attributes;
 
@@ -1780,17 +1775,9 @@ public sealed class RequiresAndControlTests
                     Positive(Unknown());
                 }
             }
-            """,
-            "contracts",
-            ["SP0027"]);
+            """;
 
-        Assert.That(diagnostics, Is.Empty);
-    }
-
-    [Test]
-    public async Task NonCompletingCallPrefixCannotProduceARefutation()
-    {
-        var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
+    private const string NonCompletingCallPrefixCannotProduceARefutationSource =
             """
             #nullable enable
             using SharpProof.Attributes;
@@ -1860,17 +1847,9 @@ public sealed class RequiresAndControlTests
                     new ConstructedTarget(-1);
                 }
             }
-            """,
-            "contracts",
-            ["SP0027"]);
+            """;
 
-        Assert.That(diagnostics, Is.Empty);
-    }
-
-    [Test]
-    public async Task NonCompletingPrefixSuppressesAccessorAndListPatternRefutations()
-    {
-        var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
+    private const string NonCompletingPrefixSuppressesAccessorAndListPatternRefutationsSource =
             """
             using SharpProof.Attributes;
 
@@ -1903,12 +1882,7 @@ public sealed class RequiresAndControlTests
                     return value is [0];
                 }
             }
-            """,
-            "contracts",
-            ["SP0027"]);
-
-        Assert.That(diagnostics, Is.Empty);
-    }
+            """;
 
 
     [Test]
@@ -1986,10 +1960,7 @@ public sealed class RequiresAndControlTests
 
 
 
-    [Test]
-    public async Task ApprovedApiResultFactsDischargeCallSitePreconditions()
-    {
-        var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
+    private const string ApprovedApiResultFactsDischargeCallSitePreconditionsSource =
             """
             using System;
             using SharpProof.Attributes;
@@ -2009,20 +1980,12 @@ public sealed class RequiresAndControlTests
                     Empty(values.Length);
                 }
             }
-            """,
-            "contracts",
-            ["SP0027"]);
-
-        Assert.That(diagnostics, Is.Empty);
-    }
+            """;
 
 
 
 
-    [Test]
-    public async Task ObjectInitializerEffectsFollowConstructorPreconditions()
-    {
-        var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
+    private const string ObjectInitializerEffectsFollowConstructorPreconditionsSource =
             """
             using SharpProof.Attributes;
 
@@ -2048,12 +2011,7 @@ public sealed class RequiresAndControlTests
                     };
                 }
             }
-            """,
-            "contracts",
-            ["SP0027"]);
-
-        Assert.That(diagnostics, Is.Empty);
-    }
+            """;
 
 
 
@@ -2163,10 +2121,7 @@ public sealed class RequiresAndControlTests
     }
 
 
-    [Test]
-    public async Task DirectClauseSourceDoesNotMixInCompanionPreconditions()
-    {
-        var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
+    private const string DirectClauseSourceDoesNotMixInCompanionPreconditionsSource =
             """
             using SharpProof.Attributes;
 
@@ -2189,12 +2144,7 @@ public sealed class RequiresAndControlTests
                     return value;
                 }
             }
-            """,
-            "contracts",
-            ["SP0027"]);
-
-        Assert.That(diagnostics, Is.Empty);
-    }
+            """;
 
     [Test]
     public async Task UnsupportedCallableAbstainsSilently()
