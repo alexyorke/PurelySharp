@@ -743,6 +743,11 @@ public static partial class LinuxPathIdentity
         Directory.CreateDirectory(publicationDirectory);
         if (!Directory.Exists(metadataDirectory))
         {
+            if (!OperatingSystem.IsLinux())
+            {
+                throw new PlatformNotSupportedException(
+                    "SharpProof publication metadata requires Linux.");
+            }
             Directory.CreateDirectory(
                 metadataDirectory,
                 UnixFileMode.UserRead |
@@ -765,14 +770,14 @@ public static partial class LinuxPathIdentity
 
     private static void ReleaseLocks(PublicationLock[] locks, int acquired)
     {
-        Exception? firstFailure = null;
+        IOException? firstFailure = null;
         for (var index = acquired - 1; index >= 0; index--)
         {
             try
             {
                 locks[index].Release();
             }
-            catch (Exception exception)
+            catch (IOException exception)
             {
                 firstFailure ??= exception;
             }
@@ -783,7 +788,7 @@ public static partial class LinuxPathIdentity
             {
                 publicationLock.Dispose();
             }
-            catch (Exception exception)
+            catch (IOException exception)
             {
                 firstFailure ??= exception;
             }
