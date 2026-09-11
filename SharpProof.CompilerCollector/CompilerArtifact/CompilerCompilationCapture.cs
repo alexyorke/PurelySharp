@@ -18,9 +18,9 @@ internal static class CompilerCompilationCapture
     {
         internal SyntaxTreeCache(
             CSharpCompilation compilation,
-            CancellationToken cancellationToken,
             int capturedTreeOrdinal,
-            SourceText? capturedText)
+            SourceText? capturedText,
+            CancellationToken cancellationToken)
         {
             var seenPaths = new HashSet<string>(StringComparer.Ordinal);
             Trees = [.. compilation.SyntaxTrees.Select((tree, index) =>
@@ -77,9 +77,9 @@ internal static class CompilerCompilationCapture
             compilation,
             value => new SyntaxTreeCache(
                 value,
-                cancellationToken,
                 capturedTreeOrdinal,
-                capturedText)).Trees;
+                capturedText,
+                cancellationToken)).Trees;
     }
 
     internal static bool TryGetCapturedTreeTextLength(
