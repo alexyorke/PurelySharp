@@ -100,8 +100,7 @@ internal sealed class ManagedAbstractFlow
 
     /// <summary>
     /// Overrides the solver's iteration bound so the non-convergence path can be
-    /// exercised. Mirrors
-    /// <c>ForwardDataflowAnalysis.AnalyzeWithWorklistOrderForTesting</c>.
+    /// exercised without changing the production default.
     /// </summary>
     internal ManagedFlowAnalysis AnalyzeWithIterationLimitForTesting(
         IMethodSymbol method,

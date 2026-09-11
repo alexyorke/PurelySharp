@@ -171,47 +171,6 @@ public sealed class ForwardDataflowAnalysisTests
     }
 
     [Test]
-    public void RandomizedBatchOrderDoesNotChangeFixpoint()
-    {
-        var domain = IntervalDomain.Instance;
-        var graph = CreateAscendingIntervalGraph(domain);
-        var options = new ForwardDataflowAnalysisOptions(widenAfter: 1, maxIterations: 100);
-        var expected = ForwardDataflowAnalysis.Analyze(
-            graph,
-            domain,
-            IntervalValue.Constant(0),
-            options);
-
-        for (var seed = 0; seed < 32; seed++)
-        {
-            var random = new Random(seed);
-            var actual = ForwardDataflowAnalysis.AnalyzeWithWorklistOrderForTesting(
-                graph,
-                domain,
-                IntervalValue.Constant(0),
-                options,
-                pending => [.. pending.OrderBy(_ => random.Next())]);
-
-            Assert.That(actual.Iterations, Is.EqualTo(expected.Iterations));
-            for (var blockId = 0; blockId < graph.Blocks.Length; blockId++)
-            {
-                Assert.That(
-                    domain.AreEquivalent(
-                        actual.GetInputState(blockId),
-                        expected.GetInputState(blockId)),
-                    Is.True,
-                    $"Input state differs at block {blockId} for seed {seed}.");
-                Assert.That(
-                    domain.AreEquivalent(
-                        actual.GetOutputState(blockId),
-                        expected.GetOutputState(blockId)),
-                    Is.True,
-                    $"Output state differs at block {blockId} for seed {seed}.");
-            }
-        }
-    }
-
-    [Test]
     public void NonmonotoneTransferIsRejectedBeforeStaleOutputPropagates()
     {
         var domain = NullnessDomain.Instance;

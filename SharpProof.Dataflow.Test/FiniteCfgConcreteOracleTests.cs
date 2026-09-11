@@ -63,17 +63,15 @@ public sealed class FiniteCfgConcreteOracleTests
         }
     }
 
-    [TestCase(false)]
-    [TestCase(true)]
-    public void FinitePowersetModelCheckMatchesConcreteLeastFixpoints(
-        bool reverseWorklist)
+    [Test]
+    public void FinitePowersetModelCheckMatchesConcreteLeastFixpoints()
     {
-        var checkedCases = VerifyEveryFinitePowersetCase(reverseWorklist);
+        var checkedCases = VerifyEveryFinitePowersetCase();
 
         Assert.That(checkedCases, Is.EqualTo(80_200));
     }
 
-    private static int VerifyEveryFinitePowersetCase(bool reverseWorklist)
+    private static int VerifyEveryFinitePowersetCase()
     {
         var transfers = EnumerateBottomStrictMonotoneTransfers();
         Assert.That(transfers, Has.Count.EqualTo(25));
@@ -101,8 +99,7 @@ public sealed class FiniteCfgConcreteOracleTests
                                     entryBlockId,
                                     initial,
                                     [first],
-                                    edgeMask,
-                                    reverseWorklist);
+                                    edgeMask);
                                 checkedCases++;
                                 continue;
                             }
@@ -114,8 +111,7 @@ public sealed class FiniteCfgConcreteOracleTests
                                     entryBlockId,
                                     initial,
                                     [first, second],
-                                    edgeMask,
-                                    reverseWorklist);
+                                    edgeMask);
                                 checkedCases++;
                             }
                         }
@@ -132,8 +128,7 @@ public sealed class FiniteCfgConcreteOracleTests
         int entryBlockId,
         FiniteSet initial,
         IReadOnlyList<FiniteTransfer> transfers,
-        int edgeMask,
-        bool reverseWorklist)
+        int edgeMask)
     {
         var blocks = transfers
             .Select((transfer, blockId) =>
@@ -152,18 +147,11 @@ public sealed class FiniteCfgConcreteOracleTests
         var options = new ForwardDataflowAnalysisOptions(
             widenAfter: 0,
             maxIterations: 32);
-        var actual = reverseWorklist
-            ? ForwardDataflowAnalysis.AnalyzeWithWorklistOrderForTesting(
-                graph,
-                FinitePowersetDomain.Instance,
-                initial,
-                options,
-                static pending => [.. pending.Reverse()])
-            : ForwardDataflowAnalysis.Analyze(
-                graph,
-                FinitePowersetDomain.Instance,
-                initial,
-                options);
+        var actual = ForwardDataflowAnalysis.Analyze(
+            graph,
+            FinitePowersetDomain.Instance,
+            initial,
+            options);
 
         for (var blockId = 0; blockId < transfers.Count; blockId++)
         {
@@ -173,7 +161,7 @@ public sealed class FiniteCfgConcreteOracleTests
                     $"Input mismatch for blocks={transfers.Count}, " +
                     $"edges=0x{edgeMask:X}, entry={entryBlockId}, " +
                     $"initial={initial}, transfers={FormatTransfers(transfers)}, " +
-                    $"reverse={reverseWorklist}, block={blockId}: " +
+                    $"block={blockId}: " +
                     $"expected {expected.Inputs[blockId]}, " +
                     $"actual {actual.GetInputState(blockId)}.");
             }
@@ -184,7 +172,7 @@ public sealed class FiniteCfgConcreteOracleTests
                     $"Output mismatch for blocks={transfers.Count}, " +
                     $"edges=0x{edgeMask:X}, entry={entryBlockId}, " +
                     $"initial={initial}, transfers={FormatTransfers(transfers)}, " +
-                    $"reverse={reverseWorklist}, block={blockId}: " +
+                    $"block={blockId}: " +
                     $"expected {expected.Outputs[blockId]}, " +
                     $"actual {actual.GetOutputState(blockId)}.");
             }

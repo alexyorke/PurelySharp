@@ -86,7 +86,7 @@ public static class ForwardDataflowAnalysis
         ForwardDataflowAnalysisOptions? options = null)
     {
         return AnalyzeCore(graph, domain, initialState,
-            options ?? new ForwardDataflowAnalysisOptions(), null,
+            options ?? new ForwardDataflowAnalysisOptions(),
             produceResult: true)!;
     }
 
@@ -96,21 +96,8 @@ public static class ForwardDataflowAnalysis
         T initialState,
         ForwardDataflowAnalysisOptions options)
     {
-        _ = AnalyzeCore(graph, domain, initialState, options, null,
+        _ = AnalyzeCore(graph, domain, initialState, options,
             produceResult: false);
-    }
-
-    internal static DataflowAnalysisResult<T> AnalyzeWithWorklistOrderForTesting<T>(
-        DataflowGraph<T> graph,
-        IAbstractDomain<T> domain,
-        T initialState,
-        ForwardDataflowAnalysisOptions options,
-        Func<ImmutableArray<int>, ImmutableArray<int>> worklistOrder)
-    {
-        ArgumentNullGuard.NotNull(worklistOrder, nameof(worklistOrder));
-
-        return AnalyzeCore(graph, domain, initialState, options, worklistOrder,
-            produceResult: true)!;
     }
 
     private static DataflowAnalysisResult<T>? AnalyzeCore<T>(
@@ -118,7 +105,6 @@ public static class ForwardDataflowAnalysis
         IAbstractDomain<T> domain,
         T initialState,
         ForwardDataflowAnalysisOptions options,
-        Func<ImmutableArray<int>, ImmutableArray<int>>? worklistOrder,
         bool produceResult)
     {
         ArgumentNullGuard.NotNull(graph, nameof(graph));
@@ -147,10 +133,6 @@ public static class ForwardDataflowAnalysis
 
             var batch = pending.ToImmutableArray();
             pending.Clear();
-            if (worklistOrder != null)
-            {
-                batch = ValidatePermutation(batch, worklistOrder(batch));
-            }
 
             changedOutputs.Clear();
             foreach (var blockId in batch)
@@ -246,18 +228,5 @@ public static class ForwardDataflowAnalysis
         }
 
         return reachable;
-    }
-
-    private static ImmutableArray<int> ValidatePermutation(
-        ImmutableArray<int> original, ImmutableArray<int> reordered)
-    {
-        const string message = "The worklist test hook must return a permutation.";
-        if (original.Length != reordered.Length ||
-            !new HashSet<int>(reordered).SetEquals(original))
-        {
-            throw new InvalidOperationException(message);
-        }
-
-        return reordered;
     }
 }

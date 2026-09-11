@@ -47,24 +47,6 @@ public sealed class ArgumentNullGuardBoundaryTests
                 CreateGraph(),
                 null!,
                 NullnessValue.MaybeNull)));
-        yield return new TestCaseData(
-            "options",
-            (Action)(() =>
-                ForwardDataflowAnalysis.AnalyzeWithWorklistOrderForTesting(
-                    CreateGraph(),
-                    NullnessDomain.Instance,
-                    NullnessValue.MaybeNull,
-                    null!,
-                    static pending => pending)));
-        yield return new TestCaseData(
-            "worklistOrder",
-            (Action)(() =>
-                ForwardDataflowAnalysis.AnalyzeWithWorklistOrderForTesting(
-                    CreateGraph(),
-                    NullnessDomain.Instance,
-                    NullnessValue.MaybeNull,
-                    new ForwardDataflowAnalysisOptions(),
-                    null!)));
     }
 
     private static DataflowGraph<NullnessValue> CreateGraph()
