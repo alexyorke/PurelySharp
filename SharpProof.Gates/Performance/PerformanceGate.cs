@@ -1655,8 +1655,8 @@ internal static class PerformanceGate
             .Where(static task => task.Attribute("TaskFactory") != null)
             .ToArray();
         var portableContainsVerifierWork =
-            portableTargetsElements.Descendants("Exec").Any() ||
-            portableTargetsElements.Descendants("SharpProof.BuildTasks.RunVerifier").Any() ||
+            portableTargetsElements.Descendants("Exec").Length != 0 ||
+            portableTargetsElements.Descendants("SharpProof.BuildTasks.RunVerifier").Length != 0 ||
             portableTargetsElements.Descendants("Target").Any(static target =>
                 (string?)target.Attribute("Name") is
                     "SharpProofVerify" or "_SharpProofVerifyCore");
@@ -1759,7 +1759,7 @@ internal static class PerformanceGate
                 static pair => pair.Value.ToArray());
         }
 
-        internal IReadOnlyList<XElement> Descendants(XName name)
+        internal XElement[] Descendants(XName name)
         {
             return _elements.TryGetValue(name, out var elements)
                 ? elements

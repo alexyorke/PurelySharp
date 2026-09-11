@@ -33,8 +33,10 @@ internal abstract class AnalyzerSessionFactoryBase<TKey>(
     public AnalyzerSession Create(
         Compilation compilation,
         AnalyzerConfiguration configuration,
-        CancellationToken cancellationToken) =>
-        new(compilation, configuration, cancellationToken, Record);
+        CancellationToken cancellationToken)
+    {
+        return new(compilation, configuration, cancellationToken, Record);
+    }
 
     protected abstract void Record(
         IMethodSymbol method,
@@ -42,13 +44,15 @@ internal abstract class AnalyzerSessionFactoryBase<TKey>(
 
     protected void RecordOutcome(
         TKey key,
-        AnalyzerSemanticOutcome outcome) =>
+        AnalyzerSemanticOutcome outcome)
+    {
         Outcomes.AddOrUpdate(
             key,
             static (_, incoming) => incoming,
             static (_, current, incoming) =>
                 AnalyzerSemanticOutcomes.Combine(current, incoming),
             outcome);
+    }
 }
 
 internal readonly record struct MethodOutcomeKey(

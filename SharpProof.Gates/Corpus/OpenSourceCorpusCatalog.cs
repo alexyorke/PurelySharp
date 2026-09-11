@@ -324,7 +324,8 @@ internal static class OpenSourceCorpusCatalog
             string,
             ImmutableDictionary<
                 (int StartLine, int EndLine),
-                ImmutableArray<MethodDeclarationSyntax>>> DeclarationIndexes { get; } =
+                ImmutableArray<MethodDeclarationSyntax>>> DeclarationIndexes
+        { get; } =
             declarationIndexes;
         internal int SourceFileCount { get; } = sourceFileCount;
     }
