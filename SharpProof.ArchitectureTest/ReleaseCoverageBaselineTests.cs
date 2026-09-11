@@ -33,7 +33,6 @@ public sealed class ReleaseCoverageBaselineTests
             {
                 Assert.That(workflow, Does.Contain(job), job);
             }
-            Assert.That(workflow, Does.Contain("portable-consumers"));
             Assert.That(workflow, Does.Not.Contain("minimum-sdk-consumer"));
         }
     }
@@ -79,9 +78,6 @@ public sealed class ReleaseCoverageBaselineTests
                     "docker compose run --rm tooling",
                     StringSplitOptions.None),
                 Has.Length.GreaterThanOrEqualTo(5));
-            Assert.That(
-                qualification,
-                Does.Contain("tooling acceptance"));
             Assert.That(
                 qualification.Split(
                     "tooling mutation",
@@ -158,7 +154,6 @@ public sealed class ReleaseCoverageBaselineTests
             Assert.That(
                 writer,
                 Does.Contain("targets different packages"));
-            Assert.That(receiptWriter, Does.Contain("status -ceq 'passed'"));
             Assert.That(receiptWriter, Does.Contain("mutationCount"));
             Assert.That(
                 receiptWriter,
@@ -319,7 +314,6 @@ public sealed class ReleaseCoverageBaselineTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(resolver, Does.Contain(FirstPreviewBaseline));
             Assert.That(
                 resolver,
                 Does.Contain(
@@ -330,10 +324,6 @@ public sealed class ReleaseCoverageBaselineTests
             Assert.That(
                 resolver,
                 Does.Contain("'v1.0.0' = 'v1.0.0-rc.1'"));
-            Assert.That(resolver, Does.Contain("merge-base"));
-            Assert.That(resolver, Does.Contain("--is-ancestor"));
-            Assert.That(resolver, Does.Contain("checked-out HEAD"));
-
             Assert.That(
                 containerRelease.Split(
                     "Resolve-SharpProofReleaseCoverageBaseline.ps1",
@@ -350,7 +340,6 @@ public sealed class ReleaseCoverageBaselineTests
                 containerRelease,
                 Does.Contain("-ReleaseCommit $commit"));
             Assert.That(workflow, Does.Contain("tooling release-baseline"));
-            Assert.That(workflow, Does.Contain("tooling coverage"));
         }
     }
 

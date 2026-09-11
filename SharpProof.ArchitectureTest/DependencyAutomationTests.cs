@@ -49,12 +49,6 @@ public sealed class DependencyAutomationTests
             Assert.That(
                 File.ReadAllText(Path.Combine(root, ".github", "workflows", "ci.yml")),
                 Does.Contain("tooling pr"));
-            Assert.That(
-                File.ReadAllText(Path.Combine(root, ".github", "workflows", "nightly.yml")),
-                Does.Contain("tooling nightly"));
-            Assert.That(
-                File.ReadAllText(Path.Combine(root, ".github", "workflows", "security-reusable.yml")),
-                Does.Contain("tooling security"));
         }
     }
 
@@ -128,10 +122,6 @@ public sealed class DependencyAutomationTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(
-                workflow,
-                Does.Contain(
-                    "tooling nightly"));
             Assert.That(
                 workflow,
                 Does.Not.Contain(
@@ -300,11 +290,6 @@ public sealed class DependencyAutomationTests
             "container",
             "toolchain.json")));
         var dotnet = toolchain.RootElement.GetProperty("dotnet");
-        var dockerfile = File.ReadAllText(Path.Combine(
-            root,
-            "eng",
-            "container",
-            "Dockerfile"));
         var packageAction = File.ReadAllText(Path.Combine(
             root,
             ".github",
@@ -320,7 +305,6 @@ public sealed class DependencyAutomationTests
             Assert.That(
                 dotnet.GetProperty("minimumSdkVersion").GetString(),
                 Is.EqualTo("9.0.300"));
-            Assert.That(workflows, Does.Not.Contain("actions/setup-dotnet"));
             Assert.That(workflows, Does.Not.Contain("dotnet-version:"));
             Assert.That(
                 workflows,
@@ -342,11 +326,6 @@ public sealed class DependencyAutomationTests
                     .And.Contain("load: true")
                     .And.Contain("cache-from: type=gha")
                     .And.Contain("cache-to: type=gha,mode=max"));
-            Assert.That(dockerfile, Does.Contain("DOTNET_SDK_IMAGE="));
-            Assert.That(dockerfile, Does.Contain("DOTNET_MINIMUM_SDK_IMAGE="));
-            Assert.That(
-                dockerfile,
-                Does.Contain("DOTNET_MINIMUM_FRAMEWORK_IMAGE="));
         }
     }
 

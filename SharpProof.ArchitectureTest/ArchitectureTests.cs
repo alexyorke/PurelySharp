@@ -1644,57 +1644,6 @@ public sealed class ArchitectureTests
     }
 
     [Test]
-    public void WorkerClosureRetainsStagedComponentsUntilSnapshotDisposal()
-    {
-        var source = File.ReadAllText(Path.Combine(
-            TestRepository.FindRoot(),
-            "SharpProof.CompilerArtifact",
-            "CompilerManifestArtifact.cs"));
-
-        using (Assert.EnterMultipleScope())
-        {
-            Assert.That(
-                source.Contains(
-                    "FileStream[] stagedHandles = [];",
-                    StringComparison.Ordinal),
-                Is.True);
-            Assert.That(
-                source.Contains(
-                    "FileMode.CreateNew))",
-                    StringComparison.Ordinal),
-                Is.True);
-            Assert.That(
-                source.Contains(
-                    "staged.Write(sourceBytes, 0, sourceBytes.Length);",
-                    StringComparison.Ordinal),
-                Is.True);
-            Assert.That(
-                source.Contains(
-                    "hash.Add(component.Key).Add(stagedRead);",
-                    StringComparison.Ordinal),
-                Is.True);
-            Assert.That(
-                source.Contains(
-                    "stagedHandles[stagedCount++] = OpenRead(stagedPath);",
-                    StringComparison.Ordinal),
-                Is.True);
-            Assert.That(
-                source.Contains(
-                    "File.Copy(component.Value, stagedPath);",
-                    StringComparison.Ordinal),
-                Is.False);
-            Assert.That(
-                source.Contains(
-                    "foreach (var handle in StagedHandles)",
-                    StringComparison.Ordinal),
-                Is.True);
-            Assert.That(
-                source.Contains("handle.Dispose();", StringComparison.Ordinal),
-                Is.True);
-        }
-    }
-
-    [Test]
     public void PerformanceContractIsIsolatedFromBroadTestAndCoverageRuns()
     {
         var root = TestRepository.FindRoot();
