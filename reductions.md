@@ -1,6 +1,6 @@
 # Active code reduction queue
 Resolved proposals are removed from this file after implementation, validation, or a current-tree refutation. The original survey remains available in Git history; this file is intentionally only the active queue.
-Inventory after deduplication: 152 canonical queue IDs represented by 151 deferred rows (0 pending). Resolved and refuted proposals are removed; repeated and superseded rows are merged into canonical rows.
+Inventory after deduplication: 151 canonical queue IDs represented by 150 deferred rows (0 pending). Resolved and refuted proposals are removed; repeated and superseded rows are merged into canonical rows.
 
 Each pending row must be rechecked against the current tree, applied in a compatible batch, validated with the smallest relevant containerized test target, and then removed here.
 
@@ -104,7 +104,6 @@ Each pending row must be rechecked against the current tree, applied in a compat
 - **R0298**: R298 | **Partially applied; remaining portion deferred.** `Test-SharpProofCoverage.ps1` now reuses `Get-OrdinalSortedUniqueStrings` for its already-unique path sets. The `Get-RequiredProperty` helpers remain separate because the API-catalog and release versions intentionally differ in null, error, and array-return semantics.
 
 - **R0341**: R341 | **Deferred.** Raw trusted-platform-assembly acquisition is already shared by `AnalyzerGateHost` and `WorkerPerformanceProbe` through `TrustedPlatformAssemblyPaths.Get`. The remaining functional readers are `TestMetadataReferences`, the Meta analyzer tests, and the Testing/Fuzz differential oracles; they intentionally differ in ordering, case-insensitive deduplication, Roslyn-reference appending, and SharpProof-reference ownership. A generic helper would require new cross-project wiring and could alter reference sets or authority boundaries. The former broad R0729 inventory is stale and is merged here rather than implemented wholesale.
-- **R0983**: R983 | **Deferred.** Open-dispatch, disposal, and invocation paths intentionally use different predicates and policies; a uniform helper would change soundness behavior.
 - **R0986**: R986 | **Deferred.** The remaining direct `System.Collections.Immutable` references are framework-resolved net8.0 test dependencies and require an owner decision, not mechanical deletion.
 - **R0871**: R871 | **Deferred.** Location construction validates builder-created inputs, while `Load`/`Store` attachment must revalidate caller-supplied, forged, or cross-factory locations and enforce target-type compatibility. Removing the second pass would weaken malformed-location rejection; a validated-location capability type would be a larger design.
 - **R0839, R0845, R0852**: R839/R845/R852 | **Deferred.** R0839 partitions generated rule arrays by positional authority; R0845's recursive formatter and documentation formatter intentionally emit different representations and validation errors; R0852's initial lock-release trap is replaced by signal-specific cleanup traps. Sharing any of these would change ordering, output, or signal ownership rather than reduce code safely.

@@ -20,14 +20,18 @@ internal static class PropertyDispatchFacts
     }
 
     internal static bool HasOpenVirtualDispatch(
-        IMethodSymbol accessor)
+        IMethodSymbol accessor,
+        bool allowClassReimplementation = false)
     {
+        var canReimplement = allowClassReimplementation &&
+            accessor.ContainingType?.TypeKind == TypeKind.Class;
         return !accessor.IsStatic &&
-               (accessor.IsVirtual ||
+               (canReimplement ||
+                accessor.IsVirtual ||
                 accessor.IsAbstract ||
                 accessor.IsOverride ||
                 accessor.ContainingType?.TypeKind == TypeKind.Interface) &&
                accessor.ContainingType?.IsSealed != true &&
-               !accessor.IsSealed;
+               (canReimplement || !accessor.IsSealed);
     }
 }
