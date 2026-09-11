@@ -21,19 +21,27 @@ public sealed record DifferentialResult(
     IrEvaluationResult Interpreted,
     string Detail);
 
-public sealed class IrCSharpDifferentialOracle(IrFactory factory)
+public sealed class IrCSharpDifferentialOracle
 {
     private static readonly Lazy<ImmutableArray<MetadataReference>> References =
         new(CreateReferences, LazyThreadSafetyMode.ExecutionAndPublication);
-    private readonly IrFactory _factory = ArgumentNullGuard.NotNull(factory, nameof(factory));
-    private readonly IrInterpreter _interpreter = new(factory);
+    private readonly IrFactory _factory;
+    private readonly IrInterpreter _interpreter;
+
+    public IrCSharpDifferentialOracle(IrFactory factory)
+    {
+        factory = ArgumentNullGuard.NotNull(factory, nameof(factory));
+
+        _factory = factory;
+        _interpreter = new IrInterpreter(factory);
+    }
 
     public DifferentialResult Compare(
         IrTerm term,
         IReadOnlyDictionary<IrVarId, IrValue> variables)
     {
-        ArgumentNullException.ThrowIfNull(term);
-        ArgumentNullException.ThrowIfNull(variables);
+        term = ArgumentNullGuard.NotNull(term, nameof(term));
+        variables = ArgumentNullGuard.NotNull(variables, nameof(variables));
 
         var interpreted = _interpreter.Evaluate(term, variables);
         if (!TryCreateProgram(term, variables, out var program, out var orderedVariables, out var reason))

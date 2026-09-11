@@ -8,7 +8,7 @@ public static class DifferentialFormatting
 {
     public static string Describe(IrEvaluationResult result)
     {
-        ArgumentNullException.ThrowIfNull(result);
+        result = ArgumentNullGuard.NotNull(result, nameof(result));
 
         return result.Status switch
         {
@@ -25,6 +25,8 @@ public static class DifferentialFormatting
         IEnumerable<Diagnostic> diagnostics,
         bool includeIdTieBreak = false)
     {
+        diagnostics = ArgumentNullGuard.NotNull(diagnostics, nameof(diagnostics));
+
         var ordered = diagnostics
                 .Where(static diagnostic =>
                     diagnostic.Severity == DiagnosticSeverity.Error)
