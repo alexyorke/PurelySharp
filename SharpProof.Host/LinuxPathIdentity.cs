@@ -146,7 +146,6 @@ public static partial class LinuxPathIdentity
 
     internal static void SyncDirectory(string directory)
     {
-        EnsureLinux();
         var canonical = Canonicalize(directory);
         var descriptor = NativeMethods.Open(
             canonical,
