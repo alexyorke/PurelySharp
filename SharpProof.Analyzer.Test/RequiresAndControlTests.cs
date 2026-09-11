@@ -33,8 +33,10 @@ public sealed class RequiresAndControlTests
         }
         """;
 
-    private static IEnumerable<TestCaseData> DiagnosticCases() =>
-    [
+    private static IEnumerable<TestCaseData> DiagnosticCases()
+    {
+        return
+        [
         RequiresCase(
             "PrimaryConstructorSameNamedOverloadIsAnalyzed",
             """
@@ -881,17 +883,22 @@ public sealed class RequiresAndControlTests
         QuietCase(
             "DirectClauseSourceDoesNotMixInCompanionPreconditions",
             DirectClauseSourceDoesNotMixInCompanionPreconditionsSource),
-    ];
+        ];
+    }
 
     private static TestCaseData RequiresCase(
         string name,
         string source,
         string expectedId,
-        int expectedCount = 1) =>
-        DiagnosticCase(name, source, "contracts", [], false, expectedId, expectedCount);
+        int expectedCount = 1)
+    {
+        return DiagnosticCase(name, source, "contracts", [], false, expectedId, expectedCount);
+    }
 
-    private static TestCaseData QuietCase(string name, string source) =>
-        DiagnosticCase(name, source, "contracts", ["SP0027"], false, null);
+    private static TestCaseData QuietCase(string name, string source)
+    {
+        return DiagnosticCase(name, source, "contracts", ["SP0027"], false, null);
+    }
 
     private static TestCaseData DiagnosticCase(
         string name,
@@ -900,8 +907,9 @@ public sealed class RequiresAndControlTests
         string[] enabledIds,
         bool allowCompilationErrors,
         string? expectedId,
-        int expectedCount = 1) =>
-        new TestCaseData(
+        int expectedCount = 1)
+    {
+        return new TestCaseData(
                 source,
                 mode,
                 enabledIds,
@@ -909,6 +917,7 @@ public sealed class RequiresAndControlTests
                 expectedId,
                 expectedCount)
             .SetName(name);
+    }
 
     [TestCaseSource(nameof(DiagnosticCases))]
     public async Task ReportsExpectedDiagnostics(
@@ -1053,7 +1062,7 @@ public sealed class RequiresAndControlTests
     }
 
 
-    private static readonly string MemberInitializersStopAfterNonCompletingOperandsSource =
+    private const string MemberInitializersStopAfterNonCompletingOperandsSource =
             NonCompletingGuardSource +
             """
             public sealed class Subject {
@@ -1063,7 +1072,7 @@ public sealed class RequiresAndControlTests
             }
             """;
 
-    private static readonly string MemberInitializerSequencesStopAfterNonCompletionSource =
+    private const string MemberInitializerSequencesStopAfterNonCompletionSource =
             NonCompletingGuardSource +
             """
             public sealed class Subject {
@@ -1132,12 +1141,12 @@ public sealed class RequiresAndControlTests
     public async Task PrimaryConstructorBaseInitializerChecksRequires(
         string declaration)
     {
-        ArgumentNullException.ThrowIfNull(declaration);
-        var baseDeclaration = declaration.Contains("record", StringComparison.Ordinal)
+        var nonNullDeclaration = declaration ?? throw new ArgumentNullException(nameof(declaration));
+        var baseDeclaration = nonNullDeclaration.Contains("record", StringComparison.Ordinal)
             ? "public record Base { public Base(int value) { Contract.Requires(value > 0); } }"
             : "public class Base { public Base(int value) { Contract.Requires(value > 0); } }";
         var diagnostics = await AnalyzerTestHost.AnalyzeAsync(
-            "using SharpProof.Attributes;\n" + baseDeclaration + "\n" + declaration,
+            "using SharpProof.Attributes;\n" + baseDeclaration + "\n" + nonNullDeclaration,
             "contracts",
             []);
 
