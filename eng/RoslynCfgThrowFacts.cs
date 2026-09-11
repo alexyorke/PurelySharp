@@ -23,6 +23,47 @@ internal static class RoslynCfgThrowFacts
         }
     }
 
+    internal static bool BuiltInOperationMayThrow(IOperation operation)
+    {
+        return operation is
+            IInvocationOperation or
+            IDynamicInvocationOperation or
+            IFunctionPointerInvocationOperation or
+            IObjectCreationOperation or
+            IArrayCreationOperation or
+            IArrayElementReferenceOperation or
+            IPropertyReferenceOperation or
+            ILockOperation or
+            IConversionOperation
+            { IsChecked: true, OperatorMethod: null } or
+            ICompoundAssignmentOperation
+            {
+                IsChecked: true,
+                OperatorMethod: null
+            } or
+            ICompoundAssignmentOperation
+            {
+                OperatorMethod: null,
+                OperatorKind: BinaryOperatorKind.Divide or
+                    BinaryOperatorKind.Remainder
+            } or
+            IBinaryOperation
+            {
+                IsChecked: true,
+                OperatorMethod: null
+            } or
+            IBinaryOperation
+            {
+                OperatorMethod: null,
+                OperatorKind: BinaryOperatorKind.Divide or
+                    BinaryOperatorKind.Remainder
+            } or
+            IUnaryOperation
+            { IsChecked: true, OperatorMethod: null } or
+            IIncrementOrDecrementOperation
+            { IsChecked: true, OperatorMethod: null };
+    }
+
     internal static bool OperationMayThrow(IOperation operation)
     {
         if (operation is IConversionOperation conversion)
@@ -39,40 +80,19 @@ internal static class RoslynCfgThrowFacts
             return !methodReference.Method.IsStatic &&
                 methodReference.Instance?.Type?.IsReferenceType == true;
         }
-        return operation is
-            IThrowOperation or
-            IInvocationOperation or
-            IDynamicInvocationOperation or
-            IDynamicObjectCreationOperation or
-            IDynamicIndexerAccessOperation or
-            IFunctionPointerInvocationOperation or
-            IObjectCreationOperation or
-            IArrayCreationOperation or
-            IArrayElementReferenceOperation or
-            IDynamicMemberReferenceOperation or
-            IFieldReferenceOperation { Instance: not null } or
-            IPropertyReferenceOperation or
-            IEventAssignmentOperation or
-            ILockOperation or
-            IAwaitOperation or
-            ICompoundAssignmentOperation { OperatorMethod: not null } or
-            ICompoundAssignmentOperation { IsChecked: true } or
-            ICompoundAssignmentOperation
-            {
-                OperatorKind: BinaryOperatorKind.Divide or
-                    BinaryOperatorKind.Remainder
-            } or
-            IBinaryOperation { OperatorMethod: not null } or
-            IBinaryOperation { IsChecked: true } or
-            IBinaryOperation
-            {
-                OperatorKind: BinaryOperatorKind.Divide or
-                    BinaryOperatorKind.Remainder
-            } or
-            IUnaryOperation { OperatorMethod: not null } or
-            IUnaryOperation { IsChecked: true } or
-            IIncrementOrDecrementOperation { OperatorMethod: not null } or
-            IIncrementOrDecrementOperation { IsChecked: true };
+        return BuiltInOperationMayThrow(operation) ||
+            operation is
+                IThrowOperation or
+                IDynamicObjectCreationOperation or
+                IDynamicIndexerAccessOperation or
+                IDynamicMemberReferenceOperation or
+                IFieldReferenceOperation { Instance: not null } or
+                IEventAssignmentOperation or
+                IAwaitOperation or
+                ICompoundAssignmentOperation { OperatorMethod: not null } or
+                IBinaryOperation { OperatorMethod: not null } or
+                IUnaryOperation { OperatorMethod: not null } or
+                IIncrementOrDecrementOperation { OperatorMethod: not null };
     }
 
     internal static IEnumerable<BasicBlock> ExceptionalSuccessors(

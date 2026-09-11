@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp;
+using SharpProof.Roslyn;
 
 namespace SharpProof.Effects;
 
@@ -3165,43 +3166,7 @@ internal sealed class ExceptionHandlerReachability(
 
     private static bool CanThrowUnknown(IOperation operation)
     {
-        return operation is
-            IInvocationOperation or
-            IDynamicInvocationOperation or
-            IFunctionPointerInvocationOperation or
-            IObjectCreationOperation or
-            IArrayCreationOperation or
-            IArrayElementReferenceOperation or
-            IPropertyReferenceOperation or
-            ILockOperation or
-            IConversionOperation
-            { IsChecked: true, OperatorMethod: null } or
-            ICompoundAssignmentOperation
-            {
-                IsChecked: true,
-                OperatorMethod: null
-            } or
-            ICompoundAssignmentOperation
-            {
-                OperatorMethod: null,
-                OperatorKind: BinaryOperatorKind.Divide or
-                    BinaryOperatorKind.Remainder
-            } or
-            IBinaryOperation
-            {
-                IsChecked: true,
-                OperatorMethod: null
-            } or
-            IBinaryOperation
-            {
-                OperatorMethod: null,
-                OperatorKind: BinaryOperatorKind.Divide or
-                    BinaryOperatorKind.Remainder
-            } or
-            IUnaryOperation
-            { IsChecked: true, OperatorMethod: null } or
-            IIncrementOrDecrementOperation
-            { IsChecked: true, OperatorMethod: null };
+        return RoslynCfgThrowFacts.BuiltInOperationMayThrow(operation);
     }
 
     private bool CanThrowUnknownAfterPrerequisites(IOperation operation)
