@@ -416,72 +416,15 @@ public sealed class SharpProofSoundnessAnalyzerTests
             ]));
     }
 
-    [Test]
-    public async Task SemanticCacheWritesTrackAliasesAndAssignments()
+    [TestCaseSource(nameof(SemanticCacheDiagnosticCountCases))]
+    public async Task ReportsSemanticCacheDiagnosticCount(
+        string source,
+        int expectedCount)
     {
-        var diagnostics = await Analyze(
-            """
-            namespace SharpProof.Verify {
-            using ExternalAnswer = Other.Answer;
-            enum Answer { Unknown, TimedOut, Failed, Proven }
-            sealed class AnswerSource {
-                internal Answer Unknown => Answer.Proven;
-                internal Answer CreateTimeout() => Answer.Proven;
-            }
-            sealed class ProofCache {
-                internal Answer this[string key] { set { } }
-                internal Answer Latest { set { } }
-                internal void Add(string key, Answer answer) { }
-                internal void AddOrUpdate(string key, Answer answer) { }
-                internal void Write(Answer answer) { }
-            }
-            sealed class C {
-                void AliasUnknown(ProofCache cache) {
-                    var answer = Answer.Unknown;
-                    cache.Add("key", answer);
-                }
-                void AliasTimedOut(ProofCache cache) {
-                    var answer = Answer.TimedOut;
-                    cache.Write(answer);
-                }
-                void AliasFailed(ProofCache cache) {
-                    var answer = Answer.Failed;
-                    cache["key"] = answer;
-                }
-                void Branch(ProofCache cache, bool condition) {
-                    var answer = Answer.Proven;
-                    if (condition) answer = Answer.Unknown;
-                    cache.Write(answer);
-                }
-                void DirectIndexer(ProofCache cache) =>
-                    cache["key"] = Answer.Unknown;
-                void Property(ProofCache cache) =>
-                    cache.Latest = Answer.Failed;
-                void Overwrite(ProofCache cache) =>
-                    cache.AddOrUpdate("key", Answer.TimedOut);
-                void Unresolved(ProofCache cache, Answer answer) =>
-                    cache.Write(answer);
-                void Safe(ProofCache cache, AnswerSource source) {
-                    var answer = Answer.Unknown;
-                    answer = Answer.Proven;
-                    cache.Add("key", answer);
-                    cache["key"] = Answer.Proven;
-                    cache.Latest = source.Unknown;
-                    cache.Write(source.CreateTimeout());
-                    var TimeoutAnswer = Answer.Proven;
-                    cache.Write(TimeoutAnswer);
-                    _ = ExternalAnswer.Unknown;
-                }
-            }
-            }
-            namespace Other {
-                enum Answer { Unknown }
-            }
-            """);
-
+        var diagnostics = await Analyze(source);
         Assert.That(
             diagnostics.Count(static diagnostic => diagnostic.Id == "SPMETA010"),
-            Is.EqualTo(8));
+            Is.EqualTo(expectedCount));
     }
 
     [Test]
@@ -560,38 +503,6 @@ public sealed class SharpProofSoundnessAnalyzerTests
             """);
 
         AssertSemanticCacheDiagnostics(diagnostics, 4);
-    }
-
-    [Test]
-    public async Task SemanticCacheWritesInspectNeutralWrapperConstructorArguments()
-    {
-        var diagnostics = await Analyze(
-            """
-            namespace SharpProof.Verify;
-            enum Answer { Unknown, TimedOut, Proven }
-            sealed class Envelope {
-                internal Envelope(Answer answer) => Answer = answer;
-                internal Answer Answer { get; }
-            }
-            sealed class ProofCache {
-                internal void Write(Envelope envelope) { }
-            }
-            sealed class C {
-                private static Envelope CreateTimeout() =>
-                    new Envelope(Answer.TimedOut);
-
-                void M(ProofCache cache) {
-                    cache.Write(new Envelope(Answer.Unknown));
-                    cache.Write(CreateTimeout());
-                    cache.Write(new Envelope(Answer.Proven));
-                }
-            }
-            """);
-
-        Assert.That(
-            diagnostics.Count(static diagnostic =>
-                diagnostic.Id == "SPMETA010"),
-            Is.EqualTo(2));
     }
 
     [Test]
@@ -860,35 +771,6 @@ public sealed class SharpProofSoundnessAnalyzerTests
     }
 
     [Test]
-    public async Task SemanticCacheFieldWritesAreRejected()
-    {
-        var diagnostics = await Analyze(
-            """
-            namespace SharpProof.Verify;
-            enum Answer { Proven, Unknown }
-            sealed class ProofCache {
-                internal Answer Latest;
-                internal Answer? Optional;
-                internal Answer Combined;
-                internal Answer Safe;
-            }
-            sealed class C {
-                void M(ProofCache cache) {
-                    cache.Latest = Answer.Unknown;
-                    cache.Optional ??= Answer.Unknown;
-                    cache.Combined |= Answer.Unknown;
-                    cache.Safe = Answer.Proven;
-                }
-            }
-            """);
-
-        Assert.That(
-            diagnostics.Count(static diagnostic =>
-                diagnostic.Id == "SPMETA010"),
-            Is.EqualTo(3));
-    }
-
-    [Test]
     public async Task SemanticCacheWritesRetainAllConditionalDefinitions()
     {
         var diagnostics = await Analyze(
@@ -952,53 +834,6 @@ public sealed class SharpProofSoundnessAnalyzerTests
             diagnostics.Count(static diagnostic =>
                 diagnostic.Id == "SPMETA010"),
             Is.EqualTo(3));
-    }
-
-    [Test]
-    public async Task SemanticCacheWritesFollowInterfaceAndBaseTypedAliases()
-    {
-        var diagnostics = await Analyze(
-            """
-            namespace SharpProof.Verify;
-            enum Answer { Unknown, Proven }
-            interface IAnswerStore {
-                Answer this[string key] { set; }
-                Answer Latest { set; }
-                void Write(Answer answer);
-            }
-            abstract class AnswerStoreBase {
-                internal abstract Answer this[string key] { set; }
-                internal abstract Answer Latest { set; }
-                internal abstract void Write(Answer answer);
-            }
-            sealed class ProofCache : AnswerStoreBase, IAnswerStore {
-                Answer IAnswerStore.this[string key] { set { } }
-                Answer IAnswerStore.Latest { set { } }
-                void IAnswerStore.Write(Answer answer) { }
-                internal override Answer this[string key] { set { } }
-                internal override Answer Latest { set { } }
-                internal override void Write(Answer answer) { }
-            }
-            sealed class C {
-                void ThroughInterface(ProofCache cache) {
-                    IAnswerStore store = cache;
-                    store.Write(Answer.Unknown);
-                    store["key"] = Answer.Unknown;
-                    store.Latest = Answer.Unknown;
-                }
-                void ThroughBase(ProofCache cache) {
-                    AnswerStoreBase store = cache;
-                    store.Write(Answer.Unknown);
-                    store["key"] = Answer.Unknown;
-                    store.Latest = Answer.Unknown;
-                }
-            }
-            """);
-
-        Assert.That(
-            diagnostics.Count(static diagnostic =>
-                diagnostic.Id == "SPMETA010"),
-            Is.EqualTo(6));
     }
 
     [Test]
@@ -3430,6 +3265,155 @@ public sealed class SharpProofSoundnessAnalyzerTests
             }
             """)
             .SetName("WorkerCancellationResponseHelperMustPublishResponse");
+    }
+
+    private static IEnumerable<TestCaseData> SemanticCacheDiagnosticCountCases()
+    {
+        yield return new TestCaseData(
+            """
+            namespace SharpProof.Verify {
+            using ExternalAnswer = Other.Answer;
+            enum Answer { Unknown, TimedOut, Failed, Proven }
+            sealed class AnswerSource {
+                internal Answer Unknown => Answer.Proven;
+                internal Answer CreateTimeout() => Answer.Proven;
+            }
+            sealed class ProofCache {
+                internal Answer this[string key] { set { } }
+                internal Answer Latest { set { } }
+                internal void Add(string key, Answer answer) { }
+                internal void AddOrUpdate(string key, Answer answer) { }
+                internal void Write(Answer answer) { }
+            }
+            sealed class C {
+                void AliasUnknown(ProofCache cache) {
+                    var answer = Answer.Unknown;
+                    cache.Add("key", answer);
+                }
+                void AliasTimedOut(ProofCache cache) {
+                    var answer = Answer.TimedOut;
+                    cache.Write(answer);
+                }
+                void AliasFailed(ProofCache cache) {
+                    var answer = Answer.Failed;
+                    cache["key"] = answer;
+                }
+                void Branch(ProofCache cache, bool condition) {
+                    var answer = Answer.Proven;
+                    if (condition) answer = Answer.Unknown;
+                    cache.Write(answer);
+                }
+                void DirectIndexer(ProofCache cache) =>
+                    cache["key"] = Answer.Unknown;
+                void Property(ProofCache cache) =>
+                    cache.Latest = Answer.Failed;
+                void Overwrite(ProofCache cache) =>
+                    cache.AddOrUpdate("key", Answer.TimedOut);
+                void Unresolved(ProofCache cache, Answer answer) =>
+                    cache.Write(answer);
+                void Safe(ProofCache cache, AnswerSource source) {
+                    var answer = Answer.Unknown;
+                    answer = Answer.Proven;
+                    cache.Add("key", answer);
+                    cache["key"] = Answer.Proven;
+                    cache.Latest = source.Unknown;
+                    cache.Write(source.CreateTimeout());
+                    var TimeoutAnswer = Answer.Proven;
+                    cache.Write(TimeoutAnswer);
+                    _ = ExternalAnswer.Unknown;
+                }
+            }
+            }
+            namespace Other {
+                enum Answer { Unknown }
+            }
+            """,
+            8)
+            .SetName("SemanticCacheWritesTrackAliasesAndAssignments");
+        yield return new TestCaseData(
+            """
+            namespace SharpProof.Verify;
+            enum Answer { Unknown, TimedOut, Proven }
+            sealed class Envelope {
+                internal Envelope(Answer answer) => Answer = answer;
+                internal Answer Answer { get; }
+            }
+            sealed class ProofCache {
+                internal void Write(Envelope envelope) { }
+            }
+            sealed class C {
+                private static Envelope CreateTimeout() =>
+                    new Envelope(Answer.TimedOut);
+
+                void M(ProofCache cache) {
+                    cache.Write(new Envelope(Answer.Unknown));
+                    cache.Write(CreateTimeout());
+                    cache.Write(new Envelope(Answer.Proven));
+                }
+            }
+            """,
+            2)
+            .SetName("SemanticCacheWritesInspectNeutralWrapperConstructorArguments");
+        yield return new TestCaseData(
+            """
+            namespace SharpProof.Verify;
+            enum Answer { Proven, Unknown }
+            sealed class ProofCache {
+                internal Answer Latest;
+                internal Answer? Optional;
+                internal Answer Combined;
+                internal Answer Safe;
+            }
+            sealed class C {
+                void M(ProofCache cache) {
+                    cache.Latest = Answer.Unknown;
+                    cache.Optional ??= Answer.Unknown;
+                    cache.Combined |= Answer.Unknown;
+                    cache.Safe = Answer.Proven;
+                }
+            }
+            """,
+            3)
+            .SetName("SemanticCacheFieldWritesAreRejected");
+        yield return new TestCaseData(
+            """
+            namespace SharpProof.Verify;
+            enum Answer { Unknown, Proven }
+            interface IAnswerStore {
+                Answer this[string key] { set; }
+                Answer Latest { set; }
+                void Write(Answer answer);
+            }
+            abstract class AnswerStoreBase {
+                internal abstract Answer this[string key] { set; }
+                internal abstract Answer Latest { set; }
+                internal abstract void Write(Answer answer);
+            }
+            sealed class ProofCache : AnswerStoreBase, IAnswerStore {
+                Answer IAnswerStore.this[string key] { set { } }
+                Answer IAnswerStore.Latest { set { } }
+                void IAnswerStore.Write(Answer answer) { }
+                internal override Answer this[string key] { set { } }
+                internal override Answer Latest { set { } }
+                internal override void Write(Answer answer) { }
+            }
+            sealed class C {
+                void ThroughInterface(ProofCache cache) {
+                    IAnswerStore store = cache;
+                    store.Write(Answer.Unknown);
+                    store["key"] = Answer.Unknown;
+                    store.Latest = Answer.Unknown;
+                }
+                void ThroughBase(ProofCache cache) {
+                    AnswerStoreBase store = cache;
+                    store.Write(Answer.Unknown);
+                    store["key"] = Answer.Unknown;
+                    store.Latest = Answer.Unknown;
+                }
+            }
+            """,
+            6)
+            .SetName("SemanticCacheWritesFollowInterfaceAndBaseTypedAliases");
     }
 
     private static void AssertSemanticCacheDiagnostics(
