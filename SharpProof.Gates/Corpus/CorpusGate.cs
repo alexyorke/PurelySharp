@@ -379,18 +379,6 @@ internal static class CorpusGate
         })];
     }
 
-    public static async Task<string> RenderActualSnapshotAsync(
-        string? repositoryRoot = null,
-        CancellationToken cancellationToken = default)
-    {
-        repositoryRoot ??= RepositoryLayout.FindRoot();
-        var openSourceDocument = OpenSourceCorpusCatalog.Load(repositoryRoot);
-        return await RenderActualSnapshotAsync(
-                openSourceDocument,
-                cancellationToken)
-            .ConfigureAwait(false);
-    }
-
     private static async Task<string> RenderActualSnapshotAsync(
         OpenSourceCorpusDocument openSourceDocument,
         CancellationToken cancellationToken)

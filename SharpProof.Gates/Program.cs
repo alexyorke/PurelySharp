@@ -56,13 +56,6 @@ internal static class Program
                     SharpProofJsonDefaults.Indented));
                 return gate.Passed ? 0 : 1;
             }
-            if (command == "corpus-print")
-            {
-                Console.Write(
-                    await CorpusGate.RenderActualSnapshotAsync()
-                        .ConfigureAwait(false));
-                return 0;
-            }
             if (command == "corpus-update")
             {
                 await CorpusGate.WriteActualSnapshotAsync(root)
@@ -80,7 +73,7 @@ internal static class Program
             }
             Console.Error.WriteLine(
                 "Usage: SharpProof.Gates " +
-                "[all|corpus|corpus-print|corpus-update|performance|" +
+                "[all|corpus|corpus-update|performance|" +
                 "performance-smoke]");
             return 2;
         }
