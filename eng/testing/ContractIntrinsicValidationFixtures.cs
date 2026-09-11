@@ -2,8 +2,9 @@ namespace SharpProof.Testing;
 
 internal static class ContractIntrinsicValidationFixtures
 {
-    internal static string SourceShadowedRuntimeContract(string typeName) =>
-        $$"""
+    internal static string SourceShadowedRuntimeContract(string typeName)
+    {
+        return $$"""
         namespace SharpProof.Attributes {
             public static class Contract {
                 public static void Requires(bool condition) {
@@ -24,6 +25,7 @@ internal static class ContractIntrinsicValidationFixtures
             }
         }
         """;
+    }
 
     internal const string DirectContract =
         """
