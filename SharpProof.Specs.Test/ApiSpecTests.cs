@@ -1030,8 +1030,7 @@ public sealed class ApiSpecTests
 
             public static class Contract
             {
-                public const string ConditionalSymbol =
-                    "SHARPPROOF_CONTRACTS";
+                public const string ConditionalSymbol = "{{Contract.ConditionalSymbol}}";
 
                 {{conditional}}
                 public static void Requires(bool condition)
