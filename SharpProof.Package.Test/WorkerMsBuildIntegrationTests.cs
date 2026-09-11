@@ -3698,28 +3698,11 @@ public sealed class WorkerMsBuildIntegrationTests
             };
         }
 
-        internal async Task<string> CreateResultlessWorkerAsync()
+        internal Task<string> CreateResultlessWorkerAsync()
         {
-            var root = Path.Combine(
-                _root,
-                "obj",
-                "test-workers",
-                "resultless-worker");
-            Directory.CreateDirectory(root);
-            var project = Path.Combine(root, "ResultlessWorker.csproj");
-            await File.WriteAllTextAsync(
-                project,
-                """
-                <Project Sdk="Microsoft.NET.Sdk">
-                  <PropertyGroup>
-                    <OutputType>Exe</OutputType>
-                    <TargetFramework>net8.0</TargetFramework>
-                  </PropertyGroup>
-                </Project>
-                """,
-                new System.Text.UTF8Encoding(false));
-            await File.WriteAllTextAsync(
-                Path.Combine(root, "Program.cs"),
+            return CreateScratchWorkerAsync(
+                ["obj", "test-workers", "resultless-worker"],
+                "ResultlessWorker",
                 """
                 using System;
                 if (!string.Equals(
@@ -3727,43 +3710,14 @@ public sealed class WorkerMsBuildIntegrationTests
                         "SharpProof.Start/1",
                         StringComparison.Ordinal))
                     return;
-                """,
-                new System.Text.UTF8Encoding(false));
-            var build = await RunDotNetAsync([
-                "build", project, "-c", "Release", "--nologo",
-                "/nodeReuse:false"
-            ]);
-            if (build.ExitCode != 0)
-            {
-                throw new InvalidOperationException(build.Output);
-            }
-
-            return Path.Combine(
-                root,
-                "bin",
-                "Release",
-                "net8.0",
-                "ResultlessWorker.dll");
+                """);
         }
 
-        internal async Task<string> CreateMalformedWorkerAsync()
+        internal Task<string> CreateMalformedWorkerAsync()
         {
-            var root = Path.Combine(_root, "malformed-worker");
-            Directory.CreateDirectory(root);
-            var project = Path.Combine(root, "MalformedWorker.csproj");
-            await File.WriteAllTextAsync(
-                project,
-                """
-                <Project Sdk="Microsoft.NET.Sdk">
-                  <PropertyGroup>
-                    <OutputType>Exe</OutputType>
-                     <TargetFramework Condition="'$(TargetFrameworks)' == ''">net8.0</TargetFramework>
-                  </PropertyGroup>
-                </Project>
-                """,
-                new System.Text.UTF8Encoding(false));
-            await File.WriteAllTextAsync(
-                Path.Combine(root, "Program.cs"),
+            return CreateScratchWorkerAsync(
+                ["malformed-worker"],
+                "MalformedWorker",
                 """
                 using System;
                 using System.IO;
@@ -3775,46 +3729,14 @@ public sealed class WorkerMsBuildIntegrationTests
                     return;
                 File.WriteAllText(result, "not-json");
                 """,
-                new System.Text.UTF8Encoding(false));
-            var build = await RunDotNetAsync([
-                "build", project, "-c", "Release", "--nologo",
-                "/nodeReuse:false"
-            ]);
-            if (build.ExitCode != 0)
-            {
-                throw new InvalidOperationException(build.Output);
-            }
-
-            return Path.Combine(
-                root,
-                "bin",
-                "Release",
-                "net8.0",
-                "MalformedWorker.dll");
+                conditionalTargetFramework: true);
         }
 
-        internal async Task<string> CreateMalformedThenHangWorkerAsync()
+        internal Task<string> CreateMalformedThenHangWorkerAsync()
         {
-            var root = Path.Combine(
-                _root,
-                "obj",
-                "test-workers",
-                "malformed-hanging-worker");
-            Directory.CreateDirectory(root);
-            var project = Path.Combine(root, "MalformedHangingWorker.csproj");
-            await File.WriteAllTextAsync(
-                project,
-                """
-                <Project Sdk="Microsoft.NET.Sdk">
-                  <PropertyGroup>
-                    <OutputType>Exe</OutputType>
-                    <TargetFramework>net8.0</TargetFramework>
-                  </PropertyGroup>
-                </Project>
-                """,
-                new System.Text.UTF8Encoding(false));
-            await File.WriteAllTextAsync(
-                Path.Combine(root, "Program.cs"),
+            return CreateScratchWorkerAsync(
+                ["obj", "test-workers", "malformed-hanging-worker"],
+                "MalformedHangingWorker",
                 """
                 using System;
                 using System.IO;
@@ -3827,7 +3749,35 @@ public sealed class WorkerMsBuildIntegrationTests
                     return;
                 File.WriteAllText(result, "not-json");
                 Thread.Sleep(Timeout.Infinite);
+                """);
+        }
+
+        private async Task<string> CreateScratchWorkerAsync(
+            string[] relativeDirectory,
+            string name,
+            string programSource,
+            bool conditionalTargetFramework = false)
+        {
+            var root = Path.Combine([_root, .. relativeDirectory]);
+            Directory.CreateDirectory(root);
+            var project = Path.Combine(root, name + ".csproj");
+            var targetFramework = conditionalTargetFramework
+                ? " <TargetFramework Condition=\"'$(TargetFrameworks)' == ''\">net8.0</TargetFramework>"
+                : "<TargetFramework>net8.0</TargetFramework>";
+            await File.WriteAllTextAsync(
+                project,
+                $"""
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <PropertyGroup>
+                    <OutputType>Exe</OutputType>
+                    {targetFramework}
+                  </PropertyGroup>
+                </Project>
                 """,
+                new System.Text.UTF8Encoding(false));
+            await File.WriteAllTextAsync(
+                Path.Combine(root, "Program.cs"),
+                programSource,
                 new System.Text.UTF8Encoding(false));
             var build = await RunDotNetAsync([
                 "build", project, "-c", "Release", "--nologo",
@@ -3843,7 +3793,7 @@ public sealed class WorkerMsBuildIntegrationTests
                 "bin",
                 "Release",
                 "net8.0",
-                "MalformedHangingWorker.dll");
+                name + ".dll");
         }
 
         internal static ConsumerProject Create(
@@ -4366,83 +4316,29 @@ public sealed class WorkerMsBuildIntegrationTests
 
         private static ProjectTemplate CreateProjectTemplate()
         {
+            static string EscapePath(params string[] parts) =>
+                SecurityElement.Escape(Path.Combine(parts));
+
             var repository = TestRepository.FindRoot();
-            var nativeZ3Path = SecurityElement.Escape(
-                ContainerContract.ResolveZ3LibraryRequired());
-            var attributes = SecurityElement.Escape(
-                ProductBuildOutputs.AttributesAssemblyPath());
-            var props = SecurityElement.Escape(Path.Combine(
-                repository,
-                "SharpProof.Package",
-                "buildTransitive",
-                "SharpProof.props"));
-            var verifierProps = SecurityElement.Escape(Path.Combine(
-                repository,
-                "SharpProof.Verifier",
-                "buildTransitive",
-                "SharpProof.Verifier.props"));
+            var nativeZ3Path = EscapePath(ContainerContract.ResolveZ3LibraryRequired());
+            var attributes = EscapePath(ProductBuildOutputs.AttributesAssemblyPath());
+            var props = EscapePath(repository, "SharpProof.Package", "buildTransitive", "SharpProof.props");
+            var verifierProps = EscapePath(repository, "SharpProof.Verifier", "buildTransitive", "SharpProof.Verifier.props");
             var testConfiguration = new DirectoryInfo(
                 Path.GetDirectoryName(
                     typeof(WorkerMsBuildIntegrationTests).Assembly.Location)!)
                 .Parent?.Name ??
                 throw new InvalidOperationException(
                     "The test build configuration was not found.");
-            var analyzerDirectory = SecurityElement.Escape(Path.Combine(
-                repository,
-                "SharpProof.Analyzer",
-                "bin",
-                testConfiguration,
-                "netstandard2.0"));
-            var generatorDirectory = SecurityElement.Escape(Path.Combine(
-                repository,
-                "SharpProof.ContractForGenerator",
-                "bin",
-                testConfiguration,
-                "netstandard2.0"));
-            var collectorDirectory = SecurityElement.Escape(Path.Combine(
-                repository,
-                "SharpProof.CompilerCollector",
-                "bin",
-                testConfiguration,
-                "netstandard2.0"));
-            var targets = SecurityElement.Escape(Path.Combine(
-                repository,
-                "SharpProof.Package",
-                "buildTransitive",
-                "SharpProof.targets"));
-            var verifierTargets = SecurityElement.Escape(Path.Combine(
-                repository,
-                "SharpProof.Verifier",
-                "buildTransitive",
-                "SharpProof.Verifier.targets"));
-            var worker = SecurityElement.Escape(Path.Combine(
-                repository,
-                "SharpProof.Worker",
-                "bin",
-                testConfiguration,
-                "net9.0",
-                "SharpProof.Worker.dll"));
-            var launcher = SecurityElement.Escape(Path.Combine(
-                repository,
-                "SharpProof.Worker.Launcher",
-                "bin",
-                testConfiguration,
-                "net9.0",
-                "SharpProof.Worker.Launcher.dll"));
-            var protocol = SecurityElement.Escape(Path.Combine(
-                repository,
-                "SharpProof.Worker.Protocol",
-                "bin",
-                testConfiguration,
-                "netstandard2.0",
-                "SharpProof.Worker.Protocol.dll"));
-            var buildTasks = SecurityElement.Escape(Path.Combine(
-                repository,
-                "SharpProof.BuildTasks",
-                "bin",
-                testConfiguration,
-                "net9.0",
-                "SharpProof.BuildTasks.dll"));
+            var analyzerDirectory = EscapePath(repository, "SharpProof.Analyzer", "bin", testConfiguration, "netstandard2.0");
+            var generatorDirectory = EscapePath(repository, "SharpProof.ContractForGenerator", "bin", testConfiguration, "netstandard2.0");
+            var collectorDirectory = EscapePath(repository, "SharpProof.CompilerCollector", "bin", testConfiguration, "netstandard2.0");
+            var targets = EscapePath(repository, "SharpProof.Package", "buildTransitive", "SharpProof.targets");
+            var verifierTargets = EscapePath(repository, "SharpProof.Verifier", "buildTransitive", "SharpProof.Verifier.targets");
+            var worker = EscapePath(repository, "SharpProof.Worker", "bin", testConfiguration, "net9.0", "SharpProof.Worker.dll");
+            var launcher = EscapePath(repository, "SharpProof.Worker.Launcher", "bin", testConfiguration, "net9.0", "SharpProof.Worker.Launcher.dll");
+            var protocol = EscapePath(repository, "SharpProof.Worker.Protocol", "bin", testConfiguration, "netstandard2.0", "SharpProof.Worker.Protocol.dll");
+            var buildTasks = EscapePath(repository, "SharpProof.BuildTasks", "bin", testConfiguration, "net9.0", "SharpProof.BuildTasks.dll");
             return new ProjectTemplate(
                 repository,
                 nativeZ3Path,
