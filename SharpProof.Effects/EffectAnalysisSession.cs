@@ -693,39 +693,23 @@ public sealed class EffectAnalysisSession
     private ImmutableArray<IMethodSymbol> CollectSourceMethods(CancellationToken cancellationToken)
     {
         var methods = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+        AddSourceMethods(
+            methods,
+            _compilation.Assembly.GlobalNamespace,
+            cancellationToken);
         foreach (var tree in _compilation.SyntaxTrees)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var model = SharpProof.Frontend.Host.CompilationModelProvider
                 .GetSemanticModel(_compilation, tree);
-            foreach (var syntax in tree.GetRoot(cancellationToken).DescendantNodesAndSelf())
+            foreach (var syntax in tree.GetRoot(cancellationToken)
+                         .DescendantNodes()
+                         .OfType<LocalFunctionStatementSyntax>())
             {
-                var symbol = model.GetDeclaredSymbol(syntax, cancellationToken);
-                switch (symbol)
+                if (model.GetDeclaredSymbol(syntax, cancellationToken) is
+                    IMethodSymbol method && IsSourceMethod(method))
                 {
-                    case IMethodSymbol method when IsSourceMethod(method):
-                        methods.Add(NormalizeMethod(method));
-                        break;
-                    case INamedTypeSymbol type
-                        when syntax is TypeDeclarationSyntax declaration:
-                        AddPrimaryConstructor(
-                            methods,
-                            type,
-                            declaration,
-                            cancellationToken);
-                        break;
-                    case IPropertySymbol property:
-                        if (property.GetMethod is { } getter && IsSourceMethod(getter))
-                        {
-                            methods.Add(NormalizeMethod(getter));
-                        }
-
-                        if (property.SetMethod is { } setter && IsSourceMethod(setter))
-                        {
-                            methods.Add(NormalizeMethod(setter));
-                        }
-
-                        break;
+                    methods.Add(NormalizeMethod(method));
                 }
             }
         }
@@ -733,30 +717,38 @@ public sealed class EffectAnalysisSession
             static method => method, EffectSymbolComparer<IMethodSymbol>.Instance)];
     }
 
-    private void AddPrimaryConstructor(
-        HashSet<IMethodSymbol> methods,
-        INamedTypeSymbol type,
-        TypeDeclarationSyntax declaration,
+    private void AddSourceMethods(HashSet<IMethodSymbol> methods, INamespaceOrTypeSymbol container,
         CancellationToken cancellationToken)
     {
-        if (declaration.ParameterList == null)
-        {
-            return;
-        }
-
-        foreach (var constructor in type.InstanceConstructors)
+        foreach (var member in container.GetMembers())
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (constructor.MethodKind == MethodKind.Constructor &&
-                IsSourceMethod(constructor) &&
-                constructor.DeclaringSyntaxReferences.Any(reference =>
-                    reference.SyntaxTree == declaration.SyntaxTree &&
-                    reference.GetSyntax(cancellationToken) is
-                        TypeDeclarationSyntax owner &&
-                    owner.Span == declaration.Span))
+            if (member is INamespaceOrTypeSymbol nested)
             {
-                methods.Add(NormalizeMethod(constructor));
+                AddSourceMethods(methods, nested, cancellationToken);
             }
+            else if (member is IMethodSymbol method && IsSourceMethod(method))
+            {
+                methods.Add(NormalizeMethod(method));
+            }
+            else if (member is IPropertySymbol property)
+            {
+                AddSourceMethod(methods, property.GetMethod);
+                AddSourceMethod(methods, property.SetMethod);
+            }
+            else if (member is IEventSymbol @event)
+            {
+                AddSourceMethod(methods, @event.AddMethod);
+                AddSourceMethod(methods, @event.RemoveMethod);
+            }
+        }
+    }
+
+    private void AddSourceMethod(HashSet<IMethodSymbol> methods, IMethodSymbol? method)
+    {
+        if (method != null && IsSourceMethod(method))
+        {
+            methods.Add(NormalizeMethod(method));
         }
     }
 

@@ -5259,9 +5259,14 @@ public sealed class EffectAnalysisTests
                 public static int Last(int value) => Alpha.First(value);
             }
 
-            public static class Alpha {
+            public sealed partial class Alpha(int value) {
+                public int Value { get; set; } = value;
+                partial void Hook();
+                partial void Hook() { }
                 public static int First(int value) => value + 1;
-                public static int Second(int value) => First(value) + 1;
+                public int Second(int value) {
+                    int Local(int item) => First(item) + 1; Hook(); return Local(value) + Value;
+                }
             }
             """);
 
@@ -5271,6 +5276,7 @@ public sealed class EffectAnalysisTests
         Assert.That(
             second.Select(ResultKey),
             Is.EqualTo(first.Select(ResultKey)));
+        Assert.That(first, Has.Length.EqualTo(8));
         Assert.That(
             second.Select(static result => result.Summary),
             Is.EqualTo(first.Select(static result => result.Summary)));
