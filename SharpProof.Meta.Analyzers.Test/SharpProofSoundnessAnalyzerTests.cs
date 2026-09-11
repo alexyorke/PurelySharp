@@ -537,48 +537,16 @@ public sealed class SharpProofSoundnessAnalyzerTests
         AssertSemanticCacheDiagnostics(diagnostics, 4);
     }
 
-    [Test]
-    public async Task SemanticCacheWritesTrackRefOutAndDeconstructionDefinitions()
+    [TestCaseSource(nameof(SemanticCacheWriteDiagnosticCountCases))]
+    public async Task ReportsSemanticCacheWriteDiagnosticCount(
+        string body,
+        int expectedCount)
     {
-        var diagnostics = await Analyze(
-            SemanticCacheWriteFixture(
-            """
-            sealed class C {
-                private static void SetRef(ref Answer answer) =>
-                    answer = Answer.Unknown;
-                private static void SetOut(out Answer answer) =>
-                    answer = Answer.Unknown;
-
-                void RefWrite(ProofCache cache) {
-                    var answer = Answer.Proven;
-                    SetRef(ref answer);
-                    cache.Write(answer);
-                }
-
-                void OutWrite(ProofCache cache) {
-                    var answer = Answer.Proven;
-                    SetOut(out answer);
-                    cache.Write(answer);
-                }
-
-                void DeconstructionWrite(ProofCache cache) {
-                    var answer = Answer.Proven;
-                    (answer, _) = (Answer.Unknown, 0);
-                    cache.Write(answer);
-                }
-
-                void SafeDeconstructionOverwrite(ProofCache cache) {
-                    var answer = Answer.Unknown;
-                    (answer, _) = (Answer.Proven, 0);
-                    cache.Write(answer);
-                }
-            }
-            """));
-
+        var diagnostics = await Analyze(SemanticCacheWriteFixture(body));
         Assert.That(
             diagnostics.Count(static diagnostic =>
                 diagnostic.Id == "SPMETA010"),
-            Is.EqualTo(3));
+            Is.EqualTo(expectedCount));
     }
 
     [Test]
@@ -787,122 +755,6 @@ public sealed class SharpProofSoundnessAnalyzerTests
             """));
 
         AssertSemanticCacheDiagnostics(diagnostics, 1);
-    }
-
-    [Test]
-    public async Task SemanticCacheWritesJoinBranchesLoopsAndOverwrites()
-    {
-        var diagnostics = await Analyze(
-            SemanticCacheWriteFixture(
-            """
-            sealed class C {
-                void ExhaustiveSafe(ProofCache cache, bool condition) {
-                    var answer = Answer.Unknown;
-                    if (condition) answer = Answer.Proven;
-                    else answer = Answer.Proven;
-                    cache.Write(answer);
-                }
-                void StraightLineSafe(ProofCache cache, bool condition) {
-                    var answer = Answer.Unknown;
-                    if (condition) answer = Answer.Unknown;
-                    answer = Answer.Proven;
-                    cache.Write(answer);
-                }
-                void LoopMayWriteUnknown(ProofCache cache, bool condition) {
-                    var answer = Answer.Proven;
-                    while (condition) answer = Answer.Unknown;
-                    cache.Write(answer);
-                }
-                void ManyIndependentConditions(
-                    ProofCache cache, bool first, bool second, bool third) {
-                    var answer = Answer.Unknown;
-                    if (first) answer = Answer.Proven;
-                    if (second) answer = Answer.Proven;
-                    if (third) answer = Answer.Proven;
-                    cache.Write(answer);
-                }
-                void ExhaustiveMixed(ProofCache cache, bool condition) {
-                    var answer = Answer.Proven;
-                    if (condition) answer = Answer.Unknown;
-                    else answer = Answer.Proven;
-                    cache.Write(answer);
-                }
-            }
-            """));
-
-        Assert.That(
-            diagnostics.Count(static diagnostic =>
-                diagnostic.Id == "SPMETA010"),
-            Is.EqualTo(3));
-    }
-
-    [Test]
-    public async Task SemanticCacheWritesAnalyzeHelperReturnExpressions()
-    {
-        var diagnostics = await Analyze(
-            SemanticCacheWriteFixture(
-            """
-            static class AnswerSource {
-                internal static Answer Alias() {
-                    var answer = Answer.Unknown;
-                    return answer;
-                }
-                internal static Answer Conditional(bool condition) =>
-                    condition ? Answer.Unknown : Answer.Proven;
-                internal static Answer Switch(int value) => value switch {
-                    0 => Answer.Unknown,
-                    _ => Answer.Proven
-                };
-                internal static Answer Coalesce(Answer? answer) =>
-                    answer ?? Answer.Unknown;
-                internal static Answer Nested() => Alias();
-                internal static Answer AliasProperty {
-                    get {
-                        var answer = Answer.Unknown;
-                        return answer;
-                    }
-                }
-                internal static Answer ConditionalProperty =>
-                    true ? Answer.Unknown : Answer.Proven;
-            }
-            sealed class C {
-                void M(ProofCache cache, bool condition, int value,
-                    Answer? answer) {
-                    cache.Write(AnswerSource.Alias());
-                    cache.Write(AnswerSource.Conditional(condition));
-                    cache.Write(AnswerSource.Switch(value));
-                    cache.Write(AnswerSource.Coalesce(answer));
-                    cache.Write(AnswerSource.Nested());
-                    cache.Write(AnswerSource.AliasProperty);
-                    cache.Write(AnswerSource.ConditionalProperty);
-                }
-            }
-            """));
-
-        Assert.That(
-            diagnostics.Count(static diagnostic =>
-                diagnostic.Id == "SPMETA010"),
-            Is.EqualTo(7));
-    }
-
-    [Test]
-    public async Task SemanticCacheWritesIgnoreReturnsInConstantDisabledHelperBranches()
-    {
-        var diagnostics = await Analyze(
-            SemanticCacheWriteFixture(
-            """
-            static class AnswerSource {
-                internal static Answer Create() {
-                    if (false) return Answer.Unknown;
-                    return Answer.Proven;
-                }
-            }
-            sealed class C {
-                void M(ProofCache cache) => cache.Write(AnswerSource.Create());
-            }
-            """));
-
-        Assert.That(diagnostics.Count(static diagnostic => diagnostic.Id == "SPMETA010"), Is.EqualTo(0));
     }
 
     [Test]
@@ -3414,6 +3266,137 @@ public sealed class SharpProofSoundnessAnalyzerTests
             """,
             6)
             .SetName("SemanticCacheWritesFollowInterfaceAndBaseTypedAliases");
+    }
+
+    private static IEnumerable<TestCaseData> SemanticCacheWriteDiagnosticCountCases()
+    {
+        yield return new TestCaseData(
+            """
+            sealed class C {
+                private static void SetRef(ref Answer answer) =>
+                    answer = Answer.Unknown;
+                private static void SetOut(out Answer answer) =>
+                    answer = Answer.Unknown;
+
+                void RefWrite(ProofCache cache) {
+                    var answer = Answer.Proven;
+                    SetRef(ref answer);
+                    cache.Write(answer);
+                }
+
+                void OutWrite(ProofCache cache) {
+                    var answer = Answer.Proven;
+                    SetOut(out answer);
+                    cache.Write(answer);
+                }
+
+                void DeconstructionWrite(ProofCache cache) {
+                    var answer = Answer.Proven;
+                    (answer, _) = (Answer.Unknown, 0);
+                    cache.Write(answer);
+                }
+
+                void SafeDeconstructionOverwrite(ProofCache cache) {
+                    var answer = Answer.Unknown;
+                    (answer, _) = (Answer.Proven, 0);
+                    cache.Write(answer);
+                }
+            }
+            """,
+            3)
+            .SetName("SemanticCacheWritesTrackRefOutAndDeconstructionDefinitions");
+        yield return new TestCaseData(
+            """
+            sealed class C {
+                void ExhaustiveSafe(ProofCache cache, bool condition) {
+                    var answer = Answer.Unknown;
+                    if (condition) answer = Answer.Proven;
+                    else answer = Answer.Proven;
+                    cache.Write(answer);
+                }
+                void StraightLineSafe(ProofCache cache, bool condition) {
+                    var answer = Answer.Unknown;
+                    if (condition) answer = Answer.Unknown;
+                    answer = Answer.Proven;
+                    cache.Write(answer);
+                }
+                void LoopMayWriteUnknown(ProofCache cache, bool condition) {
+                    var answer = Answer.Proven;
+                    while (condition) answer = Answer.Unknown;
+                    cache.Write(answer);
+                }
+                void ManyIndependentConditions(
+                    ProofCache cache, bool first, bool second, bool third) {
+                    var answer = Answer.Unknown;
+                    if (first) answer = Answer.Proven;
+                    if (second) answer = Answer.Proven;
+                    if (third) answer = Answer.Proven;
+                    cache.Write(answer);
+                }
+                void ExhaustiveMixed(ProofCache cache, bool condition) {
+                    var answer = Answer.Proven;
+                    if (condition) answer = Answer.Unknown;
+                    else answer = Answer.Proven;
+                    cache.Write(answer);
+                }
+            }
+            """,
+            3)
+            .SetName("SemanticCacheWritesJoinBranchesLoopsAndOverwrites");
+        yield return new TestCaseData(
+            """
+            static class AnswerSource {
+                internal static Answer Alias() {
+                    var answer = Answer.Unknown;
+                    return answer;
+                }
+                internal static Answer Conditional(bool condition) =>
+                    condition ? Answer.Unknown : Answer.Proven;
+                internal static Answer Switch(int value) => value switch {
+                    0 => Answer.Unknown,
+                    _ => Answer.Proven
+                };
+                internal static Answer Coalesce(Answer? answer) =>
+                    answer ?? Answer.Unknown;
+                internal static Answer Nested() => Alias();
+                internal static Answer AliasProperty {
+                    get {
+                        var answer = Answer.Unknown;
+                        return answer;
+                    }
+                }
+                internal static Answer ConditionalProperty =>
+                    true ? Answer.Unknown : Answer.Proven;
+            }
+            sealed class C {
+                void M(ProofCache cache, bool condition, int value,
+                    Answer? answer) {
+                    cache.Write(AnswerSource.Alias());
+                    cache.Write(AnswerSource.Conditional(condition));
+                    cache.Write(AnswerSource.Switch(value));
+                    cache.Write(AnswerSource.Coalesce(answer));
+                    cache.Write(AnswerSource.Nested());
+                    cache.Write(AnswerSource.AliasProperty);
+                    cache.Write(AnswerSource.ConditionalProperty);
+                }
+            }
+            """,
+            7)
+            .SetName("SemanticCacheWritesAnalyzeHelperReturnExpressions");
+        yield return new TestCaseData(
+            """
+            static class AnswerSource {
+                internal static Answer Create() {
+                    if (false) return Answer.Unknown;
+                    return Answer.Proven;
+                }
+            }
+            sealed class C {
+                void M(ProofCache cache) => cache.Write(AnswerSource.Create());
+            }
+            """,
+            0)
+            .SetName("SemanticCacheWritesIgnoreReturnsInConstantDisabledHelperBranches");
     }
 
     private static void AssertSemanticCacheDiagnostics(
