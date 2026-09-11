@@ -116,12 +116,10 @@ internal sealed class ContractClauseSymbols(INamedTypeSymbol contractType)
             return null;
         }
 
-        return ContractApiClauseProjection.GetClauseRole(definition.Name) switch
-        {
-            ContractApiClauseRole.Requires => BoundContractKind.Requires,
-            ContractApiClauseRole.Ensures => BoundContractKind.Ensures,
-            ContractApiClauseRole.Assume => BoundContractKind.Assume,
-            _ => null
-        };
+        return Enum.TryParse<BoundContractKind>(
+            ContractApiClauseProjection.GetClauseRole(definition.Name).ToString(),
+            out var kind)
+            ? kind
+            : null;
     }
 }
