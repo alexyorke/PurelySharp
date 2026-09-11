@@ -3244,8 +3244,10 @@ internal sealed class ExceptionHandlerReachability(
         HashSet<IMethodSymbol> ActiveMethods,
         int Depth)
     {
-        public static TraversalContext Create() =>
-            new(new(SymbolEqualityComparer.Default), 0);
+        public static TraversalContext Create()
+        {
+            return new(new(SymbolEqualityComparer.Default), 0);
+        }
 
         public TraversalContext Next => new(ActiveMethods, Depth + 1);
     }
