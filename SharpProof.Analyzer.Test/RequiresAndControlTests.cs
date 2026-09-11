@@ -1560,9 +1560,7 @@ public sealed class RequiresAndControlTests
             []);
 
         AnalyzerTestHost.AssertIds(diagnostics, "SP0027");
-        Assert.That(
-            diagnostics[0].GetMessage(CultureInfo.InvariantCulture),
-            Does.Contain("false"));
+        AnalyzerTestHost.AssertMessageContains(diagnostics[0], "false");
     }
 
     [Test]
@@ -1758,9 +1756,7 @@ public sealed class RequiresAndControlTests
         using (Assert.EnterMultipleScope())
         {
             AnalyzerTestHost.AssertIds(diagnostics, "SP0047");
-            Assert.That(
-                diagnostics[0].GetMessage(CultureInfo.InvariantCulture),
-                Does.Contain("RequiresCallSiteAnalysisUnknown"));
+            AnalyzerTestHost.AssertMessageContains(diagnostics[0], "RequiresCallSiteAnalysisUnknown");
         }
     }
 
@@ -2584,9 +2580,7 @@ public sealed class RequiresAndControlTests
             ["SP0002", "SP0024"]);
 
         AnalyzerTestHost.AssertIds(diagnostics, "SP0002");
-        Assert.That(
-            diagnostics[0].GetMessage(CultureInfo.InvariantCulture),
-            Does.Contain("TrustedWithoutSummary"));
+        AnalyzerTestHost.AssertMessageContains(diagnostics[0], "TrustedWithoutSummary");
     }
 
     [Test]

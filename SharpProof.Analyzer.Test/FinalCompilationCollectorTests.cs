@@ -86,9 +86,7 @@ public sealed class FinalCompilationCollectorTests
         using (Assert.EnterMultipleScope())
         {
             AnalyzerTestHost.AssertIds(diagnostics, "SP0049");
-            Assert.That(
-                diagnostics.Single().GetMessage(CultureInfo.InvariantCulture),
-                Does.Contain("ill-formed UTF-16"));
+            AnalyzerTestHost.AssertMessageContains(diagnostics.Single(), "ill-formed UTF-16");
             Assert.That(File.Exists(path), Is.False);
         }
     }

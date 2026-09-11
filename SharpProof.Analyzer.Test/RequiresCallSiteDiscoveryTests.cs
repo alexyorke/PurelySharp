@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -26,14 +27,9 @@ public sealed class RequiresCallSiteDiscoveryTests
             }
             """,
             []);
-        var tree = compilation.SyntaxTrees.Single();
-        var declaration = tree.GetRoot().DescendantNodes()
-            .OfType<ConstructorDeclarationSyntax>()
-            .Single(static constructor =>
-                constructor.Identifier.ValueText == "Derived");
-        var discovery = CreateDiscovery(compilation, declaration);
-        var candidates = discovery
-            .Get(callerContracts: null);
+        var candidates = Discover<ConstructorDeclarationSyntax>(
+            compilation,
+            static constructor => constructor.Identifier.ValueText == "Derived");
 
         Assert.That(candidates, Is.Not.Null);
         Assert.That(candidates!.Value, Has.Length.EqualTo(1));
@@ -66,13 +62,7 @@ public sealed class RequiresCallSiteDiscoveryTests
             """,
             [],
             [external]);
-        var tree = compilation.SyntaxTrees.Single();
-        var declaration = tree.GetRoot().DescendantNodes()
-            .OfType<ConstructorDeclarationSyntax>()
-            .Single();
-        var discovery = CreateDiscovery(compilation, declaration);
-        var candidates = discovery
-            .Get(callerContracts: null);
+        var candidates = Discover<ConstructorDeclarationSyntax>(compilation);
 
         Assert.That(candidates, Is.Not.Null);
         Assert.That(candidates!.Value, Has.Length.EqualTo(1));
@@ -158,13 +148,9 @@ public sealed class RequiresCallSiteDiscoveryTests
                     .WithPreprocessorSymbols("DEBUG")));
         }
 
-        var tree = compilation.SyntaxTrees.Single();
-        var declaration = (await tree.GetRootAsync()).DescendantNodes()
-            .OfType<MethodDeclarationSyntax>()
-            .Single(static method => method.Identifier.ValueText == "Call");
-        var discovery = CreateDiscovery(compilation, declaration);
-        var candidates = discovery
-            .Get(callerContracts: null);
+        var candidates = Discover<MethodDeclarationSyntax>(
+            compilation,
+            static method => method.Identifier.ValueText == "Call");
 
         Assert.That(
             candidates!.Value.Count(static candidate =>
@@ -264,12 +250,7 @@ public sealed class RequiresCallSiteDiscoveryTests
     public void AccessorOperationShapesProduceOneReplayCandidateEach()
     {
         var compilation = AccessorCompilation;
-        var tree = compilation.SyntaxTrees.Single();
-        var declaration = tree.GetRoot().DescendantNodes()
-            .OfType<MethodDeclarationSyntax>().Single();
-        var discovery = CreateDiscovery(compilation, declaration);
-        var candidates = discovery
-            .Get(callerContracts: null);
+        var candidates = Discover<MethodDeclarationSyntax>(compilation);
 
         Assert.That(candidates, Is.Not.Null);
         using (Assert.EnterMultipleScope())
@@ -312,13 +293,7 @@ public sealed class RequiresCallSiteDiscoveryTests
             }
             """,
             []);
-        var tree = compilation.SyntaxTrees.Single();
-        var declaration = tree.GetRoot().DescendantNodes()
-            .OfType<MethodDeclarationSyntax>()
-            .Single();
-        var discovery = CreateDiscovery(compilation, declaration);
-        var candidates = discovery
-            .Get(callerContracts: null);
+        var candidates = Discover<MethodDeclarationSyntax>(compilation);
 
         Assert.That(candidates, Is.Not.Null);
         using (Assert.EnterMultipleScope())
@@ -343,13 +318,9 @@ public sealed class RequiresCallSiteDiscoveryTests
         MethodKind[] expected)
     {
         var compilation = AnalyzerTestHost.CreateCompilation(source, []);
-        var tree = compilation.SyntaxTrees.Single();
-        var declaration = tree.GetRoot().DescendantNodes()
-            .OfType<MethodDeclarationSyntax>()
-            .Single(static method => method.Identifier.ValueText == "Call");
-        var discovery = CreateDiscovery(compilation, declaration);
-        var candidates = discovery
-            .Get(callerContracts: null);
+        var candidates = Discover<MethodDeclarationSyntax>(
+            compilation,
+            static method => method.Identifier.ValueText == "Call");
 
         Assert.That(candidates, Is.Not.Null);
         Assert.That(
@@ -431,13 +402,7 @@ public sealed class RequiresCallSiteDiscoveryTests
             }
             """,
             []);
-        var tree = compilation.SyntaxTrees.Single();
-        var declaration = tree.GetRoot().DescendantNodes()
-            .OfType<MethodDeclarationSyntax>()
-            .Single();
-        var discovery = CreateDiscovery(compilation, declaration);
-        var candidates = discovery
-            .Get(callerContracts: null);
+        var candidates = Discover<MethodDeclarationSyntax>(compilation);
 
         Assert.That(candidates, Is.Not.Null);
         Assert.That(candidates!.Value, Is.Empty);
@@ -461,13 +426,9 @@ public sealed class RequiresCallSiteDiscoveryTests
             }
             """,
             []);
-        var tree = compilation.SyntaxTrees.Single();
-        var declaration = tree.GetRoot().DescendantNodes()
-            .OfType<MethodDeclarationSyntax>()
-            .Single(static method => method.Identifier.ValueText == "Call");
-        var discovery = CreateDiscovery(compilation, declaration);
-        var candidates = discovery
-            .Get(callerContracts: null);
+        var candidates = Discover<MethodDeclarationSyntax>(
+            compilation,
+            static method => method.Identifier.ValueText == "Call");
 
         Assert.That(candidates, Is.Not.Null);
         Assert.That(candidates!.Value, Is.Empty);
@@ -529,13 +490,9 @@ public sealed class RequiresCallSiteDiscoveryTests
             }
             """,
             []);
-        var tree = compilation.SyntaxTrees.Single();
-        var declaration = tree.GetRoot().DescendantNodes()
-            .OfType<MethodDeclarationSyntax>()
-            .Single(static method => method.Identifier.ValueText == "Call");
-        var discovery = CreateDiscovery(compilation, declaration);
-        var candidates = discovery
-            .Get(callerContracts: null);
+        var candidates = Discover<MethodDeclarationSyntax>(
+            compilation,
+            static method => method.Identifier.ValueText == "Call");
 
         Assert.That(candidates, Is.Not.Null);
         Assert.That(candidates!.Value, Has.Length.EqualTo(1));
@@ -1449,12 +1406,12 @@ public sealed class RequiresCallSiteDiscoveryTests
             """,
             ["SP0027"]);
 
-        var caller = GetMethod(compilation, "Subject", "Call");
-        var declaration = await caller.DeclaringSyntaxReferences.Single()
-            .GetSyntaxAsync();
-        var discovery = CreateDiscovery(compilation, declaration);
-        var candidates = discovery
-            .Get(callerContracts: null);
+        var candidates = Discover<MethodDeclarationSyntax>(
+            compilation,
+            static method =>
+                method.Identifier.ValueText == "Call" &&
+                method.Parent is ClassDeclarationSyntax subject &&
+                subject.Identifier.ValueText == "Subject");
         Assert.That(
             candidates?.Where(static candidate =>
                 candidate.TargetMethod.Name == "DisposeAsync")
@@ -1622,6 +1579,21 @@ public sealed class RequiresCallSiteDiscoveryTests
         Assert.That(
             discovery.GetPotentialCallOwners(static _ => false),
             Is.Null);
+    }
+
+    private static ImmutableArray<RequiresCallSiteCandidate>? Discover<TSyntax>(
+        Compilation compilation,
+        Func<TSyntax, bool>? select = null)
+        where TSyntax : SyntaxNode
+    {
+        var declarations = compilation.SyntaxTrees.Single().GetRoot()
+            .DescendantNodes()
+            .OfType<TSyntax>();
+        var declaration = select == null
+            ? declarations.Single()
+            : declarations.Single(select);
+        return CreateDiscovery(compilation, declaration)
+            .Get(callerContracts: null);
     }
 
     private static RequiresCallSiteDiscovery CreateDiscovery(

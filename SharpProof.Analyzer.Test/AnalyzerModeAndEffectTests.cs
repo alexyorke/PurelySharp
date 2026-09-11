@@ -218,9 +218,7 @@ public sealed class AnalyzerModeAndEffectTests
             features: features);
 
         AnalyzerTestHost.AssertIds(diagnostics, "SP0025");
-        Assert.That(
-            diagnostics[0].GetMessage(CultureInfo.InvariantCulture),
-            Does.Contain(allowedValues));
+        AnalyzerTestHost.AssertMessageContains(diagnostics[0], allowedValues);
         Assert.That(factory.CreateCount, Is.Zero);
     }
 
@@ -237,9 +235,7 @@ public sealed class AnalyzerModeAndEffectTests
             new SharpProofAnalyzer(factory));
 
         AnalyzerTestHost.AssertIds(diagnostics, "SP0025");
-        Assert.That(
-            diagnostics[0].GetMessage(CultureInfo.InvariantCulture),
-            Does.Contain("configuration provider failed"));
+        AnalyzerTestHost.AssertMessageContains(diagnostics[0], "configuration provider failed");
         Assert.That(factory.CreateCount, Is.Zero);
     }
 
@@ -260,9 +256,7 @@ public sealed class AnalyzerModeAndEffectTests
         using (Assert.EnterMultipleScope())
         {
             AnalyzerTestHost.AssertIds(diagnostics, "SP0025");
-            Assert.That(
-                diagnostics[0].GetMessage(CultureInfo.InvariantCulture),
-                Does.Contain("option was removed"));
+            AnalyzerTestHost.AssertMessageContains(diagnostics[0], "option was removed");
         }
     }
 
@@ -282,12 +276,8 @@ public sealed class AnalyzerModeAndEffectTests
         using (Assert.EnterMultipleScope())
         {
             AnalyzerTestHost.AssertIds(diagnostics, "SP0025");
-            Assert.That(
-                diagnostics[0].GetMessage(CultureInfo.InvariantCulture),
-                Does.Contain("option was removed"));
-            Assert.That(
-                diagnostics[0].GetMessage(CultureInfo.InvariantCulture),
-                Does.Contain("everything"));
+            AnalyzerTestHost.AssertMessageContains(diagnostics[0], "option was removed");
+            AnalyzerTestHost.AssertMessageContains(diagnostics[0], "everything");
         }
     }
 
@@ -308,12 +298,8 @@ public sealed class AnalyzerModeAndEffectTests
         using (Assert.EnterMultipleScope())
         {
             AnalyzerTestHost.AssertIds(diagnostics, "SP0025");
-            Assert.That(
-                diagnostics[0].GetMessage(CultureInfo.InvariantCulture),
-                Does.Contain("option was removed"));
-            Assert.That(
-                diagnostics[0].GetMessage(CultureInfo.InvariantCulture),
-                Does.Contain("strict"));
+            AnalyzerTestHost.AssertMessageContains(diagnostics[0], "option was removed");
+            AnalyzerTestHost.AssertMessageContains(diagnostics[0], "strict");
         }
     }
 
@@ -456,18 +442,15 @@ public sealed class AnalyzerModeAndEffectTests
         Assert.That(
             diagnostics.Select(static diagnostic => diagnostic.Id),
             Is.EquivalentTo(["SP0016", "SP0045", "SP0046"]));
-        Assert.That(
-            diagnostics.Single(static diagnostic => diagnostic.Id == "SP0045")
-                .GetMessage(CultureInfo.InvariantCulture),
-            Does.Contain("AllocationUnknown"));
-        Assert.That(
-            diagnostics.Single(static diagnostic => diagnostic.Id == "SP0016")
-                .GetMessage(CultureInfo.InvariantCulture),
-            Does.Contain("CapabilitySetUnknown"));
-        Assert.That(
-            diagnostics.Single(static diagnostic => diagnostic.Id == "SP0046")
-                .GetMessage(CultureInfo.InvariantCulture),
-            Does.Contain("ExceptionSetUnknown"));
+        AnalyzerTestHost.AssertMessageContains(
+            diagnostics.Single(static diagnostic => diagnostic.Id == "SP0045"),
+            "AllocationUnknown");
+        AnalyzerTestHost.AssertMessageContains(
+            diagnostics.Single(static diagnostic => diagnostic.Id == "SP0016"),
+            "CapabilitySetUnknown");
+        AnalyzerTestHost.AssertMessageContains(
+            diagnostics.Single(static diagnostic => diagnostic.Id == "SP0046"),
+            "ExceptionSetUnknown");
     }
 
     [Test]
@@ -1191,9 +1174,7 @@ public sealed class AnalyzerModeAndEffectTests
         AnalyzerTestHost.AssertIds(diagnostics, "SP0046");
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(
-                diagnostics[0].GetMessage(CultureInfo.InvariantCulture),
-                Does.Contain("'StoreCovariant'"));
+            AnalyzerTestHost.AssertMessageContains(diagnostics[0], "'StoreCovariant'");
             Assert.That(
                 factory.Outcomes["StoreSealed"],
                 Is.EqualTo(AnalyzerSemanticOutcome.Proven));
@@ -2037,9 +2018,7 @@ public sealed class AnalyzerModeAndEffectTests
             []);
 
         AnalyzerTestHost.AssertIds(diagnostics, "SP0047");
-        Assert.That(
-            diagnostics[0].GetMessage(CultureInfo.InvariantCulture),
-            Does.Contain("'Selected'"));
+        AnalyzerTestHost.AssertMessageContains(diagnostics[0], "'Selected'");
     }
 
     [Test]
@@ -2531,12 +2510,11 @@ public sealed class AnalyzerModeAndEffectTests
             new SharpProofAnalyzer(factory));
 
         AnalyzerTestHost.AssertIds(diagnostics, "SP0045", 4);
-        Assert.That(
+        AnalyzerTestHost.AssertMessageContains(
             diagnostics.Single(diagnostic =>
-                    diagnostic.GetMessage(CultureInfo.InvariantCulture)
-                        .Contains("'Unknown'", StringComparison.Ordinal))
-                .GetMessage(CultureInfo.InvariantCulture),
-            Does.Contain("AllocationUnknown"));
+                diagnostic.GetMessage(CultureInfo.InvariantCulture)
+                    .Contains("'Unknown'", StringComparison.Ordinal)),
+            "AllocationUnknown");
 
         using (Assert.EnterMultipleScope())
         {
@@ -3007,9 +2985,7 @@ public sealed class AnalyzerModeAndEffectTests
             features: "effects");
 
         AnalyzerTestHost.AssertIds(diagnostics, "SP0047");
-        Assert.That(
-            diagnostics[0].GetMessage(CultureInfo.InvariantCulture),
-            Does.Contain("EffectContractDoesNotCoverBodySummary"));
+        AnalyzerTestHost.AssertMessageContains(diagnostics[0], "EffectContractDoesNotCoverBodySummary");
         Assert.That(
             factory.Outcomes["Write"],
             Is.EqualTo(AnalyzerSemanticOutcome.Unknown));
@@ -3304,9 +3280,7 @@ public sealed class AnalyzerModeAndEffectTests
         using (Assert.EnterMultipleScope())
         {
             AnalyzerTestHost.AssertIds(diagnostics, "SP0047");
-            Assert.That(
-                diagnostics[0].GetMessage(CultureInfo.InvariantCulture),
-                Does.Contain("EffectContractDoesNotCoverBodySummary"));
+            AnalyzerTestHost.AssertMessageContains(diagnostics[0], "EffectContractDoesNotCoverBodySummary");
             Assert.That(
                 factory.Outcomes["AllocateOnly"],
                 Is.EqualTo(AnalyzerSemanticOutcome.Refuted));
@@ -3348,9 +3322,7 @@ public sealed class AnalyzerModeAndEffectTests
         using (Assert.EnterMultipleScope())
         {
             AnalyzerTestHost.AssertIds(diagnostics, "SP0046");
-            Assert.That(
-                diagnostics[0].GetMessage(CultureInfo.InvariantCulture),
-                Does.Contain("NullReferenceException"));
+            AnalyzerTestHost.AssertMessageContains(diagnostics[0], "NullReferenceException");
             Assert.That(
                 factory.Outcomes["MaybeNull"],
                 Is.EqualTo(AnalyzerSemanticOutcome.Unknown));
@@ -3607,9 +3579,7 @@ public sealed class AnalyzerModeAndEffectTests
             features: "contracts");
 
         AnalyzerTestHost.AssertIds(diagnostics, "SP0024");
-        Assert.That(
-            diagnostics[0].GetMessage(CultureInfo.InvariantCulture),
-            Does.Contain("[EffectContract]"));
+        AnalyzerTestHost.AssertMessageContains(diagnostics[0], "[EffectContract]");
     }
 
     [Test]

@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Globalization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -26,6 +27,9 @@ internal static class AnalyzerTestHost
         new(LanguageVersion.Preview);
     private static readonly ImmutableArray<MetadataReference> References =
         TestMetadataReferences.WithSharpProof;
+
+    internal static void AssertMessageContains(Diagnostic diagnostic, string expected) =>
+        Assert.That(diagnostic.GetMessage(CultureInfo.InvariantCulture), Does.Contain(expected));
 
     internal static void AssertIds(
         IEnumerable<Diagnostic> diagnostics,
