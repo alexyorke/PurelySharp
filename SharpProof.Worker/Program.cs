@@ -44,9 +44,7 @@ internal static class Program
 
         async Task<int> Respond(WorkerVerifyResponse response)
         {
-            await AtomicFile.WriteUtf8Async(
-                resultPath,
-                WorkerProtocolJson.SerializeCanonicalResponse(response)).ConfigureAwait(false);
+            await WriteResponseAtomicAsync(resultPath, response).ConfigureAwait(false);
             return 0;
         }
         WorkerVerifyRequest? request;
@@ -109,6 +107,16 @@ internal static class Program
         }
         finally { Console.CancelKeyPress -= handler; }
     }
+
+    private static Task WriteResponseAtomicAsync(
+        string path,
+        WorkerVerifyResponse response)
+    {
+        return AtomicFile.WriteUtf8Async(
+            path,
+            WorkerProtocolJson.SerializeCanonicalResponse(response));
+    }
+
     private static WorkerVerifyResponse Failure(WorkerRunFailureReason reason,
         IEnumerable<WorkerProtocolError> errors, WorkerBudgets budgets)
     {

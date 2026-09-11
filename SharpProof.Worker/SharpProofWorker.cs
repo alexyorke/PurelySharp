@@ -39,20 +39,21 @@ public sealed class SharpProofWorker : IDisposable
     }
     public static SharpProofWorker Create(WorkerBudgets budgets)
     {
-        ArgumentNullException.ThrowIfNull(budgets);
+        budgets = budgets ?? throw new ArgumentNullException(nameof(budgets));
+        var queryRlimit = budgets.QueryRlimit;
         return new SharpProofWorker(
             () =>
             {
                 ContainerNativeLibrary.InstallZ3ResolverRequired(
                     typeof(Microsoft.Z3.Context).Assembly);
                 return new IrSmtBackend(
-                    new IrSmtBackendOptions(budgets.QueryRlimit));
-            }, budgets.QueryRlimit);
+                    new IrSmtBackendOptions(queryRlimit));
+            }, queryRlimit);
     }
     public async Task<WorkerVerifyResponse> VerifyAsync(
         WorkerVerifyRequest request, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(request);
+        request = request ?? throw new ArgumentNullException(nameof(request));
         ObjectDisposedException.ThrowIf(_disposed, this);
         var started = Stopwatch.GetTimestamp();
         var validation = WorkerProtocolJson.Validate(request);
@@ -61,8 +62,9 @@ public sealed class SharpProofWorker : IDisposable
             return Failure(string.Empty, WorkerRunFailureReason.InvalidRequest, new WorkerBudgets(), started, validation.Errors);
         }
 
+        var budgets = request.Budgets;
         if (_configuredQueryRlimit.HasValue &&
-            request.Budgets.QueryRlimit != _configuredQueryRlimit.Value)
+            budgets.QueryRlimit != _configuredQueryRlimit.Value)
         {
             return Failure(string.Empty, WorkerRunFailureReason.InvalidRequest,
                 request.Budgets, started,
