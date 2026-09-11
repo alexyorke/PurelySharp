@@ -503,6 +503,12 @@ try {
         return $null
     }
 
+    $containmentSlots = if ($parallelism -ge 16) {
+        [Math]::Ceiling($parallelism / 4.0)
+    }
+    else {
+        [Math]::Ceiling($parallelism / 2.0)
+    }
     $shards = [Collections.Generic.List[object]]::new()
     if (-not $useDefaultShardPlan) {
         $shards.Add([pscustomobject]@{
@@ -719,12 +725,13 @@ try {
                 else {
                     8000L
                 })
-            # These deadline-sensitive tests need headroom, but reserving the
-            # entire machine makes their six-second run an unavoidable tail.
-            # Keep half the lanes idle while overlapping independent shards.
+            # These deadline-sensitive tests need headroom. Keep the
+            # half-machine reservation at CI width, but use a quarter-machine
+            # reservation on wide local waves so worker shards can enter the
+            # first wave instead of waiting behind containment setup.
             Slots = [Math]::Max(
                 1,
-                [Math]::Ceiling($parallelism / 2.0))
+                $containmentSlots)
             Exclusive = $true
         })
         foreach ($bucket in $packageLayoutBuckets) {
