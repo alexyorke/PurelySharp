@@ -728,19 +728,19 @@ public sealed class ApiSpecTests
             .Where(static constructor =>
                 constructor.Parameters.Length == 0 ||
                 constructor.Parameters is [
-                {
-                    Type.SpecialType: SpecialType.System_String
-                }])
+                    {
+                        Type.SpecialType: SpecialType.System_String
+                    }])
             .ToArray();
         var aggregateEnumerable = aggregate.InstanceConstructors.Single(
             static constructor =>
                 constructor.Parameters is [
+                {
+                    Type: INamedTypeSymbol
                     {
-                        Type: INamedTypeSymbol
-                        {
-                            MetadataName: "IEnumerable`1"
-                        }
-                    }]);
+                        MetadataName: "IEnumerable`1"
+                    }
+                }]);
 
         using (Assert.EnterMultipleScope())
         {

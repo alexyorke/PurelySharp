@@ -727,9 +727,11 @@ public sealed class DefaultApiSpecCatalogGenerationTests
         };
     }
 
-    private static string FormatTerm(string prefix, string? type, params string[] children) =>
-        prefix + ":" + type +
-        (children.Length == 0 ? string.Empty : "(" + string.Join(",", children) + ")");
+    private static string FormatTerm(string prefix, string? type, params string[] children)
+    {
+        return prefix + ":" + type +
+            (children.Length == 0 ? string.Empty : "(" + string.Join(",", children) + ")");
+    }
 
     private static T EnumValue<T>(JsonElement value)
         where T : struct, Enum

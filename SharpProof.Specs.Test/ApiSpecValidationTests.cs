@@ -188,8 +188,7 @@ public sealed class ApiSpecValidationTests
     [Test]
     public void EveryDefinedEffectFlagIsAcceptedForACompatibleTarget()
     {
-        var effects = Enum.GetValues(typeof(SpecEffect))
-            .Cast<SpecEffect>()
+        var effects = Enum.GetValues<SpecEffect>()
             .Where(static effect => effect != SpecEffect.Unknown)
             .Aggregate(
                 SpecEffect.None,
