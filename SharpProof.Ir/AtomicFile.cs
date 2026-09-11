@@ -3,11 +3,14 @@ internal static class AtomicFile
 {
     private static readonly UTF8Encoding Utf8 = new(false);
 
-    private sealed class StagedFile(string destination) : IDisposable
+    private sealed class StagedFile(string temporary) : IDisposable
     {
-        internal string Temporary { get; } = PrepareStaged(destination);
-        internal void Publish() => PublishStaged(Temporary, destination);
-        public void Dispose() => TryDeleteStaged(Temporary);
+        internal FileInfo Temporary { get; } = new(temporary);
+
+        public void Dispose()
+        {
+            TryDeleteStaged(Temporary.FullName);
+        }
     }
 
     internal static string PrepareStaged(string path)
@@ -73,9 +76,9 @@ internal static class AtomicFile
 
     internal static void WriteUtf8(string path, string content)
     {
-        using var staged = new StagedFile(path);
-        File.WriteAllText(staged.Temporary, content, Utf8);
-        staged.Publish();
+        using var staged = new StagedFile(PrepareStaged(path));
+        File.WriteAllText(staged.Temporary.FullName, content, Utf8);
+        PublishStaged(staged.Temporary.FullName, path);
     }
 
     internal static Task WriteUtf8Async(
@@ -87,14 +90,14 @@ internal static class AtomicFile
     internal static async Task WriteBytesAsync(
         string path, byte[] content, CancellationToken cancellationToken = default)
     {
-        using var staged = new StagedFile(path);
-        using (var stream = new FileStream(staged.Temporary, FileMode.CreateNew,
+        using var staged = new StagedFile(PrepareStaged(path));
+        using (var stream = new FileStream(staged.Temporary.FullName, FileMode.CreateNew,
                    FileAccess.Write, FileShare.None, 4096, useAsync: true))
         {
             await stream.WriteAsync(content, 0, content.Length, cancellationToken)
                 .ConfigureAwait(false);
         }
 
-        staged.Publish();
+        PublishStaged(staged.Temporary.FullName, path);
     }
 }
