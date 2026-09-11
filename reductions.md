@@ -1,6 +1,6 @@
 # Active code reduction queue
 Resolved proposals are removed from this file after implementation, validation, or a current-tree refutation. The original survey remains available in Git history; this file is intentionally only the active queue.
-Inventory after deduplication: 246 canonical queue IDs represented by 187 deferred rows (0 pending). Resolved and refuted proposals are removed; repeated and superseded rows are merged into canonical rows.
+Inventory after deduplication: 245 canonical queue IDs represented by 186 deferred rows (0 pending). Resolved and refuted proposals are removed; repeated and superseded rows are merged into canonical rows.
 
 Each pending row must be rechecked against the current tree, applied in a compatible batch, validated with the smallest relevant containerized test target, and then removed here.
 
@@ -19,7 +19,6 @@ Each pending row must be rechecked against the current tree, applied in a compat
 - **R4029**: **Deferred.** Nested generated-code checks have distinct root/recursive and provider semantics; narrowing them requires a stable-options contract and analyzer tests. | `SharpProof.CompilerArtifact`; generated-code analyzer
 - **R4068**: **Deferred.** Initializer helpers intentionally differ in implicit-member admission and ordering; merging them would change deterministic discovery semantics. | `SharpProof.Analyzer.Core/RequiresCallSiteDiscovery.cs`
 - **R4071**: **Deferred.** Fuzz counts repeat across language authorities with different contract meanings; consolidation is policy work, not a safe source reduction. | `scripts/Invoke-SharpProofFuzzCampaign.ps1`; `eng/acceptance/contract.json`
-- **R4072**: **Deferred.** Removing the direct OpenCode plugin dependency requires clean-install and host-load evidence; package-lock pruning is an external runtime contract. | `.opencode/package.json`; `.opencode/package-lock.json`
 - **R3320**: **Deferred.** `ParseBinaryOperator` omits `StringConcat`; this is a fail-closed vocabulary bug, not a reduction, and needs an explicit parser/catalog completeness fix. | `SharpProof.CompilerCollector/CompilerArtifact/CompilerSpecificationPackProvider.cs`; `SharpProof.Ir/IrOperatorCatalog.generated.cs`
 - **R3380**: **Deferred.** Deriving declaration-only TCB coverage dynamically changes coverage admission semantics and needs a robust declaration classifier plus gate fixtures. | `eng/coverage/baseline.json`; `scripts/Test-SharpProofCoverage.ps1`
 - **R3540**: **Deferred.** Repeated IR invariant messages span static construction, runtime interpretation, and codec boundaries with different failure contracts; centralization risks soundness behavior. | `SharpProof.Ir`; `SharpProof.CompilerArtifact/PortableIrGraphCodec.cs`
