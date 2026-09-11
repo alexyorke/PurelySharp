@@ -1,6 +1,6 @@
 # Active code reduction queue
 Resolved proposals are removed from this file after implementation, validation, or a current-tree refutation. The original survey remains available in Git history; this file is intentionally only the active queue.
-Inventory after deduplication: 382 active IDs in 382 rows (308 pending, 74 deferred). Resolved and refuted proposals are removed; repeated and superseded rows are merged into their canonical IDs.
+Inventory after deduplication: 381 active IDs in 381 rows (308 pending, 73 deferred). Resolved and refuted proposals are removed; repeated and superseded rows are merged into their canonical IDs.
 
 Each pending row must be rechecked against the current tree, applied in a compatible batch, validated with the smallest relevant containerized test target, and then removed here.
 
@@ -76,7 +76,6 @@ Each pending row must be rechecked against the current tree, applied in a compat
 - **R0110, R0111, R0112, R0114**: R110-R112, R114 | Release identity, Git byte capture, package IDs, and canonical JSON comparison are release-authority code and remain explicit.
 - **R0118**: R118 | A new build-task base class changes the task hierarchy and cancellation surface used by packaged MSBuild tasks.
 - **R0119**: R119 | The fuzz oracle compilation paths have distinct failure-isolation behavior; defer their unification.
-- **R0120**: R120 | Stale build-output directories are not tracked code and do not belong in this branch.
 - **R0125, R0126, R0127, R0129**: R125-R127, R129 | Acceptance assertions, CPU budgeting, and container command execution are operational authority paths, not formatting helpers.
 - **R0131, R0133, R0134**: R131, R133-R134 | Docker target aliases, CI environment scope, and permission declarations are user/CI behavior and security documentation.
 - **R0136, R0137, R0138, R0141, R0144**: R0136, R0137, R0138, R0141, R0144 | Gates proposals combine test-fixture churn with CLI envelope or model-shape changes; retain explicit gate boundaries.
