@@ -9,6 +9,7 @@ using System.Text;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using SharpProof.Host;
+using SharpProof.Worker.Protocol;
 
 namespace SharpProof.BuildTasks;
 
@@ -79,9 +80,9 @@ public sealed partial class RunVerifier : Microsoft.Build.Utilities.Task,
     [Required]
     public string WorkingDirectory { get; set; } = string.Empty;
 
-    public int ProjectWallTimeMilliseconds { get; set; } = 300000;
+    public int ProjectWallTimeMilliseconds { get; set; } = WorkerBudgets.DefaultProjectWallTimeMilliseconds;
 
-    public int TerminationGraceMilliseconds { get; set; } = 1000;
+    public int TerminationGraceMilliseconds { get; set; } = WorkerLauncherDefaults.TerminationGraceMilliseconds;
 
     [Output]
     public int ExitCode { get; set; }
