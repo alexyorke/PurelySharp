@@ -162,7 +162,6 @@ public sealed class DataflowGraph<T>
 
         var active = new Stack<int>(successors.Length);
         var pending = new Stack<(int BlockId, int NextSuccessor)>();
-        var component = new List<int>();
         var result = new bool[successors.Length];
         var nextDiscovery = 0;
         for (var start = 0; start < successors.Length; start++)
@@ -202,25 +201,22 @@ public sealed class DataflowGraph<T>
 
                 if (lowLink[current] == discovery[current])
                 {
-                    component.Clear();
+                    var cyclic = false;
                     int member;
                     do
                     {
                         member = active.Pop();
                         onStack[member] = false;
-                        component.Add(member);
+                        cyclic |= member != current;
+                        if (member != current)
+                        {
+                            result[member] = true;
+                        }
                     }
                     while (member != current);
 
-                    var cyclic = component.Count > 1 ||
+                    result[current] = cyclic ||
                         successors[current].Contains(current);
-                    if (cyclic)
-                    {
-                        foreach (var blockId in component)
-                        {
-                            result[blockId] = true;
-                        }
-                    }
                 }
 
                 if (pending.Count != 0)
