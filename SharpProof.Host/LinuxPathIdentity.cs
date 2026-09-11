@@ -743,11 +743,6 @@ public static partial class LinuxPathIdentity
         Directory.CreateDirectory(publicationDirectory);
         if (!Directory.Exists(metadataDirectory))
         {
-            if (!OperatingSystem.IsLinux())
-            {
-                throw new PlatformNotSupportedException(
-                    "SharpProof publication metadata requires Linux.");
-            }
             Directory.CreateDirectory(
                 metadataDirectory,
                 UnixFileMode.UserRead |
