@@ -158,8 +158,8 @@ internal sealed partial class RequiresCallSiteDiscovery(
                     semanticModel,
                     delegateTargets,
                     flowResult,
-                    cancellationToken,
-                    _disposeInterfaceMethodCache);
+                    _disposeInterfaceMethodCache,
+                    cancellationToken);
                 if (calls.IsDefaultOrEmpty ||
                     reachableInitializerSites != null &&
                     !reachableInitializerSites.Contains((
@@ -279,8 +279,8 @@ internal sealed partial class RequiresCallSiteDiscovery(
                          semanticModel,
                          delegateTargets,
                          flowResult,
-                         cancellationToken,
-                         _disposeInterfaceMethodCache))
+                         _disposeInterfaceMethodCache,
+                         cancellationToken))
             {
                 var candidate = CreateCandidate(
                     operation,
@@ -714,10 +714,10 @@ internal sealed partial class RequiresCallSiteDiscovery(
             DirectDelegateTarget>?
             delegateTargets = null,
         ManagedFlowResult? flowResult = null,
-        CancellationToken cancellationToken = default,
         Dictionary<bool,
             (INamedTypeSymbol? Interface, IMethodSymbol? Method)>?
-            disposeInterfaceMethodCache = null)
+            disposeInterfaceMethodCache = null,
+        CancellationToken cancellationToken = default)
     {
         return operation switch
         {
@@ -789,8 +789,8 @@ internal sealed partial class RequiresCallSiteDiscovery(
                 forEach,
                 operationFacts,
                 semanticModel,
-                cancellationToken,
-                disposeInterfaceMethodCache),
+                disposeInterfaceMethodCache,
+                cancellationToken),
             IUsingOperation usingOperation => GetUsingCalls(
                 usingOperation.Resources,
                 usingOperation.IsAsynchronous,
@@ -1122,10 +1122,10 @@ internal sealed partial class RequiresCallSiteDiscovery(
         IForEachLoopOperation loop,
         DefiniteOperationFacts? operationFacts,
         SemanticModel? semanticModel,
-        CancellationToken cancellationToken,
         Dictionary<bool,
             (INamedTypeSymbol? Interface, IMethodSymbol? Method)>?
-            disposeInterfaceMethodCache)
+            disposeInterfaceMethodCache,
+        CancellationToken cancellationToken)
     {
         if (semanticModel == null ||
             loop.Syntax is not CommonForEachStatementSyntax syntax)

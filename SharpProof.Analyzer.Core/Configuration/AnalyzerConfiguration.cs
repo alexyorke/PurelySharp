@@ -264,14 +264,22 @@ internal sealed class AnalyzerConfiguration
         SharpProofProfile.Advisory;
     }
 
-    private static SharpProofFeatures ParseFeatures(string value) =>
-        Enum.TryParse(value.Trim(), true, out SharpProofFeatures features)
+    private static SharpProofFeatures ParseFeatures(string value)
+    {
+        return Enum.TryParse(
+            value.Trim(),
+            true,
+            out SharpProofFeatures features)
             ? features
             : SharpProofFeatures.All;
+    }
 
     private static bool Is(string value, string expected)
     {
-        return string.Equals(value.Trim(), expected.Trim(), StringComparison.OrdinalIgnoreCase);
+        return string.Equals(
+            value.Trim(),
+            expected.Trim(),
+            StringComparison.OrdinalIgnoreCase);
     }
 }
 
