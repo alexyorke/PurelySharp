@@ -1,12 +1,8 @@
-using System.Collections.Concurrent;
-
 namespace SharpProof.Worker;
 
 internal sealed partial class VerificationCache(string directory, long maximumBytes)
 {
     internal const string CacheFileSuffix = ".sharp-proof-cache.json";
-    private static readonly ConcurrentDictionary<string, SemaphoreSlim>
-        ProcessLocks = new(StringComparer.Ordinal);
     private readonly string _directory = Path.GetFullPath(
         ArgumentNullGuard.NotNull(directory, nameof(directory)));
     private readonly long _maximumBytes = ArgumentNullGuard.RequirePositive(
@@ -44,7 +40,7 @@ internal sealed partial class VerificationCache(string directory, long maximumBy
         var path = GetPath(inputHash);
         var staged = new List<StagedEntry>();
         var committed = false;
-        CacheLock? cacheLock = null;
+        FileStream? cacheLock = null;
         try
         {
             cacheLock = AcquireLock(_directory);
@@ -205,7 +201,7 @@ internal sealed partial class VerificationCache(string directory, long maximumBy
             {
                 if (cacheLock != null)
                 {
-                    cacheLock.Dispose();
+                    await cacheLock.DisposeAsync().ConfigureAwait(false);
                 }
             }
         }
@@ -220,7 +216,7 @@ internal sealed partial class VerificationCache(string directory, long maximumBy
         string? path = null;
         var published = false;
         var committed = false;
-        CacheLock? cacheLock = null;
+        FileStream? cacheLock = null;
         try
         {
             cacheLock = AcquireLock(_directory);
@@ -295,26 +291,18 @@ internal sealed partial class VerificationCache(string directory, long maximumBy
             {
                 if (cacheLock != null)
                 {
-                    cacheLock.Dispose();
+                    await cacheLock.DisposeAsync().ConfigureAwait(false);
                 }
             }
         }
     }
 
-    private static CacheLock AcquireLock(string directory)
+    private static FileStream AcquireLock(string directory)
     {
         var lockPath = Path.Combine(directory, ".sharp-proof-cache.lock");
         ValidatePath(directory, lockPath);
         Directory.CreateDirectory(directory);
         ValidatePath(directory, lockPath);
-        var lockIdentity = HashText(Path.GetFullPath(directory));
-        var processLock = ProcessLocks.GetOrAdd(
-            lockIdentity,
-            static _ => new SemaphoreSlim(1, 1));
-        if (!processLock.Wait(0))
-        {
-            throw new IOException("The verification cache is locked.");
-        }
         FileStream? cacheLock = null;
         var ownershipTransferred = false;
         try
@@ -322,24 +310,14 @@ internal sealed partial class VerificationCache(string directory, long maximumBy
             cacheLock = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
             ValidatePath(directory, lockPath);
             ownershipTransferred = true;
-            return new CacheLock(processLock, cacheLock);
+            return cacheLock;
         }
         finally
         {
             if (!ownershipTransferred)
             {
                 cacheLock?.Dispose();
-                processLock.Release();
             }
-        }
-    }
-
-    private sealed class CacheLock(SemaphoreSlim processLock, FileStream file)
-    {
-        public void Dispose()
-        {
-            file.Dispose();
-            processLock.Release();
         }
     }
 
