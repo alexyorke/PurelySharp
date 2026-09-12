@@ -71,8 +71,13 @@ try {
         { throw 'injected writer failure' }
     } else { $null }
     $after = if ($Mutation -eq 'post-write-mutation') {
-        { [IO.File]::AppendAllText(
-            (Join-Path $packages 'SharpProof.release.json'), 'changed') }
+        {
+            $path = Join-Path $packages 'SharpProof.release.json'
+            $bytes = [IO.File]::ReadAllBytes($path)
+            if ($bytes.Length -eq 0) { throw 'Mutation fixture input is empty.' }
+            $bytes[0] = [byte](([int]$bytes[0] + 1) % 256)
+            [IO.File]::WriteAllBytes($path, $bytes)
+        }
     } else { $null }
     try {
         Write-SharpProofPublicationPlanAtomic `

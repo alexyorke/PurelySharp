@@ -20,6 +20,25 @@ function Resolve-SharpProofPublicationPlanOutput {
     return [IO.Path]::GetFullPath($resolved)
 }
 
+function Get-SharpProofFileSha256 {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $hash = [Security.Cryptography.SHA256]::Create()
+    try {
+        $stream = [IO.File]::OpenRead($Path)
+        try {
+            return ([BitConverter]::ToString(
+                $hash.ComputeHash($stream))).Replace('-', '').ToLowerInvariant()
+        }
+        finally {
+            $stream.Dispose()
+        }
+    }
+    finally {
+        $hash.Dispose()
+    }
+}
+
 function Get-SharpProofPublicationPlanFileIdentity {
     param([Parameter(Mandatory = $true)][string]$Path)
 
@@ -38,6 +57,7 @@ function Get-SharpProofPublicationPlanFileIdentity {
         path = [IO.Path]::GetFullPath($resolved)
         fileIdentity = $deviceInode
         bytes = [int64]$file.Length
+        sha256 = Get-SharpProofFileSha256 -Path $resolved
     }
 }
 

@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -762,7 +763,7 @@ public sealed class ReleasePublicationScriptTests
     {
         Assert.That(
             root.GetProperty("schemaVersion").GetInt32(),
-            Is.EqualTo(2));
+            Is.EqualTo(3));
         Assert.That(
             root.GetProperty("planOnly").GetBoolean(),
             Is.True);
@@ -796,6 +797,21 @@ public sealed class ReleasePublicationScriptTests
             packages.Select(package =>
                 package.GetProperty("symbolsAction").GetString()),
             Is.All.EqualTo(symbolsAction));
+
+        var artifacts = root.GetProperty("artifacts")
+            .EnumerateArray()
+            .ToArray();
+        Assert.That(artifacts, Has.Length.EqualTo(7));
+        foreach (var artifact in artifacts)
+        {
+            var path = artifact.GetProperty("path").GetString()!;
+            var actual = Convert.ToHexString(
+                    SHA256.HashData(File.ReadAllBytes(path)))
+                .ToLowerInvariant();
+            var digest = artifact.GetProperty("sha256").GetString();
+            Assert.That(digest, Does.Match("^[0-9a-f]{64}$"));
+            Assert.That(digest, Is.EqualTo(actual));
+        }
     }
 
     private static async Task<JsonDocument> RunPlanAsync(

@@ -591,13 +591,13 @@ function New-SharpProofPublicationStage {
         Test-SharpProofPublicationPlanIdentity -Plan $stagedPlan
 
         $identityProperties = @(
-            'fileName','bytes','role','version','repositoryCommit')
+            'fileName','bytes','sha256','role','version','repositoryCommit')
         $expectedIdentities = @($Plan.artifacts | Select-Object $identityProperties) |
             ConvertTo-Json -Compress
         $stagedIdentities = @($stagedArtifacts | Select-Object $identityProperties) |
             ConvertTo-Json -Compress
         if ($stagedIdentities -cne $expectedIdentities) {
-            throw 'Staged publication bytes do not match the certified release plan.'
+            throw 'Staged publication identity does not match the certified release plan.'
         }
 
         return [pscustomobject]@{
@@ -773,7 +773,7 @@ foreach ($package in $release.packages) {
 }
 
 $plan = [pscustomobject][ordered]@{
-    schemaVersion = 2
+    schemaVersion = 3
     planOnly = [bool]$PlanOnly
     packageVersion = $release.version
     versionAuthority = $release.versionAuthority

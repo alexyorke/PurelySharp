@@ -42,7 +42,7 @@ function Test-SharpProofPublicationPlanIdentity {
 
     if (($Plan.schemaVersion -isnot [int] -and
          $Plan.schemaVersion -isnot [int64]) -or
-        [int64]$Plan.schemaVersion -ne 2) {
+        [int64]$Plan.schemaVersion -ne 3) {
         throw 'Publication plan schema version is unsupported.'
     }
     if (-not (Test-SharpProofExactProperties -Value $Plan -Expected @(
@@ -199,7 +199,7 @@ function Test-SharpProofPublicationPlanIdentity {
         $artifact = $artifacts[$index]
         $properties = @($artifact.PSObject.Properties.Name)
         if (($properties -join '|') -cne
-                'path|fileName|bytes|role|version|repositoryCommit') {
+                'path|fileName|bytes|sha256|role|version|repositoryCommit') {
             throw 'Publication plan artifact schema is invalid.'
         }
         foreach ($property in @(
@@ -207,6 +207,10 @@ function Test-SharpProofPublicationPlanIdentity {
             if ($artifact.$property -isnot [string]) {
                 throw 'Publication plan artifact schema is invalid.'
             }
+        }
+        if ($artifact.sha256 -isnot [string] -or
+            [string]$artifact.sha256 -cnotmatch '^[0-9a-f]{64}\z') {
+            throw 'Publication plan artifact schema is invalid.'
         }
         $path = [string]$artifact.path
         if (-not [IO.Path]::IsPathFullyQualified($path) -or
@@ -223,6 +227,10 @@ function Test-SharpProofPublicationPlanIdentity {
         if ($artifact.bytes -isnot [int64] -or
             $artifact.bytes -ne [int64]$file.Length) {
             throw "Publication plan artifact bytes changed: '$path'."
+        }
+        $sha256 = Get-SharpProofFileSha256 -Path $path
+        if ([string]$artifact.sha256 -cne $sha256) {
+            throw "Publication plan artifact digest changed: '$path'."
         }
     }
     if ($destination.mode -ceq 'fixture') {
@@ -451,6 +459,7 @@ function New-SharpProofPublicationPlanFileIdentity {
         path = $canonical
         fileName = $file.Name
         bytes = [int64]$file.Length
+        sha256 = Get-SharpProofFileSha256 -Path $canonical
         role = $Role
         version = $Version
         repositoryCommit = $RepositoryCommit

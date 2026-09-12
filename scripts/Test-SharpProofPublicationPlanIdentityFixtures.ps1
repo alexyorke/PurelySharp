@@ -2,6 +2,7 @@
 param(
     [Parameter(Mandatory = $true)]
     [ValidateSet('canonical','changed-symbol','stale-manifest',
+        'same-length-byte-mutation',
         'missing-identity','duplicate-identity',
         'version-syntax','commit-syntax','string-schema','decimal-bytes',
         'array-version','array-commit','array-artifact-text',
@@ -102,7 +103,7 @@ try {
         -Packages @($packages) -Directory $root -Version $version `
         -RepositoryCommit $commit)
     $plan = [pscustomobject][ordered]@{
-        schemaVersion = 2
+        schemaVersion = 3
         planOnly = $true
         packageVersion = $version
         versionAuthority = [pscustomobject][ordered]@{
@@ -190,7 +191,14 @@ try {
         'stale-manifest' { [IO.File]::AppendAllText($manifestPath, 'changed') }
         'missing-identity' { $plan.artifacts = @($plan.artifacts | Select-Object -Skip 1) }
         'duplicate-identity' { $plan.artifacts[1].path = $plan.artifacts[0].path }
-        'string-schema' { $plan.schemaVersion = '2' }
+        'same-length-byte-mutation' {
+            $path = $packages[0].symbolsPath
+            $bytes = [IO.File]::ReadAllBytes($path)
+            if ($bytes.Length -eq 0) { throw 'Mutation fixture input is empty.' }
+            $bytes[0] = [byte](([int]$bytes[0] + 1) % 256)
+            [IO.File]::WriteAllBytes($path, $bytes)
+        }
+        'string-schema' { $plan.schemaVersion = '3' }
         'array-version' { $plan.packageVersion = @($version) }
         'array-commit' { $plan.repositoryCommit = @($commit) }
         'array-artifact-text' {
