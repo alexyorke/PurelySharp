@@ -15,7 +15,7 @@ internal static class ContractRuntimePolicy
             cancellationToken.ThrowIfCancellationRequested();
             if (CSharpPreprocessorSymbols.IsDefined(
                     tree,
-                    ContractApiMetadata.ConditionalSymbol,
+                    ContractApiCatalog.ConditionalSymbol,
                     cancellationToken))
             {
                 return true;
@@ -29,7 +29,7 @@ internal static class ContractRuntimePolicy
     {
         return new InvalidAnalyzerConfigurationValue(
             ConfigurationKey,
-            ContractApiMetadata.ConditionalSymbol,
+            ContractApiCatalog.ConditionalSymbol,
             "the reserved symbol enables runtime evaluation of ghost " +
             "contracts; remove it before SharpProof analysis");
     }

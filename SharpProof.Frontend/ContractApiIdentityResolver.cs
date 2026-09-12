@@ -497,7 +497,7 @@ internal sealed class ContractApiIdentityResolver
             attribute.ConstructorArguments[0] is
             {
                 Kind: TypedConstantKind.Primitive,
-                Value: ContractApiMetadata.ConditionalSymbol
+                Value: ContractApiCatalog.ConditionalSymbol
             };
     }
 
@@ -511,7 +511,7 @@ internal sealed class ContractApiIdentityResolver
                 IsStatic: true,
                 IsConst: true,
                 Type.SpecialType: SpecialType.System_String,
-                ConstantValue: ContractApiMetadata.ConditionalSymbol
+                ConstantValue: ContractApiCatalog.ConditionalSymbol
             };
     }
 

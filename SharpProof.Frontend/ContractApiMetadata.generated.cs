@@ -199,8 +199,6 @@ internal static partial class ContractApiMetadata
     internal const string Attribute = "System.Attribute";
     internal const string ConditionalAttribute =
         "System.Diagnostics.ConditionalAttribute";
-    internal const string ConditionalSymbol =
-        ContractApiCatalog.ConditionalSymbol;
     internal const string AttributesPayloadSha256MetadataKey =
         AttributesNamespace + ".SHA256";
     internal const string Contract = ContractApiCatalog.Contract;
