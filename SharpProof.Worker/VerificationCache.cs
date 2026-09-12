@@ -1,6 +1,15 @@
 namespace SharpProof.Worker;
 
-internal sealed partial class VerificationCache(string directory, long maximumBytes)
+internal sealed class VerificationCacheTestHooks
+{
+    internal Action<string, string>? PathValidation { get; set; }
+    internal Action? TransactionRollback { get; set; }
+}
+
+internal sealed partial class VerificationCache(
+    string directory,
+    long maximumBytes,
+    VerificationCacheTestHooks? testHooks = null)
 {
     internal const string CacheFileSuffix = ".sharp-proof-cache.json";
     private readonly string _directory = Path.GetFullPath(
@@ -22,8 +31,6 @@ internal sealed partial class VerificationCache(string directory, long maximumBy
     private static readonly string[] TransactionSuffixes =
         [".rollback", ".eviction"];
     private const string CacheFilePattern = "*" + CacheFileSuffix;
-    internal static Action<string, string>? PathValidationOverride;
-    internal static Action? TransactionRollbackOverride;
     // Set for the most recent read so the worker can distinguish an
     // operational cache failure from an ordinary miss. Each cache instance
     // is scoped to one worker request.
@@ -43,7 +50,7 @@ internal sealed partial class VerificationCache(string directory, long maximumBy
         FileStream? cacheLock = null;
         try
         {
-            cacheLock = AcquireLock(_directory);
+            cacheLock = AcquireLock();
             RecoverInterruptedTransactions(cancellationToken);
             ValidatePath(path);
             if (!File.Exists(path))
@@ -189,7 +196,7 @@ internal sealed partial class VerificationCache(string directory, long maximumBy
                 {
                     try
                     {
-                        TransactionRollbackOverride?.Invoke();
+                        testHooks?.TransactionRollback?.Invoke();
                     }
                     finally
                     {
@@ -219,7 +226,7 @@ internal sealed partial class VerificationCache(string directory, long maximumBy
         FileStream? cacheLock = null;
         try
         {
-            cacheLock = AcquireLock(_directory);
+            cacheLock = AcquireLock();
             RecoverInterruptedTransactions(cancellationToken);
             var payload = JsonSerializer.Serialize(new CachePayload(
                 manifest.Hash, response.CallableResults, response.ClaimResults), WorkerProtocolJson.SharedOptions);
@@ -273,7 +280,7 @@ internal sealed partial class VerificationCache(string directory, long maximumBy
                             previousPath != null ||
                             staged.Count > 0)
                         {
-                            TransactionRollbackOverride?.Invoke();
+                            testHooks?.TransactionRollback?.Invoke();
                         }
                     }
                     finally
@@ -297,18 +304,18 @@ internal sealed partial class VerificationCache(string directory, long maximumBy
         }
     }
 
-    private static FileStream AcquireLock(string directory)
+    private FileStream AcquireLock()
     {
-        var lockPath = Path.Combine(directory, ".sharp-proof-cache.lock");
-        ValidatePath(directory, lockPath);
-        Directory.CreateDirectory(directory);
-        ValidatePath(directory, lockPath);
+        var lockPath = Path.Combine(_directory, ".sharp-proof-cache.lock");
+        ValidatePath(lockPath);
+        Directory.CreateDirectory(_directory);
+        ValidatePath(lockPath);
         FileStream? cacheLock = null;
         var ownershipTransferred = false;
         try
         {
             cacheLock = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
-            ValidatePath(directory, lockPath);
+            ValidatePath(lockPath);
             ownershipTransferred = true;
             return cacheLock;
         }
@@ -580,18 +587,13 @@ internal sealed partial class VerificationCache(string directory, long maximumBy
 
     private void ValidatePath(string path)
     {
-        ValidatePath(_directory, path);
-    }
-
-    private static void ValidatePath(string directory, string path)
-    {
-        if (PathValidationOverride is { } validator)
+        if (testHooks?.PathValidation is { } validator)
         {
-            validator(directory, path);
+            validator(_directory, path);
             return;
         }
 
-        SharpProof.Host.LinuxPathIdentity.RequireLocalPath(directory);
+        SharpProof.Host.LinuxPathIdentity.RequireLocalPath(_directory);
         SharpProof.Host.LinuxPathIdentity.Canonicalize(path);
     }
 

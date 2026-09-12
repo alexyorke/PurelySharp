@@ -10,6 +10,7 @@ public sealed class SharpProofWorker : IDisposable
     private readonly Func<ISmtBackend>? _backendFactory;
     private readonly uint? _configuredQueryRlimit;
     private readonly Func<long>? _readConsumedResourceCount;
+    private readonly VerificationCacheTestHooks? _cacheTestHooks;
     private readonly Channel<byte>? _injectedBackendRunGate;
     private bool _disposed;
     // An injected backend cannot be renewed after interruption.  Once a run
@@ -17,14 +18,22 @@ public sealed class SharpProofWorker : IDisposable
     // potentially poisoned instance to a later request.
     private bool _injectedBackendPoisoned;
     public SharpProofWorker(ISmtBackend backend) : this(
-        backend, ReadResources(backend))
+        backend, ReadResources(backend), null)
     {
     }
     internal SharpProofWorker(ISmtBackend backend, Func<long>? readConsumedResourceCount)
+        : this(backend, readConsumedResourceCount, null)
+    {
+    }
+    internal SharpProofWorker(
+        ISmtBackend backend,
+        Func<long>? readConsumedResourceCount,
+        VerificationCacheTestHooks? cacheTestHooks)
     {
         ArgumentNullException.ThrowIfNull(backend);
         _backend = backend;
         _readConsumedResourceCount = readConsumedResourceCount;
+        _cacheTestHooks = cacheTestHooks;
         _injectedBackendRunGate = CreateInjectedBackendRunGate();
     }
     internal SharpProofWorker(Func<ISmtBackend> backendFactory)
@@ -483,7 +492,7 @@ public sealed class SharpProofWorker : IDisposable
         return gate;
     }
 
-    private static VerificationCache? CreateCacheIfEnabled(
+    private VerificationCache? CreateCacheIfEnabled(
         WorkerVerifyRequest request, string projectDirectory, out WorkerCacheStatus status)
     {
         if (!request.Cache.Enabled || request.VerifyPolicy == WorkerVerifyPolicy.RequireProven)
@@ -497,7 +506,10 @@ public sealed class SharpProofWorker : IDisposable
             var directory = WorkerCachePath.Resolve(
                 request.Cache.Directory,
                 projectDirectory);
-            return new VerificationCache(directory, request.Cache.MaximumBytes);
+            return new VerificationCache(
+                directory,
+                request.Cache.MaximumBytes,
+                _cacheTestHooks);
         }
         catch (Exception exception) when (exception is ArgumentException or NotSupportedException)
         {

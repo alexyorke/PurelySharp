@@ -976,41 +976,35 @@ public sealed class WorkerTcbEdgeCaseTests
         using var temporaryDirectory = new TempDirectory("worker-cache-cancel-");
         var directory = temporaryDirectory.FullName;
         using var cancellation = new CancellationTokenSource();
-        try
+        var cacheHooks = new VerificationCacheTestHooks();
+        var inputHash = new string('f', 64);
+        var manifest = new WorkerClaimManifest();
+        WorkerProtocolJson.SealManifest(manifest);
+        var cache = new VerificationCache(directory, 1024 * 1024, cacheHooks);
+        cacheHooks.PathValidation = (_, path) =>
         {
-            var inputHash = new string('f', 64);
-            var manifest = new WorkerClaimManifest();
-            WorkerProtocolJson.SealManifest(manifest);
-            var cache = new VerificationCache(directory, 1024 * 1024);
-            VerificationCache.PathValidationOverride = (_, path) =>
+            if (path.EndsWith(
+                    CacheFileSuffix,
+                    StringComparison.Ordinal) &&
+                File.Exists(path))
             {
-                if (path.EndsWith(
-                        CacheFileSuffix,
-                        StringComparison.Ordinal) &&
-                    File.Exists(path))
-                {
-                    cancellation.Cancel();
-                    cancellation.Token.ThrowIfCancellationRequested();
-                }
-            };
+                cancellation.Cancel();
+                cancellation.Token.ThrowIfCancellationRequested();
+            }
+        };
 
-            Func<Task> write = async () =>
-            {
-                await cache.TryWriteAsync(
-                    new WorkerVerifyResponse(),
-                    inputHash,
-                    manifest,
-                    cancellation.Token);
-            };
-            Assert.ThrowsAsync<OperationCanceledException>(write);
-            Assert.That(
-                Directory.GetFiles(directory, "*" + CacheFileSuffix),
-                Is.Empty);
-        }
-        finally
+        Func<Task> write = async () =>
         {
-            VerificationCache.PathValidationOverride = null;
-        }
+            await cache.TryWriteAsync(
+                new WorkerVerifyResponse(),
+                inputHash,
+                manifest,
+                cancellation.Token);
+        };
+        Assert.ThrowsAsync<OperationCanceledException>(write);
+        Assert.That(
+            Directory.GetFiles(directory, "*" + CacheFileSuffix),
+            Is.Empty);
     }
 
     [Test]
@@ -1021,55 +1015,49 @@ public sealed class WorkerTcbEdgeCaseTests
             "worker-cache-capacity-cancel-");
         var directory = temporaryDirectory.FullName;
         using var cancellation = new CancellationTokenSource();
-        try
+        var cacheHooks = new VerificationCacheTestHooks();
+        for (var index = 0; index < 32; index++)
         {
-            for (var index = 0; index < 32; index++)
+            File.WriteAllText(
+                Path.Combine(
+                    directory,
+                    index.ToString("x64", CultureInfo.InvariantCulture) + suffix),
+                "entry");
+        }
+
+        var inputHash = new string('f', 64);
+        var publishedPath = Path.Combine(directory, inputHash + suffix);
+        var validatedEntries = 0;
+        cacheHooks.PathValidation = (_, candidate) =>
+        {
+            if (!candidate.EndsWith(suffix, StringComparison.Ordinal) ||
+                string.Equals(
+                    candidate,
+                    publishedPath,
+                    StringComparison.Ordinal))
             {
-                File.WriteAllText(
-                    Path.Combine(
-                        directory,
-                        index.ToString("x64", CultureInfo.InvariantCulture) + suffix),
-                    "entry");
+                return;
             }
 
-            var inputHash = new string('f', 64);
-            var publishedPath = Path.Combine(directory, inputHash + suffix);
-            var validatedEntries = 0;
-            VerificationCache.PathValidationOverride = (_, candidate) =>
+            if (Interlocked.Increment(ref validatedEntries) == 1)
             {
-                if (!candidate.EndsWith(suffix, StringComparison.Ordinal) ||
-                    string.Equals(
-                        candidate,
-                        publishedPath,
-                        StringComparison.Ordinal))
-                {
-                    return;
-                }
+                cancellation.Cancel();
+            }
+        };
+        var manifest = new WorkerClaimManifest();
+        WorkerProtocolJson.SealManifest(manifest);
+        var cache = new VerificationCache(directory, 1024 * 1024, cacheHooks);
 
-                if (Interlocked.Increment(ref validatedEntries) == 1)
-                {
-                    cancellation.Cancel();
-                }
-            };
-            var manifest = new WorkerClaimManifest();
-            WorkerProtocolJson.SealManifest(manifest);
-            var cache = new VerificationCache(directory, 1024 * 1024);
-
-            Func<Task> write = async () =>
-            {
-                await cache.TryWriteAsync(
-                    new WorkerVerifyResponse(),
-                    inputHash,
-                    manifest,
-                    cancellation.Token);
-            };
-            Assert.ThrowsAsync<OperationCanceledException>(write);
-            Assert.That(validatedEntries, Is.EqualTo(1));
-        }
-        finally
+        Func<Task> write = async () =>
         {
-            VerificationCache.PathValidationOverride = null;
-        }
+            await cache.TryWriteAsync(
+                new WorkerVerifyResponse(),
+                inputHash,
+                manifest,
+                cancellation.Token);
+        };
+        Assert.ThrowsAsync<OperationCanceledException>(write);
+        Assert.That(validatedEntries, Is.EqualTo(1));
     }
 
     [Test]
@@ -1078,53 +1066,47 @@ public sealed class WorkerTcbEdgeCaseTests
         using var temporaryDirectory = new TempDirectory(
             "worker-cache-existing-");
         var directory = temporaryDirectory.FullName;
-        try
-        {
-            var inputHash = new string('9', 64);
-            var manifest = new WorkerClaimManifest();
-            WorkerProtocolJson.SealManifest(manifest);
-            var cache = new VerificationCache(directory, 1024 * 1024);
-            Assert.That(
-                await cache.TryWriteAsync(
-                    new WorkerVerifyResponse(),
-                    inputHash,
-                    manifest,
-                    CancellationToken.None),
-                Is.True);
-            var path = Directory.GetFiles(
-                directory,
-                ("*" + CacheFileSuffix)).Single();
-            var original = await File.ReadAllBytesAsync(path);
-            VerificationCache.PathValidationOverride = (_, candidate) =>
-            {
-                if (candidate.EndsWith(
-                        CacheFileSuffix,
-                        StringComparison.Ordinal) &&
-                    File.Exists(candidate))
-                {
-                    throw new ArgumentException("synthetic post-publish failure");
-                }
-            };
-
-            var written = await cache.TryWriteAsync(
-                new WorkerVerifyResponse
-                {
-                    ClaimResults = [new WorkerClaimResult
-                    {
-                        ClaimId = "different"
-                    }]
-                },
+        var inputHash = new string('9', 64);
+        var manifest = new WorkerClaimManifest();
+        WorkerProtocolJson.SealManifest(manifest);
+        var cacheHooks = new VerificationCacheTestHooks();
+        var cache = new VerificationCache(directory, 1024 * 1024, cacheHooks);
+        Assert.That(
+            await cache.TryWriteAsync(
+                new WorkerVerifyResponse(),
                 inputHash,
                 manifest,
-                CancellationToken.None);
-
-            Assert.That(written, Is.False);
-            Assert.That(await File.ReadAllBytesAsync(path), Is.EqualTo(original));
-        }
-        finally
+                CancellationToken.None),
+            Is.True);
+        var path = Directory.GetFiles(
+            directory,
+            ("*" + CacheFileSuffix)).Single();
+        var original = await File.ReadAllBytesAsync(path);
+        cacheHooks.PathValidation = (_, candidate) =>
         {
-            VerificationCache.PathValidationOverride = null;
-        }
+            if (candidate.EndsWith(
+                    CacheFileSuffix,
+                    StringComparison.Ordinal) &&
+                File.Exists(candidate))
+            {
+                throw new ArgumentException("synthetic post-publish failure");
+            }
+        };
+
+        var written = await cache.TryWriteAsync(
+            new WorkerVerifyResponse
+            {
+                ClaimResults = [new WorkerClaimResult
+                {
+                    ClaimId = "different"
+                }]
+            },
+            inputHash,
+            manifest,
+            CancellationToken.None);
+
+        Assert.That(written, Is.False);
+        Assert.That(await File.ReadAllBytesAsync(path), Is.EqualTo(original));
     }
 
     [Test]
@@ -1141,9 +1123,10 @@ public sealed class WorkerTcbEdgeCaseTests
             var secondHash = new string('8', 64);
             var manifest = new WorkerClaimManifest();
             WorkerProtocolJson.SealManifest(manifest);
-            var cache = new VerificationCache(directory, 1024 * 1024);
+            var cacheHooks = new VerificationCacheTestHooks();
+            var cache = new VerificationCache(directory, 1024 * 1024, cacheHooks);
             var failValidation = 0;
-            VerificationCache.PathValidationOverride = (_, candidate) =>
+            cacheHooks.PathValidation = (_, candidate) =>
             {
                 if (candidate.EndsWith(
                         CacheFileSuffix,
@@ -1158,7 +1141,7 @@ public sealed class WorkerTcbEdgeCaseTests
                 }
             };
             var rollbackCalls = 0;
-            VerificationCache.TransactionRollbackOverride = () =>
+            cacheHooks.TransactionRollback = () =>
             {
                 if (Interlocked.Increment(ref rollbackCalls) == 1)
                 {
@@ -1205,8 +1188,6 @@ public sealed class WorkerTcbEdgeCaseTests
         finally
         {
             allowRollback.Set();
-            VerificationCache.TransactionRollbackOverride = null;
-            VerificationCache.PathValidationOverride = null;
         }
     }
 
@@ -1216,43 +1197,36 @@ public sealed class WorkerTcbEdgeCaseTests
         using var temporaryDirectory = new TempDirectory(
             "worker-cache-lock-validation-");
         var directory = temporaryDirectory.FullName;
-        try
+        var cacheHooks = new VerificationCacheTestHooks();
+        var cache = new VerificationCache(directory, 1024 * 1024, cacheHooks);
+        var calls = 0;
+        cacheHooks.PathValidation = (_, _) =>
         {
-            var calls = 0;
-            Action<string, string> validatePath = (_, _) =>
+            calls++;
+            if (calls == 3)
             {
-                calls++;
-                if (calls == 3)
-                {
-                    throw new ArgumentException("synthetic validation failure");
-                }
-            };
+                throw new ArgumentException("synthetic validation failure");
+            }
+        };
+        var acquireLock = typeof(VerificationCache)
+            .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
+            .Single(method => method.Name == "AcquireLock" &&
+                method.GetParameters().Length == 0);
+        Action failValidation = () => acquireLock.Invoke(
+            cache,
+            null);
+        var invocation = Assert.Throws<TargetInvocationException>(
+            failValidation);
+        Assert.That(
+            invocation!.InnerException,
+            Is.TypeOf<ArgumentException>());
 
-            VerificationCache.PathValidationOverride = validatePath;
-            var acquireLock = typeof(VerificationCache)
-                .GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
-                .Single(method => method.Name == "AcquireLock" &&
-                    method.GetParameters().Length == 1);
-            Action failValidation = () => acquireLock.Invoke(
-                null,
-                [directory]);
-            var invocation = Assert.Throws<TargetInvocationException>(
-                failValidation);
-            Assert.That(
-                invocation!.InnerException,
-                Is.TypeOf<ArgumentException>());
-
-            using var reopened = new FileStream(
-                Path.Combine(directory, ".sharp-proof-cache.lock"),
-                FileMode.OpenOrCreate,
-                FileAccess.ReadWrite,
-                FileShare.None);
-            Assert.That(calls, Is.EqualTo(3));
-        }
-        finally
-        {
-            VerificationCache.PathValidationOverride = null;
-        }
+        using var reopened = new FileStream(
+            Path.Combine(directory, ".sharp-proof-cache.lock"),
+            FileMode.OpenOrCreate,
+            FileAccess.ReadWrite,
+            FileShare.None);
+        Assert.That(calls, Is.EqualTo(3));
     }
 
     private static Task WriteCacheEnvelopeAsync(

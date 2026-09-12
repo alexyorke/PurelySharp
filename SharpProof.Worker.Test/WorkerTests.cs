@@ -1638,43 +1638,37 @@ public sealed class WorkerTests
         using var project = TestProject.Create(RefutationSource);
         var request = project.CreateRequest(cacheEnabled: true);
         var backend = new SpuriousModelBackend();
-        using var worker = new SharpProofWorker(backend);
+        var cacheHooks = new VerificationCacheTestHooks();
+        using var worker = new SharpProofWorker(backend, null, cacheHooks);
         var first = await worker.VerifyAsync(request);
         var cacheFile = Directory.GetFiles(
             project.CacheDirectory,
             "*.sharp-proof-cache.json").Single();
         var cachePathValidations = 0;
-        try
+        cacheHooks.PathValidation = (_, path) =>
         {
-            VerificationCache.PathValidationOverride = (_, path) =>
+            if (string.Equals(path, cacheFile, StringComparison.Ordinal) &&
+                Interlocked.Increment(ref cachePathValidations) == 2)
             {
-                if (string.Equals(path, cacheFile, StringComparison.Ordinal) &&
-                    Interlocked.Increment(ref cachePathValidations) == 2)
-                {
-                    throw new OverflowException(
-                        "Synthetic cache capacity overflow.");
-                }
-            };
-
-            var recomputed = await worker.VerifyAsync(request);
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(
-                    first.Summary.CacheStatus,
-                    Is.EqualTo(WorkerCacheStatus.Written));
-                Assert.That(
-                    recomputed.RunStatus,
-                    Is.EqualTo(WorkerRunStatus.Complete));
-                Assert.That(
-                    recomputed.Summary.CacheStatus,
-                    Is.EqualTo(WorkerCacheStatus.Written));
-                Assert.That(backend.CallCount, Is.EqualTo(2));
+                throw new OverflowException(
+                    "Synthetic cache capacity overflow.");
             }
-        }
-        finally
+        };
+
+        var recomputed = await worker.VerifyAsync(request);
+
+        using (Assert.EnterMultipleScope())
         {
-            VerificationCache.PathValidationOverride = null;
+            Assert.That(
+                first.Summary.CacheStatus,
+                Is.EqualTo(WorkerCacheStatus.Written));
+            Assert.That(
+                recomputed.RunStatus,
+                Is.EqualTo(WorkerRunStatus.Complete));
+            Assert.That(
+                recomputed.Summary.CacheStatus,
+                Is.EqualTo(WorkerCacheStatus.Written));
+            Assert.That(backend.CallCount, Is.EqualTo(2));
         }
     }
 
@@ -4848,31 +4842,25 @@ public sealed class WorkerTests
         using var project = TestProject.Create(RefutationSource);
         var request = project.CreateRequest(cacheEnabled: true);
         var backend = new SpuriousModelBackend();
-        using var worker = new SharpProofWorker(backend);
+        var cacheHooks = new VerificationCacheTestHooks();
+        using var worker = new SharpProofWorker(backend, null, cacheHooks);
         using var cancellation = new CancellationTokenSource();
-        try
+        cacheHooks.PathValidation = (_, path) =>
         {
-            VerificationCache.PathValidationOverride = (_, path) =>
+            if (path.EndsWith(
+                    ".sharp-proof-cache.json",
+                    StringComparison.Ordinal) &&
+                File.Exists(path))
             {
-                if (path.EndsWith(
-                        ".sharp-proof-cache.json",
-                        StringComparison.Ordinal) &&
-                    File.Exists(path))
-                {
-                    cancellation.Cancel();
-                    cancellation.Token.ThrowIfCancellationRequested();
-                }
-            };
-            var canceled = await worker.VerifyAsync(request, cancellation.Token);
-            Assert.That(canceled.RunStatus, Is.EqualTo(WorkerRunStatus.Canceled));
-            Assert.That(
-                CacheFiles(project),
-                Is.Empty);
-        }
-        finally
-        {
-            VerificationCache.PathValidationOverride = null;
-        }
+                cancellation.Cancel();
+                cancellation.Token.ThrowIfCancellationRequested();
+            }
+        };
+        var canceled = await worker.VerifyAsync(request, cancellation.Token);
+        Assert.That(canceled.RunStatus, Is.EqualTo(WorkerRunStatus.Canceled));
+        Assert.That(
+            CacheFiles(project),
+            Is.Empty);
 
         var recoveredBackend = new SpuriousModelBackend();
         using var recoveredWorker = new SharpProofWorker(recoveredBackend);
