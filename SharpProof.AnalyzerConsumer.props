@@ -20,6 +20,8 @@
     <ProjectReference Include="$(_SharpProofAnalyzerConsumerDirectory)SharpProof.Analyzer\SharpProof.Analyzer.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
+    <ProjectReference Include="$(_SharpProofAnalyzerConsumerDirectory)SharpProof.Analyzer.Core\SharpProof.Analyzer.Core.csproj"
+                      ReferenceOutputAssembly="false" />
     <ProjectReference Include="$(_SharpProofAnalyzerConsumerDirectory)SharpProof.ContractForGenerator\SharpProof.ContractForGenerator.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
@@ -64,6 +66,9 @@
       <_SharpProofMappedAnalyzerProjectReference
           Include="@(ProjectReferenceWithConfiguration)"
           Condition="'%(ProjectReferenceWithConfiguration.Filename)' == 'SharpProof.Analyzer'" />
+      <_SharpProofMappedAnalyzerCoreProjectReference
+          Include="@(ProjectReferenceWithConfiguration)"
+          Condition="'%(ProjectReferenceWithConfiguration.Filename)' == 'SharpProof.Analyzer.Core'" />
       <_SharpProofMappedCollectorProjectReference
           Include="@(ProjectReferenceWithConfiguration)"
           Condition="'%(ProjectReferenceWithConfiguration.Filename)' == 'SharpProof.CompilerCollector'" />
@@ -77,7 +82,11 @@
     <PropertyGroup Condition="'@(_SharpProofMappedAnalyzerProjectReference)' != ''">
       <_SharpProofMappedAnalyzerConfiguration>@(_SharpProofMappedAnalyzerProjectReference->'%(Configuration)')</_SharpProofMappedAnalyzerConfiguration>
       <_SharpProofMappedAnalyzerConfiguration Condition="'$(_SharpProofMappedAnalyzerConfiguration)' == ''">$(Configuration)</_SharpProofMappedAnalyzerConfiguration>
-      <_SharpProofMappedAnalyzerDependencyDirectory>$(_SharpProofAnalyzerConsumerDirectory)SharpProof.Analyzer.Core\bin\$(_SharpProofMappedAnalyzerConfiguration)\netstandard2.0</_SharpProofMappedAnalyzerDependencyDirectory>
+    </PropertyGroup>
+    <PropertyGroup Condition="'@(_SharpProofMappedAnalyzerCoreProjectReference)' != ''">
+      <_SharpProofMappedAnalyzerCoreConfiguration>@(_SharpProofMappedAnalyzerCoreProjectReference->'%(Configuration)')</_SharpProofMappedAnalyzerCoreConfiguration>
+      <_SharpProofMappedAnalyzerCoreConfiguration Condition="'$(_SharpProofMappedAnalyzerCoreConfiguration)' == ''">$(Configuration)</_SharpProofMappedAnalyzerCoreConfiguration>
+      <_SharpProofMappedAnalyzerDependencyDirectory>$(_SharpProofAnalyzerConsumerDirectory)SharpProof.Analyzer.Core\bin\$(_SharpProofMappedAnalyzerCoreConfiguration)\netstandard2.0</_SharpProofMappedAnalyzerDependencyDirectory>
     </PropertyGroup>
     <PropertyGroup Condition="'@(_SharpProofMappedCollectorProjectReference)' != ''">
       <_SharpProofMappedCollectorConfiguration>@(_SharpProofMappedCollectorProjectReference->'%(Configuration)')</_SharpProofMappedCollectorConfiguration>
