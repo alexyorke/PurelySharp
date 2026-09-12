@@ -1,6 +1,6 @@
 # Active code reduction queue
 Resolved proposals are removed from this file after implementation, validation, or a current-tree refutation. The original survey remains available in Git history; this file is intentionally only the active queue.
-Inventory after deduplication: 72 canonical queue IDs represented by 71 deferred rows (0 pending). Resolved and refuted proposals are removed; repeated and superseded rows are merged into canonical rows.
+Inventory after deduplication: 71 canonical queue IDs represented by 70 deferred rows (0 pending). Resolved and refuted proposals are removed; repeated and superseded rows are merged into canonical rows.
 
 Each pending row must be rechecked against the current tree, applied in a compatible batch, validated with the smallest relevant containerized test target, and then removed here.
 
@@ -58,7 +58,6 @@ Each pending row must be rechecked against the current tree, applied in a compat
 - **R0562**: **Deferred.** Receipt generation needs a normalized artifact projection while pilot-report validation performs the stronger checks; sharing them requires a result/schema contract, not mechanical scan removal. | `scripts/Write-SharpProofQualificationReceipt.ps1`; `scripts/Test-SharpProofPilotReport.ps1`
 - **R0747**: **Deferred.** Entrypoint and persistent loop snapshots share shell text but have different clone, volume, lock, cleanup, stale-manifest, and containment contracts. Extract only after a shared shell contract and direct loop integration coverage exist. | `eng/container/entrypoint.sh`; `eng/container/loop-command.sh`; `SharpProof.ArchitectureTest/{ContainerSourceCleanlinessTests.cs,BuildSchedulingTests.cs}`
 - **R3960**: R3960 | **Deferred.** R0531's direct compiler-hash reuse option crosses an explicitly tested independence boundary: `EffectCounterexampleReplayTests.WorkerOwnsCanonicalReplayHashing` asserts that worker source does not call either compiler codec hash method. Preserve independent worker hashing; source sharing needs an architectural decision and a replacement independence argument, not only duplicate-code removal. | `SharpProof.Worker.Test/EffectCounterexampleReplayTests.cs:11-15,335-389`
-- **R0298**: R298 | **Partially applied; remaining portion deferred.** `Test-SharpProofCoverage.ps1` now reuses `Get-OrdinalSortedUniqueStrings` for its already-unique path sets. The `Get-RequiredProperty` helpers remain separate because the API-catalog and release versions intentionally differ in null, error, and array-return semantics.
 
 - **R0871**: R871 | **Deferred.** Location construction validates builder-created inputs, while `Load`/`Store` attachment must revalidate caller-supplied, forged, or cross-factory locations and enforce target-type compatibility. Removing the second pass would weaken malformed-location rejection; a validated-location capability type would be a larger design.
 - **R0845**: R845 | **Deferred.** The recursive formatter and documentation formatter intentionally emit different representations and validation errors; sharing them would change output or error contracts rather than reduce code safely.
