@@ -1,11 +1,10 @@
 # Active code reduction queue
 Resolved proposals are removed from this file after implementation, validation, or a current-tree refutation. The original survey remains available in Git history; this file is intentionally only the active queue.
-Inventory after deduplication: 65 canonical queue IDs represented by 64 deferred rows (0 pending). Resolved and refuted proposals are removed; repeated and superseded rows are merged into canonical rows.
+Inventory after deduplication: 64 canonical queue IDs represented by 63 deferred rows (0 pending). Resolved and refuted proposals are removed; repeated and superseded rows are merged into canonical rows.
 
 Each pending row must be rechecked against the current tree, applied in a compatible batch, validated with the smallest relevant containerized test target, and then removed here.
 
 ## Deferred
-- **R2386**: **Deferred.** Release evidence topology is intentionally revalidated at publication; carrying a prior validation result across the staging boundary would weaken destination/authenticity checks. | `scripts/New-SharpProofReleaseEvidence.ps1`; `scripts/SharpProof.ReleaseBundle.ps1`
 - **R4014**: **Deferred.** Returned-state bottom transfer guards protect cancellation/refinement semantics; deleting them changes cancellation and coalesce-capture state for structurally reachable blocks before propagation. | `SharpProof.Effects/ManagedAbstractFlow.cs`; dataflow tests
 - **R4071**: **Deferred.** Fuzz counts repeat across language authorities with different contract meanings; consolidation is policy work, not a safe source reduction. | `scripts/Invoke-SharpProofFuzzCampaign.ps1`; `eng/acceptance/contract.json`
 - **R3380**: **Deferred.** Deriving declaration-only TCB coverage dynamically changes coverage admission semantics and needs a robust declaration classifier plus gate fixtures. | `eng/coverage/baseline.json`; `scripts/Test-SharpProofCoverage.ps1`

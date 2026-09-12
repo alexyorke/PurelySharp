@@ -510,10 +510,6 @@ foreach ($packageFile in $packageFiles) {
         (Join-Path $resolvedOutput $packageFile.Name),
         $false)
 }
-Test-SharpProofReleaseBundleTopology `
-    -Directory $resolvedOutput `
-    -Artifacts $orderedArtifacts `
-    -Owner 'Generated release bundle staging'
 Publish-SharpProofReleaseBundleAtomically `
     -StagingDirectory $resolvedOutput `
     -DestinationDirectory $finalOutput `
