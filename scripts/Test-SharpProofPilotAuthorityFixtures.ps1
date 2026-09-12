@@ -106,7 +106,7 @@ try {
         }
     })
     $report = [pscustomobject]@{
-        schemaVersion=3; reviewStatus='Unreviewed'; runId=('1' * 32); commit=$commit; packageVersion=$version; pilotCount=5
+        schemaVersion=4; reviewStatus='Unreviewed'; runId=('1' * 32); commit=$commit; packageVersion=$version; pilotCount=5
         packageArtifacts=$artifacts
         pilots=$reportPilots
     }
@@ -188,7 +188,7 @@ try {
         })
     })
     $ledger = [ordered]@{
-        schemaVersion=1
+        schemaVersion=2
         commit=$commit
         packageArtifacts=$canonicalReport.packageArtifacts
         reviews=$reviewRows

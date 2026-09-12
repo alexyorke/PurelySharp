@@ -150,11 +150,12 @@ public sealed class ReleaseCoverageBaselineTests
                 Does.Contain("releaseQualificationMatrix")
                     .And.Contain("requiredGates"));
             Assert.That(writer, Does.Contain("status -cne 'passed'"));
-            Assert.That(writer, Does.Not.Contain("sha256"));
+            Assert.That(writer, Does.Contain("sha256"));
             Assert.That(
                 writer,
                 Does.Contain("targets different packages"));
             Assert.That(receiptWriter, Does.Contain("mutationCount"));
+            Assert.That(receiptWriter, Does.Contain("sha256"));
             Assert.That(
                 receiptWriter,
                 Does.Contain("Test-SharpProofPilotReport")
@@ -175,14 +176,15 @@ public sealed class ReleaseCoverageBaselineTests
                     .Select(index => new
                     {
                         fileName = $"package-{index}.nupkg",
-                        bytes = 1
+                        bytes = 1,
+                        sha256 = new string('a', 64)
                     })
                     .ToArray();
                 string Evidence(object packageArtifacts)
                 {
                     return JsonSerializer.Serialize(new
                     {
-                        schemaVersion = 1,
+                        schemaVersion = 2,
                         status = "passed",
                         commit = head,
                         packageArtifacts
@@ -196,14 +198,16 @@ public sealed class ReleaseCoverageBaselineTests
                         ? new
                         {
                             fileName = packages[0].fileName,
-                            item.bytes
+                            item.bytes,
+                            item.sha256
                         }
                         : item).ToArray()), false),
                     (Evidence(packages.Select((item, index) => index == 5
                         ? new
                         {
                             item.fileName,
-                            bytes = 0
+                            bytes = 0,
+                            item.sha256
                         }
                         : item).ToArray()), false)
                 ];

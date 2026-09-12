@@ -78,6 +78,7 @@ public sealed partial class ReleaseQualificationMatrixTests
         foreach (var name in new[]
                  {
                          "Write-SharpProofQualificationReceipt.ps1",
+                         "SharpProof.ReleaseBundle.ps1",
                          "Test-SharpProofPilotReport.ps1",
                          "SharpProof.ReleaseJson.ps1",
                          "SharpProof.PackageIdentity.psm1"
@@ -105,7 +106,7 @@ public sealed partial class ReleaseQualificationMatrixTests
         {
             await File.WriteAllTextAsync(evidence, JsonSerializer.Serialize(new
             {
-                schemaVersion = 1,
+                schemaVersion = 2,
                 status = "passed",
                 commit,
                 osFamily,
@@ -146,6 +147,9 @@ public sealed partial class ReleaseQualificationMatrixTests
             Path.Combine(
                 scripts.FullName,
                 "Write-SharpProofQualificationReceipt.ps1"));
+        File.Copy(
+            Path.Combine(sourceRoot, "scripts", "SharpProof.ReleaseBundle.ps1"),
+            Path.Combine(scripts.FullName, "SharpProof.ReleaseBundle.ps1"));
         File.Copy(
             Path.Combine(sourceRoot, "scripts", "SharpProof.ReleaseJson.ps1"),
             Path.Combine(scripts.FullName, "SharpProof.ReleaseJson.ps1"));
@@ -203,12 +207,13 @@ public sealed partial class ReleaseQualificationMatrixTests
         return workflow[start..end];
     }
 
-    private sealed record PackageArtifact(string fileName, int bytes);
+    private sealed record PackageArtifact(string fileName, int bytes, string sha256);
 
     private static PackageArtifact[] CreatePackageArtifacts()
     {
         return Enumerable.Range(0, 6)
-            .Select(index => new PackageArtifact($"package-{index}.nupkg", 1))
+            .Select(index => new PackageArtifact(
+                $"package-{index}.nupkg", 1, new string('a', 64)))
             .ToArray();
     }
 

@@ -9,6 +9,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'SharpProof.ReleaseBundle.ps1')
 $actualOsFamily = if ($IsLinux) {
     'linux'
 }
@@ -42,12 +43,13 @@ $packages = @(Get-ChildItem -LiteralPath $resolvedSource -File |
         [ordered]@{
             fileName = $_.Name
             bytes = [int64]$_.Length
+            sha256 = Get-SharpProofFileSha256 -Path $_.FullName
         }
     })
 [IO.File]::WriteAllText(
     $evidencePath,
     (([ordered]@{
-        schemaVersion = 1
+        schemaVersion = 2
         status = 'passed'
         commit = (& git -C $repositoryRoot rev-parse HEAD).Trim()
         osFamily = $OsFamily

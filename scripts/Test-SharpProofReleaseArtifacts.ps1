@@ -40,7 +40,7 @@ $manifestPath = Join-Path $resolvedSource 'SharpProof.release.json'
 $manifest = Read-SharpProofCanonicalReleaseJson `
     -Path $manifestPath `
     -DocumentType ReleaseManifest
-if ($manifest.schemaVersion -ne 2) {
+if ($manifest.schemaVersion -ne 3) {
     throw 'Unsupported release evidence schema.'
 }
 if ([string]$manifest.packageVersion -ne $expectedVersion) {
@@ -92,6 +92,10 @@ foreach ($artifact in $artifacts) {
     $file = Get-Item -LiteralPath $path -ErrorAction Stop
     if ([int64]$file.Length -ne [int64]$artifact.bytes) {
         throw "Release artifact size mismatch: $fileName"
+    }
+    if ([string]$artifact.sha256 -cne
+        (Get-SharpProofFileSha256 -Path $file.FullName)) {
+        throw "Release artifact digest mismatch: $fileName"
     }
 }
 $payloadSets = @($manifest.packagePayloads)

@@ -14,6 +14,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'SharpProof.ReleaseBundle.ps1')
 
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 . (Join-Path $PSScriptRoot 'SharpProof.ReleaseJson.ps1')
@@ -36,14 +37,17 @@ if ($Gate -in @(
     $packageArtifacts = @($evidence.packageArtifacts | ForEach-Object {
         $fileName = [string]$_.fileName
         $bytes = [int64]$_.bytes
+        $sha256 = [string]$_.sha256
         if ([IO.Path]::GetFileName($fileName) -cne $fileName -or
             $fileName -notmatch '\.(?:nupkg|snupkg)$' -or
-            $bytes -le 0) {
+            $bytes -le 0 -or
+            $sha256 -cnotmatch '^[0-9a-f]{64}$') {
             throw "Qualification package evidence is malformed: '$fileName'."
         }
         [ordered]@{
             fileName = $fileName
             bytes = $bytes
+            sha256 = $sha256
         }
     } | Sort-Object fileName)
     if ($packageArtifacts.Count -ne 6 -or
@@ -60,7 +64,7 @@ $valid = switch -Regex ($Gate) {
         [string]$evidence.commit -ceq $commit
     }
     '^portable-(?:linux|windows|macos)$' {
-        [int]$evidence.schemaVersion -eq 1 -and
+        [int]$evidence.schemaVersion -eq 2 -and
         [string]$evidence.status -ceq 'passed' -and
         [string]$evidence.commit -ceq $commit -and
         [string]$evidence.osFamily -ceq $Gate.Substring(9)
@@ -82,7 +86,7 @@ $valid = switch -Regex ($Gate) {
         [int]$evidence.mutationCount -eq [int]$evidence.killedCount
     }
     'package-consumers' {
-        [int]$evidence.schemaVersion -eq 1 -and
+        [int]$evidence.schemaVersion -eq 2 -and
         [string]$evidence.status -ceq 'passed' -and
         [string]$evidence.commit -ceq $commit
     }
@@ -109,13 +113,14 @@ if (-not $receiptDirectory.StartsWith(
 }
 [IO.Directory]::CreateDirectory($receiptDirectory) | Out-Null
 $receipt = [ordered]@{
-    schemaVersion = 1
+    schemaVersion = 2
     gate = $Gate
     status = 'passed'
     commit = $commit
     evidence = [ordered]@{
         path = $relativeEvidence
         bytes = [int64](Get-Item -LiteralPath $resolvedEvidence).Length
+        sha256 = Get-SharpProofFileSha256 -Path $resolvedEvidence
     }
 }
 if ($packageArtifacts.Count -ne 0) {

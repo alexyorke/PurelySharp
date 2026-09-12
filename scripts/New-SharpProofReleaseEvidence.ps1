@@ -460,6 +460,7 @@ foreach ($item in $identities) {
         }
         packageId = $item.Identity.Id
         bytes = [int64]$item.File.Length
+        sha256 = Get-SharpProofFileSha256 -Path $item.File.FullName
     })
 }
 
@@ -478,7 +479,7 @@ $orderedArtifacts = @(
     $artifactNames | ForEach-Object { $artifactsByName[$_] }
 )
 $manifest = [pscustomobject][ordered]@{
-    schemaVersion = 2
+    schemaVersion = 3
     packageVersion = $releaseVersion
     versionAuthority = Get-SharpProofReleaseVersionAuthority `
         -RepositoryRoot $repositoryRoot

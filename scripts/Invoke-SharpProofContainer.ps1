@@ -29,6 +29,7 @@ Set-Location $repositoryRoot
 Import-Module (Join-Path `
     $PSScriptRoot 'SharpProof.ContainerExecution.psm1') -Force
 . (Join-Path $PSScriptRoot 'Get-SharpProofReleaseVersion.ps1')
+. (Join-Path $PSScriptRoot 'SharpProof.ReleaseBundle.ps1')
 
 if (-not $IsLinux -or [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -ne [System.Runtime.InteropServices.Architecture]::X64) {
     throw 'SharpProof container commands require Linux x64.'
@@ -442,7 +443,7 @@ switch ($Command) {
         [IO.File]::WriteAllText(
             $consumerEvidence,
             (([ordered]@{
-                schemaVersion = 1
+                schemaVersion = 2
                 status = 'passed'
                 commit = (& git -C $repositoryRoot rev-parse HEAD).Trim()
                 packageSource = [IO.Path]::GetRelativePath(
@@ -458,6 +459,7 @@ switch ($Command) {
                             [ordered]@{
                                 fileName = $_.Name
                                 bytes = [int64]$_.Length
+                                sha256 = Get-SharpProofFileSha256 -Path $_.FullName
                             }
                         }
                 )

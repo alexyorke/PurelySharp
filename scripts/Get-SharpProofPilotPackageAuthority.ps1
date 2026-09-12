@@ -1,3 +1,4 @@
+. (Join-Path $PSScriptRoot 'SharpProof.ReleaseBundle.ps1')
 Import-Module (Join-Path $PSScriptRoot 'SharpProof.PackageIdentity.psm1') -Force
 
 function Get-SharpProofPilotPackageAuthority {
@@ -35,6 +36,7 @@ function Get-SharpProofPilotPackageAuthority {
             version = $version
             repositoryCommit = $commit
             bytes = [int64]$_.Length
+            sha256 = Get-SharpProofFileSha256 -Path $_.FullName
         }
     })
 }

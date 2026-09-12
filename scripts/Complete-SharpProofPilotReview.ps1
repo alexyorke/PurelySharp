@@ -49,7 +49,7 @@ if (-not (Test-SharpProofPilotReport -Report $source `
 Require-ExactProperties $ledger `
     @('schemaVersion','commit','packageArtifacts','reviews') `
     'Review ledger'
-if ([int](Get-Property $ledger 'schemaVersion') -ne 1 -or
+if ([int](Get-Property $ledger 'schemaVersion') -ne 2 -or
     [string](Get-Property $ledger 'commit') -cne [string]$source.commit) {
     throw 'The review ledger is stale or has the wrong identity.'
 }
@@ -60,7 +60,7 @@ if ($sourcePackages.Count -ne 6 -or $ledgerPackages.Count -ne 6) {
     throw 'The review ledger must bind the exact six packages.'
 }
 for ($index = 0; $index -lt 6; $index++) {
-    foreach ($name in @('fileName','packageId','version','repositoryCommit','bytes')) {
+    foreach ($name in @('fileName','packageId','version','repositoryCommit','bytes','sha256')) {
         if ([string](Get-Property $sourcePackages[$index] $name) -cne
             [string](Get-Property $ledgerPackages[$index] $name)) {
             throw 'The review ledger package identities do not match the source report.'

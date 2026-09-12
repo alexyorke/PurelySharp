@@ -97,7 +97,7 @@ function Test-SharpProofPilotReport {
     }
     catch { return $false }
 
-    if ([int]$Report.schemaVersion -ne 3 -or
+    if ([int]$Report.schemaVersion -ne 4 -or
         @('Unreviewed', 'Reviewed') -cnotcontains [string]$Report.reviewStatus -or
         [string]$Report.runId -cnotmatch '^[0-9a-f]{32}$' -or
         [string]$Report.commit -cne $ExpectedCommit -or
@@ -117,6 +117,7 @@ function Test-SharpProofPilotReport {
                 [string]$_.version -cne [string]$Report.packageVersion -or
                 [string]$_.repositoryCommit -cne $ExpectedCommit -or
                 [int64]$_.bytes -le 0 -or
+                [string]$_.sha256 -cnotmatch '^[0-9a-f]{64}$' -or
                 -not $packageKeys.Add("$packageId|$extension")) {
                 return $null
             }

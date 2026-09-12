@@ -1,5 +1,28 @@
 Set-StrictMode -Version Latest
 
+function Get-SharpProofFileSha256 {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    $hash = [Security.Cryptography.SHA256]::Create()
+    try {
+        $stream = [IO.File]::OpenRead($Path)
+        try {
+            return ([BitConverter]::ToString(
+                $hash.ComputeHash($stream))).Replace('-', '').ToLowerInvariant()
+        }
+        finally {
+            $stream.Dispose()
+        }
+    }
+    finally {
+        $hash.Dispose()
+    }
+}
+
 function Test-SharpProofExactRegularFileSet {
     param(
         [Parameter(Mandatory = $true)][string]$Directory,

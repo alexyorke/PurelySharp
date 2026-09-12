@@ -389,7 +389,7 @@ public sealed class PackageLayoutSmokeTests
 
         using var document = JsonDocument.Parse(firstManifest);
         var root = document.RootElement;
-        JsonAssert.Equal(root, "schemaVersion", 2);
+        JsonAssert.Equal(root, "schemaVersion", 3);
         JsonAssert.Equal(root, "packageVersion", feed.Version);
         var artifacts = root.GetProperty("artifacts")
             .EnumerateArray()
@@ -413,6 +413,12 @@ public sealed class PackageLayoutSmokeTests
                     "Release artifact fileName is null.");
             var path = Path.Combine(feed.Source, fileName);
             JsonAssert.Equal(artifact, "bytes", new FileInfo(path).Length, fileName);
+            JsonAssert.Equal(
+                artifact,
+                "sha256",
+                Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)))
+                    .ToLowerInvariant(),
+                fileName);
         }
         var thirdPartyComponents = root
             .GetProperty("thirdPartyComponents")

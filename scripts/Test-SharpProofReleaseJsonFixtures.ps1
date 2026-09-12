@@ -52,7 +52,7 @@ function Assert-Rejected {
 
 try {
     $manifest = [pscustomobject][ordered]@{
-        schemaVersion = 2
+        schemaVersion = 3
         packageVersion = '1.0.0-preview.1'
         versionAuthority = [pscustomobject][ordered]@{
             schemaVersion = 1; path = 'SharpProof.Release.props'
@@ -63,7 +63,7 @@ try {
         }
         artifacts = @([pscustomobject][ordered]@{
             fileName = 'SharpProof.1.0.0-preview.1.nupkg'; kind = 'package'
-            packageId = 'SharpProof'; bytes = [int64]1
+            packageId = 'SharpProof'; bytes = [int64]1; sha256 = ('a' * 64)
         })
         packagePayloads = @([pscustomobject][ordered]@{
             packageId = 'SharpProof'; entries = @([pscustomobject][ordered]@{
@@ -94,6 +94,8 @@ try {
     Assert-Rejected manifest-case ($manifestJson.Replace('"artifacts":', '"Artifacts":')) ReleaseManifest
     Assert-Rejected manifest-kind-case ($manifestJson.Replace('"kind": "package"', '"kind": "Package"')) ReleaseManifest
     Assert-Rejected manifest-number-string ($manifestJson.Replace('"bytes": 1', '"bytes": "1"')) ReleaseManifest
+    Assert-Rejected manifest-digest-case ($manifestJson.Replace(('a' * 64), ('A' * 64))) ReleaseManifest
+    Assert-Rejected manifest-digest-length ($manifestJson.Replace(('a' * 64), ('a' * 63))) ReleaseManifest
     Assert-Rejected manifest-scalar-array ($manifestJson.Replace(
         '"artifacts": [', '"artifacts": {').Replace(
         "  ],`n  `"packagePayloads`"", "  },`n  `"packagePayloads`"")) ReleaseManifest
@@ -101,8 +103,8 @@ try {
         '"artifacts": [', '"artifacts": [[').Replace(
         "  ],`n  `"packagePayloads`"", "  ]],`n  `"packagePayloads`"")) ReleaseManifest
     Assert-Rejected manifest-reordered ($manifestJson.Replace(
-        "  `"schemaVersion`": 2,`n  `"packageVersion`": `"1.0.0-preview.1`",",
-        "  `"packageVersion`": `"1.0.0-preview.1`",`n  `"schemaVersion`": 2,")) ReleaseManifest
+        "  `"schemaVersion`": 3,`n  `"packageVersion`": `"1.0.0-preview.1`",",
+        "  `"packageVersion`": `"1.0.0-preview.1`",`n  `"schemaVersion`": 3,")) ReleaseManifest
     Assert-Rejected manifest-whitespace ($manifestJson.Replace('  "schemaVersion"', '    "schemaVersion"')) ReleaseManifest
 
 

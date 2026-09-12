@@ -363,7 +363,7 @@ if (@($results | Where-Object {
 }
 
 $report = [ordered]@{
-    schemaVersion = 3
+    schemaVersion = 4
     reviewStatus = 'Unreviewed'
     runId = $runId
     runStartedUtc = $qualificationStartedUtc.ToString('O')

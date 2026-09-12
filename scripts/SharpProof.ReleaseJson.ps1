@@ -153,7 +153,7 @@ function Assert-SharpProofReleaseManifestShape {
     $index = 0
     foreach ($row in $artifacts.EnumerateArray()) {
         Assert-SharpProofJsonObject $row @(
-            'fileName', 'kind', 'packageId', 'bytes') "Release manifest artifacts[$index]" -KindAlreadyValidated
+            'fileName', 'kind', 'packageId', 'bytes', 'sha256') "Release manifest artifacts[$index]" -KindAlreadyValidated
         foreach ($name in @('fileName', 'kind')) {
             Assert-SharpProofJsonKind $row.GetProperty($name) String "Release manifest artifacts[$index].$name"
         }
@@ -164,6 +164,10 @@ function Assert-SharpProofReleaseManifestShape {
             throw "Release manifest artifacts[$index].packageId has an invalid JSON token type."
         }
         Assert-SharpProofJsonInteger $row.GetProperty('bytes') "Release manifest artifacts[$index].bytes"
+        Assert-SharpProofJsonKind $row.GetProperty('sha256') String "Release manifest artifacts[$index].sha256"
+        if ($row.GetProperty('sha256').GetString() -cnotmatch '^[0-9a-f]{64}$') {
+            throw "Release manifest artifacts[$index].sha256 is not a lowercase SHA-256 digest."
+        }
         $index++
     }
 

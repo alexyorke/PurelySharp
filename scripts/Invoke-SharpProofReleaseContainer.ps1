@@ -23,6 +23,7 @@ $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 Set-Location $repositoryRoot
 . (Join-Path $PSScriptRoot 'Get-SharpProofReleaseVersion.ps1')
 . (Join-Path $PSScriptRoot 'Resolve-SharpProofContainedPath.ps1')
+. (Join-Path $PSScriptRoot 'SharpProof.ReleaseBundle.ps1')
 $coverageBaselineResolver = Join-Path `
     $repositoryRoot 'scripts/Resolve-SharpProofReleaseCoverageBaseline.ps1'
 
@@ -182,6 +183,7 @@ switch ($Mode) {
                 [ordered]@{
                     fileName = $_.Name
                     bytes = [int64]$_.Length
+                    sha256 = Get-SharpProofFileSha256 -Path $_.FullName
                 }
             })
         $packageArtifactJson = $packageArtifacts | ConvertTo-Json -Compress
@@ -207,13 +209,15 @@ switch ($Mode) {
             $receipt = Get-Content -LiteralPath $receiptPath -Raw |
                 ConvertFrom-Json -ErrorAction Stop
             $evidencePath = Resolve-RepositoryPath ([string]$receipt.evidence.path)
-            if ([int]$receipt.schemaVersion -ne 1 -or
+            if ([int]$receipt.schemaVersion -ne 2 -or
                 [string]$receipt.gate -cne $gate -or
                 [string]$receipt.status -cne 'passed' -or
                 [string]$receipt.commit -cne $head -or
                 -not (Test-Path -LiteralPath $evidencePath -PathType Leaf) -or
                 [int64](Get-Item -LiteralPath $evidencePath).Length -ne
-                    [int64]$receipt.evidence.bytes) {
+                    [int64]$receipt.evidence.bytes -or
+                [string]$receipt.evidence.sha256 -cne
+                    (Get-SharpProofFileSha256 -Path $evidencePath)) {
                 throw "Qualification gate receipt is stale or failed: '$gate'."
             }
             if ($gate -in @(
@@ -271,7 +275,7 @@ switch ($Mode) {
         }
         $files = @($inputPaths) + @($matrixPath) + @($packages.FullName)
         $record = [ordered]@{
-            schemaVersion = 2
+            schemaVersion = 3
             status = 'passed'
             releaseCommit = $commit
             tag = $tag
@@ -281,6 +285,7 @@ switch ($Mode) {
                     path = [IO.Path]::GetRelativePath(
                         $repositoryRoot, $_).Replace('\', '/')
                     bytes = [int64](Get-Item -LiteralPath $_).Length
+                    sha256 = Get-SharpProofFileSha256 -Path $_
                 }
             })
         }

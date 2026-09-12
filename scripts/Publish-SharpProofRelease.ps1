@@ -183,8 +183,8 @@ function Get-ValidatedRelease {
         -Path $manifestPath `
         -DocumentType ReleaseManifest
     if ((Get-RequiredProperty $manifest 'schemaVersion' 'Release manifest') -ne
-            2) {
-        throw 'Release manifest must use schema 2.'
+            3) {
+        throw 'Release manifest must use schema 3.'
     }
     $version = [string](Get-RequiredProperty `
         $manifest `
@@ -252,9 +252,14 @@ function Get-ValidatedRelease {
             $artifact `
             'bytes' `
             "Release artifact '$fileName'")
+        $sha256 = [string](Get-RequiredProperty `
+            $artifact `
+            'sha256' `
+            "Release artifact '$fileName'")
         if (-not $seenFileNames.Add($fileName) -or
             $kind -notin @('package', 'symbols') -or
-            $bytes -lt 0) {
+            $bytes -lt 0 -or
+            $sha256 -cnotmatch '^[0-9a-f]{64}$') {
             throw "Release artifact metadata is invalid: '$fileName'."
         }
         $path = Get-ArtifactPath `
@@ -266,6 +271,9 @@ function Get-ValidatedRelease {
         $file = Get-Item -LiteralPath $path
         if ([int64]$file.Length -ne $bytes) {
             throw "Release artifact does not match its manifest: '$fileName'."
+        }
+        if ((Get-SharpProofFileSha256 -Path $path) -cne $sha256) {
+            throw "Release artifact digest does not match its manifest: '$fileName'."
         }
         $artifactPaths.Add($fileName, $path)
     }
