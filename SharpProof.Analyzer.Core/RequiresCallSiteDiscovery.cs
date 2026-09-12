@@ -1570,11 +1570,6 @@ internal sealed partial class RequiresCallSiteDiscovery(
         return arguments.ToImmutable();
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Design",
-        "CA1508:Avoid dead conditional code",
-        Justification = "The analyzer misreads the multi-branch nullable " +
-            "assignment above the null check as unreachable.")]
     private static bool TryGetKnownListLength(
         IListPatternOperation pattern,
         IOperation? instance,

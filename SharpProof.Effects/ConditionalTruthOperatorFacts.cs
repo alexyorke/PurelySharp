@@ -48,11 +48,6 @@ internal static class ConditionalTruthOperatorFacts
         };
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Design",
-        "CA1508:Avoid dead conditional code",
-        Justification = "The analyzer does not track the nullable expression " +
-            "assignment across the two declaration forms.")]
     internal static bool ReturnsConstant(
         Compilation compilation,
         IMethodSymbol method,

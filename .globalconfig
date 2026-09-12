@@ -13,3 +13,6 @@ dotnet_code_quality.CA1811.api_surface = private, internal
 dotnet_diagnostic.IDE0051.severity = warning
 dotnet_diagnostic.IDE0052.severity = warning
 dotnet_diagnostic.IDE0060.severity = warning
+# CA1508 is prohibitively expensive on several analyzer control-flow routines
+# and has produced false positives for nullable values assigned across branches.
+dotnet_diagnostic.CA1508.severity = none

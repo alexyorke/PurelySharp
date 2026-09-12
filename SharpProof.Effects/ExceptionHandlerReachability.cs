@@ -1177,9 +1177,6 @@ internal sealed class ExceptionHandlerReachability(
 
     }
 
-    // Keep this large control-flow dispatcher out of the captured traversal
-    // closure. CA1508 otherwise constructs an expensive interprocedural flow
-    // graph for the local function during every qualifying build.
     private void PushChildrenCore(
         IOperation operation,
         Stack<IOperation> remaining,

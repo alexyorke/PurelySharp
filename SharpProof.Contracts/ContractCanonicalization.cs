@@ -14,9 +14,6 @@ internal sealed class ContractCanonicalization(
         return new TypeSpecializer(_compilation, source).Specialize;
     }
 
-    // Keep recursive specialization in an object instead of captured local
-    // functions. CA1508 otherwise builds a pathological dataflow graph for
-    // this code during every qualifying compilation.
     private sealed class TypeSpecializer
     {
         private readonly Compilation _compilation;

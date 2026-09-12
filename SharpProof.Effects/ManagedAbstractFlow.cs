@@ -2284,11 +2284,6 @@ internal sealed class DefiniteOperationFacts(Compilation compilation, Cancellati
         }
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Design",
-        "CA1508:Avoid dead conditional code",
-        Justification = "The analyzer does not track the nullable expression " +
-            "selected from the declaration syntax.")]
     private bool HasUnconditionalSelfInvocation(IMethodSymbol method)
     {
         try
