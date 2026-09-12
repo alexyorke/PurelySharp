@@ -1076,18 +1076,11 @@ internal sealed partial class LauncherArguments
                     path, StringComparer.Ordinal)) ?? [])
             .Select(LinuxPathIdentity.Canonicalize)
             .ToArray();
-        for (var index = 0; index < paths.Length; index++)
+        if (paths.Where((path, index) => paths.Take(index).Any(other =>
+                LinuxPathIdentity.CanonicalPathsConflict(other, path))).Any())
         {
-            for (var otherIndex = 0; otherIndex < index; otherIndex++)
-            {
-                if (LinuxPathIdentity.PathsConflict(
-                        paths[otherIndex],
-                        paths[index]))
-                {
-                    throw new ArgumentException(
-                        "SharpProof I/O paths must be distinct and non-nested.");
-                }
-            }
+            throw new ArgumentException(
+                "SharpProof I/O paths must be distinct and non-nested.");
         }
     }
 

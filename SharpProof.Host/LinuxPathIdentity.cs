@@ -328,11 +328,15 @@ public static partial class LinuxPathIdentity
 
     public static bool PathsConflict(string firstPath, string secondPath)
     {
-        var canonicalFirst = Canonicalize(firstPath);
-        var canonicalSecond = Canonicalize(secondPath);
-        return IsCanonicalPathWithin(canonicalFirst, canonicalSecond) ||
-            IsCanonicalPathWithin(canonicalSecond, canonicalFirst) ||
-            AreSameExistingFileCanonical(canonicalFirst, canonicalSecond);
+        return CanonicalPathsConflict(
+            Canonicalize(firstPath), Canonicalize(secondPath));
+    }
+
+    internal static bool CanonicalPathsConflict(string firstPath, string secondPath)
+    {
+        return IsCanonicalPathWithin(firstPath, secondPath) ||
+            IsCanonicalPathWithin(secondPath, firstPath) ||
+            AreSameExistingFileCanonical(firstPath, secondPath);
     }
 
     public static bool DeleteIfUnprotected(
