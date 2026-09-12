@@ -96,6 +96,7 @@
       "SharpProof.Package/buildTransitive/SharpProof.ConsumerContract.props",
       "SharpProof.Package/buildTransitive/SharpProof.props",
       "SharpProof.Specs/DefaultApiSpecCatalog.json",
+      "SharpProof.Specs/RelationalSpecPackCatalog.json",
       "SharpProof.Verifier/SharpProof.Verifier.nuspec",
       "SharpProof.Verifier/buildTransitive/SharpProof.Verifier.props",
       "SharpProof.Verifier/buildTransitive/SharpProof.Verifier.targets",

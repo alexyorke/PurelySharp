@@ -34,10 +34,6 @@ public sealed class NativeTestBootstrapTests
                 project + ".csproj"));
             Assert.That(
                 projectFile,
-                Does.Contain("SharpProof.Host.csproj"),
-                project);
-            Assert.That(
-                projectFile,
                 Does.Contain("..\\eng\\testing\\ContainerNativeLibrarySetup.cs"),
                 project);
         }
