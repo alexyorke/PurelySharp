@@ -408,7 +408,7 @@ public sealed class BuildSchedulingTests
     private static readonly string[] BuildSolution =
         ["build", "SharpProof.slnx", "--no-restore", "-graphBuild"];
     private static readonly string[] TestFilter =
-        ["test", "SharpProof.Dev.Tests.slnf", "--no-build", "-graphBuild"];
+        ["test", "SharpProof.slnx", "--no-build", "-graphBuild"];
     private static readonly string[] BuildProject =
         ["build", "SharpProof.Ir/SharpProof.Ir.csproj"];
     private static readonly string[] RestoreSolution =
@@ -427,7 +427,7 @@ public sealed class BuildSchedulingTests
             Import-Module '{{escapedModule}}' -Force
             [ordered]@{
                 buildSolution = @(Add-SharpProofStaticGraphArgument -Arguments @('build', 'SharpProof.slnx', '--no-restore'))
-                testFilter = @(Add-SharpProofStaticGraphArgument -Arguments @('test', 'SharpProof.Dev.Tests.slnf', '--no-build'))
+                testFilter = @(Add-SharpProofStaticGraphArgument -Arguments @('test', 'SharpProof.slnx', '--no-build'))
                 buildProject = @(Add-SharpProofStaticGraphArgument -Arguments @('build', 'SharpProof.Ir/SharpProof.Ir.csproj'))
                 restoreSolution = @(Add-SharpProofStaticGraphArgument -Arguments @('restore', 'SharpProof.slnx'))
                 existing = @(Add-SharpProofStaticGraphArgument -Arguments @('build', 'SharpProof.slnx', '-graphBuild'))

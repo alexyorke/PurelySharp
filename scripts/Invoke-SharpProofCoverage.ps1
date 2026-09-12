@@ -160,7 +160,7 @@ else {
     # Preserve a single-invocation targeted probe for arbitrary user filters.
     & $dotnetWrapper `
         -TimeoutSeconds $TimeoutSeconds `
-        test (Join-Path $repositoryRoot 'SharpProof.Dev.Tests.slnf') `
+        test (Join-Path $repositoryRoot 'SharpProof.slnx') `
         -c Release `
         --no-build `
         "/m:$testProjectParallelism" `

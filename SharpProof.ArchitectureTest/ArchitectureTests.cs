@@ -1835,7 +1835,7 @@ public sealed class ArchitectureTests
                 Does.Not.Contain("XPlat Code Coverage"));
             Assert.That(
                 collector,
-                Does.Contain("SharpProof.Dev.Tests.slnf"));
+                Does.Contain("SharpProof.slnx"));
             Assert.That(
                 collector,
                 Does.Contain("Invoke-SharpProofSemanticTests.ps1"));
