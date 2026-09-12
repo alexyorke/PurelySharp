@@ -23,6 +23,8 @@ $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 Set-Location $repositoryRoot
 . (Join-Path $PSScriptRoot 'Get-SharpProofReleaseVersion.ps1')
 . (Join-Path $PSScriptRoot 'Resolve-SharpProofContainedPath.ps1')
+$coverageBaselineResolver = Join-Path `
+    $repositoryRoot 'scripts/Resolve-SharpProofReleaseCoverageBaseline.ps1'
 
 function Require-Environment([string]$Name) {
     $value = [Environment]::GetEnvironmentVariable($Name)
@@ -102,8 +104,7 @@ switch ($Mode) {
     'ResolveCoverageBaseline' {
         $tag = Require-Environment 'GITHUB_REF_NAME'
         $commit = Require-Environment 'GITHUB_SHA'
-        $selection = & (Join-Path `
-            $repositoryRoot 'scripts/Resolve-SharpProofReleaseCoverageBaseline.ps1') `
+        $selection = & $coverageBaselineResolver `
             -Tag $tag -ReleaseCommit $commit | ConvertFrom-Json
         $directory = Join-Path $repositoryRoot 'artifacts/release-qualification'
         [IO.Directory]::CreateDirectory($directory) | Out-Null
@@ -222,6 +223,49 @@ switch ($Mode) {
                     Sort-Object fileName |
                     ConvertTo-Json -Compress) -cne $packageArtifactJson) {
                 throw "Qualification gate receipt targets different packages: '$gate'."
+            }
+            if ($gate -eq 'coverage') {
+                try {
+                    $baselineOutput = & $coverageBaselineResolver `
+                        -Tag $tag `
+                        -ReleaseCommit $commit `
+                        -RepositoryRoot $repositoryRoot |
+                        Out-String
+                    $baseline = $baselineOutput |
+                        ConvertFrom-Json -ErrorAction Stop
+                }
+                catch {
+                    throw (
+                        "Coverage baseline evidence could not be resolved for " +
+                        "release '$tag' at '$commit': " + $_.Exception.Message)
+                }
+                $baselineCommitProperty =
+                    $baseline.PSObject.Properties['coverageBaselineCommit']
+                if ($null -eq $baselineCommitProperty -or
+                    $baselineCommitProperty.Value -isnot [string] -or
+                    [string]$baselineCommitProperty.Value -notmatch '^[0-9a-f]{40}$') {
+                    throw 'Coverage baseline evidence is missing a valid baseline commit.'
+                }
+                $coverageEvidence = Get-Content `
+                    -LiteralPath $evidencePath `
+                    -Raw | ConvertFrom-Json -ErrorAction Stop
+                $changedTcbProperty =
+                    $coverageEvidence.PSObject.Properties['changedTcb']
+                $comparisonProperty = if ($null -ne $changedTcbProperty -and
+                    $null -ne $changedTcbProperty.Value) {
+                    $changedTcbProperty.Value.PSObject.Properties['comparisonRef']
+                }
+                else {
+                    $null
+                }
+                if ($null -eq $comparisonProperty -or
+                    $comparisonProperty.Value -isnot [string] -or
+                    [string]$comparisonProperty.Value -cne
+                        [string]$baselineCommitProperty.Value) {
+                    throw (
+                        'Coverage evidence comparisonRef must match the ' +
+                        'approved release coverage baseline commit.')
+                }
             }
             $gateReceipts[$gate] = [string]$receipt.status
         }
