@@ -161,7 +161,8 @@ try {
             $package.symbolsAction = 'Push'
         }
     }
-    if ($Mutation -in @('registry-canonical','registry-url-tamper')) {
+    if ($Mutation -in @(
+            'registry-canonical','registry-url-tamper','package-action-tamper')) {
         $plan.planOnly = $false
         $plan.publicationDestination.mode = 'registry'
         $plan.publicationDestination.mainDestination =
@@ -199,7 +200,9 @@ try {
             $plan.publicationDestination.mode = 'registry'
         }
         'package-action-tamper' {
-            $plan.packages[0].mainAction = 'Push'
+            $plan.packages[0].remoteState = 'Present'
+            $plan.packages[0].mainState = 'Present'
+            $plan.packages[0].mainAction = 'Resume'
         }
         'fixture-authority-tamper' {
             $plan.publicationDestination.fixture = 'tampered'

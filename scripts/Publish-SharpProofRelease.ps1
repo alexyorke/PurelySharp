@@ -826,19 +826,14 @@ try {
         $package = $publicationStage.Release.packages[$index]
         Test-SharpProofPublicationPlanIdentity `
             -Plan $publicationStage.Plan
-        if ($publicationStage.Plan.packages[$index].mainAction -ceq 'Push') {
-            Write-Host (
-                "Publishing $($package.packageId) $($package.version) " +
-                "main package.")
-            Invoke-NuGetPush `
-                -Path $package.mainPath `
-                -Destination $publicationDestination.mainDestination `
-                -Key $ApiKey `
-                -NoSymbols $true
-        }
-        else {
-            Write-Host "Resuming existing main package."
-        }
+        Write-Host (
+            "Publishing $($package.packageId) $($package.version) " +
+            "main package.")
+        Invoke-NuGetPush `
+            -Path $package.mainPath `
+            -Destination $publicationDestination.mainDestination `
+            -Key $ApiKey `
+            -NoSymbols $true
         Test-SharpProofPublicationPlanIdentity `
             -Plan $publicationStage.Plan
         Write-Host (

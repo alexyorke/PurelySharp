@@ -287,7 +287,7 @@ function Test-SharpProofPublicationPlanIdentity {
             'registry' {
                 $expectedRemote = if ($Plan.planOnly) {
                     'Unchecked'
-                } else { [string]$package.remoteState }
+                } else { 'Absent' }
                 $remoteUrlValid = $Plan.planOnly -and
                     $null -eq $package.remoteUrl
                 if (-not $Plan.planOnly -and
@@ -309,8 +309,6 @@ function Test-SharpProofPublicationPlanIdentity {
                     $package.mainState -cne $expectedRemote -or
                     $package.mainAction -cne $(if ($Plan.planOnly) {
                         'PreflightThenPush'
-                    } elseif ($expectedRemote -ceq 'Present') {
-                        'Resume'
                     } else { 'Push' }) -or
                     $package.symbolsState -cne 'Unchecked' -or
                     $package.symbolsAction -cne 'CollisionOnPush') {

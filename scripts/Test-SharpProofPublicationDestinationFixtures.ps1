@@ -138,6 +138,9 @@ try {
         'actions-registry-absent' { }
         'actions-registry-unchecked' { }
         'mocked-main-missing' { }
+        'mocked-main-exists' { }
+        'mocked-main-error' { }
+        'mocked-main-query-base' { }
         default {
             throw "Unknown publication destination mutation: $Mutation"
         }
