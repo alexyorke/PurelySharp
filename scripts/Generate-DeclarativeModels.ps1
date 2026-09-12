@@ -174,7 +174,50 @@ function Emit-Class([Collections.Generic.List[string]]$Lines,
     $Lines.Add("$Indent}")
 }
 
-foreach ($output in @(Required $catalog 'outputs' 'Declarative-model catalog')) {
+$outputs = @(Required $catalog 'outputs' 'Declarative-model catalog')
+$catalogOutputPaths = [Collections.Generic.HashSet[string]]::new(
+    [StringComparer]::Ordinal)
+foreach ($output in $outputs) {
+    $relativePath = [string](Required $output 'path' 'Declarative-model output')
+    if ($relativePath -notmatch '^[^:]+\.generated\.cs$') {
+        throw "Declarative-model output path is not a generated C# file: '$relativePath'."
+    }
+    [void]$catalogOutputPaths.Add($relativePath.Replace('\', '/'))
+}
+
+$ownedHeader = (New-SharpProofGeneratedHeader `
+        -Generator 'scripts/Generate-DeclarativeModels.ps1' `
+        -Source 'SharpProof.DeclarativeModels.catalog.json.' `
+        -Notes @('Declarative record storage only; analysis remains handwritten.') `
+        -Nullable).ToArray()
+$ownedHeader = $ownedHeader[0..5]
+$orphanedPaths = [Collections.Generic.List[string]]::new()
+foreach ($file in Get-ChildItem -LiteralPath $repositoryRoot `
+        -Filter '*.generated.cs' -File -Recurse) {
+    $candidatePath = [IO.Path]::GetRelativePath(
+        $repositoryRoot,
+        $file.FullName).Replace('\', '/')
+    if ($candidatePath -match '(^|/)(\.git|bin|obj|artifacts)(/|$)') {
+        continue
+    }
+    $header = @(Get-Content -LiteralPath $file.FullName `
+        -TotalCount $ownedHeader.Count)
+    $hasOwnedHeader = $header.Count -ge $ownedHeader.Count
+    for ($index = 0; $hasOwnedHeader -and $index -lt $ownedHeader.Count; $index++) {
+        if ($header[$index] -cne $ownedHeader[$index]) {
+            $hasOwnedHeader = $false
+        }
+    }
+    if ($hasOwnedHeader -and -not $catalogOutputPaths.Contains($candidatePath)) {
+        $orphanedPaths.Add($candidatePath)
+    }
+}
+if ($orphanedPaths.Count -gt 0) {
+    $paths = @($orphanedPaths | Sort-Object -Unique) -join ', '
+    throw "Declarative-model generated files are not listed in the catalog: $paths."
+}
+
+foreach ($output in $outputs) {
     $relativePath = [string](Required $output 'path' 'Declarative-model output')
     if ($relativePath -notmatch '^[^:]+\.generated\.cs$') {
         throw "Declarative-model output path is not a generated C# file: '$relativePath'."

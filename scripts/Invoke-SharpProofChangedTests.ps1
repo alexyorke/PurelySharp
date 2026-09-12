@@ -71,12 +71,26 @@ if ($changedPaths.Count -eq 0) {
     return
 }
 
-$projectPaths = @(Invoke-GitLines @('ls-files', '*.csproj'))
+$projectPaths = [Collections.Generic.HashSet[string]]::new(
+    [StringComparer]::Ordinal)
+foreach ($projectPath in Invoke-GitLines @('ls-files', '*.csproj')) {
+    [void]$projectPaths.Add($projectPath.Replace('\', '/'))
+}
+foreach ($changedPath in $changedPaths) {
+    if ($changedPath.EndsWith('.csproj', [StringComparison]::OrdinalIgnoreCase)) {
+        [void]$projectPaths.Add($changedPath)
+    }
+}
 $projects = @{}
+$projectInventoryIncomplete = $false
 foreach ($relativePath in $projectPaths) {
     $relative = $relativePath.Replace('\', '/')
     $fullPath = [IO.Path]::GetFullPath(
         (Join-Path $repositoryRoot $relative))
+    if (-not (Test-Path -LiteralPath $fullPath -PathType Leaf)) {
+        $projectInventoryIncomplete = $true
+        continue
+    }
     [xml]$xml = Get-Content -LiteralPath $fullPath -Raw
     $references = @(
         $xml.SelectNodes("//*[local-name()='ProjectReference']") |
@@ -210,12 +224,18 @@ else {
         }
     }
 }
+if ($projectInventoryIncomplete) {
+    foreach ($testProject in $testProjects) {
+        [void]$selected.Add($testProject.FullPath)
+    }
+}
 
 $architectureProject = [IO.Path]::GetFullPath((Join-Path $repositoryRoot (
     'SharpProof.ArchitectureTest/SharpProof.ArchitectureTest.csproj')))
 $packageProject = [IO.Path]::GetFullPath((Join-Path $repositoryRoot (
     'SharpProof.Package.Test/SharpProof.Package.Test.csproj')))
-if ($scriptOrDocumentationImpact -or $globalImpact) {
+if (($scriptOrDocumentationImpact -or $globalImpact) -and
+    $projects.ContainsKey($architectureProject)) {
     [void]$selected.Add($architectureProject)
 }
 if (@($changedPaths | Where-Object {
@@ -223,14 +243,26 @@ if (@($changedPaths | Where-Object {
             $_.StartsWith('eng/container/', [StringComparison]::Ordinal) -or
             $_.StartsWith('SharpProof.Package/', [StringComparison]::Ordinal) -or
             $_.StartsWith('SharpProof.Verifier/', [StringComparison]::Ordinal)
-        }).Count -gt 0) {
+        }).Count -gt 0 -and $projects.ContainsKey($packageProject)) {
     [void]$selected.Add($packageProject)
 }
 foreach ($validationProject in $explicitValidationProjects) {
-    [void]$selected.Add($validationProject)
+    if ($projects.ContainsKey($validationProject)) {
+        [void]$selected.Add($validationProject)
+    }
 }
 if ($selected.Count -eq 0) {
-    [void]$selected.Add($architectureProject)
+    if ($projects.ContainsKey($architectureProject)) {
+        [void]$selected.Add($architectureProject)
+    }
+    else {
+        foreach ($testProject in $testProjects) {
+            [void]$selected.Add($testProject.FullPath)
+        }
+    }
+}
+if ($selected.Count -eq 0) {
+    throw 'No surviving test project is available for changed-test selection.'
 }
 
 $runPackageTests = $selected.Remove($packageProject)

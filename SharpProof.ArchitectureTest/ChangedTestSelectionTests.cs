@@ -130,6 +130,62 @@ public sealed class ChangedTestSelectionTests
                 "SharpProof.ArchitectureTest\\SharpProof.ArchitectureTest.csproj"));
     }
 
+    [Test]
+    public async Task DeletedIndexedTestProjectSelectsSurvivingTestsAndShardsPackage()
+    {
+        using var temporary = new TempDirectory("SharpProof.ChangedTests-");
+        var root = temporary.FullName;
+        const string changedPath =
+            "SharpProof.Effects.Test/SharpProof.Effects.Test.csproj";
+        await CreateFixtureAsync(root, changedPath);
+        await ArchitectureGitRepository.InitializeAsync(
+            root,
+            "test@example.invalid",
+            "SharpProof Test");
+        await ArchitectureRepository.RunProcessAsync(root, "git", "add", ".");
+        await ArchitectureRepository.RunProcessAsync(
+            root,
+            "git",
+            "commit",
+            "--quiet",
+            "-m",
+            "baseline");
+        File.Delete(Path.Combine(
+            root,
+            "SharpProof.Effects.Test",
+            "SharpProof.Effects.Test.csproj"));
+
+        var result = await ArchitectureRepository.RunProcessAsync(
+            root,
+            "pwsh",
+            "-NoLogo",
+            "-NoProfile",
+            "-File",
+            Path.Combine(root, "scripts", "Invoke-SharpProofChangedTests.ps1"),
+            "-ComparisonRef",
+            "HEAD",
+            "-PlanOnly");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.ExitCode, Is.Zero, result.Error);
+            Assert.That(
+                result.Output,
+                Does.Contain(
+                    "SharpProof.Product.Test\\SharpProof.Product.Test.csproj"));
+            Assert.That(
+                result.Output,
+                Does.Contain(
+                    "SharpProof.ArchitectureTest\\SharpProof.ArchitectureTest.csproj"));
+            Assert.That(
+                result.Output,
+                Does.Contain(
+                    "SharpProof.Package.Test (duration-aware sharder)"));
+            Assert.That(result.Output, Does.Not.Contain(
+                "SharpProof.Effects.Test\\SharpProof.Effects.Test.csproj"));
+        }
+    }
+
     private static async Task CreateFixtureAsync(
         string root,
         string changedInput)
