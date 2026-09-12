@@ -9,6 +9,23 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+$actualOsFamily = if ($IsLinux) {
+    'linux'
+}
+elseif ($IsWindows) {
+    'windows'
+}
+elseif ($IsMacOS) {
+    'macos'
+}
+else {
+    throw 'Unable to determine the executing host OS family from PowerShell runtime facts.'
+}
+if ($OsFamily -cne $actualOsFamily) {
+    throw (
+        "Portable consumer OS-family mismatch: expected '$OsFamily', " +
+        "but the executing host is '$actualOsFamily'.")
+}
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 & (Join-Path $PSScriptRoot 'Test-SharpProofPackageConsumers.ps1') `
     -PackageSource $PackageSource -FrameworkConsumersOnly
