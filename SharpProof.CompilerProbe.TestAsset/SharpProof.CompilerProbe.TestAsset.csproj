@@ -13,6 +13,13 @@
              Link="CompilerAdditionalTextStability.cs" />
     <Compile Include="..\SharpProof.Ir\HashEncoding.cs"
              Link="HashEncoding.cs" />
+    <Compile Include="..\SharpProof.Ir\ArgumentNullGuard.cs"
+             Link="ArgumentNullGuard.cs" />
+    <Compile Include="..\SharpProof.Ir\AtomicFile.cs"
+             Link="AtomicFile.cs" />
+    <Compile Include="..\SharpProof.Specs\Polyfills\NotNullAttribute.cs"
+             Link="Polyfills\NotNullAttribute.cs" />
+    <Using Include="System.Threading.Tasks" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
     <PackageReference Include="System.Collections.Immutable" />
   </ItemGroup>
