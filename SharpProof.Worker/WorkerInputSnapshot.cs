@@ -4,7 +4,6 @@ internal sealed partial record WorkerInputSnapshot
 {
     internal const string ManifestUnavailable = "The compiler manifest is unavailable.";
     internal const string ManifestInvalid = "The compiler manifest is invalid.";
-    private static ReadOnlySpan<byte> Utf8Preamble => [0xEF, 0xBB, 0xBF];
     internal static WorkerInputSnapshot Load(WorkerVerifyRequest request,
         WorkerCacheIdentity cacheIdentity, CancellationToken cancellationToken)
     {
@@ -39,7 +38,7 @@ internal sealed partial record WorkerInputSnapshot
             }
 
             manifest = CompilerManifestArtifactJson.Deserialize(
-                DecodeUtf8(manifestBytes),
+                new UTF8Encoding(false, true).GetString(manifestBytes),
                 cancellationToken);
         }
         catch (Exception exception) when (exception is
@@ -53,11 +52,6 @@ internal sealed partial record WorkerInputSnapshot
             cacheIdentity.ApiSpecVersion, cacheIdentity.ApiSpecContentSha256);
         cancellationToken.ThrowIfCancellationRequested();
         return new WorkerInputSnapshot(manifest, inputHash);
-    }
-    private static string DecodeUtf8(byte[] bytes)
-    {
-        var offset = bytes.AsSpan().StartsWith(Utf8Preamble) ? 3 : 0;
-        return new UTF8Encoding(false, true).GetString(bytes, offset, bytes.Length - offset);
     }
 }
 

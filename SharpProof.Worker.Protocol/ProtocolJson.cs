@@ -37,7 +37,7 @@ public static partial class WorkerProtocolJson
     internal static string ReadUtf8File(string path)
     {
         using var reader = OpenJsonReader(path);
-        return reader.ReadToEnd().TrimStart('\uFEFF');
+        return reader.ReadToEnd();
     }
 
     internal static string ComputeFileSha256(string path)
@@ -63,7 +63,7 @@ public static partial class WorkerProtocolJson
         using var reader = OpenJsonReader(path);
         var text = await reader.ReadToEndAsync().ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
-        return text.TrimStart('\uFEFF');
+        return text;
     }
 
     public static WorkerVerifyRequest? DeserializeRequest(string json)
