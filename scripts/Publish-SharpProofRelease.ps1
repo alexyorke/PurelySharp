@@ -47,25 +47,15 @@ Import-Module (Join-Path $PSScriptRoot 'SharpProof.PackageIdentity.psm1') -Force
 . (Join-Path $PSScriptRoot 'SharpProof.PublicationDestination.ps1')
 . (Join-Path $PSScriptRoot 'SharpProof.ReleaseBundle.ps1')
 . (Join-Path $PSScriptRoot 'SharpProof.ReleaseJson.ps1')
+. (Join-Path $PSScriptRoot 'GeneratedFileHelpers.ps1')
 
 $packageOrder = $SharpProofPackagePushOrder
 
-function Get-RequiredProperty {
-    param(
-        [Parameter(Mandatory = $true)]
-        [object]$Value,
-
-        [Parameter(Mandatory = $true)]
-        [string]$Name,
-
-        [Parameter(Mandatory = $true)]
-        [string]$Owner
-    )
-
-    $property = $Value.PSObject.Properties[$Name]
-    if ($null -eq $property) {
-        throw "$Owner is missing required property '$Name'."
-    }
+function Get-RequiredProperty(
+    [Parameter(Mandatory = $true)][object]$Value,
+    [Parameter(Mandatory = $true)][string]$Name,
+    [Parameter(Mandatory = $true)][string]$Owner) {
+    $property = Get-RequiredPropertyInfo $Value $Name $Owner
     return $property.Value
 }
 

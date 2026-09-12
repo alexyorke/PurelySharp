@@ -1,6 +1,21 @@
 . (Join-Path $PSScriptRoot 'CSharpSourceMetrics.ps1')
 . (Join-Path $PSScriptRoot 'Assert-SharpProofJsonProperties.ps1')
 
+function Get-RequiredPropertyInfo
+{
+    param(
+        [Parameter(Mandatory = $true)][object]$Object,
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][string]$Context)
+
+    $property = $Object.PSObject.Properties[$Name]
+    if ($null -eq $property)
+    {
+        throw "$Context is missing required property '$Name'."
+    }
+    return $property
+}
+
 function Get-RequiredMember
 {
     param(

@@ -125,22 +125,11 @@ $allowedEnums = @{
         'StringConcat')
 }
 
-function Get-RequiredProperty {
-    param(
-        [Parameter(Mandatory = $true)]
-        [object]$Object,
-
-        [Parameter(Mandatory = $true)]
-        [string]$Name,
-
-        [Parameter(Mandatory = $true)]
-        [string]$Context
-    )
-
-    $property = $Object.PSObject.Properties[$Name]
-    if ($null -eq $property) {
-        throw "$Context is missing required property '$Name'."
-    }
+function Get-RequiredProperty(
+    [Parameter(Mandatory = $true)][object]$Object,
+    [Parameter(Mandatory = $true)][string]$Name,
+    [Parameter(Mandatory = $true)][string]$Context) {
+    $property = Get-RequiredPropertyInfo $Object $Name $Context
     return ,$property.Value
 }
 
