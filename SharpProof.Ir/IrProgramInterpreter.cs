@@ -277,7 +277,7 @@ public sealed class IrProgramInterpreter(IrFactory factory)
                 "Program conditions require boolean values.");
         }
 
-        value = (bool)result.Value.Payload!;
+        value = result.Value.Boolean;
         return result;
     }
 
