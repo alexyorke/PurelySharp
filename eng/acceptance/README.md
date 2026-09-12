@@ -114,8 +114,10 @@ rebuilds of contract-free code with ordinary source and BCL calls under the
 repository-selected SDK. This exercises the contract-free activation boundary:
 the analyzer assembly loads, reference metadata is screened, and no semantic
 session or per-method callback is created. It separately checks the call-free
-advisory analyzer retention and no-session boundary. Full acceptance, package
-consumers, and packaged verifier execution run only in the canonical Linux
-amd64 container. The portable analyzer remains framework- and
-operating-system-neutral, but release evidence never depends on a native-host
-SDK or MSBuild installation.
+advisory analyzer retention and no-session boundary. Full acceptance and
+packaged verifier execution run only in the canonical Linux amd64 container.
+Portable exact-package consumer qualification runs on Ubuntu, Windows, and
+macOS with the repository-selected host SDK; that matrix supplies release
+qualification evidence for the portable analyzer package. The portable
+analyzer remains framework- and operating-system-neutral, while the host-SDK
+matrix and container verifier retain their separate boundaries.

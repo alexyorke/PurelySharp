@@ -63,6 +63,73 @@ public sealed class ChangedTestSelectionTests
         }
     }
 
+    [TestCase("catalog-only")]
+    [TestCase("catalog-plus-unrelated-test")]
+    [TestCase("catalog-plus-generated-output")]
+    public async Task DeclarativeModelCatalogSelectsItsValidationConsumer(
+        string scenario)
+    {
+        using var temporary = new TempDirectory("SharpProof.ChangedTests-");
+        var root = temporary.FullName;
+        const string catalogPath = "SharpProof.DeclarativeModels.catalog.json";
+        await CreateFixtureAsync(root, catalogPath);
+        await ArchitectureGitRepository.InitializeAsync(
+            root,
+            "test@example.invalid",
+            "SharpProof Test");
+        await ArchitectureRepository.RunProcessAsync(root, "git", "add", ".");
+        await ArchitectureRepository.RunProcessAsync(
+            root,
+            "git",
+            "commit",
+            "--quiet",
+            "-m",
+            "baseline");
+        await File.AppendAllTextAsync(
+            Path.Combine(root, catalogPath),
+            "\nchanged\n");
+
+        switch (scenario)
+        {
+            case "catalog-plus-unrelated-test":
+                await File.AppendAllTextAsync(
+                    Path.Combine(
+                        root,
+                        "SharpProof.Effects.Test",
+                        "SharpProof.Effects.Test.csproj"),
+                    "<!-- unrelated -->\n");
+                break;
+            case "catalog-plus-generated-output":
+                await File.WriteAllTextAsync(
+                    Path.Combine(
+                        root,
+                        "SharpProof.Product",
+                        "DeclarativeModels.generated.cs"),
+                    "// generated change\n");
+                break;
+            case "catalog-only":
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(scenario), scenario, null);
+        }
+
+        var result = await ArchitectureRepository.RunProcessAsync(
+            root,
+            "pwsh",
+            "-NoLogo",
+            "-NoProfile",
+            "-File",
+            Path.Combine(root, "scripts", "Invoke-SharpProofChangedTests.ps1"),
+            "-ComparisonRef",
+            "HEAD",
+            "-PlanOnly");
+
+        Assert.That(
+            result.Output,
+            Does.Contain(
+                "SharpProof.ArchitectureTest\\SharpProof.ArchitectureTest.csproj"));
+    }
+
     private static async Task CreateFixtureAsync(
         string root,
         string changedInput)
@@ -76,6 +143,7 @@ public sealed class ChangedTestSelectionTests
                      "eng/acceptance",
                      "SharpProof.Product",
                      "SharpProof.Product.Test",
+                     "SharpProof.Effects.Test",
                      "SharpProof.ArchitectureTest",
                      "SharpProof.Package.Test"
                  })
@@ -120,9 +188,10 @@ public sealed class ChangedTestSelectionTests
             </Project>
             """);
         foreach (var project in new[]
-                 {
-                     "SharpProof.ArchitectureTest/SharpProof.ArchitectureTest.csproj",
-                     "SharpProof.Package.Test/SharpProof.Package.Test.csproj"
+                  {
+                      "SharpProof.ArchitectureTest/SharpProof.ArchitectureTest.csproj",
+                      "SharpProof.Effects.Test/SharpProof.Effects.Test.csproj",
+                      "SharpProof.Package.Test/SharpProof.Package.Test.csproj"
                  })
         {
             await File.WriteAllTextAsync(

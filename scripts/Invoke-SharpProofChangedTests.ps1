@@ -109,6 +109,13 @@ $testProjects = @($projects.Values | Where-Object {
         $_.RelativePath -match '(^|/)SharpProof\.[^/]+\.Test/' -or
         $_.RelativePath -match '(^|/)SharpProof\.ArchitectureTest/'
     })
+$validationConsumersByPath = @{
+    'SharpProof.DeclarativeModels.catalog.json' = @(
+        'SharpProof.ArchitectureTest/SharpProof.ArchitectureTest.csproj'
+    )
+}
+$explicitValidationProjects = [Collections.Generic.HashSet[string]]::new(
+    [StringComparer]::Ordinal)
 $changedProjectPaths = [Collections.Generic.HashSet[string]]::new(
     [StringComparer]::Ordinal)
 $globalImpact = $false
@@ -116,6 +123,14 @@ $scriptOrDocumentationImpact = $false
 foreach ($changedPath in $changedPaths) {
     $fullChangedPath = [IO.Path]::GetFullPath(
         (Join-Path $repositoryRoot $changedPath))
+    if ($validationConsumersByPath.ContainsKey($changedPath)) {
+        foreach ($relativeValidationProject in
+            $validationConsumersByPath[$changedPath]) {
+            [void]$explicitValidationProjects.Add(
+                [IO.Path]::GetFullPath(
+                    (Join-Path $repositoryRoot $relativeValidationProject)))
+        }
+    }
     if ($changedPath.StartsWith('eng/testing/', [StringComparison]::Ordinal)) {
         # These sources are injected by Directory.Build.props into multiple
         # test projects, so a path-based project walk cannot identify every
@@ -210,6 +225,9 @@ if (@($changedPaths | Where-Object {
             $_.StartsWith('SharpProof.Verifier/', [StringComparison]::Ordinal)
         }).Count -gt 0) {
     [void]$selected.Add($packageProject)
+}
+foreach ($validationProject in $explicitValidationProjects) {
+    [void]$selected.Add($validationProject)
 }
 if ($selected.Count -eq 0) {
     [void]$selected.Add($architectureProject)

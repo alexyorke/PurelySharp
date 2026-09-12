@@ -24,9 +24,12 @@ qualification to:
   coverage, mutation, dependency, and publication-plan evidence; and
 - five reviewed pilot reports from the same tested package bytes.
 
-All verifier and portable-consumer gates execute in the canonical container.
-The analyzer packages remain operating-system-neutral, but no native-host SDK
-or MSBuild job serves as release qualification.
+Full acceptance, verifier, and packaged-worker gates execute in the canonical
+Linux amd64 container. Portable exact-package consumer qualification runs in
+the Ubuntu, Windows, and macOS host-SDK matrix using the repository-selected
+SDK and supplies release evidence. The analyzer packages remain
+operating-system-neutral; the host matrix is a qualification boundary for
+consumer builds, not a replacement for the container verifier.
 
 ## Promotion
 
