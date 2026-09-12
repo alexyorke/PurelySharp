@@ -62,15 +62,6 @@ else {
     @()
 }
 
-function Invoke-DotNet([string[]]$Arguments) {
-    $effectiveArguments = @(
-        Add-SharpProofStaticGraphArgument -Arguments $Arguments
-    )
-    Invoke-SharpProofCheckedCommand `
-        -Command 'dotnet' `
-        -Arguments $effectiveArguments
-}
-
 function New-TestInvocationArguments([hashtable]$Additional = @{}) {
     $arguments = @{ Configuration = $Configuration }
     foreach ($entry in $Additional.GetEnumerator()) {
@@ -100,12 +91,12 @@ function Invoke-PipelineCommand(
 
 function Invoke-TestProject([string]$ProjectPath) {
     if (-not $NoBuild) {
-        Invoke-DotNet @('restore', $ProjectPath, '--locked-mode')
+        Invoke-SharpProofRequiredDotnet @('restore', $ProjectPath, '--locked-mode')
         $buildArguments = @(
             'build', $ProjectPath, '--configuration', $Configuration,
             '--no-restore')
         $buildArguments += $fastBuildArguments
-        Invoke-DotNet $buildArguments
+        Invoke-SharpProofRequiredDotnet $buildArguments
     }
 
     $assembly = Get-SharpProofTestAssemblyPath `
@@ -115,7 +106,7 @@ function Invoke-TestProject([string]$ProjectPath) {
     if (-not [string]::IsNullOrWhiteSpace($TestFilter)) {
         $arguments += '/TestCaseFilter:' + $TestFilter
     }
-    Invoke-DotNet $arguments
+    Invoke-SharpProofRequiredDotnet $arguments
 }
 
 function Invoke-PackageTests {
@@ -129,7 +120,7 @@ function Invoke-PackageTests {
 
 function Invoke-SolutionTests([string]$SolutionPath) {
     if (-not $NoBuild) {
-        Invoke-DotNet @('restore', $SolutionPath, '--locked-mode')
+        Invoke-SharpProofRequiredDotnet @('restore', $SolutionPath, '--locked-mode')
     }
     $isMainSolution = [IO.Path]::GetFileName($SolutionPath) -ceq
         'SharpProof.slnx'
@@ -152,7 +143,7 @@ function Invoke-SolutionTests([string]$SolutionPath) {
     elseif (-not [string]::IsNullOrWhiteSpace($TestFilter)) {
         $arguments += @('--filter', $TestFilter)
     }
-    Invoke-DotNet $arguments
+    Invoke-SharpProofRequiredDotnet $arguments
 
     if ($runPackageTestsSeparately) {
         $packageArguments = @{
@@ -174,7 +165,7 @@ function Invoke-SolutionTests([string]$SolutionPath) {
 }
 
 function Invoke-ForcedTerminationGateTest([string]$BuildConfiguration) {
-    Invoke-DotNet @(
+    Invoke-SharpProofRequiredDotnet @(
         'test',
         'SharpProof.Gates.Test/SharpProof.Gates.Test.csproj',
         '--configuration', $BuildConfiguration,
@@ -186,16 +177,16 @@ function Invoke-ForcedTerminationGateTest([string]$BuildConfiguration) {
 function Invoke-SharpProofSolutionBuild(
     [string]$BuildConfiguration,
     [string[]]$AdditionalBuildArguments = @()) {
-    Invoke-DotNet @('restore', 'SharpProof.slnx', '--locked-mode')
+    Invoke-SharpProofRequiredDotnet @('restore', 'SharpProof.slnx', '--locked-mode')
     $buildArguments = @(
         'build', 'SharpProof.slnx', '--configuration', $BuildConfiguration,
         '--no-restore')
     $buildArguments += $AdditionalBuildArguments
-    Invoke-DotNet $buildArguments
+    Invoke-SharpProofRequiredDotnet $buildArguments
 }
 
 function Invoke-DependencyAudit {
-    Invoke-DotNet @('restore', 'SharpProof.slnx', '--locked-mode')
+    Invoke-SharpProofRequiredDotnet @('restore', 'SharpProof.slnx', '--locked-mode')
     $output = Join-Path $repositoryRoot (
         'artifacts/dependency-audit/dependency-audit.json')
     Invoke-RequiredScript 'scripts/Test-SharpProofDependencyAudit.ps1' `
@@ -221,7 +212,7 @@ switch ($Command) {
     }
     'security' {
         Invoke-DependencyAudit
-        Invoke-DotNet @(
+        Invoke-SharpProofRequiredDotnet @(
             'build', 'SharpProof.slnx', '--configuration', 'Release',
             '--no-restore')
     }
@@ -230,11 +221,12 @@ switch ($Command) {
             'scripts/Test-SharpProofContainerContract.ps1')
     }
     'restore' {
-        Invoke-DotNet @('restore', $Target, '--locked-mode')
+        Invoke-SharpProofRequiredDotnet @('restore', $Target, '--locked-mode')
     }
     'build' {
-        Invoke-DotNet @('restore', $Target, '--locked-mode')
-        Invoke-DotNet @('build', $Target, '--configuration', $Configuration, '--no-restore')
+        Invoke-SharpProofRequiredDotnet @('restore', $Target, '--locked-mode')
+        Invoke-SharpProofRequiredDotnet @(
+            'build', $Target, '--configuration', $Configuration, '--no-restore')
     }
     'self-apply' {
         $trackedProjects = @(
@@ -264,8 +256,8 @@ switch ($Command) {
 
         # Build the complete source tree once with the self lane disabled so
         # every analyzer and generator output is available as a stable input.
-        Invoke-DotNet @('restore', 'SharpProof.slnx', '--locked-mode')
-        Invoke-DotNet @(
+        Invoke-SharpProofRequiredDotnet @('restore', 'SharpProof.slnx', '--locked-mode')
+        Invoke-SharpProofRequiredDotnet @(
             'build', 'SharpProof.slnx', '--configuration', $Configuration,
             '--no-restore', '--nologo',
             '-p:SharpProofSelfApplication=false',
@@ -279,7 +271,7 @@ switch ($Command) {
             Write-Host ("Self-applying SharpProof ({0}/{1}): {2}" -f
                 $ordinal, $sourceProjects.Count,
                 [IO.Path]::GetRelativePath($repositoryRoot, $project))
-            Invoke-DotNet @(
+            Invoke-SharpProofRequiredDotnet @(
                 'build', $project, '--configuration', $Configuration,
                 '--no-restore', '--no-dependencies', '--nologo',
                 '-p:SharpProofSelfApplication=true',
@@ -294,7 +286,7 @@ switch ($Command) {
             # compiler server holding source-built analyzer load contexts.
             # Stop it before package pilots so the package lane observes only
             # the candidate analyzer payload.
-            Invoke-DotNet @('build-server', 'shutdown')
+            Invoke-SharpProofRequiredDotnet @('build-server', 'shutdown')
             $resolvedPackageSource = if ([IO.Path]::IsPathRooted($PackageSource)) {
                 [IO.Path]::GetFullPath($PackageSource)
             }
@@ -382,7 +374,7 @@ switch ($Command) {
             break
         }
         if (-not $NoBuild) {
-            Invoke-DotNet @('restore', $Target, '--locked-mode')
+            Invoke-SharpProofRequiredDotnet @('restore', $Target, '--locked-mode')
         }
         $arguments = @(
             'test', $Target, '--configuration', $Configuration, '--no-restore')
@@ -393,7 +385,7 @@ switch ($Command) {
         if (-not [string]::IsNullOrWhiteSpace($TestFilter)) {
             $arguments += @('--filter', $TestFilter)
         }
-        Invoke-DotNet $arguments
+        Invoke-SharpProofRequiredDotnet $arguments
     }
     'test-changed' {
         $changedArguments = New-TestInvocationArguments
@@ -425,7 +417,7 @@ switch ($Command) {
         if ([string]::IsNullOrWhiteSpace($PackageSource)) {
             throw 'package-consumers requires -PackageSource.'
         }
-        Invoke-DotNet @('restore', 'SharpProof.slnx', '--locked-mode')
+        Invoke-SharpProofRequiredDotnet @('restore', 'SharpProof.slnx', '--locked-mode')
         $consumerArguments = @{
             Configuration = $Configuration
             PackageSource = $PackageSource
@@ -484,8 +476,8 @@ switch ($Command) {
     { $_ -in @('corpus', 'corpus-update', 'gates', 'performance-smoke') } {
         $gateMode = if ($Command -ceq 'gates') { 'all' } else { $Command }
         $gateProject = 'SharpProof.Gates/SharpProof.Gates.csproj'
-        Invoke-DotNet @('restore', $gateProject, '--locked-mode')
-        Invoke-DotNet @(
+        Invoke-SharpProofRequiredDotnet @('restore', $gateProject, '--locked-mode')
+        Invoke-SharpProofRequiredDotnet @(
             'run', '--project', $gateProject,
             '--configuration', $Configuration,
             '--no-restore', '--', $gateMode)
@@ -599,7 +591,7 @@ switch ($Command) {
             -AdditionalBuildArguments @(
                 '/p:GeneratePackageOnBuild=false',
                 $repositoryCommitProperty)
-        Invoke-DotNet @(
+        Invoke-SharpProofRequiredDotnet @(
             'pack', 'SharpProof.slnx', '--configuration', 'Release',
             '--output', $output, '--no-build', '--no-restore',
             '/p:GeneratePackageOnBuild=false',

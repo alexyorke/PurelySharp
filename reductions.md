@@ -1,6 +1,6 @@
 # Active code reduction queue
 Resolved proposals are removed from this file after implementation, validation, or a current-tree refutation. The original survey remains available in Git history; this file is intentionally only the active queue.
-Inventory after deduplication: 66 canonical queue IDs represented by 65 deferred rows (0 pending). Resolved and refuted proposals are removed; repeated and superseded rows are merged into canonical rows.
+Inventory after deduplication: 65 canonical queue IDs represented by 64 deferred rows (0 pending). Resolved and refuted proposals are removed; repeated and superseded rows are merged into canonical rows.
 
 Each pending row must be rechecked against the current tree, applied in a compatible batch, validated with the smallest relevant containerized test target, and then removed here.
 
@@ -16,7 +16,6 @@ Each pending row must be rechecked against the current tree, applied in a compat
 - **R2586**: **Deferred.** Hash-only worker identity currently stages a full runtime closure to preserve authenticated evidence; reducing that work crosses the discovery/security boundary. | `SharpProof.Worker`; worker identity tests
 - **R2880**: **Deferred.** Aligning dependency versions and lock files is package-policy work that changes installation authority; retain the current NuGet locks until a central pinning plan is approved. The former R1540 analyzer/collector transitive-version drift is part of this same lock-authority decision, not a separate source reduction. | `Directory.Packages.props`; `packages.lock.json`; `SharpProof.Package/SharpProof.nuspec`; self-application props
 - **R2980**: **Deferred.** Conditional contract compilation affects test soundness and synthetic consumer fixtures; changing the symbol policy requires a documented configuration contract and parity tests. | `SharpProof.Contracts`; `SharpProof.*.Test`
-- **R2031**: **Deferred.** Replacing the local dotnet wrapper changes timeout, process-tree cleanup, output capture, and exit-code behavior across the container commands; design the reliability contract first. | `scripts/Invoke-SharpProofContainer.ps1`; `scripts/SharpProof.ContainerExecution.psm1`
 - **R2120**: **Deferred.** Removing unconstructed AbstentionReason values changes the public verifier enum and future analysis boundary; requires an API and documentation decision. | `SharpProof.Verify`; `docs/unknown-reasons.md`
 - **R2370**: **Deferred.** Typed IrValue payload storage changes generated schema, wire representation, and allocation behavior; requires schema/version and full IR parity tests. | `SharpProof.Ir`; generated IR model
 - **R0952**: **Deferred.** The screening and direct-analysis precondition policies share symbol resolution but intentionally differ in mode, cache, and cancellation scope; the focused analyzer baseline passed 3/3. | `SharpProof.Analyzer.Core/AnalyzerSession.cs`; `SharpProof.Analyzer.Test`

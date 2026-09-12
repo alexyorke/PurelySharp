@@ -1117,7 +1117,7 @@ public sealed class ArchitectureTests
             "function Invoke-DependencyAudit",
             StringComparison.Ordinal);
         var restore = container.IndexOf(
-            "Invoke-DotNet @('restore', 'SharpProof.slnx', '--locked-mode')",
+            "Invoke-SharpProofRequiredDotnet @('restore', 'SharpProof.slnx', '--locked-mode')",
             auditHelper,
             StringComparison.Ordinal);
         var audit = container.IndexOf(
@@ -1156,7 +1156,7 @@ public sealed class ArchitectureTests
             StringComparison.Ordinal);
         var branch = container[branchStart..branchEnd];
         var restore = branch.IndexOf(
-            "Invoke-DotNet @('restore', 'SharpProof.slnx', '--locked-mode')",
+            "Invoke-SharpProofRequiredDotnet @('restore', 'SharpProof.slnx', '--locked-mode')",
             StringComparison.Ordinal);
         var consumer = branch.IndexOf(
             "Test-SharpProofPackageConsumers.ps1",

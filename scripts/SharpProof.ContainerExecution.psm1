@@ -138,11 +138,17 @@ function Invoke-SharpProofRequiredDotnet {
         [Parameter(Mandatory = $true)]
         [string[]]$Arguments,
 
-        [Parameter(Mandatory = $true)]
-        [int]$TimeoutSeconds,
+        [ValidateRange(0, 86400)]
+        [int]$TimeoutSeconds = 0,
 
         [switch]$Quiet
     )
+
+    if ($TimeoutSeconds -eq 0 -and -not $Quiet) {
+        Invoke-SharpProofCheckedCommand -Command 'dotnet' -Arguments @(
+            Add-SharpProofStaticGraphArgument -Arguments $Arguments)
+        return
+    }
 
     $outputPath = $null
     if ($Quiet) {

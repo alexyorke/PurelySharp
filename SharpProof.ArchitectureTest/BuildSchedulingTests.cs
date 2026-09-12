@@ -455,7 +455,7 @@ public sealed class BuildSchedulingTests
         var wrapper = await File.ReadAllTextAsync(Path.Combine(
             root, "scripts", "Invoke-SharpProofDotnet.ps1"));
         Assert.That(container,
-            Does.Contain("Add-SharpProofStaticGraphArgument"));
+            Does.Contain("Invoke-SharpProofRequiredDotnet"));
         Assert.That(wrapper,
             Does.Contain("Add-SharpProofStaticGraphArgument"));
     }
