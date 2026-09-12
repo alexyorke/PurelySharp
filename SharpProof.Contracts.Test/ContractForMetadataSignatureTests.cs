@@ -62,8 +62,7 @@ public sealed class ContractForMetadataSignatureTests
             }
             """,
             new CSharpParseOptions(
-                LanguageVersion.CSharp12,
-                preprocessorSymbols: [Contract.ConditionalSymbol]));
+                LanguageVersion.CSharp12));
         var compilation = CSharpCompilation.Create(
             "CompoundMetadataSignatureIdentity",
             [syntaxTree],
