@@ -12,9 +12,7 @@ using SharpProof.Testing;
 namespace SharpProof.Gates;
 
 internal sealed record AnalyzerMethodSemanticOutcome(
-    string MethodName,
     Accessibility Accessibility,
-    int SourceStart,
     AnalyzerSemanticOutcome Outcome);
 
 internal sealed record AnalyzerGateAnalysis(
@@ -304,9 +302,7 @@ internal static class AnalyzerGateHost
                     static pair => pair.Key.MethodName,
                     StringComparer.Ordinal)
                 .Select(static pair => new AnalyzerMethodSemanticOutcome(
-                    pair.Key.MethodName,
                     pair.Key.Accessibility,
-                    pair.Key.SourceStart,
                     pair.Value))];
         }
 
