@@ -74,6 +74,7 @@ public sealed class PackageLayoutSmokeTests
     private static readonly string[] ExpectedSourceAnalyzerProjectFileNames = [
         "SharpProof.Attributes.csproj",
         "SharpProof.Analyzer.csproj",
+        "SharpProof.Analyzer.Core.csproj",
         "SharpProof.ContractForGenerator.csproj",
         "SharpProof.CompilerCollector.csproj"
     ];
