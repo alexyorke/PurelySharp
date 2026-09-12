@@ -18,8 +18,8 @@
   {
     "name": "scalar-binary-inverse-mapping",
     "file": "SharpProof.Frontend/CSharpScalarSemantics.generated.cs",
-    "original": "            if (candidate.IrOperator == @operator)",
-    "mutated": "            if (candidate.IrOperator != @operator)",
+    "original": "    private static readonly ImmutableDictionary<IrBinaryOperator, BinaryOperatorKind>\n        BinaryOperatorLookup = BinaryOperators.ToImmutableDictionary(\n            static value => value.IrOperator,\n            static value => value.Kind);",
+    "mutated": "    private static readonly ImmutableDictionary<IrBinaryOperator, BinaryOperatorKind>\n        BinaryOperatorLookup = BinaryOperators.ToImmutableDictionary(\n            static value => value.IrOperator,\n            static value => value.ReverseKind);",
     "project": "SharpProof.Frontend.Test/SharpProof.Frontend.Test.csproj",
     "filter": "FullyQualifiedName~BinaryMappingsAndArithmeticCategoriesAreExhaustive"
   },
@@ -74,8 +74,8 @@
   {
     "name": "portable-codec-unused-slot-fails-closed",
     "file": "SharpProof.CompilerArtifact/PortableIrGraphCodec.cs",
-    "original": "                row.A,\n                row.B,\n                row.C,\n                row.D,",
-    "mutated": "                row.A,\n                -1,\n                row.C,\n                row.D,",
+    "original": "        RequireCanonicalSlot(kind, mapping.Slots![0], row.A);\n        RequireCanonicalSlot(kind, mapping.Slots[1], row.B);\n        RequireCanonicalSlot(kind, mapping.Slots[2], row.C);\n        RequireCanonicalSlot(kind, mapping.Slots[3], row.D);",
+    "mutated": "        RequireCanonicalSlot(kind, mapping.Slots![0], row.A);\n        RequireCanonicalSlot(kind, mapping.Slots[1], -1);\n        RequireCanonicalSlot(kind, mapping.Slots[2], row.C);\n        RequireCanonicalSlot(kind, mapping.Slots[3], row.D);",
     "project": "SharpProof.Worker.Test/SharpProof.Worker.Test.csproj",
     "filter": "FullyQualifiedName~DecoderRejectsNonCanonicalSlotsAfterSerialization"
   },
@@ -114,8 +114,8 @@
   {
     "name": "collector-option-output-kind",
     "file": "SharpProof.CompilerCollector/CompilerArtifact/CompilerWireMappings.generated.cs",
-    "original": "            OutputKind.ConsoleApplication => CompilerOutputKind.ConsoleApplication,",
-    "mutated": "            OutputKind.ConsoleApplication => CompilerOutputKind.WindowsApplication,",
+    "original": "        if (CompilerWireIdentityMappings.TryMap<OutputKind, CompilerOutputKind>(value, out var result))",
+    "mutated": "        if (CompilerWireIdentityMappings.TryMap<OutputKind, CompilerOutputKind>(OutputKind.WindowsApplication, out var result))",
     "project": "SharpProof.Analyzer.Test/SharpProof.Analyzer.Test.csproj",
     "filter": "FullyQualifiedName~EveryCurrentRoslynCompilerOptionHasAClosedWireMapping"
   },
@@ -130,26 +130,26 @@
   {
     "name": "collector-effect-flag-projection",
     "file": "SharpProof.CompilerCollector/CompilerArtifact/CompilerWireMappings.generated.cs",
-    "original": "            result |= WorkerEffectSet.ReadsReceiverState;",
-    "mutated": "            result |= WorkerEffectSet.ReadsArgumentState;",
+    "original": "        return (WorkerEffectSet)(long)source;",
+    "mutated": "        return source == EffectContractKind.ReadsReceiverState\n            ? WorkerEffectSet.ReadsArgumentState\n            : (WorkerEffectSet)(long)source;",
     "project": "SharpProof.Worker.Test/SharpProof.Worker.Test.csproj",
     "filter": "FullyQualifiedName~EffectWireMappingsAreNamedAndExhaustive"
   },
   {
     "name": "lowering-unchecked-arithmetic",
     "file": "SharpProof.Frontend/RoslynOperationLowerer.cs",
-    "original": "CSharpScalarSemantics.RequiresCheckedArithmetic(\n                        operation.OperatorKind) && !operation.IsChecked)",
-    "mutated": "CSharpScalarSemantics.RequiresCheckedArithmetic(\n                        operation.OperatorKind) && operation.IsChecked)",
+    "original": "                if (semantics.RequiresCheckedArithmetic && !operation.IsChecked)\n                {\n                    return OpaqueBinary(",
+    "mutated": "                if (semantics.RequiresCheckedArithmetic && operation.IsChecked)\n                {\n                    return OpaqueBinary(",
     "project": "SharpProof.Frontend.Test/SharpProof.Frontend.Test.csproj",
-    "filter": "FullyQualifiedName~OverflowAndConversionShapesAreExactOnlyWhenRepresentable"
+    "filter": "FullyQualifiedName~ClassificationCasesRemainClosedAndExact"
   },
   {
     "name": "lowering-global-constant-bypass",
     "file": "SharpProof.Frontend/RoslynOperationLowerer.cs",
-    "original": "            if (_owner._allowCompilerConstants &&\n                operation.ConstantValue.HasValue)",
-    "mutated": "            if (_owner._allowCompilerConstants ||\n                operation.ConstantValue.HasValue)",
+    "original": "                if (_owner._allowCompilerConstants &&\n                    operation.ConstantValue.HasValue)",
+    "mutated": "                if (_owner._allowCompilerConstants ||\n                    operation.ConstantValue.HasValue)",
     "project": "SharpProof.Frontend.Test/SharpProof.Frontend.Test.csproj",
-    "filter": "FullyQualifiedName~ConstantFoldingCannotBypassTheClosedOperationCatalog"
+    "filter": "FullyQualifiedName~ClassificationCasesRemainClosedAndExact"
   },
   {
     "name": "requires-concrete-compiler-constant-replay",
@@ -162,8 +162,8 @@
   {
     "name": "smt-strict-less-than",
     "file": "SharpProof.Smt/IrSmtBackend.cs",
-    "original": "_context.MkLt(Integer(left), Integer(right))), defined)",
-    "mutated": "_context.MkLe(Integer(left), Integer(right))), defined)",
+    "original": "                IrBinaryOperator.LessThan => new EncodedValue(_owner.Own(_context.MkLt(leftInteger, rightInteger)), defined),",
+    "mutated": "                IrBinaryOperator.LessThan => new EncodedValue(_owner.Own(_context.MkLe(leftInteger, rightInteger)), defined),",
     "project": "SharpProof.Smt.Test/SharpProof.Smt.Test.csproj",
     "filter": "FullyQualifiedName~StrictComparisonDoesNotAcceptEqualityBoundary"
   },
@@ -242,7 +242,7 @@
   {
     "name": "external-contract-closed-precondition-boundary",
     "file": "SharpProof.Effects/EffectAnalysisSession.cs",
-    "original": "                EffectSummaryOperations.Join(\n                    _external.Resolve(normalized),\n                    ResolveEntryPreconditions(normalized)));",
+    "original": "                EffectSummaryOperations.Join(\n                    _external.Resolve(normalized),\n                    ResolveEntryPreconditions(preconditionTarget)));",
     "mutated": "                _external.Resolve(normalized));",
     "project": "SharpProof.Effects.Test/SharpProof.Effects.Test.csproj",
     "filter": "FullyQualifiedName~DirectExternalAnalysisAppliesClosedEntryPreconditions"
@@ -354,16 +354,16 @@
   {
     "name": "effect-direct-witness-prebody-completion",
     "file": "SharpProof.Effects/EffectMethodNodeBuilder.cs",
-    "original": "            allowDirectWitnesses:\n                graph != null &&\n                HasDefiniteBodyEntry(method, _session.ApiSpecs));",
-    "mutated": "            allowDirectWitnesses:\n                graph != null &&\n                !HasDefiniteBodyEntry(method, _session.ApiSpecs));",
+    "original": "            allowDirectWitnesses:\n                graph != null &&\n                HasDefiniteBodyEntry(method, _session.ApiSpecs),",
+    "mutated": "            allowDirectWitnesses:\n                graph != null &&\n                !HasDefiniteBodyEntry(method, _session.ApiSpecs),",
     "project": "SharpProof.Effects.Test/SharpProof.Effects.Test.csproj",
     "filter": "FullyQualifiedName~PreBodyExecutionBlocksDirectBodyWitnesses"
   },
   {
     "name": "effect-system-object-approved-identity",
     "file": "SharpProof.Effects/EffectMethodNodeBuilder.cs",
-    "original": "        if (type.SpecialType == SpecialType.System_Object &&\n            HasApprovedSystemObjectConstructor(type, apiSpecs))",
-    "mutated": "        if (type.SpecialType == SpecialType.System_Object &&\n            !HasApprovedSystemObjectConstructor(type, apiSpecs))",
+    "original": "        if (type.SpecialType == SpecialType.System_Object &&\n            HasApprovedSystemObjectConstructor(\n                type,\n                apiSpecs,\n                cancellationToken))",
+    "mutated": "        if (type.SpecialType == SpecialType.System_Object &&\n            !HasApprovedSystemObjectConstructor(\n                type,\n                apiSpecs,\n                cancellationToken))",
     "project": "SharpProof.Effects.Test/SharpProof.Effects.Test.csproj",
     "filter": "FullyQualifiedName~SystemObjectAllocationRequiresApprovedFrameworkIdentity"
   },
@@ -378,8 +378,8 @@
   {
     "name": "effect-collector-subset-admission",
     "file": "SharpProof.CompilerCollector/CompilerArtifact/ClaimManifestBuilder.cs",
-    "original": "            target.MethodKind is\n                MethodKind.Ordinary or\n                MethodKind.Constructor &&\n            selectedSubset.IsSupported;",
-    "mutated": "            target.MethodKind is\n                MethodKind.Ordinary or\n                MethodKind.Constructor &&\n            true;",
+    "original": "            selectedSubset.IsSupported;",
+    "mutated": "            true;",
     "project": "SharpProof.Worker.Test/SharpProof.Worker.Test.csproj",
     "filter": "FullyQualifiedName~UnsupportedEffectCallablesCannotCarryConcreteEvidence"
   },
@@ -426,8 +426,8 @@
   {
     "name": "advisory-contract-candidate-detection",
     "file": "SharpProof.Frontend/ContractApiMetadata.generated.cs",
-    "original": "            \"Ensures\",",
-    "mutated": "            \"Requires\",",
+    "original": "            new(\n                EnsuresMethodName,\n                ContractApiMethodShape.Clause,\n                ContractApiClauseRole.Ensures),",
+    "mutated": "            new(\n                RequiresMethodName,\n                ContractApiMethodShape.Clause,\n                ContractApiClauseRole.Ensures),",
     "project": "SharpProof.Analyzer.Test/SharpProof.Analyzer.Test.csproj",
     "filter": "FullyQualifiedName~ContractCandidateActivationRunsClausePlacementValidation"
   },
@@ -441,17 +441,17 @@
   },
   {
     "name": "contract-api-duplicate-json-rejection",
-    "file": "scripts/Generate-ContractApiCatalog.ps1",
-    "original": "if (-not $names.Add($property.Name)) {",
-    "mutated": "if ($false) {",
+    "file": "scripts/Assert-SharpProofJsonProperties.ps1",
+    "original": "        if (-not $names.Add($property.Name))",
+    "mutated": "        if ($false)",
     "project": "SharpProof.Frontend.Test/SharpProof.Frontend.Test.csproj",
     "filter": "FullyQualifiedName~GeneratorRejectsMalformedCatalogs"
   },
   {
     "name": "contract-api-exported-attribute-parity",
     "file": "SharpProof.Frontend/ContractApiMetadata.generated.cs",
-    "original": "            ContractFor,\n            EnforcePure,",
-    "mutated": "            EnforcePure,\n            EnforcePure,",
+    "original": "            new(\n                ContractFor,\n                \"ContractForAttribute\",\n                ContractApiAttributeCategory.Companion,",
+    "mutated": "            new(\n                EnforcePure,\n                \"ContractForAttribute\",\n                ContractApiAttributeCategory.Companion,",
     "project": "SharpProof.Frontend.Test/SharpProof.Frontend.Test.csproj",
     "filter": "FullyQualifiedName~CatalogExactlyMatchesTheExportedContractApi"
   },
@@ -474,16 +474,16 @@
   {
     "name": "advisory-lazy-state-creation",
     "file": "SharpProof.Analyzer.Core/AnalyzerSession.cs",
-    "original": "_callPreconditions = new(",
-    "mutated": "_ = _apiSpecs.Value;\n        _callPreconditions = new(",
+    "original": "        _callPreconditions = CreateLazy(\n            () => new ConservativeEffectCallPreconditionPolicy(",
+    "mutated": "        _ = GetValue(_apiSpecs);\n        _callPreconditions = CreateLazy(\n            () => new ConservativeEffectCallPreconditionPolicy(",
     "project": "SharpProof.Analyzer.Test/SharpProof.Analyzer.Test.csproj",
     "filter": "FullyQualifiedName~AdvisoryPotentialWorkCreatesOnlyALightweightSession"
   },
   {
     "name": "external-precondition-screening",
     "file": "SharpProof.Frontend/ContractApiMetadataRuntime.cs",
-    "original": "                attribute.Category ==\n                    ContractApiAttributeCategory.Closed &&",
-    "mutated": "                attribute.Category !=\n                    ContractApiAttributeCategory.Closed &&",
+    "original": "                .Where(static attribute =>\n                    attribute.Category == ContractApiAttributeCategory.Closed)",
+    "mutated": "                .Where(static attribute =>\n                    attribute.Category != ContractApiAttributeCategory.Closed)",
     "project": "SharpProof.Analyzer.Test/SharpProof.Analyzer.Test.csproj",
     "filter": "FullyQualifiedName~UnannotatedCallerStillChecksExternalClosedPreconditions"
   },
@@ -562,16 +562,16 @@
   {
     "name": "modeled-call-receiver-definedness",
     "file": "SharpProof.Worker/AcyclicBlockPredicateExecutor.cs",
-    "original": "guard = receiverGuard;\n                substitutions.Add(template.Receiver.Value, receiver);",
-    "mutated": "guard = factory.Boolean(true);\n                substitutions.Add(template.Receiver.Value, receiver);",
+    "original": "                if (AdmitOperand(call.Receiver!, environment, ref guard)\n                    is not { } receiver)",
+    "mutated": "                if (Substitute(call.Receiver!, environment)\n                    is not { } receiver)",
     "project": "SharpProof.Worker.Test/SharpProof.Worker.Test.csproj",
     "filter": "FullyQualifiedName~SpecCallReceiverDefinednessConstrainsSubsequentFlow"
   },
   {
     "name": "modeled-call-argument-definedness",
     "file": "SharpProof.Worker/AcyclicBlockPredicateExecutor.cs",
-    "original": "guard = argumentGuard;\n                substitutions.Add(template.Parameters[index], argument);",
-    "mutated": "guard = factory.Boolean(true);\n                substitutions.Add(template.Parameters[index], argument);",
+    "original": "                if (AdmitOperand(call.Arguments[index], environment, ref guard)\n                    is not { } argument)",
+    "mutated": "                if (Substitute(call.Arguments[index], environment)\n                    is not { } argument)",
     "project": "SharpProof.Worker.Test/SharpProof.Worker.Test.csproj",
     "filter": "FullyQualifiedName~SpecCallArgumentDefinednessConstrainsSubsequentFlow"
   },
@@ -610,8 +610,8 @@
   {
     "name": "effect-replay-worker-constraint-hash",
     "file": "SharpProof.Worker/EffectCounterexampleReplayer.cs",
-    "original": "            \"SharpProof.CompilerEffectReplayConstraint\",\n            1,\n            kind,",
-    "mutated": "            \"SharpProof.CompilerEffectReplayConstraint\",\n            2,\n            kind,",
+    "original": "        hash.Add(\"SharpProof.CompilerEffectReplayConstraint\")\n            .Add(1)\n            .Add(kind)",
+    "mutated": "        hash.Add(\"SharpProof.CompilerEffectReplayConstraint\")\n            .Add(2)\n            .Add(kind)",
     "project": "SharpProof.Worker.Test/SharpProof.Worker.Test.csproj",
     "filter": "FullyQualifiedName~WorkerOwnsCanonicalReplayHashing"
   },
@@ -625,17 +625,17 @@
   },
   {
     "name": "effect-replay-allocation-constraint",
-    "file": "SharpProof.Worker/EffectCounterexampleReplayer.cs",
-    "original": "                (observed & WorkerEffectSet.Allocates) != 0,",
-    "mutated": "                (observed & WorkerEffectSet.Allocates) == 0,",
+    "file": "SharpProof.CompilerArtifact/CompilerEffectViolationAuthority.cs",
+    "original": "            WorkerEffectContractKind.ZeroAllocations =>\n                (observed.Effects & WorkerEffectSet.Allocates) != 0,",
+    "mutated": "            WorkerEffectContractKind.ZeroAllocations =>\n                (observed.Effects & WorkerEffectSet.Allocates) == 0,",
     "project": "SharpProof.Worker.Test/SharpProof.Worker.Test.csproj",
     "filter": "FullyQualifiedName~AllocationReplayRespectsTheSelectedContract"
   },
   {
     "name": "effect-replay-exact-witness",
     "file": "SharpProof.Worker/EffectCounterexampleReplayer.cs",
-    "original": "        return (actual.Kind, actual.Detail, actual.Effects,",
-    "mutated": "        return (actual.Kind, claimed.Detail, actual.Effects,",
+    "original": "        return violation != null &&\n            CompilerEffectAuthority.WitnessesEqual(violation, evidence.Witness)",
+    "mutated": "        return violation != null &&\n            CompilerEffectAuthority.WitnessesEqual(violation, violation)",
     "project": "SharpProof.Worker.Test/SharpProof.Worker.Test.csproj",
     "filter": "FullyQualifiedName~SemanticWitnessMismatchRemainsTypedUnknown"
   },
@@ -690,16 +690,16 @@
   {
     "name": "cache-read-lock-coordination",
     "file": "SharpProof.Worker/VerificationCache.cs",
-    "original": "            cacheLock = AcquireLock(_directory);\n            ValidatePath(path);",
-    "mutated": "            ValidatePath(path);",
+    "original": "            cacheLock = AcquireLock(_directory);\n            RecoverInterruptedTransactions(cancellationToken);\n            ValidatePath(path);",
+    "mutated": "            RecoverInterruptedTransactions(cancellationToken);\n            ValidatePath(path);",
     "project": "SharpProof.Worker.Test/SharpProof.Worker.Test.csproj",
     "filter": "FullyQualifiedName~CacheDirectoryLockMakesReadMissAndWriteUnavailable"
   },
   {
     "name": "cache-write-lock-coordination",
     "file": "SharpProof.Worker/VerificationCache.cs",
-    "original": "            cacheLock = AcquireLock(_directory);\n            var payload = JsonSerializer.Serialize(new CachePayload(",
-    "mutated": "            var payload = JsonSerializer.Serialize(new CachePayload(",
+    "original": "            cacheLock = AcquireLock(_directory);\n            RecoverInterruptedTransactions(cancellationToken);\n            var payload = JsonSerializer.Serialize(new CachePayload(",
+    "mutated": "            RecoverInterruptedTransactions(cancellationToken);\n            var payload = JsonSerializer.Serialize(new CachePayload(",
     "project": "SharpProof.Worker.Test/SharpProof.Worker.Test.csproj",
     "filter": "FullyQualifiedName~CacheDirectoryLockMakesReadMissAndWriteUnavailable"
   },
@@ -762,8 +762,8 @@
   {
     "name": "worker-parent-death-boundary",
     "file": "SharpProof.Host/LinuxWorkerProcess.cs",
-    "original": "    private const int ParentDeathSignal = 1;",
-    "mutated": "    private const int ParentDeathSignal = 0;",
+    "original": "    internal const int ParentDeathSignal = 1;",
+    "mutated": "    internal const int ParentDeathSignal = 0;",
     "project": "SharpProof.Worker.Test/SharpProof.Worker.Test.csproj",
     "filter": "FullyQualifiedName~ParentDeathKillsAWorkerBlockedBeforeStartupRelease"
   },
@@ -786,8 +786,8 @@
   {
     "name": "release-configuration-empty-expected-set",
     "file": "scripts/Test-SharpProofReleaseConfiguration.ps1",
-    "original": "[Parameter(Mandatory = $true)][AllowEmptyCollection()][object[]]$Expected,",
-    "mutated": "[Parameter(Mandatory = $true)][object[]]$Expected,",
+    "original": "        [AllowEmptyCollection()][object[]]$Expected = @(),",
+    "mutated": "        [object[]]$Expected = @(),",
     "project": "SharpProof.ArchitectureTest/SharpProof.ArchitectureTest.csproj",
     "filter": "FullyQualifiedName~EffectiveReleaseRefSetsMustEqualTheContract"
   },
@@ -826,8 +826,8 @@
   {
     "name": "protocol-json-nested-shape-authority",
     "file": "SharpProof.Worker.Protocol/ProtocolJsonSupport.cs",
-    "original": "        EnsureObjectShape(document.RootElement, shape);",
-    "mutated": "        _ = shape;",
+    "original": "            EnsureObjectShape(root, shape);",
+    "mutated": "            _ = shape;",
     "project": "SharpProof.Worker.Test/SharpProof.Worker.Test.csproj",
     "filter": "FullyQualifiedName~OmittedNestedManifestSchemaVersionIsRejectedDuringDeserialization"
   },
@@ -914,8 +914,8 @@
   {
     "name": "closure-retains-each-component-path-once",
     "file": "SharpProof.CompilerArtifact/CompilerManifestArtifact.cs",
-    "original": "                components.Values.ToArray(),",
-    "mutated": "                components.Values.Take(1).ToArray(),",
+    "original": "    internal IReadOnlyList<string> ComponentPaths { get; } =\n        ImmutableArray.CreateRange(componentPaths);",
+    "mutated": "    internal IReadOnlyList<string> ComponentPaths { get; } =\n        ImmutableArray.CreateRange(componentPaths.Take(1));",
     "project": "SharpProof.Worker.Test/SharpProof.Worker.Test.csproj",
     "filter": "FullyQualifiedName~IdentityCoversTheCompleteTrustedRuntimeClosure"
   },
@@ -938,7 +938,7 @@
   {
     "name": "launcher-checks-discovered-runtime-paths",
     "file": "SharpProof.Worker.Launcher/Program.cs",
-    "original": "            .Concat(runtimeSnapshot?.ComponentPaths.Where(path =>\n                !runtimeRoots.Contains(path, StringComparer.Ordinal) &&\n                !LauncherArguments.LauncherRuntimePaths.Contains(\n                    path, StringComparer.Ordinal)) ?? [])",
+    "original": "            .Concat(runtimeSnapshot?.ComponentPaths.Where(path =>\n                !runtimeRoots.Contains(path, StringComparer.Ordinal) &&\n                !launcherRuntimePaths.Contains(\n                    path, StringComparer.Ordinal)) ?? [])",
     "mutated": "            .Concat(runtimeSnapshot?.ComponentPaths.Where(path => path.Length == 0) ?? [])",
     "project": "SharpProof.Package.Test/SharpProof.Package.Test.csproj",
     "filter": "FullyQualifiedName~RequestProjectionRejectsDiscoveredRuntimeAssetCollisionBeforeManifestRead"
@@ -954,18 +954,18 @@
   {
     "name": "launcher-checks-launcher-runtime-paths",
     "file": "SharpProof.Worker.Launcher/Program.cs",
-    "original": "            ..LauncherArguments.LauncherRuntimePaths,",
-    "mutated": "            ..LauncherArguments.LauncherRuntimePaths[1..],",
+    "original": "        string?[] candidates = [..runtimeRoots,\n            ..launcherRuntimePaths,",
+    "mutated": "        string?[] candidates = [..runtimeRoots,\n            ..launcherRuntimePaths[1..],",
     "project": "SharpProof.Package.Test/SharpProof.Package.Test.csproj",
     "filter": "FullyQualifiedName~RequestProjectionRejectsLauncherRuntimeCollisionBeforeManifestRead"
   },
   {
     "name": "launcher-checks-protocol-companion-path",
     "file": "SharpProof.Worker.Launcher/LauncherArguments.generated.cs",
-    "original": "System.IO.Path.Combine(System.IO.Path.GetDirectoryName(path)!, \"SharpProof.Worker.Protocol.dll\")",
-    "mutated": "System.IO.Path.Combine(System.IO.Path.GetDirectoryName(path)!, \"SharpProof.Worker.dll\")",
+    "original": "                System.IO.Path.Combine(directory, \"SharpProof.Worker.Protocol.dll\"),",
+    "mutated": "                System.IO.Path.Combine(directory, \"SharpProof.Worker.dll\"),",
     "project": "SharpProof.Package.Test/SharpProof.Package.Test.csproj",
-    "filter": "FullyQualifiedName~RequestProjectionRejectsLauncherProtocolRuntimeCollisionBeforeManifestRead"
+    "filter": "FullyQualifiedName~RequestProjectionRejectsLauncherRuntimeCollisionBeforeManifestRead"
   },
   {
     "name": "targets-protect-protocol-companion-path",
@@ -1018,8 +1018,8 @@
   {
     "name": "build-task-cancel-before-launch",
     "file": "SharpProof.BuildTasks/RunVerifier.cs",
-    "original": "                if (_canceled)",
-    "mutated": "                if (_canceled && string.IsNullOrEmpty(Executable))",
+    "original": "            lock (_gate)\n            {\n                if (_cancellationSignal.IsSet)",
+    "mutated": "            lock (_gate)\n            {\n                if (_cancellationSignal.IsSet && string.IsNullOrEmpty(Executable))",
     "project": "SharpProof.Package.Test/SharpProof.Package.Test.csproj",
     "filter": "FullyQualifiedName~CanceledVerifierTaskDoesNotLaunchAProcess"
   },
@@ -1034,16 +1034,16 @@
   {
     "name": "verifier-supervisor-requires-subreaper",
     "file": "SharpProof.BuildTasks/VerifierProcessSupervisor.cs",
-    "original": "                ChildSubreaper,\n                1,",
-    "mutated": "                ChildSubreaper,\n                0,",
+    "original": "                LinuxProcessControlConstants.ChildSubreaper,\n                LinuxProcessControlConstants.Enable,",
+    "mutated": "                LinuxProcessControlConstants.ChildSubreaper,\n                LinuxProcessControlConstants.Disable,",
     "project": "SharpProof.Package.Test/SharpProof.Package.Test.csproj",
     "filter": "FullyQualifiedName~VerifierSupervisorStopsSessionEscapingDescendants"
   },
   {
     "name": "verifier-supervisor-reports-incomplete-cleanup",
     "file": "SharpProof.BuildTasks/VerifierProcessSupervisor.cs",
-    "original": "            Complete: DescendantProcessIds(supervisorId).Count == 0);",
-    "mutated": "            Complete: true);",
+    "original": "        var complete = supervisorGone ||\n            DescendantProcessIds(supervisorId).Count == 0;",
+    "mutated": "        var complete = true;",
     "project": "SharpProof.Package.Test/SharpProof.Package.Test.csproj",
     "filter": "FullyQualifiedName~VerifierSupervisorReportsBoundedCleanupFailure"
   },
@@ -1090,8 +1090,8 @@
   {
     "name": "verifier-armed-state-precedes-output-completion",
     "file": "SharpProof.BuildTasks/RunVerifier.cs",
-    "original": "                            supervisorArmedSignal?.TrySetResult(true);",
-    "mutated": "                            _ = supervisorArmedSignal;",
+    "original": "        authenticated = true;\n        signal?.TrySetResult(true);",
+    "mutated": "        authenticated = true;\n        _ = signal;",
     "project": "SharpProof.Package.Test/SharpProof.Package.Test.csproj",
     "filter": "FullyQualifiedName~VerifierArmedStateIsPublishedIndependentlyOfOutputCompletion"
   },
@@ -1106,8 +1106,8 @@
   {
     "name": "compiler-linked-module-closure",
     "file": "SharpProof.CompilerCollector/CompilerArtifact/CompilerCompilationCapture.cs",
-    "original": "            backingModules = [\n                backingModules[0],\n                .. backingModules.Skip(1).OrderBy(\n                    static module => ReadModuleName(module.GetMetadataReader()),\n                    StringComparer.Ordinal)\n            ];",
-    "mutated": "            backingModules = [backingModules[0]];",
+    "original": "            moduleEntries = [\n                moduleEntries[0],\n                .. moduleEntries.Skip(1).OrderBy(\n                    static module => module.Name,\n                    StringComparer.Ordinal)\n            ];",
+    "mutated": "            moduleEntries = [moduleEntries[0]];",
     "project": "SharpProof.Analyzer.Test/SharpProof.Analyzer.Test.csproj",
     "filter": "FullyQualifiedName~LinkedNetmoduleProvenanceCapturesCompleteClosure"
   },
@@ -1266,8 +1266,8 @@
   {
     "name": "runtime-closure-validates-before-invalidation",
     "file": "SharpProof.Verifier/buildTransitive/SharpProof.Verifier.targets",
-    "original": "          DependsOnTargets=\"_SharpProofValidateRuntimeClosure\"",
-    "mutated": "          DependsOnTargets=\"\"",
+    "original": "          DependsOnTargets=\"_SharpProofValidateRuntimeClosure;_SharpProofResolveVerificationPaths\"",
+    "mutated": "          DependsOnTargets=\"_SharpProofResolveVerificationPaths\"",
     "project": "SharpProof.Package.Test/SharpProof.Package.Test.csproj",
     "filter": "FullyQualifiedName~ProjectBodyRuntimeClosureOverridesAreRejectedBeforePublication"
   },
@@ -1298,16 +1298,16 @@
   {
     "name": "nightly-fuzz-command-connected",
     "file": ".github/workflows/nightly.yml",
-    "original": "          docker compose run --rm tooling fuzz-nightly",
-    "mutated": "          docker compose run --rm tooling acceptance",
+    "original": "        run: docker compose run --rm tooling nightly",
+    "mutated": "        run: docker compose run --rm tooling acceptance",
     "project": "SharpProof.ArchitectureTest/SharpProof.ArchitectureTest.csproj",
     "filter": "FullyQualifiedName~NightlyFuzzCampaignIsContainerConnectedAndEvidenceBound"
   },
   {
     "name": "fuzz-result-requires-exact-property-count",
-    "file": "scripts/Assert-SharpProofFuzzRunnerResult.ps1",
-    "original": "$actual.Count -ne $Expected.Count -or",
-    "mutated": "$false -or",
+    "file": "scripts/Assert-SharpProofJsonProperties.ps1",
+    "original": "        $actual.Count -ne $Expected.Count -or\n        @($actual | Where-Object { $Expected -cnotcontains $_ }).Count -ne 0)",
+    "mutated": "        $false -or\n        @($actual | Where-Object { $Expected -cnotcontains $_ }).Count -ne 0)",
     "project": "SharpProof.ArchitectureTest/SharpProof.ArchitectureTest.csproj",
     "filter": "FullyQualifiedName~FuzzRunnerEvidenceUsesStrictSchemaFourDecoder"
   },
@@ -1338,8 +1338,8 @@
   {
     "name": "corpus-snapshot-loader-requires-schema-header",
     "file": "SharpProof.Gates/Corpus/CorpusSnapshotFormat.cs",
-    "original": "        return data;",
-    "mutated": "        return lines;",
+    "original": "        var data = lines.Skip(Header.Length).ToArray();",
+    "mutated": "        var data = lines;",
     "project": "SharpProof.Gates.Test/SharpProof.Gates.Test.csproj",
     "filter": "FullyQualifiedName~CorpusSnapshotFormatRequiresExactSchemaThreeBytes"
   },
@@ -1374,14 +1374,6 @@
     "mutated": "                    match = left.IndexOf(leftType);",
     "project": "SharpProof.ContractForGenerator.Test/SharpProof.ContractForGenerator.Test.csproj",
     "filter": "FullyQualifiedName~UnmanagedFunctionPointerConventionOrderIsInterchangeable"
-  },
-  {
-    "name": "contract-constructed-function-pointer-preserves-ref-modifiers",
-    "file": "SharpProof.Contracts/ContractCanonicalization.cs",
-    "original": "            if (signatureTypes.TryGetValue(type, out var signatureType))",
-    "mutated": "            if (false && signatureTypes.TryGetValue(type, out var signatureType))",
-    "project": "SharpProof.Contracts.Test/SharpProof.Contracts.Test.csproj",
-    "filter": "FullyQualifiedName~FunctionPointerRefReadonlyModifiersSurviveConstruction"
   },
   {
     "name": "contract-float-default-bits-are-exact",
@@ -1434,14 +1426,14 @@
   {
     "name": "analyzer-rejects-retired-mode",
     "file": "SharpProof.Analyzer.Core/Configuration/AnalyzerConfiguration.cs",
-    "original": "        return (options.TryGetValue(\"sharpproof_mode\", out value!) ||",
-    "mutated": "        return (options.TryGetValue(\"sharpproof_removed\", out value!) ||",
+    "original": "        foreach (var key in new[] {\n                     \"sharpproof_mode\",",
+    "mutated": "        foreach (var key in new[] {\n                     \"sharpproof_removed\",",
     "project": "SharpProof.Analyzer.Test/SharpProof.Analyzer.Test.csproj",
     "filter": "FullyQualifiedName~RetiredModeOptionFailsClosed"
   },
   {
     "name": "package-rejects-retired-mode",
-    "file": "SharpProof.Package/buildTransitive/SharpProof.targets",
+    "file": "SharpProof.Package/buildTransitive/SharpProof.ConsumerContract.props",
     "original": "    <Error Condition=\"'$(SharpProofMode)' != ''\"",
     "mutated": "    <Error Condition=\"'false' == 'true'\"",
     "project": "SharpProof.Package.Test/SharpProof.Package.Test.csproj",
@@ -1450,16 +1442,16 @@
   {
     "name": "relational-source-call-admission",
     "file": "SharpProof.CompilerCollector/CompilerArtifact/CompilerRelationalSummaryProvider.cs",
-    "original": "        return method.MethodKind == MethodKind.Ordinary &&",
-    "mutated": "        return method.MethodKind != MethodKind.Ordinary &&",
+    "original": "        return method is\n        {\n            MethodKind: MethodKind.Ordinary,",
+    "mutated": "        return method is\n        {\n            MethodKind: MethodKind.Constructor,",
     "project": "SharpProof.Worker.Test/SharpProof.Worker.Test.csproj",
     "filter": "FullyQualifiedName~DirectAcyclicSourceCallCarriesAReusableRelationalSummary"
   },
   {
     "name": "relational-implementation-il-admission",
     "file": "SharpProof.CompilerCollector/CompilerArtifact/CompilerImplementationIlSummaryLowerer.cs",
-    "original": "        if (!IsCandidate(compilation, method))",
-    "mutated": "        if (IsCandidate(compilation, method))",
+    "original": "            if (!IsCandidate(_compilation, target))",
+    "mutated": "            if (IsCandidate(_compilation, target))",
     "project": "SharpProof.Worker.Test/SharpProof.Worker.Test.csproj",
     "filter": "FullyQualifiedName~ExactImplementationIlSummaryProvesAnExternalCallChain"
   },
@@ -1530,8 +1522,8 @@
   {
     "name": "relational-summary-instantiation-binding",
     "file": "SharpProof.CompilerArtifact/CompilerLoweredArtifact.cs",
-    "original": "summary.InstantiationSha256 != SummaryInstantiationSha256(\n                    graph.Factory,\n                    call,\n                    result,\n                    existentials,\n                    relation))",
-    "mutated": "                false",
+    "original": "            summary.InstantiationSha256 != SummaryInstantiationSha256(\n                    graph.Factory,\n                    call,\n                    result,\n                    existentials,\n                    relation,\n                    summary.DependencyEvidence))",
+    "mutated": "            false)",
     "project": "SharpProof.Worker.Test/SharpProof.Worker.Test.csproj",
     "filter": "FullyQualifiedName~SummaryCallBindsSameTypedArgumentPermutationAndDuplicate"
   },
@@ -1594,8 +1586,8 @@
   {
     "name": "summary-unique-term-budget",
     "file": "SharpProof.Summaries/IrRelationalSummaryBuilder.cs",
-    "original": "            if (!Charge(term))",
-    "mutated": "            if (false)",
+    "original": "                if (_visitedTerms.Add(term.Id) && !Spend())",
+    "mutated": "                if (false)",
     "project": "SharpProof.Summaries.Test/SharpProof.Summaries.Test.csproj",
     "filter": "FullyQualifiedName~SymbolicBudgetRejectsBroadUniqueTermDag"
   },
@@ -1633,9 +1625,9 @@
   },
   {
     "name": "compiler-diagnostic-one-based-location",
-    "file": "SharpProof.CompilerCollector/CompilerArtifact/CompilerManifestArtifactProducer.cs",
-    "original": "            Line = source ? span.StartLinePosition.Line + 1 : 0,",
-    "mutated": "            Line = source ? span.StartLinePosition.Line : 0,",
+    "file": "SharpProof.CompilerCollector/CompilerArtifact/CompilerSourceLocationProjection.cs",
+    "original": "            Line = mapped.StartLinePosition.Line + 1,",
+    "mutated": "            Line = mapped.StartLinePosition.Line,",
     "project": "SharpProof.Analyzer.Test/SharpProof.Analyzer.Test.csproj",
     "filter": "FullyQualifiedName~CompilerDiagnosticLocationsUseOneBasedMappedCoordinates"
   },
@@ -1762,7 +1754,7 @@
   {
     "name": "api-spec-exact-null-substitution-type",
     "file": "SharpProof.Specs/ApiSpecInstantiation.cs",
-    "original": "                ? new(factory.Null(peer.Term.Type), null)",
+    "original": "                ? new(factory.Null(peer.Type), null)",
     "mutated": "                ? new(factory.Null(factory.ObjectType), null)",
     "project": "SharpProof.Specs.Test/SharpProof.Specs.Test.csproj",
     "filter": "FullyQualifiedName~ReferenceNullUsesTheExactSubstitutedOperandType"
@@ -1778,8 +1770,8 @@
   {
     "name": "property-symbol-only-dispatch",
     "file": "SharpProof.Effects/PropertyDispatchFacts.cs",
-    "original": "        return !IsStaticallyBound(property) &&\n               IsSymbolDispatchUncertain(accessor);",
-    "mutated": "        return IsSymbolDispatchUncertain(accessor);",
+    "original": "        return !IsStaticallyBound(property) &&\n               HasOpenVirtualDispatch(accessor);",
+    "mutated": "        return HasOpenVirtualDispatch(accessor);",
     "project": "SharpProof.Effects.Test/SharpProof.Effects.Test.csproj",
     "filter": "FullyQualifiedName~PropertyDispatchUsesTheOperationReceiver"
   },
@@ -1794,32 +1786,32 @@
   {
     "name": "container-archive-source-materialization",
     "file": "eng/container/entrypoint.sh",
-    "original": "    if [[ \"${source_has_git}\" = \"true\" ]]; then",
-    "mutated": "    if [[ \"true\" = \"true\" ]]; then",
+    "original": "if [[ \"${source_has_git}\" = \"true\" ]]; then",
+    "mutated": "if [[ \"true\" = \"true\" ]]; then",
     "project": "SharpProof.ArchitectureTest/SharpProof.ArchitectureTest.csproj",
     "filter": "FullyQualifiedName~FiniteCommandsRunFromAnArchiveWithoutGit"
   },
   {
     "name": "publication-complete-topology-preflight",
     "file": "SharpProof.Host/LinuxPathIdentity.cs",
-    "original": "if (requestedPaths.Length == 0)\n        {\n            throw new ArgumentException(\n                \"At least one publication path is required.\",\n                nameof(publicationPaths));\n        }\n\n        var canonicalPaths = CanonicalPublicationPaths(requestedPaths);\n        ValidatePublicationTopology(canonicalPaths);",
-    "mutated": "if (requestedPaths.Length == 0)\n        {\n            throw new ArgumentException(\n                \"At least one publication path is required.\",\n                nameof(publicationPaths));\n        }\n\n        var canonicalPaths = CanonicalPublicationPaths(requestedPaths);\n        _ = canonicalPaths;",
+    "original": "        var canonicalPaths = CanonicalPublicationPaths(requestedPaths);\n        ValidatePublicationTopology(canonicalPaths);\n        ValidatePublicationMetadataAliases(canonicalPaths);",
+    "mutated": "        var canonicalPaths = CanonicalPublicationPaths(requestedPaths);\n        _ = canonicalPaths;\n        ValidatePublicationMetadataAliases(canonicalPaths);",
     "project": "SharpProof.Worker.Test/SharpProof.Worker.Test.csproj",
     "filter": "FullyQualifiedName~NestedPublicationSetsFailBeforeAnyFilesystemMutation"
   },
   {
     "name": "build-task-active-symmetric-topology",
     "file": "SharpProof.BuildTasks/InvalidatePublishedResult.cs",
-    "original": "                 .Any(path => LinuxPathIdentity.PathsConflict(\n                     path,\n                     resolvedCachePath)) ||",
-    "mutated": "                 .Any(path => LinuxPathIdentity.IsSameOrDescendant(\n                     path,\n                     resolvedCachePath)) ||",
+    "original": "            (publicationInputConflictPaths.Any(path =>\n                LinuxPathIdentity.PathsConflict(\n                    path,\n                    resolvedCachePath)) ||",
+    "mutated": "            (publicationInputConflictPaths.Any(path =>\n                LinuxPathIdentity.IsSameOrDescendant(\n                    path,\n                    resolvedCachePath)) ||",
     "project": "SharpProof.Package.Test/SharpProof.Package.Test.csproj",
     "filter": "FullyQualifiedName~InvalidationRejectsSymmetricIoTopologyBeforeMutation"
   },
   {
     "name": "standalone-build-stage-nonroot-contract",
     "file": "eng/container/Dockerfile",
-    "original": "COPY --chown=sharpproof:sharpproof . .\nUSER sharpproof",
-    "mutated": "COPY --chown=sharpproof:sharpproof . .\nUSER root",
+    "original": "USER sharpproof",
+    "mutated": "USER root",
     "project": "SharpProof.ArchitectureTest/SharpProof.ArchitectureTest.csproj",
     "filter": "FullyQualifiedName~NamedStagesHaveStandaloneNonRootExecutionContracts"
   },
@@ -1922,8 +1914,8 @@
   {
     "name": "verifier-output-drain-rechecks-interruption",
     "file": "SharpProof.BuildTasks/RunVerifier.cs",
-    "original": "if (isInterrupted())",
-    "mutated": "if (false)",
+    "original": "            () => outputCompletion.IsCompleted\n                ? true\n                : isInterrupted()\n                    ? false\n                    : null,",
+    "mutated": "            () => outputCompletion.IsCompleted\n                ? true\n                : false\n                    ? false\n                    : null,",
     "project": "SharpProof.Package.Test/SharpProof.Package.Test.csproj",
     "filter": "FullyQualifiedName~OutputDrainWaitRechecksInterruptionsBetweenBoundedSlices"
   },
@@ -1932,14 +1924,6 @@
     "file": "scripts/SharpProof.FuzzEvidenceLifecycle.ps1",
     "original": "            $casesPerSeed -gt 1000000 -or",
     "mutated": "            $false -or",
-    "project": "SharpProof.ArchitectureTest/SharpProof.ArchitectureTest.csproj",
-    "filter": "FullyQualifiedName~FuzzCampaignEvidenceLifecycleIsFailClosedAndAtomic"
-  },
-  {
-    "name": "retained-fuzz-manifest-byte-upper-bound",
-    "file": "scripts/SharpProof.FuzzEvidenceLifecycle.ps1",
-    "original": "$stream.Length -eq 0 -or $stream.Length -gt 1048576",
-    "mutated": "$stream.Length -eq 0 -or $false",
     "project": "SharpProof.ArchitectureTest/SharpProof.ArchitectureTest.csproj",
     "filter": "FullyQualifiedName~FuzzCampaignEvidenceLifecycleIsFailClosedAndAtomic"
   },

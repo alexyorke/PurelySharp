@@ -55,7 +55,7 @@
   },
   "mutationEvidence": {
     "schemaVersion": 1,
-    "expectedCatalogCount": 248
+    "expectedCatalogCount": 246
   },
   "worker": {
     "protocolVersion": 11,
@@ -532,6 +532,7 @@
         "SharpProof.Ir/IrInterpreter.cs",
           "SharpProof.Ir/IrProgramInterpreter.cs",
           "SharpProof.CompilerArtifact/CompilerEffectClaimArtifactCodec.cs",
+          "SharpProof.CompilerArtifact/CompilerEffectViolationAuthority.cs",
           "SharpProof.CompilerArtifact/CompilerResponseEvidenceAuthority.cs",
           "SharpProof.Worker/CallableCounterexampleReplayer.cs",
           "SharpProof.Worker/EffectCounterexampleReplayer.cs"
@@ -577,6 +578,7 @@
         "paths": [
           "SharpProof.CompilerCollector/CompilerArtifact/CompilerCompilationCapture.cs",
           "SharpProof.CompilerCollector/CompilerArtifact/CompilerOptionWireMappings.cs",
+          "SharpProof.CompilerCollector/CompilerArtifact/CompilerSourceLocationProjection.cs",
           "SharpProof.CompilerArtifact/CompilerCompilationModel.generated.cs",
           "SharpProof.CompilerArtifact/CompilationFingerprint.cs",
           "SharpProof.CompilerArtifact/CompilerSourceLocationAuthority.cs"
