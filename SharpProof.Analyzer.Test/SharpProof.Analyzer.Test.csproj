@@ -6,7 +6,6 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
-    <PackageReference Include="System.Collections.Immutable" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\eng\testing\ContractIntrinsicValidationFixtures.cs"
