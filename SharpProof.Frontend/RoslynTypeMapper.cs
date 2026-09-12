@@ -7,13 +7,9 @@ internal sealed class RoslynTypeMapper(IrFactory factory)
         ArgumentNullGuard.NotNull(factory, nameof(factory));
     internal Func<ITypeSymbol?, ITypeSymbol?> TypeSpecializer = static type => type;
 
-    internal IrTypeId GetTypeId(
-        ITypeSymbol? type, bool typeAlreadySpecialized = false)
+    internal IrTypeId GetTypeId(ITypeSymbol? type)
     {
-        if (!typeAlreadySpecialized)
-        {
-            type = TypeSpecializer(type);
-        }
+        type = TypeSpecializer(type);
         if (type == null)
         {
             return _factory.ObjectType;
@@ -28,7 +24,7 @@ internal sealed class RoslynTypeMapper(IrFactory factory)
 
         if (type is IArrayTypeSymbol array)
         {
-            var element = GetTypeId(array.ElementType, typeAlreadySpecialized);
+            var element = GetTypeId(array.ElementType);
             return _factory.GetOrCreateSequenceType(
                 CompilerIdentityBridge.InternType(_factory, array), element,
                 CompilerIdentityBridge.CreateTypeDisplay(array));
@@ -45,10 +41,9 @@ internal sealed class RoslynTypeMapper(IrFactory factory)
                 CompilerIdentityBridge.CreateTypeDisplay(type));
     }
 
-    internal bool IsSupportedValueDomain(
-        ITypeSymbol? type, bool typeAlreadySpecialized = false)
+    internal bool IsSupportedValueDomain(ITypeSymbol? type)
     {
         return CompilerIdentityBridge.IsSupportedValueDomain(
-            typeAlreadySpecialized ? type : TypeSpecializer(type));
+            TypeSpecializer(type));
     }
 }

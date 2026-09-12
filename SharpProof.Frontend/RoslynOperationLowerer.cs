@@ -129,28 +129,25 @@ public sealed class RoslynOperationLowerer
         return lowered;
     }
 
-    internal IrTypeId GetTypeId(
-        ITypeSymbol? type, bool typeAlreadySpecialized = false)
+    internal IrTypeId GetTypeId(ITypeSymbol? type)
     {
-        return _types.GetTypeId(type, typeAlreadySpecialized);
+        return _types.GetTypeId(type);
     }
 
-    internal bool IsSupportedValueDomain(
-        ITypeSymbol? type, bool typeAlreadySpecialized = false)
+    internal bool IsSupportedValueDomain(ITypeSymbol? type)
     {
-        return _types.IsSupportedValueDomain(type, typeAlreadySpecialized);
+        return _types.IsSupportedValueDomain(type);
     }
 
     internal IrVariableTerm GetVariable(
         ISymbol symbol,
-        ITypeSymbol? type,
-        bool typeAlreadySpecialized = false)
+        ITypeSymbol? type)
     {
         if (!_variables.TryGetValue(symbol, out var variable))
         {
             variable = _factory.CreateVariable(
                 symbol.Kind + ":" + symbol.MetadataName,
-                GetTypeId(type, typeAlreadySpecialized));
+                GetTypeId(type));
             _variables.Add(symbol, variable);
         }
         return _factory.Variable(variable);
@@ -158,15 +155,14 @@ public sealed class RoslynOperationLowerer
 
     internal IrVariableTerm GetCapture(
         CaptureId id,
-        ITypeSymbol? type,
-        bool typeAlreadySpecialized = false)
+        ITypeSymbol? type)
     {
         if (!_captures.TryGetValue(id, out var variable))
         {
             variable = _factory.CreateVariable(
                 "capture:" +
                 _captureOrder.Count.ToString(CultureInfo.InvariantCulture),
-                GetTypeId(type, typeAlreadySpecialized));
+                GetTypeId(type));
             _captures.Add(id, variable);
             _captureOrder.Add(variable);
         }
@@ -290,7 +286,7 @@ public sealed class RoslynOperationLowerer
         {
             variable = _factory.CreateVariable(
                 "instance:" + type.MetadataName,
-                GetTypeId(specializedType, typeAlreadySpecialized: true));
+                GetTypeId(specializedType));
             _instances.Add(type, variable);
         }
         return _factory.Variable(variable);
@@ -303,7 +299,7 @@ public sealed class RoslynOperationLowerer
         var symbol = operation.SemanticModel?.GetEnclosingSymbol(operation.Syntax.SpanStart);
         if (symbol != null)
         {
-            return GetVariable(symbol, specializedType, typeAlreadySpecialized: true);
+            return GetVariable(symbol, specializedType);
         }
 
         _missingInstance ??= _factory.CreateVariable(
@@ -449,17 +445,13 @@ public sealed class RoslynOperationLowerer
             operation.SemanticModel?.GetTypeInfo(operation.Syntax).ConvertedType;
         var specializedSourceType = TypeSpecializer(sourceType);
         if (sourceType?.TypeKind == TypeKind.Error ||
-            !IsSupportedValueDomain(
-                specializedSourceType,
-                typeAlreadySpecialized: true))
+            !IsSupportedValueDomain(specializedSourceType))
         {
             return Opaque(operation, FrontendAbstention.UnsupportedType);
         }
 
         var value = operation.ConstantValue.Value;
-        var type = GetTypeId(
-            specializedSourceType,
-            typeAlreadySpecialized: true);
+        var type = GetTypeId(specializedSourceType);
         if (sourceType is { IsValueType: true, SpecialType: SpecialType.None })
         {
             return Opaque(operation, FrontendAbstention.UnsupportedType);
@@ -595,10 +587,7 @@ public sealed class RoslynOperationLowerer
 
             return LowerSupportedReference(
                 operation,
-                type => _owner.GetVariable(
-                    operation.Local,
-                    type,
-                    typeAlreadySpecialized: true));
+                type => _owner.GetVariable(operation.Local, type));
         }
 
         public override LoweredExpression VisitParameterReference(
@@ -606,10 +595,7 @@ public sealed class RoslynOperationLowerer
         {
             return LowerSupportedReference(
                 operation,
-                type => _owner.GetVariable(
-                    operation.Parameter,
-                    type,
-                    typeAlreadySpecialized: true));
+                type => _owner.GetVariable(operation.Parameter, type));
         }
 
         public override LoweredExpression VisitFlowCapture(
@@ -624,10 +610,7 @@ public sealed class RoslynOperationLowerer
         {
             return LowerSupportedReference(
                 operation,
-                type => _owner.GetCapture(
-                    operation.Id,
-                    type,
-                    typeAlreadySpecialized: true));
+                type => _owner.GetCapture(operation.Id, type));
         }
 
         public override LoweredExpression VisitInstanceReference(
@@ -662,7 +645,7 @@ public sealed class RoslynOperationLowerer
                     FrontendAbstention.UnsupportedType);
             }
 
-            var typeId = _owner.GetTypeId(type, typeAlreadySpecialized: true);
+            var typeId = _owner.GetTypeId(type);
             return LoweredExpression.Exact(
                 _owner._factory.Null(typeId));
         }
@@ -943,8 +926,7 @@ public sealed class RoslynOperationLowerer
                 _owner.TypeSpecializer(operation.Operand.Type);
             var specializedTargetType =
                 _owner.TypeSpecializer(operation.Type);
-            if (!_owner.IsSupportedValueDomain(
-                    specializedTargetType, typeAlreadySpecialized: true))
+            if (!_owner.IsSupportedValueDomain(specializedTargetType))
             {
                 // Nullable targets are outside the IR value domain, but a
                 // conversion from a non-constant supported operand still has
@@ -979,8 +961,7 @@ public sealed class RoslynOperationLowerer
                     operand.Classification.Abstention);
             }
 
-            var target = _owner.GetTypeId(
-                specializedTargetType, typeAlreadySpecialized: true);
+            var target = _owner.GetTypeId(specializedTargetType);
             if (SymbolEqualityComparer.Default.Equals(
                     specializedOperandType,
                     specializedTargetType))
@@ -1131,9 +1112,7 @@ public sealed class RoslynOperationLowerer
             Func<ITypeSymbol?, IrTerm> exact)
         {
             var specializedType = _owner.TypeSpecializer(operation.Type);
-            return _owner.IsSupportedValueDomain(
-                    specializedType,
-                    typeAlreadySpecialized: true)
+            return _owner.IsSupportedValueDomain(specializedType)
                 ? LoweredExpression.Exact(exact(specializedType))
                 : _owner.Opaque(operation, FrontendAbstention.UnsupportedType);
         }

@@ -63,6 +63,13 @@ public sealed class UnaryAndDefaultLoweringCoverageTests
         var integer = Lower(
             "private static T Target<T>() => default(T);",
             SpecialType.System_Int64);
+        var array = Lower(
+            "private static T[] Target<T>() => default(T[]);",
+            SpecialType.System_String,
+            assert: static (factory, result) => Assert.That(
+                factory.GetTypeInfo(factory.GetTypeInfo(result.Term.Type)
+                    .ElementType!.Value).Kind,
+                Is.EqualTo(IrTypeKind.String)));
 
         using (Assert.EnterMultipleScope())
         {
@@ -72,6 +79,7 @@ public sealed class UnaryAndDefaultLoweringCoverageTests
             Assert.That(
                 ((IrIntegerTerm)integer.Term).Value,
                 Is.Zero);
+            Assert.That(array.IsExact, Is.True);
         }
     }
 
@@ -202,7 +210,8 @@ public sealed class UnaryAndDefaultLoweringCoverageTests
     private static FrontendLoweringResult Lower(
         string members,
         SpecialType? specializedType = null,
-        bool concreteReplay = false)
+        bool concreteReplay = false,
+        Action<IrFactory, FrontendLoweringResult>? assert = null)
     {
         var tree = CSharpSyntaxTree.ParseText(
             FrontendTestHelpers.WrapSubjectMembers(members),
@@ -236,17 +245,29 @@ public sealed class UnaryAndDefaultLoweringCoverageTests
         var operation = GetExpressionOperation(
             compilation.GetSemanticModel(tree),
             expression);
+        var factory = new IrFactory();
         var lowerer = concreteReplay
-            ? RoslynOperationLowerer.CreateForConcreteReplay(new IrFactory())
-            : new RoslynOperationLowerer(new IrFactory());
+            ? RoslynOperationLowerer.CreateForConcreteReplay(factory)
+            : new RoslynOperationLowerer(factory);
         if (specializedType.HasValue)
         {
             var replacement = compilation.GetSpecialType(
                 specializedType.Value);
-            lowerer.TypeSpecializer = type =>
-                type is ITypeParameterSymbol ? replacement : type;
+            ITypeSymbol? Specialize(ITypeSymbol? type)
+            {
+                return type switch
+                {
+                    ITypeParameterSymbol => replacement,
+                    IArrayTypeSymbol array => compilation.CreateArrayTypeSymbol(
+                        Specialize(array.ElementType)!, array.Rank),
+                    _ => type
+                };
+            }
+            lowerer.TypeSpecializer = Specialize;
         }
-        return lowerer.Lower(operation);
+        var result = lowerer.Lower(operation);
+        assert?.Invoke(factory, result);
+        return result;
     }
 
     private static IOperation GetExpressionOperation(
