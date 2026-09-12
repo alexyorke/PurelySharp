@@ -195,21 +195,6 @@ internal static class DiagnosticDescriptorCatalogAssertions
             anchors.Add(match.Groups["id"].Value);
         }
 
-        foreach (Match match in Regex.Matches(
-                     text,
-                     @"^(?:#{1,6})[ \t]+(?<heading>.+?)[ \t]*#*[ \t]*$",
-                     RegexOptions.Multiline))
-        {
-            var heading = Regex.Replace(
-                match.Groups["heading"].Value,
-                "<[^>]+>|`",
-                string.Empty);
-            var slug = Regex.Replace(
-                heading.ToUpperInvariant(),
-                @"[^\p{L}\p{Nd}\s-]",
-                string.Empty);
-            anchors.Add(Regex.Replace(slug.Trim(), @"\s+", "-"));
-        }
         return anchors;
     }
 

@@ -48,6 +48,7 @@ allowed only in `SharpProof.Smt`, which is packaged below
 types. Production semantic-model acquisition passes through the single audited
 `SharpProof.Frontend.Host.CompilationModelProvider`.
 
+<a id="mechanized-boundaries"></a>
 ## Mechanized boundaries
 
 The `SPMETA001`-`SPMETA011` repository analyzers turn selected
