@@ -177,13 +177,6 @@ internal static partial class RequiresCallSiteTreeAnalyzer
             cancellationToken.ThrowIfCancellationRequested();
             caller = ContractClauseInventoryBuilder
                 .NormalizeCallable(caller);
-            if (!isRoot &&
-                !_rootIsGenerated &&
-                IsGenerated(caller, declaration))
-            {
-                RecordGeneratedSubtree(declaration);
-                return;
-            }
             if (potentialOwners.Contains(caller))
             {
                 _visitedPotentialOwners.Add(caller);
